@@ -54,9 +54,23 @@
                 </a>
             </li>
             @endrole
-            @if(config('modules.task_management.enabled') || config('modules.whatsapp_bro.enabled'))
+            @if(config('modules.task_management.enabled') || config('modules.whatsapp_bro.enabled') || config('modules.contacts.enabled'))
             <li class="nav-item mt-2">
                 <div class="text-uppercase text-secondary fw-bold small px-3">Modules</div>
+            </li>
+            @endif
+            @if(config('modules.contacts.enabled'))
+            <li class="nav-item">
+                <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('contacts.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('contacts.index') }}">
+                    <span class="nav-link-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                            <path d="M8 7a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
+                            <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+                        </svg>
+                    </span>
+                    <span class="nav-link-title">Contacts</span>
+                </a>
             </li>
             @endif
             @if(config('modules.whatsapp_bro.enabled'))

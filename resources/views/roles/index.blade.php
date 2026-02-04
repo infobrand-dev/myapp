@@ -3,8 +3,8 @@
 @section('content')
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h2 class="card-title mb-0">Users</h2>
-        <a href="{{ route('users.create') }}" class="btn btn-primary">Tambah User</a>
+        <h2 class="card-title mb-0">Roles</h2>
+        <a href="{{ route('roles.create') }}" class="btn btn-primary">Tambah Role</a>
     </div>
     <div class="card-body">
         <div class="table-responsive">
@@ -12,21 +12,17 @@
                 <thead>
                     <tr>
                         <th>Nama</th>
-                        <th>Email</th>
-                        <th>Role</th>
                         <th class="text-end">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($users as $user)
+                    @forelse($roles as $role)
                         <tr>
-                            <td>{{ $user->name }}</td>
-                            <td>{{ $user->email }}</td>
-                            <td>{{ $user->roles->pluck('name')->join(', ') ?: '-' }}</td>
+                            <td>{{ $role->name }}</td>
                             <td class="text-end">
                                 <div class="d-flex justify-content-end gap-2">
-                                    <a href="{{ route('users.edit', $user) }}" class="btn btn-sm btn-outline-primary">Edit</a>
-                                    <form method="POST" action="{{ route('users.destroy', $user) }}" onsubmit="return confirm('Hapus user ini?');">
+                                    <a href="{{ route('roles.edit', $role) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                    <form method="POST" action="{{ route('roles.destroy', $role) }}" onsubmit="return confirm('Hapus role ini?');">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-outline-danger">Hapus</button>
@@ -36,7 +32,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="text-center text-muted">Belum ada user.</td>
+                            <td colspan="2" class="text-center text-muted">Belum ada role.</td>
                         </tr>
                     @endforelse
                 </tbody>

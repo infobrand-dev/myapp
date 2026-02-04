@@ -41,6 +41,18 @@
                     <span class="nav-link-title">Users</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('roles.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('roles.index') }}">
+                    <span class="nav-link-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                            <path d="M4 7a2 2 0 0 1 2 -2h4l2 2h6a2 2 0 0 1 2 2v1a2 2 0 0 1 -2 2h-6l-2 2h-4a2 2 0 0 1 -2 -2z" />
+                            <path d="M8 13v4a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2v-4" />
+                        </svg>
+                    </span>
+                    <span class="nav-link-title">Roles</span>
+                </a>
+            </li>
             @endrole
             @if(config('modules.task_management.enabled') || config('modules.whatsapp_bro.enabled'))
             <li class="nav-item mt-2">

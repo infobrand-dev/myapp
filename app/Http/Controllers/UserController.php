@@ -5,90 +5,79 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\View\View;
+use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
-    public function index(): View
+    public function index()
     {
-        $users = User::with('roles')->orderBy('name')->get();
-
+        $users = User::with('roles')->latest()->paginate(15);
         return view('users.index', compact('users'));
     }
 
-    public function create(): View
+    public function create()
     {
         $roles = Role::orderBy('name')->get();
-
         return view('users.create', compact('roles'));
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
+        $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role' => ['nullable', 'string', 'exists:roles,name'],
+            'password' => ['required', 'confirmed', 'min:8'],
+            'role' => ['required', Rule::exists('roles', 'name')],
         ]);
 
         $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => bcrypt($data['password']),
         ]);
 
-        if (!empty($validated['role'])) {
-            $user->assignRole($validated['role']);
-        }
+        $user->syncRoles([$data['role']]);
 
-        return redirect()->route('users.index')->with('status', 'User berhasil ditambahkan.');
+        return redirect()->route('users.index')->with('status', 'User ditambahkan.');
     }
 
-    public function edit(User $user): View
+    public function edit(User $user)
     {
         $roles = Role::orderBy('name')->get();
         $currentRole = $user->roles->pluck('name')->first();
-
         return view('users.edit', compact('user', 'roles', 'currentRole'));
     }
 
     public function update(Request $request, User $user): RedirectResponse
     {
-        $validated = $request->validate([
+        $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
-            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-            'role' => ['nullable', 'string', 'exists:roles,name'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'password' => ['nullable', 'confirmed', 'min:8'],
+            'role' => ['required', Rule::exists('roles', 'name')],
         ]);
 
-        $user->name = $validated['name'];
-        $user->email = $validated['email'];
-
-        if (!empty($validated['password'])) {
-            $user->password = Hash::make($validated['password']);
+        $payload = [
+            'name' => $data['name'],
+            'email' => $data['email'],
+        ];
+        if (!empty($data['password'])) {
+            $payload['password'] = bcrypt($data['password']);
         }
 
-        $user->save();
+        $user->update($payload);
+        $user->syncRoles([$data['role']]);
 
-        $user->syncRoles([]);
-        if (!empty($validated['role'])) {
-            $user->assignRole($validated['role']);
-        }
-
-        return redirect()->route('users.index')->with('status', 'User berhasil diperbarui.');
+        return redirect()->route('users.index')->with('status', 'User diperbarui.');
     }
 
     public function destroy(User $user): RedirectResponse
     {
         if (auth()->id() === $user->id) {
-            return redirect()->route('users.index')->with('status', 'Tidak bisa menghapus akun sendiri.');
+            return back()->with('status', 'Tidak bisa menghapus akun sendiri.');
         }
-
         $user->delete();
-
-        return redirect()->route('users.index')->with('status', 'User berhasil dihapus.');
+        return back()->with('status', 'User dihapus.');
     }
 }

@@ -175,6 +175,7 @@ return [
         App\Providers\EventServiceProvider::class,
     App\Providers\RouteServiceProvider::class,
     App\Modules\TaskManagement\TaskServiceProvider::class,
+    App\Modules\WhatsAppBro\WhatsAppBroServiceProvider::class,
 
     ],
 

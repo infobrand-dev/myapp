@@ -21,6 +21,29 @@ Laravel is a web application framework with expressive, elegant syntax. We belie
 
 Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
+## WhatsApp Bro Module
+
+Module ini menyediakan dashboard untuk scan QR, melihat chat, dan mengirim pesan via bridge server Node.js yang memakai package `whatsapp-web.js`.
+
+### Instalasi
+
+1. Jalankan bridge server:
+    ```bash
+    cd app/Modules/WhatsAppBro/node
+    npm install
+    npm run start
+    ```
+2. Pastikan aplikasi Laravel berjalan seperti biasa (`php artisan serve`) dan login sebagai role `Super-admin` atau `Admin`.
+3. Akses menu **WhatsApp Bro** dari sidebar, lalu scan QR yang muncul.
+
+### Konfigurasi
+
+Bridge server default berjalan di `http://localhost:3020`. Jika perlu ganti, set env berikut:
+
+```
+WHATSAPP_BRO_BRIDGE_URL=http://localhost:3020
+```
+
 ## Learning Laravel
 
 Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.

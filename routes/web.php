@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -25,9 +27,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 Route::middleware(['auth', 'role:Super-admin'])->group(function () {
-    Route::get('/users', function () {
-        return view('users.index');
-    })->name('users.index');
+    Route::resource('users', UserController::class)->except(['show']);
+    Route::resource('roles', RoleController::class)->except(['show']);
 });
 
 require __DIR__ . '/auth.php';

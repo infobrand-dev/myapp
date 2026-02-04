@@ -1,4 +1,7 @@
 /node_modules
+/app/Modules/WhatsAppBro/node/node_modules
+/app/Modules/WhatsAppBro/node/.wwebjs_auth/
+/app/Modules/WhatsAppBro/node/package-lock.json
 /public/hot
 /public/storage
 /storage/*.key

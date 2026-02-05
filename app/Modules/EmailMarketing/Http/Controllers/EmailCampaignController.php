@@ -125,7 +125,7 @@ class EmailCampaignController extends Controller
             'started_at' => null,
         ]);
 
-        return back()->withInput($request->all())->with('status', 'Draft disimpan.');
+        return redirect()->route('email-marketing.index')->with('status', 'Draft disimpan.');
     }
 
     protected function syncRecipients(EmailCampaign $campaign, $contactIds, bool $sendNow = false, bool $markPending = false): void

@@ -43,7 +43,9 @@ class EmailCampaignController extends Controller
     {
         $campaign->load(['recipients' => fn ($query) => $query->orderBy('recipient_name')]);
 
-        [$filters, $contacts] = $this->filteredContacts($request);
+        // gunakan filters dari query, jika kosong pakai old input (flashed)
+        $requestFilters = $request->input('filters', $request->old('filters', []));
+        [$filters, $contacts] = $this->filteredContacts($request, $requestFilters);
 
         return view('emailmarketing::show', [
             'campaign' => $campaign,
@@ -65,7 +67,7 @@ class EmailCampaignController extends Controller
         ]);
 
         // Build recipients from filters (or all active contacts if no filters)
-        [, $filteredContacts] = $this->filteredContacts($request);
+        [, $filteredContacts] = $this->filteredContacts($request, $data['filters'] ?? []);
         $contactIds = $filteredContacts->pluck('id');
 
         $campaign->update([
@@ -143,9 +145,9 @@ class EmailCampaignController extends Controller
         }
     }
 
-    protected function filteredContacts(Request $request): array
+    protected function filteredContacts(Request $request, $filtersInput = []): array
     {
-        $filters = collect($request->input('filters', []))
+        $filters = collect($filtersInput)
             ->filter(fn ($row) => !empty($row['value']))
             ->values();
 

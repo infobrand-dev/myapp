@@ -6,7 +6,21 @@
         <h2 class="mb-0">Email Campaign</h2>
         <div class="text-muted small">Subject dan isi email dapat disesuaikan, kirim sekarang atau jadwalkan.</div>
     </div>
-    <a href="{{ route('email-marketing.index') }}" class="btn btn-outline-secondary">Kembali</a>
+    <div class="btn-list">
+        <form method="POST" action="{{ route('email-marketing.update', $campaign) }}" class="d-inline" id="header-actions">
+            @csrf
+            @method('PUT')
+            <input type="hidden" name="body_html" id="body_html_header">
+            <input type="hidden" name="subject" id="subject_header">
+            <input type="hidden" name="scheduled_at" id="scheduled_at_header">
+            <div class="d-flex gap-2">
+                <button type="submit" name="action" value="send" class="btn btn-primary">Send Now</button>
+                <button type="submit" name="action" value="schedule" class="btn btn-outline-primary">Schedule</button>
+                <button type="submit" name="action" value="save" class="btn btn-outline-secondary">Save Draft</button>
+                <a href="{{ route('email-marketing.index') }}" class="btn btn-outline-secondary">Kembali</a>
+            </div>
+        </form>
+    </div>
 </div>
 
 <form method="POST" action="{{ route('email-marketing.update', $campaign) }}" id="campaign-form">
@@ -15,17 +29,6 @@
     <input type="hidden" name="body_html" id="body_html">
 
     <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <div class="d-flex gap-2 flex-wrap">
-                <button type="submit" name="action" value="send" class="btn btn-primary">Send Now</button>
-                <button type="submit" name="action" value="schedule" class="btn btn-outline-primary">Schedule</button>
-                <button type="submit" name="action" value="save" class="btn btn-outline-secondary">Save Draft</button>
-            </div>
-            <div class="d-flex align-items-center gap-2">
-                <label class="form-label mb-0 small text-muted">Schedule at</label>
-                <input type="datetime-local" name="scheduled_at" class="form-control form-control-sm" value="{{ optional($campaign->scheduled_at)->format('Y-m-d\\TH:i') }}">
-            </div>
-        </div>
         <div class="card-body">
             <div class="mb-3">
                 <label class="form-label">Subject (sekaligus nama campaign)</label>
@@ -34,11 +37,41 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Recipients (ambil dari Contacts)</label>
+                <label class="form-label">Filter Recipients (ambil dari Contacts)</label>
+                <div id="filter-rows" class="mb-2">
+                    @php $filterRows = $filters ?? collect([['field'=>'email','operator'=>'contains','value'=>'']]); @endphp
+                    @foreach($filterRows as $idx => $filter)
+                        <div class="d-flex gap-2 align-items-center mb-2 filter-row">
+                            <select name="filters[{{$idx}}][field]" class="form-select form-select-sm" style="max-width:140px;">
+                                <option value="email" {{ ($filter['field'] ?? '') === 'email' ? 'selected' : '' }}>Email</option>
+                                <option value="name" {{ ($filter['field'] ?? '') === 'name' ? 'selected' : '' }}>Name</option>
+                                <option value="company" {{ ($filter['field'] ?? '') === 'company' ? 'selected' : '' }}>Company</option>
+                            </select>
+                            <select name="filters[{{$idx}}][operator]" class="form-select form-select-sm" style="max-width:140px;">
+                                <option value="contains" {{ ($filter['operator'] ?? '') === 'contains' ? 'selected' : '' }}>contains</option>
+                                <option value="not_contains" {{ ($filter['operator'] ?? '') === 'not_contains' ? 'selected' : '' }}>not contains</option>
+                                <option value="equals" {{ ($filter['operator'] ?? '') === 'equals' ? 'selected' : '' }}>equals</option>
+                                <option value="starts_with" {{ ($filter['operator'] ?? '') === 'starts_with' ? 'selected' : '' }}>starts with</option>
+                            </select>
+                            <input type="text" name="filters[{{$idx}}][value]" class="form-control form-control-sm" placeholder="value" value="{{ $filter['value'] ?? '' }}">
+                            <button class="btn btn-link text-danger btn-sm remove-row" type="button">Hapus</button>
+                        </div>
+                    @endforeach
+                </div>
+                <div class="d-flex gap-2 mb-2">
+                    <button class="btn btn-outline-secondary btn-sm" type="button" id="add-filter">Tambah Rule</button>
+                    <button class="btn btn-outline-primary btn-sm" type="submit" name="action" value="save">Terapkan Filter</button>
+                    <span class="badge bg-azure-lt text-azure">Matches: {{ $matchCount }}</span>
+                </div>
+                <div class="text-muted small">Contoh: email contains gmail.com, company contains unilever.</div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Recipients (hasil filter, bisa pilih manual)</label>
                 <select name="contact_ids[]" class="form-select" multiple size="8">
                     @foreach($contacts as $contact)
                         <option value="{{ $contact->id }}" {{ in_array($contact->id, $campaign->recipients->pluck('contact_id')->all()) ? 'selected' : '' }}>
-                            {{ $contact->name }} — {{ $contact->email }}
+                            {{ $contact->name }} — {{ $contact->email }} {{ $contact->company ? '('.$contact->company.')' : '' }}
                         </option>
                     @endforeach
                 </select>
@@ -63,6 +96,8 @@
         height: '560px',
         fromElement: true,
         storageManager: false,
+        selectorManager: { appendTo: '' },
+        styleManager: { appendTo: '' },
     });
 
     const bm = editor.BlockManager;
@@ -76,6 +111,56 @@
     const form = document.getElementById('campaign-form');
     form?.addEventListener('submit', function () {
         document.getElementById('body_html').value = editor.getHtml();
+    });
+
+    // Inject canvas styles to keep GrapeJS default look
+    editor.on('canvas:ready', () => {
+        const css = "body{font-family:Arial, Helvetica, sans-serif;} a{color:#206bc4;} h1,h2,h3{font-family:Arial, Helvetica, sans-serif;}";
+        const doc = editor.Canvas.getDocument();
+        const styleEl = doc.createElement('style');
+        styleEl.innerHTML = css;
+        doc.head.appendChild(styleEl);
+    });
+
+    // Rule builder add/remove
+    const filterWrap = document.getElementById('filter-rows');
+    const addBtn = document.getElementById('add-filter');
+    addBtn?.addEventListener('click', () => {
+        const idx = filterWrap.querySelectorAll('.filter-row').length;
+        const div = document.createElement('div');
+        div.className = 'd-flex gap-2 align-items-center mb-2 filter-row';
+        div.innerHTML = `
+            <select name="filters[${idx}][field]" class="form-select form-select-sm" style="max-width:140px;">
+                <option value="email">Email</option>
+                <option value="name">Name</option>
+                <option value="company">Company</option>
+            </select>
+            <select name="filters[${idx}][operator]" class="form-select form-select-sm" style="max-width:140px;">
+                <option value="contains">contains</option>
+                <option value="not_contains">not contains</option>
+                <option value="equals">equals</option>
+                <option value="starts_with">starts with</option>
+            </select>
+            <input type="text" name="filters[${idx}][value]" class="form-control form-control-sm" placeholder="value">
+            <button class="btn btn-link text-danger btn-sm remove-row" type="button">Hapus</button>
+        `;
+        filterWrap.appendChild(div);
+    });
+
+    filterWrap?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.remove-row');
+        if(!btn) return;
+        btn.parentElement.remove();
+    });
+
+    // Keep header action hidden inputs synced
+    const subjectInput = document.querySelector('input[name="subject"]');
+    const scheduledInput = document.querySelector('input[name="scheduled_at"]');
+    const headerForm = document.getElementById('header-actions');
+    headerForm?.addEventListener('submit', (e) => {
+        document.getElementById('subject_header').value = subjectInput.value;
+        document.getElementById('scheduled_at_header').value = scheduledInput.value;
+        document.getElementById('body_html_header').value = editor.getHtml();
     });
 </script>
 @endpush

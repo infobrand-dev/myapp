@@ -39,19 +39,17 @@ class EmailCampaignController extends Controller
         return redirect()->route('email-marketing.show', $campaign);
     }
 
-    public function show(EmailCampaign $campaign): View
+    public function show(Request $request, EmailCampaign $campaign): View
     {
         $campaign->load(['recipients' => fn ($query) => $query->orderBy('recipient_name')]);
-        $contacts = Contact::query()
-            ->whereNotNull('email')
-            ->where('email', '!=', '')
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'name', 'email']);
+
+        [$filters, $contacts] = $this->filteredContacts($request);
 
         return view('emailmarketing::show', [
             'campaign' => $campaign,
             'contacts' => $contacts,
+            'filters'  => $filters,
+            'matchCount' => $contacts->count(),
         ]);
     }
 
@@ -142,6 +140,47 @@ class EmailCampaignController extends Controller
                 'delivered_at' => $deliveredAt,
             ]);
         }
+    }
+
+    protected function filteredContacts(Request $request): array
+    {
+        $filters = collect($request->input('filters', []))
+            ->filter(fn ($row) => !empty($row['value']))
+            ->values();
+
+        $query = Contact::query()
+            ->whereNotNull('email')
+            ->where('email', '!=', '')
+            ->where('is_active', true);
+
+        $filters->each(function ($row) use ($query) {
+            $field = $row['field'] ?? 'email';
+            $op = $row['operator'] ?? 'contains';
+            $value = $row['value'] ?? '';
+
+            $query->where(function ($q) use ($field, $op, $value) {
+                $column = $field === 'company' ? 'company' : ($field === 'name' ? 'name' : 'email');
+                $val = $value;
+                switch ($op) {
+                    case 'not_contains':
+                        $q->where($column, 'not like', '%' . $val . '%');
+                        break;
+                    case 'equals':
+                        $q->where($column, '=', $val);
+                        break;
+                    case 'starts_with':
+                        $q->where($column, 'like', $val . '%');
+                        break;
+                    default: // contains
+                        $q->where($column, 'like', '%' . $val . '%');
+                        break;
+                }
+            });
+        });
+
+        $contacts = $query->orderBy('name')->get(['id', 'name', 'email', 'company']);
+
+        return [$filters, $contacts];
     }
 
     public function markReply(EmailCampaignRecipient $recipient): RedirectResponse

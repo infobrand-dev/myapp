@@ -63,19 +63,6 @@
                     <button class="btn btn-outline-primary btn-sm" type="submit" name="action" value="save">Terapkan Filter</button>
                     <span class="badge bg-azure-lt text-azure">Matches: {{ $matchCount }}</span>
                 </div>
-                <div class="text-muted small">Contoh: email contains gmail.com, company contains unilever.</div>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Recipients (hasil filter, bisa pilih manual)</label>
-                <select name="contact_ids[]" class="form-select" multiple size="8">
-                    @foreach($contacts as $contact)
-                        <option value="{{ $contact->id }}" {{ in_array($contact->id, $campaign->recipients->pluck('contact_id')->all()) ? 'selected' : '' }}>
-                            {{ $contact->name }} — {{ $contact->email }} {{ $contact->company_name ? '('.$contact->company_name.')' : '' }}
-                        </option>
-                    @endforeach
-                </select>
-                <div class="text-muted small mt-1">Gunakan Ctrl/Cmd + klik untuk memilih banyak kontak. Kontak baru bisa ditambah lewat module Contacts.</div>
             </div>
 
             <div class="mb-2">

@@ -60,12 +60,13 @@ class EmailCampaignController extends Controller
         $data = $request->validate([
             'subject' => ['required', 'string', 'max:255'],
             'body_html' => ['required', 'string'],
-            'contact_ids' => ['array'],
-            'contact_ids.*' => ['integer', 'exists:contacts,id'],
             'scheduled_at' => ['nullable', 'date', 'after:now'],
+            'filters' => ['array'],
         ]);
 
-        $contactIds = collect($data['contact_ids'] ?? []);
+        // Build recipients from filters (or all active contacts if no filters)
+        [, $filteredContacts] = $this->filteredContacts($request);
+        $contactIds = $filteredContacts->pluck('id');
 
         $campaign->update([
             'name' => $data['subject'], // gabungkan name & subject
@@ -75,7 +76,7 @@ class EmailCampaignController extends Controller
 
         if ($action === 'send') {
             if ($contactIds->isEmpty()) {
-                return back()->with('status', 'Pilih minimal satu penerima dari Contacts.');
+                return back()->withInput()->with('status', 'Pilih minimal satu penerima dari Contacts.');
             }
             $this->syncRecipients($campaign, $contactIds, sendNow: true);
 
@@ -91,7 +92,7 @@ class EmailCampaignController extends Controller
 
         if ($action === 'schedule') {
             if ($contactIds->isEmpty()) {
-                return back()->with('status', 'Pilih minimal satu penerima dari Contacts.');
+                return back()->withInput()->with('status', 'Pilih minimal satu penerima dari Contacts.');
             }
             $scheduledAt = Carbon::parse($data['scheduled_at']);
             $this->syncRecipients($campaign, $contactIds, sendNow: false, markPending: true);

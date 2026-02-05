@@ -3,7 +3,7 @@
 ## What the app is
 - Laravel app with Breeze (Blade), Vite, Tabler UI, Spatie Permission, MySQL.
 - Core features: Dashboard, Profile (edit + password + avatar), Users & Roles CRUD.
-- Optional/modules for sale: see `MODULES.md` (Internal Memo includes Task Templates; WhatsAppBro).
+- Optional/modules for sale: see `MODULES.md` (Internal Memo includes Task Templates; Shortlink; WhatsAppBro).
 
 ## How to run (generic)
 - Backend deps: `composer install` (PHP ≥ 8.2).

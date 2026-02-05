@@ -11,6 +11,9 @@ return [
     'contacts' => [
         'enabled' => true,
     ],
+    'shortlink' => [
+        'enabled' => true,
+    ],
     'email_marketing' => [
         'enabled' => true,
     ],

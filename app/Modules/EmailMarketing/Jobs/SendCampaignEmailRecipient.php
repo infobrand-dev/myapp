@@ -41,7 +41,9 @@ class SendCampaignEmailRecipient implements ShouldQueue
 
         Mail::html($html, function ($message) use ($recipient, $campaign) {
             $message->to($recipient->recipient_email, $recipient->recipient_name)
-                ->subject($campaign->subject);
+                ->subject($campaign->subject)
+                ->getHeaders()
+                ->addTextHeader('X-Recipient-Token', $recipient->tracking_token);
         });
 
         $recipient->update([

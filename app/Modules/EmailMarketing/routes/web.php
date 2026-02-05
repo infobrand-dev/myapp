@@ -26,3 +26,6 @@ Route::middleware(['web'])
         Route::get('/open/{token}', [EmailCampaignController::class, 'trackOpen'])->name('open');
         Route::get('/click/{token}', [EmailCampaignController::class, 'trackClick'])->name('click');
     });
+
+Route::post('/webhook/mailtrap', [\App\Modules\EmailMarketing\Http\Controllers\EmailWebhookController::class, 'mailtrap'])
+    ->name('email-marketing.webhook.mailtrap');

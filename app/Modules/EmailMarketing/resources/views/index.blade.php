@@ -37,7 +37,12 @@
                                 {{ strtoupper($campaign->status) }}
                             </span>
                         </td>
-                        <td class="text-center">{{ $campaign->recipients_count ?? 0 }}</td>
+                        @php
+                            $recipientsDisplay = $campaign->status === 'running'
+                                ? ($campaign->recipients_count ?? 0)
+                                : ($campaign->planned_count ?? $campaign->recipients_count ?? 0);
+                        @endphp
+                        <td class="text-center">{{ $recipientsDisplay }}</td>
                         <td>
                             @if($campaign->scheduled_at)
                                 {{ $campaign->scheduled_at->format('d M Y H:i') }}

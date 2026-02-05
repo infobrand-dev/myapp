@@ -14,12 +14,17 @@ use Illuminate\Support\Str;
 
 class EmailCampaignController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         $campaigns = EmailCampaign::query()
             ->withCount('recipients')
             ->latest()
-            ->get();
+            ->get()
+            ->map(function ($campaign) use ($request) {
+                [$filters, $contacts] = $this->filteredContacts($request, $campaign->filter_json ?? []);
+                $campaign->planned_count = $contacts->count();
+                return $campaign;
+            });
 
         return view('emailmarketing::index', compact('campaigns'));
     }

@@ -167,6 +167,10 @@ class EmailCampaignController extends Controller
 
     protected function filteredContacts(Request $request, $filtersInput = []): array
     {
+        if (is_string($filtersInput)) {
+            $filtersInput = json_decode($filtersInput, true) ?? [];
+        }
+
         $filters = collect($filtersInput)
             ->filter(fn ($row) => !empty($row['value']))
             ->values();

@@ -15,11 +15,15 @@ class EmailCampaign extends Model
         'subject',
         'status',
         'body_html',
+        'filter_json',
         'started_at',
+        'scheduled_at',
     ];
 
     protected $casts = [
         'started_at' => 'datetime',
+        'scheduled_at' => 'datetime',
+        'filter_json' => 'array',
     ];
 
     public function recipients(): HasMany

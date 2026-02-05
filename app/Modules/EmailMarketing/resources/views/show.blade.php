@@ -1,39 +1,36 @@
 @extends('layouts.admin')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h2 class="mb-0">Email Campaign</h2>
-        <div class="text-muted small">Subject dan isi email dapat disesuaikan, kirim sekarang atau jadwalkan.</div>
-    </div>
-    <div class="btn-list">
-        <form method="POST" action="{{ route('email-marketing.update', $campaign) }}" class="d-inline" id="header-actions">
-            @csrf
-            @method('PUT')
-            <input type="hidden" name="body_html" id="body_html_header">
-            <input type="hidden" name="subject" id="subject_header">
-            <input type="hidden" name="scheduled_at" id="scheduled_at_header">
-            <div class="d-flex gap-2">
-                <button type="submit" name="action" value="send" class="btn btn-primary">Send Now</button>
-                <button type="submit" name="action" value="schedule" class="btn btn-outline-primary">Schedule</button>
-                <button type="submit" name="action" value="save" class="btn btn-outline-secondary">Save Draft</button>
-                <a href="{{ route('email-marketing.index') }}" class="btn btn-outline-secondary">Kembali</a>
-            </div>
-        </form>
-    </div>
-</div>
-
 <form method="POST" action="{{ route('email-marketing.update', $campaign) }}" id="campaign-form">
     @csrf
     @method('PUT')
     <input type="hidden" name="body_html" id="body_html">
 
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="mb-0">Email Campaign</h2>
+            <div class="text-muted small">Subject dan isi email dapat disesuaikan, kirim sekarang atau jadwalkan.</div>
+        </div>
+        <div class="btn-list">
+            <button type="submit" name="action" value="send" class="btn btn-primary">Send Now</button>
+            <button type="submit" name="action" value="schedule" class="btn btn-outline-primary">Schedule</button>
+            <button type="submit" name="action" value="save" class="btn btn-outline-secondary">Save Draft</button>
+            <a href="{{ route('email-marketing.index') }}" class="btn btn-outline-secondary">Kembali</a>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-body">
-            <div class="mb-3">
-                <label class="form-label">Subject</label>
-                <input type="text" name="subject" class="form-control" value="{{ old('subject', $campaign->subject) }}">
-                @error('subject') <div class="text-danger small">{{ $message }}</div> @enderror
+            <div class="row g-3 align-items-end mb-2">
+                <div class="col-md-9">
+                    <label class="form-label">Subject</label>
+                    <input type="text" name="subject" class="form-control" value="{{ old('subject', $campaign->subject) }}">
+                    @error('subject') <div class="text-danger small">{{ $message }}</div> @enderror
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Schedule at</label>
+                    <input type="datetime-local" name="scheduled_at" class="form-control" value="{{ optional($campaign->scheduled_at)->format('Y-m-d\\TH:i') }}">
+                </div>
             </div>
 
             <div class="mb-3">
@@ -60,7 +57,6 @@
                 </div>
                 <div class="d-flex gap-2 mb-2">
                     <button class="btn btn-outline-secondary btn-sm" type="button" id="add-filter">Tambah Rule</button>
-                    <button class="btn btn-outline-primary btn-sm" type="submit" name="action" value="save">Terapkan Filter</button>
                     <span class="badge bg-azure-lt text-azure">Matches: {{ $matchCount }}</span>
                 </div>
             </div>
@@ -92,15 +88,14 @@
     bm.add('cta-btn', { label: 'Button', content: '<a style="display:inline-block;padding:10px 18px;background:#0f9f6e;color:#fff;text-decoration:none;border-radius:6px;">Tombol</a>' });
     bm.add('two-col', { label: '2 Kolom', content: '<table style="width:100%;"><tr><td style="width:50%;padding:10px;">Kolom kiri</td><td style="width:50%;padding:10px;">Kolom kanan</td></tr></table>' });
     bm.add('list', { label: 'List', content: '<ul><li>Item 1</li><li>Item 2</li><li>Item 3</li></ul>' });
-    bm.add('image', { label: 'Image', content: '<img src="https://placehold.co/600x200" alt="Image" style="max-width:100%;height:auto;">' });
-    bm.add('spacer', { label: 'Spacer', content: '<div style="height:24px;"></div>' });
+    bm.add('image', { label: 'Image', content: '<img src=\"https://placehold.co/600x200\" alt=\"Image\" style=\"max-width:100%;height:auto;\">' });
+    bm.add('spacer', { label: 'Spacer', content: '<div style=\"height:24px;\"></div>' });
 
     const form = document.getElementById('campaign-form');
     form?.addEventListener('submit', function () {
         document.getElementById('body_html').value = editor.getHtml();
     });
 
-    // Inject canvas styles to keep GrapeJS default look
     editor.on('canvas:ready', () => {
         const css = "body{font-family:Arial, Helvetica, sans-serif;} a{color:#206bc4;} h1,h2,h3{font-family:Arial, Helvetica, sans-serif;}";
         const doc = editor.Canvas.getDocument();
@@ -109,7 +104,6 @@
         doc.head.appendChild(styleEl);
     });
 
-    // Rule builder add/remove
     const filterWrap = document.getElementById('filter-rows');
     const addBtn = document.getElementById('add-filter');
     addBtn?.addEventListener('click', () => {
@@ -138,16 +132,6 @@
         const btn = e.target.closest('.remove-row');
         if(!btn) return;
         btn.parentElement.remove();
-    });
-
-    // Keep header action hidden inputs synced
-    const subjectInput = document.querySelector('input[name="subject"]');
-    const scheduledInput = document.querySelector('input[name="scheduled_at"]');
-    const headerForm = document.getElementById('header-actions');
-    headerForm?.addEventListener('submit', (e) => {
-        document.getElementById('subject_header').value = subjectInput.value;
-        document.getElementById('scheduled_at_header').value = scheduledInput.value;
-        document.getElementById('body_html_header').value = editor.getHtml();
     });
 </script>
 @endpush

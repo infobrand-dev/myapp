@@ -32,7 +32,7 @@
         <div class="card-body">
             <div class="mb-3">
                 <label class="form-label">Subject</label>
-                <input type="text" name="subject" class="form-control" value="{{ old('subject', $campaign->subject) }}" required>
+                <input type="text" name="subject" class="form-control" value="{{ old('subject', $campaign->subject) }}">
                 @error('subject') <div class="text-danger small">{{ $message }}</div> @enderror
             </div>
 

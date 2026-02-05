@@ -4,10 +4,7 @@
 @php
     use Illuminate\Support\Str;
     $isNew = $isNew ?? $campaign->exists === false;
-    $emailHtml = $campaign->body_html ?: \App\Modules\EmailMarketing\Http\Controllers\EmailCampaignController::defaultTemplate();
-    if (!Str::contains($emailHtml, 'email-wrapper-outer')) {
-        $emailHtml = '<div class="email-wrapper-outer" style="Margin:0;background:#f2f4f7;padding:16px;font-family:Arial,sans-serif;">'.$emailHtml.'</div>';
-    }
+    $emailHtml = \App\Modules\EmailMarketing\Http\Controllers\EmailCampaignController::editorHtml($campaign->body_html);
 @endphp
 <form method="POST" action="{{ $isNew ? route('email-marketing.store') : route('email-marketing.update', $campaign) }}" id="campaign-form">
     @csrf

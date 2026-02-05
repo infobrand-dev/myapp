@@ -51,6 +51,28 @@ class EmailCampaignController extends Controller
 HTML;
     }
 
+    /**
+     * Normalize body html for editor preview: add wrapper + base style.
+     */
+    public static function editorHtml(?string $html): string
+    {
+        $html = $html ?: self::defaultTemplate();
+        if (!str_contains($html, 'email-wrapper-outer')) {
+            $html = '<div class="email-wrapper-outer" style="Margin:0;background:#f2f4f7;padding:16px;font-family:Arial,sans-serif;">'.$html.'</div>';
+        }
+        if (!str_contains($html, 'data-email-base-style')) {
+            $style = '<style data-email-base-style>
+                body{margin:0;padding:0;background:#f2f4f7;font-family:Arial,Helvetica,sans-serif;}
+                .email-wrapper-outer{background:#f2f4f7;padding:16px;}
+                table{margin:0 auto;max-width:500px;width:100%;}
+                a{color:#206bc4;}
+                h1,h2,h3,h4,h5,h6{font-family:Arial,Helvetica,sans-serif;}
+            </style>';
+            $html = $style . $html;
+        }
+        return $html;
+    }
+
     public function index(Request $request): View
     {
         $campaigns = EmailCampaign::query()

@@ -11,4 +11,7 @@ return [
     'contacts' => [
         'enabled' => true,
     ],
+    'email_marketing' => [
+        'enabled' => true,
+    ],
 ];

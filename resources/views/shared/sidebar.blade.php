@@ -54,7 +54,7 @@
                 </a>
             </li>
             @endrole
-            @if(config('modules.task_management.enabled') || config('modules.whatsapp_bro.enabled') || config('modules.contacts.enabled'))
+            @if(config('modules.task_management.enabled') || config('modules.whatsapp_bro.enabled') || config('modules.contacts.enabled') || config('modules.email_marketing.enabled'))
             <li class="nav-item mt-2">
                 <div class="text-uppercase text-secondary fw-bold small px-3">Modules</div>
             </li>
@@ -70,6 +70,20 @@
                         </svg>
                     </span>
                     <span class="nav-link-title">Contacts</span>
+                </a>
+            </li>
+            @endif
+            @if(config('modules.email_marketing.enabled'))
+            <li class="nav-item">
+                <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('email-marketing.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('email-marketing.index') }}">
+                    <span class="nav-link-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                            <path d="M3 7a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z" />
+                            <path d="M3 7l9 6l9 -6" />
+                        </svg>
+                    </span>
+                    <span class="nav-link-title">Email Marketing</span>
                 </a>
             </li>
             @endif

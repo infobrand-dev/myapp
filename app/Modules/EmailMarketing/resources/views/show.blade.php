@@ -34,35 +34,36 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Filter Recipients (ambil dari Contacts)</label>
+                <label class="form-label">Filter Recipients</label>
                 <div id="filter-rows" class="mb-2">
                     @php $filterRows = $filters ?? collect([['field'=>'email','operator'=>'contains','value'=>'']]); @endphp
                     @foreach($filterRows as $idx => $filter)
                         <div class="d-flex gap-2 align-items-center mb-2 filter-row">
-                            <select name="filters[{{$idx}}][field]" class="form-select form-select-sm" style="max-width:140px;">
+                            <select name="filters[{{$idx}}][field]" class="form-select form-select-sm filter-input" style="max-width:140px;">
                                 <option value="email" {{ ($filter['field'] ?? '') === 'email' ? 'selected' : '' }}>Email</option>
                                 <option value="name" {{ ($filter['field'] ?? '') === 'name' ? 'selected' : '' }}>Name</option>
                                 <option value="company" {{ ($filter['field'] ?? '') === 'company' ? 'selected' : '' }}>Company</option>
                             </select>
-                            <select name="filters[{{$idx}}][operator]" class="form-select form-select-sm" style="max-width:140px;">
+                            <select name="filters[{{$idx}}][operator]" class="form-select form-select-sm filter-input" style="max-width:140px;">
                                 <option value="contains" {{ ($filter['operator'] ?? '') === 'contains' ? 'selected' : '' }}>contains</option>
                                 <option value="not_contains" {{ ($filter['operator'] ?? '') === 'not_contains' ? 'selected' : '' }}>not contains</option>
                                 <option value="equals" {{ ($filter['operator'] ?? '') === 'equals' ? 'selected' : '' }}>equals</option>
                                 <option value="starts_with" {{ ($filter['operator'] ?? '') === 'starts_with' ? 'selected' : '' }}>starts with</option>
                             </select>
-                            <input type="text" name="filters[{{$idx}}][value]" class="form-control form-control-sm" placeholder="value" value="{{ $filter['value'] ?? '' }}">
+                            <input type="text" name="filters[{{$idx}}][value]" class="form-control form-control-sm filter-input" placeholder="value" value="{{ $filter['value'] ?? '' }}">
                             <button class="btn btn-link text-danger btn-sm remove-row" type="button">Hapus</button>
                         </div>
                     @endforeach
                 </div>
                 <div class="d-flex gap-2 mb-2">
                     <button class="btn btn-outline-secondary btn-sm" type="button" id="add-filter">Tambah Rule</button>
+                    <button class="btn btn-outline-primary btn-sm" type="button" id="apply-filter">Terapkan Filter</button>
                     <span class="badge bg-azure-lt text-azure">Matches: {{ $matchCount }}</span>
                 </div>
             </div>
 
             <div class="mb-2">
-                <label class="form-label">Body Mail (GrapeJS)</label>
+                <label class="form-label">Body Mail</label>
                 <div id="gjs" style="height: 560px; border:1px solid #e5e7eb;">{!! $campaign->body_html !!}</div>
             </div>
         </div>
@@ -106,23 +107,25 @@
 
     const filterWrap = document.getElementById('filter-rows');
     const addBtn = document.getElementById('add-filter');
+    const applyBtn = document.getElementById('apply-filter');
+
     addBtn?.addEventListener('click', () => {
         const idx = filterWrap.querySelectorAll('.filter-row').length;
         const div = document.createElement('div');
         div.className = 'd-flex gap-2 align-items-center mb-2 filter-row';
         div.innerHTML = `
-            <select name="filters[${idx}][field]" class="form-select form-select-sm" style="max-width:140px;">
+            <select name="filters[${idx}][field]" class="form-select form-select-sm filter-input" style="max-width:140px;">
                 <option value="email">Email</option>
                 <option value="name">Name</option>
                 <option value="company">Company</option>
             </select>
-            <select name="filters[${idx}][operator]" class="form-select form-select-sm" style="max-width:140px;">
+            <select name="filters[${idx}][operator]" class="form-select form-select-sm filter-input" style="max-width:140px;">
                 <option value="contains">contains</option>
                 <option value="not_contains">not contains</option>
                 <option value="equals">equals</option>
                 <option value="starts_with">starts with</option>
             </select>
-            <input type="text" name="filters[${idx}][value]" class="form-control form-control-sm" placeholder="value">
+            <input type="text" name="filters[${idx}][value]" class="form-control form-control-sm filter-input" placeholder="value">
             <button class="btn btn-link text-danger btn-sm remove-row" type="button">Hapus</button>
         `;
         filterWrap.appendChild(div);
@@ -132,6 +135,22 @@
         const btn = e.target.closest('.remove-row');
         if(!btn) return;
         btn.parentElement.remove();
+    });
+
+    function submitFiltersOnly() {
+        const form = document.getElementById('campaign-form');
+        const action = form.getAttribute('action');
+        const params = new URLSearchParams(new FormData(form));
+        // use GET to refresh matches without saving
+        window.location = action + '?' + params.toString();
+    }
+
+    applyBtn?.addEventListener('click', submitFiltersOnly);
+
+    filterWrap?.addEventListener('change', (e) => {
+        if (e.target.classList.contains('filter-input')) {
+            submitFiltersOnly();
+        }
     });
 </script>
 @endpush

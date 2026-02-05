@@ -62,7 +62,7 @@
 
             <div class="mb-2">
                 <label class="form-label">Body Mail</label>
-                <div id="gjs" style="height: 560px; border:1px solid #e5e7eb;">{!! $campaign->body_html !!}</div>
+                <div id="gjs" style="height: 560px; border:1px solid #e5e7eb;">{!! $campaign->body_html ?: \App\Modules\EmailMarketing\Http\Controllers\EmailCampaignController::defaultTemplate() !!}</div>
             </div>
         </div>
     </div>
@@ -116,7 +116,14 @@
     });
 
     editor.on('canvas:ready', () => {
-        const css = "body{font-family:Arial, Helvetica, sans-serif;} a{color:#206bc4;} h1,h2,h3{font-family:Arial, Helvetica, sans-serif;}";
+        const css = `
+            body{font-family:Arial, Helvetica, sans-serif; background:#f6f8fb; margin:0;}
+            a{color:#206bc4;}
+            h1,h2,h3,h4,h5,h6{font-family:Arial, Helvetica, sans-serif;}
+            input, select, textarea{font-family:Arial, Helvetica, sans-serif; font-size:14px; color:#111827; padding:10px; border:1px solid #d1d5db; border-radius:8px; width:100%;}
+            button{font-family:Arial, Helvetica, sans-serif;}
+            table{width:100%;}
+        `;
         const doc = editor.Canvas.getDocument();
         const styleEl = doc.createElement('style');
         styleEl.innerHTML = css;

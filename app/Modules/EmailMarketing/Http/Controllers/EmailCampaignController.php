@@ -14,6 +14,42 @@ use Illuminate\Support\Str;
 
 class EmailCampaignController extends Controller
 {
+    protected static function defaultTemplate(): string
+    {
+        return <<<HTML
+<div style="Margin:0;background:#f6f8fb;padding:16px;font-family:Arial,sans-serif;">
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="max-width:480px;width:100%;Margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,0.06);">
+    <tr>
+      <td style="padding:24px 24px 8px 24px;text-align:center;">
+        <img src="https://placehold.co/96x96?text=Logo" alt="Logo" width="96" height="96" style="border-radius:50%;display:block;Margin:0 auto 12px;">
+        <h1 style="Margin:0;font-size:20px;line-height:28px;color:#111827;">Halo {{name}}</h1>
+        <p style="Margin:8px 0 0;font-size:14px;line-height:22px;color:#6b7280;">Berikut update terbaru untuk Anda.</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:8px 24px 16px 24px;">
+        <div style="background:#f0f4ff;border-radius:10px;padding:14px 16px;">
+          <h2 style="Margin:0 0 8px;font-size:16px;line-height:22px;color:#1f2937;">Judul Seksi</h2>
+          <p style="Margin:0;font-size:14px;line-height:22px;color:#4b5563;">Tulis konten email Anda di sini. Sertakan {{track_click}} untuk tracking link jika diperlukan.</p>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:0 24px 24px 24px;text-align:center;">
+        <a href="#" style="display:inline-block;padding:12px 18px;background:#206bc4;color:#fff;border-radius:10px;text-decoration:none;font-size:14px;">Call To Action</a>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:0 24px 20px 24px;text-align:center;font-size:12px;line-height:18px;color:#9ca3af;">
+        <div style="Margin-bottom:4px;">Jika tombol tidak berfungsi, salin link ini: {{track_click}}</div>
+        <div>&copy; 2026 MyApp. Semua hak dilindungi.</div>
+      </td>
+    </tr>
+  </table>
+</div>
+HTML;
+    }
+
     public function index(Request $request): View
     {
         $campaigns = EmailCampaign::query()
@@ -44,7 +80,7 @@ class EmailCampaignController extends Controller
             'name' => 'New Campaign',
             'subject' => 'New Campaign',
             'status' => 'draft',
-            'body_html' => '<div style="padding:20px;font-family:Arial,sans-serif;"><h2>Halo {{name}}</h2><p>Tulis konten email Anda di sini. Untuk link tracking gunakan token: {{track_click}}</p></div>',
+            'body_html' => self::defaultTemplate(),
         ]);
 
         return redirect()->route('email-marketing.show', $campaign);

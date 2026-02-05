@@ -155,30 +155,32 @@ class EmailCampaignController extends Controller
             ->where('contacts.email', '!=', '')
             ->where('contacts.is_active', true);
 
-        $filters->each(function ($row) use ($query) {
-            $field = $row['field'] ?? 'email';
-            $op = $row['operator'] ?? 'contains';
-            $value = $row['value'] ?? '';
+        if ($filters->isNotEmpty()) {
+            $filters->each(function ($row) use ($query) {
+                $field = $row['field'] ?? 'email';
+                $op = $row['operator'] ?? 'contains';
+                $value = $row['value'] ?? '';
 
-            $query->where(function ($q) use ($field, $op, $value) {
-                $column = $field === 'company' ? 'company.name' : ($field === 'name' ? 'contacts.name' : 'contacts.email');
-                $val = $value;
-                switch ($op) {
-                    case 'not_contains':
-                        $q->where($column, 'not like', '%' . $val . '%');
-                        break;
-                    case 'equals':
-                        $q->where($column, '=', $val);
-                        break;
-                    case 'starts_with':
-                        $q->where($column, 'like', $val . '%');
-                        break;
-                    default: // contains
-                        $q->where($column, 'like', '%' . $val . '%');
-                        break;
-                }
+                $query->where(function ($q) use ($field, $op, $value) {
+                    $column = $field === 'company' ? 'company.name' : ($field === 'name' ? 'contacts.name' : 'contacts.email');
+                    $val = $value;
+                    switch ($op) {
+                        case 'not_contains':
+                            $q->where($column, 'not like', '%' . $val . '%');
+                            break;
+                        case 'equals':
+                            $q->where($column, '=', $val);
+                            break;
+                        case 'starts_with':
+                            $q->where($column, 'like', $val . '%');
+                            break;
+                        default: // contains
+                            $q->where($column, 'like', '%' . $val . '%');
+                            break;
+                    }
+                });
             });
-        });
+        }
 
         $contacts = $query
             ->orderBy('contacts.name')

@@ -147,10 +147,5 @@
 
     applyBtn?.addEventListener('click', submitFiltersOnly);
 
-    filterWrap?.addEventListener('change', (e) => {
-        if (e.target.classList.contains('filter-input')) {
-            submitFiltersOnly();
-        }
-    });
 </script>
 @endpush

@@ -117,12 +117,12 @@
 
     editor.on('canvas:ready', () => {
         const css = `
-            body{font-family:Arial, Helvetica, sans-serif; background:#f6f8fb; margin:0;}
+            body{font-family:Arial, Helvetica, sans-serif; background:#f2f4f7; margin:0; padding:16px;}
+            table{margin:0 auto;}
             a{color:#206bc4;}
             h1,h2,h3,h4,h5,h6{font-family:Arial, Helvetica, sans-serif;}
             input, select, textarea{font-family:Arial, Helvetica, sans-serif; font-size:14px; color:#111827; padding:10px; border:1px solid #d1d5db; border-radius:8px; width:100%;}
             button{font-family:Arial, Helvetica, sans-serif;}
-            table{width:100%;}
         `;
         const doc = editor.Canvas.getDocument();
         const styleEl = doc.createElement('style');

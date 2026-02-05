@@ -17,8 +17,8 @@ class EmailCampaignController extends Controller
     protected static function defaultTemplate(): string
     {
         return <<<HTML
-<div style="Margin:0;background:#f6f8fb;padding:16px;font-family:Arial,sans-serif;">
-  <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="max-width:480px;width:100%;Margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,0.06);">
+<div style="Margin:0;background:#f2f4f7;padding:16px;font-family:Arial,sans-serif;">
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="max-width:500px;width:100%;Margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.06);">
     <tr>
       <td style="padding:24px 24px 8px 24px;text-align:center;">
         <img src="https://placehold.co/96x96?text=Logo" alt="Logo" width="96" height="96" style="border-radius:50%;display:block;Margin:0 auto 12px;">

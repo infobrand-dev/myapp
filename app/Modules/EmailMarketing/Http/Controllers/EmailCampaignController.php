@@ -59,8 +59,12 @@ class EmailCampaignController extends Controller
     {
         $action = $request->input('action', 'save');
 
+        $subjectRule = $action === 'save'
+            ? ['nullable', 'string', 'max:255']
+            : ['required', 'string', 'max:255'];
+
         $data = $request->validate([
-            'subject' => ['required', 'string', 'max:255'],
+            'subject' => $subjectRule,
             'body_html' => ['required', 'string'],
             'scheduled_at' => ['nullable', 'date', 'after:now'],
             'filters' => ['array'],
@@ -70,9 +74,11 @@ class EmailCampaignController extends Controller
         [, $filteredContacts] = $this->filteredContacts($request, $data['filters'] ?? []);
         $contactIds = $filteredContacts->pluck('id');
 
+        $subjectValue = $data['subject'] ?: 'Draft ' . now()->format('Ymd-His');
+
         $campaign->update([
-            'name' => $data['subject'], // gabungkan name & subject
-            'subject' => $data['subject'],
+            'name' => $subjectValue, // gabungkan name & subject
+            'subject' => $subjectValue,
             'body_html' => $data['body_html'],
         ]);
 

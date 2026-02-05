@@ -16,63 +16,32 @@ class EmailCampaignController extends Controller
 {
     public function index(): View
     {
-        $campaigns = EmailCampaign::query()->with('recipients')->latest()->get();
+        $campaigns = EmailCampaign::query()
+            ->withCount('recipients')
+            ->latest()
+            ->get();
 
         return view('emailmarketing::index', compact('campaigns'));
     }
 
-    public function create(): View
+    /**
+     * Buat draft kosong dan langsung arahkan ke halaman edit.
+     */
+    public function create(): RedirectResponse
     {
-        return view('emailmarketing::create');
-    }
-
-    public function store(Request $request): RedirectResponse
-    {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'subject' => ['required', 'string', 'max:255'],
-        ]);
-
-        $campaign = EmailCampaign::create($data + [
+        $campaign = EmailCampaign::create([
+            'name' => 'New Campaign',
+            'subject' => 'New Campaign',
             'status' => 'draft',
             'body_html' => '<div style="padding:20px;font-family:Arial,sans-serif;"><h2>Halo {{name}}</h2><p>Tulis konten email Anda di sini. Untuk link tracking gunakan token: {{track_click}}</p></div>',
         ]);
 
-        return redirect()->route('email-marketing.show', $campaign)->with('status', 'Campaign email dibuat.');
+        return redirect()->route('email-marketing.show', $campaign);
     }
 
     public function show(EmailCampaign $campaign): View
     {
         $campaign->load(['recipients' => fn ($query) => $query->orderBy('recipient_name')]);
-
-        $metrics = $campaign->metrics();
-
-        return view('emailmarketing::show', compact('campaign', 'metrics'));
-    }
-
-    public function update(Request $request, EmailCampaign $campaign): RedirectResponse
-    {
-        if ($campaign->status === 'running') {
-            return back()->with('status', 'Campaign sudah berjalan dan tidak bisa diedit.');
-        }
-
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'subject' => ['required', 'string', 'max:255'],
-            'body_html' => ['required', 'string'],
-        ]);
-
-        $campaign->update($data);
-
-        return back()->with('status', 'Draft campaign diperbarui.');
-    }
-
-    public function launch(EmailCampaign $campaign): RedirectResponse
-    {
-        if ($campaign->status === 'running') {
-            return back()->with('status', 'Campaign sudah berjalan.');
-        }
-
         $contacts = Contact::query()
             ->whereNotNull('email')
             ->where('email', '!=', '')
@@ -80,32 +49,99 @@ class EmailCampaignController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'email']);
 
-        if ($contacts->isEmpty()) {
-            return back()->with('status', 'Tidak ada kontak aktif dengan email.');
+        return view('emailmarketing::show', [
+            'campaign' => $campaign,
+            'contacts' => $contacts,
+        ]);
+    }
+
+    public function update(Request $request, EmailCampaign $campaign): RedirectResponse
+    {
+        $action = $request->input('action', 'save');
+
+        $data = $request->validate([
+            'subject' => ['required', 'string', 'max:255'],
+            'body_html' => ['required', 'string'],
+            'contact_ids' => ['array'],
+            'contact_ids.*' => ['integer', 'exists:contacts,id'],
+            'scheduled_at' => ['nullable', 'date', 'after:now'],
+        ]);
+
+        $contactIds = collect($data['contact_ids'] ?? []);
+
+        $campaign->update([
+            'name' => $data['subject'], // gabungkan name & subject
+            'subject' => $data['subject'],
+            'body_html' => $data['body_html'],
+        ]);
+
+        if ($action === 'send') {
+            if ($contactIds->isEmpty()) {
+                return back()->with('status', 'Pilih minimal satu penerima dari Contacts.');
+            }
+            $this->syncRecipients($campaign, $contactIds, sendNow: true);
+
+            $campaign->update([
+                'status' => 'running',
+                'started_at' => Carbon::now(),
+                'scheduled_at' => null,
+            ]);
+
+            // TODO: dispatch queue job per recipient
+            return back()->with('status', 'Email dikirim sekarang ke ' . $contactIds->count() . ' kontak.');
         }
 
-        $now = Carbon::now();
+        if ($action === 'schedule') {
+            if ($contactIds->isEmpty()) {
+                return back()->with('status', 'Pilih minimal satu penerima dari Contacts.');
+            }
+            $scheduledAt = Carbon::parse($data['scheduled_at']);
+            $this->syncRecipients($campaign, $contactIds, sendNow: false, markPending: true);
 
+            $campaign->update([
+                'status' => 'scheduled',
+                'started_at' => null,
+                'scheduled_at' => $scheduledAt,
+            ]);
+
+            return back()->with('status', 'Campaign dijadwalkan pada ' . $scheduledAt->format('d M Y H:i'));
+        }
+
+        // default save draft
+        $campaign->update([
+            'status' => 'draft',
+            'scheduled_at' => null,
+            'started_at' => null,
+        ]);
+
+        return back()->with('status', 'Draft disimpan.');
+    }
+
+    protected function syncRecipients(EmailCampaign $campaign, $contactIds, bool $sendNow = false, bool $markPending = false): void
+    {
+        $contacts = Contact::whereIn('id', $contactIds)->get(['id', 'name', 'email']);
+
+        // reset recipients
+        $campaign->recipients()->delete();
+
+        $now = Carbon::now();
         foreach ($contacts as $contact) {
-            $isBounce = str_contains($contact->email, 'bounce');
+            $status = 'pending';
+            $deliveredAt = null;
+            if ($sendNow) {
+                $status = 'delivered';
+                $deliveredAt = $now;
+            }
 
             $campaign->recipients()->create([
                 'contact_id' => $contact->id,
                 'recipient_name' => $contact->name,
                 'recipient_email' => $contact->email,
                 'tracking_token' => Str::uuid()->toString(),
-                'delivery_status' => $isBounce ? 'bounced' : 'delivered',
-                'delivered_at' => $isBounce ? null : $now,
-                'bounced_at' => $isBounce ? $now : null,
+                'delivery_status' => $markPending ? 'pending' : $status,
+                'delivered_at' => $deliveredAt,
             ]);
         }
-
-        $campaign->update([
-            'status' => 'running',
-            'started_at' => $now,
-        ]);
-
-        return back()->with('status', 'Campaign dijalankan untuk ' . $contacts->count() . ' kontak.');
     }
 
     public function markReply(EmailCampaignRecipient $recipient): RedirectResponse

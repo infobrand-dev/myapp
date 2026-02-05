@@ -2,48 +2,60 @@
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2 class="mb-0">Email Marketing</h2>
+    <div>
+        <h2 class="mb-0">Email Marketing</h2>
+        <div class="text-muted small">Kelola kampanye email, kirim sekarang atau jadwalkan.</div>
+    </div>
     <a href="{{ route('email-marketing.create') }}" class="btn btn-primary">Buat Campaign</a>
 </div>
 
-<div class="row row-cards">
-    @forelse($campaigns as $campaign)
-    @php($metrics = $campaign->metrics())
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div>
-                        <div class="h3 mb-0">{{ $campaign->name }}</div>
-                        <div class="text-secondary">{{ $campaign->subject }}</div>
-                    </div>
-                    <div class="text-end">
-                        <span class="badge {{ $campaign->status === 'running' ? 'bg-green-lt text-green' : 'bg-azure-lt text-azure' }}">{{ strtoupper($campaign->status) }}</span>
-                        <div class="small text-secondary mt-1">Recipients: {{ $campaign->recipient_count }}</div>
-                    </div>
-                </div>
-
-                <div class="row g-2">
-                    @foreach($metrics as $label => $item)
-                    <div class="col-md-2 col-6">
-                        <div class="border rounded p-2">
-                            <div class="small text-uppercase text-secondary">{{ $label }}</div>
-                            <div class="h4 mb-0">{{ number_format($item['percent'], 2) }}%</div>
-                        </div>
-                    </div>
-                    @endforeach
-                </div>
-
-                <div class="mt-3">
-                    <a href="{{ route('email-marketing.show', $campaign) }}" class="btn btn-outline-primary btn-sm">Buka Campaign</a>
-                </div>
-            </div>
-        </div>
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter mb-0">
+            <thead>
+                <tr>
+                    <th>Subject</th>
+                    <th>Status</th>
+                    <th class="text-center">Recipients</th>
+                    <th>Jadwal</th>
+                    <th class="text-end">Diperbarui</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($campaigns as $campaign)
+                    <tr>
+                        <td>
+                            <a href="{{ route('email-marketing.show', $campaign) }}" class="fw-semibold">
+                                {{ $campaign->subject }}
+                            </a>
+                        </td>
+                        <td>
+                            <span class="badge
+                                @if($campaign->status === 'running') bg-green-lt text-green
+                                @elseif($campaign->status === 'scheduled') bg-amber-lt text-amber
+                                @else bg-secondary-lt text-secondary @endif">
+                                {{ strtoupper($campaign->status) }}
+                            </span>
+                        </td>
+                        <td class="text-center">{{ $campaign->recipients_count ?? 0 }}</td>
+                        <td>
+                            @if($campaign->scheduled_at)
+                                {{ $campaign->scheduled_at->format('d M Y H:i') }}
+                            @elseif($campaign->started_at)
+                                Dikirim {{ $campaign->started_at->diffForHumans() }}
+                            @else
+                                -
+                            @endif
+                        </td>
+                        <td class="text-end text-muted small">{{ $campaign->updated_at->diffForHumans() }}</td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">Belum ada campaign email.</td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
-    @empty
-    <div class="col-12">
-        <div class="alert alert-info mb-0">Belum ada campaign email blast.</div>
-    </div>
-    @endforelse
 </div>
 @endsection

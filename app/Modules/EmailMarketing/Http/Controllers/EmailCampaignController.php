@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\EmailMarketing\Models\EmailCampaign;
 use App\Modules\EmailMarketing\Models\EmailCampaignRecipient;
+use App\Modules\EmailMarketing\Jobs\SendCampaignEmailRecipient;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -150,13 +151,16 @@ HTML;
             if ($contactIds->isEmpty()) {
                 return back()->withInput()->with('status', 'Pilih minimal satu penerima dari Contacts.');
             }
-            $this->syncRecipients($campaign, $contactIds, sendNow: true);
+            $recipients = $this->syncRecipients($campaign, $contactIds, sendNow: false, markPending: true);
+            foreach ($recipients as $recipient) {
+                dispatch(new SendCampaignEmailRecipient($recipient));
+            }
             $campaign->update([
                 'status' => 'running',
                 'started_at' => Carbon::now(),
                 'scheduled_at' => null,
             ]);
-            return redirect()->route('email-marketing.index')->with('status', 'Email dikirim sekarang ke ' . $contactIds->count() . ' kontak.');
+            return redirect()->route('email-marketing.index')->with('status', 'Email dikirim sekarang ke ' . $contactIds->count() . ' kontak (queued).');
         }
 
         if ($action === 'schedule') {
@@ -164,13 +168,16 @@ HTML;
                 return back()->withInput()->with('status', 'Pilih minimal satu penerima dari Contacts.');
             }
             $scheduledAt = Carbon::parse($data['scheduled_at']);
-            $this->syncRecipients($campaign, $contactIds, sendNow: false, markPending: true);
+            $recipients = $this->syncRecipients($campaign, $contactIds, sendNow: false, markPending: true);
+            foreach ($recipients as $recipient) {
+                dispatch((new SendCampaignEmailRecipient($recipient))->delay($scheduledAt));
+            }
             $campaign->update([
-                'status' => 'running',
-                'started_at' => $scheduledAt,
+                'status' => 'scheduled',
+                'started_at' => null,
                 'scheduled_at' => $scheduledAt,
             ]);
-            return redirect()->route('email-marketing.index')->with('status', 'Campaign dijadwalkan pada ' . $scheduledAt->format('d M Y H:i'));
+            return redirect()->route('email-marketing.index')->with('status', 'Campaign dijadwalkan pada ' . $scheduledAt->format('d M Y H:i') . ' (queued).');
         }
 
         // save draft
@@ -213,7 +220,10 @@ HTML;
             if ($contactIds->isEmpty()) {
                 return back()->withInput()->with('status', 'Pilih minimal satu penerima dari Contacts.');
             }
-            $this->syncRecipients($campaign, $contactIds, sendNow: true);
+            $recipients = $this->syncRecipients($campaign, $contactIds, sendNow: false, markPending: true);
+            foreach ($recipients as $recipient) {
+                dispatch(new SendCampaignEmailRecipient($recipient));
+            }
 
             $campaign->update([
                 'status' => 'running',
@@ -221,8 +231,7 @@ HTML;
                 'scheduled_at' => null,
             ]);
 
-            // TODO: dispatch queue job per recipient
-            return back()->withInput($request->all())->with('status', 'Email dikirim sekarang ke ' . $contactIds->count() . ' kontak.');
+            return redirect()->route('email-marketing.index')->with('status', 'Email dikirim sekarang ke ' . $contactIds->count() . ' kontak (queued).');
         }
 
         if ($action === 'schedule') {
@@ -230,15 +239,18 @@ HTML;
                 return back()->withInput()->with('status', 'Pilih minimal satu penerima dari Contacts.');
             }
             $scheduledAt = Carbon::parse($data['scheduled_at']);
-            $this->syncRecipients($campaign, $contactIds, sendNow: false, markPending: true);
+            $recipients = $this->syncRecipients($campaign, $contactIds, sendNow: false, markPending: true);
+            foreach ($recipients as $recipient) {
+                dispatch((new SendCampaignEmailRecipient($recipient))->delay($scheduledAt));
+            }
 
             $campaign->update([
-                'status' => 'running',
-                'started_at' => $scheduledAt,
+                'status' => 'scheduled',
+                'started_at' => null,
                 'scheduled_at' => $scheduledAt,
             ]);
 
-            return back()->withInput($request->all())->with('status', 'Campaign dijadwalkan pada ' . $scheduledAt->format('d M Y H:i'));
+            return redirect()->route('email-marketing.index')->with('status', 'Campaign dijadwalkan pada ' . $scheduledAt->format('d M Y H:i') . ' (queued).');
         }
 
         // default save draft
@@ -251,31 +263,28 @@ HTML;
         return redirect()->route('email-marketing.index')->with('status', 'Draft disimpan.');
     }
 
-    protected function syncRecipients(EmailCampaign $campaign, $contactIds, bool $sendNow = false, bool $markPending = false): void
+    protected function syncRecipients(EmailCampaign $campaign, $contactIds, bool $sendNow = false, bool $markPending = false)
     {
         $contacts = Contact::whereIn('id', $contactIds)->get(['id', 'name', 'email']);
 
         // reset recipients
         $campaign->recipients()->delete();
 
-        $now = Carbon::now();
+        $items = [];
         foreach ($contacts as $contact) {
-            $status = 'pending';
-            $deliveredAt = null;
-            if ($sendNow) {
-                $status = 'delivered';
-                $deliveredAt = $now;
-            }
+            $status = $markPending ? 'pending' : 'outgoing';
 
-            $campaign->recipients()->create([
+            $items[] = $campaign->recipients()->create([
                 'contact_id' => $contact->id,
                 'recipient_name' => $contact->name,
                 'recipient_email' => $contact->email,
                 'tracking_token' => Str::uuid()->toString(),
-                'delivery_status' => $markPending ? 'pending' : $status,
-                'delivered_at' => $deliveredAt,
+                'delivery_status' => $status,
+                'delivered_at' => null,
             ]);
         }
+
+        return collect($items);
     }
 
     protected function filteredContacts(Request $request, $filtersInput = []): array
@@ -366,6 +375,7 @@ HTML;
             $recipient->update(['clicked_at' => Carbon::now()]);
         }
 
-        return redirect()->away('https://example.com');
+        $target = request()->query('u', 'https://example.com');
+        return redirect()->away($target);
     }
 }

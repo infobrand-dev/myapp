@@ -5,6 +5,8 @@
     @csrf
     @method('PUT')
     <input type="hidden" name="body_html" id="body_html">
+    <input type="hidden" name="scheduled_at" id="scheduled_at_hidden">
+    <input type="hidden" name="action" id="action_field">
 
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
@@ -13,7 +15,7 @@
         </div>
         <div class="btn-list">
             <button type="submit" name="action" value="send" class="btn btn-primary">Send Now</button>
-            <button type="button" class="btn btn-outline-primary" id="btn-schedule">Schedule</button>
+            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#scheduleModal">Schedule</button>
             <button type="submit" name="action" value="save" class="btn btn-outline-secondary">Save Draft</button>
             <a href="{{ route('email-marketing.index') }}" class="btn btn-outline-secondary">Kembali</a>
         </div>
@@ -22,14 +24,10 @@
     <div class="card">
         <div class="card-body">
             <div class="row g-3 align-items-end mb-2">
-                <div class="col-md-9">
+                <div class="col-12">
                     <label class="form-label">Subject</label>
                     <input type="text" name="subject" class="form-control" value="{{ old('subject', $campaign->subject) }}">
                     @error('subject') <div class="text-danger small">{{ $message }}</div> @enderror
-                </div>
-                <div class="col-md-3 d-none" id="schedule-row">
-                    <label class="form-label">Schedule at</label>
-                    <input type="datetime-local" name="scheduled_at" id="scheduled_at" class="form-control" value="{{ optional($campaign->scheduled_at)->format('Y-m-d\\TH:i') }}">
                 </div>
             </div>
 
@@ -69,6 +67,26 @@
         </div>
     </div>
 </form>
+
+<!-- Schedule Modal -->
+<div class="modal modal-blur fade" id="scheduleModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Schedule Campaign</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label">Send at</label>
+                <input type="datetime-local" id="scheduled_at_modal" class="form-control" value="{{ optional($campaign->scheduled_at)->format('Y-m-d\\TH:i') }}">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-link" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirm-schedule">Send</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -108,9 +126,10 @@
     const filterWrap = document.getElementById('filter-rows');
     const addBtn = document.getElementById('add-filter');
     const applyBtn = document.getElementById('apply-filter');
-    const scheduleRow = document.getElementById('schedule-row');
-    const scheduleInput = document.getElementById('scheduled_at');
-    const scheduleBtn = document.getElementById('btn-schedule');
+    const scheduleModalInput = document.getElementById('scheduled_at_modal');
+    const confirmSchedule = document.getElementById('confirm-schedule');
+    const actionField = document.getElementById('action_field');
+    const scheduledHidden = document.getElementById('scheduled_at_hidden');
 
     addBtn?.addEventListener('click', () => {
         const idx = filterWrap.querySelectorAll('.filter-row').length;
@@ -140,22 +159,13 @@
         btn.parentElement.remove();
     });
 
-    scheduleBtn?.addEventListener('click', () => {
-        if (scheduleRow.classList.contains('d-none')) {
-            scheduleRow.classList.remove('d-none');
-            scheduleInput?.focus();
+    confirmSchedule?.addEventListener('click', () => {
+        if (!scheduleModalInput.value) {
+            scheduleModalInput.focus();
             return;
         }
-        if (!scheduleInput.value) {
-            scheduleInput?.focus();
-            return;
-        }
-        // submit as schedule
-        const hidden = document.createElement('input');
-        hidden.type = 'hidden';
-        hidden.name = 'action';
-        hidden.value = 'schedule';
-        document.getElementById('campaign-form').appendChild(hidden);
+        scheduledHidden.value = scheduleModalInput.value;
+        actionField.value = 'schedule';
         document.getElementById('campaign-form').submit();
     });
 

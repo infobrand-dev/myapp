@@ -177,6 +177,7 @@ return [
     App\Modules\TaskManagement\TaskServiceProvider::class,
     App\Modules\WhatsAppBro\WhatsAppBroServiceProvider::class,
     App\Modules\Contacts\ContactsServiceProvider::class,
+    App\Modules\EmailMarketing\EmailMarketingServiceProvider::class,
 
     ],
 

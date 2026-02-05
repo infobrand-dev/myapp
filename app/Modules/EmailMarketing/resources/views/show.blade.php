@@ -71,7 +71,7 @@
                 <select name="contact_ids[]" class="form-select" multiple size="8">
                     @foreach($contacts as $contact)
                         <option value="{{ $contact->id }}" {{ in_array($contact->id, $campaign->recipients->pluck('contact_id')->all()) ? 'selected' : '' }}>
-                            {{ $contact->name }} — {{ $contact->email }} {{ $contact->company ? '('.$contact->company.')' : '' }}
+                            {{ $contact->name }} — {{ $contact->email }} {{ $contact->company_name ? '('.$contact->company_name.')' : '' }}
                         </option>
                     @endforeach
                 </select>

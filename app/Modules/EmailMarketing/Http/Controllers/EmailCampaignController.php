@@ -149,9 +149,10 @@ class EmailCampaignController extends Controller
             ->values();
 
         $query = Contact::query()
-            ->whereNotNull('email')
-            ->where('email', '!=', '')
-            ->where('is_active', true);
+            ->leftJoin('contacts as company', 'company.id', '=', 'contacts.company_id')
+            ->whereNotNull('contacts.email')
+            ->where('contacts.email', '!=', '')
+            ->where('contacts.is_active', true);
 
         $filters->each(function ($row) use ($query) {
             $field = $row['field'] ?? 'email';
@@ -159,7 +160,7 @@ class EmailCampaignController extends Controller
             $value = $row['value'] ?? '';
 
             $query->where(function ($q) use ($field, $op, $value) {
-                $column = $field === 'company' ? 'company' : ($field === 'name' ? 'name' : 'email');
+                $column = $field === 'company' ? 'company.name' : ($field === 'name' ? 'contacts.name' : 'contacts.email');
                 $val = $value;
                 switch ($op) {
                     case 'not_contains':
@@ -178,7 +179,14 @@ class EmailCampaignController extends Controller
             });
         });
 
-        $contacts = $query->orderBy('name')->get(['id', 'name', 'email', 'company']);
+        $contacts = $query
+            ->orderBy('contacts.name')
+            ->get([
+                'contacts.id',
+                'contacts.name',
+                'contacts.email',
+                'company.name as company_name',
+            ]);
 
         return [$filters, $contacts];
     }

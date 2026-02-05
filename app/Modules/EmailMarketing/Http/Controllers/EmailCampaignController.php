@@ -95,7 +95,7 @@ class EmailCampaignController extends Controller
             ]);
 
             // TODO: dispatch queue job per recipient
-            return back()->with('status', 'Email dikirim sekarang ke ' . $contactIds->count() . ' kontak.');
+            return back()->withInput($request->all())->with('status', 'Email dikirim sekarang ke ' . $contactIds->count() . ' kontak.');
         }
 
         if ($action === 'schedule') {
@@ -111,7 +111,7 @@ class EmailCampaignController extends Controller
                 'scheduled_at' => $scheduledAt,
             ]);
 
-            return back()->with('status', 'Campaign dijadwalkan pada ' . $scheduledAt->format('d M Y H:i'));
+            return back()->withInput($request->all())->with('status', 'Campaign dijadwalkan pada ' . $scheduledAt->format('d M Y H:i'));
         }
 
         // default save draft
@@ -121,7 +121,7 @@ class EmailCampaignController extends Controller
             'started_at' => null,
         ]);
 
-        return back()->with('status', 'Draft disimpan.');
+        return back()->withInput($request->all())->with('status', 'Draft disimpan.');
     }
 
     protected function syncRecipients(EmailCampaign $campaign, $contactIds, bool $sendNow = false, bool $markPending = false): void

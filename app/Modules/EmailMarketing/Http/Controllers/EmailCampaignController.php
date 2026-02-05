@@ -49,8 +49,11 @@ class EmailCampaignController extends Controller
     {
         $campaign->load(['recipients' => fn ($query) => $query->orderBy('recipient_name')]);
 
-        // gunakan filters dari query, jika kosong pakai old input (flashed)
-        $requestFilters = $request->input('filters', $request->old('filters', []));
+        // gunakan filters dari query > old input > tersimpan di campaign
+        $requestFilters = $request->input(
+            'filters',
+            $request->old('filters', $campaign->filter_json ?? [])
+        );
         [$filters, $contacts] = $this->filteredContacts($request, $requestFilters);
 
         return view('emailmarketing::show', [
@@ -77,7 +80,7 @@ class EmailCampaignController extends Controller
         ]);
 
         // Build recipients from filters (or all active contacts if no filters)
-        [, $filteredContacts] = $this->filteredContacts($request, $data['filters'] ?? []);
+        [$filtersNormalized, $filteredContacts] = $this->filteredContacts($request, $data['filters'] ?? []);
         $contactIds = $filteredContacts->pluck('id');
 
         // Jika subject kosong saat save draft, pertahankan subject lama (atau fallback sekali saja)
@@ -90,6 +93,7 @@ class EmailCampaignController extends Controller
             'name' => $subjectValue, // gabungkan name & subject
             'subject' => $subjectValue,
             'body_html' => $data['body_html'],
+            'filter_json' => $filtersNormalized,
         ]);
 
         if ($action === 'send') {
@@ -209,7 +213,7 @@ class EmailCampaignController extends Controller
                 'company.name as company_name',
             ]);
 
-        return [$filters, $contacts];
+        return [$filters->toArray(), $contacts];
     }
 
     public function markReply(EmailCampaignRecipient $recipient): RedirectResponse

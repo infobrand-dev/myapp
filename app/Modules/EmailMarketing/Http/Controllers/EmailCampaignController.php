@@ -24,6 +24,12 @@ class EmailCampaignController extends Controller
         return view('emailmarketing::index', compact('campaigns'));
     }
 
+    public function matches(Request $request, EmailCampaign $campaign)
+    {
+        [, $contacts] = $this->filteredContacts($request, $request->input('filters', []));
+        return response()->json(['count' => $contacts->count()]);
+    }
+
     /**
      * Buat draft kosong dan langsung arahkan ke halaman edit.
      */

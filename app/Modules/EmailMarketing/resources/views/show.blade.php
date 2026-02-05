@@ -58,7 +58,7 @@
                 <div class="d-flex gap-2 mb-2">
                     <button class="btn btn-outline-secondary btn-sm" type="button" id="add-filter">Tambah Rule</button>
                     <button class="btn btn-outline-primary btn-sm" type="button" id="apply-filter">Terapkan Filter</button>
-                    <span class="badge bg-azure-lt text-azure">Matches: {{ $matchCount }}</span>
+                    <span class="badge bg-azure-lt text-azure" id="matches-badge">Matches: {{ $matchCount }}</span>
                 </div>
             </div>
 
@@ -137,15 +137,31 @@
         btn.parentElement.remove();
     });
 
-    function submitFiltersOnly() {
-        const form = document.getElementById('campaign-form');
-        const action = form.getAttribute('action');
-        const params = new URLSearchParams(new FormData(form));
-        // use GET to refresh matches without saving
-        window.location = action + '?' + params.toString();
-    }
+    applyBtn?.addEventListener('click', () => {
+        const token = document.querySelector('input[name="_token"]').value;
+        const formData = new FormData();
+        filterWrap.querySelectorAll('.filter-row').forEach((row, idx) => {
+            row.querySelectorAll('select, input').forEach(el => {
+                const name = el.name.replace(/\d+/, idx); // normalize indices
+                formData.append(name, el.value);
+            });
+        });
 
-    applyBtn?.addEventListener('click', submitFiltersOnly);
+        fetch("{{ route('email-marketing.matches', $campaign) }}", {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': token
+            },
+            body: formData
+        }).then(resp => resp.json())
+          .then(data => {
+            const badge = document.getElementById('matches-badge');
+            if (badge) badge.textContent = 'Matches: ' + (data.count ?? 0);
+          }).catch(() => {
+            const badge = document.getElementById('matches-badge');
+            if (badge) badge.textContent = 'Matches: error';
+          });
+    });
 
 </script>
 @endpush

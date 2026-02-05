@@ -1,7 +1,14 @@
 @extends('layouts.admin')
 
 @section('content')
-@php $isNew = $isNew ?? $campaign->exists === false; @endphp
+@php
+    use Illuminate\Support\Str;
+    $isNew = $isNew ?? $campaign->exists === false;
+    $emailHtml = $campaign->body_html ?: \App\Modules\EmailMarketing\Http\Controllers\EmailCampaignController::defaultTemplate();
+    if (!Str::contains($emailHtml, 'email-wrapper-outer')) {
+        $emailHtml = '<div class="email-wrapper-outer" style="Margin:0;background:#f2f4f7;padding:16px;font-family:Arial,sans-serif;">'.$emailHtml.'</div>';
+    }
+@endphp
 <form method="POST" action="{{ $isNew ? route('email-marketing.store') : route('email-marketing.update', $campaign) }}" id="campaign-form">
     @csrf
     @unless($isNew)
@@ -65,7 +72,7 @@
 
             <div class="mb-2">
                 <label class="form-label">Body Mail</label>
-                <div id="gjs" style="height: 560px; border:1px solid #e5e7eb;">{!! $campaign->body_html ?: \App\Modules\EmailMarketing\Http\Controllers\EmailCampaignController::defaultTemplate() !!}</div>
+                <div id="gjs" style="height: 560px; border:1px solid #e5e7eb;">{!! $emailHtml !!}</div>
             </div>
         </div>
     </div>

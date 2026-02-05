@@ -10,6 +10,7 @@ Route::middleware(['web', 'auth', 'role:Super-admin|Admin'])
         Route::get('/', [EmailCampaignController::class, 'index'])->name('index');
         Route::get('/create', [EmailCampaignController::class, 'create'])->name('create');
         Route::post('/', [EmailCampaignController::class, 'store'])->name('store');
+        Route::post('/matches', [EmailCampaignController::class, 'matchesNew'])->name('matches.new');
         Route::post('/{campaign}/matches', [EmailCampaignController::class, 'matches'])->name('matches');
         Route::get('/{campaign}', [EmailCampaignController::class, 'show'])->name('show');
         Route::put('/{campaign}', [EmailCampaignController::class, 'update'])->name('update');

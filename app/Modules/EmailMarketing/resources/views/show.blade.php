@@ -1,9 +1,12 @@
 @extends('layouts.admin')
 
 @section('content')
-<form method="POST" action="{{ route('email-marketing.update', $campaign) }}" id="campaign-form">
+@php $isNew = $isNew ?? $campaign->exists === false; @endphp
+<form method="POST" action="{{ $isNew ? route('email-marketing.store') : route('email-marketing.update', $campaign) }}" id="campaign-form">
     @csrf
-    @method('PUT')
+    @unless($isNew)
+        @method('PUT')
+    @endunless
     <input type="hidden" name="body_html" id="body_html">
     <input type="hidden" name="scheduled_at" id="scheduled_at_hidden">
     <input type="hidden" name="action" id="action_field">
@@ -186,7 +189,9 @@
             });
         });
 
-        fetch("{{ route('email-marketing.matches', $campaign) }}", {
+        const matchesUrl = "{{ $isNew ? route('email-marketing.matches.new') : route('email-marketing.matches', $campaign) }}";
+
+        fetch(matchesUrl, {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': token

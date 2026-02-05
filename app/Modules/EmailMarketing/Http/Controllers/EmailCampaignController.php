@@ -71,19 +71,32 @@ HTML;
         return response()->json(['count' => $contacts->count()]);
     }
 
+    public function matchesNew(Request $request)
+    {
+        [, $contacts] = $this->filteredContacts($request, $request->input('filters', []));
+        return response()->json(['count' => $contacts->count()]);
+    }
+
     /**
      * Buat draft kosong dan langsung arahkan ke halaman edit.
      */
-    public function create(): RedirectResponse
+    public function create(): View
     {
-        $campaign = EmailCampaign::create([
-            'name' => 'New Campaign',
-            'subject' => 'New Campaign',
+        $campaign = new EmailCampaign([
             'status' => 'draft',
             'body_html' => self::defaultTemplate(),
+            'filter_json' => [],
         ]);
 
-        return redirect()->route('email-marketing.show', $campaign);
+        [$filters, $contacts] = $this->filteredContacts(request(), []);
+
+        return view('emailmarketing::show', [
+            'campaign' => $campaign,
+            'contacts' => $contacts,
+            'filters' => $filters,
+            'matchCount' => $contacts->count(),
+            'isNew' => true,
+        ]);
     }
 
     public function show(Request $request, EmailCampaign $campaign): View
@@ -103,6 +116,65 @@ HTML;
             'filters'  => $filters,
             'matchCount' => $contacts->count(),
         ]);
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $action = $request->input('action', 'save');
+
+        $subjectRule = $action === 'save'
+            ? ['nullable', 'string', 'max:255']
+            : ['required', 'string', 'max:255'];
+
+        $data = $request->validate([
+            'subject' => $subjectRule,
+            'body_html' => ['required', 'string'],
+            'scheduled_at' => ['nullable', 'date', 'after:now'],
+            'filters' => ['array'],
+        ]);
+
+        [$filtersNormalized, $filteredContacts] = $this->filteredContacts($request, $data['filters'] ?? []);
+        $contactIds = $filteredContacts->pluck('id');
+
+        $subjectValue = $data['subject'] ?: 'Draft';
+
+        $campaign = EmailCampaign::create([
+            'name' => $subjectValue,
+            'subject' => $subjectValue,
+            'status' => 'draft',
+            'body_html' => $data['body_html'],
+            'filter_json' => $filtersNormalized,
+        ]);
+
+        if ($action === 'send') {
+            if ($contactIds->isEmpty()) {
+                return back()->withInput()->with('status', 'Pilih minimal satu penerima dari Contacts.');
+            }
+            $this->syncRecipients($campaign, $contactIds, sendNow: true);
+            $campaign->update([
+                'status' => 'running',
+                'started_at' => Carbon::now(),
+                'scheduled_at' => null,
+            ]);
+            return redirect()->route('email-marketing.index')->with('status', 'Email dikirim sekarang ke ' . $contactIds->count() . ' kontak.');
+        }
+
+        if ($action === 'schedule') {
+            if ($contactIds->isEmpty()) {
+                return back()->withInput()->with('status', 'Pilih minimal satu penerima dari Contacts.');
+            }
+            $scheduledAt = Carbon::parse($data['scheduled_at']);
+            $this->syncRecipients($campaign, $contactIds, sendNow: false, markPending: true);
+            $campaign->update([
+                'status' => 'running',
+                'started_at' => $scheduledAt,
+                'scheduled_at' => $scheduledAt,
+            ]);
+            return redirect()->route('email-marketing.index')->with('status', 'Campaign dijadwalkan pada ' . $scheduledAt->format('d M Y H:i'));
+        }
+
+        // save draft
+        return redirect()->route('email-marketing.index')->with('status', 'Draft disimpan.');
     }
 
     public function update(Request $request, EmailCampaign $campaign): RedirectResponse

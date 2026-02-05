@@ -125,8 +125,8 @@ class EmailCampaignController extends Controller
             $this->syncRecipients($campaign, $contactIds, sendNow: false, markPending: true);
 
             $campaign->update([
-                'status' => 'scheduled',
-                'started_at' => null,
+                'status' => 'running',
+                'started_at' => $scheduledAt,
                 'scheduled_at' => $scheduledAt,
             ]);
 

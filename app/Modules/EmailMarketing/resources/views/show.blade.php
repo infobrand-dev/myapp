@@ -13,7 +13,7 @@
         </div>
         <div class="btn-list">
             <button type="submit" name="action" value="send" class="btn btn-primary">Send Now</button>
-            <button type="submit" name="action" value="schedule" class="btn btn-outline-primary">Schedule</button>
+            <button type="button" class="btn btn-outline-primary" id="btn-schedule">Schedule</button>
             <button type="submit" name="action" value="save" class="btn btn-outline-secondary">Save Draft</button>
             <a href="{{ route('email-marketing.index') }}" class="btn btn-outline-secondary">Kembali</a>
         </div>
@@ -27,9 +27,9 @@
                     <input type="text" name="subject" class="form-control" value="{{ old('subject', $campaign->subject) }}">
                     @error('subject') <div class="text-danger small">{{ $message }}</div> @enderror
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-3 d-none" id="schedule-row">
                     <label class="form-label">Schedule at</label>
-                    <input type="datetime-local" name="scheduled_at" class="form-control" value="{{ optional($campaign->scheduled_at)->format('Y-m-d\\TH:i') }}">
+                    <input type="datetime-local" name="scheduled_at" id="scheduled_at" class="form-control" value="{{ optional($campaign->scheduled_at)->format('Y-m-d\\TH:i') }}">
                 </div>
             </div>
 
@@ -108,6 +108,9 @@
     const filterWrap = document.getElementById('filter-rows');
     const addBtn = document.getElementById('add-filter');
     const applyBtn = document.getElementById('apply-filter');
+    const scheduleRow = document.getElementById('schedule-row');
+    const scheduleInput = document.getElementById('scheduled_at');
+    const scheduleBtn = document.getElementById('btn-schedule');
 
     addBtn?.addEventListener('click', () => {
         const idx = filterWrap.querySelectorAll('.filter-row').length;
@@ -135,6 +138,25 @@
         const btn = e.target.closest('.remove-row');
         if(!btn) return;
         btn.parentElement.remove();
+    });
+
+    scheduleBtn?.addEventListener('click', () => {
+        if (scheduleRow.classList.contains('d-none')) {
+            scheduleRow.classList.remove('d-none');
+            scheduleInput?.focus();
+            return;
+        }
+        if (!scheduleInput.value) {
+            scheduleInput?.focus();
+            return;
+        }
+        // submit as schedule
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = 'action';
+        hidden.value = 'schedule';
+        document.getElementById('campaign-form').appendChild(hidden);
+        document.getElementById('campaign-form').submit();
     });
 
     applyBtn?.addEventListener('click', () => {

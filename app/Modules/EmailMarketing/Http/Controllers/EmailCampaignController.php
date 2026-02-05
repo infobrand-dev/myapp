@@ -74,7 +74,11 @@ class EmailCampaignController extends Controller
         [, $filteredContacts] = $this->filteredContacts($request, $data['filters'] ?? []);
         $contactIds = $filteredContacts->pluck('id');
 
-        $subjectValue = $data['subject'] ?: 'Draft ' . now()->format('Ymd-His');
+        // Jika subject kosong saat save draft, pertahankan subject lama (atau fallback sekali saja)
+        $subjectValue = $data['subject'];
+        if ($action === 'save' && (is_null($subjectValue) || $subjectValue === '')) {
+            $subjectValue = $campaign->subject ?: 'Draft';
+        }
 
         $campaign->update([
             'name' => $subjectValue, // gabungkan name & subject

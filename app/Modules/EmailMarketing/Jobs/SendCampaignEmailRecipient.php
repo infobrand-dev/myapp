@@ -3,12 +3,15 @@
 namespace App\Modules\EmailMarketing\Jobs;
 
 use App\Modules\EmailMarketing\Models\EmailCampaignRecipient;
+use App\Modules\EmailMarketing\Models\EmailAttachment;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
+use Barryvdh\DomPDF\Facade\Pdf;
 use TijsVerkoyen\CssToInlineStyles\CssToInlineStyles;
 
 class SendCampaignEmailRecipient implements ShouldQueue
@@ -49,11 +52,28 @@ class SendCampaignEmailRecipient implements ShouldQueue
         // rewrite links with click tracker and original url
         $html = $this->rewriteLinks($html, $recipient->tracking_token);
 
-        Mail::html($html, function ($message) use ($recipient, $campaign) {
+        $attachments = $campaign->attachments()->get();
+
+        Mail::html($html, function ($message) use ($recipient, $campaign, $attachments) {
             $message->to($recipient->recipient_email, $recipient->recipient_name)
                 ->subject($campaign->subject)
                 ->getHeaders()
                 ->addTextHeader('X-Recipient-Token', $recipient->tracking_token);
+
+            foreach ($attachments as $att) {
+                if ($att->type === 'static' && $att->path) {
+                    $message->attach(Storage::path($att->path), [
+                        'as' => $att->filename,
+                        'mime' => $att->mime ?? null,
+                    ]);
+                } elseif ($att->type === 'dynamic' && $att->template_html) {
+                    $rendered = $this->replacePlaceholders($att->template_html, $recipient, $campaign);
+                    $pdf = Pdf::loadHTML($rendered)->setPaper('a4');
+                    $message->attachData($pdf->output(), $att->filename ?? 'attachment.pdf', [
+                        'mime' => 'application/pdf',
+                    ]);
+                }
+            }
         });
 
         $recipient->update([

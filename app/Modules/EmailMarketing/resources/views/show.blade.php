@@ -137,7 +137,7 @@
         </div>
     </div>
 @else
-<form method="POST" action="{{ $isNew ? route('email-marketing.store') : route('email-marketing.update', $campaign) }}" id="campaign-form">
+<form method="POST" action="{{ $isNew ? route('email-marketing.store') : route('email-marketing.update', $campaign) }}" id="campaign-form" enctype="multipart/form-data">
     @csrf
     @unless($isNew)
         @method('PUT')
@@ -196,6 +196,28 @@
                     <button class="btn btn-outline-primary btn-sm" type="button" id="apply-filter">Terapkan Filter</button>
                     <span class="badge bg-azure-lt text-azure" id="matches-badge">Matches: {{ $matchCount }}</span>
                 </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Lampiran</label>
+                <input type="file" name="attachments[]" class="form-control mb-2" multiple>
+                <div class="text-muted small mb-2">PDF/DOC/DOCX/XLS/XLSX/JPG/PNG, max 5MB per file.</div>
+                @if(!$isNew && $campaign->attachments->where('type','static')->count())
+                    <div class="list-group mb-2">
+                        @foreach($campaign->attachments->where('type','static') as $att)
+                            <label class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>{{ $att->filename }} <span class="text-muted small">({{ number_format(($att->size ?? 0)/1024,0) }} KB)</span></span>
+                                <span class="d-flex align-items-center gap-2">
+                                    <span class="text-muted small">{{ $att->mime }}</span>
+                                    <input type="checkbox" name="remove_attachments[]" value="{{ $att->id }}"> Hapus
+                                </span>
+                            </label>
+                        @endforeach
+                    </div>
+                @endif
+                <label class="form-label mt-2">Lampiran PDF Dinamis (opsional)</label>
+                <textarea name="dynamic_attachment_html" class="form-control" rows="6" placeholder="HTML untuk PDF dinamis...">{{ old('dynamic_attachment_html', optional($campaign->attachments->firstWhere('type','dynamic'))->template_html) }}</textarea>
+                <div class="text-muted small mt-1">Placeholder yang didukung sama dengan body email: {{ '{' }}{name}}, {{ '{' }}{email}}, {{ '{' }}{unsubscribe}}, {{ '{' }}{track_click}}.</div>
             </div>
 
             <div class="mb-2">

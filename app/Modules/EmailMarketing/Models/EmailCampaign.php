@@ -5,6 +5,7 @@ namespace App\Modules\EmailMarketing\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class EmailCampaign extends Model
 {
@@ -31,6 +32,11 @@ class EmailCampaign extends Model
     public function recipients(): HasMany
     {
         return $this->hasMany(EmailCampaignRecipient::class, 'campaign_id');
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(EmailAttachment::class, 'campaign_id');
     }
 
     public function getRecipientCountAttribute(): int

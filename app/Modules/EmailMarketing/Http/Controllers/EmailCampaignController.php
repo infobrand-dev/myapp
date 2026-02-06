@@ -6,12 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\EmailMarketing\Models\EmailCampaign;
 use App\Modules\EmailMarketing\Models\EmailCampaignRecipient;
+use App\Modules\EmailMarketing\Models\EmailAttachment;
 use App\Modules\EmailMarketing\Jobs\SendCampaignEmailRecipient;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class EmailCampaignController extends Controller
 {
@@ -138,7 +140,10 @@ HTML;
 
     public function show(Request $request, EmailCampaign $campaign): View
     {
-        $campaign->load(['recipients' => fn ($query) => $query->orderBy('recipient_name')]);
+        $campaign->load([
+            'recipients' => fn ($query) => $query->orderBy('recipient_name'),
+            'attachments',
+        ]);
 
         // gunakan filters dari query > old input > tersimpan di campaign
         $requestFilters = $request->input(
@@ -171,6 +176,8 @@ HTML;
             'body_html' => ['required', 'string'],
             'scheduled_at' => ['nullable', 'date', 'after:now'],
             'filters' => ['array'],
+            'attachments.*' => ['file', 'max:5120', 'mimes:pdf,doc,docx,xls,xlsx,png,jpg,jpeg'],
+            'dynamic_attachment_html' => ['nullable', 'string'],
         ]);
 
         [$filtersNormalized, $filteredContacts] = $this->filteredContacts($request, $data['filters'] ?? []);
@@ -185,6 +192,8 @@ HTML;
             'body_html' => $data['body_html'],
             'filter_json' => $filtersNormalized,
         ]);
+
+        $this->syncAttachments($campaign, $request);
 
         if ($action === 'send') {
             if ($contactIds->isEmpty()) {
@@ -236,6 +245,10 @@ HTML;
             'body_html' => ['required', 'string'],
             'scheduled_at' => ['nullable', 'date', 'after:now'],
             'filters' => ['array'],
+            'attachments.*' => ['file', 'max:5120', 'mimes:pdf,doc,docx,xls,xlsx,png,jpg,jpeg'],
+            'remove_attachments' => ['array'],
+            'remove_attachments.*' => ['integer'],
+            'dynamic_attachment_html' => ['nullable', 'string'],
         ]);
 
         // Build recipients from filters (or all active contacts if no filters)
@@ -254,6 +267,8 @@ HTML;
             'body_html' => $data['body_html'],
             'filter_json' => $filtersNormalized,
         ]);
+
+        $this->syncAttachments($campaign, $request);
 
         if ($action === 'send') {
             if ($contactIds->isEmpty()) {
@@ -379,6 +394,50 @@ HTML;
             ]);
 
         return [$filters->toArray(), $contacts];
+    }
+
+    protected function syncAttachments(EmailCampaign $campaign, Request $request): void
+    {
+        // remove
+        $removeIds = collect($request->input('remove_attachments', []))->filter()->all();
+        if ($removeIds) {
+            $toDelete = $campaign->attachments()->whereIn('id', $removeIds)->get();
+            foreach ($toDelete as $att) {
+                if ($att->type === 'static' && $att->path) {
+                    Storage::delete($att->path);
+                }
+                $att->delete();
+            }
+        }
+
+        // static uploads
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $path = $file->store('email_attachments/'.$campaign->id);
+                $campaign->attachments()->create([
+                    'type' => 'static',
+                    'filename' => $file->getClientOriginalName(),
+                    'path' => $path,
+                    'mime' => $file->getClientMimeType(),
+                    'size' => $file->getSize(),
+                    'created_by' => $request->user()?->id,
+                ]);
+            }
+        }
+
+        // dynamic template
+        if ($request->filled('dynamic_attachment_html')) {
+            $campaign->attachments()
+                ->updateOrCreate(
+                    ['type' => 'dynamic'],
+                    [
+                        'filename' => 'dynamic.pdf',
+                        'template_html' => $request->input('dynamic_attachment_html'),
+                        'mime' => 'application/pdf',
+                        'created_by' => $request->user()?->id,
+                    ]
+                );
+        }
     }
 
     public function markReply(EmailCampaignRecipient $recipient): RedirectResponse

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class EmailCampaign extends Model
 {
@@ -37,6 +38,11 @@ class EmailCampaign extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(EmailAttachment::class, 'campaign_id');
+    }
+
+    public function dynamicTemplates(): BelongsToMany
+    {
+        return $this->belongsToMany(EmailAttachmentTemplate::class, 'email_attachment_campaign', 'campaign_id', 'template_id');
     }
 
     public function getRecipientCountAttribute(): int

@@ -4,6 +4,7 @@ namespace App\Modules\EmailMarketing\Jobs;
 
 use App\Modules\EmailMarketing\Models\EmailCampaignRecipient;
 use App\Modules\EmailMarketing\Models\EmailAttachment;
+use App\Modules\EmailMarketing\Models\EmailAttachmentTemplate;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -53,8 +54,9 @@ class SendCampaignEmailRecipient implements ShouldQueue
         $html = $this->rewriteLinks($html, $recipient->tracking_token);
 
         $attachments = $campaign->attachments()->get();
+        $dynamicTemplates = $campaign->dynamicTemplates()->get();
 
-        Mail::html($html, function ($message) use ($recipient, $campaign, $attachments) {
+        Mail::html($html, function ($message) use ($recipient, $campaign, $attachments, $dynamicTemplates) {
             $message->to($recipient->recipient_email, $recipient->recipient_name)
                 ->subject($campaign->subject)
                 ->getHeaders()
@@ -73,6 +75,15 @@ class SendCampaignEmailRecipient implements ShouldQueue
                         'mime' => 'application/pdf',
                     ]);
                 }
+            }
+
+            foreach ($dynamicTemplates as $tpl) {
+                $rendered = $this->replacePlaceholders($tpl->html, $recipient, $campaign);
+                $pdf = Pdf::loadHTML($rendered)->setPaper('a4');
+                $filename = $tpl->filename ?: ($tpl->name . '.pdf');
+                $message->attachData($pdf->output(), $filename, [
+                    'mime' => $tpl->mime ?? 'application/pdf',
+                ]);
             }
         });
 

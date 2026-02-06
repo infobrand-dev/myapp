@@ -196,7 +196,7 @@
                     <button class="btn btn-outline-primary btn-sm" type="button" id="apply-filter">Terapkan Filter</button>
                     <span class="badge bg-azure-lt text-azure" id="matches-badge">Matches: {{ $matchCount }}</span>
                 </div>
-            </div>
+                </div>
 
             <div class="mb-3">
                 <label class="form-label">Lampiran Statis</label>
@@ -215,9 +215,21 @@
                         @endforeach
                     </div>
                 @endif
-                @if(!$isNew && $campaign->attachments->where('type','dynamic')->count())
-                    <div class="text-muted small">Lampiran dinamis sudah diatur di halaman template lampiran.</div>
-                @endif
+                <label class="form-label mt-2">Lampiran Dinamis</label>
+                <div class="card card-sm">
+                    <div class="card-body">
+                        @php $selectedTpl = old('dynamic_template_ids', $campaign->dynamicTemplates->pluck('id')->all()); @endphp
+                        @forelse(\App\Modules\EmailMarketing\Models\EmailAttachmentTemplate::orderBy('name')->get() as $tpl)
+                            <label class="form-check d-block mb-1">
+                                <input type="checkbox" class="form-check-input" name="dynamic_template_ids[]" value="{{ $tpl->id }}" {{ in_array($tpl->id, $selectedTpl) ? 'checked' : '' }}>
+                                <span class="form-check-label">{{ $tpl->name }}</span>
+                                <span class="text-muted small d-block">{{ $tpl->filename }} — {{ $tpl->description }}</span>
+                            </label>
+                        @empty
+                            <div class="text-muted small">Belum ada template dinamis. Buat di menu Lampiran Dinamis.</div>
+                        @endforelse
+                    </div>
+                </div>
             </div>
 
             <div class="mb-2">

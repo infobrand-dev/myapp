@@ -7,6 +7,7 @@ use App\Modules\Contacts\Models\Contact;
 use App\Modules\EmailMarketing\Models\EmailCampaign;
 use App\Modules\EmailMarketing\Models\EmailCampaignRecipient;
 use App\Modules\EmailMarketing\Models\EmailAttachment;
+use App\Modules\EmailMarketing\Models\EmailAttachmentTemplate;
 use App\Modules\EmailMarketing\Jobs\SendCampaignEmailRecipient;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -143,6 +144,7 @@ HTML;
         $campaign->load([
             'recipients' => fn ($query) => $query->orderBy('recipient_name'),
             'attachments',
+            'dynamicTemplates',
         ]);
 
         // gunakan filters dari query > old input > tersimpan di campaign
@@ -177,6 +179,8 @@ HTML;
             'scheduled_at' => ['nullable', 'date', 'after:now'],
             'filters' => ['array'],
             'attachments.*' => ['file', 'max:5120', 'mimes:pdf,doc,docx,xls,xlsx,png,jpg,jpeg'],
+            'dynamic_template_ids' => ['array'],
+            'dynamic_template_ids.*' => ['integer'],
         ]);
 
         [$filtersNormalized, $filteredContacts] = $this->filteredContacts($request, $data['filters'] ?? []);
@@ -193,6 +197,7 @@ HTML;
         ]);
 
         $this->syncAttachments($campaign, $request);
+        $this->syncDynamicTemplates($campaign, $request);
 
         if ($action === 'send') {
             if ($contactIds->isEmpty()) {
@@ -247,6 +252,8 @@ HTML;
             'attachments.*' => ['file', 'max:5120', 'mimes:pdf,doc,docx,xls,xlsx,png,jpg,jpeg'],
             'remove_attachments' => ['array'],
             'remove_attachments.*' => ['integer'],
+            'dynamic_template_ids' => ['array'],
+            'dynamic_template_ids.*' => ['integer'],
         ]);
 
         // Build recipients from filters (or all active contacts if no filters)
@@ -267,6 +274,7 @@ HTML;
         ]);
 
         $this->syncAttachments($campaign, $request);
+        $this->syncDynamicTemplates($campaign, $request);
 
         if ($action === 'send') {
             if ($contactIds->isEmpty()) {
@@ -424,6 +432,12 @@ HTML;
         }
 
         // dynamic template dikelola di halaman lain (tidak di form ini)
+    }
+
+    protected function syncDynamicTemplates(EmailCampaign $campaign, Request $request): void
+    {
+        $ids = collect($request->input('dynamic_template_ids', []))->filter()->map(fn($v)=> (int)$v)->all();
+        $campaign->dynamicTemplates()->sync($ids);
     }
 
     public function markReply(EmailCampaignRecipient $recipient): RedirectResponse

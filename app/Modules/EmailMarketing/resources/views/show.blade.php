@@ -199,7 +199,7 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Lampiran</label>
+                <label class="form-label">Lampiran Statis</label>
                 <input type="file" name="attachments[]" class="form-control mb-2" multiple>
                 <div class="text-muted small mb-2">PDF/DOC/DOCX/XLS/XLSX/JPG/PNG, max 5MB per file.</div>
                 @if(!$isNew && $campaign->attachments->where('type','static')->count())
@@ -215,9 +215,9 @@
                         @endforeach
                     </div>
                 @endif
-                <label class="form-label mt-2">Lampiran PDF Dinamis (opsional)</label>
-                <textarea name="dynamic_attachment_html" class="form-control" rows="6" placeholder="HTML untuk PDF dinamis...">{{ old('dynamic_attachment_html', optional($campaign->attachments->firstWhere('type','dynamic'))->template_html) }}</textarea>
-                <div class="text-muted small mt-1">Placeholder yang didukung sama dengan body email: {{ '{' }}{name}}, {{ '{' }}{email}}, {{ '{' }}{unsubscribe}}, {{ '{' }}{track_click}}.</div>
+                @if(!$isNew && $campaign->attachments->where('type','dynamic')->count())
+                    <div class="text-muted small">Lampiran dinamis sudah diatur di halaman template lampiran.</div>
+                @endif
             </div>
 
             <div class="mb-2">

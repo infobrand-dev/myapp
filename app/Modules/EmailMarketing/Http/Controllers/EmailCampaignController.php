@@ -177,7 +177,6 @@ HTML;
             'scheduled_at' => ['nullable', 'date', 'after:now'],
             'filters' => ['array'],
             'attachments.*' => ['file', 'max:5120', 'mimes:pdf,doc,docx,xls,xlsx,png,jpg,jpeg'],
-            'dynamic_attachment_html' => ['nullable', 'string'],
         ]);
 
         [$filtersNormalized, $filteredContacts] = $this->filteredContacts($request, $data['filters'] ?? []);
@@ -248,7 +247,6 @@ HTML;
             'attachments.*' => ['file', 'max:5120', 'mimes:pdf,doc,docx,xls,xlsx,png,jpg,jpeg'],
             'remove_attachments' => ['array'],
             'remove_attachments.*' => ['integer'],
-            'dynamic_attachment_html' => ['nullable', 'string'],
         ]);
 
         // Build recipients from filters (or all active contacts if no filters)
@@ -425,19 +423,7 @@ HTML;
             }
         }
 
-        // dynamic template
-        if ($request->filled('dynamic_attachment_html')) {
-            $campaign->attachments()
-                ->updateOrCreate(
-                    ['type' => 'dynamic'],
-                    [
-                        'filename' => 'dynamic.pdf',
-                        'template_html' => $request->input('dynamic_attachment_html'),
-                        'mime' => 'application/pdf',
-                        'created_by' => $request->user()?->id,
-                    ]
-                );
-        }
+        // dynamic template dikelola di halaman lain (tidak di form ini)
     }
 
     public function markReply(EmailCampaignRecipient $recipient): RedirectResponse

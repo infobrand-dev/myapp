@@ -4,10 +4,130 @@
 @php
     use Illuminate\Support\Str;
     $isNew = $isNew ?? $campaign->exists === false;
+    $showReport = $showReport ?? false;
     $emailHtml = $isNew
         ? \App\Modules\EmailMarketing\Http\Controllers\EmailCampaignController::editorHtml(null)
         : \App\Modules\EmailMarketing\Http\Controllers\EmailCampaignController::editorHtml($campaign->body_html);
 @endphp
+
+@if($showReport)
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="mb-0">{{ $campaign->subject }}</h2>
+            <div class="text-muted small">
+                Status:
+                <span class="badge bg-{{ $campaign->status === 'done' ? 'success' : 'primary' }}">{{ Str::title($campaign->status) }}</span>
+                @if($campaign->finished_at)
+                    · Selesai {{ $campaign->finished_at->format('d M Y H:i') }}
+                @elseif($campaign->started_at)
+                    · Mulai {{ $campaign->started_at->format('d M Y H:i') }}
+                @endif
+            </div>
+        </div>
+        <a href="{{ route('email-marketing.index') }}" class="btn btn-outline-secondary">Kembali</a>
+    </div>
+
+    @php
+        $recipients = $campaign->recipients;
+        $total = $recipients->count();
+        $delivered = $recipients->where('delivery_status', 'delivered')->count();
+        $bounced = $recipients->where('delivery_status', 'bounced')->count();
+        $opened = $recipients->whereNotNull('opened_at')->count();
+        $clicked = $recipients->whereNotNull('clicked_at')->count();
+        $pending = $recipients->whereIn('delivery_status', ['pending','outgoing'])->count();
+    @endphp
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-2 col-sm-4">
+            <div class="card card-sm">
+                <div class="card-body">
+                    <div class="text-muted">Total</div>
+                    <div class="h3 mb-0">{{ $total }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-4">
+            <div class="card card-sm">
+                <div class="card-body">
+                    <div class="text-muted">Pending/Outgoing</div>
+                    <div class="h3 mb-0">{{ $pending }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-4">
+            <div class="card card-sm">
+                <div class="card-body">
+                    <div class="text-muted">Delivered</div>
+                    <div class="h3 mb-0">{{ $delivered }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-4">
+            <div class="card card-sm">
+                <div class="card-body">
+                    <div class="text-muted">Opened</div>
+                    <div class="h3 mb-0">{{ $opened }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-4">
+            <div class="card card-sm">
+                <div class="card-body">
+                    <div class="text-muted">Clicked</div>
+                    <div class="h3 mb-0">{{ $clicked }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-4">
+            <div class="card card-sm">
+                <div class="card-body">
+                    <div class="text-muted">Bounced</div>
+                    <div class="h3 mb-0">{{ $bounced }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title mb-0">Recipients</h3>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover table-vcenter card-table">
+                <thead>
+                    <tr>
+                        <th>Nama</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                        <th>Dikirim</th>
+                        <th>Dibuka</th>
+                        <th>Diklik</th>
+                        <th>Bounce</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($recipients as $r)
+                        <tr>
+                            <td>{{ $r->recipient_name }}</td>
+                            <td>{{ $r->recipient_email }}</td>
+                            <td>
+                                <span class="badge bg-{{ $r->delivery_status === 'delivered' ? 'success' : ($r->delivery_status === 'bounced' ? 'danger' : 'secondary') }}">
+                                    {{ Str::title($r->delivery_status) }}
+                                </span>
+                            </td>
+                            <td>{{ $r->delivered_at ? $r->delivered_at->format('d M Y H:i') : '-' }}</td>
+                            <td>{{ $r->opened_at ? $r->opened_at->format('d M Y H:i') : '-' }}</td>
+                            <td>{{ $r->clicked_at ? $r->clicked_at->format('d M Y H:i') : '-' }}</td>
+                            <td>{{ $r->bounced_at ? $r->bounced_at->format('d M Y H:i') : '-' }}</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="7" class="text-muted">Belum ada penerima.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+@else
 <form method="POST" action="{{ $isNew ? route('email-marketing.store') : route('email-marketing.update', $campaign) }}" id="campaign-form">
     @csrf
     @unless($isNew)
@@ -72,6 +192,11 @@
             <div class="mb-2">
                 <label class="form-label">Body Mail</label>
                 <div id="gjs" style="height: 560px; border:1px solid #e5e7eb;">{!! $emailHtml !!}</div>
+                <div class="text-muted small mt-2">
+                    @verbatim
+                    Placeholder: {{name}}, {{email}}, {{unsubscribe}}, {{track_click}} (diganti otomatis saat kirim).
+                    @endverbatim
+                </div>
             </div>
         </div>
     </div>
@@ -96,12 +221,14 @@
         </div>
     </div>
 </div>
+@endif
 @endsection
 
 @push('scripts')
 <script src="https://unpkg.com/grapesjs"></script>
 <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
 <script>
+    @if(!$showReport)
     const editor = grapesjs.init({
         container: '#gjs',
         height: '560px',
@@ -186,11 +313,11 @@
     });
 
     applyBtn?.addEventListener('click', () => {
-        const token = document.querySelector('input[name="_token"]').value;
+        const token = document.querySelector('input[name=\"_token\"]').value;
         const formData = new FormData();
         filterWrap.querySelectorAll('.filter-row').forEach((row, idx) => {
             row.querySelectorAll('select, input').forEach(el => {
-                const name = el.name.replace(/\d+/, idx); // normalize indices
+                const name = el.name.replace(/\\d+/, idx); // normalize indices
                 formData.append(name, el.value);
             });
         });
@@ -212,6 +339,6 @@
             if (badge) badge.textContent = 'Matches: error';
           });
     });
-
+    @endif
 </script>
 @endpush

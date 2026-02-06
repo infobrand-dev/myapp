@@ -45,6 +45,8 @@ class EmailWebhookController extends Controller
             ]);
         }
 
+        $this->updateCampaignStatus($recipient->campaign);
+
         return response()->json(['status' => 'ok']);
     }
 
@@ -63,5 +65,21 @@ class EmailWebhookController extends Controller
             }
         }
         return null;
+    }
+
+    protected function updateCampaignStatus($campaign): void
+    {
+        if (!$campaign) {
+            return;
+        }
+        $pending = $campaign->recipients()
+            ->whereIn('delivery_status', ['pending', 'outgoing'])
+            ->count();
+        if ($pending === 0 && $campaign->recipients()->count() > 0) {
+            $campaign->update([
+                'status' => 'done',
+                'finished_at' => $campaign->finished_at ?: Carbon::now(),
+            ]);
+        }
     }
 }

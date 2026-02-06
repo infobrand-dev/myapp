@@ -9,6 +9,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Mail;
+use TijsVerkoyen\CssToInlineStyles\CssToInlineStyles;
 
 class SendCampaignEmailRecipient implements ShouldQueue
 {
@@ -30,7 +31,16 @@ class SendCampaignEmailRecipient implements ShouldQueue
             return;
         }
 
-        $html = $campaign->body_html;
+        if ($campaign->status === 'scheduled') {
+            $campaign->update([
+                'status' => 'running',
+                'started_at' => $campaign->started_at ?: now(),
+            ]);
+        }
+
+        $html = $this->replacePlaceholders($campaign->body_html, $recipient, $campaign);
+        $html = $this->inlineCss($html);
+        $html = $this->makeUrlsAbsolute($html);
 
         // inject open pixel
         $pixel = '<img src="'.route('email-marketing.track.open', $recipient->tracking_token).'" width="1" height="1" style="display:none;">';
@@ -51,6 +61,38 @@ class SendCampaignEmailRecipient implements ShouldQueue
         ]);
     }
 
+    /**
+     * Inline CSS so email clients keep the styling.
+     */
+    protected function inlineCss(string $html): string
+    {
+        $css = '';
+        if (preg_match_all('#<style[^>]*>(.*?)</style>#is', $html, $matches)) {
+            $css = implode("\n", $matches[1]);
+            $html = preg_replace('#<style[^>]*>.*?</style>#is', '', $html);
+        }
+
+        $inliner = new CssToInlineStyles();
+        return $inliner->convert($html, $css);
+    }
+
+    /**
+     * Ensure src/href that are relative become absolute with APP_URL,
+     * so images/buttons keep styling assets when viewed in inbox.
+     */
+    protected function makeUrlsAbsolute(string $html): string
+    {
+        $base = rtrim(config('app.url'), '/');
+        // href/src starting with / or without scheme but not mailto/tel/data
+        $html = preg_replace_callback('#(href|src)=["\'](\/[^"\']*|(?!(?:https?:|mailto:|tel:|data:))[^"\':]+)["\']#i', function ($m) use ($base) {
+            $attr = $m[1];
+            $url  = $m[2];
+            $absolute = str_starts_with($url, '/') ? $base.$url : $base.'/'.$url;
+            return $attr.'="'.$absolute.'"';
+        }, $html);
+        return $html;
+    }
+
     protected function rewriteLinks(string $html, string $token): string
     {
         return preg_replace_callback('#href=["\\\'](.*?)["\\\']#i', function ($m) use ($token) {
@@ -59,8 +101,20 @@ class SendCampaignEmailRecipient implements ShouldQueue
             if (stripos($url, 'mailto:') === 0 || stripos($url, 'tel:') === 0) {
                 return $m[0];
             }
-            $tracked = route('email-marketing.track.click', $token) . '?u=' . urlencode($url);
+            $tracked = url(route('email-marketing.track.click', $token, false)) . '?u=' . urlencode($url);
             return 'href="' . $tracked . '"';
         }, $html);
+    }
+
+    protected function replacePlaceholders(string $html, $recipient, $campaign): string
+    {
+        $unsubscribe = url(route('email-marketing.unsubscribe', $recipient->tracking_token, false));
+        $map = [
+            '{{name}}' => $recipient->recipient_name ?? '',
+            '{{email}}' => $recipient->recipient_email ?? '',
+            '{{track_click}}' => url(route('email-marketing.track.click', $recipient->tracking_token, false)),
+            '{{unsubscribe}}' => $unsubscribe,
+        ];
+        return strtr($html, $map);
     }
 }

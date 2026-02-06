@@ -18,12 +18,14 @@ class EmailCampaign extends Model
         'filter_json',
         'started_at',
         'scheduled_at',
+        'finished_at',
     ];
 
     protected $casts = [
         'started_at' => 'datetime',
         'scheduled_at' => 'datetime',
         'filter_json' => 'array',
+        'finished_at' => 'datetime',
     ];
 
     public function recipients(): HasMany

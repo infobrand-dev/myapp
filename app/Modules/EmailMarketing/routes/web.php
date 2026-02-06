@@ -29,3 +29,6 @@ Route::middleware(['web'])
 
 Route::post('/webhook/mailtrap', [\App\Modules\EmailMarketing\Http\Controllers\EmailWebhookController::class, 'mailtrap'])
     ->name('email-marketing.webhook.mailtrap');
+
+Route::get('/email-unsubscribe/{token}', [\App\Modules\EmailMarketing\Http\Controllers\EmailCampaignController::class, 'unsubscribe'])
+    ->name('email-marketing.unsubscribe');

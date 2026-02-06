@@ -17,38 +17,36 @@ class EmailCampaignController extends Controller
 {
     protected static function defaultTemplate(): string
     {
-        return <<<HTML
-<div style="Margin:0;background:#f2f4f7;padding:16px;font-family:Arial,sans-serif;">
-  <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="max-width:500px;width:100%;Margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.06);">
-    <tr>
-      <td style="padding:24px 24px 8px 24px;text-align:center;">
-        <img src="https://placehold.co/96x96?text=Logo" alt="Logo" width="96" height="96" style="border-radius:50%;display:block;Margin:0 auto 12px;">
-        <h1 style="Margin:0;font-size:20px;line-height:28px;color:#111827;">Halo {{name}}</h1>
-        <p style="Margin:8px 0 0;font-size:14px;line-height:22px;color:#6b7280;">Berikut update terbaru untuk Anda.</p>
-      </td>
-    </tr>
-    <tr>
-      <td style="padding:8px 24px 16px 24px;">
-        <div style="background:#f0f4ff;border-radius:10px;padding:14px 16px;">
-          <h2 style="Margin:0 0 8px;font-size:16px;line-height:22px;color:#1f2937;">Judul Seksi</h2>
-          <p style="Margin:0;font-size:14px;line-height:22px;color:#4b5563;">Tulis konten email Anda di sini. Sertakan {{track_click}} untuk tracking link jika diperlukan.</p>
-        </div>
-      </td>
-    </tr>
-    <tr>
-      <td style="padding:0 24px 24px 24px;text-align:center;">
-        <a href="#" style="display:inline-block;padding:12px 18px;background:#206bc4;color:#fff;border-radius:10px;text-decoration:none;font-size:14px;">Call To Action</a>
-      </td>
-    </tr>
-    <tr>
-      <td style="padding:0 24px 20px 24px;text-align:center;font-size:12px;line-height:18px;color:#9ca3af;">
-        <div style="Margin-bottom:4px;">Jika tombol tidak berfungsi, salin link ini: {{track_click}}</div>
-        <div>&copy; 2026 MyApp. Semua hak dilindungi.</div>
-      </td>
-    </tr>
-  </table>
-</div>
-HTML;
+        $content = <<<INNER
+<tr>
+  <td style="padding:24px 24px 8px 24px;text-align:center;">
+    <img src="https://placehold.co/96x96?text=Logo" alt="Logo" width="96" height="96" style="border-radius:50%;display:block;Margin:0 auto 12px;">
+    <h1 style="Margin:0;font-size:20px;line-height:28px;color:#111827;">Halo {{name}}</h1>
+    <p style="Margin:8px 0 0;font-size:14px;line-height:22px;color:#6b7280;">Berikut update terbaru untuk Anda.</p>
+  </td>
+</tr>
+<tr>
+  <td style="padding:8px 24px 16px 24px;">
+    <div style="background:#f0f4ff;border-radius:10px;padding:14px 16px;">
+      <h2 style="Margin:0 0 8px;font-size:16px;line-height:22px;color:#1f2937;">Judul Seksi</h2>
+      <p style="Margin:0;font-size:14px;line-height:22px;color:#4b5563;">Tulis konten email Anda di sini. Sertakan {{track_click}} untuk tracking link jika diperlukan.</p>
+    </div>
+  </td>
+</tr>
+<tr>
+  <td style="padding:0 24px 24px 24px;text-align:center;">
+    <a href="#" style="display:inline-block;padding:12px 18px;background:#206bc4;color:#fff;border-radius:10px;text-decoration:none;font-size:14px;">Call To Action</a>
+  </td>
+</tr>
+<tr>
+  <td style="padding:0 24px 20px 24px;text-align:center;font-size:12px;line-height:18px;color:#9ca3af;">
+    <div style="Margin-bottom:4px;">Jika tombol tidak berfungsi, salin link ini: {{track_click}}</div>
+    <div>&copy; 2026 MyApp. Semua hak dilindungi.</div>
+  </td>
+</tr>
+INNER;
+
+        return self::wrapTemplate($content);
     }
 
     /**
@@ -56,21 +54,37 @@ HTML;
      */
     public static function editorHtml(?string $html): string
     {
-        $html = $html ?: self::defaultTemplate();
-        if (!str_contains($html, 'email-wrapper-outer')) {
-            $html = '<div class="email-wrapper-outer" style="Margin:0;background:#f2f4f7;padding:16px;font-family:Arial,sans-serif;">'.$html.'</div>';
-        }
-        if (!str_contains($html, 'data-email-base-style')) {
-            $style = '<style data-email-base-style>
-                body{margin:0;padding:0;background:#f2f4f7;font-family:Arial,Helvetica,sans-serif;}
-                .email-wrapper-outer{background:#f2f4f7;padding:16px;}
-                table{margin:0 auto;max-width:500px;width:100%;}
-                a{color:#206bc4;}
-                h1,h2,h3,h4,h5,h6{font-family:Arial,Helvetica,sans-serif;}
-            </style>';
-            $html = $style . $html;
+        if ($html) {
+            // inject into wrapper while preserving user content
+            $html = self::wrapTemplate($html, true);
+        } else {
+            $html = self::defaultTemplate();
         }
         return $html;
+    }
+
+    protected static function wrapTemplate(string $inner, bool $treatAsHtmlBlock = false): string
+    {
+        $baseStyle = '<style data-email-base-style>
+            body{margin:0;padding:0;background:#f2f4f7;font-family:Arial,Helvetica,sans-serif;}
+            .email-wrapper-outer{background:#f2f4f7;padding:16px;}
+            table.email-card{margin:0 auto;max-width:500px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.06);}
+            a{color:#206bc4;}
+            h1,h2,h3,h4,h5,h6{font-family:Arial,Helvetica,sans-serif;}
+        </style>';
+
+        $contentRows = $treatAsHtmlBlock
+            ? "<tr><td style=\"padding:0;\">{$inner}</td></tr>"
+            : $inner;
+
+        return <<<HTML
+{$baseStyle}
+<div class="email-wrapper-outer" style="Margin:0;background:#f2f4f7;padding:16px;font-family:Arial,sans-serif;">
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" class="email-card">
+    {$contentRows}
+  </table>
+</div>
+HTML;
     }
 
     public function index(Request $request): View
@@ -133,11 +147,14 @@ HTML;
         );
         [$filters, $contacts] = $this->filteredContacts($request, $requestFilters);
 
+        $showReport = in_array($campaign->status, ['running', 'done']);
+
         return view('emailmarketing::show', [
             'campaign' => $campaign,
             'contacts' => $contacts,
             'filters'  => $filters,
             'matchCount' => $contacts->count(),
+            'showReport' => $showReport,
         ]);
     }
 
@@ -371,6 +388,15 @@ HTML;
         ]);
 
         return back()->with('status', 'Status replied diperbarui.');
+    }
+
+    public function unsubscribe(string $token)
+    {
+        $recipient = EmailCampaignRecipient::query()->where('tracking_token', $token)->firstOrFail();
+        if (!$recipient->unsubscribed_at) {
+            $recipient->update(['unsubscribed_at' => Carbon::now()]);
+        }
+        return response()->view('emailmarketing::unsubscribe', ['recipient' => $recipient]);
     }
 
     public function trackOpen(string $token)

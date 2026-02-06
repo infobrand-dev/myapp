@@ -15,8 +15,9 @@
         <div>
             <h2 class="mb-0">{{ $campaign->subject }}</h2>
             <div class="text-muted small">
+                @php $campColor = $campaign->status === 'done' ? 'success' : 'primary'; @endphp
                 Status:
-                <span class="badge bg-{{ $campaign->status === 'done' ? 'success' : 'primary' }}">{{ Str::title($campaign->status) }}</span>
+                <span class="badge bg-{{ $campColor }} {{ $campColor !== 'secondary' ? 'text-white' : '' }}">{{ Str::title($campaign->status) }}</span>
                 @if($campaign->finished_at)
                     · Selesai {{ $campaign->finished_at->format('d M Y H:i') }}
                 @elseif($campaign->started_at)
@@ -111,7 +112,15 @@
                             <td>{{ $r->recipient_name }}</td>
                             <td>{{ $r->recipient_email }}</td>
                             <td>
-                                <span class="badge bg-{{ $r->delivery_status === 'delivered' ? 'success' : ($r->delivery_status === 'bounced' ? 'danger' : 'secondary') }}">
+                                @php
+                                    $color = match($r->delivery_status) {
+                                        'delivered' => 'success',
+                                        'bounced' => 'danger',
+                                        default => 'secondary-lt'
+                                    };
+                                    $textClass = $color === 'secondary-lt' ? 'text-dark' : 'text-white';
+                                @endphp
+                                <span class="badge bg-{{ $color }} {{ $textClass }}">
                                     {{ Str::title($r->delivery_status) }}
                                 </span>
                             </td>

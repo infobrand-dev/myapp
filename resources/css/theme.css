@@ -1,0 +1,23 @@
+:root {
+    --tblr-primary: #206bc4;
+    --tblr-primary-rgb: 32, 107, 196;
+}
+
+[data-bs-theme="dark"] {
+    color-scheme: dark;
+}
+
+/* Small swatches (for header theme picker) */
+.theme-swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    border: 1px solid rgba(0,0,0,0.08);
+    padding: 0;
+}
+
+/* Utility: soften badges for pending state */
+.badge.bg-secondary-lt {
+    background-color: var(--tblr-secondary-lt);
+    color: var(--tblr-secondary);
+}

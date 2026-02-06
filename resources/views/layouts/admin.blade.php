@@ -4,6 +4,20 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>MyApp</title>
+    <script>
+        // Early apply saved theme to avoid FOUC
+        (function() {
+            const mode = localStorage.getItem('theme-mode') || 'light';
+            const color = localStorage.getItem('theme-color');
+            const root = document.documentElement;
+            root.setAttribute('data-bs-theme', mode);
+            if (color) {
+                root.style.setProperty('--tblr-primary', color);
+                const rgb = color.match(/[0-9a-f]{2}/gi)?.map(h => parseInt(h, 16)) ?? [32,107,196];
+                root.style.setProperty('--tblr-primary-rgb', rgb.join(','));
+            }
+        })();
+    </script>
     <link id="dynamic-favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='30' fill='%2314b8a6'/></svg>">
     <link rel="stylesheet" href="{{ mix('css/app.css') }}">
 </head>
@@ -14,7 +28,7 @@
         <div class="page-wrapper">
             <header class="navbar navbar-expand-md">
                 <div class="container-fluid">
-                    <div class="ms-auto">
+                    <div class="d-flex align-items-center gap-3 ms-auto">
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button class="btn btn-sm btn-outline-primary" type="submit">Logout</button>

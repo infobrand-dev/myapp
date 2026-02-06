@@ -56,6 +56,34 @@
                 </form>
             </div>
         </div>
+        <div class="card mt-3">
+            <div class="card-header">
+                <h3 class="card-title mb-0">Tampilan (Light/Dark)</h3>
+            </div>
+            <div class="card-body">
+                <div class="btn-list">
+                    <button type="button" class="btn btn-outline-secondary" data-theme-mode="light">Light</button>
+                    <button type="button" class="btn btn-outline-secondary" data-theme-mode="dark">Dark</button>
+                </div>
+                <div class="text-muted small mt-2">Pilihan disimpan di browser ini (localStorage).</div>
+            </div>
+        </div>
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    (function(){
+        const apply = (mode) => {
+            document.documentElement.setAttribute('data-bs-theme', mode);
+            localStorage.setItem('theme-mode', mode);
+        };
+        document.querySelectorAll('[data-theme-mode]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                apply(btn.dataset.themeMode || 'light');
+            });
+        });
+    })();
+</script>
+@endpush

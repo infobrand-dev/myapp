@@ -99,6 +99,19 @@
                     <span class="nav-link-title">Email Marketing</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('email-marketing.templates.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('email-marketing.templates.index') }}">
+                    <span class="nav-link-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                            <path d="M12 5v14" />
+                            <path d="M16 7l-8 10" />
+                            <path d="M8 7l8 10" />
+                        </svg>
+                    </span>
+                    <span class="nav-link-title">Lampiran Dinamis</span>
+                </a>
+            </li>
             @endif
             @if(config('modules.whatsapp_bro.enabled'))
             <li class="nav-item">

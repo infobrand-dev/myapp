@@ -98,9 +98,9 @@
                     </span>
                     <span class="nav-link-title">Email Marketing</span>
                 </a>
-                <div class="dropdown-menu show position-static border-0 shadow-none px-0 py-1">
-                    <a class="dropdown-item {{ request()->routeIs('email-marketing.index') ? 'active' : '' }}" href="{{ route('email-marketing.index') }}">Campaign</a>
-                    <a class="dropdown-item {{ request()->routeIs('email-marketing.templates.*') ? 'active' : '' }}" href="{{ route('email-marketing.templates.index') }}">Attachment</a>
+                <div class="dropdown-menu show position-static border-0 shadow-none px-0 py-1 ms-4">
+                    <a class="dropdown-item px-3 {{ request()->routeIs('email-marketing.index') ? 'active' : '' }}" href="{{ route('email-marketing.index') }}">Campaign</a>
+                    <a class="dropdown-item px-3 {{ request()->routeIs('email-marketing.templates.*') ? 'active' : '' }}" href="{{ route('email-marketing.templates.index') }}">Attachment</a>
                 </div>
             </li>
             @endif

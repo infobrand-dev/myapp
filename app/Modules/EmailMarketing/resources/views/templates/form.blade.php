@@ -99,11 +99,12 @@
                     holder.style.overflow = 'auto';
                 }
             }
-            // set editor height a bit larger than paper to avoid cut-off but keep card tidy
-            const targetHeight = Math.min(size.h + 120, 900);
+            // set editor height >= canvas height so frame tidak terpotong
+            const targetHeight = size.h + 150;
             editor.setHeight(targetHeight + 'px');
             if (frame && frame.parentElement) {
                 frame.parentElement.style.maxHeight = targetHeight + 'px';
+                frame.parentElement.style.minHeight = size.h + 'px';
             }
             const canvasDoc = editor.Canvas.getDocument();
             if (canvasDoc && canvasDoc.documentElement) {

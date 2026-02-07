@@ -99,6 +99,8 @@
                     holder.style.overflow = 'auto';
                 }
             }
+            // set editor height a bit larger than paper to avoid cut-off
+            editor.setHeight((size.h + 200) + 'px');
             const canvasDoc = editor.Canvas.getDocument();
             if (canvasDoc && canvasDoc.documentElement) {
                 canvasDoc.documentElement.style.setProperty('--paper-width', size.w + 'px');

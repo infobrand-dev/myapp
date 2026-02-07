@@ -44,7 +44,7 @@
                 </div>
                 <div class="col-md-12">
                     <label class="form-label">HTML (WYSIWYG)</label>
-                    <div id="gjs" style="height: 700px; border:1px solid #e5e7eb;">{!! old('html', $template->html) !!}</div>
+                    <div id="gjs" style="border:1px solid #e5e7eb;">{!! old('html', $template->html) !!}</div>
                     <input type="hidden" name="html" id="html_input" value="{{ old('html', $template->html) }}">
                 </div>
             </div>
@@ -99,8 +99,12 @@
                     holder.style.overflow = 'auto';
                 }
             }
-            // set editor height a bit larger than paper to avoid cut-off
-            editor.setHeight((size.h + 200) + 'px');
+            // set editor height a bit larger than paper to avoid cut-off but keep card tidy
+            const targetHeight = Math.min(size.h + 120, 900);
+            editor.setHeight(targetHeight + 'px');
+            if (frame && frame.parentElement) {
+                frame.parentElement.style.maxHeight = targetHeight + 'px';
+            }
             const canvasDoc = editor.Canvas.getDocument();
             if (canvasDoc && canvasDoc.documentElement) {
                 canvasDoc.documentElement.style.setProperty('--paper-width', size.w + 'px');

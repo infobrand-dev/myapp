@@ -56,6 +56,11 @@
 @push('scripts')
 <script src="https://unpkg.com/grapesjs@0.21.10/dist/grapes.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/grapesjs@0.21.10/dist/css/grapes.min.css">
+<style>
+    /* Pastikan editor tidak terpotong */
+    #gjs, .gjs-editor, .gjs-editor-cont, .gjs-cv-canvas { min-height: 950px; }
+    .card-body { overflow: visible; }
+</style>
 <script>
     (function() {
         const paperSelect = document.querySelector('select[name=\"paper_size\"]');
@@ -96,15 +101,15 @@
                     holder.style.justifyContent = 'center';
                     holder.style.background = '#f8fafc';
                     holder.style.padding = '12px';
-                    holder.style.overflow = 'auto';
+                    holder.style.overflow = 'visible';
                 }
             }
-            // set editor height >= canvas height so frame tidak terpotong
-            const targetHeight = size.h + 150;
+            // set editor height >= canvas height agar toolbar/panel tidak terpotong
+            const targetHeight = size.h + 260;
             editor.setHeight(targetHeight + 'px');
             if (frame && frame.parentElement) {
-                frame.parentElement.style.maxHeight = targetHeight + 'px';
-                frame.parentElement.style.minHeight = size.h + 'px';
+                frame.parentElement.style.maxHeight = 'none';
+                frame.parentElement.style.minHeight = targetHeight + 'px';
             }
             const canvasDoc = editor.Canvas.getDocument();
             if (canvasDoc && canvasDoc.documentElement) {

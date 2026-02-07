@@ -30,6 +30,7 @@ class EmailAttachmentTemplateController extends Controller
             'filename' => ['required', 'string', 'max:255'],
             'mime' => ['required', 'string', 'max:100'],
             'html' => ['required', 'string'],
+            'paper_size' => ['required', 'in:A4,A4-landscape,Letter,Letter-landscape'],
         ]);
         $data['created_by'] = $request->user()?->id;
         EmailAttachmentTemplate::create($data);
@@ -51,6 +52,7 @@ class EmailAttachmentTemplateController extends Controller
             'filename' => ['required', 'string', 'max:255'],
             'mime' => ['required', 'string', 'max:100'],
             'html' => ['required', 'string'],
+            'paper_size' => ['required', 'in:A4,A4-landscape,Letter,Letter-landscape'],
         ]);
         $emailAttachmentTemplate->update($data);
 

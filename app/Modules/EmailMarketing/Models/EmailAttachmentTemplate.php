@@ -17,6 +17,7 @@ class EmailAttachmentTemplate extends Model
         'html',
         'mime',
         'created_by',
+        'paper_size',
     ];
 
     public function campaigns(): BelongsToMany

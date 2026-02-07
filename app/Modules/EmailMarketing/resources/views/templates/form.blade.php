@@ -60,10 +60,10 @@
     (function() {
         const paperSelect = document.querySelector('select[name=\"paper_size\"]');
         const preset = {
-            'A4': { w: 794, h: 1123 },
-            'A4-landscape': { w: 1123, h: 794 },
-            'Letter': { w: 816, h: 1056 },
-            'Letter-landscape': { w: 1056, h: 816 },
+            'A4': { w: 794, h: 1123, name: 'A4' },
+            'A4-landscape': { w: 1123, h: 794, name: 'A4-landscape' },
+            'Letter': { w: 816, h: 1056, name: 'Letter' },
+            'Letter-landscape': { w: 1056, h: 816, name: 'Letter-landscape' },
         };
         const editor = grapesjs.init({
             container: '#gjs',
@@ -76,6 +76,7 @@
                     'https://unpkg.com/grapesjs@0.21.10/dist/css/grapes.min.css',
                     `data:text/css,body{background:#f2f4f7;margin:0;padding:24px;font-family:Arial,sans-serif;} .page{background:#fff;margin:0 auto;box-shadow:0 6px 18px rgba(0,0,0,.08);padding:32px 36px;border-radius:10px;}`
                 ],
+                scripts: [],
             },
             selectorManager: { appendTo: '' },
             styleManager: { appendTo: '' },
@@ -95,7 +96,13 @@
                     holder.style.justifyContent = 'center';
                     holder.style.background = '#f8fafc';
                     holder.style.padding = '12px';
+                    holder.style.overflow = 'auto';
                 }
+            }
+            const canvasDoc = editor.Canvas.getDocument();
+            if (canvasDoc && canvasDoc.documentElement) {
+                canvasDoc.documentElement.style.setProperty('--paper-width', size.w + 'px');
+                canvasDoc.documentElement.style.setProperty('--paper-height', size.h + 'px');
             }
             // wrap content in .page to enforce padding/width
             const comps = editor.getComponents();

@@ -68,7 +68,7 @@
         const editor = grapesjs.init({
             container: '#gjs',
             height: '820px',
-            width: preset[paperSelect.value].w + 'px',
+            width: '100%',
             storageManager: false,
             fromElement: true,
             canvas: {
@@ -84,9 +84,19 @@
         const applySize = () => {
             const size = preset[paperSelect.value] || preset['A4'];
             const canvas = editor.Canvas.getElement();
-            canvas.style.maxWidth = size.w + 'px';
-            canvas.style.minWidth = size.w + 'px';
+            const frame = editor.Canvas.getFrameEl();
             canvas.style.minHeight = size.h + 'px';
+            if (frame) {
+                frame.style.width = size.w + 'px';
+                frame.style.minHeight = size.h + 'px';
+                const holder = frame.parentElement;
+                if (holder) {
+                    holder.style.display = 'flex';
+                    holder.style.justifyContent = 'center';
+                    holder.style.background = '#f8fafc';
+                    holder.style.padding = '12px';
+                }
+            }
             // wrap content in .page to enforce padding/width
             const comps = editor.getComponents();
             if (comps.length === 0) {

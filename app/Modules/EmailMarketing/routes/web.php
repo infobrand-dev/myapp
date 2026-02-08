@@ -15,6 +15,7 @@ Route::middleware(['web', 'auth', 'role:Super-admin|Admin'])
         Route::post('/{campaign}/matches', [EmailCampaignController::class, 'matches'])->name('matches');
         // Templates should be registered before catch-all {campaign}
         Route::resource('templates', EmailAttachmentTemplateController::class)->names('templates')->except(['show']);
+        Route::get('templates/{emailAttachmentTemplate}/preview', [EmailAttachmentTemplateController::class, 'preview'])->name('templates.preview');
         Route::get('/{campaign}', [EmailCampaignController::class, 'show'])->name('show');
         Route::put('/{campaign}', [EmailCampaignController::class, 'update'])->name('update');
         Route::post('/{campaign}/launch', [EmailCampaignController::class, 'launch'])->name('launch');

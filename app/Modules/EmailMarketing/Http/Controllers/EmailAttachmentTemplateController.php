@@ -44,6 +44,20 @@ class EmailAttachmentTemplateController extends Controller
         return view('emailmarketing::templates.form', compact('template'));
     }
 
+    public function preview(EmailAttachmentTemplate $emailAttachmentTemplate)
+    {
+        $html = $emailAttachmentTemplate->html;
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html);
+
+        // atur ukuran kertas sesuai template
+        $paper = $emailAttachmentTemplate->paper_size ?? 'A4';
+        $orientation = str_contains($paper, 'landscape') ? 'landscape' : 'portrait';
+        $basePaper = str_contains($paper, 'Letter') ? 'letter' : 'a4';
+        $pdf->setPaper($basePaper, $orientation);
+
+        return $pdf->download($emailAttachmentTemplate->filename ?? 'attachment.pdf');
+    }
+
     public function update(Request $request, EmailAttachmentTemplate $emailAttachmentTemplate): RedirectResponse
     {
         $data = $request->validate([

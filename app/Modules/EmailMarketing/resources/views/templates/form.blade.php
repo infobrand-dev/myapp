@@ -13,6 +13,9 @@
         </div>
         <div class="btn-list">
             <a href="{{ route('email-marketing.templates.index') }}" class="btn btn-outline-secondary">Kembali</a>
+            @if($template->exists)
+                <a href="{{ route('email-marketing.templates.preview', $template) }}" class="btn btn-outline-primary">Download Preview</a>
+            @endif
             <button type="submit" class="btn btn-primary">Simpan</button>
         </div>
     </div>

@@ -130,16 +130,23 @@
 
         // Blocks library
         const bm = editor.BlockManager;
-        bm.add('title', { label: 'Title', content: '<h1 style=\"margin:0 0 12px;\">Judul Besar</h1>' });
-        bm.add('subtitle', { label: 'Subtitle', content: '<h3 style=\"margin:0 0 8px;color:#475569;\">Subjudul ringkas</h3>' });
-        bm.add('paragraph', { label: 'Paragraph', content: '<p style=\"margin:0 0 12px;line-height:1.6;color:#334155;\">Tulis paragraf di sini.</p>' });
-        bm.add('button', { label: 'Button', content: '<a style=\"display:inline-block;padding:12px 18px;background:#206bc4;color:#fff;text-decoration:none;border-radius:8px;\">Call To Action</a>' });
-        bm.add('two-col', { label: '2 Columns', content: '<div style=\"display:flex;gap:16px;\"><div style=\"flex:1;\">Kolom kiri</div><div style=\"flex:1;\">Kolom kanan</div></div>' });
-        bm.add('list', { label: 'List', content: '<ul style=\"padding-left:20px;margin:0 0 12px;\"><li>Item 1</li><li>Item 2</li></ul>' });
-        bm.add('image', { label: 'Image', content: '<img src=\"https://placehold.co/600x200\" alt=\"Image\" style=\"max-width:100%;height:auto;\">' });
-        bm.add('spacer', { label: 'Spacer', content: '<div style=\"height:24px;\"></div>' });
-        bm.add('table', { label: 'Table', content: '<table style=\"width:100%;border-collapse:collapse;\"><tr><th style=\"border:1px solid #e2e8f0;padding:8px;\">Kolom 1</th><th style=\"border:1px solid #e2e8f0;padding:8px;\">Kolom 2</th></tr><tr><td style=\"border:1px solid #e2e8f0;padding:8px;\">Isi</td><td style=\"border:1px solid #e2e8f0;padding:8px;\">Isi</td></tr></table>' });
-        bm.add('info', { label: 'Info Box', content: '<div style=\"background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;\">Masukkan highlight informasi di sini.</div>' });
+        bm.add('title', { label: '🅣 Title', content: '<h1 style=\"margin:0 0 12px;\">Judul Besar</h1>' });
+        bm.add('subtitle', { label: '🅢 Subtitle', content: '<h3 style=\"margin:0 0 8px;color:#475569;\">Subjudul ringkas</h3>' });
+        bm.add('paragraph', { label: '🅟 Paragraph', content: '<p style=\"margin:0 0 12px;line-height:1.6;color:#334155;\">Tulis paragraf di sini.</p>' });
+        bm.add('button', { label: '🔘 Button', content: '<a style=\"display:inline-block;padding:12px 18px;background:#206bc4;color:#fff;text-decoration:none;border-radius:8px;\">Call To Action</a>' });
+        bm.add('two-col', { label: '⬛⬛ 2 Columns', content: '<div style=\"display:flex;gap:16px;\"><div style=\"flex:1;\">Kolom kiri</div><div style=\"flex:1;\">Kolom kanan</div></div>' });
+        bm.add('three-col', { label: '⬛⬛⬛ 3 Columns', content: '<div style=\"display:flex;gap:12px;\"><div style=\"flex:1;\">Kolom 1</div><div style=\"flex:1;\">Kolom 2</div><div style=\"flex:1;\">Kolom 3</div></div>' });
+        bm.add('list', { label: '• List', content: '<ul style=\"padding-left:20px;margin:0 0 12px;\"><li>Item 1</li><li>Item 2</li></ul>' });
+        bm.add('image', { label: '🖼 Image', content: '<img src=\"https://placehold.co/600x200\" alt=\"Image\" style=\"max-width:100%;height:auto;\">' });
+        bm.add('avatar', { label: '👤 Avatar', content: '<img src=\"https://placehold.co/96x96?text=IMG\" alt=\"Avatar\" style=\"width:96px;height:96px;border-radius:50%;\">' });
+        bm.add('hero', { label: '🏞 Hero', content: '<div style=\"text-align:center;padding:24px;background:#f4f6fb;border-radius:10px;\"><h2 style=\"margin:0 0 8px;\">Headline</h2><p style=\"margin:0 0 14px;color:#475569;\">Subheadline singkat</p><a style=\"display:inline-block;padding:12px 18px;background:#206bc4;color:#fff;text-decoration:none;border-radius:8px;\">Call To Action</a></div>' });
+        bm.add('card', { label: '🗂 Card', content: '<div style=\"border:1px solid #e2e8f0;border-radius:10px;padding:16px;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.06);\"><h3 style=\"margin:0 0 8px;\">Judul Card</h3><p style=\"margin:0;color:#475569;\">Deskripsi singkat card.</p></div>' });
+        bm.add('badge', { label: '🏷 Badge', content: '<span style=\"display:inline-block;background:#e0f2fe;color:#0369a1;padding:6px 10px;border-radius:20px;font-size:12px;\">Badge</span>' });
+        bm.add('divider', { label: '— Divider', content: '<hr style=\"border:0;border-top:1px solid #e2e8f0;margin:16px 0;\">' });
+        bm.add('quote', { label: '❝ Quote', content: '<blockquote style=\"margin:0 0 12px;padding:12px 16px;border-left:4px solid #206bc4;background:#f8fafc;color:#334155;\">“Tulis kutipan di sini.”</blockquote>' });
+        bm.add('spacer', { label: '↕ Spacer', content: '<div style=\"height:24px;\"></div>' });
+        bm.add('table', { label: '☰ Table', content: '<table style=\"width:100%;border-collapse:collapse;\"><tr><th style=\"border:1px solid #e2e8f0;padding:8px;\">Kolom 1</th><th style=\"border:1px solid #e2e8f0;padding:8px;\">Kolom 2</th></tr><tr><td style=\"border:1px solid #e2e8f0;padding:8px;\">Isi</td><td style=\"border:1px solid #e2e8f0;padding:8px;\">Isi</td></tr></table>' });
+        bm.add('info', { label: 'ℹ️ Info Box', content: '<div style=\"background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;\">Masukkan highlight informasi di sini.</div>' });
 
         const form = document.querySelector('form');
         form.addEventListener('submit', () => {

@@ -36,6 +36,7 @@ Route::middleware(['auth', 'role:Super-admin|Admin'])
     ->prefix('whatsapp-api')
     ->name('whatsapp-api.')
     ->group(function () {
+        Route::get('/chat', [SettingsController::class, 'chat'])->name('chat');
         Route::get('/settings', [SettingsController::class, 'edit'])->name('settings');
         Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
         Route::post('/test', [SettingsController::class, 'test'])

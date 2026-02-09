@@ -10,6 +10,12 @@ use Illuminate\Validation\Rule;
 
 class SettingsController extends Controller
 {
+    public function chat()
+    {
+        // placeholder page for WhatsApp API chat module
+        return view('whatsapp-api.chat');
+    }
+
     public function edit()
     {
         $setting = WhatsAppApiSetting::first();

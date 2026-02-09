@@ -105,8 +105,8 @@
             </li>
             @endif
             @if(config('modules.whatsapp_bro.enabled'))
-            <li class="nav-item">
-                <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('whatsappbro.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('whatsappbro.index') }}">
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('whatsappbro.*') || request()->routeIs('whatsapp-api.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="#" data-bs-toggle="dropdown" aria-expanded="false">
                     <span class="nav-link-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                             <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
@@ -116,8 +116,12 @@
                             <path d="M9 14a3.5 3.5 0 0 0 6 0" />
                         </svg>
                     </span>
-                    <span class="nav-link-title">WhatsApp Bro</span>
+                    <span class="nav-link-title">WhatsApp</span>
                 </a>
+                <div class="dropdown-menu show position-static border-0 shadow-none px-0 py-1 ms-4">
+                    <a class="dropdown-item px-3 {{ request()->routeIs('whatsappbro.*') ? 'active' : '' }}" href="{{ route('whatsappbro.index') }}">Chat</a>
+                    <a class="dropdown-item px-3 {{ request()->routeIs('whatsapp-api.*') ? 'active' : '' }}" href="{{ route('whatsapp-api.settings') }}">Settings</a>
+                </div>
             </li>
             @endif
             @if(config('modules.whatsapp_api.enabled'))

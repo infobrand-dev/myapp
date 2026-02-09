@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class WhatsAppApiSetting extends Model
 {
+    protected $table = 'whatsapp_api_settings';
     protected $fillable = [
         'provider',
         'base_url',

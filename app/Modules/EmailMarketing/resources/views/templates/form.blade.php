@@ -47,7 +47,14 @@
                 </div>
                 <div class="col-md-12">
                     <label class="form-label">HTML (WYSIWYG)</label>
-                    <div id="gjs" style="border:1px solid #e5e7eb;">{!! old('html', $template->html) !!}</div>
+                    <div class="row">
+                        <div class="col-md-3 col-lg-2 mb-2">
+                            <div id="gjs-blocks" class="border rounded bg-white" style="min-height: 950px; overflow:auto;"></div>
+                        </div>
+                        <div class="col-md-9 col-lg-10">
+                            <div id="gjs" style="border:1px solid #e5e7eb;">{!! old('html', $template->html) !!}</div>
+                        </div>
+                    </div>
                     <input type="hidden" name="html" id="html_input" value="{{ old('html', $template->html) }}">
                 </div>
             </div>
@@ -79,6 +86,9 @@
             width: '100%',
             storageManager: false,
             fromElement: true,
+            blockManager: {
+                appendTo: '#gjs-blocks',
+            },
             canvas: {
                 styles: [
                     'https://unpkg.com/grapesjs@0.21.10/dist/css/grapes.min.css',

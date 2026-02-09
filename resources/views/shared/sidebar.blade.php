@@ -54,7 +54,7 @@
                 </a>
             </li>
             @endrole
-            @if(config('modules.task_management.enabled') || config('modules.whatsapp_bro.enabled') || config('modules.contacts.enabled') || config('modules.shortlink.enabled') || config('modules.email_marketing.enabled'))
+            @if(config('modules.task_management.enabled') || config('modules.whatsapp_bro.enabled') || config('modules.whatsapp_api.enabled') || config('modules.contacts.enabled') || config('modules.shortlink.enabled') || config('modules.email_marketing.enabled'))
             <li class="nav-item mt-2">
                 <div class="text-uppercase text-secondary fw-bold small px-3">Modules</div>
             </li>
@@ -113,6 +113,22 @@
                         </svg>
                     </span>
                     <span class="nav-link-title">WhatsApp Bro</span>
+                </a>
+            </li>
+            @endif
+            @if(config('modules.whatsapp_api.enabled'))
+            <li class="nav-item">
+                <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('whatsapp-api.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('whatsapp-api.settings') }}">
+                    <span class="nav-link-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                            <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 3.4l-4.05 .4" />
+                            <path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1z" />
+                            <path d="M13 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1z" />
+                            <path d="M9 14a3.5 3.5 0 0 0 6 0" />
+                        </svg>
+                    </span>
+                    <span class="nav-link-title">WhatsApp API</span>
                 </a>
             </li>
             @endif

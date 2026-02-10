@@ -58,4 +58,18 @@
 </div>
 
 <div class="mt-3">{{ $conversations->links() }}</div>
+
+<div class="card mt-3">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Mulai Percakapan Internal</h3>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ route('conversations.start') }}" class="d-flex gap-2">
+            @csrf
+            <input type="number" name="user_id" class="form-control" placeholder="User ID lain" required>
+            <button class="btn btn-primary" type="submit">Start</button>
+        </form>
+        <div class="text-muted small mt-2">Masukkan user ID rekan untuk membuat percakapan baru.</div>
+    </div>
+</div>
 @endsection

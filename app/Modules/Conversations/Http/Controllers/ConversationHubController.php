@@ -16,6 +16,47 @@ use Illuminate\View\View;
 
 class ConversationHubController extends Controller
 {
+    public function start(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'user_id' => ['required', 'exists:users,id', 'different:' . $request->user()->id],
+        ]);
+
+        $me = $request->user();
+        $otherId = (int) $request->input('user_id');
+
+        $conversation = Conversation::firstOrCreate(
+            [
+                'channel' => 'internal',
+                'instance_id' => null,
+                'contact_wa_id' => 'user-' . $otherId,
+            ],
+            [
+                'contact_name' => null,
+                'status' => 'open',
+                'last_message_at' => now(),
+            ]
+        );
+
+        ConversationParticipant::firstOrCreate(
+            ['conversation_id' => $conversation->id, 'user_id' => $me->id],
+            ['role' => 'owner', 'invited_at' => now(), 'invited_by' => $me->id]
+        );
+        ConversationParticipant::firstOrCreate(
+            ['conversation_id' => $conversation->id, 'user_id' => $otherId],
+            ['role' => 'collaborator', 'invited_at' => now(), 'invited_by' => $me->id]
+        );
+
+        $conversation->update([
+            'owner_id' => $conversation->owner_id ?? $me->id,
+            'claimed_at' => $conversation->claimed_at ?? now(),
+            'locked_until' => now()->addMinutes(config('modules.whatsapp_api.lock_minutes', 30)),
+        ]);
+
+        return redirect()->route('conversations.show', $conversation)
+            ->with('status', 'Percakapan internal dibuat.');
+    }
+
     public function index(Request $request): View
     {
         $user = $request->user();

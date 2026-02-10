@@ -20,4 +20,7 @@ return [
     'email_marketing' => [
         'enabled' => true,
     ],
+    'social_media' => [
+        'enabled' => true,
+    ],
 ];

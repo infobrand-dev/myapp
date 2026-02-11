@@ -20,6 +20,31 @@ const io = new Server(server, {
 
 const clients = new Map(); // clientId -> { client, latestQr, ready }
 
+// Optional forward to Laravel Conversations webhook
+const forwardWebhook = process.env.WHATSAPP_BRO_WEBHOOK_URL || null;
+const forwardToken = process.env.WHATSAPP_BRO_WEBHOOK_TOKEN || null;
+
+async function forwardMessage(clientId, payload) {
+  if (!forwardWebhook || !forwardToken) return;
+  try {
+    await fetch(forwardWebhook, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token: forwardToken,
+        contact_id: payload.from,
+        contact_name: payload.author || payload.from,
+        message: payload.body,
+        external_message_id: payload.id,
+        direction: payload.fromMe ? 'out' : 'in',
+        client_id: clientId,
+      }),
+    });
+  } catch (e) {
+    console.error('forward webhook failed', e.message);
+  }
+}
+
 function getClient(clientId = 'default') {
   if (clients.has(clientId)) return clients.get(clientId);
 
@@ -49,6 +74,14 @@ function getClient(clientId = 'default') {
 
   client.on('message', (message) => {
     io.to(clientId).emit('message', { chatId: message.from, type: message.type });
+    forwardMessage(clientId, {
+      id: message.id.id,
+      body: message.body,
+      author: message.author,
+      from: message.from,
+      fromMe: message.fromMe,
+      type: message.type,
+    });
   });
 
   client.initialize();

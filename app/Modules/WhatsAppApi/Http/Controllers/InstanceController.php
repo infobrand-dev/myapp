@@ -4,30 +4,35 @@ namespace App\Modules\WhatsAppApi\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
+use App\Modules\Chatbot\Models\ChatbotAccount;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use App\Modules\WhatsAppApi\ViewModels\InstanceHealthViewModel;
 
 class InstanceController extends Controller
 {
     public function index(): View
     {
         $instances = WhatsAppInstance::orderByDesc('created_at')->paginate(15);
+        $summary = InstanceHealthViewModel::summary();
 
-        return view('whatsappapi::instances.index', compact('instances'));
+        return view('whatsappapi::instances.index', compact('instances', 'summary'));
     }
 
     public function create(): View
     {
         $instance = new WhatsAppInstance(['status' => 'disconnected', 'is_active' => true]);
+        $chatbotAccounts = ChatbotAccount::where('status', 'active')->orderBy('name')->get();
 
-        return view('whatsappapi::instances.form', compact('instance'));
+        return view('whatsappapi::instances.form', compact('instance', 'chatbotAccounts'));
     }
 
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validated($request);
         $data['is_active'] = $request->boolean('is_active');
+        $data['auto_reply'] = $request->boolean('auto_reply');
         $data['created_by'] = $request->user() ? $request->user()->id : null;
         $data['updated_by'] = $request->user() ? $request->user()->id : null;
 
@@ -38,13 +43,15 @@ class InstanceController extends Controller
 
     public function edit(WhatsAppInstance $instance): View
     {
-        return view('whatsappapi::instances.form', compact('instance'));
+        $chatbotAccounts = ChatbotAccount::where('status', 'active')->orderBy('name')->get();
+        return view('whatsappapi::instances.form', compact('instance', 'chatbotAccounts'));
     }
 
     public function update(Request $request, WhatsAppInstance $instance): RedirectResponse
     {
         $data = $this->validated($request);
         $data['is_active'] = $request->boolean('is_active');
+        $data['auto_reply'] = $request->boolean('auto_reply');
         $data['updated_by'] = $request->user() ? $request->user()->id : null;
 
         $instance->update($data);
@@ -75,6 +82,8 @@ class InstanceController extends Controller
             'status' => ['nullable', 'string', 'max:50'],
             'is_active' => ['boolean'],
             'settings' => ['nullable'],
+            'auto_reply' => ['sometimes', 'boolean'],
+            'chatbot_account_id' => ['nullable', 'exists:chatbot_accounts,id'],
         ]);
 
         if (isset($data['settings']) && is_string($data['settings']) && $data['settings'] !== '') {

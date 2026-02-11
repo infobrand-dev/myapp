@@ -23,4 +23,7 @@ return [
     'social_media' => [
         'enabled' => true,
     ],
+    'chatbot' => [
+        'enabled' => true,
+    ],
 ];

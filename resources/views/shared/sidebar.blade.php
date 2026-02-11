@@ -60,11 +60,45 @@
                 $emailOpen = request()->routeIs('email-marketing.*');
                 $taskOpen = request()->routeIs('memos.*') || request()->routeIs('tasktemplates.*');
                 $socialOpen = request()->routeIs('social-media.*');
+                $chatbotOpen = request()->routeIs('chatbot.*');
             @endphp
 
-            @if(config('modules.task_management.enabled') || config('modules.whatsapp_bro.enabled') || config('modules.whatsapp_api.enabled') || config('modules.contacts.enabled') || config('modules.shortlink.enabled') || config('modules.email_marketing.enabled'))
+            @if(config('modules.task_management.enabled') || config('modules.whatsapp_bro.enabled') || config('modules.whatsapp_api.enabled') || config('modules.contacts.enabled') || config('modules.shortlink.enabled') || config('modules.email_marketing.enabled') || config('modules.chatbot.enabled'))
             <li class="nav-item mt-2">
                 <div class="text-uppercase text-secondary fw-bold small px-3">Modules</div>
+            </li>
+            @endif
+
+            {{-- Conversations hub (gabungan internal/WA/social) --}}
+            <li class="nav-item">
+                <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('conversations.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('conversations.index') }}">
+                    <span class="nav-link-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                            <path d="M8 9h8" />
+                            <path d="M8 13h6" />
+                            <path d="M7 4h10a2 2 0 0 1 2 2v11l-4 -3l-4 3l-4 -3l-4 3v-11a2 2 0 0 1 2 -2z" />
+                        </svg>
+                    </span>
+                    <span class="nav-link-title">Conversations</span>
+                </a>
+            </li>
+
+            @if(config('modules.chatbot.enabled'))
+            <li class="nav-item">
+                <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ $chatbotOpen ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('chatbot.accounts.index') }}">
+                    <span class="nav-link-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                            <path d="M7 20v-2a4 4 0 0 1 4 -4h2a4 4 0 0 1 4 4v2" />
+                            <path d="M9 10h.01" />
+                            <path d="M15 10h.01" />
+                            <path d="M9.5 16a3.5 3.5 0 0 0 5 0" />
+                            <path d="M9 4h6l1 3h-8z" />
+                        </svg>
+                    </span>
+                    <span class="nav-link-title">Chatbot</span>
+                </a>
             </li>
             @endif
             @if(config('modules.social_media.enabled'))
@@ -83,6 +117,9 @@
                 </a>
                 <div class="dropdown-menu position-static border-0 shadow-none px-0 py-1 ms-4 {{ $socialOpen ? 'show' : '' }}">
                     <a class="dropdown-item px-3 {{ request()->routeIs('social-media.index') ? 'active' : '' }}" href="{{ route('social-media.index') }}">Instagram / Facebook DM</a>
+                    @role('Super-admin')
+                    <a class="dropdown-item px-3 {{ request()->routeIs('social-media.accounts.*') ? 'active' : '' }}" href="{{ route('social-media.accounts.index') }}">Accounts</a>
+                    @endrole
                 </div>
             </li>
             @endif

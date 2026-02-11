@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\Conversations\Models\ConversationParticipant;
+use App\Modules\Conversations\Models\ConversationActivityLog;
 use App\Modules\WhatsAppApi\Jobs\SendWhatsAppMessage;
 use App\Modules\SocialMedia\Jobs\SendSocialMessage;
 use App\Modules\Conversations\Events\ConversationMessageCreated;
@@ -19,20 +20,35 @@ class ConversationHubController extends Controller
     public function start(Request $request): RedirectResponse
     {
         $request->validate([
-            'user_id' => ['required', 'exists:users,id', 'different:' . $request->user()->id],
+            'query' => ['required', 'string'],
         ]);
 
         $me = $request->user();
-        $otherId = (int) $request->input('user_id');
+        $q = $request->input('query');
+        $other = User::where('id', $q)
+            ->orWhere('email', $q)
+            ->orWhere('name', $q)
+            ->first();
+
+        if (!$other || $other->id === $me->id) {
+            return back()->with('status', 'User tidak ditemukan / sama dengan diri sendiri.');
+        }
+
+        $otherId = $other->id;
+        $otherName = $other->name;
+
+        // Buat key unik berurutan agar percakapan internal tidak dobel
+        $pair = collect([$me->id, $otherId])->sort()->implode('-');
+        $contactKey = 'internal-' . $pair;
 
         $conversation = Conversation::firstOrCreate(
             [
                 'channel' => 'internal',
                 'instance_id' => null,
-                'contact_wa_id' => 'user-' . $otherId,
+                'contact_wa_id' => $contactKey,
             ],
             [
-                'contact_name' => null,
+                'contact_name' => $otherName,
                 'status' => 'open',
                 'last_message_at' => now(),
             ]
@@ -53,24 +69,29 @@ class ConversationHubController extends Controller
             'locked_until' => now()->addMinutes(config('modules.whatsapp_api.lock_minutes', 30)),
         ]);
 
+        $this->log($conversation, $me->id, 'start_internal', "Start with user {$otherId}");
+
         return redirect()->route('conversations.show', $conversation)
             ->with('status', 'Percakapan internal dibuat.');
     }
 
-    public function index(Request $request): View
+    public function index(Request $request): View|RedirectResponse
     {
         $user = $request->user();
         $lockMinutes = (int) config('modules.whatsapp_api.lock_minutes', 30);
 
-        $conversations = Conversation::with(['owner'])
-            ->when(!$user->hasRole('Super-admin'), function ($query) use ($user) {
-                $query->where(function ($q) use ($user) {
-                    $q->where('owner_id', $user->id)
-                        ->orWhereHas('participants', fn ($p) => $p->where('user_id', $user->id))
-                        ->orWhereHas('instance.users', fn ($p) => $p->where('users.id', $user->id));
-                });
-            })
+        $query = $this->baseQuery($user);
+
+        $first = (clone $query)
             ->orderByDesc('last_message_at')
+            ->orderByDesc('updated_at')
+            ->first();
+
+        if ($first) {
+            return redirect()->route('conversations.show', $first);
+        }
+
+        $conversations = $query->orderByDesc('last_message_at')
             ->orderByDesc('updated_at')
             ->paginate(20);
 
@@ -86,10 +107,17 @@ class ConversationHubController extends Controller
             $q->orderBy('created_at');
         }]);
 
+        $conversationsList = $this->baseQuery($user)
+            ->orderByDesc('last_message_at')
+            ->orderByDesc('updated_at')
+            ->limit(50)
+            ->get();
+
         $lockMinutes = (int) config('modules.whatsapp_api.lock_minutes', 30);
 
         return view('conversations::show', [
             'conversation' => $conversation,
+            'conversationsList' => $conversationsList,
             'lockMinutes' => $lockMinutes,
         ]);
     }
@@ -116,6 +144,8 @@ class ConversationHubController extends Controller
             ['role' => 'owner', 'invited_at' => $now, 'invited_by' => $user->id]
         );
 
+        $this->log($conversation, $user->id, 'claim', 'Percakapan diklaim');
+
         return back()->with('status', 'Percakapan berhasil diklaim.');
     }
 
@@ -133,6 +163,8 @@ class ConversationHubController extends Controller
             'locked_until' => null,
         ]);
 
+        $this->log($conversation, $user->id, 'release', 'Lock dilepas');
+
         return back()->with('status', 'Lock dilepas.');
     }
 
@@ -145,17 +177,27 @@ class ConversationHubController extends Controller
         }
 
         $data = $request->validate([
-            'user_id' => ['required', 'exists:users,id'],
+            'query' => ['required', 'string'],
             'role' => ['nullable', 'string', 'max:50'],
         ]);
 
-        $invitee = User::findOrFail($data['user_id']);
+        $invitee = User::where('id', $data['query'])
+            ->orWhere('email', $data['query'])
+            ->orWhere('name', $data['query'])
+            ->first();
+
+        if (!$invitee) {
+            return back()->with('status', 'User tidak ditemukan.');
+        }
+
         $role = $data['role'] ?? 'collaborator';
 
         ConversationParticipant::updateOrCreate(
             ['conversation_id' => $conversation->id, 'user_id' => $invitee->id],
             ['role' => $role, 'invited_at' => now(), 'invited_by' => $user->id, 'left_at' => null]
         );
+
+        $this->log($conversation, $user->id, 'invite', "Invite user {$invitee->id}");
 
         return back()->with('status', 'Pengguna diundang.');
     }
@@ -196,6 +238,8 @@ class ConversationHubController extends Controller
             broadcast(new ConversationMessageCreated($message))->toOthers();
         }
 
+        $this->log($conversation, $user->id, 'send', 'Kirim pesan');
+
         return redirect()->route('conversations.show', $conversation)->with('status', 'Pesan terkirim.');
     }
 
@@ -224,5 +268,27 @@ class ConversationHubController extends Controller
             || ($conversation->instance && $conversation->instance->users()->where('users.id', $user->id)->exists());
 
         abort_unless($allowed, 403);
+    }
+
+    private function baseQuery(User $user)
+    {
+        return Conversation::with(['owner', 'instance'])
+            ->when(!$user->hasRole('Super-admin'), function ($query) use ($user) {
+                $query->where(function ($q) use ($user) {
+                    $q->where('owner_id', $user->id)
+                        ->orWhereHas('participants', fn ($p) => $p->where('user_id', $user->id))
+                        ->orWhereHas('instance.users', fn ($p) => $p->where('users.id', $user->id));
+                });
+            });
+    }
+
+    private function log(Conversation $conversation, ?int $userId, string $action, ?string $detail = null): void
+    {
+        ConversationActivityLog::create([
+            'conversation_id' => $conversation->id,
+            'user_id' => $userId,
+            'action' => $action,
+            'detail' => $detail,
+        ]);
     }
 }

@@ -17,6 +17,8 @@
                     <th>Kontak/Channel</th>
                     <th>Status</th>
                     <th>Owner</th>
+                    <th>Lock</th>
+                    <th>Instance</th>
                     <th>Last Msg</th>
                     <th class="w-1"></th>
                 </tr>
@@ -30,6 +32,23 @@
                         </td>
                         <td><span class="badge bg-{{ $conv->status === 'closed' ? 'secondary' : 'primary' }}">{{ ucfirst($conv->status) }}</span></td>
                         <td>{{ $conv->owner->name ?? 'Unassigned' }}</td>
+                        <td>
+                            @if($conv->locked_until && $conv->locked_until->isFuture())
+                                <span class="badge bg-secondary">until {{ $conv->locked_until->format('H:i') }}</span>
+                            @elseif($conv->owner_id)
+                                <span class="badge bg-secondary-lt text-secondary">owned</span>
+                            @else
+                                <span class="text-muted small">free</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if($conv->instance)
+                                <span class="badge bg-azure-lt text-azure">{{ $conv->instance->name }}</span>
+                                <span class="badge bg-{{ $conv->instance->status === 'connected' ? 'success' : ($conv->instance->status === 'error' ? 'danger' : 'secondary') }}">{{ $conv->instance->status }}</span>
+                            @else
+                                <span class="text-muted small">-</span>
+                            @endif
+                        </td>
                         <td>{{ optional($conv->last_message_at)->diffForHumans() ?? '-' }}</td>
                         <td class="text-end">
                             <div class="btn-list flex-nowrap">
@@ -64,9 +83,9 @@
         <h3 class="card-title mb-0">Mulai Percakapan Internal</h3>
     </div>
     <div class="card-body">
-        <form method="POST" action="{{ route('conversations.start') }}" class="d-flex gap-2">
+        <form method="POST" action="{{ route('conversations.start') }}" class="d-flex gap-2" onsubmit="return confirm('Mulai chat dengan ' + document.getElementById('start-query').value + '?')">
             @csrf
-            <input type="number" name="user_id" class="form-control" placeholder="User ID lain" required>
+            <input type="text" name="query" id="start-query" class="form-control" placeholder="Nama atau Email" required>
             <button class="btn btn-primary" type="submit">Start</button>
         </form>
         <div class="text-muted small mt-2">Masukkan user ID rekan untuk membuat percakapan baru.</div>

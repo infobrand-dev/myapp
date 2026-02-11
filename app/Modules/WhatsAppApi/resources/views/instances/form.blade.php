@@ -58,6 +58,22 @@
                         <label class="form-check-label" for="is_active">Aktif</label>
                     </div>
                 </div>
+                <div class="col-md-3 d-flex align-items-center">
+                    <div class="form-check mt-4">
+                        <input class="form-check-input" type="checkbox" name="auto_reply" value="1" id="auto_reply" {{ old('auto_reply', $instance->auto_reply ?? false) ? 'checked' : '' }}>
+                        <label class="form-check-label" for="auto_reply">Auto-reply AI</label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Chatbot Account</label>
+                    <select name="chatbot_account_id" class="form-select">
+                        <option value="">-- Pilih AI --</option>
+                        @foreach(($chatbotAccounts ?? []) as $acc)
+                            <option value="{{ $acc->id }}" {{ (string) old('chatbot_account_id', $instance->chatbot_account_id) === (string) $acc->id ? 'selected' : '' }}>{{ $acc->name }} ({{ $acc->model ?? 'default' }})</option>
+                        @endforeach
+                    </select>
+                    <div class="text-muted small">Diisi saat ingin auto-reply.</div>
+                </div>
                 <div class="col-12">
                     <label class="form-label">Catatan / Settings (JSON opsional)</label>
                     <textarea name="settings" class="form-control" rows="3" placeholder='{"webhook_secret":"..."}'>{{ old('settings', $instance->settings ? json_encode($instance->settings) : '') }}</textarea>

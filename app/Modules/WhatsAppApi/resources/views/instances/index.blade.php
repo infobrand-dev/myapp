@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+ï»¿@extends('layouts.admin')
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -7,6 +7,41 @@
         <div class="text-muted small">Kelola koneksi WA API (hanya Super-admin).</div>
     </div>
     <a href="{{ route('whatsapp-api.instances.create') }}" class="btn btn-primary">Tambah Instance</a>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3 col-sm-6">
+        <div class="card card-sm">
+            <div class="card-body">
+                <div class="text-muted">Total</div>
+                <div class="h3 mb-0">{{ $summary['total'] ?? $instances->total() }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="card card-sm">
+            <div class="card-body">
+                <div class="text-muted">Connected</div>
+                <div class="h3 mb-0 text-success">{{ $summary['connected'] ?? '-' }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="card card-sm">
+            <div class="card-body">
+                <div class="text-muted">Error</div>
+                <div class="h3 mb-0 text-danger">{{ $summary['error'] ?? '-' }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="card card-sm">
+            <div class="card-body">
+                <div class="text-muted">Disconnected</div>
+                <div class="h3 mb-0 text-secondary">{{ $summary['disconnected'] ?? '-' }}</div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="card">
@@ -26,10 +61,10 @@
                 @forelse($instances as $instance)
                     <tr>
                         <td class="fw-bold">{{ $instance->name }}</td>
-                        <td>{{ $instance->phone_number ?? '—' }}</td>
+                        <td>{{ $instance->phone_number ?? 'â€”' }}</td>
                         <td><span class="badge bg-{{ $instance->status === 'connected' ? 'success' : 'secondary' }}">{{ $instance->status }}</span></td>
                         <td>{{ $instance->is_active ? 'Ya' : 'Tidak' }}</td>
-                        <td>{{ optional($instance->last_health_check_at)->format('d M Y H:i') ?? '—' }}</td>
+                        <td>{{ optional($instance->last_health_check_at)->format('d M Y H:i') ?? 'â€”' }}</td>
                         <td class="text-end">
                             <div class="btn-list flex-nowrap">
                                 <a href="{{ route('whatsapp-api.instances.edit', $instance) }}" class="btn btn-outline-secondary btn-sm">Edit</a>

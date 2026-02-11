@@ -182,6 +182,7 @@ return [
         App\Modules\Contacts\ContactsServiceProvider::class,
         App\Modules\Shortlink\ShortlinkServiceProvider::class,
         App\Modules\EmailMarketing\EmailMarketingServiceProvider::class,
+        App\Modules\Chatbot\ChatbotServiceProvider::class,
 
     ],
 

@@ -30,4 +30,17 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'meta' => [
+        'graph_version' => env('META_GRAPH_VERSION', 'v20.0'),
+        'page_token' => env('META_PAGE_TOKEN'),
+        'page_id' => env('META_PAGE_ID'),
+        'ig_business_id' => env('META_IG_BUSINESS_ID'),
+        'verify_token' => env('META_VERIFY_TOKEN', 'changeme'),
+    ],
+
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+        'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
+    ],
+
 ];

@@ -9,6 +9,8 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
+use App\Modules\SocialMedia\Models\SocialAccount;
 
 class SendSocialMessage implements ShouldQueue
 {
@@ -28,16 +30,63 @@ class SendSocialMessage implements ShouldQueue
             return;
         }
 
-        // Placeholder: integrate with Meta Graph or external provider here
-        Log::info('SendSocialMessage dispatched', [
-            'message_id' => $message->id,
-            'contact' => $message->conversation->contact_wa_id,
-            'body' => $message->body,
-        ]);
+        $platform = $message->conversation->metadata['platform'] ?? 'facebook';
+        $recipient = $message->conversation->contact_wa_id;
+        $accountId = $message->conversation->instance_id;
+        $account = $accountId ? SocialAccount::find($accountId) : null;
+        $graphVersion = config('services.meta.graph_version', 'v20.0');
+        $pageToken = $account->access_token ?? config('services.meta.page_token');
+        $pageId = $account->page_id ?? config('services.meta.page_id');
+        $igBusinessId = $account->ig_business_id ?? config('services.meta.ig_business_id');
 
-        $message->update([
-            'status' => 'sent',
-            'sent_at' => now(),
-        ]);
+        if (!$pageToken) {
+            $message->update(['status' => 'error', 'error_message' => 'META_PAGE_TOKEN not set']);
+            return;
+        }
+
+        try {
+            if ($platform === 'instagram') {
+                if (!$igBusinessId) {
+                    $message->update(['status' => 'error', 'error_message' => 'META_IG_BUSINESS_ID not set']);
+                    return;
+                }
+                $url = "https://graph.facebook.com/{$graphVersion}/{$igBusinessId}/messages";
+                $payload = [
+                    'messaging_type' => 'RESPONSE',
+                    'recipient' => ['id' => $recipient],
+                    'message' => ['text' => $message->body],
+                    'access_token' => $pageToken,
+                ];
+            } else { // facebook page
+                if (!$pageId) {
+                    $message->update(['status' => 'error', 'error_message' => 'META_PAGE_ID not set']);
+                    return;
+                }
+                $url = "https://graph.facebook.com/{$graphVersion}/{$pageId}/messages";
+                $payload = [
+                    'messaging_type' => 'RESPONSE',
+                    'recipient' => ['id' => $recipient],
+                    'message' => ['text' => $message->body],
+                    'access_token' => $pageToken,
+                ];
+            }
+
+            $resp = Http::timeout(10)->post($url, $payload);
+            if ($resp->successful()) {
+                $message->update([
+                    'status' => 'sent',
+                    'sent_at' => now(),
+                    'wa_message_id' => $resp->json('message_id') ?? $resp->json('id') ?? $message->wa_message_id,
+                ]);
+            } else {
+                $message->update([
+                    'status' => 'error',
+                    'error_message' => $resp->body(),
+                ]);
+            }
+        } catch (\Throwable $e) {
+            Log::error('SendSocialMessage failed', ['message_id' => $message->id, 'error' => $e->getMessage()]);
+            $message->update(['status' => 'error', 'error_message' => $e->getMessage()]);
+        }
     }
 }

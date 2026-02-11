@@ -3,12 +3,12 @@
 namespace App\Modules\WhatsAppApi\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Conversations\Jobs\GenerateAiReply;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 class WebhookController extends Controller
@@ -48,7 +48,6 @@ class WebhookController extends Controller
             ]
         );
 
-        // Update latest metadata
         $conversation->update([
             'contact_name' => $data['contact_name'] ?? $conversation->contact_name,
             'last_message_at' => now(),
@@ -56,7 +55,7 @@ class WebhookController extends Controller
             'unread_count' => ($conversation->unread_count ?? 0) + 1,
         ]);
 
-        $message = ConversationMessage::create([
+        $msg = ConversationMessage::create([
             'conversation_id' => $conversation->id,
             'direction' => $data['direction'] ?? 'in',
             'type' => 'text',
@@ -66,7 +65,10 @@ class WebhookController extends Controller
             'payload' => $request->all(),
         ]);
 
-        Log::info('WA inbound stored', ['conversation_id' => $conversation->id, 'message_id' => $message->id]);
+        $shouldAutoReply = ($instance->auto_reply ?? false) && $instance->chatbot_account_id && (($data['direction'] ?? 'in') === 'in');
+        if ($shouldAutoReply) {
+            GenerateAiReply::dispatch($conversation->id, $msg->id, $instance->chatbot_account_id);
+        }
 
         return response()->json(['stored' => true]);
     }

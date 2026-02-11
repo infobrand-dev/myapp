@@ -27,12 +27,18 @@ Laravel 11 + Breeze + Tabler UI dengan modul Conversations, WhatsApp API, Social
 - WhatsApp API: Inbox, Instances (Super-admin)
 - Social Media: placeholder inbox DM (webhook siap)
 - WhatsApp Bro: bridge QR via Socket.IO (start: `node app/Modules/WhatsAppBro/node/server.js`)
+- Chatbot: kelola akun AI (OpenAI) untuk auto-reply Conversations, WA API & Social DM
 - Shortlink, Contacts, Email Marketing, Task Management
 
 ## Webhook
 - WA API: `POST /whatsapp-api/webhook` (token=api_token instance, contact_id, message)
 - Social DM: `POST /social-media/webhook` (token, platform=instagram|facebook, contact_id, message)
 - CSRF sudah dibebaskan untuk dua endpoint ini.
+
+## AI / Chatbot
+- Kelola akun AI: menu **AI Accounts** (super-admin). Simpan `OPENAI_API_KEY` dan model (default `gpt-4o-mini`).
+- Auto-reply: centang `Auto-reply AI` di WhatsApp Instance atau Social Account dan pilih AI Account.
+- Set env: `OPENAI_API_KEY`, `OPENAI_MODEL` (opsional).
 
 ## Seeder Demo
 `php artisan db:seed --class=ConversationDemoSeeder`

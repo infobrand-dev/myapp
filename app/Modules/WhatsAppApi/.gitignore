@@ -1,0 +1,9 @@
+# Node/JS artefacts
+node_modules/
+npm-debug.log*
+yarn.lock
+package-lock.json
+.pnpm-debug.log*
+
+# bundled portable node
+node18/

@@ -1,0 +1,8 @@
+# Node/JS artefacts
+node_modules/
+npm-debug.log*
+yarn.lock
+package-lock.json
+.pnpm-debug.log*
+/.wwebjs_auth/
+/.wwebjs_cache/

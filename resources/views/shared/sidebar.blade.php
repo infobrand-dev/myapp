@@ -218,6 +218,7 @@
                     <a class="dropdown-item px-3 {{ request()->routeIs('whatsapp-api.inbox') ? 'active' : '' }}" href="{{ route('whatsapp-api.inbox') }}">Inbox</a>
                     @role('Super-admin')
                     <a class="dropdown-item px-3 {{ request()->routeIs('whatsapp-api.instances.*') ? 'active' : '' }}" href="{{ route('whatsapp-api.instances.index') }}">Instances</a>
+                    <a class="dropdown-item px-3 {{ request()->routeIs('whatsapp-api.templates.*') ? 'active' : '' }}" href="{{ route('whatsapp-api.templates.index') }}">Templates</a>
                     @endrole
                 </div>
             </li>

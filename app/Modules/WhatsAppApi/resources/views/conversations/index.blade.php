@@ -4,32 +4,42 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Inbox WhatsApp API</h2>
-        <div class="text-muted small">Claim percakapan eksklusif (auto-timeout {{ $lockMinutes }} menit). Hanya Super-admin yang dapat atur instance.</div>
+        <div class="text-muted small">Claim percakapan eksklusif (auto-timeout {{ $lockMinutes }} menit). Setiap chat selalu terikat pada instance asal.</div>
     </div>
-    <a href="{{ route('whatsapp-api.instances.index') }}" class="btn btn-outline-primary">Kelola Instance</a>
+    <div class="d-flex gap-2">
+        <a href="{{ route('whatsapp-api.inbox') }}" class="btn btn-outline-secondary">Refresh</a>
+        @role('Super-admin')
+        <a href="{{ route('whatsapp-api.logs.index') }}" class="btn btn-outline-secondary">Logs</a>
+        <a href="{{ route('whatsapp-api.instances.index') }}" class="btn btn-outline-primary">Kelola Instance</a>
+        @endrole
+    </div>
 </div>
 
 <div class="card mb-3">
     <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-3">
-                <div class="text-secondary text-uppercase fw-bold small">Filter Instance</div>
-                <div class="text-muted small">Menampilkan percakapan dari instance yang Anda punya akses.</div>
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-lg-4 col-md-6">
+                <label class="form-label">Filter Instance</label>
+                <select name="instance_id" class="form-select">
+                    <option value="">Semua instance</option>
+                    @foreach($instances as $inst)
+                        <option value="{{ $inst->id }}" {{ (string) ($selectedInstanceId ?? '') === (string) $inst->id ? 'selected' : '' }}>{{ $inst->name }}</option>
+                    @endforeach
+                </select>
             </div>
-            <div class="col-md-9">
-                <div class="d-flex flex-wrap gap-2">
-                    @forelse($instances as $inst)
-                        <span class="badge bg-azure-lt text-azure">{{ $inst->name }}</span>
-                    @empty
-                        <span class="text-muted">Belum ada akses instance.</span>
-                    @endforelse
-                </div>
+            <div class="col-lg-4 col-md-6">
+                <label class="form-label">Cari Kontak</label>
+                <input type="text" name="q" class="form-control" placeholder="Nama kontak / nomor WA" value="{{ $search ?? '' }}">
             </div>
-        </div>
+            <div class="col-lg-4 col-md-12 d-flex gap-2">
+                <button class="btn btn-primary" type="submit">Apply</button>
+                <a href="{{ route('whatsapp-api.inbox') }}" class="btn btn-outline-secondary">Reset</a>
+            </div>
+        </form>
     </div>
 </div>
 
-<div class="card">
+<div class="d-none d-md-block card">
     <div class="table-responsive">
         <table class="table table-vcenter card-table">
             <thead>
@@ -39,44 +49,106 @@
                     <th>Status</th>
                     <th>Owner</th>
                     <th>Last Message</th>
-                    <th class="w-1"></th>
+                    <th class="w-1">Action</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($conversations as $conv)
+                    @php
+                        $isOwner = (int) $conv->owner_id === (int) auth()->id();
+                        $isLockedByOther = $conv->owner_id && !$isOwner && optional($conv->locked_until)->isFuture();
+                    @endphp
                     <tr>
                         <td>
                             <div class="fw-bold">{{ $conv->contact_name ?? $conv->contact_wa_id }}</div>
                             <div class="text-muted small">{{ $conv->contact_wa_id }}</div>
                         </td>
-                        <td>{{ $conv->instance->name }}</td>
-                        <td><span class="badge bg-{{ $conv->status === 'closed' ? 'secondary' : 'primary' }}">{{ ucfirst($conv->status) }}</span></td>
-                        <td>{{ $conv->owner?->name ?? 'Unassigned' }}</td>
-                        <td>{{ optional($conv->last_message_at)->diffForHumans() ?? '—' }}</td>
-                        <td class="text-end">
-                            <div class="btn-list flex-nowrap">
-                                @if($conv->owner_id === auth()->id())
-                                    <form method="POST" action="{{ route('whatsapp-api.conversations.release', $conv) }}">
-                                        @csrf
-                                        <button class="btn btn-outline-secondary btn-sm" type="submit">Release</button>
-                                    </form>
-                                @elseif(!$conv->owner_id || optional($conv->locked_until)->isPast())
-                                    <form method="POST" action="{{ route('whatsapp-api.conversations.claim', $conv) }}">
-                                        @csrf
-                                        <button class="btn btn-primary btn-sm" type="submit">Claim</button>
-                                    </form>
-                                @else
-                                    <span class="text-muted small">Locked sampai {{ optional($conv->locked_until)->format('H:i') }}</span>
-                                @endif
-
-                                @if($conv->owner_id === auth()->id())
-                                    <form method="POST" action="{{ route('whatsapp-api.conversations.invite', $conv) }}" class="d-flex align-items-center gap-1">
-                                        @csrf
-                                        <input type="number" name="user_id" class="form-control form-control-sm" placeholder="User ID" style="width:100px;">
-                                        <button class="btn btn-outline-primary btn-sm" type="submit">Invite</button>
-                                    </form>
+                        <td><span class="badge bg-azure-lt text-azure">{{ $conv->instance->name }}</span></td>
+                        <td>
+                            <div class="d-flex flex-wrap gap-1">
+                                <span class="badge {{ $conv->status === 'closed' ? 'text-bg-secondary' : 'text-bg-primary' }}">{{ ucfirst($conv->status) }}</span>
+                                @if($isLockedByOther)
+                                    <span class="badge bg-orange-lt text-orange">Locked {{ optional($conv->locked_until)->format('H:i') }}</span>
                                 @endif
                             </div>
+                        </td>
+                        <td>
+                            @if($conv->owner)
+                                <span class="badge bg-indigo-lt text-indigo">{{ $conv->owner->name }}</span>
+                            @else
+                                <span class="text-muted">Unassigned</span>
+                            @endif
+                        </td>
+                        <td><span class="text-muted">{{ optional($conv->last_message_at)->diffForHumans() ?? '-' }}</span></td>
+                        <td class="text-end align-middle">
+                            <div class="table-actions">
+                                <a href="{{ route('conversations.show', $conv) }}" class="btn btn-sm btn-outline-primary btn-icon" title="Open" aria-label="Open">
+                                    <i class="ti ti-message-circle icon" aria-hidden="true"></i>
+                                </a>
+
+                                @if($isOwner)
+                                    <form class="d-inline-block m-0" method="POST" action="{{ route('whatsapp-api.conversations.release', $conv) }}">
+                                        @csrf
+                                        <button class="btn btn-sm btn-outline-secondary btn-icon" type="submit" title="Release" aria-label="Release">
+                                            <i class="ti ti-lock-open icon" aria-hidden="true"></i>
+                                        </button>
+                                    </form>
+                                    <button type="button" class="btn btn-sm btn-outline-azure btn-icon" data-bs-toggle="modal" data-bs-target="#inviteModal{{ $conv->id }}" title="Invite" aria-label="Invite">
+                                        <i class="ti ti-user-plus icon" aria-hidden="true"></i>
+                                    </button>
+                                @elseif(!$conv->owner_id || optional($conv->locked_until)->isPast())
+                                    <form class="d-inline-block m-0" method="POST" action="{{ route('whatsapp-api.conversations.claim', $conv) }}">
+                                        @csrf
+                                        <button class="btn btn-sm btn-outline-success btn-icon" type="submit" title="Claim" aria-label="Claim">
+                                            <i class="ti ti-lock icon" aria-hidden="true"></i>
+                                        </button>
+                                    </form>
+                                @else
+                                    <button class="btn btn-sm btn-outline-secondary btn-icon" type="button" disabled title="Locked" aria-label="Locked">
+                                        <i class="ti ti-lock icon" aria-hidden="true"></i>
+                                    </button>
+                                @endif
+                            </div>
+
+                            @if($isOwner)
+                                <div class="modal fade" id="inviteModal{{ $conv->id }}" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content text-start">
+                                            <form method="POST" action="{{ route('whatsapp-api.conversations.invite', $conv) }}">
+                                                @csrf
+                                                <div class="modal-header">
+                                                    <h3 class="modal-title">Invite Collaborator</h3>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">User</label>
+                                                        <select name="user_id" class="form-select" required>
+                                                            <option value="">Pilih user</option>
+                                                            @foreach(($conv->instance->users ?? collect()) as $invitee)
+                                                                @if((int) $invitee->id !== (int) auth()->id())
+                                                                    <option value="{{ $invitee->id }}">{{ $invitee->name }} (ID: {{ $invitee->id }})</option>
+                                                                @endif
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label class="form-label">Role</label>
+                                                        <select name="role" class="form-select">
+                                                            <option value="collaborator">Collaborator</option>
+                                                            <option value="viewer">Viewer</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                                                    <button type="submit" class="btn btn-primary">Invite</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
                         </td>
                     </tr>
                 @empty
@@ -87,5 +159,61 @@
     </div>
 </div>
 
+<div class="d-md-none d-grid gap-2">
+    @forelse($conversations as $conv)
+        @php
+            $isOwner = (int) $conv->owner_id === (int) auth()->id();
+            $isLockedByOther = $conv->owner_id && !$isOwner && optional($conv->locked_until)->isFuture();
+        @endphp
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <div class="fw-bold">{{ $conv->contact_name ?? $conv->contact_wa_id }}</div>
+                        <div class="text-muted small">{{ $conv->contact_wa_id }}</div>
+                    </div>
+                    <span class="badge bg-azure-lt text-azure">{{ $conv->instance->name }}</span>
+                </div>
+
+                <div class="d-flex flex-wrap gap-1 mb-2">
+                    <span class="badge {{ $conv->status === 'closed' ? 'text-bg-secondary' : 'text-bg-primary' }}">{{ ucfirst($conv->status) }}</span>
+                    @if($isLockedByOther)
+                        <span class="badge bg-orange-lt text-orange">Locked {{ optional($conv->locked_until)->format('H:i') }}</span>
+                    @endif
+                </div>
+
+                <div class="text-muted small mb-3">
+                    Owner: {{ $conv->owner?->name ?? 'Unassigned' }} | Last: {{ optional($conv->last_message_at)->diffForHumans() ?? '-' }}
+                </div>
+
+                <div class="table-actions">
+                    <a href="{{ route('conversations.show', $conv) }}" class="btn btn-sm btn-outline-primary btn-icon" title="Open" aria-label="Open">
+                        <i class="ti ti-message-circle icon" aria-hidden="true"></i>
+                    </a>
+
+                    @if($isOwner)
+                        <form class="d-inline-block m-0" method="POST" action="{{ route('whatsapp-api.conversations.release', $conv) }}">
+                            @csrf
+                            <button class="btn btn-sm btn-outline-secondary btn-icon" type="submit" title="Release" aria-label="Release">
+                                <i class="ti ti-lock-open icon" aria-hidden="true"></i>
+                            </button>
+                        </form>
+                    @elseif(!$conv->owner_id || optional($conv->locked_until)->isPast())
+                        <form class="d-inline-block m-0" method="POST" action="{{ route('whatsapp-api.conversations.claim', $conv) }}">
+                            @csrf
+                            <button class="btn btn-sm btn-outline-success btn-icon" type="submit" title="Claim" aria-label="Claim">
+                                <i class="ti ti-lock icon" aria-hidden="true"></i>
+                            </button>
+                        </form>
+                    @endif
+                </div>
+            </div>
+        </div>
+    @empty
+        <div class="card"><div class="card-body text-muted">Belum ada percakapan.</div></div>
+    @endforelse
+</div>
+
 <div class="mt-3">{{ $conversations->links() }}</div>
 @endsection
+

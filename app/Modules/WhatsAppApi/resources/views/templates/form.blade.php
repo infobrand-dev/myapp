@@ -1,11 +1,22 @@
 @extends('layouts.admin')
 
 @section('content')
-@php $isEdit = $template->exists; @endphp
+@php
+    $isEdit = $template->exists;
+    $components = collect($template->components ?? []);
+    $headerComp = $components->firstWhere('type','header');
+    $footerComp = $components->firstWhere('type','footer');
+    $buttons = $components->where('type','button')->values();
+    $firstSub = data_get($buttons->first(), 'sub_type');
+    $detectMode = $firstSub === 'url' || $firstSub === 'phone_number' ? 'cta' : ($buttons->isNotEmpty() ? 'quick_reply' : 'none');
+    $mode = old('button_mode', $detectMode);
+    $headerType = strtolower(old('header_type', data_get($headerComp, 'format', 'none')));
+@endphp
+
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">{{ $isEdit ? 'Edit' : 'Tambah' }} WA Template</h2>
-        <div class="text-muted small">Nama & bahasa harus sama dengan template di Meta Cloud API.</div>
+        <div class="text-muted small">Sesuai aturan Meta: header, body, dan tombol tervalidasi.</div>
     </div>
     <a href="{{ route('whatsapp-api.templates.index') }}" class="btn btn-outline-secondary">Kembali</a>
 </div>
@@ -17,75 +28,112 @@
                 <form method="POST" action="{{ $isEdit ? route('whatsapp-api.templates.update', $template) : route('whatsapp-api.templates.store') }}">
                     @csrf
                     @if($isEdit) @method('PUT') @endif
+
+                    {{-- Template Info --}}
                     <div class="mb-3">
-                        <label class="form-label">Nama</label>
-                        <input class="form-control" name="name" value="{{ old('name', $template->name) }}" required>
-                    </div>
-                    <div class="row g-3">
-                        @php
-                            $components = collect($template->components ?? []);
-                            $headerComp = $components->firstWhere('type','header');
-                            $footerComp = $components->firstWhere('type','footer');
-                            $headerType = strtolower(old('header_type', data_get($headerComp, 'format', 'none')));
-                        @endphp
-                        <div class="col-md-3">
-                            <label class="form-label">Language</label>
-                            <input class="form-control" name="language" value="{{ old('language', $template->language) }}" placeholder="id atau en_US" required>
-                            <div class="text-muted small">Format locale Meta: xx atau xx_XX.</div>
+                        <div class="fw-bold mb-1">Template Info</div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Nama</label>
+                                <input class="form-control" name="name" value="{{ old('name', $template->name) }}" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Language</label>
+                                @php
+                                    $locales = ['id','id_ID','en','en_US','en_GB','ms','ms_MY','th','th_TH'];
+                                    $langValue = old('language', $template->language);
+                                @endphp
+                                <select class="form-select" name="language" required>
+                                    <option value="">Pilih locale</option>
+                                    @foreach($locales as $loc)
+                                        <option value="{{ $loc }}" {{ $langValue === $loc ? 'selected' : '' }}>{{ $loc }}</option>
+                                    @endforeach
+                                    @if($langValue && !in_array($langValue, $locales))
+                                        <option value="{{ $langValue }}" selected>{{ $langValue }} (custom)</option>
+                                    @endif
+                                </select>
+                                <div class="text-muted small">Locale format: xx atau xx_XX</div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Category</label>
+                                <select name="category" class="form-select">
+                                    @foreach(['utility','marketing','authentication'] as $cat)
+                                        <option value="{{ $cat }}" {{ old('category', $template->category) === $cat ? 'selected' : '' }}>{{ ucfirst($cat) }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Category</label>
-                            <select name="category" class="form-select">
-                                @foreach(['utility','marketing','authentication'] as $cat)
-                                    <option value="{{ $cat }}" {{ old('category', $template->category) === $cat ? 'selected' : '' }}>{{ ucfirst($cat) }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Status</label>
-                            <select name="status" class="form-select">
-                                @foreach(['active','inactive'] as $st)
-                                    <option value="{{ $st }}" {{ old('status', $template->status) === $st ? 'selected' : '' }}>{{ ucfirst($st) }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Header Type</label>
-                            <select name="header_type" id="header_type" class="form-select">
-                                @foreach(['none'=>'None','text'=>'Text (<=60)','image'=>'Image','document'=>'Document','video'=>'Video'] as $val=>$label)
-                                    <option value="{{ $val }}" {{ $headerType === $val ? 'selected' : '' }}>{{ $label }}</option>
-                                @endforeach
-                            </select>
+                        <div class="row g-3 mt-2">
+                            <div class="col-md-3">
+                                <label class="form-label">Status (lokal)</label>
+                                <select name="status" class="form-select">
+                                    @foreach(['active','inactive'] as $st)
+                                        <option value="{{ $st }}" {{ old('status', $template->status) === $st ? 'selected' : '' }}>{{ ucfirst($st) }}</option>
+                                    @endforeach
+                                </select>
+                                <div class="text-muted small">Tidak sync ke Meta.</div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Namespace (opsional)</label>
+                                <input class="form-control" name="namespace" value="{{ old('namespace', $template->namespace) }}">
+                                <div class="text-muted small">Isi jika diminta provider.</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="mt-3">
-                        <label class="form-label">Namespace (opsional)</label>
-                        <input class="form-control" name="namespace" value="{{ old('namespace', $template->namespace) }}">
+
+                    <hr>
+                    {{-- Header --}}
+                    <div class="mb-3">
+                        <div class="fw-bold mb-1">Header</div>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Header Type</label>
+                                <select name="header_type" id="header_type" class="form-select">
+                                    @foreach(['none'=>'None','text'=>'Text (≤60)','image'=>'Image','document'=>'Document','video'=>'Video'] as $val=>$label)
+                                        <option value="{{ $val }}" {{ $headerType === $val ? 'selected' : '' }}>{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-8 header-text-wrap" style="{{ $headerType === 'text' ? '' : 'display:none;' }}">
+                                <label class="form-label">Header text</label>
+                                <input class="form-control" name="header_text" id="header_text" maxlength="60" value="{{ old('header_text', data_get($headerComp, 'parameters.0.text', '')) }}">
+                                <div class="d-flex justify-content-between text-muted small"><span>Limit 60</span><span id="header_count"></span></div>
+                            </div>
+                            <div class="col-md-8 header-media-wrap" style="{{ in_array($headerType, ['image','document','video']) ? '' : 'display:none;' }}">
+                                <label class="form-label">Header media URL (isi saat kirim)</label>
+                                <input class="form-control" name="header_media_url" placeholder="https://..." value="{{ old('header_media_url') }}">
+                                <div class="text-muted small">Kosongkan header text jika media dipilih.</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mt-3">
-                        <label class="form-label">Body (gunakan &#123;&#123;1&#125;&#125;, &#123;&#123;2&#125;&#125; untuk placeholder)</label>
-                        <textarea class="form-control" rows="4" name="body" required>{{ old('body', $template->body) }}</textarea>
+
+                    <hr>
+                    {{-- Body --}}
+                    <div class="mb-3">
+                        <div class="fw-bold mb-1">Body</div>
+                        <label class="form-label">Body (gunakan &#123;&#123;1&#125;&#125;, &#123;&#123;2&#125;&#125;)</label>
+                        <textarea class="form-control" rows="4" name="body" id="body_input" maxlength="1024" required>{{ old('body', $template->body) }}</textarea>
+                        <div class="d-flex justify-content-between text-muted small">
+                            <span>Maks 1024 karakter</span><span id="body_count"></span>
+                        </div>
                     </div>
-                    <div class="mt-3">
-                        <label class="form-label">Header text (opsional)</label>
-                        <input class="form-control" name="header_text" id="header_text" maxlength="60" value="{{ old('header_text', data_get($headerComp, 'parameters.0.text', '')) }}">
-                        <div class="text-muted small">Kosongkan jika header media (image/doc/video). Limit 60 karakter.</div>
-                    </div>
-                    <div class="mt-3">
+
+                    <hr>
+                    {{-- Footer --}}
+                    <div class="mb-3">
+                        <div class="fw-bold mb-1">Footer</div>
                         <label class="form-label">Footer text (opsional)</label>
                         <input class="form-control" name="footer_text" value="{{ old('footer_text', data_get($footerComp, 'text', '')) }}">
                     </div>
-                    <div class="mt-3">
+
+                    <hr>
+                    {{-- Buttons --}}
+                    <div class="mb-3">
+                        <div class="fw-bold mb-1">Buttons</div>
                         <label class="form-label d-flex align-items-center justify-content-between">
-                            <span>Buttons (Meta rules)</span>
+                            <span>Ikuti aturan Meta</span>
                             <span class="text-muted small">Quick Reply max 3, CTA: 1 URL + 1 Phone</span>
                         </label>
-                        @php
-                            $buttons = $components->where('type','button')->values();
-                            $modeOld = old('button_mode');
-                            $firstSub = data_get($buttons->first(), 'sub_type');
-                            $mode = $modeOld ?? ($firstSub === 'url' || $firstSub === 'phone_number' ? 'cta' : ($buttons->isNotEmpty() ? 'quick_reply' : 'none'));
-                        @endphp
                         <div class="mb-2">
                             <select name="button_mode" id="button_mode" class="form-select">
                                 @foreach(['none'=>'Tidak ada','quick_reply'=>'Quick Reply','cta'=>'CTA (URL + Phone)'] as $val=>$label)
@@ -93,24 +141,24 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="qr-buttons" style="{{ $mode === 'quick_reply' ? '' : 'display:none;' }}">
+                        <div class="qr-buttons" id="qr_buttons" style="{{ $mode === 'quick_reply' ? '' : 'display:none;' }}">
                             @for($i=0;$i<3;$i++)
                                 @php $btn = ($mode === 'quick_reply') ? ($buttons[$i] ?? null) : null; @endphp
                                 <div class="row g-2 mb-2">
                                     <div class="col-md-12">
-                                        <input class="form-control" name="qr_label[]" placeholder="Quick reply {{ $i+1 }}" value="{{ old('qr_label.'.$i, $btn['parameters'][0]['text'] ?? '') }}">
+                                        <input class="form-control" name="qr_label[]" placeholder="Quick reply {{ $i+1 }}" value="{{ old('qr_label.'.$i, $btn['parameters'][0]['text'] ?? '') }}" maxlength="25">
                                     </div>
                                 </div>
                             @endfor
                         </div>
-                        <div class="cta-buttons" style="{{ $mode === 'cta' ? '' : 'display:none;' }}">
+                        <div class="cta-buttons" id="cta_buttons" style="{{ $mode === 'cta' ? '' : 'display:none;' }}">
                             @php
                                 $urlBtn = $buttons->firstWhere('sub_type','url');
                                 $phoneBtn = $buttons->firstWhere('sub_type','phone_number');
                             @endphp
                             <div class="row g-2 mb-2">
                                 <div class="col-md-6">
-                                    <input class="form-control" name="cta_url_label" placeholder="URL label" value="{{ old('cta_url_label', $urlBtn['parameters'][0]['text'] ?? '') }}">
+                                    <input class="form-control" name="cta_url_label" placeholder="URL label" value="{{ old('cta_url_label', $urlBtn['parameters'][0]['text'] ?? '') }}" maxlength="25">
                                 </div>
                                 <div class="col-md-6">
                                     <input class="form-control" name="cta_url_value" placeholder="https://..." value="{{ old('cta_url_value', $urlBtn['url'] ?? '') }}">
@@ -118,14 +166,16 @@
                             </div>
                             <div class="row g-2">
                                 <div class="col-md-6">
-                                    <input class="form-control" name="cta_phone_label" placeholder="Call label" value="{{ old('cta_phone_label', $phoneBtn['parameters'][0]['text'] ?? '') }}">
+                                    <input class="form-control" name="cta_phone_label" placeholder="Call label" value="{{ old('cta_phone_label', $phoneBtn['parameters'][0]['text'] ?? '') }}" maxlength="25">
                                 </div>
                                 <div class="col-md-6">
                                     <input class="form-control" name="cta_phone_value" placeholder="+62..." value="{{ old('cta_phone_value', $phoneBtn['phone_number'] ?? '') }}">
+                                    <div class="text-muted small">Format E.164, contoh +62812...</div>
                                 </div>
                             </div>
                         </div>
                     </div>
+
                     <div class="mt-4 d-flex justify-content-end">
                         <button class="btn btn-primary" type="submit">Simpan</button>
                     </div>
@@ -133,6 +183,8 @@
             </div>
         </div>
     </div>
+
+    {{-- Preview --}}
     <div class="col-lg-6">
         <div class="card">
             <div class="card-body p-0">
@@ -152,7 +204,7 @@
                         </div>
                     </div>
                     <div class="d-flex flex-wrap gap-2" id="preview-buttons" style="display:none; max-width: 85%;">
-                        <!-- buttons injected by JS -->
+                        <!-- buttons -->
                     </div>
                 </div>
                 <div class="border-top px-3 py-2 bg-white rounded-bottom">
@@ -177,13 +229,13 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const bodyInput = document.querySelector('textarea[name="body"]');
+    const bodyInput = document.getElementById('body_input');
     const headerTypeSelect = document.getElementById('header_type');
     const headerEl = document.getElementById('preview-header');
     const bodyEl = document.getElementById('preview-body');
     const footerEl = document.getElementById('preview-footer');
     const buttonsWrap = document.getElementById('preview-buttons');
-    const headerInput = document.querySelector('input[name="header_text"]');
+    const headerInput = document.getElementById('header_text');
     const footerInput = document.querySelector('input[name="footer_text"]');
     const modeSelect = document.getElementById('button_mode');
     const qrLabels = document.querySelectorAll('input[name="qr_label[]"]');
@@ -191,6 +243,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const ctaUrlValue = document.querySelector('input[name="cta_url_value"]');
     const ctaPhoneLabel = document.querySelector('input[name="cta_phone_label"]');
     const ctaPhoneValue = document.querySelector('input[name="cta_phone_value"]');
+    const qrWrap = document.getElementById('qr_buttons');
+    const ctaWrap = document.getElementById('cta_buttons');
+    const headerTextWrap = document.querySelector('.header-text-wrap');
+    const headerMediaWrap = document.querySelector('.header-media-wrap');
+    const bodyCount = document.getElementById('body_count');
+    const headerCount = document.getElementById('header_count');
 
     const escapeHtml = (text) => text.replace(/[&<>"']/g, m => ({
         '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
@@ -205,9 +263,21 @@ document.addEventListener('DOMContentLoaded', () => {
         return t;
     };
 
+    function toggleSections() {
+        const mode = modeSelect.value;
+        qrWrap.style.display = mode === 'quick_reply' ? '' : 'none';
+        ctaWrap.style.display = mode === 'cta' ? '' : 'none';
+
+        const hType = headerTypeSelect.value;
+        headerTextWrap.style.display = hType === 'text' ? '' : 'none';
+        headerMediaWrap.style.display = ['image','document','video'].includes(hType) ? '' : 'none';
+        if (hType !== 'text') headerInput.value = headerInput.value; // keep but hidden
+    }
+
     function render() {
         const body = bodyInput.value || '';
         bodyEl.innerHTML = formatInline(body.replace(/\{\{(\d+)\}\}/g, '____'));
+        if (bodyCount) bodyCount.textContent = `${body.length}/1024`;
 
         const headerTxt = headerInput?.value || '';
         if (headerTypeSelect.value === 'text' && headerTxt.trim()) {
@@ -215,8 +285,8 @@ document.addEventListener('DOMContentLoaded', () => {
             headerEl.style.display = 'block';
         } else {
             headerEl.style.display = 'none';
-            headerInput.value = headerTypeSelect.value === 'text' ? headerInput.value : '';
         }
+        if (headerCount) headerCount.textContent = `${headerTxt.length}/60`;
 
         const footerTxt = footerInput?.value || '';
         if (footerTxt.trim()) {
@@ -226,11 +296,10 @@ document.addEventListener('DOMContentLoaded', () => {
             footerEl.style.display = 'none';
         }
 
-        // buttons
         buttonsWrap.innerHTML = '';
         let anyBtn = false;
         if (modeSelect.value === 'quick_reply') {
-            qrLabels.forEach((inp, idx) => {
+            qrLabels.forEach(inp => {
                 const label = inp.value || '';
                 if (!label.trim()) return;
                 anyBtn = true;
@@ -275,16 +344,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         buttonsWrap.style.display = anyBtn ? 'flex' : 'none';
     }
+
     bodyInput.addEventListener('input', render);
     headerInput.addEventListener('input', render);
-    headerTypeSelect.addEventListener('change', render);
+    headerTypeSelect.addEventListener('change', () => { toggleSections(); render(); });
     footerInput.addEventListener('input', render);
-    modeSelect.addEventListener('change', render);
+    modeSelect.addEventListener('change', () => { toggleSections(); render(); });
     qrLabels.forEach(el => el.addEventListener('input', render));
     ctaUrlLabel?.addEventListener('input', render);
     ctaUrlValue?.addEventListener('input', render);
     ctaPhoneLabel?.addEventListener('input', render);
     ctaPhoneValue?.addEventListener('input', render);
+
+    toggleSections();
     render();
 });
 </script>

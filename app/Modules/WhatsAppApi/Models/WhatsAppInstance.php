@@ -31,6 +31,9 @@ class WhatsAppInstance extends Model
         'updated_by',
         'auto_reply',
         'chatbot_account_id',
+        'phone_number_id',
+        'cloud_business_account_id',
+        'cloud_token',
     ];
 
     protected $casts = [
@@ -42,7 +45,7 @@ class WhatsAppInstance extends Model
 
     public function users(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'whatsapp_instance_user')
+        return $this->belongsToMany(User::class, 'whatsapp_instance_user', 'instance_id', 'user_id')
             ->withPivot(['role'])
             ->withTimestamps();
     }

@@ -124,21 +124,6 @@
             </li>
             @endif
 
-            {{-- Conversations hub (gabungan internal/WA/social) --}}
-            <li class="nav-item">
-                <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('conversations.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('conversations.index') }}">
-                    <span class="nav-link-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                            <path d="M8 9h8" />
-                            <path d="M8 13h6" />
-                            <path d="M7 4h10a2 2 0 0 1 2 2v11l-4 -3l-4 3l-4 -3l-4 3v-11a2 2 0 0 1 2 -2z" />
-                        </svg>
-                    </span>
-                    <span class="nav-link-title">Conversations</span>
-                </a>
-            </li>
-
             @if(config('modules.shortlink.enabled'))
             <li class="nav-item">
                 <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('shortlinks.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('shortlinks.index') }}">
@@ -188,8 +173,8 @@
             @endif
 
             @if(config('modules.whatsapp_bro.enabled'))
-            <li class="nav-item">
-                <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('whatsappbro.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('whatsappbro.index') }}">
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('whatsappbro.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="#" data-bs-toggle="dropdown" aria-expanded="{{ request()->routeIs('whatsappbro.*') ? 'true' : 'false' }}">
                     <span class="nav-link-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                             <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
@@ -201,6 +186,12 @@
                     </span>
                     <span class="nav-link-title">WhatsApp Bro</span>
                 </a>
+                <div class="dropdown-menu position-static border-0 shadow-none px-0 py-1 ms-4 {{ request()->routeIs('whatsappbro.*') ? 'show' : '' }}">
+                    <a class="dropdown-item px-3 {{ request()->routeIs('whatsappbro.index') ? 'active' : '' }}" href="{{ route('whatsappbro.index') }}">Panel</a>
+                    @role('Super-admin')
+                    <a class="dropdown-item px-3 {{ request()->routeIs('whatsappbro.settings.*') ? 'active' : '' }}" href="{{ route('whatsappbro.settings.edit') }}">Settings</a>
+                    @endrole
+                </div>
             </li>
             @endif
 
@@ -219,6 +210,7 @@
                     @role('Super-admin')
                     <a class="dropdown-item px-3 {{ request()->routeIs('whatsapp-api.instances.*') ? 'active' : '' }}" href="{{ route('whatsapp-api.instances.index') }}">Instances</a>
                     <a class="dropdown-item px-3 {{ request()->routeIs('whatsapp-api.templates.*') ? 'active' : '' }}" href="{{ route('whatsapp-api.templates.index') }}">Templates</a>
+                    <a class="dropdown-item px-3 {{ request()->routeIs('whatsapp-api.logs.*') ? 'active' : '' }}" href="{{ route('whatsapp-api.logs.index') }}">Logs</a>
                     @endrole
                 </div>
             </li>

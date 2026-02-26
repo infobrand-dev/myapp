@@ -40,7 +40,7 @@ class GenerateAiReply implements ShouldQueue
             ? ChatbotAccount::where('status', 'active')->find($this->chatbotAccountId)
             : null;
         if (!$aiAccount || !$aiAccount->api_key) {
-            Log::warning('AI reply skipped: no active AI account', ['conversation_id' => $this->conversationId]);
+            Log::warning('AI reply skipped: no active chatbot account', ['conversation_id' => $this->conversationId]);
             return;
         }
 
@@ -59,7 +59,7 @@ class GenerateAiReply implements ShouldQueue
         $payload = [
             'model' => $aiAccount->model ?: config('services.openai.model', 'gpt-4o-mini'),
             'messages' => array_merge([
-                ['role' => 'system', 'content' => 'Kamu adalah asisten CS yang singkat, sopan, dan menjawab dalam Bahasa Indonesia. Jika ada pertanyaan teknis, beri jawaban jelas dan ringkas.'],
+                ['role' => 'system', 'content' => 'Kamu adalah asisten CS singkat dan sopan berbahasa Indonesia.'],
             ], $history),
             'max_tokens' => 200,
             'temperature' => 0.5,
@@ -69,7 +69,6 @@ class GenerateAiReply implements ShouldQueue
             $response = Http::withToken($aiAccount->api_key)
                 ->timeout(10)
                 ->post('https://api.openai.com/v1/chat/completions', $payload);
-
             $reply = $response->successful()
                 ? ($response->json('choices.0.message.content') ?? null)
                 : null;
@@ -79,7 +78,7 @@ class GenerateAiReply implements ShouldQueue
         }
 
         if (!$reply) {
-            $reply = "Terima kasih, pesan Anda sudah kami terima. Kami akan segera merespons.";
+            $reply = "Terima kasih, pesan Anda sudah kami terima.";
         }
 
         $replyMessage = ConversationMessage::create([
@@ -88,21 +87,14 @@ class GenerateAiReply implements ShouldQueue
             'direction' => 'out',
             'type' => 'text',
             'body' => $reply,
-            'status' => 'sent',
-            'sent_at' => now(),
+            'status' => $conversation->channel === 'wa_api' ? 'queued' : 'sent',
+            'sent_at' => $conversation->channel === 'wa_api' ? null : now(),
         ]);
 
-        // Kirim keluar via channel terkait
         if ($conversation->channel === 'wa_api') {
             SendWhatsAppMessage::dispatch($replyMessage->id);
         } elseif ($conversation->channel === 'social_dm') {
             SendSocialMessage::dispatch($replyMessage->id);
         }
-
-        Log::info('AI reply generated', [
-            'conversation_id' => $conversation->id,
-            'message_id' => $this->messageId,
-            'chatbot_account_id' => $aiAccount->id ?? null,
-        ]);
     }
 }

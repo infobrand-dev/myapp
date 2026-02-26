@@ -13,10 +13,16 @@ use Illuminate\View\View;
 
 class ConversationController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request): View|RedirectResponse
     {
+        if ($redirect = $this->ensureAnyInstanceExists($request)) {
+            return $redirect;
+        }
+
         $user = $request->user();
         $lockMinutes = config('modules.whatsapp_api.lock_minutes', 30);
+        $selectedInstanceId = $request->integer('instance_id') ?: null;
+        $search = trim((string) $request->input('q', ''));
 
         $instancesQuery = WhatsAppInstance::query()->where('is_active', true);
         if (!$user->hasRole('Super-admin')) {
@@ -24,15 +30,29 @@ class ConversationController extends Controller
         }
         $instances = $instancesQuery->orderBy('name')->get();
 
-        $conversations = WhatsAppConversation::with(['instance', 'owner'])
+        $conversations = WhatsAppConversation::with(['instance.users:id,name', 'owner'])
             ->when(!$user->hasRole('Super-admin'), function ($query) use ($user) {
                 $query->whereHas('instance.users', fn ($q) => $q->where('users.id', $user->id));
             })
+            ->when($selectedInstanceId, fn ($query, $instanceId) => $query->where('instance_id', $instanceId))
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('contact_name', 'like', "%{$search}%")
+                        ->orWhere('contact_wa_id', 'like', "%{$search}%");
+                });
+            })
             ->orderByDesc('last_message_at')
             ->orderByDesc('updated_at')
-            ->paginate(20);
+            ->paginate(20)
+            ->withQueryString();
 
-        return view('whatsappapi::conversations.index', compact('conversations', 'instances', 'lockMinutes'));
+        return view('whatsappapi::conversations.index', compact(
+            'conversations',
+            'instances',
+            'lockMinutes',
+            'selectedInstanceId',
+            'search'
+        ));
     }
 
     public function claim(Request $request, WhatsAppConversation $conversation): RedirectResponse
@@ -126,5 +146,22 @@ class ConversationController extends Controller
             ->exists();
 
         abort_unless($allowed, 403);
+    }
+
+    private function ensureAnyInstanceExists(Request $request): ?RedirectResponse
+    {
+        if (WhatsAppInstance::query()->exists()) {
+            return null;
+        }
+
+        if ($request->user()?->hasRole('Super-admin')) {
+            return redirect()
+                ->route('whatsapp-api.instances.create')
+                ->with('status', 'Buat WA Instance terlebih dahulu sebelum mengakses Inbox WhatsApp API.');
+        }
+
+        return redirect()
+            ->route('dashboard')
+            ->with('status', 'WhatsApp API belum siap. Minta Super-admin membuat WA Instance terlebih dahulu.');
     }
 }

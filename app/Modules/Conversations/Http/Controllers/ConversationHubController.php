@@ -11,6 +11,7 @@ use App\Modules\Conversations\Models\ConversationActivityLog;
 use App\Modules\WhatsAppApi\Jobs\SendWhatsAppMessage;
 use App\Modules\SocialMedia\Jobs\SendSocialMessage;
 use App\Modules\Conversations\Events\ConversationMessageCreated;
+use App\Modules\WhatsAppApi\Models\WATemplate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -114,11 +115,15 @@ class ConversationHubController extends Controller
             ->get();
 
         $lockMinutes = (int) config('modules.whatsapp_api.lock_minutes', 30);
+        $waTemplates = $conversation->channel === 'wa_api'
+            ? WATemplate::where('status', 'active')->orderBy('name')->get()
+            : collect();
 
         return view('conversations::show', [
             'conversation' => $conversation,
             'conversationsList' => $conversationsList,
             'lockMinutes' => $lockMinutes,
+            'waTemplates' => $waTemplates,
         ]);
     }
 
@@ -208,21 +213,59 @@ class ConversationHubController extends Controller
 
         $this->authorizeParticipant($conversation, $user);
 
-        $data = $request->validate([
-            'body' => ['required', 'string'],
-        ]);
+        if ($conversation->channel === 'wa_api' && (!$conversation->instance_id || !$conversation->instance)) {
+            return back()->with('status', 'Instance untuk percakapan WA API tidak ditemukan. Pastikan WA Instance masih aktif.');
+        }
 
-        ConversationMessage::create([
-            'conversation_id' => $conversation->id,
-            'user_id' => $user->id,
-            'direction' => 'out',
-            'type' => 'text',
-            'body' => $data['body'],
-            'status' => $conversation->channel === 'wa_api' ? 'queued' : 'sent',
-            'sent_at' => $conversation->channel === 'wa_api' ? null : now(),
-        ]);
+        $mode = $conversation->channel === 'wa_api'
+            ? $request->input('message_type', 'text')
+            : 'text';
 
-        $message = $conversation->messages()->latest()->first();
+        if ($mode === 'template') {
+            $data = $request->validate([
+                'template_id' => ['required', 'exists:wa_templates,id'],
+                'template_params' => ['array'],
+                'template_params.*' => ['nullable', 'string', 'max:250'],
+            ]);
+
+            $template = WATemplate::find($data['template_id']);
+            $payload = $this->buildTemplatePayload($template, $request->input('template_params', []));
+
+            // Pastikan semua placeholder terisi
+            foreach ($payload['placeholders'] as $idx) {
+                if (!isset($request->input('template_params')[$idx]) || trim($request->input('template_params')[$idx]) === '') {
+                    return back()->with('status', "Nilai untuk placeholder {{$idx}} wajib diisi.");
+                }
+            }
+
+            $message = ConversationMessage::create([
+                'conversation_id' => $conversation->id,
+                'user_id' => $user->id,
+                'direction' => 'out',
+                'type' => 'template',
+                'body' => $template->body,
+                'payload' => $payload,
+                'status' => 'queued',
+            ]);
+        } else {
+            $data = $request->validate([
+                'body' => ['required', 'string'],
+            ]);
+
+            if ($conversation->channel === 'wa_api' && !$this->isWithinWaCustomerCareWindow($conversation)) {
+                return back()->with('status', 'Di luar jendela 24 jam. Gunakan template message untuk mengirim pesan.');
+            }
+
+            $message = ConversationMessage::create([
+                'conversation_id' => $conversation->id,
+                'user_id' => $user->id,
+                'direction' => 'out',
+                'type' => 'text',
+                'body' => $data['body'],
+                'status' => $conversation->channel === 'wa_api' ? 'queued' : 'sent',
+                'sent_at' => $conversation->channel === 'wa_api' ? null : now(),
+            ]);
+        }
 
         $conversation->update([
             'last_message_at' => now(),
@@ -241,6 +284,16 @@ class ConversationHubController extends Controller
         $this->log($conversation, $user->id, 'send', 'Kirim pesan');
 
         return redirect()->route('conversations.show', $conversation)->with('status', 'Pesan terkirim.');
+    }
+
+    private function isWithinWaCustomerCareWindow(Conversation $conversation): bool
+    {
+        $lastIncomingAt = $conversation->last_incoming_at;
+        if (!$lastIncomingAt) {
+            return false;
+        }
+
+        return $lastIncomingAt->greaterThanOrEqualTo(now()->subHours(24));
     }
 
     private function authorizeParticipant(Conversation $conversation, User $user): void
@@ -290,5 +343,76 @@ class ConversationHubController extends Controller
             'action' => $action,
             'detail' => $detail,
         ]);
+    }
+
+    private function buildTemplatePayload(WATemplate $template, array $params): array
+    {
+        $header = collect($template->components ?? [])->firstWhere('type', 'header');
+        $headerText = strtolower(data_get($header, 'format')) === 'text'
+            ? data_get($header, 'parameters.0.text')
+            : null;
+
+        $bodyIndexes = $this->placeholderIndexes($template->body);
+        $headerIndexes = $this->placeholderIndexes($headerText);
+        $allIndexes = array_values(array_unique(array_merge($bodyIndexes, $headerIndexes)));
+        sort($allIndexes);
+
+        $bodyParams = [];
+        foreach ($bodyIndexes as $idx) {
+            $bodyParams[] = [
+                'type' => 'text',
+                'text' => $params[$idx] ?? '',
+            ];
+        }
+
+        $headerParams = [];
+        if ($headerText) {
+            foreach ($headerIndexes as $idx) {
+                $headerParams[] = [
+                    'type' => 'text',
+                    'text' => $params[$idx] ?? '',
+                ];
+            }
+        } elseif ($header && data_get($header, 'parameters.0.link')) {
+            $linkType = strtolower(data_get($header, 'parameters.0.type', 'image'));
+            $headerParams[] = [
+                'type' => $linkType,
+                'link' => data_get($header, 'parameters.0.link'),
+            ];
+        }
+
+        $components = [];
+        if ($headerParams) {
+            $components[] = [
+                'type' => 'header',
+                'parameters' => $headerParams,
+            ];
+        }
+        if ($bodyParams) {
+            $components[] = [
+                'type' => 'body',
+                'parameters' => $bodyParams,
+            ];
+        }
+        // Buttons/components from template (CTA/quick reply) do not require parameters for send payload
+        return [
+            'template_id' => $template->id,
+            'name' => $template->name,
+            'language' => $template->language,
+            'components' => $components,
+            'placeholders' => $allIndexes,
+        ];
+    }
+
+    private function placeholderIndexes(?string $text): array
+    {
+        if (!$text) {
+            return [];
+        }
+        preg_match_all('/\\{\\{(\\d+)\\}\\}/', $text, $matches);
+        $indexes = array_map('intval', $matches[1] ?? []);
+        $unique = array_values(array_unique($indexes));
+        sort($unique);
+        return $unique;
     }
 }

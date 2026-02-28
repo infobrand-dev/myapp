@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Role;
 use Throwable;
@@ -34,25 +35,33 @@ class InstallController extends Controller
 
     public function testDatabase(Request $request): RedirectResponse
     {
-        $data = $this->validatedConfig($request, false);
-
         try {
+            $data = $this->validatedConfig($request, false);
             $this->testConnection($data);
-            return back()->with('status', 'Koneksi database berhasil.');
+            return redirect()->route('install.index', [
+                'level' => 'success',
+                'message' => 'Koneksi database berhasil.',
+            ]);
         } catch (Throwable $e) {
-            return back()->with('status', 'Koneksi database gagal: ' . $e->getMessage());
+            return redirect()->route('install.index', [
+                'level' => 'error',
+                'message' => 'Koneksi database gagal: ' . $e->getMessage(),
+            ]);
         }
     }
 
     public function run(Request $request): RedirectResponse
     {
-        $data = $this->validatedConfig($request, true);
-
-        if (!$this->isEnvWritable()) {
-            return back()->with('status', 'File .env tidak bisa ditulis. Cek permission terlebih dahulu.');
-        }
-
         try {
+            $data = $this->validatedConfig($request, true);
+
+            if (!$this->isEnvWritable()) {
+                return redirect()->route('install.index', [
+                    'level' => 'error',
+                    'message' => 'File .env tidak bisa ditulis. Cek permission terlebih dahulu.',
+                ]);
+            }
+
             $this->writeEnv([
                 'APP_NAME' => $data['app_name'],
                 'APP_URL' => $data['app_url'],
@@ -94,7 +103,10 @@ class InstallController extends Controller
 
             return redirect('/login')->with('status', 'Instalasi selesai. Silakan login dengan akun Super-admin.');
         } catch (Throwable $e) {
-            return back()->with('status', 'Instalasi gagal: ' . $e->getMessage());
+            return redirect()->route('install.index', [
+                'level' => 'error',
+                'message' => 'Instalasi gagal: ' . $e->getMessage(),
+            ]);
         }
     }
 
@@ -116,7 +128,12 @@ class InstallController extends Controller
             $rules['admin_password'] = ['required', 'string', 'min:8', 'max:100'];
         }
 
-        return $request->validate($rules);
+        $validator = Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            throw new \InvalidArgumentException($validator->errors()->first());
+        }
+
+        return $validator->validated();
     }
 
     private function applyDatabaseConfig(array $data): void
@@ -200,4 +217,3 @@ class InstallController extends Controller
         return $value;
     }
 }
-

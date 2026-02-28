@@ -21,6 +21,9 @@ Route::redirect('/', '/dashboard');
 Route::withoutMiddleware([
     \App\Http\Middleware\EncryptCookies::class,
     \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
+    \Illuminate\Session\Middleware\StartSession::class,
+    \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+    \App\Http\Middleware\VerifyCsrfToken::class,
 ])->group(function () {
     Route::get('/install', [InstallController::class, 'index'])->name('install.index');
     Route::post('/install/test-db', [InstallController::class, 'testDatabase'])->name('install.test-db');

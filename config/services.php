@@ -43,4 +43,13 @@ return [
         'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
     ],
 
+    'wa_cloud' => [
+        'base_url' => env('WA_CLOUD_BASE_URL', 'https://graph.facebook.com/v20.0'),
+        'phone_number_id' => env('WA_CLOUD_PHONE_NUMBER_ID'),
+        'token' => env('WA_CLOUD_ACCESS_TOKEN'),
+        'verify_token' => env('WA_CLOUD_VERIFY_TOKEN', 'changeme'),
+        'app_secret' => env('WA_CLOUD_APP_SECRET'),
+        'allowed_domains' => env('WA_CLOUD_ALLOWED_DOMAINS', ''),
+    ],
+
 ];

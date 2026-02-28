@@ -19,10 +19,10 @@
                     @forelse($roles as $role)
                         <tr>
                             <td>{{ $role->name }}</td>
-                            <td class="text-end">
-                                <div class="d-flex justify-content-end gap-2">
+                            <td class="text-end align-middle">
+                                <div class="table-actions">
                                     <a href="{{ route('roles.edit', $role) }}" class="btn btn-sm btn-outline-primary">Edit</a>
-                                    <form method="POST" action="{{ route('roles.destroy', $role) }}" onsubmit="return confirm('Hapus role ini?');">
+                                    <form class="d-inline-block m-0" method="POST" action="{{ route('roles.destroy', $role) }}" onsubmit="return confirm('Hapus role ini?');">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-outline-danger">Hapus</button>

@@ -27,11 +27,11 @@
                         <td>{{ $acc->name }}</td>
                         <td>{{ strtoupper($acc->provider) }}</td>
                         <td>{{ $acc->model ?? '-' }}</td>
-                        <td><span class="badge bg-{{ $acc->status === 'active' ? 'success' : 'secondary' }}">{{ $acc->status }}</span></td>
-                        <td class="text-end">
-                            <div class="btn-list flex-nowrap">
+                        <td><span class="badge {{ $acc->status === 'active' ? 'text-bg-success' : 'text-bg-secondary' }}">{{ $acc->status }}</span></td>
+                        <td class="text-end align-middle">
+                            <div class="table-actions">
                                 <a href="{{ route('chatbot.accounts.edit', $acc) }}" class="btn btn-outline-secondary btn-sm">Edit</a>
-                                <form method="POST" action="{{ route('chatbot.accounts.destroy', $acc) }}" onsubmit="return confirm('Hapus AI account?');">
+                                <form class="d-inline-block m-0" method="POST" action="{{ route('chatbot.accounts.destroy', $acc) }}" onsubmit="return confirm('Hapus AI account?');">
                                     @csrf
                                     @method('DELETE')
                                     <button class="btn btn-outline-danger btn-sm" type="submit">Hapus</button>

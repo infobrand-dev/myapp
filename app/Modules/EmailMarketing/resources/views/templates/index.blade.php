@@ -27,12 +27,14 @@
                         <td>{{ $tpl->name }}</td>
                         <td>{{ $tpl->filename }}</td>
                         <td class="text-muted">{{ $tpl->description }}</td>
-                        <td class="text-end">
-                            <a href="{{ route('email-marketing.templates.edit', $tpl) }}" class="btn btn-sm btn-outline-primary">Edit</a>
-                            <form method="POST" action="{{ route('email-marketing.templates.destroy', $tpl) }}" class="d-inline">
-                                @csrf @method('DELETE')
-                                <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Hapus template?')">Delete</button>
-                            </form>
+                        <td class="text-end align-middle">
+                            <div class="table-actions">
+                                <a href="{{ route('email-marketing.templates.edit', $tpl) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                <form class="d-inline-block m-0" method="POST" action="{{ route('email-marketing.templates.destroy', $tpl) }}">
+                                    @csrf @method('DELETE')
+                                    <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Hapus template?')">Delete</button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 @empty

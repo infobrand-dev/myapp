@@ -108,7 +108,7 @@
                                 <div class="text-muted small">Dibuat: {{ $code->created_at }}</div>
                             </div>
                             @if($code->is_primary)
-                                <span class="badge bg-success">Utama</span>
+                                <span class="badge text-bg-success">Utama</span>
                             @endif
                         </div>
                         <hr class="my-2">

@@ -4,6 +4,7 @@
 @php
     $isEdit = $instance->exists;
     $provider = old('provider', $instance->provider ?? 'cloud');
+    $autoWebhookUrl = route('whatsapp-api.webhook');
 @endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
@@ -106,8 +107,12 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Webhook URL</label>
-                            <input type="url" name="webhook_url" class="form-control" value="{{ old('webhook_url', $instance->webhook_url) }}" placeholder="https://myapp.test/whatsapp-api/webhook">
-                            @error('webhook_url') <div class="text-danger small">{{ $message }}</div> @enderror
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="webhook_url_display" value="{{ $autoWebhookUrl }}" readonly>
+                                <button type="button" class="btn btn-outline-secondary btn-icon" id="copy-webhook-url" title="Copy Webhook URL" aria-label="Copy Webhook URL">
+                                    <i class="ti ti-copy"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="cloud-fields col-md-6">
                             <label class="form-label">Verify Token Webhook</label>
@@ -119,11 +124,7 @@
                                     class="form-control"
                                     value="{{ old('wa_cloud_verify_token', data_get($instance->settings, 'wa_cloud_verify_token', '')) }}"
                                     placeholder="verify-token-meta"
-                                    readonly
                                 >
-                                <button type="button" class="btn btn-outline-secondary btn-icon" id="regen-verify-token" title="Regenerate Verify Token" aria-label="Regenerate Verify Token">
-                                    <i class="ti ti-refresh"></i>
-                                </button>
                                 <button type="button" class="btn btn-outline-secondary btn-icon" id="copy-verify-token" title="Copy Verify Token" aria-label="Copy Verify Token">
                                     <i class="ti ti-copy"></i>
                                 </button>
@@ -188,11 +189,31 @@
                         <h3 class="card-title mb-0">Connection Test</h3>
                     </div>
                     <div class="card-body">
-                        <button type="button" id="test-cloud-credentials" class="btn btn-outline-azure w-100">Test Credentials Cloud API</button>
-                        <button type="button" id="sync-cloud-templates" class="btn btn-outline-primary w-100 mt-2">Sync Templates</button>
-                        <div class="text-muted small mt-2">Aksi ini hanya mengecek koneksi ke Cloud API, tidak menyimpan form.</div>
-                        <div id="test-cloud-result" class="mt-3 d-none"></div>
-                        <div id="sync-cloud-result" class="mt-2 d-none"></div>
+                        @if($isEdit)
+                            <button
+                                type="submit"
+                                class="btn btn-outline-azure w-100"
+                                formaction="{{ route('whatsapp-api.instances.save-and-test', $instance) }}"
+                                formmethod="POST"
+                            >
+                                Test Credentials
+                            </button>
+                        @else
+                            <button type="button" class="btn btn-outline-azure w-100" disabled>Simpan dulu untuk Test Credentials</button>
+                        @endif
+                        @if($isEdit)
+                            <button
+                                type="submit"
+                                class="btn btn-outline-primary w-100 mt-2"
+                                formaction="{{ route('whatsapp-api.instances.save-and-sync-templates', $instance) }}"
+                                formmethod="POST"
+                            >
+                                Sync Templates
+                            </button>
+                        @else
+                            <button type="button" class="btn btn-outline-primary w-100 mt-2" disabled>Simpan dulu untuk Sync Templates</button>
+                        @endif
+                        <div class="text-muted small mt-2">Aksi ini memakai data instance yang sudah tersimpan.</div>
                         <hr>
                         <div class="text-muted small">
                             <div class="fw-semibold mb-1">Wajib untuk Cloud:</div>
@@ -222,17 +243,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const providerSelect = document.getElementById('provider');
     const cloudFields = document.querySelectorAll('.cloud-fields');
     const gatewayFields = document.querySelectorAll('.gateway-fields');
-    const testTrigger = document.getElementById('test-cloud-credentials');
-    const testResult = document.getElementById('test-cloud-result');
-    const syncTrigger = document.getElementById('sync-cloud-templates');
-    const syncResult = document.getElementById('sync-cloud-result');
     const autoReplyInput = document.getElementById('auto_reply');
     const chatbotAccountInput = document.getElementById('chatbot_account_id');
-    const testUrl = @json(route('whatsapp-api.instances.test-credentials'));
-    const syncUrl = @json(route('whatsapp-api.instances.sync-templates'));
     const verifyTokenInput = document.getElementById('wa_cloud_verify_token');
-    const regenVerifyTokenBtn = document.getElementById('regen-verify-token');
     const copyVerifyTokenBtn = document.getElementById('copy-verify-token');
+    const webhookUrlInput = document.getElementById('webhook_url_display');
+    const copyWebhookUrlBtn = document.getElementById('copy-webhook-url');
 
     const syncProviderSections = () => {
         const provider = (providerSelect?.value || '').toLowerCase();
@@ -246,14 +262,6 @@ document.addEventListener('DOMContentLoaded', () => {
             el.style.display = isCloud ? 'none' : '';
         });
 
-        if (testTrigger) {
-            testTrigger.classList.toggle('disabled', !isCloud);
-            testTrigger.setAttribute('aria-disabled', !isCloud ? 'true' : 'false');
-        }
-        if (syncTrigger) {
-            syncTrigger.classList.toggle('disabled', !isCloud);
-            syncTrigger.setAttribute('aria-disabled', !isCloud ? 'true' : 'false');
-        }
     };
 
     providerSelect?.addEventListener('change', syncProviderSections);
@@ -268,26 +276,9 @@ document.addEventListener('DOMContentLoaded', () => {
     autoReplyInput?.addEventListener('change', syncAutomationFields);
     syncAutomationFields();
 
-    const generateVerifyToken = () => {
-        const randomPart = Math.random().toString(36).slice(2, 10);
-        return `wa_verify_${Date.now().toString(36)}_${randomPart}`;
-    };
-
-    if (verifyTokenInput && !verifyTokenInput.value.trim()) {
-        verifyTokenInput.value = generateVerifyToken();
-    }
-
-    regenVerifyTokenBtn?.addEventListener('click', () => {
-        if (!verifyTokenInput) return;
-        verifyTokenInput.value = generateVerifyToken();
-    });
-
-    copyVerifyTokenBtn?.addEventListener('click', async () => {
-        if (!verifyTokenInput) return;
-        const value = verifyTokenInput.value.trim();
-        if (!value) return;
-
-        const originalTitle = copyVerifyTokenBtn.getAttribute('title') || 'Copy Verify Token';
+    const copyText = async (button, value, originalLabel) => {
+        if (!button || !value) return;
+        const originalTitle = button.getAttribute('title') || originalLabel;
         try {
             if (navigator.clipboard?.writeText) {
                 await navigator.clipboard.writeText(value);
@@ -302,122 +293,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.execCommand('copy');
                 document.body.removeChild(area);
             }
-            copyVerifyTokenBtn.setAttribute('title', 'Copied');
-            copyVerifyTokenBtn.classList.add('btn-success');
-            copyVerifyTokenBtn.classList.remove('btn-outline-secondary');
+            button.setAttribute('title', 'Copied');
+            button.classList.add('btn-success');
+            button.classList.remove('btn-outline-secondary');
             setTimeout(() => {
-                copyVerifyTokenBtn.setAttribute('title', originalTitle);
-                copyVerifyTokenBtn.classList.remove('btn-success');
-                copyVerifyTokenBtn.classList.add('btn-outline-secondary');
+                button.setAttribute('title', originalTitle);
+                button.classList.remove('btn-success');
+                button.classList.add('btn-outline-secondary');
             }, 900);
         } catch (e) {
-            copyVerifyTokenBtn.setAttribute('title', 'Copy failed');
+            button.setAttribute('title', 'Copy failed');
         }
-    });
-
-    const renderTestResult = (ok, message, error = '') => {
-        if (!testResult) return;
-        testResult.className = `mt-3 alert ${ok ? 'alert-success' : 'alert-danger'} py-2 px-3`;
-        testResult.classList.remove('d-none');
-        testResult.innerHTML = `<div>${message}</div>${error ? `<div class="small mt-1">${error}</div>` : ''}`;
     };
 
-    const renderSyncResult = (ok, message, details = '') => {
-        if (!syncResult) return;
-        syncResult.className = `mt-2 alert ${ok ? 'alert-success' : 'alert-danger'} py-2 px-3`;
-        syncResult.classList.remove('d-none');
-        syncResult.innerHTML = `<div>${message}</div>${details ? `<div class="small mt-1">${details}</div>` : ''}`;
-    };
-
-    testTrigger?.addEventListener('click', async (event) => {
-        event.preventDefault();
-
-        const provider = (providerSelect?.value || '').toLowerCase();
-        if (provider !== 'cloud') {
-            renderTestResult(false, 'Test credentials hanya tersedia untuk provider Cloud API.');
-            return;
-        }
-
-        if (!form) return;
-
-        testTrigger.classList.add('disabled');
-        const originalText = testTrigger.textContent;
-        testTrigger.textContent = 'Testing...';
-
-        try {
-            const formData = new FormData(form);
-            formData.delete('_method');
-
-            const response = await fetch(testUrl, {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': formData.get('_token'),
-                },
-                body: formData,
-            });
-
-            const payload = await response.json();
-            if (response.ok && payload.ok) {
-                const details = [payload.data?.display_phone_number, payload.data?.verified_name].filter(Boolean).join(' | ');
-                renderTestResult(true, payload.message || 'Koneksi berhasil.', details);
-            } else {
-                renderTestResult(false, payload.message || 'Gagal test credentials.', payload.error || '');
-            }
-        } catch (error) {
-            renderTestResult(false, 'Terjadi kesalahan saat test credentials.', error?.message || '');
-        } finally {
-            testTrigger.classList.remove('disabled');
-            testTrigger.textContent = originalText;
-            syncProviderSections();
-        }
+    copyVerifyTokenBtn?.addEventListener('click', async () => {
+        if (!verifyTokenInput) return;
+        const value = verifyTokenInput.value.trim();
+        if (!value) return;
+        await copyText(copyVerifyTokenBtn, value, 'Copy Verify Token');
     });
 
-    syncTrigger?.addEventListener('click', async (event) => {
-        event.preventDefault();
-
-        const provider = (providerSelect?.value || '').toLowerCase();
-        if (provider !== 'cloud') {
-            renderSyncResult(false, 'Sync templates hanya tersedia untuk provider Cloud API.');
-            return;
-        }
-
-        if (!form) return;
-
-        syncTrigger.classList.add('disabled');
-        const originalText = syncTrigger.textContent;
-        syncTrigger.textContent = 'Syncing...';
-
-        try {
-            const formData = new FormData(form);
-            formData.delete('_method');
-
-            const response = await fetch(syncUrl, {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': formData.get('_token'),
-                },
-                body: formData,
-            });
-
-            const payload = await response.json();
-            if (response.ok && payload.ok) {
-                const fetched = payload.data?.fetched ?? 0;
-                const created = payload.data?.created ?? 0;
-                const updated = payload.data?.updated ?? 0;
-                renderSyncResult(true, payload.message || 'Sync templates berhasil.', `Fetched: ${fetched} | Created: ${created} | Updated: ${updated}`);
-            } else {
-                renderSyncResult(false, payload.message || 'Gagal sync templates.', payload.error || '');
-            }
-        } catch (error) {
-            renderSyncResult(false, 'Terjadi kesalahan saat sync templates.', error?.message || '');
-        } finally {
-            syncTrigger.classList.remove('disabled');
-            syncTrigger.textContent = originalText;
-            syncProviderSections();
-        }
+    copyWebhookUrlBtn?.addEventListener('click', async () => {
+        const value = webhookUrlInput?.value?.trim() || '';
+        if (!value) return;
+        await copyText(copyWebhookUrlBtn, value, 'Copy Webhook URL');
     });
+
 });
 </script>
 @endpush

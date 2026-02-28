@@ -15,9 +15,13 @@
         <div>
             <h2 class="mb-0">{{ $campaign->subject }}</h2>
             <div class="text-muted small">
-                @php $campColor = $campaign->status === 'done' ? 'success' : 'primary'; @endphp
+                @php
+                    $campBadgeClass = $campaign->status === 'done'
+                        ? 'bg-green-lt text-green'
+                        : 'bg-blue-lt text-blue';
+                @endphp
                 Status:
-                <span class="badge bg-{{ $campColor }} {{ $campColor !== 'secondary' ? 'text-white' : '' }}">{{ Str::title($campaign->status) }}</span>
+                <span class="badge {{ $campBadgeClass }}">{{ Str::title($campaign->status) }}</span>
                 @if($campaign->finished_at)
                     · Selesai {{ $campaign->finished_at->format('d M Y H:i') }}
                 @elseif($campaign->started_at)
@@ -113,14 +117,13 @@
                             <td>{{ $r->recipient_email }}</td>
                             <td>
                                 @php
-                                    $color = match($r->delivery_status) {
-                                        'delivered' => 'success',
-                                        'bounced' => 'danger',
-                                        default => 'secondary-lt'
+                                    $badgeClass = match($r->delivery_status) {
+                                        'delivered' => 'bg-green-lt text-green',
+                                        'bounced' => 'bg-red-lt text-red',
+                                        default => 'bg-secondary-lt text-secondary'
                                     };
-                                    $textClass = $color === 'secondary-lt' ? 'text-dark' : 'text-white';
                                 @endphp
-                                <span class="badge bg-{{ $color }} {{ $textClass }}">
+                                <span class="badge {{ $badgeClass }}">
                                     {{ Str::title($r->delivery_status) }}
                                 </span>
                             </td>

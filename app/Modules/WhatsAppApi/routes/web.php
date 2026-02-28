@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 use Illuminate\Support\Facades\Route;
 use App\Modules\WhatsAppApi\Http\Controllers\InstanceController;
@@ -17,6 +17,8 @@ Route::middleware(['web', 'auth'])
         Route::middleware('role:Super-admin')->group(function () {
             Route::post('instances/test-credentials', [InstanceController::class, 'testCredentials'])->name('instances.test-credentials');
             Route::post('instances/sync-templates', [InstanceController::class, 'syncTemplates'])->name('instances.sync-templates');
+            Route::match(['post', 'put', 'patch'], 'instances/{instance}/save-and-test', [InstanceController::class, 'saveAndTest'])->name('instances.save-and-test');
+            Route::match(['post', 'put', 'patch'], 'instances/{instance}/save-and-sync-templates', [InstanceController::class, 'saveAndSyncTemplates'])->name('instances.save-and-sync-templates');
             Route::resource('instances', InstanceController::class)->except(['show']);
             Route::resource('templates', WATemplateController::class)->except(['show']);
             Route::post('templates/{template}/submit', [WATemplateController::class, 'submit'])->name('templates.submit');

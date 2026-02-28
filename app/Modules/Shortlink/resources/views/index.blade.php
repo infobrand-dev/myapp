@@ -43,7 +43,7 @@
                 @forelse($topCodes as $row)
                     <div class="list-group-item d-flex justify-content-between align-items-center">
                         <span>/r/{{ $row->code_used }}</span>
-                        <span class="badge bg-primary">{{ $row->total }}</span>
+                        <span class="badge text-bg-primary">{{ $row->total }}</span>
                     </div>
                 @empty
                     <div class="list-group-item text-muted">Belum ada klik</div>
@@ -58,7 +58,7 @@
                 @forelse($topReferrers as $row)
                     <div class="list-group-item d-flex justify-content-between align-items-center">
                         <span class="text-truncate" title="{{ $row->referer }}">{{ $row->referer }}</span>
-                        <span class="badge bg-secondary">{{ $row->total }}</span>
+                        <span class="badge text-bg-secondary">{{ $row->total }}</span>
                     </div>
                 @empty
                     <div class="list-group-item text-muted">Belum ada data referer</div>

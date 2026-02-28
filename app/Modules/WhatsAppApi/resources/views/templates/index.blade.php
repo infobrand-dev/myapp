@@ -27,14 +27,33 @@
                         <td class="fw-bold">{{ $tpl->name }}</td>
                         <td>{{ $tpl->language }}</td>
                         <td>{{ $tpl->category ?? '-' }}</td>
-                        <td><span class="badge bg-{{ $tpl->status === 'active' ? 'success' : 'secondary' }}">{{ $tpl->status }}</span></td>
-                        <td class="text-end">
-                            <div class="btn-list flex-nowrap">
-                                <a href="{{ route('whatsapp-api.templates.edit', $tpl) }}" class="btn btn-outline-secondary btn-sm">Edit</a>
-                                <form method="POST" action="{{ route('whatsapp-api.templates.destroy', $tpl) }}" onsubmit="return confirm('Hapus template?');">
+                        <td>
+                            <span class="badge {{ $tpl->status === 'active' ? 'bg-green-lt text-green' : ($tpl->status === 'pending' ? 'bg-yellow-lt text-yellow' : 'bg-secondary-lt text-secondary') }}">
+                                {{ $tpl->status }}
+                            </span>
+                        </td>
+                        <td class="text-end align-middle">
+                            <div class="table-actions">
+                                <a href="{{ route('whatsapp-api.templates.edit', $tpl) }}" class="btn btn-sm btn-outline-secondary btn-icon" title="View" aria-label="View">
+                                    <i class="ti ti-eye icon" aria-hidden="true"></i>
+                                </a>
+                                <a href="{{ route('whatsapp-api.templates.edit', $tpl) }}" class="btn btn-sm btn-outline-secondary btn-icon" title="Edit" aria-label="Edit">
+                                    <i class="ti ti-pencil icon" aria-hidden="true"></i>
+                                </a>
+                                @if($tpl->status !== 'pending' && $tpl->status !== 'active')
+                                    <form class="d-inline-block m-0" method="POST" action="{{ route('whatsapp-api.templates.submit', $tpl) }}">
+                                        @csrf
+                                        <button class="btn btn-sm btn-outline-azure btn-icon" type="submit" title="Submit Approval" aria-label="Submit Approval">
+                                            <i class="ti ti-check icon" aria-hidden="true"></i>
+                                        </button>
+                                    </form>
+                                @endif
+                                <form class="d-inline-block m-0" method="POST" action="{{ route('whatsapp-api.templates.destroy', $tpl) }}" onsubmit="return confirm('Hapus template?');">
                                     @csrf
                                     @method('DELETE')
-                                    <button class="btn btn-outline-danger btn-sm" type="submit">Hapus</button>
+                                    <button class="btn btn-sm btn-outline-danger btn-icon" type="submit" title="Delete" aria-label="Delete">
+                                        <i class="ti ti-trash icon" aria-hidden="true"></i>
+                                    </button>
                                 </form>
                             </div>
                         </td>

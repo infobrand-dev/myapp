@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const item = document.createElement('button');
                 item.type = 'button';
                 item.className = `list-group-item list-group-item-action d-flex justify-content-between align-items-center ${chat.id === activeChatId ? 'active' : ''}`;
-                const badge = chat.unreadCount ? `<span class="badge bg-azure text-azure-fg">${chat.unreadCount}</span>` : '';
+                const badge = chat.unreadCount ? `<span class="badge bg-azure-lt text-azure">${chat.unreadCount}</span>` : '';
                 item.innerHTML = `
                     <div>
                         <div class="fw-bold">${chat.name}</div>

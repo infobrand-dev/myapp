@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\WhatsAppApi\SettingsController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -31,17 +30,5 @@ Route::middleware(['auth', 'role:Super-admin'])->group(function () {
     Route::resource('users', UserController::class)->except(['show']);
     Route::resource('roles', RoleController::class)->except(['show']);
 });
-
-Route::middleware(['auth', 'role:Super-admin|Admin'])
-    ->prefix('whatsapp-api')
-    ->name('whatsapp-api.')
-    ->group(function () {
-        Route::get('/chat', [SettingsController::class, 'chat'])->name('chat');
-        Route::get('/settings', [SettingsController::class, 'edit'])->name('settings');
-        Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
-        Route::post('/test', [SettingsController::class, 'test'])
-            ->middleware('throttle:10,1')
-            ->name('test');
-    });
 
 require __DIR__ . '/auth.php';

@@ -5,6 +5,13 @@
     <div>
         <h2 class="mb-0">Percakapan</h2>
         <div class="text-muted small">Channel: {{ strtoupper($conversation->channel ?? 'INTERNAL') }} | Lock timeout {{ $lockMinutes }} menit.</div>
+        @if($conversation->channel === 'wa_api')
+            <div class="text-muted small mt-1">
+                Instance aktif:
+                <span class="badge bg-azure-lt text-azure">{{ $conversation->instance->name ?? 'Instance tidak ditemukan' }}</span>
+                <span class="ms-1">Instance percakapan ini terkunci dan tidak bisa diganti.</span>
+            </div>
+        @endif
     </div>
     <div class="btn-list">
         <a href="{{ route('conversations.index') }}" class="btn btn-outline-secondary">Kembali</a>
@@ -19,7 +26,7 @@
                 <button class="btn btn-primary" type="submit">Claim</button>
             </form>
         @else
-            <span class="badge bg-secondary">Locked <span id="lock-remaining">{{ optional($conversation->locked_until)->format('H:i') }}</span></span>
+            <span class="badge text-bg-secondary">Locked <span id="lock-remaining">{{ optional($conversation->locked_until)->format('H:i') }}</span></span>
         @endif
     </div>
 </div>
@@ -36,7 +43,7 @@
                             <div class="text-muted small">{{ strtoupper($c->channel ?? 'internal') }}</div>
                         </div>
                         @if($c->instance)
-                            <span class="badge bg-{{ $c->instance->status === 'connected' ? 'success' : ($c->instance->status === 'error' ? 'danger' : 'secondary') }}">{{ $c->instance->status }}</span>
+                            <span class="badge {{ $c->instance->status === 'connected' ? 'text-bg-success' : ($c->instance->status === 'error' ? 'text-bg-danger' : 'text-bg-secondary') }}">{{ $c->instance->status }}</span>
                         @endif
                     </a>
                 @empty
@@ -55,7 +62,12 @@
                     <div class="mb-3 d-flex {{ $msg->direction === 'out' ? 'justify-content-end' : 'justify-content-start' }}">
                         <div class="px-3 py-2 rounded {{ $msg->direction === 'out' ? 'bg-primary text-white' : 'bg-white border' }}" style="max-width: 80%;">
                             <div class="small fw-bold mb-1">{{ $msg->user->name ?? ($msg->direction === 'out' ? 'You' : 'System') }}</div>
-                            <div class="small">{{ $msg->body }}</div>
+                            <div class="small">
+                                @if($msg->type === 'template')
+                                    <div class="badge bg-azure-lt text-azure mb-1">WA Template</div>
+                                @endif
+                                {{ $msg->body }}
+                            </div>
                             <div class="text-muted small mt-1">{{ optional($msg->created_at)->format('d M H:i') }}</div>
                         </div>
                     </div>
@@ -64,11 +76,43 @@
                 @endforelse
             </div>
             <div class="card-footer">
-                <form method="POST" action="{{ route('conversations.send', $conversation) }}" class="d-flex gap-2" id="send-form">
+                <form method="POST" action="{{ route('conversations.send', $conversation) }}" class="d-flex gap-2 mb-3" id="send-form">
                     @csrf
                     <input type="text" name="body" class="form-control" placeholder="Ketik pesan..." required autocomplete="off" id="message-input">
                     <button class="btn btn-primary" type="submit">Kirim</button>
                 </form>
+                @if($conversation->channel === 'wa_api' && $waTemplates->isNotEmpty())
+                    <div class="border-top pt-3">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="fw-bold">Kirim Template WA</div>
+                            <span class="text-muted small">Sesuai 24h rules</span>
+                        </div>
+                        <form method="POST" action="{{ route('conversations.send', $conversation) }}" id="template-form">
+                            @csrf
+                            <input type="hidden" name="message_type" value="template">
+                            <div class="row g-2">
+                                <div class="col-md-7">
+                                    <select name="template_id" id="template_id" class="form-select" required>
+                                        <option value="">Pilih template</option>
+                                        @foreach($waTemplates as $tpl)
+                                            <option value="{{ $tpl->id }}" data-body="{{ e($tpl->body) }}" data-header="{{ e(data_get(collect($tpl->components)->firstWhere('type','header'), 'parameters.0.text')) }}">
+                                                {{ $tpl->name }} ({{ $tpl->language }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <input type="text" class="form-control" id="tpl_lang" placeholder="Lang" disabled>
+                                </div>
+                                <div class="col-md-2">
+                                    <button class="btn btn-success w-100" type="submit">Kirim</button>
+                                </div>
+                            </div>
+                            <div id="tpl-vars" class="row g-2 mt-2"></div>
+                            <div class="text-muted small mt-1" id="tpl-preview"></div>
+                        </form>
+                    </div>
+                @endif
             </div>
         </div>
     </div>
@@ -135,7 +179,7 @@
                 const diff = (new Date(lockedUntil) - new Date()) / 1000;
                 if (diff <= 0) {
                     lockSpan.textContent = 'expired';
-                    lockSpan.parentElement?.classList.replace('bg-secondary', 'bg-warning');
+                    lockSpan.parentElement?.classList.replace('text-bg-secondary', 'text-bg-warning');
                     return;
                 }
                 const m = Math.floor(diff / 60);
@@ -162,6 +206,47 @@
                     if (chatPane) chatPane.scrollTop = chatPane.scrollHeight;
                 });
         }
+
+        // Template selector (WA API)
+        const tplSelect = document.getElementById('template_id');
+        const tplVars = document.getElementById('tpl-vars');
+        const tplLang = document.getElementById('tpl_lang');
+        const tplPreview = document.getElementById('tpl-preview');
+
+        function extractPlaceholders(text) {
+            if (!text) return [];
+            const matches = [...text.matchAll(/\{\{(\d+)\}\}/g)];
+            const nums = [...new Set(matches.map(m => parseInt(m[1], 10)))].sort((a,b)=>a-b);
+            return nums;
+        }
+
+        function renderVars() {
+            if (!tplSelect) return;
+            const opt = tplSelect.selectedOptions[0];
+            if (!opt) return;
+            const body = opt.getAttribute('data-body') || '';
+            const header = opt.getAttribute('data-header') || '';
+            const placeholders = [...new Set([...extractPlaceholders(body), ...extractPlaceholders(header)])];
+            tplVars.innerHTML = '';
+            tplLang.value = opt.textContent.match(/\((.*?)\)/)?.[1] ?? '';
+            tplPreview.textContent = body ? `Preview body: ${body}` : '';
+            placeholders.forEach(idx => {
+                const col = document.createElement('div');
+                col.className = 'col-md-6';
+                col.innerHTML = `
+                    <div class="input-group">
+                        <span class="input-group-text">&#123;&#123;${idx}&#125;&#125;</span>
+                        <input type="text" class="form-control" name="template_params[${idx}]" placeholder="Isi untuk &#123;&#123;${idx}&#125;&#125;" required>
+                    </div>`;
+                tplVars.appendChild(col);
+            });
+            if (!placeholders.length) {
+                tplVars.innerHTML = '<div class="text-muted small ms-1">Tidak ada placeholder.</div>';
+            }
+        }
+
+        tplSelect?.addEventListener('change', renderVars);
+        if (tplSelect) renderVars();
 
         // Load activity log
         fetch('{{ route('conversations.logs', $conversation) }}')

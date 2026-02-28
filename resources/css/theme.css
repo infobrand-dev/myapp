@@ -21,3 +21,36 @@
     background-color: var(--tblr-secondary-lt);
     color: var(--tblr-secondary);
 }
+
+/* Normalize table action buttons across mixed <a>/<button> and icon types. */
+.table-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    white-space: nowrap;
+}
+
+.table-actions form {
+    display: inline-block;
+    margin: 0;
+}
+
+.table-actions .btn.btn-icon {
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.table-actions .btn.btn-icon .icon,
+.table-actions .btn.btn-icon .ti {
+    width: 1rem;
+    height: 1rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}

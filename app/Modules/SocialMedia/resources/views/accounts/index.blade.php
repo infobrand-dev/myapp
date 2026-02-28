@@ -27,11 +27,11 @@
                         <td>{{ strtoupper($acc->platform) }}</td>
                         <td>{{ $acc->name ?? '—' }}</td>
                         <td>{{ $acc->platform === 'instagram' ? $acc->ig_business_id : $acc->page_id }}</td>
-                        <td><span class="badge bg-{{ $acc->status === 'active' ? 'success' : 'secondary' }}">{{ $acc->status }}</span></td>
-                        <td class="text-end">
-                            <div class="btn-list flex-nowrap">
+                        <td><span class="badge {{ $acc->status === 'active' ? 'text-bg-success' : 'text-bg-secondary' }}">{{ $acc->status }}</span></td>
+                        <td class="text-end align-middle">
+                            <div class="table-actions">
                                 <a href="{{ route('social-media.accounts.edit', $acc) }}" class="btn btn-outline-secondary btn-sm">Edit</a>
-                                <form method="POST" action="{{ route('social-media.accounts.destroy', $acc) }}" onsubmit="return confirm('Hapus akun?');">
+                                <form class="d-inline-block m-0" method="POST" action="{{ route('social-media.accounts.destroy', $acc) }}" onsubmit="return confirm('Hapus akun?');">
                                     @csrf
                                     @method('DELETE')
                                     <button class="btn btn-outline-danger btn-sm" type="submit">Hapus</button>

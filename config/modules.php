@@ -7,6 +7,7 @@ return [
     'whatsapp_bro' => [
         'enabled' => true,
         'bridge_url' => env('WHATSAPP_BRO_BRIDGE_URL', 'http://localhost:3020'),
+        'webhook_token' => env('WHATSAPP_BRO_WEBHOOK_TOKEN'),
     ],
     'whatsapp_api' => [
         'enabled' => true,

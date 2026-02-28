@@ -40,19 +40,24 @@
                             <div class="col-md-3">
                                 <label class="form-label">Language</label>
                                 @php
-                                    $locales = ['id','id_ID','en','en_US','en_GB','ms','ms_MY','th','th_TH'];
+                                    $locales = [
+                                        ['value' => 'id', 'label' => 'Indonesia (id)'],
+                                        ['value' => 'en', 'label' => 'English (en)'],
+                                    ];
                                     $langValue = old('language', $template->language);
                                 @endphp
                                 <select class="form-select" name="language" required>
                                     <option value="">Pilih locale</option>
                                     @foreach($locales as $loc)
-                                        <option value="{{ $loc }}" {{ $langValue === $loc ? 'selected' : '' }}>{{ $loc }}</option>
+                                        <option value="{{ $loc['value'] }}" {{ $langValue === $loc['value'] ? 'selected' : '' }}>
+                                            {{ $loc['label'] }}
+                                        </option>
                                     @endforeach
-                                    @if($langValue && !in_array($langValue, $locales))
+                                    @if($langValue && !collect($locales)->pluck('value')->contains($langValue))
                                         <option value="{{ $langValue }}" selected>{{ $langValue }} (custom)</option>
                                     @endif
                                 </select>
-                                <div class="text-muted small">Locale format: xx atau xx_XX</div>
+                                <div class="text-muted small">Meta menerima kode bahasa (id/en).</div>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Category</label>
@@ -64,19 +69,23 @@
                             </div>
                         </div>
                         <div class="row g-3 mt-2">
+                            <input type="hidden" name="status" value="{{ old('status', $template->status ?: 'draft') }}">
                             <div class="col-md-3">
-                                <label class="form-label">Status (lokal)</label>
-                                <select name="status" class="form-select">
-                                    @foreach(['active','inactive'] as $st)
-                                        <option value="{{ $st }}" {{ old('status', $template->status) === $st ? 'selected' : '' }}>{{ ucfirst($st) }}</option>
+                                <label class="form-label">Account (WA Cloud)</label>
+                                @php
+                                    $nsValue = old('namespace', $template->namespace);
+                                    $selectedInstance = old('instance_id');
+                                @endphp
+                                <select class="form-select mb-2" id="instance_select" name="instance_id" required>
+                                    <option value="">Pilih account</option>
+                                    @foreach(($instances ?? collect()) as $inst)
+                                        @php $ns = $inst->cloud_business_account_id; @endphp
+                                        <option value="{{ $inst->id }}" data-namespace="{{ $ns }}" {{ (string)$selectedInstance === (string)$inst->id || (!$selectedInstance && $nsValue === $ns) ? 'selected' : '' }}>
+                                            {{ $inst->name }} ({{ $ns }})
+                                        </option>
                                     @endforeach
                                 </select>
-                                <div class="text-muted small">Tidak sync ke Meta.</div>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Namespace (opsional)</label>
-                                <input class="form-control" name="namespace" value="{{ old('namespace', $template->namespace) }}">
-                                <div class="text-muted small">Isi jika diminta provider.</div>
+                                <input type="hidden" name="namespace" id="namespace_input" value="{{ $nsValue }}">
                             </div>
                         </div>
                     </div>
@@ -89,7 +98,7 @@
                             <div class="col-md-4">
                                 <label class="form-label">Header Type</label>
                                 <select name="header_type" id="header_type" class="form-select">
-                                    @foreach(['none'=>'None','text'=>'Text (≤60)','image'=>'Image','document'=>'Document','video'=>'Video'] as $val=>$label)
+                                    @foreach(['none'=>'None','text'=>'Text (<=60)','image'=>'Image','document'=>'Document','video'=>'Video'] as $val=>$label)
                                         <option value="{{ $val }}" {{ $headerType === $val ? 'selected' : '' }}>{{ $label }}</option>
                                     @endforeach
                                 </select>
@@ -146,7 +155,7 @@
                                 @php $btn = ($mode === 'quick_reply') ? ($buttons[$i] ?? null) : null; @endphp
                                 <div class="row g-2 mb-2">
                                     <div class="col-md-12">
-                                        <input class="form-control" name="qr_label[]" placeholder="Quick reply {{ $i+1 }}" value="{{ old('qr_label.'.$i, $btn['parameters'][0]['text'] ?? '') }}" maxlength="25">
+                                        <input class="form-control" name="qr_label[]" placeholder="Quick reply {{ $i+1 }}" value="{{ old('qr_label.'.$i, data_get($btn, 'parameters.0.text', '')) }}" maxlength="25">
                                     </div>
                                 </div>
                             @endfor
@@ -158,27 +167,25 @@
                             @endphp
                             <div class="row g-2 mb-2">
                                 <div class="col-md-6">
-                                    <input class="form-control" name="cta_url_label" placeholder="URL label" value="{{ old('cta_url_label', $urlBtn['parameters'][0]['text'] ?? '') }}" maxlength="25">
+                                    <input class="form-control" name="cta_url_label" placeholder="URL label" value="{{ old('cta_url_label', data_get($urlBtn, 'parameters.0.text', '')) }}" maxlength="25">
                                 </div>
                                 <div class="col-md-6">
-                                    <input class="form-control" name="cta_url_value" placeholder="https://..." value="{{ old('cta_url_value', $urlBtn['url'] ?? '') }}">
+                                    <input class="form-control" name="cta_url_value" placeholder="https://..." value="{{ old('cta_url_value', data_get($urlBtn, 'url')) }}">
                                 </div>
                             </div>
                             <div class="row g-2">
                                 <div class="col-md-6">
-                                    <input class="form-control" name="cta_phone_label" placeholder="Call label" value="{{ old('cta_phone_label', $phoneBtn['parameters'][0]['text'] ?? '') }}" maxlength="25">
+                                    <input class="form-control" name="cta_phone_label" placeholder="Call label" value="{{ old('cta_phone_label', data_get($phoneBtn, 'parameters.0.text', '')) }}" maxlength="25">
                                 </div>
                                 <div class="col-md-6">
-                                    <input class="form-control" name="cta_phone_value" placeholder="+62..." value="{{ old('cta_phone_value', $phoneBtn['phone_number'] ?? '') }}">
+                                    <input class="form-control" name="cta_phone_value" placeholder="+62..." value="{{ old('cta_phone_value', data_get($phoneBtn, 'phone_number')) }}">
                                     <div class="text-muted small">Format E.164, contoh +62812...</div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="mt-4 d-flex justify-content-end">
-                        <button class="btn btn-primary" type="submit">Simpan</button>
-                    </div>
+                    <div class="mt-4 d-flex justify-content-end gap-2"><button class="btn btn-secondary" type="submit" name="action" value="draft">Simpan Draft</button><button class="btn btn-primary" type="submit" name="action" value="submit">Submit Approval</button></div>
                 </form>
             </div>
         </div>
@@ -249,6 +256,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const headerMediaWrap = document.querySelector('.header-media-wrap');
     const bodyCount = document.getElementById('body_count');
     const headerCount = document.getElementById('header_count');
+    const nsSelect = document.getElementById('instance_select');
+    const nsInput = document.getElementById('namespace_input');
 
     const escapeHtml = (text) => text.replace(/[&<>"']/g, m => ({
         '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
@@ -272,6 +281,12 @@ document.addEventListener('DOMContentLoaded', () => {
         headerTextWrap.style.display = hType === 'text' ? '' : 'none';
         headerMediaWrap.style.display = ['image','document','video'].includes(hType) ? '' : 'none';
         if (hType !== 'text') headerInput.value = headerInput.value; // keep but hidden
+    }
+
+    function syncNamespace() {
+        if (!nsSelect || !nsInput) return;
+        const ns = nsSelect.selectedOptions[0]?.dataset.namespace || '';
+        nsInput.value = ns;
     }
 
     function render() {
@@ -355,10 +370,13 @@ document.addEventListener('DOMContentLoaded', () => {
     ctaUrlValue?.addEventListener('input', render);
     ctaPhoneLabel?.addEventListener('input', render);
     ctaPhoneValue?.addEventListener('input', render);
+    nsSelect?.addEventListener('change', syncNamespace);
 
     toggleSections();
+    syncNamespace();
     render();
 });
 </script>
 @endpush
 @endsection
+

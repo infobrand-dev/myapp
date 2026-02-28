@@ -16,12 +16,16 @@ class WATemplate extends Model
         'language',
         'category',
         'namespace',
+        'meta_template_id',
         'body',
         'components',
         'status',
+        'last_submitted_at',
+        'last_submit_error',
     ];
 
     protected $casts = [
         'components' => 'array',
+        'last_submitted_at' => 'datetime',
     ];
 }

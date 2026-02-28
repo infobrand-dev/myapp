@@ -19,7 +19,38 @@
         })();
     </script>
     <link id="dynamic-favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='30' fill='%2314b8a6'/></svg>">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.1/dist/tabler-icons.min.css">
     <link rel="stylesheet" href="{{ mix('css/app.css') }}">
+    <style>
+        .table-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            white-space: nowrap;
+        }
+        .table-actions form {
+            display: inline-block;
+            margin: 0;
+        }
+        .table-actions .btn.btn-icon {
+            width: 2rem;
+            height: 2rem;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .table-actions .btn.btn-icon .icon,
+        .table-actions .btn.btn-icon .ti {
+            width: 1rem;
+            height: 1rem;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+    </style>
 </head>
 <body class="bg-body">
     <div class="page">

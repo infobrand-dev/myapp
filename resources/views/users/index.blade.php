@@ -26,8 +26,8 @@
                     <td>{{ $user->name }}</td>
                     <td>{{ $user->email }}</td>
                     <td>{{ $user->roles->pluck('name')->join(', ') ?: '-' }}</td>
-                    <td class="text-end">
-                        <div class="btn-list flex-nowrap mb-0">
+                    <td class="text-end align-middle">
+                        <div class="table-actions">
                             <a class="btn btn-icon btn-outline-secondary" href="{{ route('users.edit', $user) }}" title="Edit">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                     <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
@@ -35,7 +35,7 @@
                                     <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3l-11 11l-4 1l1 -4z" />
                                 </svg>
                             </a>
-                            <form method="POST" action="{{ route('users.destroy', $user) }}" onsubmit="return confirm('Hapus user ini?')" style="display:inline">
+                            <form class="d-inline-block m-0" method="POST" action="{{ route('users.destroy', $user) }}" onsubmit="return confirm('Hapus user ini?')">
                                 @csrf
                                 @method('DELETE')
                                 <button class="btn btn-icon btn-outline-danger" title="Delete">

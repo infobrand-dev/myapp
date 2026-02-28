@@ -27,7 +27,14 @@ class InstanceController extends Controller
 
     public function create(): View
     {
-        $instance = new WhatsAppInstance(['status' => 'disconnected', 'is_active' => true, 'provider' => 'cloud']);
+        $instance = new WhatsAppInstance([
+            'status' => 'disconnected',
+            'is_active' => true,
+            'provider' => 'cloud',
+            'settings' => [
+                'wa_cloud_verify_token' => $this->generateVerifyToken(),
+            ],
+        ]);
         $chatbotAccounts = ChatbotAccount::where('status', 'active')->orderBy('name')->get();
 
         return view('whatsappapi::instances.form', compact('instance', 'chatbotAccounts'));
@@ -64,6 +71,55 @@ class InstanceController extends Controller
         return redirect()->route('whatsapp-api.instances.index')->with('status', 'Instance diperbarui.');
     }
 
+    public function saveAndTest(Request $request, WhatsAppInstance $instance): RedirectResponse
+    {
+        $data = $this->validated($request, $instance);
+        $data['is_active'] = $request->boolean('is_active');
+        $data['auto_reply'] = $request->boolean('auto_reply');
+        $data['updated_by'] = $request->user()?->id;
+
+        $instance->update($data);
+        $instance->refresh();
+
+        $result = $this->runStoredCloudCredentialTest($instance);
+
+        if ($result['ok']) {
+            return redirect()
+                ->route('whatsapp-api.instances.edit', $instance)
+                ->with('status', $result['message']);
+        }
+
+        return redirect()
+            ->route('whatsapp-api.instances.edit', $instance)
+            ->with('status', ($result['message'] ?? 'Gagal test credentials.') . (!empty($result['error']) ? ' ' . $result['error'] : ''));
+    }
+
+    public function saveAndSyncTemplates(Request $request, WhatsAppInstance $instance): RedirectResponse
+    {
+        $data = $this->validated($request, $instance);
+        $data['is_active'] = $request->boolean('is_active');
+        $data['auto_reply'] = $request->boolean('auto_reply');
+        $data['updated_by'] = $request->user()?->id;
+
+        $instance->update($data);
+        $instance->refresh();
+
+        $result = $this->runStoredCloudTemplateSync($instance);
+        $message = $result['message'] ?? 'Gagal sync templates.';
+        if (!empty($result['error'])) {
+            $message .= ' ' . $result['error'];
+        } elseif (!empty($result['data']) && is_array($result['data'])) {
+            $fetched = (int) ($result['data']['fetched'] ?? 0);
+            $created = (int) ($result['data']['created'] ?? 0);
+            $updated = (int) ($result['data']['updated'] ?? 0);
+            $message .= " Fetched: {$fetched}, Created: {$created}, Updated: {$updated}.";
+        }
+
+        return redirect()
+            ->route('whatsapp-api.instances.edit', $instance)
+            ->with('status', $message);
+    }
+
     public function destroy(WhatsAppInstance $instance): RedirectResponse
     {
         if ($instance->conversations()->exists()) {
@@ -90,17 +146,8 @@ class InstanceController extends Controller
         if ($phoneNumberId === '') {
             $missing[] = 'Phone Number ID';
         }
-        if ($businessId === '') {
-            $missing[] = 'Cloud Business Account ID';
-        }
         if ($cloudToken === '') {
             $missing[] = 'Cloud Access Token';
-        }
-        if ($verifyToken === '') {
-            $missing[] = 'Verify Token Webhook';
-        }
-        if ($appSecret === '') {
-            $missing[] = 'App Secret';
         }
         if ($missing) {
             return response()->json([
@@ -109,6 +156,47 @@ class InstanceController extends Controller
             ], 422);
         }
 
+        $result = $this->executeCloudCredentialTest($phoneNumberId, $cloudToken);
+        if ($result['ok']) {
+            return response()->json($result);
+        }
+
+        return response()->json($result, $result['status'] ?? 422);
+    }
+
+    private function runStoredCloudCredentialTest(WhatsAppInstance $instance): array
+    {
+        $provider = strtolower((string) ($instance->provider ?? ''));
+        if ($provider !== 'cloud') {
+            return [
+                'ok' => false,
+                'message' => 'Test credentials hanya tersedia untuk provider Cloud API.',
+                'status' => 422,
+            ];
+        }
+
+        $phoneNumberId = trim((string) $instance->phone_number_id);
+        $cloudToken = trim((string) $instance->cloud_token);
+        $missing = [];
+        if ($phoneNumberId === '') {
+            $missing[] = 'Phone Number ID';
+        }
+        if ($cloudToken === '') {
+            $missing[] = 'Cloud Access Token';
+        }
+        if ($missing) {
+            return [
+                'ok' => false,
+                'message' => 'Lengkapi field wajib terlebih dahulu: ' . implode(', ', $missing) . '.',
+                'status' => 422,
+            ];
+        }
+
+        return $this->executeCloudCredentialTest($phoneNumberId, $cloudToken);
+    }
+
+    private function executeCloudCredentialTest(string $phoneNumberId, string $cloudToken): array
+    {
         $base = rtrim((string) config('services.wa_cloud.base_url', 'https://graph.facebook.com/v20.0'), '/');
         $url = "{$base}/{$phoneNumberId}";
 
@@ -118,7 +206,7 @@ class InstanceController extends Controller
                 ->get($url, ['fields' => 'id,display_phone_number,verified_name']);
 
             if ($response->successful()) {
-                return response()->json([
+                return [
                     'ok' => true,
                     'message' => 'Koneksi ke WhatsApp Cloud API berhasil.',
                     'data' => [
@@ -126,35 +214,39 @@ class InstanceController extends Controller
                         'display_phone_number' => $response->json('display_phone_number'),
                         'verified_name' => $response->json('verified_name'),
                     ],
-                ]);
+                ];
             }
 
             $errorMessage = (string) ($response->json('error.message') ?: $response->body() ?: 'Unknown error');
-            return response()->json([
+            return [
                 'ok' => false,
                 'message' => 'Gagal konek ke WhatsApp Cloud API.',
                 'error' => $errorMessage,
-            ], 422);
+                'status' => 422,
+            ];
         } catch (\Throwable $e) {
-            return response()->json([
+            return [
                 'ok' => false,
                 'message' => 'Gagal konek ke WhatsApp Cloud API.',
                 'error' => $e->getMessage(),
-            ], 500);
+                'status' => 500,
+            ];
         }
     }
 
-    public function syncTemplates(Request $request): JsonResponse
+    private function runStoredCloudTemplateSync(WhatsAppInstance $instance): array
     {
-        [$provider, $phoneNumberId, $businessId, $cloudToken, $verifyToken, $appSecret] = $this->resolveCloudCredentials($request);
-
+        $provider = strtolower((string) ($instance->provider ?? ''));
         if ($provider !== 'cloud') {
-            return response()->json([
+            return [
                 'ok' => false,
                 'message' => 'Sync templates hanya tersedia untuk provider Cloud API.',
-            ], 422);
+                'status' => 422,
+            ];
         }
 
+        $businessId = trim((string) $instance->cloud_business_account_id);
+        $cloudToken = trim((string) $instance->cloud_token);
         $missing = [];
         if ($businessId === '') {
             $missing[] = 'Cloud Business Account ID';
@@ -163,12 +255,18 @@ class InstanceController extends Controller
             $missing[] = 'Cloud Access Token';
         }
         if ($missing) {
-            return response()->json([
+            return [
                 'ok' => false,
                 'message' => 'Lengkapi field wajib terlebih dahulu: ' . implode(', ', $missing) . '.',
-            ], 422);
+                'status' => 422,
+            ];
         }
 
+        return $this->executeCloudTemplateSync($businessId, $cloudToken);
+    }
+
+    private function executeCloudTemplateSync(string $businessId, string $cloudToken): array
+    {
         $base = rtrim((string) config('services.wa_cloud.base_url', 'https://graph.facebook.com/v20.0'), '/');
         $url = "{$base}/{$businessId}/message_templates";
 
@@ -194,11 +292,12 @@ class InstanceController extends Controller
 
                 if (!$response->successful()) {
                     $errorMessage = (string) ($response->json('error.message') ?: $response->body() ?: 'Unknown error');
-                    return response()->json([
+                    return [
                         'ok' => false,
                         'message' => 'Gagal sync template dari WhatsApp Cloud API.',
                         'error' => $errorMessage,
-                    ], 422);
+                        'status' => 422,
+                    ];
                 }
 
                 $items = (array) $response->json('data', []);
@@ -260,7 +359,7 @@ class InstanceController extends Controller
                 $loops++;
             } while ($nextAfter && $loops < 10);
 
-            return response()->json([
+            return [
                 'ok' => true,
                 'message' => 'Sync templates berhasil.',
                 'data' => [
@@ -268,14 +367,48 @@ class InstanceController extends Controller
                     'created' => $created,
                     'updated' => $updated,
                 ],
-            ]);
+            ];
         } catch (\Throwable $e) {
-            return response()->json([
+            return [
                 'ok' => false,
                 'message' => 'Gagal sync template dari WhatsApp Cloud API.',
                 'error' => $e->getMessage(),
-            ], 500);
+                'status' => 500,
+            ];
         }
+    }
+
+    public function syncTemplates(Request $request): JsonResponse
+    {
+        [$provider, $phoneNumberId, $businessId, $cloudToken, $verifyToken, $appSecret] = $this->resolveCloudCredentials($request);
+
+        if ($provider !== 'cloud') {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Sync templates hanya tersedia untuk provider Cloud API.',
+            ], 422);
+        }
+
+        $missing = [];
+        if ($businessId === '') {
+            $missing[] = 'Cloud Business Account ID';
+        }
+        if ($cloudToken === '') {
+            $missing[] = 'Cloud Access Token';
+        }
+        if ($missing) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Lengkapi field wajib terlebih dahulu: ' . implode(', ', $missing) . '.',
+            ], 422);
+        }
+
+        $result = $this->executeCloudTemplateSync($businessId, $cloudToken);
+        if ($result['ok']) {
+            return response()->json($result);
+        }
+
+        return response()->json($result, $result['status'] ?? 422);
     }
 
     private function validated(Request $request, ?WhatsAppInstance $current): array
@@ -286,7 +419,6 @@ class InstanceController extends Controller
             'provider' => ['required', 'string', 'max:50'],
             'api_base_url' => ['nullable', 'url', 'max:255'],
             'api_token' => ['nullable', 'string', 'max:255'],
-            'webhook_url' => ['nullable', 'url', 'max:255'],
             'is_active' => ['boolean'],
             'settings' => ['nullable'],
             'wa_cloud_verify_token' => ['nullable', 'string', 'max:255'],
@@ -336,6 +468,12 @@ class InstanceController extends Controller
         $effectiveVerifyToken = trim((string) Arr::get($settings, 'wa_cloud_verify_token', ''));
         $effectiveAppSecret = trim((string) Arr::get($settings, 'wa_cloud_app_secret', ''));
 
+        if ($isCloud && $effectiveVerifyToken === '') {
+            $effectiveVerifyToken = $this->generateVerifyToken();
+            $settings['wa_cloud_verify_token'] = $effectiveVerifyToken;
+            $data['settings'] = $settings;
+        }
+
         if ($isCloud) {
             $errors = [];
             if ($effectivePhoneId === '') {
@@ -346,9 +484,6 @@ class InstanceController extends Controller
             }
             if ($effectiveCloudToken === '') {
                 $errors['cloud_token'] = 'Cloud Access Token wajib diisi untuk provider cloud.';
-            }
-            if ($effectiveVerifyToken === '') {
-                $errors['wa_cloud_verify_token'] = 'Verify token webhook wajib diisi untuk provider cloud.';
             }
             if ($effectiveAppSecret === '') {
                 $errors['wa_cloud_app_secret'] = 'App Secret wajib diisi untuk validasi signature webhook Cloud.';
@@ -398,9 +533,19 @@ class InstanceController extends Controller
 
         $phoneNumberId = trim((string) $request->input('phone_number_id', $editingInstance?->phone_number_id));
         $businessId = trim((string) $request->input('cloud_business_account_id', $editingInstance?->cloud_business_account_id));
-        $cloudToken = trim((string) $request->input('cloud_token', $editingInstance?->cloud_token));
+        $cloudToken = trim((string) $request->input('cloud_token', ''));
         $verifyToken = trim((string) $request->input('wa_cloud_verify_token', Arr::get($settings, 'wa_cloud_verify_token', '')));
         $appSecret = trim((string) $request->input('wa_cloud_app_secret', Arr::get($settings, 'wa_cloud_app_secret', '')));
+
+        if ($phoneNumberId === '' && $editingInstance) {
+            $phoneNumberId = trim((string) $editingInstance->phone_number_id);
+        }
+        if ($businessId === '' && $editingInstance) {
+            $businessId = trim((string) $editingInstance->cloud_business_account_id);
+        }
+        if ($cloudToken === '' && $editingInstance) {
+            $cloudToken = trim((string) $editingInstance->cloud_token);
+        }
         if ($verifyToken === '') {
             $verifyToken = trim((string) Arr::get($editingInstance?->settings ?? [], 'wa_cloud_verify_token', ''));
         }
@@ -409,5 +554,10 @@ class InstanceController extends Controller
         }
 
         return [$provider, $phoneNumberId, $businessId, $cloudToken, $verifyToken, $appSecret];
+    }
+
+    private function generateVerifyToken(): string
+    {
+        return 'wa_verify_' . bin2hex(random_bytes(12));
     }
 }

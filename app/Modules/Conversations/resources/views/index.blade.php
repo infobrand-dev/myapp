@@ -30,11 +30,11 @@
                             <a href="{{ route('conversations.show', $conv) }}" class="fw-bold text-decoration-none">{{ $conv->contact_name ?? $conv->contact_wa_id ?? 'Internal Chat' }}</a>
                             <div class="text-muted small">{{ strtoupper($conv->channel ?? 'internal') }}</div>
                         </td>
-                        <td><span class="badge bg-{{ $conv->status === 'closed' ? 'secondary' : 'primary' }}">{{ ucfirst($conv->status) }}</span></td>
+                        <td><span class="badge {{ $conv->status === 'closed' ? 'text-bg-secondary' : 'text-bg-primary' }}">{{ ucfirst($conv->status) }}</span></td>
                         <td>{{ $conv->owner->name ?? 'Unassigned' }}</td>
                         <td>
                             @if($conv->locked_until && $conv->locked_until->isFuture())
-                                <span class="badge bg-secondary">until {{ $conv->locked_until->format('H:i') }}</span>
+                                <span class="badge text-bg-secondary">until {{ $conv->locked_until->format('H:i') }}</span>
                             @elseif($conv->owner_id)
                                 <span class="badge bg-secondary-lt text-secondary">owned</span>
                             @else
@@ -44,21 +44,21 @@
                         <td>
                             @if($conv->instance)
                                 <span class="badge bg-azure-lt text-azure">{{ $conv->instance->name }}</span>
-                                <span class="badge bg-{{ $conv->instance->status === 'connected' ? 'success' : ($conv->instance->status === 'error' ? 'danger' : 'secondary') }}">{{ $conv->instance->status }}</span>
+                                <span class="badge {{ $conv->instance->status === 'connected' ? 'text-bg-success' : ($conv->instance->status === 'error' ? 'text-bg-danger' : 'text-bg-secondary') }}">{{ $conv->instance->status }}</span>
                             @else
                                 <span class="text-muted small">-</span>
                             @endif
                         </td>
                         <td>{{ optional($conv->last_message_at)->diffForHumans() ?? '-' }}</td>
-                        <td class="text-end">
-                            <div class="btn-list flex-nowrap">
+                        <td class="text-end align-middle">
+                            <div class="table-actions">
                                 @if($conv->owner_id === auth()->id())
-                                    <form method="POST" action="{{ route('conversations.release', $conv) }}">
+                                    <form class="d-inline-block m-0" method="POST" action="{{ route('conversations.release', $conv) }}">
                                         @csrf
                                         <button class="btn btn-outline-secondary btn-sm" type="submit">Release</button>
                                     </form>
                                 @elseif(!$conv->owner_id || optional($conv->locked_until)->isPast())
-                                    <form method="POST" action="{{ route('conversations.claim', $conv) }}">
+                                    <form class="d-inline-block m-0" method="POST" action="{{ route('conversations.claim', $conv) }}">
                                         @csrf
                                         <button class="btn btn-primary btn-sm" type="submit">Claim</button>
                                     </form>

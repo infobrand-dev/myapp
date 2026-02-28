@@ -5,6 +5,7 @@ namespace App\Modules\WhatsAppBro\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
+use App\Support\ModuleRuntimeSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,7 +23,7 @@ class WebhookController extends Controller
             'direction' => ['nullable', 'in:in,out'],
         ]);
 
-        $expected = config('modules.whatsapp_bro.webhook_token');
+        $expected = ModuleRuntimeSettings::waBroWebhookToken();
         if ($expected && $expected !== $data['token']) {
             return response()->json(['message' => 'Invalid token'], Response::HTTP_UNAUTHORIZED);
         }

@@ -18,9 +18,14 @@ use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard');
 
-Route::get('/install', [InstallController::class, 'index'])->name('install.index');
-Route::post('/install/test-db', [InstallController::class, 'testDatabase'])->name('install.test-db');
-Route::post('/install/run', [InstallController::class, 'run'])->name('install.run');
+Route::withoutMiddleware([
+    \App\Http\Middleware\EncryptCookies::class,
+    \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
+])->group(function () {
+    Route::get('/install', [InstallController::class, 'index'])->name('install.index');
+    Route::post('/install/test-db', [InstallController::class, 'testDatabase'])->name('install.test-db');
+    Route::post('/install/run', [InstallController::class, 'run'])->name('install.run');
+});
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', function () {

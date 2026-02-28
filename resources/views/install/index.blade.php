@@ -7,8 +7,8 @@
     <link rel="stylesheet" href="{{ mix('css/app.css') }}">
 </head>
 <body class="bg-body">
-<div class="page page-center min-vh-100">
-    <div class="container container-tight py-4">
+<div class="page">
+    <div class="container-xl py-4">
         <div class="text-center mb-4">
             <h1 class="h2 mb-1">Setup Wizard</h1>
             <p class="text-muted mb-0">Lengkapi konfigurasi aplikasi, uji koneksi database, lalu jalankan instalasi.</p>

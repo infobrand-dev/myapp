@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\InstallController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -16,6 +17,10 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::redirect('/', '/dashboard');
+
+Route::get('/install', [InstallController::class, 'index'])->name('install.index');
+Route::post('/install/test-db', [InstallController::class, 'testDatabase'])->name('install.test-db');
+Route::post('/install/run', [InstallController::class, 'run'])->name('install.run');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', function () {

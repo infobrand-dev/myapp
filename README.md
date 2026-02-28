@@ -4,6 +4,23 @@ Laravel 11 + Breeze (Blade) + Tabler UI. Core fitur: Dashboard, Profile, Users, 
 
 ## Quick Start (Install dari nol)
 
+### Opsi A (Disarankan): Web Installer
+Setelah project dicopy dan dependency terpasang, buka:
+
+```text
+/install
+```
+
+Installer akan:
+1. cek requirement server,
+2. simpan konfigurasi `.env`,
+3. test koneksi database,
+4. jalankan migrate + seed,
+5. buat akun Super-admin,
+6. lock installer otomatis.
+
+### Opsi B: Manual Command
+
 ### 1. Prasyarat
 - PHP `>= 8.2`
 - Composer

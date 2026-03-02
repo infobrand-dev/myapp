@@ -14,9 +14,9 @@
             <p class="text-muted mb-0">Lengkapi konfigurasi aplikasi, uji koneksi database, lalu jalankan instalasi.</p>
         </div>
 
-        @if(request('message'))
-            <div class="alert alert-{{ request('level', 'info') === 'success' ? 'success' : (request('level') === 'error' ? 'danger' : 'info') }} mb-3" role="alert">
-                {{ request('message') }}
+        @if(!empty($statusMessage))
+            <div class="alert alert-{{ $statusLevel === 'success' ? 'success' : ($statusLevel === 'error' ? 'danger' : 'info') }} mb-3" role="alert">
+                {{ $statusMessage }}
             </div>
         @endif
 
@@ -67,11 +67,11 @@
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label">App Name</label>
-                                    <input type="text" class="form-control" name="app_name" value="{{ old('app_name', $defaults['app_name']) }}" required>
+                                    <input type="text" class="form-control" name="app_name" value="{{ $defaults['app_name'] }}" required>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">App URL</label>
-                                    <input type="url" class="form-control" name="app_url" value="{{ old('app_url', $defaults['app_url']) }}" required>
+                                    <input type="url" class="form-control" name="app_url" value="{{ $defaults['app_url'] }}" required>
                                 </div>
                             </div>
 
@@ -84,23 +84,23 @@
                             <div class="row g-3">
                                 <div class="col-md-4">
                                     <label class="form-label">DB Host</label>
-                                    <input type="text" class="form-control" name="db_host" value="{{ old('db_host', $defaults['db_host']) }}" required>
+                                    <input type="text" class="form-control" name="db_host" value="{{ $defaults['db_host'] }}" required>
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label">DB Port</label>
-                                    <input type="number" class="form-control" name="db_port" value="{{ old('db_port', $defaults['db_port']) }}" required>
+                                    <input type="number" class="form-control" name="db_port" value="{{ $defaults['db_port'] }}" required>
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label">DB Name</label>
-                                    <input type="text" class="form-control" name="db_database" value="{{ old('db_database', $defaults['db_database']) }}" required>
+                                    <input type="text" class="form-control" name="db_database" value="{{ $defaults['db_database'] }}" required>
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label">DB User</label>
-                                    <input type="text" class="form-control" name="db_username" value="{{ old('db_username', $defaults['db_username']) }}" required>
+                                    <input type="text" class="form-control" name="db_username" value="{{ $defaults['db_username'] }}" required>
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label">DB Password</label>
-                                    <input type="password" class="form-control" name="db_password" value="{{ old('db_password', $defaults['db_password']) }}">
+                                    <input type="password" class="form-control" name="db_password" value="{{ $defaults['db_password'] }}">
                                 </div>
                             </div>
 
@@ -113,11 +113,11 @@
                             <div class="row g-3">
                                 <div class="col-md-4">
                                     <label class="form-label">Name</label>
-                                    <input type="text" class="form-control" name="admin_name" value="{{ old('admin_name', $defaults['admin_name']) }}" required>
+                                    <input type="text" class="form-control" name="admin_name" value="{{ $defaults['admin_name'] }}" required>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Email</label>
-                                    <input type="email" class="form-control" name="admin_email" value="{{ old('admin_email', $defaults['admin_email']) }}" required>
+                                    <input type="email" class="form-control" name="admin_email" value="{{ $defaults['admin_email'] }}" required>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Password</label>

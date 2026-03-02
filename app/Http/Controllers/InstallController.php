@@ -17,36 +17,35 @@ class InstallController extends Controller
 {
     public function index(): View
     {
-        return view('install.index', [
-            'defaults' => [
-                'app_name' => env('APP_NAME', 'MyApp'),
-                'app_url' => env('APP_URL', 'http://127.0.0.1:8000'),
-                'db_host' => env('DB_HOST', '127.0.0.1'),
-                'db_port' => env('DB_PORT', '3306'),
-                'db_database' => env('DB_DATABASE', ''),
-                'db_username' => env('DB_USERNAME', ''),
-                'db_password' => env('DB_PASSWORD', ''),
-                'admin_name' => 'Super Admin',
-                'admin_email' => 'superadmin@myapp.test',
-            ],
-            'checks' => $this->systemChecks(),
-        ]);
+        return $this->renderInstall();
     }
 
-    public function testDatabase(Request $request): RedirectResponse
+    public function testDatabase(Request $request): View
     {
         try {
             $data = $this->validatedConfig($request, false);
             $this->testConnection($data);
-            return redirect()->route('install.index', [
-                'level' => 'success',
-                'message' => 'Koneksi database berhasil.',
-            ]);
+            return $this->renderInstall(
+                $data,
+                'Koneksi database berhasil.',
+                'success'
+            );
         } catch (Throwable $e) {
-            return redirect()->route('install.index', [
-                'level' => 'error',
-                'message' => 'Koneksi database gagal: ' . $e->getMessage(),
-            ]);
+            return $this->renderInstall(
+                $request->only([
+                    'app_name',
+                    'app_url',
+                    'db_host',
+                    'db_port',
+                    'db_database',
+                    'db_username',
+                    'db_password',
+                    'admin_name',
+                    'admin_email',
+                ]),
+                'Koneksi database gagal: ' . $e->getMessage(),
+                'error'
+            );
         }
     }
 
@@ -56,10 +55,11 @@ class InstallController extends Controller
             $data = $this->validatedConfig($request, true);
 
             if (!$this->isEnvWritable()) {
-                return redirect()->route('install.index', [
-                    'level' => 'error',
-                    'message' => 'File .env tidak bisa ditulis. Cek permission terlebih dahulu.',
-                ]);
+                return $this->renderInstall(
+                    $data,
+                    'File .env tidak bisa ditulis. Cek permission terlebih dahulu.',
+                    'error'
+                );
             }
 
             $this->writeEnv([
@@ -103,11 +103,42 @@ class InstallController extends Controller
 
             return redirect('/login')->with('status', 'Instalasi selesai. Silakan login dengan akun Super-admin.');
         } catch (Throwable $e) {
-            return redirect()->route('install.index', [
-                'level' => 'error',
-                'message' => 'Instalasi gagal: ' . $e->getMessage(),
-            ]);
+            return $this->renderInstall(
+                $request->only([
+                    'app_name',
+                    'app_url',
+                    'db_host',
+                    'db_port',
+                    'db_database',
+                    'db_username',
+                    'db_password',
+                    'admin_name',
+                    'admin_email',
+                ]),
+                'Instalasi gagal: ' . $e->getMessage(),
+                'error'
+            );
         }
+    }
+
+    private function renderInstall(array $overrides = [], ?string $statusMessage = null, string $statusLevel = 'info'): View
+    {
+        return view('install.index', [
+            'defaults' => array_merge([
+                'app_name' => env('APP_NAME', 'MyApp'),
+                'app_url' => env('APP_URL', 'http://127.0.0.1:8000'),
+                'db_host' => env('DB_HOST', '127.0.0.1'),
+                'db_port' => env('DB_PORT', '3306'),
+                'db_database' => env('DB_DATABASE', ''),
+                'db_username' => env('DB_USERNAME', ''),
+                'db_password' => env('DB_PASSWORD', ''),
+                'admin_name' => 'Super Admin',
+                'admin_email' => 'superadmin@myapp.test',
+            ], $overrides),
+            'checks' => $this->systemChecks(),
+            'statusMessage' => $statusMessage,
+            'statusLevel' => $statusLevel,
+        ]);
     }
 
     private function validatedConfig(Request $request, bool $withAdmin): array

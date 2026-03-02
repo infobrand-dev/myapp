@@ -101,7 +101,7 @@ class InstallController extends Controller
 
             Artisan::call('optimize:clear');
 
-            return redirect('/login')->with('status', 'Instalasi selesai. Silakan login dengan akun Super-admin.');
+            return redirect('/login?installed=1');
         } catch (Throwable $e) {
             return $this->renderInstall(
                 $request->only([

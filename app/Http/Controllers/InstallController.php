@@ -49,7 +49,7 @@ class InstallController extends Controller
         }
     }
 
-    public function run(Request $request): RedirectResponse
+    public function run(Request $request): RedirectResponse|View
     {
         try {
             $data = $this->validatedConfig($request, true);

@@ -54,6 +54,7 @@ class InstallController extends Controller
     {
         try {
             $data = $this->validatedConfig($request, true);
+            $this->ensureEnvFileExistsFromExample();
 
             if (!$this->isEnvWritable()) {
                 return $this->renderInstall(
@@ -224,13 +225,16 @@ class InstallController extends Controller
     {
         $path = base_path('.env');
         if (!file_exists($path)) {
-            return is_writable(base_path());
+            $examplePath = base_path('.env.example');
+            return file_exists($examplePath) && is_readable($examplePath) && is_writable(base_path());
         }
         return is_writable($path);
     }
 
     private function writeEnv(array $pairs): void
     {
+        $this->ensureEnvFileExistsFromExample();
+
         $envPath = base_path('.env');
         $content = file_exists($envPath) ? file_get_contents($envPath) : '';
 
@@ -243,6 +247,32 @@ class InstallController extends Controller
             } else {
                 $content .= (str_ends_with($content, PHP_EOL) ? '' : PHP_EOL) . $line . PHP_EOL;
             }
+        }
+
+        file_put_contents($envPath, $content);
+    }
+
+    private function ensureEnvFileExistsFromExample(): void
+    {
+        $envPath = base_path('.env');
+        if (file_exists($envPath)) {
+            return;
+        }
+
+        $examplePath = base_path('.env.example');
+        if (!file_exists($examplePath)) {
+            throw new RuntimeException('File .env.example tidak ditemukan. Installer membutuhkan file ini untuk membuat .env awal.');
+        }
+        if (!is_readable($examplePath)) {
+            throw new RuntimeException('File .env.example tidak bisa dibaca.');
+        }
+        if (!is_writable(base_path())) {
+            throw new RuntimeException('Folder aplikasi tidak bisa ditulis untuk membuat file .env.');
+        }
+
+        $content = (string) file_get_contents($examplePath);
+        if ($content === '' && filesize($examplePath) > 0) {
+            throw new RuntimeException('Gagal membaca isi .env.example.');
         }
 
         file_put_contents($envPath, $content);

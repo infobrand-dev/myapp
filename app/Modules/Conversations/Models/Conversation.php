@@ -3,7 +3,6 @@
 namespace App\Modules\Conversations\Models;
 
 use App\Models\User;
-use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -46,7 +45,13 @@ class Conversation extends Model
 
     public function instance(): BelongsTo
     {
-        return $this->belongsTo(WhatsAppInstance::class, 'instance_id');
+        $waInstanceClass = \App\Modules\WhatsAppApi\Models\WhatsAppInstance::class;
+        if (class_exists($waInstanceClass)) {
+            return $this->belongsTo($waInstanceClass, 'instance_id');
+        }
+
+        // Fallback dummy relation to keep conversations module bootable without WhatsAppApi module.
+        return $this->belongsTo(User::class, 'instance_id')->whereRaw('1 = 0');
     }
 
     public function participants(): HasMany

@@ -8,7 +8,7 @@
         @if($conversation->channel === 'wa_api')
             <div class="text-muted small mt-1">
                 Instance aktif:
-                <span class="badge bg-azure-lt text-azure">{{ $conversation->instance->name ?? 'Instance tidak ditemukan' }}</span>
+                <span class="badge bg-azure-lt text-azure">{{ ($waModuleReady ?? false) ? ($conversation->instance->name ?? 'Instance tidak ditemukan') : 'Module WA belum aktif' }}</span>
                 <span class="ms-1">Instance percakapan ini terkunci dan tidak bisa diganti.</span>
             </div>
         @endif
@@ -42,7 +42,7 @@
                             <div class="fw-bold">{{ $c->contact_name ?? $c->contact_external_id ?? 'Internal' }}</div>
                             <div class="text-muted small">{{ strtoupper($c->channel ?? 'internal') }}</div>
                         </div>
-                        @if($c->instance)
+                        @if(($waModuleReady ?? false) && $c->instance)
                             <span class="badge {{ $c->instance->status === 'connected' ? 'text-bg-success' : ($c->instance->status === 'error' ? 'text-bg-danger' : 'text-bg-secondary') }}">{{ $c->instance->status }}</span>
                         @endif
                     </a>
@@ -124,7 +124,7 @@
                 <div class="mb-2"><span class="text-muted">Owner:</span> {{ $conversation->owner->name ?? 'Unassigned' }}</div>
                 <div class="mb-2"><span class="text-muted">Status:</span> {{ ucfirst($conversation->status) }}</div>
                 <div class="mb-2"><span class="text-muted">Last message:</span> {{ optional($conversation->last_message_at)->diffForHumans() ?? '-' }}</div>
-                @if($conversation->instance)
+                @if(($waModuleReady ?? false) && $conversation->instance)
                     <div class="mb-2"><span class="text-muted">Instance:</span> {{ $conversation->instance->name }}</div>
                 @endif
             </div>

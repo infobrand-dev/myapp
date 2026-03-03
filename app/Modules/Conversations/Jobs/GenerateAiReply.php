@@ -4,9 +4,6 @@ namespace App\Modules\Conversations\Jobs;
 
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
-use App\Modules\Chatbot\Models\ChatbotAccount;
-use App\Modules\WhatsAppApi\Jobs\SendWhatsAppMessage;
-use App\Modules\SocialMedia\Jobs\SendSocialMessage;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -36,8 +33,14 @@ class GenerateAiReply implements ShouldQueue
         $incoming = ConversationMessage::find($this->messageId);
         if (!$conversation || !$incoming || $incoming->direction !== 'in') return;
 
+        $chatbotClass = \App\Modules\Chatbot\Models\ChatbotAccount::class;
+        if (!class_exists($chatbotClass)) {
+            Log::warning('AI reply skipped: chatbot module not ready', ['conversation_id' => $this->conversationId]);
+            return;
+        }
+
         $aiAccount = $this->chatbotAccountId
-            ? ChatbotAccount::where('status', 'active')->find($this->chatbotAccountId)
+            ? $chatbotClass::where('status', 'active')->find($this->chatbotAccountId)
             : null;
         if (!$aiAccount || !$aiAccount->api_key) {
             Log::warning('AI reply skipped: no active chatbot account', ['conversation_id' => $this->conversationId]);
@@ -92,9 +95,15 @@ class GenerateAiReply implements ShouldQueue
         ]);
 
         if ($conversation->channel === 'wa_api') {
-            SendWhatsAppMessage::dispatch($replyMessage->id);
+            $waJobClass = \App\Modules\WhatsAppApi\Jobs\SendWhatsAppMessage::class;
+            if (class_exists($waJobClass)) {
+                $waJobClass::dispatch($replyMessage->id);
+            }
         } elseif ($conversation->channel === 'social_dm') {
-            SendSocialMessage::dispatch($replyMessage->id);
+            $socialJobClass = \App\Modules\SocialMedia\Jobs\SendSocialMessage::class;
+            if (class_exists($socialJobClass)) {
+                $socialJobClass::dispatch($replyMessage->id);
+            }
         }
     }
 }

@@ -8,12 +8,11 @@ use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\Conversations\Models\ConversationParticipant;
 use App\Modules\Conversations\Models\ConversationActivityLog;
-use App\Modules\WhatsAppApi\Jobs\SendWhatsAppMessage;
-use App\Modules\SocialMedia\Jobs\SendSocialMessage;
 use App\Modules\Conversations\Events\ConversationMessageCreated;
-use App\Modules\WhatsAppApi\Models\WATemplate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class ConversationHubController extends Controller
@@ -80,6 +79,7 @@ class ConversationHubController extends Controller
     {
         $user = $request->user();
         $lockMinutes = (int) config('conversations.lock_minutes', 30);
+        $waModuleReady = $this->isWhatsAppApiReady();
 
         $query = $this->baseQuery($user);
 
@@ -96,7 +96,7 @@ class ConversationHubController extends Controller
             ->orderByDesc('updated_at')
             ->paginate(20);
 
-        return view('conversations::index', compact('conversations', 'lockMinutes'));
+        return view('conversations::index', compact('conversations', 'lockMinutes', 'waModuleReady'));
     }
 
     public function show(Request $request, Conversation $conversation): View
@@ -115,8 +115,9 @@ class ConversationHubController extends Controller
             ->get();
 
         $lockMinutes = (int) config('conversations.lock_minutes', 30);
-        $waTemplates = $conversation->channel === 'wa_api'
-            ? WATemplate::where('status', 'active')->orderBy('name')->get()
+        $waModuleReady = $this->isWhatsAppApiReady();
+        $waTemplates = ($conversation->channel === 'wa_api' && $this->isWaTemplateReady())
+            ? $this->waTemplateModelClass()::where('status', 'active')->orderBy('name')->get()
             : collect();
 
         return view('conversations::show', [
@@ -124,6 +125,7 @@ class ConversationHubController extends Controller
             'conversationsList' => $conversationsList,
             'lockMinutes' => $lockMinutes,
             'waTemplates' => $waTemplates,
+            'waModuleReady' => $waModuleReady,
         ]);
     }
 
@@ -213,7 +215,7 @@ class ConversationHubController extends Controller
 
         $this->authorizeParticipant($conversation, $user);
 
-        if ($conversation->channel === 'wa_api' && (!$conversation->instance_id || !$conversation->instance)) {
+        if ($conversation->channel === 'wa_api' && (!$conversation->instance_id || !$this->waInstanceExists((int) $conversation->instance_id))) {
             return back()->with('status', 'Instance untuk percakapan WA API tidak ditemukan. Pastikan WA Instance masih aktif.');
         }
 
@@ -222,13 +224,20 @@ class ConversationHubController extends Controller
             : 'text';
 
         if ($mode === 'template') {
+            if (!$this->isWaTemplateReady()) {
+                return back()->with('status', 'Template WA belum tersedia. Aktifkan module WhatsApp API terlebih dahulu.');
+            }
+
             $data = $request->validate([
                 'template_id' => ['required', 'exists:wa_templates,id'],
                 'template_params' => ['array'],
                 'template_params.*' => ['nullable', 'string', 'max:250'],
             ]);
 
-            $template = WATemplate::find($data['template_id']);
+            $template = $this->waTemplateModelClass()::find($data['template_id']);
+            if (!$template) {
+                return back()->with('status', 'Template tidak ditemukan.');
+            }
             $payload = $this->buildTemplatePayload($template, $request->input('template_params', []));
 
             // Pastikan semua placeholder terisi
@@ -273,11 +282,7 @@ class ConversationHubController extends Controller
         ]);
 
         if ($message) {
-            if ($conversation->channel === 'wa_api') {
-                SendWhatsAppMessage::dispatch($message->id);
-            } elseif ($conversation->channel === 'social_dm') {
-                SendSocialMessage::dispatch($message->id);
-            }
+            $this->dispatchOutboundJob($conversation->channel, (int) $message->id);
             broadcast(new ConversationMessageCreated($message))->toOthers();
         }
 
@@ -318,19 +323,33 @@ class ConversationHubController extends Controller
 
         $allowed = $conversation->owner_id === $user->id
             || $conversation->participants()->where('user_id', $user->id)->exists()
-            || ($conversation->instance && $conversation->instance->users()->where('users.id', $user->id)->exists());
+            || $this->hasInstanceAccess($conversation, (int) $user->id);
 
         abort_unless($allowed, 403);
     }
 
     private function baseQuery(User $user)
     {
-        return Conversation::with(['owner', 'instance'])
+        $query = Conversation::with(['owner']);
+        if ($this->isWhatsAppApiReady()) {
+            $query->with('instance');
+        }
+
+        return $query
             ->when(!$user->hasRole('Super-admin'), function ($query) use ($user) {
                 $query->where(function ($q) use ($user) {
                     $q->where('owner_id', $user->id)
-                        ->orWhereHas('participants', fn ($p) => $p->where('user_id', $user->id))
-                        ->orWhereHas('instance.users', fn ($p) => $p->where('users.id', $user->id));
+                        ->orWhereHas('participants', fn ($p) => $p->where('user_id', $user->id));
+
+                    if ($this->isWhatsAppApiReady()) {
+                        $instanceIds = $this->accessibleWhatsAppInstanceIds((int) $user->id);
+                        if (!empty($instanceIds)) {
+                            $q->orWhere(function ($waQ) use ($instanceIds) {
+                                $waQ->where('channel', 'wa_api')
+                                    ->whereIn('instance_id', $instanceIds);
+                            });
+                        }
+                    }
                 });
             });
     }
@@ -345,7 +364,7 @@ class ConversationHubController extends Controller
         ]);
     }
 
-    private function buildTemplatePayload(WATemplate $template, array $params): array
+    private function buildTemplatePayload(object $template, array $params): array
     {
         $header = collect($template->components ?? [])->firstWhere('type', 'header');
         $headerText = strtolower(data_get($header, 'format')) === 'text'
@@ -414,6 +433,80 @@ class ConversationHubController extends Controller
         $unique = array_values(array_unique($indexes));
         sort($unique);
         return $unique;
+    }
+
+    private function isWhatsAppApiReady(): bool
+    {
+        return class_exists(\App\Modules\WhatsAppApi\Models\WhatsAppInstance::class)
+            && Schema::hasTable('whatsapp_instances')
+            && Schema::hasTable('whatsapp_instance_user');
+    }
+
+    private function isWaTemplateReady(): bool
+    {
+        return class_exists($this->waTemplateModelClass())
+            && Schema::hasTable('wa_templates');
+    }
+
+    private function waTemplateModelClass(): string
+    {
+        return \App\Modules\WhatsAppApi\Models\WATemplate::class;
+    }
+
+    private function waInstanceExists(int $instanceId): bool
+    {
+        if (!$this->isWhatsAppApiReady()) {
+            return false;
+        }
+
+        return DB::table('whatsapp_instances')->where('id', $instanceId)->exists();
+    }
+
+    private function accessibleWhatsAppInstanceIds(int $userId): array
+    {
+        if (!$this->isWhatsAppApiReady()) {
+            return [];
+        }
+
+        return DB::table('whatsapp_instance_user')
+            ->where('user_id', $userId)
+            ->pluck('instance_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+    }
+
+    private function hasInstanceAccess(Conversation $conversation, int $userId): bool
+    {
+        if ($conversation->channel !== 'wa_api' || !$conversation->instance_id) {
+            return false;
+        }
+
+        if (!$this->isWhatsAppApiReady()) {
+            return false;
+        }
+
+        return DB::table('whatsapp_instance_user')
+            ->where('instance_id', (int) $conversation->instance_id)
+            ->where('user_id', $userId)
+            ->exists();
+    }
+
+    private function dispatchOutboundJob(string $channel, int $messageId): void
+    {
+        if ($channel === 'wa_api') {
+            $waJobClass = \App\Modules\WhatsAppApi\Jobs\SendWhatsAppMessage::class;
+            if (class_exists($waJobClass)) {
+                $waJobClass::dispatch($messageId);
+            }
+            return;
+        }
+
+        if ($channel === 'social_dm') {
+            $socialJobClass = \App\Modules\SocialMedia\Jobs\SendSocialMessage::class;
+            if (class_exists($socialJobClass)) {
+                $socialJobClass::dispatch($messageId);
+            }
+        }
     }
 }
 

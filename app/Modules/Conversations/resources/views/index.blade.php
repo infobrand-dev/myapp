@@ -41,7 +41,7 @@
                             @endif
                         </td>
                         <td>
-                            @if($conv->instance)
+                            @if(($waModuleReady ?? false) && $conv->instance)
                                 <span class="badge bg-azure-lt text-azure">{{ $conv->instance->name }}</span>
                                 <span class="badge {{ $conv->instance->status === 'connected' ? 'text-bg-success' : ($conv->instance->status === 'error' ? 'text-bg-danger' : 'text-bg-secondary') }}">{{ $conv->instance->status }}</span>
                             @else

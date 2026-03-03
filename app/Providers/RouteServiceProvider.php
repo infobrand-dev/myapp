@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Support\ModuleManager;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Illuminate\Http\Request;
@@ -36,6 +37,7 @@ class RouteServiceProvider extends ServiceProvider
     public function boot()
     {
         $this->configureRateLimiting();
+        $this->registerActiveModuleProviders();
 
         $this->routes(function () {
             Route::prefix('api')
@@ -47,6 +49,19 @@ class RouteServiceProvider extends ServiceProvider
                 ->namespace($this->namespace)
                 ->group(base_path('routes/web.php'));
         });
+    }
+
+    private function registerActiveModuleProviders(): void
+    {
+        try {
+            /** @var ModuleManager $modules */
+            $modules = $this->app->make(ModuleManager::class);
+            foreach ($modules->activeProviders() as $providerClass) {
+                $this->app->register($providerClass);
+            }
+        } catch (\Throwable $e) {
+            // Keep core routes bootable even before modules table/setup is ready.
+        }
     }
 
     /**

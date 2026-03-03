@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
+use RuntimeException;
 use Spatie\Permission\Models\Role;
 use Throwable;
 
@@ -78,28 +79,34 @@ class InstallController extends Controller
             $this->testConnection($data);
 
             if (trim((string) config('app.key', '')) === '') {
-                Artisan::call('key:generate', ['--force' => true]);
+                $this->callArtisanOrFail('key:generate', ['--force' => true]);
             }
 
-            Artisan::call('migrate', ['--seed' => true, '--force' => true]);
+            $this->callArtisanOrFail('migrate', ['--seed' => true, '--force' => true]);
 
             $role = Role::findOrCreate('Super-admin');
             Role::findOrCreate('Admin');
 
-            $user = User::updateOrCreate(
-                ['email' => $data['admin_email']],
-                [
-                    'name' => $data['admin_name'],
-                    'password' => Hash::make($data['admin_password']),
-                    'email_verified_at' => now(),
-                ]
-            );
+            $user = User::query()->firstOrNew(['email' => $data['admin_email']]);
+            $user->forceFill([
+                'name' => $data['admin_name'],
+                'email' => $data['admin_email'],
+                'password' => Hash::make($data['admin_password']),
+                'email_verified_at' => now(),
+            ]);
+            $user->saveOrFail();
+
+            $userExists = User::query()->where('email', $data['admin_email'])->exists();
+            if (!$userExists) {
+                throw new RuntimeException('Akun Super-admin gagal dibuat ke database.');
+            }
+
             $user->syncRoles([$role->name]);
 
             file_put_contents(storage_path('app/installed.lock'), now()->toDateTimeString());
             $this->writeEnv(['APP_INSTALLED' => 'true']);
 
-            Artisan::call('optimize:clear');
+            $this->callArtisanOrFail('optimize:clear');
 
             return redirect('/login?installed=1');
         } catch (Throwable $e) {
@@ -246,5 +253,14 @@ class InstallController extends Controller
         }
 
         return $value;
+    }
+
+    private function callArtisanOrFail(string $command, array $parameters = []): void
+    {
+        $exitCode = Artisan::call($command, $parameters);
+        if ($exitCode !== 0) {
+            $output = trim((string) Artisan::output());
+            throw new RuntimeException("Command '{$command}' gagal dijalankan. {$output}");
+        }
     }
 }

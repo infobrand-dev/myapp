@@ -87,9 +87,12 @@ class InstallController extends Controller
 
             $this->callArtisanOrFail('migrate', [
                 '--path' => 'database/migrations',
-                '--seed' => true,
                 '--force' => true,
             ]);
+
+            // Keep non-user seeders, but skip default superadmin account during installer.
+            config(['installer.seed_default_superadmin' => false]);
+            $this->callArtisanOrFail('db:seed', ['--force' => true]);
 
             DB::transaction(function () use ($data): void {
                 $role = Role::findOrCreate('Super-admin');

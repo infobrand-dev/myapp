@@ -1,0 +1,11 @@
+{
+  "slug": "chatbot",
+  "name": "Chatbot",
+  "description": "Akun AI chatbot untuk automasi balasan.",
+  "provider": "App\\Modules\\Chatbot\\ChatbotServiceProvider",
+  "version": "1.0.0",
+  "requires": [],
+  "navigation": [
+    { "label": "Chatbot", "route": "chatbot.accounts.index" }
+  ]
+}

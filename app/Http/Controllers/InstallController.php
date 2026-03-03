@@ -263,4 +263,5 @@ class InstallController extends Controller
             throw new RuntimeException("Command '{$command}' gagal dijalankan. {$output}");
         }
     }
+
 }

@@ -1,0 +1,11 @@
+{
+  "slug": "contacts",
+  "name": "Contacts",
+  "description": "Manajemen data kontak.",
+  "provider": "App\\Modules\\Contacts\\ContactsServiceProvider",
+  "version": "1.0.0",
+  "requires": [],
+  "navigation": [
+    { "label": "Contacts", "route": "contacts.index" }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "slug": "conversations",
+  "name": "Conversations",
+  "description": "Unified inbox untuk aktivitas percakapan lintas channel.",
+  "provider": "App\\Modules\\Conversations\\ConversationsServiceProvider",
+  "version": "1.0.0",
+  "requires": [],
+  "navigation": [
+    { "label": "Conversations", "route": "conversations.index" }
+  ]
+}

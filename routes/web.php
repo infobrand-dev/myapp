@@ -3,6 +3,7 @@
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\InstallController;
+use App\Http\Controllers\ModuleController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -42,6 +43,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::middleware(['auth', 'role:Super-admin'])->group(function () {
     Route::resource('users', UserController::class)->except(['show']);
     Route::resource('roles', RoleController::class)->except(['show']);
+    Route::get('/modules', [ModuleController::class, 'index'])->name('modules.index');
+    Route::post('/modules/{slug}/install', [ModuleController::class, 'install'])->name('modules.install');
+    Route::post('/modules/{slug}/activate', [ModuleController::class, 'activate'])->name('modules.activate');
+    Route::post('/modules/{slug}/deactivate', [ModuleController::class, 'deactivate'])->name('modules.deactivate');
 });
 
 require __DIR__ . '/auth.php';

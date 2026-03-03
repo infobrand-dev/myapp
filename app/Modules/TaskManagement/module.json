@@ -1,0 +1,12 @@
+{
+  "slug": "task_management",
+  "name": "Task Management",
+  "description": "Internal memo, task, subtask, dan template task.",
+  "provider": "App\\Modules\\TaskManagement\\TaskServiceProvider",
+  "version": "1.0.0",
+  "requires": [],
+  "navigation": [
+    { "label": "Internal Memo", "route": "memos.index" },
+    { "label": "Task Templates", "route": "tasktemplates.index" }
+  ]
+}

@@ -174,15 +174,6 @@ return [
         // App\Providers\BroadcastServiceProvider::class,
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
-        App\Modules\TaskManagement\TaskServiceProvider::class,
-        App\Modules\WhatsAppBro\WhatsAppBroServiceProvider::class,
-        App\Modules\WhatsAppApi\WhatsAppApiServiceProvider::class,
-        App\Modules\Conversations\ConversationsServiceProvider::class,
-        App\Modules\SocialMedia\SocialMediaServiceProvider::class,
-        App\Modules\Contacts\ContactsServiceProvider::class,
-        App\Modules\Shortlink\ShortlinkServiceProvider::class,
-        App\Modules\EmailMarketing\EmailMarketingServiceProvider::class,
-        App\Modules\Chatbot\ChatbotServiceProvider::class,
 
     ],
 

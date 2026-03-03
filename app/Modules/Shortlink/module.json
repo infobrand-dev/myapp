@@ -1,0 +1,11 @@
+{
+  "slug": "shortlink",
+  "name": "Shortlink",
+  "description": "Pembuatan dan tracking short URL.",
+  "provider": "App\\Modules\\Shortlink\\ShortlinkServiceProvider",
+  "version": "1.0.0",
+  "requires": [],
+  "navigation": [
+    { "label": "Shortlink", "route": "shortlinks.index" }
+  ]
+}

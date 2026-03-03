@@ -239,7 +239,8 @@ class InstallController extends Controller
         $this->ensureEnvFileExistsFromExample();
 
         $envPath = base_path('.env');
-        $content = file_exists($envPath) ? file_get_contents($envPath) : '';
+        $content = file_exists($envPath) ? (string) file_get_contents($envPath) : '';
+        $content = $this->stripUtf8Bom($content);
 
         foreach ($pairs as $key => $value) {
             $value = $this->escapeEnvValue((string) $value);
@@ -277,6 +278,7 @@ class InstallController extends Controller
         if ($content === '' && filesize($examplePath) > 0) {
             throw new RuntimeException('Gagal membaca isi .env.example.');
         }
+        $content = $this->stripUtf8Bom($content);
 
         file_put_contents($envPath, $content);
     }
@@ -312,12 +314,22 @@ class InstallController extends Controller
         }
 
         $content = (string) file_get_contents($envPath);
+        $content = $this->stripUtf8Bom($content);
         if (!preg_match('/^APP_KEY=(.*)$/m', $content, $matches)) {
             return false;
         }
 
         $value = trim((string) $matches[1], " \t\n\r\0\x0B\"'");
         return $value !== '';
+    }
+
+    private function stripUtf8Bom(string $content): string
+    {
+        if (strncmp($content, "\xEF\xBB\xBF", 3) === 0) {
+            return substr($content, 3);
+        }
+
+        return $content;
     }
 
 }

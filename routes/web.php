@@ -18,10 +18,6 @@ use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard');
 
-Route::get('/_cookie-test', function () {
-    return response('ok')->cookie('dbg_cookie', '1', 10);
-})->name('cookie.test');
-
 Route::withoutMiddleware([
     \App\Http\Middleware\EncryptCookies::class,
     \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,

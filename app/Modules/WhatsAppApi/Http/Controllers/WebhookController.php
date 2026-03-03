@@ -58,7 +58,22 @@ class WebhookController extends Controller
 
         if ($this->looksLikeCloudPayload($payload)) {
             try {
-                if (!$this->handleCloudPayload($payload, $request, $event)) {
+                $result = $this->handleCloudPayload($payload, $request, $event);
+                if (!($result['ok'] ?? false)) {
+                    $reason = (string) ($result['reason'] ?? 'Cloud payload ignored');
+                    $status = (string) ($result['status'] ?? 'failed');
+
+                    if ($status === 'unauthorized') {
+                        $this->markWebhookEventFailed($event, $reason, false);
+                        return response()->json(['message' => $reason], Response::HTTP_UNAUTHORIZED);
+                    }
+
+                    $this->markWebhookEventFailed($event, $reason);
+                    // Return 200 to avoid noisy retries for unmapped/malformed events.
+                    return response()->json(['stored' => false, 'ignored' => true, 'message' => $reason], Response::HTTP_OK);
+                }
+
+                if (($result['signature_valid'] ?? null) === false) {
                     $this->markWebhookEventFailed($event, 'Invalid signature', false);
                     return response()->json(['message' => 'Invalid signature'], Response::HTTP_UNAUTHORIZED);
                 }
@@ -229,15 +244,23 @@ class WebhookController extends Controller
         return hash_equals($expected, $signature);
     }
 
-    private function handleCloudPayload(array $payload, Request $request, WhatsAppWebhookEvent $event): bool
+    private function handleCloudPayload(array $payload, Request $request, WhatsAppWebhookEvent $event): array
     {
+        $matchedInstance = false;
+        $unmatchedPhoneIds = [];
+
         foreach ((array) ($payload['entry'] ?? []) as $entry) {
             foreach ((array) ($entry['changes'] ?? []) as $change) {
                 $value = (array) ($change['value'] ?? []);
                 $instance = $this->resolveCloudInstance($value);
                 if (!$instance) {
+                    $candidatePhoneId = (string) Arr::get($value, 'metadata.phone_number_id', '');
+                    if ($candidatePhoneId !== '') {
+                        $unmatchedPhoneIds[] = $candidatePhoneId;
+                    }
                     continue;
                 }
+                $matchedInstance = true;
 
                 $event->update([
                     'instance_id' => $instance->id,
@@ -246,7 +269,12 @@ class WebhookController extends Controller
 
                 if (!$this->isValidCloudSignature($request, $instance)) {
                     $event->update(['signature_valid' => false]);
-                    return false;
+                    return [
+                        'ok' => false,
+                        'status' => 'unauthorized',
+                        'reason' => 'Invalid signature',
+                        'signature_valid' => false,
+                    ];
                 }
 
                 $event->update(['signature_valid' => true]);
@@ -256,7 +284,23 @@ class WebhookController extends Controller
             }
         }
 
-        return true;
+        if (!$matchedInstance) {
+            $detail = !empty($unmatchedPhoneIds)
+                ? 'phone_number_id: ' . implode(', ', array_unique($unmatchedPhoneIds))
+                : 'payload tidak mengandung metadata.phone_number_id yang dikenali';
+
+            return [
+                'ok' => false,
+                'status' => 'ignored',
+                'reason' => 'Cloud webhook diabaikan: instance tidak ditemukan untuk ' . $detail,
+            ];
+        }
+
+        return [
+            'ok' => true,
+            'status' => 'processed',
+            'signature_valid' => true,
+        ];
     }
 
     private function resolveCloudInstance(array $value): ?WhatsAppInstance

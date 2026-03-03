@@ -151,6 +151,9 @@ class InstanceController extends Controller
         if ($phoneNumberId === '') {
             $missing[] = 'Phone Number ID';
         }
+        if ($businessId === '') {
+            $missing[] = 'Cloud Business Account ID';
+        }
         if ($cloudToken === '') {
             $missing[] = 'Cloud Access Token';
         }
@@ -161,7 +164,7 @@ class InstanceController extends Controller
             ], 422);
         }
 
-        $result = $this->executeCloudCredentialTest($phoneNumberId, $cloudToken);
+        $result = $this->executeCloudCredentialTest($phoneNumberId, $businessId, $cloudToken);
         if ($result['ok']) {
             return response()->json($result);
         }
@@ -181,10 +184,14 @@ class InstanceController extends Controller
         }
 
         $phoneNumberId = trim((string) $instance->phone_number_id);
+        $businessId = trim((string) $instance->cloud_business_account_id);
         $cloudToken = trim((string) $instance->cloud_token);
         $missing = [];
         if ($phoneNumberId === '') {
             $missing[] = 'Phone Number ID';
+        }
+        if ($businessId === '') {
+            $missing[] = 'Cloud Business Account ID';
         }
         if ($cloudToken === '') {
             $missing[] = 'Cloud Access Token';
@@ -197,43 +204,194 @@ class InstanceController extends Controller
             ];
         }
 
-        return $this->executeCloudCredentialTest($phoneNumberId, $cloudToken);
+        return $this->executeCloudCredentialTest($phoneNumberId, $businessId, $cloudToken);
     }
 
-    private function executeCloudCredentialTest(string $phoneNumberId, string $cloudToken): array
+    private function executeCloudCredentialTest(string $phoneNumberId, string $businessId, string $cloudToken): array
     {
         $base = rtrim((string) config('services.wa_cloud.base_url', 'https://graph.facebook.com/v20.0'), '/');
-        $url = "{$base}/{$phoneNumberId}";
+        $steps = [];
 
+        // Step 1: token validity
         try {
-            $response = Http::timeout(15)
+            $meResponse = Http::timeout(15)
                 ->withToken($cloudToken)
-                ->get($url, ['fields' => 'id,display_phone_number,verified_name']);
+                ->get("{$base}/me", ['fields' => 'id,name']);
 
-            if ($response->successful()) {
+            if (!$meResponse->successful()) {
+                $errorMessage = (string) ($meResponse->json('error.message') ?: $meResponse->body() ?: 'Unknown error');
+                $steps[] = [
+                    'step' => 'Token',
+                    'ok' => false,
+                    'message' => 'Cloud Access Token tidak valid atau tidak punya izin.',
+                    'error' => $errorMessage,
+                ];
                 return [
-                    'ok' => true,
-                    'message' => 'Koneksi ke WhatsApp Cloud API berhasil.',
-                    'data' => [
-                        'id' => $response->json('id'),
-                        'display_phone_number' => $response->json('display_phone_number'),
-                        'verified_name' => $response->json('verified_name'),
-                    ],
+                    'ok' => false,
+                    'message' => 'Gagal validasi credentials.',
+                    'error' => $errorMessage,
+                    'steps' => $steps,
+                    'status' => 422,
                 ];
             }
 
-            $errorMessage = (string) ($response->json('error.message') ?: $response->body() ?: 'Unknown error');
-            return [
-                'ok' => false,
-                'message' => 'Gagal konek ke WhatsApp Cloud API.',
-                'error' => $errorMessage,
-                'status' => 422,
+            $steps[] = [
+                'step' => 'Token',
+                'ok' => true,
+                'message' => 'Cloud Access Token valid.',
+                'data' => [
+                    'id' => $meResponse->json('id'),
+                    'name' => $meResponse->json('name'),
+                ],
             ];
         } catch (\Throwable $e) {
             return [
                 'ok' => false,
-                'message' => 'Gagal konek ke WhatsApp Cloud API.',
+                'message' => 'Gagal validasi credentials.',
                 'error' => $e->getMessage(),
+                'steps' => [
+                    [
+                        'step' => 'Token',
+                        'ok' => false,
+                        'message' => 'Cloud Access Token tidak bisa divalidasi.',
+                        'error' => $e->getMessage(),
+                    ],
+                ],
+                'status' => 500,
+            ];
+        }
+
+        try {
+            // Step 2: Phone Number ID check
+            $phoneResponse = Http::timeout(15)
+                ->withToken($cloudToken)
+                ->get("{$base}/{$phoneNumberId}", ['fields' => 'id,display_phone_number,verified_name']);
+
+            if (!$phoneResponse->successful()) {
+                $errorMessage = (string) ($phoneResponse->json('error.message') ?: $phoneResponse->body() ?: 'Unknown error');
+                $steps[] = [
+                    'step' => 'Phone Number ID',
+                    'ok' => false,
+                    'message' => 'Phone Number ID tidak valid / tidak bisa diakses token.',
+                    'error' => $errorMessage,
+                ];
+                return [
+                    'ok' => false,
+                    'message' => 'Gagal validasi credentials.',
+                    'error' => $errorMessage,
+                    'steps' => $steps,
+                    'status' => 422,
+                ];
+            }
+
+            $steps[] = [
+                'step' => 'Phone Number ID',
+                'ok' => true,
+                'message' => 'Phone Number ID valid.',
+                'data' => [
+                    'id' => $phoneResponse->json('id'),
+                    'display_phone_number' => $phoneResponse->json('display_phone_number'),
+                    'verified_name' => $phoneResponse->json('verified_name'),
+                ],
+            ];
+
+            // Step 3: WABA ID check
+            $wabaResponse = Http::timeout(15)
+                ->withToken($cloudToken)
+                ->get("{$base}/{$businessId}", ['fields' => 'id,name']);
+
+            if (!$wabaResponse->successful()) {
+                $errorMessage = (string) ($wabaResponse->json('error.message') ?: $wabaResponse->body() ?: 'Unknown error');
+                $steps[] = [
+                    'step' => 'Cloud Business Account ID',
+                    'ok' => false,
+                    'message' => 'Cloud Business Account ID tidak valid / tidak bisa diakses token.',
+                    'error' => $errorMessage,
+                ];
+                return [
+                    'ok' => false,
+                    'message' => 'Gagal validasi credentials.',
+                    'error' => $errorMessage,
+                    'steps' => $steps,
+                    'status' => 422,
+                ];
+            }
+
+            $steps[] = [
+                'step' => 'Cloud Business Account ID',
+                'ok' => true,
+                'message' => 'Cloud Business Account ID valid.',
+                'data' => [
+                    'id' => $wabaResponse->json('id'),
+                    'name' => $wabaResponse->json('name'),
+                ],
+            ];
+
+            // Step 4: Relationship check (phone belongs to WABA)
+            $relationResponse = Http::timeout(15)
+                ->withToken($cloudToken)
+                ->get("{$base}/{$businessId}/phone_numbers", ['fields' => 'id,display_phone_number,verified_name', 'limit' => 200]);
+
+            if (!$relationResponse->successful()) {
+                $errorMessage = (string) ($relationResponse->json('error.message') ?: $relationResponse->body() ?: 'Unknown error');
+                $steps[] = [
+                    'step' => 'Relasi WABA -> Phone Number',
+                    'ok' => false,
+                    'message' => 'Tidak bisa memverifikasi relasi Phone Number ke WABA.',
+                    'error' => $errorMessage,
+                ];
+                return [
+                    'ok' => false,
+                    'message' => 'Gagal validasi credentials.',
+                    'error' => $errorMessage,
+                    'steps' => $steps,
+                    'status' => 422,
+                ];
+            }
+
+            $phoneIds = collect((array) $relationResponse->json('data', []))
+                ->pluck('id')
+                ->map(fn ($id) => (string) $id)
+                ->all();
+
+            if (!in_array((string) $phoneNumberId, $phoneIds, true)) {
+                $steps[] = [
+                    'step' => 'Relasi WABA -> Phone Number',
+                    'ok' => false,
+                    'message' => 'Phone Number ID tidak terdaftar di Cloud Business Account ID ini.',
+                    'error' => 'Pastikan Phone Number ID dan WABA ID berasal dari akun yang sama.',
+                ];
+
+                return [
+                    'ok' => false,
+                    'message' => 'Gagal validasi credentials.',
+                    'error' => 'Phone Number ID tidak terhubung dengan WABA ID.',
+                    'steps' => $steps,
+                    'status' => 422,
+                ];
+            }
+
+            $steps[] = [
+                'step' => 'Relasi WABA -> Phone Number',
+                'ok' => true,
+                'message' => 'Phone Number ID terhubung dengan WABA ID.',
+            ];
+
+            return [
+                'ok' => true,
+                'message' => 'Semua credential Cloud API valid.',
+                'steps' => $steps,
+                'data' => [
+                    'phone_number_id' => $phoneNumberId,
+                    'cloud_business_account_id' => $businessId,
+                ],
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'ok' => false,
+                'message' => 'Gagal validasi credentials.',
+                'error' => $e->getMessage(),
+                'steps' => $steps,
                 'status' => 500,
             ];
         }

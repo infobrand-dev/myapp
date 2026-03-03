@@ -84,29 +84,30 @@ class InstallController extends Controller
 
             $this->callArtisanOrFail('migrate', ['--seed' => true, '--force' => true]);
 
-            $role = Role::findOrCreate('Super-admin');
-            Role::findOrCreate('Admin');
+            DB::transaction(function () use ($data): void {
+                $role = Role::findOrCreate('Super-admin');
+                Role::findOrCreate('Admin');
 
-            $user = User::query()->firstOrNew(['email' => $data['admin_email']]);
-            $user->forceFill([
-                'name' => $data['admin_name'],
-                'email' => $data['admin_email'],
-                'password' => Hash::make($data['admin_password']),
-                'email_verified_at' => now(),
-            ]);
-            $user->saveOrFail();
+                $user = User::query()->firstOrNew(['email' => $data['admin_email']]);
+                $user->forceFill([
+                    'name' => $data['admin_name'],
+                    'email' => $data['admin_email'],
+                    'password' => Hash::make($data['admin_password']),
+                    'email_verified_at' => now(),
+                ]);
+                $user->saveOrFail();
+                $user->syncRoles([$role->name]);
 
-            $userExists = User::query()->where('email', $data['admin_email'])->exists();
-            if (!$userExists) {
-                throw new RuntimeException('Akun Super-admin gagal dibuat ke database.');
-            }
+                if (!$user->fresh()->hasRole($role->name)) {
+                    throw new RuntimeException('Akun Super-admin gagal dipasangkan role.');
+                }
+            });
 
-            $user->syncRoles([$role->name]);
+            // Keep bootstrap/cache fresh before finalizing installation.
+            $this->callArtisanOrFail('optimize:clear');
 
             file_put_contents(storage_path('app/installed.lock'), now()->toDateTimeString());
             $this->writeEnv(['APP_INSTALLED' => 'true']);
-
-            $this->callArtisanOrFail('optimize:clear');
 
             return redirect('/login?installed=1');
         } catch (Throwable $e) {

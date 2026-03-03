@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class WhatsAppInstance extends Model
 {
@@ -29,8 +30,6 @@ class WhatsAppInstance extends Model
         'last_error',
         'created_by',
         'updated_by',
-        'auto_reply',
-        'chatbot_account_id',
         'phone_number_id',
         'cloud_business_account_id',
         'cloud_token',
@@ -40,7 +39,6 @@ class WhatsAppInstance extends Model
         'settings' => 'array',
         'is_active' => 'boolean',
         'last_health_check_at' => 'datetime',
-        'auto_reply' => 'boolean',
     ];
 
     public function users(): BelongsToMany
@@ -65,8 +63,8 @@ class WhatsAppInstance extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
-    public function aiAccount(): BelongsTo
+    public function chatbotIntegration(): HasOne
     {
-        return $this->belongsTo(\App\Modules\Chatbot\Models\ChatbotAccount::class, 'chatbot_account_id');
+        return $this->hasOne(WhatsAppInstanceChatbotIntegration::class, 'instance_id');
     }
 }

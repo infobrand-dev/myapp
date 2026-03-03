@@ -7,12 +7,14 @@ use App\Modules\Conversations\Jobs\GenerateAiReply;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
+use App\Modules\WhatsAppApi\Models\WhatsAppInstanceChatbotIntegration;
 use App\Modules\WhatsAppApi\Models\WhatsAppWebhookEvent;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
@@ -143,9 +145,10 @@ class WebhookController extends Controller
             'payload' => $request->all(),
         ]);
 
-        $shouldAutoReply = ($instance->auto_reply ?? false) && $instance->chatbot_account_id && $isIncoming;
+        $chatbot = $this->chatbotIntegration($instance);
+        $shouldAutoReply = $chatbot['auto_reply'] && $chatbot['chatbot_account_id'] && $isIncoming;
         if ($shouldAutoReply) {
-            GenerateAiReply::dispatch($conversation->id, $msg->id, $instance->chatbot_account_id);
+            GenerateAiReply::dispatch($conversation->id, $msg->id, $chatbot['chatbot_account_id']);
         }
 
         $this->markWebhookEventProcessed($event);
@@ -326,10 +329,34 @@ class WebhookController extends Controller
                 'unread_count' => ($conversation->unread_count ?? 0) + 1,
             ]);
 
-            if (($instance->auto_reply ?? false) && $instance->chatbot_account_id) {
-                GenerateAiReply::dispatch($conversation->id, $message->id, $instance->chatbot_account_id);
+            $chatbot = $this->chatbotIntegration($instance);
+            if ($chatbot['auto_reply'] && $chatbot['chatbot_account_id']) {
+                GenerateAiReply::dispatch($conversation->id, $message->id, $chatbot['chatbot_account_id']);
             }
         }
+    }
+
+    private function chatbotIntegration(WhatsAppInstance $instance): array
+    {
+        $fallback = [
+            'auto_reply' => (bool) ($instance->auto_reply ?? false),
+            'chatbot_account_id' => $instance->chatbot_account_id ? (int) $instance->chatbot_account_id : null,
+        ];
+
+        if (!Schema::hasTable('whatsapp_instance_chatbot_integrations')) {
+            return $fallback;
+        }
+
+        /** @var WhatsAppInstanceChatbotIntegration|null $integration */
+        $integration = $instance->chatbotIntegration()->first();
+        if (!$integration) {
+            return $fallback;
+        }
+
+        return [
+            'auto_reply' => (bool) $integration->auto_reply,
+            'chatbot_account_id' => $integration->chatbot_account_id ? (int) $integration->chatbot_account_id : null,
+        ];
     }
 
     private function handleCloudMessageStatuses(array $value): void

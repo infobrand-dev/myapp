@@ -5,12 +5,13 @@ namespace App\Modules\WhatsAppApi\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
-use App\Modules\Chatbot\Models\ChatbotAccount;
+use App\Modules\WhatsAppApi\Models\WhatsAppInstanceChatbotIntegration;
 use Illuminate\Support\Arr;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use App\Modules\WhatsAppApi\ViewModels\InstanceHealthViewModel;
@@ -35,38 +36,42 @@ class InstanceController extends Controller
                 'wa_cloud_verify_token' => $this->generateVerifyToken(),
             ],
         ]);
-        $chatbotAccounts = ChatbotAccount::where('status', 'active')->orderBy('name')->get();
+        $chatbotAccounts = $this->chatbotAccounts();
+        $integration = null;
+        $chatbotEnabled = $this->isChatbotModuleReady();
 
-        return view('whatsappapi::instances.form', compact('instance', 'chatbotAccounts'));
+        return view('whatsappapi::instances.form', compact('instance', 'chatbotAccounts', 'integration', 'chatbotEnabled'));
     }
 
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validated($request, null);
         $data['is_active'] = $request->boolean('is_active');
-        $data['auto_reply'] = $request->boolean('auto_reply');
         $data['created_by'] = $request->user() ? $request->user()->id : null;
         $data['updated_by'] = $request->user() ? $request->user()->id : null;
 
-        WhatsAppInstance::create($data);
+        $instance = WhatsAppInstance::create($data);
+        $this->persistChatbotIntegration($request, $instance);
 
         return redirect()->route('whatsapp-api.instances.index')->with('status', 'Instance dibuat.');
     }
 
     public function edit(WhatsAppInstance $instance): View
     {
-        $chatbotAccounts = ChatbotAccount::where('status', 'active')->orderBy('name')->get();
-        return view('whatsappapi::instances.form', compact('instance', 'chatbotAccounts'));
+        $chatbotAccounts = $this->chatbotAccounts();
+        $integration = $instance->chatbotIntegration()->first();
+        $chatbotEnabled = $this->isChatbotModuleReady();
+        return view('whatsappapi::instances.form', compact('instance', 'chatbotAccounts', 'integration', 'chatbotEnabled'));
     }
 
     public function update(Request $request, WhatsAppInstance $instance): RedirectResponse
     {
         $data = $this->validated($request, $instance);
         $data['is_active'] = $request->boolean('is_active');
-        $data['auto_reply'] = $request->boolean('auto_reply');
         $data['updated_by'] = $request->user() ? $request->user()->id : null;
 
         $instance->update($data);
+        $this->persistChatbotIntegration($request, $instance);
 
         return redirect()->route('whatsapp-api.instances.index')->with('status', 'Instance diperbarui.');
     }
@@ -75,10 +80,10 @@ class InstanceController extends Controller
     {
         $data = $this->validated($request, $instance);
         $data['is_active'] = $request->boolean('is_active');
-        $data['auto_reply'] = $request->boolean('auto_reply');
-        $data['updated_by'] = $request->user()?->id;
+        $data['updated_by'] = $request->user() ? $request->user()->id : null;
 
         $instance->update($data);
+        $this->persistChatbotIntegration($request, $instance);
         $instance->refresh();
 
         $result = $this->runStoredCloudCredentialTest($instance);
@@ -98,10 +103,10 @@ class InstanceController extends Controller
     {
         $data = $this->validated($request, $instance);
         $data['is_active'] = $request->boolean('is_active');
-        $data['auto_reply'] = $request->boolean('auto_reply');
-        $data['updated_by'] = $request->user()?->id;
+        $data['updated_by'] = $request->user() ? $request->user()->id : null;
 
         $instance->update($data);
+        $this->persistChatbotIntegration($request, $instance);
         $instance->refresh();
 
         $result = $this->runStoredCloudTemplateSync($instance);
@@ -413,6 +418,13 @@ class InstanceController extends Controller
 
     private function validated(Request $request, ?WhatsAppInstance $current): array
     {
+        $chatbotRule = ['nullable'];
+        if ($this->isChatbotModuleReady()) {
+            $chatbotRule[] = 'exists:chatbot_accounts,id';
+        } else {
+            $chatbotRule[] = 'integer';
+        }
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:150'],
             'phone_number' => ['nullable', 'string', 'max:50'],
@@ -424,7 +436,7 @@ class InstanceController extends Controller
             'wa_cloud_verify_token' => ['nullable', 'string', 'max:255'],
             'wa_cloud_app_secret' => ['nullable', 'string', 'max:255'],
             'auto_reply' => ['sometimes', 'boolean'],
-            'chatbot_account_id' => ['nullable', 'exists:chatbot_accounts,id'],
+            'chatbot_account_id' => $chatbotRule,
             'phone_number_id' => ['nullable', 'string', 'max:100'],
             'cloud_business_account_id' => ['nullable', 'string', 'max:100'],
             'cloud_token' => ['nullable', 'string'],
@@ -459,6 +471,9 @@ class InstanceController extends Controller
         if (!$request->filled('cloud_token') && $current) {
             unset($data['cloud_token']);
         }
+
+        // Stored in dedicated integration table.
+        unset($data['auto_reply'], $data['chatbot_account_id']);
 
         $effectiveApiBase = trim((string) ($data['api_base_url'] ?? $current?->api_base_url));
         $effectiveApiToken = trim((string) ($data['api_token'] ?? $current?->api_token));
@@ -505,6 +520,54 @@ class InstanceController extends Controller
         }
 
         return $data;
+    }
+
+    private function persistChatbotIntegration(Request $request, WhatsAppInstance $instance): void
+    {
+        if (!Schema::hasTable('whatsapp_instance_chatbot_integrations')) {
+            return;
+        }
+
+        $autoReply = $request->boolean('auto_reply');
+        $chatbotAccountId = $request->filled('chatbot_account_id')
+            ? (int) $request->input('chatbot_account_id')
+            : null;
+
+        if (!$this->isChatbotModuleReady()) {
+            $chatbotAccountId = null;
+            $autoReply = false;
+        }
+
+        if (!$autoReply && !$chatbotAccountId) {
+            WhatsAppInstanceChatbotIntegration::query()
+                ->where('instance_id', $instance->id)
+                ->delete();
+            return;
+        }
+
+        WhatsAppInstanceChatbotIntegration::query()->updateOrCreate(
+            ['instance_id' => $instance->id],
+            [
+                'auto_reply' => $autoReply,
+                'chatbot_account_id' => $chatbotAccountId,
+            ]
+        );
+    }
+
+    private function isChatbotModuleReady(): bool
+    {
+        return class_exists(\App\Modules\Chatbot\Models\ChatbotAccount::class)
+            && Schema::hasTable('chatbot_accounts');
+    }
+
+    private function chatbotAccounts()
+    {
+        if (!$this->isChatbotModuleReady()) {
+            return collect();
+        }
+
+        $chatbotClass = \App\Modules\Chatbot\Models\ChatbotAccount::class;
+        return $chatbotClass::query()->where('status', 'active')->orderBy('name')->get();
     }
 
     private function resolveCloudCredentials(Request $request): array

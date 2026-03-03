@@ -1,7 +1,12 @@
 @extends('layouts.admin')
 
 @section('content')
-@php $isEdit = $account->exists; @endphp
+@php
+    $isEdit = $account->exists;
+    $integrationAutoReply = old('auto_reply', data_get($integration, 'auto_reply', false));
+    $integrationChatbotAccountId = old('chatbot_account_id', data_get($integration, 'chatbot_account_id'));
+    $chatbotEnabled = $chatbotEnabled ?? false;
+@endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">{{ $isEdit ? 'Edit' : 'Tambah' }} Social Account</h2>
@@ -52,19 +57,25 @@
                 </div>
                 <div class="col-md-3 d-flex align-items-center">
                     <div class="form-check mt-4">
-                        <input class="form-check-input" type="checkbox" name="auto_reply" value="1" id="auto_reply" {{ old('auto_reply', $account->auto_reply ?? false) ? 'checked' : '' }}>
+                        <input class="form-check-input" type="checkbox" name="auto_reply" value="1" id="auto_reply" {{ $integrationAutoReply ? 'checked' : '' }} {{ $chatbotEnabled ? '' : 'disabled' }}>
                         <label class="form-check-label" for="auto_reply">Auto-reply AI</label>
                     </div>
                 </div>
                 <div class="col-md-9">
                     <label class="form-label">Chatbot Account</label>
-                    <select name="chatbot_account_id" class="form-select">
+                    <select name="chatbot_account_id" class="form-select" {{ $chatbotEnabled ? '' : 'disabled' }}>
                         <option value="">-- Pilih AI --</option>
                         @foreach(($chatbotAccounts ?? []) as $ai)
-                            <option value="{{ $ai->id }}" {{ (string) old('chatbot_account_id', $account->chatbot_account_id) === (string) $ai->id ? 'selected' : '' }}>{{ $ai->name }} ({{ $ai->model ?? 'default' }})</option>
+                            <option value="{{ $ai->id }}" {{ (string) $integrationChatbotAccountId === (string) $ai->id ? 'selected' : '' }}>{{ $ai->name }} ({{ $ai->model ?? 'default' }})</option>
                         @endforeach
                     </select>
-                    <div class="text-muted small">Aktifkan auto-reply hanya bila token aman.</div>
+                    <div class="text-muted small">
+                        @if($chatbotEnabled)
+                            Aktifkan auto-reply hanya bila token aman.
+                        @else
+                            Install dan aktifkan module Chatbot untuk menghubungkan auto-reply AI.
+                        @endif
+                    </div>
                 </div>
             </div>
             <div class="mt-4 d-flex justify-content-end gap-2">

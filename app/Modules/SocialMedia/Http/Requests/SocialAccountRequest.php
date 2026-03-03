@@ -3,6 +3,7 @@
 namespace App\Modules\SocialMedia\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Schema;
 
 class SocialAccountRequest extends FormRequest
 {
@@ -13,6 +14,13 @@ class SocialAccountRequest extends FormRequest
 
     public function rules(): array
     {
+        $chatbotRule = ['nullable'];
+        if (class_exists(\App\Modules\Chatbot\Models\ChatbotAccount::class) && Schema::hasTable('chatbot_accounts')) {
+            $chatbotRule[] = 'exists:chatbot_accounts,id';
+        } else {
+            $chatbotRule[] = 'integer';
+        }
+
         return [
             'platform' => ['required', 'in:instagram,facebook'],
             'page_id' => ['nullable', 'string', 'max:255'],
@@ -21,7 +29,7 @@ class SocialAccountRequest extends FormRequest
             'name' => ['nullable', 'string', 'max:255'],
             'status' => ['required', 'in:active,inactive'],
             'auto_reply' => ['sometimes', 'boolean'],
-            'chatbot_account_id' => ['nullable', 'exists:chatbot_accounts,id'],
+            'chatbot_account_id' => $chatbotRule,
         ];
     }
 }

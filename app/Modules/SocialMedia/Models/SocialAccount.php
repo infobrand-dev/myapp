@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class SocialAccount extends Model
 {
@@ -20,13 +21,10 @@ class SocialAccount extends Model
         'status',
         'metadata',
         'created_by',
-        'auto_reply',
-        'chatbot_account_id',
     ];
 
     protected $casts = [
         'metadata' => 'array',
-        'auto_reply' => 'boolean',
     ];
 
     public function creator(): BelongsTo
@@ -34,8 +32,8 @@ class SocialAccount extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function aiAccount(): BelongsTo
+    public function chatbotIntegration(): HasOne
     {
-        return $this->belongsTo(\App\Modules\Chatbot\Models\ChatbotAccount::class, 'chatbot_account_id');
+        return $this->hasOne(SocialAccountChatbotIntegration::class, 'social_account_id');
     }
 }

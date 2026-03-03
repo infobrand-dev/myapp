@@ -21,36 +21,10 @@ return new class extends Migration
                 $table->timestamps();
             });
         }
-
-        Schema::table('whatsapp_instances', function (Blueprint $table) {
-            if (!Schema::hasColumn('whatsapp_instances', 'auto_reply')) {
-                $table->boolean('auto_reply')->default(false);
-            }
-            if (!Schema::hasColumn('whatsapp_instances', 'chatbot_account_id')) {
-                $table->foreignId('chatbot_account_id')->nullable()->constrained('chatbot_accounts')->nullOnDelete();
-            }
-        });
-
-        Schema::table('social_accounts', function (Blueprint $table) {
-            if (!Schema::hasColumn('social_accounts', 'auto_reply')) {
-                $table->boolean('auto_reply')->default(false);
-            }
-            if (!Schema::hasColumn('social_accounts', 'chatbot_account_id')) {
-                $table->foreignId('chatbot_account_id')->nullable()->constrained('chatbot_accounts')->nullOnDelete();
-            }
-        });
     }
 
     public function down(): void
     {
-        Schema::table('social_accounts', function (Blueprint $table) {
-            $table->dropConstrainedForeignId('chatbot_account_id');
-            $table->dropColumn(['auto_reply']);
-        });
-        Schema::table('whatsapp_instances', function (Blueprint $table) {
-            $table->dropConstrainedForeignId('chatbot_account_id');
-            $table->dropColumn(['auto_reply']);
-        });
         Schema::dropIfExists('chatbot_accounts');
     }
 };

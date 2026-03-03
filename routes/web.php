@@ -4,6 +4,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\InstallController;
 use App\Http\Controllers\ModuleController;
+use App\Http\Controllers\SessionDiagnosticController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -48,5 +49,8 @@ Route::middleware(['auth', 'role:Super-admin'])->group(function () {
     Route::post('/modules/{slug}/activate', [ModuleController::class, 'activate'])->name('modules.activate');
     Route::post('/modules/{slug}/deactivate', [ModuleController::class, 'deactivate'])->name('modules.deactivate');
 });
+
+Route::get('/_debug/session', [SessionDiagnosticController::class, 'show'])->name('debug.session.show');
+Route::post('/_debug/session/post', [SessionDiagnosticController::class, 'post'])->name('debug.session.post');
 
 require __DIR__ . '/auth.php';

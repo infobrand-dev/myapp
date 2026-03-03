@@ -66,6 +66,7 @@ class InstallController extends Controller
             $this->writeEnv([
                 'APP_NAME' => $data['app_name'],
                 'APP_URL' => $data['app_url'],
+                'APP_KEY' => trim((string) env('APP_KEY', '')),
                 'APP_INSTALLED' => 'false',
                 'DB_CONNECTION' => 'mysql',
                 'DB_HOST' => $data['db_host'],
@@ -78,11 +79,16 @@ class InstallController extends Controller
             $this->applyDatabaseConfig($data);
             $this->testConnection($data);
 
-            if (trim((string) config('app.key', '')) === '') {
-                $this->callArtisanOrFail('key:generate', ['--force' => true]);
+            $this->callArtisanOrFail('key:generate', ['--force' => true]);
+            if (!$this->hasAppKeyInEnv()) {
+                throw new RuntimeException('APP_KEY gagal dibuat atau tidak tersimpan di file .env.');
             }
 
-            $this->callArtisanOrFail('migrate', ['--seed' => true, '--force' => true]);
+            $this->callArtisanOrFail('migrate', [
+                '--path' => 'database/migrations',
+                '--seed' => true,
+                '--force' => true,
+            ]);
 
             DB::transaction(function () use ($data): void {
                 $role = Role::findOrCreate('Super-admin');
@@ -263,6 +269,22 @@ class InstallController extends Controller
             $output = trim((string) Artisan::output());
             throw new RuntimeException("Command '{$command}' gagal dijalankan. {$output}");
         }
+    }
+
+    private function hasAppKeyInEnv(): bool
+    {
+        $envPath = base_path('.env');
+        if (!file_exists($envPath)) {
+            return false;
+        }
+
+        $content = (string) file_get_contents($envPath);
+        if (!preg_match('/^APP_KEY=(.*)$/m', $content, $matches)) {
+            return false;
+        }
+
+        $value = trim((string) $matches[1], " \t\n\r\0\x0B\"'");
+        return $value !== '';
     }
 
 }

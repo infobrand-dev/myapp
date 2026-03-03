@@ -101,7 +101,7 @@
                         </td>
                         <td>{{ strtoupper((string) $msg->type) }}</td>
                         <td><span class="badge {{ $statusClass }}">{{ ucfirst((string) $msg->status) }}</span></td>
-                        <td class="text-muted small">{{ $msg->wa_message_id ?: '-' }}</td>
+                        <td class="text-muted small">{{ $msg->external_message_id ?: '-' }}</td>
                         <td class="text-muted small">{{ \Illuminate\Support\Str::limit((string) $msg->body, 90) }}</td>
                         <td class="text-danger small">{{ \Illuminate\Support\Str::limit((string) $msg->error_message, 90) }}</td>
                         <td class="text-end align-middle">
@@ -127,3 +127,4 @@
 
 <div class="mt-3">{{ $messages->links() }}</div>
 @endsection
+

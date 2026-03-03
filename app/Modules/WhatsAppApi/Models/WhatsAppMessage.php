@@ -21,7 +21,7 @@ class WhatsAppMessage extends Model
         'media_url',
         'media_mime',
         'status',
-        'wa_message_id',
+        'external_message_id',
         'error_message',
         'sent_at',
         'delivered_at',
@@ -47,3 +47,4 @@ class WhatsAppMessage extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 }
+

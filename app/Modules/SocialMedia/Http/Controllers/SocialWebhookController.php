@@ -39,7 +39,7 @@ class SocialWebhookController extends Controller
             [
                 'channel' => 'social_dm',
                 'instance_id' => $account->id,
-                'contact_wa_id' => $data['contact_id'],
+                'contact_external_id' => $data['contact_id'],
             ],
             [
                 'contact_name' => $data['contact_name'] ?? null,
@@ -65,7 +65,7 @@ class SocialWebhookController extends Controller
             'type' => 'text',
             'body' => $data['message'],
             'status' => 'delivered',
-            'wa_message_id' => $data['external_message_id'] ?? null,
+            'external_message_id' => $data['external_message_id'] ?? null,
             'payload' => $request->all(),
         ]);
 
@@ -87,3 +87,5 @@ class SocialWebhookController extends Controller
         return response()->json(['message' => 'Invalid verify token'], Response::HTTP_FORBIDDEN);
     }
 }
+
+

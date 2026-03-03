@@ -99,7 +99,7 @@ class WebhookController extends Controller
             [
                 'channel' => 'wa_api',
                 'instance_id' => $instance->id,
-                'contact_wa_id' => $data['contact_id'],
+                'contact_external_id' => $data['contact_id'],
             ],
             [
                 'contact_name' => $data['contact_name'] ?? null,
@@ -113,7 +113,7 @@ class WebhookController extends Controller
 
         if (!empty($data['external_message_id'])) {
             $alreadyStored = ConversationMessage::where('conversation_id', $conversation->id)
-                ->where('wa_message_id', $data['external_message_id'])
+                ->where('external_message_id', $data['external_message_id'])
                 ->exists();
             if ($alreadyStored) {
                 $this->markWebhookEventProcessed($event);
@@ -139,7 +139,7 @@ class WebhookController extends Controller
             'type' => 'text',
             'body' => $data['message'],
             'status' => $isIncoming ? 'delivered' : 'sent',
-            'wa_message_id' => $data['external_message_id'] ?? null,
+            'external_message_id' => $data['external_message_id'] ?? null,
             'payload' => $request->all(),
         ]);
 
@@ -285,7 +285,7 @@ class WebhookController extends Controller
                 [
                     'channel' => 'wa_api',
                     'instance_id' => $instance->id,
-                    'contact_wa_id' => $from,
+                    'contact_external_id' => $from,
                 ],
                 [
                     'contact_name' => Arr::get($contacts->get($from), 'profile.name'),
@@ -298,7 +298,7 @@ class WebhookController extends Controller
 
             if ($waMessageId !== '') {
                 $exists = ConversationMessage::where('conversation_id', $conversation->id)
-                    ->where('wa_message_id', $waMessageId)
+                    ->where('external_message_id', $waMessageId)
                     ->exists();
                 if ($exists) {
                     continue;
@@ -315,7 +315,7 @@ class WebhookController extends Controller
                 'media_url' => $mediaUrl,
                 'media_mime' => $mediaMime,
                 'status' => 'delivered',
-                'wa_message_id' => $waMessageId !== '' ? $waMessageId : null,
+                'external_message_id' => $waMessageId !== '' ? $waMessageId : null,
                 'payload' => $item,
             ]);
 
@@ -340,7 +340,7 @@ class WebhookController extends Controller
                 continue;
             }
 
-            $message = ConversationMessage::where('wa_message_id', $waMessageId)
+            $message = ConversationMessage::where('external_message_id', $waMessageId)
                 ->where('direction', 'out')
                 ->latest('id')
                 ->first();
@@ -454,4 +454,6 @@ class WebhookController extends Controller
         return null;
     }
 }
+
+
 

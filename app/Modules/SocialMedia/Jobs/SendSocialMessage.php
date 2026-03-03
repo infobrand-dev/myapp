@@ -31,7 +31,7 @@ class SendSocialMessage implements ShouldQueue
         }
 
         $platform = $message->conversation->metadata['platform'] ?? 'facebook';
-        $recipient = $message->conversation->contact_wa_id;
+        $recipient = $message->conversation->contact_external_id;
         $accountId = $message->conversation->instance_id;
         $account = $accountId ? SocialAccount::find($accountId) : null;
         $graphVersion = config('services.meta.graph_version', 'v20.0');
@@ -76,7 +76,7 @@ class SendSocialMessage implements ShouldQueue
                 $message->update([
                     'status' => 'sent',
                     'sent_at' => now(),
-                    'wa_message_id' => $resp->json('message_id') ?? $resp->json('id') ?? $message->wa_message_id,
+                    'external_message_id' => $resp->json('message_id') ?? $resp->json('id') ?? $message->external_message_id,
                 ]);
             } else {
                 $message->update([
@@ -90,3 +90,5 @@ class SendSocialMessage implements ShouldQueue
         }
     }
 }
+
+

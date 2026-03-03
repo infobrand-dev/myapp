@@ -6,7 +6,6 @@
         <h2 class="mb-0">Conversations</h2>
         <div class="text-muted small">Inbox gabungan (internal, WhatsApp API/Bro, sosial). Claim eksklusif, auto-timeout {{ $lockMinutes }} menit.</div>
     </div>
-    <a href="{{ route('whatsapp-api.inbox') ?? '#' }}" class="btn btn-outline-primary">Pengaturan Channel</a>
 </div>
 
 <div class="card">
@@ -27,7 +26,7 @@
                 @forelse($conversations as $conv)
                     <tr>
                         <td>
-                            <a href="{{ route('conversations.show', $conv) }}" class="fw-bold text-decoration-none">{{ $conv->contact_name ?? $conv->contact_wa_id ?? 'Internal Chat' }}</a>
+                            <a href="{{ route('conversations.show', $conv) }}" class="fw-bold text-decoration-none">{{ $conv->contact_name ?? $conv->contact_external_id ?? 'Internal Chat' }}</a>
                             <div class="text-muted small">{{ strtoupper($conv->channel ?? 'internal') }}</div>
                         </td>
                         <td><span class="badge {{ $conv->status === 'closed' ? 'text-bg-secondary' : 'text-bg-primary' }}">{{ ucfirst($conv->status) }}</span></td>
@@ -92,3 +91,4 @@
     </div>
 </div>
 @endsection
+

@@ -25,6 +25,11 @@ class EnsureInstalled
 
     private function isInstalled(): bool
     {
+        // App without valid APP_KEY must always go through installer flow.
+        if (!$this->hasUsableAppKey()) {
+            return false;
+        }
+
         if (file_exists(storage_path('app/installed.lock'))) {
             return true;
         }
@@ -36,15 +41,25 @@ class EnsureInstalled
 
         // Backward compatibility for existing deployments before installer lock existed.
         // If app key exists and core tables are already present, treat as installed.
-        $appKey = trim((string) config('app.key', ''));
-        if ($appKey === '') {
-            return false;
-        }
-
         try {
             return Schema::hasTable('migrations') && Schema::hasTable('users');
         } catch (\Throwable $e) {
             return false;
         }
+    }
+
+    private function hasUsableAppKey(): bool
+    {
+        $appKey = trim((string) config('app.key', ''));
+        if ($appKey === '') {
+            return false;
+        }
+
+        // Common placeholder when APP_KEY line exists but value is still empty.
+        if (strtolower($appKey) === 'base64:') {
+            return false;
+        }
+
+        return true;
     }
 }

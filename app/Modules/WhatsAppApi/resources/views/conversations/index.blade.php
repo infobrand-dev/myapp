@@ -60,8 +60,8 @@
                     @endphp
                     <tr>
                         <td>
-                            <div class="fw-bold">{{ $conv->contact_name ?? $conv->contact_wa_id }}</div>
-                            <div class="text-muted small">{{ $conv->contact_wa_id }}</div>
+                            <div class="fw-bold">{{ $conv->contact_name ?? $conv->contact_external_id }}</div>
+                            <div class="text-muted small">{{ $conv->contact_external_id }}</div>
                         </td>
                         <td><span class="badge bg-azure-lt text-azure">{{ $conv->instance->name }}</span></td>
                         <td>
@@ -169,8 +169,8 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-2">
                     <div>
-                        <div class="fw-bold">{{ $conv->contact_name ?? $conv->contact_wa_id }}</div>
-                        <div class="text-muted small">{{ $conv->contact_wa_id }}</div>
+                        <div class="fw-bold">{{ $conv->contact_name ?? $conv->contact_external_id }}</div>
+                        <div class="text-muted small">{{ $conv->contact_external_id }}</div>
                     </div>
                     <span class="badge bg-azure-lt text-azure">{{ $conv->instance->name }}</span>
                 </div>
@@ -216,4 +216,5 @@
 
 <div class="mt-3">{{ $conversations->links() }}</div>
 @endsection
+
 

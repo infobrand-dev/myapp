@@ -38,7 +38,7 @@ class ConversationController extends Controller
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('contact_name', 'like', "%{$search}%")
-                        ->orWhere('contact_wa_id', 'like', "%{$search}%");
+                        ->orWhere('contact_external_id', 'like', "%{$search}%");
                 });
             })
             ->orderByDesc('last_message_at')
@@ -165,3 +165,4 @@ class ConversationController extends Controller
             ->with('status', 'WhatsApp API belum siap. Minta Super-admin membuat WA Instance terlebih dahulu.');
     }
 }
+

@@ -8,14 +8,14 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Conversations table already created by WhatsAppApi migration but ensure exists when that module disabled.
+        // Core conversations module must be standalone (no dependency to other modules).
         if (!Schema::hasTable('conversations')) {
             Schema::create('conversations', function (Blueprint $table) {
                 $table->id();
-                $table->foreignId('instance_id')->nullable()->constrained('whatsapp_instances')->nullOnDelete();
+                $table->unsignedBigInteger('instance_id')->nullable();
                 $table->string('channel')->default('internal');
                 $table->string('external_id')->nullable();
-                $table->string('contact_wa_id')->nullable();
+                $table->string('contact_external_id')->nullable();
                 $table->string('contact_name')->nullable();
                 $table->string('status')->default('open');
                 $table->foreignId('owner_id')->nullable()->constrained('users')->nullOnDelete();
@@ -27,7 +27,7 @@ return new class extends Migration
                 $table->unsignedInteger('unread_count')->default(0);
                 $table->json('metadata')->nullable();
                 $table->timestamps();
-                $table->unique(['channel', 'instance_id', 'contact_wa_id']);
+                $table->unique(['channel', 'instance_id', 'contact_external_id']);
             });
         }
 
@@ -56,7 +56,7 @@ return new class extends Migration
                 $table->string('media_url')->nullable();
                 $table->string('media_mime')->nullable();
                 $table->string('status')->default('queued');
-                $table->string('wa_message_id')->nullable()->index();
+                $table->string('external_message_id')->nullable()->index();
                 $table->string('error_message')->nullable();
                 $table->json('payload')->nullable();
                 $table->timestamp('sent_at')->nullable();
@@ -75,3 +75,5 @@ return new class extends Migration
         Schema::dropIfExists('conversations');
     }
 };
+
+

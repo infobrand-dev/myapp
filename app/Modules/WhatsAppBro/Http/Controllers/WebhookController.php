@@ -32,7 +32,7 @@ class WebhookController extends Controller
             [
                 'channel' => 'wa_bro',
                 'instance_id' => null,
-                'contact_wa_id' => $data['contact_id'],
+                'contact_external_id' => $data['contact_id'],
             ],
             [
                 'contact_name' => $data['contact_name'] ?? null,
@@ -56,10 +56,12 @@ class WebhookController extends Controller
             'type' => 'text',
             'body' => $data['message'],
             'status' => 'delivered',
-            'wa_message_id' => $data['external_message_id'] ?? null,
+            'external_message_id' => $data['external_message_id'] ?? null,
             'payload' => $request->all(),
         ]);
 
         return response()->json(['stored' => true]);
     }
 }
+
+

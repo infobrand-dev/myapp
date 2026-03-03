@@ -39,7 +39,7 @@
                 @forelse($conversationsList as $c)
                     <a href="{{ route('conversations.show', $c) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-start {{ $c->id === $conversation->id ? 'active' : '' }}">
                         <div class="me-2">
-                            <div class="fw-bold">{{ $c->contact_name ?? $c->contact_wa_id ?? 'Internal' }}</div>
+                            <div class="fw-bold">{{ $c->contact_name ?? $c->contact_external_id ?? 'Internal' }}</div>
                             <div class="text-muted small">{{ strtoupper($c->channel ?? 'internal') }}</div>
                         </div>
                         @if($c->instance)
@@ -120,7 +120,7 @@
         <div class="card mb-3">
             <div class="card-header"><h3 class="card-title mb-0">Detail</h3></div>
             <div class="card-body">
-                <div class="mb-2"><span class="text-muted">Kontak:</span> {{ $conversation->contact_name ?? $conversation->contact_wa_id ?? 'Internal' }}</div>
+                <div class="mb-2"><span class="text-muted">Kontak:</span> {{ $conversation->contact_name ?? $conversation->contact_external_id ?? 'Internal' }}</div>
                 <div class="mb-2"><span class="text-muted">Owner:</span> {{ $conversation->owner->name ?? 'Unassigned' }}</div>
                 <div class="mb-2"><span class="text-muted">Status:</span> {{ ucfirst($conversation->status) }}</div>
                 <div class="mb-2"><span class="text-muted">Last message:</span> {{ optional($conversation->last_message_at)->diffForHumans() ?? '-' }}</div>
@@ -273,3 +273,4 @@
     });
 </script>
 @endpush
+

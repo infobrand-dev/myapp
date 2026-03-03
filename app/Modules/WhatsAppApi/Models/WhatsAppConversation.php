@@ -18,7 +18,7 @@ class WhatsAppConversation extends Model
         'instance_id',
         'channel',
         'external_id',
-        'contact_wa_id',
+        'contact_external_id',
         'contact_name',
         'status',
         'owner_id',
@@ -60,3 +60,4 @@ class WhatsAppConversation extends Model
         return $this->hasMany(WhatsAppMessage::class, 'conversation_id');
     }
 }
+

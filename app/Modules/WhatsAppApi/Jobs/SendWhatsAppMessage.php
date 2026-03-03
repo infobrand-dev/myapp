@@ -55,7 +55,7 @@ class SendWhatsAppMessage implements ShouldQueue
             && $instance->phone_number_id
             && $instance->cloud_token
         ) {
-            $this->sendViaCloud($message, $conversation->contact_wa_id, $instance);
+            $this->sendViaCloud($message, $conversation->contact_external_id, $instance);
             return;
         }
 
@@ -67,7 +67,7 @@ class SendWhatsAppMessage implements ShouldQueue
         $endpoint = rtrim($instance->api_base_url, '/') . '/messages/send';
 
         $payload = [
-            'to' => $conversation->contact_wa_id,
+            'to' => $conversation->contact_external_id,
             'reference_id' => $message->id,
         ];
 
@@ -182,7 +182,7 @@ class SendWhatsAppMessage implements ShouldQueue
             $message->update([
                 'status' => 'sent',
                 'sent_at' => now(),
-                'wa_message_id' => $response->json('message_id') ?? $message->wa_message_id,
+                'external_message_id' => $response->json('message_id') ?? $message->external_message_id,
                 'error_message' => null,
             ]);
             return;
@@ -197,7 +197,7 @@ class SendWhatsAppMessage implements ShouldQueue
             $message->update([
                 'status' => 'sent',
                 'sent_at' => now(),
-                'wa_message_id' => $response->json('messages.0.id') ?? $message->wa_message_id,
+                'external_message_id' => $response->json('messages.0.id') ?? $message->external_message_id,
                 'error_message' => null,
             ]);
             return;
@@ -235,3 +235,5 @@ class SendWhatsAppMessage implements ShouldQueue
         throw new RuntimeException($shortError);
     }
 }
+
+

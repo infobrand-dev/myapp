@@ -20,7 +20,7 @@ class ConversationMessage extends Model
         'media_url',
         'media_mime',
         'status',
-        'wa_message_id',
+        'external_message_id',
         'error_message',
         'payload',
         'sent_at',
@@ -45,3 +45,4 @@ class ConversationMessage extends Model
         return $this->belongsTo(User::class);
     }
 }
+

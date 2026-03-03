@@ -8,21 +8,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('conversation_participants', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('conversation_id')->constrained('conversations')->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->string('role')->default('collaborator'); // owner|collaborator|viewer
-            $table->foreignId('invited_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->timestamp('invited_at')->nullable();
-            $table->timestamp('left_at')->nullable();
-            $table->timestamps();
-            $table->unique(['conversation_id', 'user_id']);
-        });
+        // conversation_participants is owned by Conversations module.
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('whatsapp_conversation_participants');
+        // No-op. Avoid dropping shared tables.
     }
 };

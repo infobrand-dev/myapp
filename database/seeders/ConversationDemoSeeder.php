@@ -38,7 +38,7 @@ class ConversationDemoSeeder extends Seeder
             [
                 'channel' => 'wa_api',
                 'instance_id' => $instance->id,
-                'contact_wa_id' => '628123456789',
+                'contact_external_id' => '628123456789',
             ],
             [
                 'contact_name' => 'Demo Contact',
@@ -83,3 +83,4 @@ class ConversationDemoSeeder extends Seeder
         }
     }
 }
+

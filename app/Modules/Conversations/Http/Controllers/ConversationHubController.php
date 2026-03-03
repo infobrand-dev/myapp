@@ -46,7 +46,7 @@ class ConversationHubController extends Controller
             [
                 'channel' => 'internal',
                 'instance_id' => null,
-                'contact_wa_id' => $contactKey,
+                'contact_external_id' => $contactKey,
             ],
             [
                 'contact_name' => $otherName,
@@ -67,7 +67,7 @@ class ConversationHubController extends Controller
         $conversation->update([
             'owner_id' => $conversation->owner_id ?? $me->id,
             'claimed_at' => $conversation->claimed_at ?? now(),
-            'locked_until' => now()->addMinutes(config('modules.whatsapp_api.lock_minutes', 30)),
+            'locked_until' => now()->addMinutes(config('conversations.lock_minutes', 30)),
         ]);
 
         $this->log($conversation, $me->id, 'start_internal', "Start with user {$otherId}");
@@ -79,7 +79,7 @@ class ConversationHubController extends Controller
     public function index(Request $request): View|RedirectResponse
     {
         $user = $request->user();
-        $lockMinutes = (int) config('modules.whatsapp_api.lock_minutes', 30);
+        $lockMinutes = (int) config('conversations.lock_minutes', 30);
 
         $query = $this->baseQuery($user);
 
@@ -114,7 +114,7 @@ class ConversationHubController extends Controller
             ->limit(50)
             ->get();
 
-        $lockMinutes = (int) config('modules.whatsapp_api.lock_minutes', 30);
+        $lockMinutes = (int) config('conversations.lock_minutes', 30);
         $waTemplates = $conversation->channel === 'wa_api'
             ? WATemplate::where('status', 'active')->orderBy('name')->get()
             : collect();
@@ -130,7 +130,7 @@ class ConversationHubController extends Controller
     public function claim(Request $request, Conversation $conversation): RedirectResponse
     {
         $user = $request->user();
-        $lockMinutes = (int) config('modules.whatsapp_api.lock_minutes', 30);
+        $lockMinutes = (int) config('conversations.lock_minutes', 30);
         $now = now();
 
         $isLocked = $conversation->owner_id && $conversation->owner_id !== $user->id && $conversation->locked_until && $conversation->locked_until->isFuture();
@@ -416,3 +416,4 @@ class ConversationHubController extends Controller
         return $unique;
     }
 }
+

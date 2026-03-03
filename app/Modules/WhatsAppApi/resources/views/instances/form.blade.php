@@ -17,6 +17,42 @@
     <a href="{{ route('whatsapp-api.instances.index') }}" class="btn btn-outline-secondary">Kembali</a>
 </div>
 
+@if(session()->has('credentials_test_steps'))
+    @php
+        $steps = (array) session('credentials_test_steps', []);
+        $testOk = (bool) session('credentials_test_ok', false);
+    @endphp
+    <div class="alert {{ $testOk ? 'alert-success' : 'alert-danger' }} mb-3" role="alert">
+        <div class="fw-semibold mb-2">Hasil Test Credentials</div>
+        <div class="d-flex flex-column gap-1">
+            @forelse($steps as $step)
+                @php
+                    $ok = (bool) data_get($step, 'ok', false);
+                    $label = (string) data_get($step, 'step', 'Pengecekan');
+                    $message = (string) data_get($step, 'message', '');
+                    $error = (string) data_get($step, 'error', '');
+                @endphp
+                <div class="d-flex align-items-start gap-2">
+                    <span class="mt-1 text-{{ $ok ? 'success' : 'danger' }}">
+                        <i class="ti {{ $ok ? 'ti-check' : 'ti-x' }}"></i>
+                    </span>
+                    <div>
+                        <div class="fw-semibold">{{ $label }}</div>
+                        @if($message !== '')
+                            <div class="small">{{ $message }}</div>
+                        @endif
+                        @if(!$ok && $error !== '')
+                            <div class="small text-danger">{{ $error }}</div>
+                        @endif
+                    </div>
+                </div>
+            @empty
+                <div class="small">Tidak ada detail pengecekan.</div>
+            @endforelse
+        </div>
+    </div>
+@endif
+
 <form method="POST" action="{{ $isEdit ? route('whatsapp-api.instances.update', $instance) : route('whatsapp-api.instances.store') }}">
     @csrf
     @if($isEdit)

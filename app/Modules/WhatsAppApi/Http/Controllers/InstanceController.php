@@ -91,12 +91,16 @@ class InstanceController extends Controller
         if ($result['ok']) {
             return redirect()
                 ->route('whatsapp-api.instances.edit', $instance)
-                ->with('status', $result['message']);
+                ->with('status', $result['message'])
+                ->with('credentials_test_ok', true)
+                ->with('credentials_test_steps', $result['steps'] ?? []);
         }
 
         return redirect()
             ->route('whatsapp-api.instances.edit', $instance)
-            ->with('status', ($result['message'] ?? 'Gagal test credentials.') . (!empty($result['error']) ? ' ' . $result['error'] : ''));
+            ->with('status', ($result['message'] ?? 'Gagal test credentials.') . (!empty($result['error']) ? ' ' . $result['error'] : ''))
+            ->with('credentials_test_ok', false)
+            ->with('credentials_test_steps', $result['steps'] ?? []);
     }
 
     public function saveAndSyncTemplates(Request $request, WhatsAppInstance $instance): RedirectResponse

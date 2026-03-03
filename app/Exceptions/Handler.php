@@ -41,7 +41,7 @@ class Handler extends ExceptionHandler
         });
 
         $this->renderable(function (TokenMismatchException $e, $request) {
-            Log::error('CSRF token mismatch', [
+            $context = [
                 'url' => $request->fullUrl(),
                 'method' => $request->method(),
                 'host' => $request->getHost(),
@@ -55,7 +55,16 @@ class Handler extends ExceptionHandler
                 'app_url' => config('app.url'),
                 'user_agent' => $request->userAgent(),
                 'ip' => $request->ip(),
-            ]);
+            ];
+
+            Log::error('CSRF token mismatch', $context);
+
+            try {
+                $line = '[' . now()->toDateTimeString() . '] CSRF token mismatch ' . json_encode($context) . PHP_EOL;
+                file_put_contents(storage_path('logs/csrf-debug.log'), $line, FILE_APPEND);
+            } catch (\Throwable $writeError) {
+                // Ignore fallback write errors in exception handler.
+            }
 
             if (config('app.debug')) {
                 return response()->json([

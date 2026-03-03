@@ -1,4 +1,4 @@
-﻿<aside class="navbar navbar-vertical navbar-expand-lg border-end" style="min-height: 100vh;">
+<aside class="navbar navbar-vertical navbar-expand-lg border-end" style="min-height: 100vh;">
     <div class="container-fluid">
         <h1 class="navbar-brand mb-0">MyApp</h1>
         <ul class="navbar-nav pt-lg-3">

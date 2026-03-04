@@ -368,8 +368,39 @@
         color: var(--conv-muted);
         line-height: 1.1;
     }
+    .conv-dashboard .mobile-nav {
+        display: none;
+    }
+    .conv-dashboard .mobile-info-btn {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+    }
+    @media (max-width: 991.98px) {
+        .conv-dashboard .mobile-nav {
+            display: inline-flex;
+            align-items: center;
+            gap: .45rem;
+        }
+        .conv-dashboard .conv-col {
+            display: none;
+        }
+        .conv-dashboard.mobile-view-inbox .conv-col-inbox {
+            display: block;
+        }
+        .conv-dashboard.mobile-view-chat .conv-col-chat {
+            display: block;
+        }
+        .conv-dashboard.mobile-view-detail .conv-col-detail {
+            display: block;
+        }
+    }
 </style>
-<div class="conv-dashboard">
+<div class="conv-dashboard" id="conv-dashboard-root">
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0 fw-semibold">Conversations</h2>
@@ -394,7 +425,7 @@
 </div>
 
 <div class="row g-3">
-    <div class="col-md-3">
+    <div class="col-md-3 conv-col conv-col-inbox">
         <div class="conv-surface">
             <div class="section-head"><h3 class="conv-section-title">Inbox</h3></div>
             <div class="section-body section-body-tight">
@@ -469,7 +500,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-6">
+    <div class="col-md-6 conv-col conv-col-chat">
         <div class="conv-surface">
             @php
                 $activeContactName = $conversation->contact_name ?? $conversation->contact_external_id ?? 'Internal';
@@ -493,7 +524,13 @@
                 $activeAvatarTone = ['avatar-tone-1', 'avatar-tone-2', 'avatar-tone-3', 'avatar-tone-4', 'avatar-tone-5'][abs(crc32($activeContactName)) % 5];
             @endphp
             <div class="section-head">
-                <div class="d-flex align-items-center gap-2">
+                <div class="d-flex align-items-center justify-content-between gap-2">
+                    <div class="mobile-nav">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="mobile-back-inbox">
+                            <i class="ti ti-chevron-left" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 flex-grow-1">
                     <div class="chat-contact-avatar">
                         @if($activeAvatar)
                             <img src="{{ $activeAvatar }}" alt="{{ $activeContactName }}">
@@ -504,6 +541,12 @@
                     <div>
                         <div class="chat-contact-name">{{ $activeContactName }}</div>
                         <div class="chat-contact-last" id="chat-last-message-time">Last Message: {{ $activeLastMessageTime }}</div>
+                    </div>
+                    </div>
+                    <div class="mobile-nav">
+                        <button type="button" class="btn btn-outline-secondary mobile-info-btn" id="mobile-open-detail" aria-label="Open details">
+                            <i class="ti ti-info-circle" aria-hidden="true"></i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -521,7 +564,7 @@
                         $tones = ['avatar-tone-1', 'avatar-tone-2', 'avatar-tone-3', 'avatar-tone-4', 'avatar-tone-5'];
                         $avatarTone = $tones[abs(crc32($senderName)) % count($tones)];
                     @endphp
-                    <div class="chat-row d-flex align-items-end gap-2 {{ $msg->direction === 'out' ? 'justify-content-end flex-row-reverse' : 'justify-content-start' }}">
+                    <div class="chat-row d-flex align-items-end gap-2 {{ $msg->direction === 'out' ? 'justify-content-end flex-row-reverse' : 'justify-content-start' }}" data-message-id="{{ $msg->id }}">
                         <div class="chat-avatar">
                             @if($senderAvatar)
                                 <img src="{{ $senderAvatar }}" alt="{{ $senderName }}">
@@ -590,9 +633,16 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-3 conv-col conv-col-detail">
         <div class="conv-surface mb-3">
-            <div class="section-head"><h3 class="conv-section-title">Details</h3></div>
+            <div class="section-head d-flex align-items-center justify-content-between">
+                <h3 class="conv-section-title">Details</h3>
+                <div class="mobile-nav">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="mobile-back-chat">
+                        <i class="ti ti-chevron-left" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>
             <div class="section-body detail-list pt-0">
                 <div class="detail-row"><span class="detail-key">Kontak</span><span class="detail-value">{{ $conversation->contact_name ?? $conversation->contact_external_id ?? 'Internal' }}</span></div>
                 <div class="detail-row"><span class="detail-key">Owner</span><span class="detail-value">{{ $conversation->owner->name ?? 'Unassigned' }}</span></div>
@@ -672,13 +722,20 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', () => {
+        const dashboardRoot = document.getElementById('conv-dashboard-root');
         const chatPane = document.getElementById('chat-pane');
         const convId = {{ $conversation->id }};
+        const sidebarUnreadBadge = document.getElementById('sidebar-conv-unread-badge');
         const chatLastMessageTime = document.getElementById('chat-last-message-time');
+        const mobileBackInbox = document.getElementById('mobile-back-inbox');
+        const mobileOpenDetail = document.getElementById('mobile-open-detail');
+        const mobileBackChat = document.getElementById('mobile-back-chat');
         const lockSpan = document.getElementById('lock-remaining');
         const lockedUntil = "{{ optional($conversation->locked_until)->toIso8601String() }}";
         const chatLoader = document.getElementById('chat-loader');
         const messagesEndpoint = "{{ route('conversations.messages', $conversation) }}";
+        const markReadEndpoint = "{{ route('conversations.read', $conversation) }}";
+        const csrfToken = @json(csrf_token());
         let oldestMessageId = @json($oldestMessageId);
         let hasMoreMessages = @json($hasMoreMessages);
         let loadingOlder = false;
@@ -692,8 +749,101 @@
                 .filter((id) => Number.isFinite(id) && id > 0)
         );
         let activeFilter = 'all';
+        let unseenIncomingCount = 0;
+        const basePageTitle = document.title;
+        let sidebarUnreadCount = Number(sidebarUnreadBadge?.dataset.count ?? 0) || 0;
+        let readSyncInFlight = false;
+
+        const isMobile = () => window.matchMedia('(max-width: 991.98px)').matches;
+        const isChatVisible = () => !isMobile() || dashboardRoot?.classList.contains('mobile-view-chat');
+        const refreshUnreadUi = () => {
+            if (sidebarUnreadBadge) {
+                sidebarUnreadBadge.dataset.count = String(Math.max(0, sidebarUnreadCount));
+                sidebarUnreadBadge.textContent = String(Math.max(0, sidebarUnreadCount));
+                sidebarUnreadBadge.classList.toggle('d-none', sidebarUnreadCount <= 0);
+            }
+            document.title = sidebarUnreadCount > 0 ? `(${sidebarUnreadCount}) ${basePageTitle}` : basePageTitle;
+        };
+        const syncReadToServer = () => {
+            if (readSyncInFlight) return;
+            readSyncInFlight = true;
+            fetch(markReadEndpoint, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+            }).finally(() => {
+                readSyncInFlight = false;
+            });
+        };
+        const clearUnread = () => {
+            if (unseenIncomingCount > 0) {
+                sidebarUnreadCount = Math.max(0, sidebarUnreadCount - unseenIncomingCount);
+            }
+            unseenIncomingCount = 0;
+            refreshUnreadUi();
+            syncReadToServer();
+        };
+        const notifyIncoming = (name, body) => {
+            if (!('Notification' in window)) return;
+            if (Notification.permission === 'granted') {
+                try {
+                    new Notification(`New message from ${name}`, {
+                        body: (body || '').toString().slice(0, 140),
+                        tag: `conv-${convId}`,
+                    });
+                } catch (_) {}
+                return;
+            }
+            if (Notification.permission === 'default' && !document.hidden) {
+                Notification.requestPermission().catch(() => {});
+            }
+        };
+        const setMobileView = (view) => {
+            if (!dashboardRoot) return;
+            dashboardRoot.classList.remove('mobile-view-inbox', 'mobile-view-chat', 'mobile-view-detail');
+            dashboardRoot.classList.add(`mobile-view-${view}`);
+            if (view === 'chat' && document.hasFocus()) {
+                clearUnread();
+            }
+        };
+        const initMobileView = () => {
+            if (!isMobile()) return;
+            const openChat = sessionStorage.getItem('conv-open-chat') === '1';
+            sessionStorage.removeItem('conv-open-chat');
+            setMobileView(openChat ? 'chat' : 'inbox');
+        };
 
         if (chatPane) chatPane.scrollTop = chatPane.scrollHeight;
+        initMobileView();
+        refreshUnreadUi();
+
+        conversationItems.forEach((item) => {
+            item.addEventListener('click', () => {
+                if (!isMobile()) return;
+                sessionStorage.setItem('conv-open-chat', '1');
+            });
+        });
+        mobileBackInbox?.addEventListener('click', () => setMobileView('inbox'));
+        mobileOpenDetail?.addEventListener('click', () => setMobileView('detail'));
+        mobileBackChat?.addEventListener('click', () => setMobileView('chat'));
+        window.addEventListener('focus', () => {
+            if (isChatVisible()) clearUnread();
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && isChatVisible()) {
+                clearUnread();
+            }
+        });
+        window.addEventListener('resize', () => {
+            if (!isMobile() && dashboardRoot) {
+                dashboardRoot.classList.remove('mobile-view-inbox', 'mobile-view-chat', 'mobile-view-detail');
+                if (document.hasFocus()) clearUnread();
+            } else if (isMobile() && dashboardRoot && !dashboardRoot.classList.contains('mobile-view-inbox') && !dashboardRoot.classList.contains('mobile-view-chat') && !dashboardRoot.classList.contains('mobile-view-detail')) {
+                setMobileView('inbox');
+            }
+        });
 
         const normalize = (text) => (text || '').toString().toLowerCase().trim();
 
@@ -867,6 +1017,18 @@
                     chatPane?.appendChild(wrapper);
                     if (chatPane) chatPane.scrollTop = chatPane.scrollHeight;
                     if (chatLastMessageTime) chatLastMessageTime.textContent = 'Last Message: just now';
+
+                    const incomingOutOfView = msg.direction === 'in' && (document.hidden || !document.hasFocus() || !isChatVisible());
+                    if (incomingOutOfView) {
+                        unseenIncomingCount += 1;
+                        sidebarUnreadCount += 1;
+                        refreshUnreadUi();
+                        const senderName = msg.user?.name ?? 'Contact';
+                        notifyIncoming(senderName, msg.body ?? '');
+                    } else if (msg.direction === 'in') {
+                        sidebarUnreadCount = Math.max(0, sidebarUnreadCount);
+                        clearUnread();
+                    }
                 });
         }
 

@@ -115,6 +115,11 @@ class ConversationHubController extends Controller
         $user = $request->user();
         $this->authorizeView($conversation, $user);
 
+        if ((int) ($conversation->unread_count ?? 0) > 0) {
+            $conversation->update(['unread_count' => 0]);
+            $conversation->refresh();
+        }
+
         $conversation->load(['owner', 'participants.user']);
 
         $initialMessages = ConversationMessage::query()
@@ -156,6 +161,18 @@ class ConversationHubController extends Controller
             'oldestMessageId' => $oldestMessageId,
             'hasMoreMessages' => $hasMoreMessages,
         ]);
+    }
+
+    public function read(Request $request, Conversation $conversation): JsonResponse
+    {
+        $user = $request->user();
+        $this->authorizeView($conversation, $user);
+
+        if ((int) ($conversation->unread_count ?? 0) > 0) {
+            $conversation->update(['unread_count' => 0]);
+        }
+
+        return response()->json(['ok' => true]);
     }
 
     public function messages(Request $request, Conversation $conversation): JsonResponse

@@ -12,6 +12,9 @@ Route::middleware(['web', 'auth'])
         Route::post('/start', [ConversationHubController::class, 'start'])->name('start');
         Route::get('/{conversation}', [ConversationHubController::class, 'show'])->name('show');
         Route::get('/{conversation}/messages', [ConversationHubController::class, 'messages'])->name('messages');
+        Route::post('/{conversation}/read', [ConversationHubController::class, 'read'])
+            ->middleware('throttle:60,1')
+            ->name('read');
         Route::get('/{conversation}/logs', [ActivityController::class, 'index'])->name('logs');
         Route::post('/{conversation}/claim', [ConversationHubController::class, 'claim'])
             ->middleware('throttle:30,1')

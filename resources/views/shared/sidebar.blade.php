@@ -73,6 +73,38 @@
             @php
                 $moduleManager = app(\App\Support\ModuleManager::class);
                 $currentRouteName = optional(request()->route())->getName();
+                $conversationUnreadTotal = 0;
+                if (auth()->check()
+                    && class_exists(\App\Modules\Conversations\Models\Conversation::class)
+                    && \Illuminate\Support\Facades\Schema::hasTable('conversations')) {
+                    $conversationQuery = \App\Modules\Conversations\Models\Conversation::query()
+                        ->where('unread_count', '>', 0);
+
+                    $authUser = auth()->user();
+                    if (!$authUser->hasRole('Super-admin')) {
+                        $conversationQuery->where(function ($q) use ($authUser) {
+                            $q->where('owner_id', $authUser->id)
+                                ->orWhereHas('participants', fn ($p) => $p->where('user_id', $authUser->id));
+
+                            if (\Illuminate\Support\Facades\Schema::hasTable('whatsapp_instances')
+                                && \Illuminate\Support\Facades\Schema::hasTable('whatsapp_instance_user')) {
+                                $instanceIds = \Illuminate\Support\Facades\DB::table('whatsapp_instance_user')
+                                    ->where('user_id', $authUser->id)
+                                    ->pluck('instance_id')
+                                    ->all();
+
+                                if (!empty($instanceIds)) {
+                                    $q->orWhere(function ($waQ) use ($instanceIds) {
+                                        $waQ->where('channel', 'wa_api')
+                                            ->whereIn('instance_id', $instanceIds);
+                                    });
+                                }
+                            }
+                        });
+                    }
+
+                    $conversationUnreadTotal = (int) $conversationQuery->sum('unread_count');
+                }
                 $allModules = collect($moduleManager->all());
                 $moduleMenus = $allModules
                     ->filter(fn($module) => $module['installed'] && $module['active'])
@@ -117,6 +149,9 @@
 
                 @if($single)
                     @php $item = $menu['items']->first(); @endphp
+                    @php
+                        $isConversationRoute = str_starts_with((string) $item['route'], 'conversations.');
+                    @endphp
                     <li class="nav-item">
                         <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ $isOpen ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route($item['route']) }}">
                             <span class="nav-link-icon">
@@ -126,6 +161,14 @@
                                 </svg>
                             </span>
                             <span class="nav-link-title">{{ $menu['name'] }}</span>
+                            @if($isConversationRoute)
+                                <span
+                                    id="sidebar-conv-unread-badge"
+                                    data-count="{{ $conversationUnreadTotal }}"
+                                    class="badge bg-red-lt text-red ms-auto {{ $conversationUnreadTotal > 0 ? '' : 'd-none' }}">
+                                    {{ $conversationUnreadTotal }}
+                                </span>
+                            @endif
                         </a>
                     </li>
                 @else
@@ -138,6 +181,14 @@
                                 </svg>
                             </span>
                             <span class="nav-link-title">{{ $menu['name'] }}</span>
+                            @if(collect($routes)->contains(fn($r) => str_starts_with((string) $r, 'conversations.')))
+                                <span
+                                    id="sidebar-conv-unread-badge"
+                                    data-count="{{ $conversationUnreadTotal }}"
+                                    class="badge bg-red-lt text-red ms-auto {{ $conversationUnreadTotal > 0 ? '' : 'd-none' }}">
+                                    {{ $conversationUnreadTotal }}
+                                </span>
+                            @endif
                         </a>
                         <div class="dropdown-menu position-static border-0 shadow-none px-0 py-1 ms-4 {{ $isOpen ? 'show' : '' }}">
                             @foreach($menu['items'] as $item)

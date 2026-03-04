@@ -10,6 +10,7 @@ use App\Modules\Conversations\Models\ConversationParticipant;
 use App\Modules\Conversations\Models\ConversationActivityLog;
 use App\Modules\Conversations\Events\ConversationMessageCreated;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -43,18 +44,26 @@ class ConversationHubController extends Controller
         $pair = collect([$me->id, $otherId])->sort()->implode('-');
         $contactKey = 'internal-' . $pair;
 
-        $conversation = Conversation::firstOrCreate(
-            [
+        // Backward compatible lookup for historical rows that may still use NULL instance_id.
+        $conversation = Conversation::query()
+            ->where('channel', 'internal')
+            ->where('contact_external_id', $contactKey)
+            ->where(function ($q) {
+                $q->whereNull('instance_id')
+                    ->orWhere('instance_id', 0);
+            })
+            ->first();
+
+        if (!$conversation) {
+            $conversation = Conversation::create([
                 'channel' => 'internal',
-                'instance_id' => null,
+                'instance_id' => 0,
                 'contact_external_id' => $contactKey,
-            ],
-            [
                 'contact_name' => $otherName,
                 'status' => 'open',
                 'last_message_at' => now(),
-            ]
-        );
+            ]);
+        }
 
         ConversationParticipant::firstOrCreate(
             ['conversation_id' => $conversation->id, 'user_id' => $me->id],
@@ -106,9 +115,25 @@ class ConversationHubController extends Controller
         $user = $request->user();
         $this->authorizeView($conversation, $user);
 
-        $conversation->load(['owner', 'participants.user', 'messages' => function ($q) {
-            $q->orderBy('created_at');
-        }]);
+        $conversation->load(['owner', 'participants.user']);
+
+        $initialMessages = ConversationMessage::query()
+            ->with('user:id,name,avatar')
+            ->where('conversation_id', $conversation->id)
+            ->orderByDesc('id')
+            ->limit(30)
+            ->get()
+            ->sortBy('id')
+            ->values();
+
+        $conversation->setRelation('messages', $initialMessages);
+        $oldestMessageId = $initialMessages->first()->id ?? null;
+        $hasMoreMessages = $oldestMessageId
+            ? ConversationMessage::query()
+                ->where('conversation_id', $conversation->id)
+                ->where('id', '<', $oldestMessageId)
+                ->exists()
+            : false;
 
         $conversationsList = $this->baseQuery($user)
             ->orderByDesc('last_message_at')
@@ -128,32 +153,109 @@ class ConversationHubController extends Controller
             'lockMinutes' => $lockMinutes,
             'waTemplates' => $waTemplates,
             'waModuleReady' => $waModuleReady,
+            'oldestMessageId' => $oldestMessageId,
+            'hasMoreMessages' => $hasMoreMessages,
+        ]);
+    }
+
+    public function messages(Request $request, Conversation $conversation): JsonResponse
+    {
+        $user = $request->user();
+        $this->authorizeView($conversation, $user);
+
+        $beforeId = (int) $request->integer('before_id', 0);
+        $limit = (int) $request->integer('limit', 30);
+        $limit = max(10, min(50, $limit));
+
+        $query = ConversationMessage::query()
+            ->with('user:id,name,avatar')
+            ->where('conversation_id', $conversation->id);
+
+        if ($beforeId > 0) {
+            $query->where('id', '<', $beforeId);
+        }
+
+        $messages = $query->orderByDesc('id')
+            ->limit($limit)
+            ->get();
+
+        $oldestId = $messages->last()?->id;
+        $hasMore = $oldestId
+            ? ConversationMessage::query()
+                ->where('conversation_id', $conversation->id)
+                ->where('id', '<', $oldestId)
+                ->exists()
+            : false;
+
+        $payload = $messages->sortBy('id')->values()->map(function (ConversationMessage $msg) {
+            return [
+                'id' => $msg->id,
+                'direction' => $msg->direction,
+                'type' => $msg->type,
+                'body' => $msg->body,
+                'status' => $msg->status,
+                'created_at' => optional($msg->created_at)->format('d M H:i') ?? '',
+                'user' => $msg->user ? [
+                    'name' => $msg->user->name,
+                    'avatar' => $msg->user->avatar,
+                ] : null,
+            ];
+        });
+
+        return response()->json([
+            'messages' => $payload,
+            'has_more' => $hasMore,
+            'oldest_id' => $oldestId,
         ]);
     }
 
     public function claim(Request $request, Conversation $conversation): RedirectResponse
     {
         $user = $request->user();
+        $this->authorizeView($conversation, $user);
         $lockMinutes = (int) config('conversations.lock_minutes', 30);
         $now = now();
 
-        $isLocked = $conversation->owner_id && $conversation->owner_id !== $user->id && $conversation->locked_until && $conversation->locked_until->isFuture();
-        if ($isLocked) {
+        $lockedByOther = false;
+
+        DB::transaction(function () use ($conversation, $user, $lockMinutes, $now, &$lockedByOther) {
+            $current = Conversation::query()
+                ->whereKey($conversation->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$current) {
+                $lockedByOther = true;
+                return;
+            }
+
+            $isLocked = $current->owner_id
+                && $current->owner_id !== $user->id
+                && $current->locked_until
+                && $current->locked_until->isFuture();
+
+            if ($isLocked) {
+                $lockedByOther = true;
+                return;
+            }
+
+            $current->update([
+                'owner_id' => $user->id,
+                'claimed_at' => $now,
+                'locked_until' => $now->copy()->addMinutes($lockMinutes),
+            ]);
+
+            ConversationParticipant::updateOrCreate(
+                ['conversation_id' => $current->id, 'user_id' => $user->id],
+                ['role' => 'owner', 'invited_at' => $now, 'invited_by' => $user->id]
+            );
+
+            $this->log($current, $user->id, 'claim', 'Percakapan diklaim');
+        });
+
+        if ($lockedByOther) {
             return back()->with('status', 'Percakapan sedang diklaim orang lain.');
         }
-
-        $conversation->update([
-            'owner_id' => $user->id,
-            'claimed_at' => $now,
-            'locked_until' => $now->copy()->addMinutes($lockMinutes),
-        ]);
-
-        ConversationParticipant::updateOrCreate(
-            ['conversation_id' => $conversation->id, 'user_id' => $user->id],
-            ['role' => 'owner', 'invited_at' => $now, 'invited_by' => $user->id]
-        );
-
-        $this->log($conversation, $user->id, 'claim', 'Percakapan diklaim');
 
         return back()->with('status', 'Percakapan berhasil diklaim.');
     }
@@ -332,7 +434,18 @@ class ConversationHubController extends Controller
 
     private function baseQuery(User $user)
     {
-        $query = Conversation::with(['owner']);
+        $query = Conversation::with([
+            'owner',
+            'latestMessage' => function ($q) {
+                $q->select([
+                    'conversation_messages.id',
+                    'conversation_messages.conversation_id',
+                    'conversation_messages.body',
+                    'conversation_messages.type',
+                    'conversation_messages.created_at',
+                ]);
+            },
+        ]);
         if ($this->isWhatsAppApiReady()) {
             $query->with('instance');
         }

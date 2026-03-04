@@ -28,20 +28,28 @@ class WebhookController extends Controller
             return response()->json(['message' => 'Invalid token'], Response::HTTP_UNAUTHORIZED);
         }
 
-        $conversation = Conversation::firstOrCreate(
-            [
+        // Backward compatible lookup for records that may use NULL/0 as non-instance key.
+        $conversation = Conversation::query()
+            ->where('channel', 'wa_bro')
+            ->where('contact_external_id', $data['contact_id'])
+            ->where(function ($q) {
+                $q->whereNull('instance_id')
+                    ->orWhere('instance_id', 0);
+            })
+            ->first();
+
+        if (!$conversation) {
+            $conversation = Conversation::create([
                 'channel' => 'wa_bro',
-                'instance_id' => null,
+                'instance_id' => 0,
                 'contact_external_id' => $data['contact_id'],
-            ],
-            [
                 'contact_name' => $data['contact_name'] ?? null,
                 'status' => 'open',
                 'last_message_at' => now(),
                 'last_incoming_at' => now(),
                 'unread_count' => 1,
-            ]
-        );
+            ]);
+        }
 
         $conversation->update([
             'contact_name' => $data['contact_name'] ?? $conversation->contact_name,

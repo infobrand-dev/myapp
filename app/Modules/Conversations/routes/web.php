@@ -11,9 +11,18 @@ Route::middleware(['web', 'auth'])
         Route::get('/', [ConversationHubController::class, 'index'])->name('index');
         Route::post('/start', [ConversationHubController::class, 'start'])->name('start');
         Route::get('/{conversation}', [ConversationHubController::class, 'show'])->name('show');
+        Route::get('/{conversation}/messages', [ConversationHubController::class, 'messages'])->name('messages');
         Route::get('/{conversation}/logs', [ActivityController::class, 'index'])->name('logs');
-        Route::post('/{conversation}/claim', [ConversationHubController::class, 'claim'])->name('claim');
-        Route::post('/{conversation}/release', [ConversationHubController::class, 'release'])->name('release');
-        Route::post('/{conversation}/invite', [ConversationHubController::class, 'invite'])->name('invite');
-        Route::post('/{conversation}/message', [ConversationHubController::class, 'send'])->name('send');
+        Route::post('/{conversation}/claim', [ConversationHubController::class, 'claim'])
+            ->middleware('throttle:30,1')
+            ->name('claim');
+        Route::post('/{conversation}/release', [ConversationHubController::class, 'release'])
+            ->middleware('throttle:30,1')
+            ->name('release');
+        Route::post('/{conversation}/invite', [ConversationHubController::class, 'invite'])
+            ->middleware('throttle:20,1')
+            ->name('invite');
+        Route::post('/{conversation}/message', [ConversationHubController::class, 'send'])
+            ->middleware('throttle:60,1')
+            ->name('send');
     });

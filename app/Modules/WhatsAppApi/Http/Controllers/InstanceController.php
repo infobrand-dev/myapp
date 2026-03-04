@@ -213,7 +213,7 @@ class InstanceController extends Controller
 
     private function executeCloudCredentialTest(string $phoneNumberId, string $businessId, string $cloudToken): array
     {
-        $base = rtrim((string) config('services.wa_cloud.base_url', 'https://graph.facebook.com/v20.0'), '/');
+        $base = rtrim((string) config('services.wa_cloud.base_url', 'https://graph.facebook.com/v22.0'), '/');
         $steps = [];
 
         // Step 1: token validity
@@ -434,7 +434,7 @@ class InstanceController extends Controller
 
     private function executeCloudTemplateSync(string $businessId, string $cloudToken): array
     {
-        $base = rtrim((string) config('services.wa_cloud.base_url', 'https://graph.facebook.com/v20.0'), '/');
+        $base = rtrim((string) config('services.wa_cloud.base_url', 'https://graph.facebook.com/v22.0'), '/');
         $url = "{$base}/{$businessId}/message_templates";
 
         $created = 0;

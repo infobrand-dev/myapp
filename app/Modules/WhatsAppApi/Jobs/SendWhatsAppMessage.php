@@ -117,7 +117,7 @@ class SendWhatsAppMessage implements ShouldQueue
 
     private function sendViaCloud(ConversationMessage $message, string $to, WhatsAppInstance $instance): void
     {
-        $base = rtrim(config('services.wa_cloud.base_url', 'https://graph.facebook.com/v20.0'), '/');
+        $base = rtrim(config('services.wa_cloud.base_url', 'https://graph.facebook.com/v22.0'), '/');
         $phoneId = $instance->phone_number_id;
         $token = $instance->cloud_token;
 

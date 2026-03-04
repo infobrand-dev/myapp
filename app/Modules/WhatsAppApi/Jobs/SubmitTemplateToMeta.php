@@ -36,7 +36,7 @@ class SubmitTemplateToMeta implements ShouldQueue
 
         $businessId = $instance->cloud_business_account_id;
         $token = $instance->cloud_token;
-        $base = rtrim(config('services.wa_cloud.base_url', 'https://graph.facebook.com/v20.0'), '/');
+        $base = rtrim(config('services.wa_cloud.base_url', 'https://graph.facebook.com/v22.0'), '/');
 
         if (!$businessId || !$token) {
             $template?->update(['status' => 'inactive', 'last_submit_error' => 'Missing business_id/token']);

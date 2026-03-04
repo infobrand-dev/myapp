@@ -31,7 +31,7 @@ return [
     ],
 
     'meta' => [
-        'graph_version' => env('META_GRAPH_VERSION', 'v20.0'),
+        'graph_version' => env('META_GRAPH_VERSION', 'v22.0'),
         'page_token' => env('META_PAGE_TOKEN'),
         'page_id' => env('META_PAGE_ID'),
         'ig_business_id' => env('META_IG_BUSINESS_ID'),
@@ -44,7 +44,7 @@ return [
     ],
 
     'wa_cloud' => [
-        'base_url' => env('WA_CLOUD_BASE_URL', 'https://graph.facebook.com/v20.0'),
+        'base_url' => env('WA_CLOUD_BASE_URL', 'https://graph.facebook.com/v22.0'),
         'phone_number_id' => env('WA_CLOUD_PHONE_NUMBER_ID'),
         'token' => env('WA_CLOUD_ACCESS_TOKEN'),
         'verify_token' => env('WA_CLOUD_VERIFY_TOKEN', 'changeme'),

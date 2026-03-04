@@ -34,7 +34,7 @@ class SendSocialMessage implements ShouldQueue
         $recipient = $message->conversation->contact_external_id;
         $accountId = $message->conversation->instance_id;
         $account = $accountId ? SocialAccount::find($accountId) : null;
-        $graphVersion = config('services.meta.graph_version', 'v20.0');
+        $graphVersion = config('services.meta.graph_version', 'v22.0');
         $pageToken = $account->access_token ?? config('services.meta.page_token');
         $pageId = $account->page_id ?? config('services.meta.page_id');
         $igBusinessId = $account->ig_business_id ?? config('services.meta.ig_business_id');

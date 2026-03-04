@@ -12,8 +12,10 @@ use App\Modules\Conversations\Events\ConversationMessageCreated;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
+use Throwable;
 
 class ConversationHubController extends Controller
 {
@@ -283,7 +285,7 @@ class ConversationHubController extends Controller
 
         if ($message) {
             $this->dispatchOutboundJob($conversation->channel, (int) $message->id);
-            broadcast(new ConversationMessageCreated($message))->toOthers();
+            $this->safeBroadcastMessageCreated($message);
         }
 
         $this->log($conversation, $user->id, 'send', 'Kirim pesan');
@@ -506,6 +508,20 @@ class ConversationHubController extends Controller
             if (class_exists($socialJobClass)) {
                 $socialJobClass::dispatch($messageId);
             }
+        }
+    }
+
+    private function safeBroadcastMessageCreated(ConversationMessage $message): void
+    {
+        try {
+            broadcast(new ConversationMessageCreated($message))->toOthers();
+        } catch (Throwable $e) {
+            // Realtime is optional; do not block message send when broadcaster is misconfigured.
+            Log::warning('Broadcast skipped: ' . $e->getMessage(), [
+                'conversation_id' => $message->conversation_id,
+                'message_id' => $message->id,
+                'broadcast_driver' => (string) config('broadcasting.default'),
+            ]);
         }
     }
 }

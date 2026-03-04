@@ -133,6 +133,7 @@ class ConversationHubController extends Controller
 
         $conversation->setRelation('messages', $initialMessages);
         $oldestMessageId = $initialMessages->first()->id ?? null;
+        $latestMessageId = $initialMessages->last()->id ?? null;
         $hasMoreMessages = $oldestMessageId
             ? ConversationMessage::query()
                 ->where('conversation_id', $conversation->id)
@@ -159,6 +160,7 @@ class ConversationHubController extends Controller
             'waTemplates' => $waTemplates,
             'waModuleReady' => $waModuleReady,
             'oldestMessageId' => $oldestMessageId,
+            'latestMessageId' => $latestMessageId,
             'hasMoreMessages' => $hasMoreMessages,
         ]);
     }
@@ -223,6 +225,39 @@ class ConversationHubController extends Controller
             'messages' => $payload,
             'has_more' => $hasMore,
             'oldest_id' => $oldestId,
+        ]);
+    }
+
+    public function messagesSince(Request $request, Conversation $conversation): JsonResponse
+    {
+        $user = $request->user();
+        $this->authorizeView($conversation, $user);
+
+        $afterId = (int) $request->integer('after_id', 0);
+        $limit = (int) $request->integer('limit', 30);
+        $limit = max(5, min(50, $limit));
+
+        $query = ConversationMessage::query()
+            ->with('user:id,name,avatar')
+            ->where('conversation_id', $conversation->id);
+
+        if ($afterId > 0) {
+            $query->where('id', '>', $afterId);
+        }
+
+        $messages = $query->orderBy('id')
+            ->limit($limit)
+            ->get();
+
+        $latestId = $messages->last()?->id ?? $afterId;
+
+        $payload = $messages->map(function (ConversationMessage $msg) {
+            return $this->messagePayload($msg);
+        })->values();
+
+        return response()->json([
+            'messages' => $payload,
+            'latest_id' => $latestId,
         ]);
     }
 

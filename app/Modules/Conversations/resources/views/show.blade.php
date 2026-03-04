@@ -648,7 +648,7 @@
                 <div class="detail-row"><span class="detail-key">Kontak</span><span class="detail-value">{{ $conversation->contact_name ?? $conversation->contact_external_id ?? 'Internal' }}</span></div>
                 <div class="detail-row"><span class="detail-key">Owner</span><span class="detail-value">{{ $conversation->owner->name ?? 'Unassigned' }}</span></div>
                 <div class="detail-row"><span class="detail-key">Status</span><span class="detail-value">{{ ucfirst($conversation->status) }}</span></div>
-                <div class="detail-row"><span class="detail-key">Last message</span><span class="detail-value">{{ optional($conversation->last_message_at)->diffForHumans() ?? '-' }}</span></div>
+                <div class="detail-row"><span class="detail-key">Last message</span><span class="detail-value" id="detail-last-message-time">{{ optional($conversation->last_message_at)->diffForHumans() ?? '-' }}</span></div>
                 @if(($waModuleReady ?? false) && $conversation->instance)
                     <div class="detail-row"><span class="detail-key">Instance</span><span class="detail-value">{{ $conversation->instance->name }}</span></div>
                 @endif
@@ -728,6 +728,8 @@
         const convId = {{ $conversation->id }};
         const sidebarUnreadBadge = document.getElementById('sidebar-conv-unread-badge');
         const chatLastMessageTime = document.getElementById('chat-last-message-time');
+        const detailLastMessageTime = document.getElementById('detail-last-message-time');
+        const activeInboxPreview = document.querySelector('.conv-item.active .conv-item-preview');
         const sendForm = document.getElementById('send-form');
         const templateForm = document.getElementById('template-form');
         const messageInput = document.getElementById('message-input');
@@ -739,11 +741,14 @@
         const lockedUntil = "{{ optional($conversation->locked_until)->toIso8601String() }}";
         const chatLoader = document.getElementById('chat-loader');
         const messagesEndpoint = "{{ route('conversations.messages', $conversation) }}";
+        const messagesSinceEndpoint = "{{ route('conversations.messages.since', $conversation) }}";
         const markReadEndpoint = "{{ route('conversations.read', $conversation) }}";
         const csrfToken = @json(csrf_token());
         let oldestMessageId = @json($oldestMessageId);
+        let latestMessageId = @json($latestMessageId);
         let hasMoreMessages = @json($hasMoreMessages);
         let loadingOlder = false;
+        let pollingInFlight = false;
         const filterTabs = document.querySelectorAll('#conversation-filter-tabs [data-filter]');
         const conversationSearch = document.getElementById('conversation-search');
         const conversationItems = Array.from(document.querySelectorAll('.conv-list .conv-item'));
@@ -802,6 +807,11 @@
             sendFeedback.textContent = message;
             sendFeedback.classList.remove('d-none', 'text-danger', 'text-success');
             sendFeedback.classList.add(variant === 'success' ? 'text-success' : 'text-danger');
+        };
+        const updateMessageRelatedUi = (msg) => {
+            if (chatLastMessageTime) chatLastMessageTime.textContent = 'Last Message: just now';
+            if (detailLastMessageTime) detailLastMessageTime.textContent = 'just now';
+            if (activeInboxPreview) activeInboxPreview.textContent = (msg?.body || 'New message').toString();
         };
         const notifyIncoming = (name, body) => {
             if (!('Notification' in window)) return;
@@ -955,6 +965,22 @@
             return wrapper;
         };
 
+        const appendIfNew = (msg, shouldScrollToBottom = false) => {
+            const id = Number(msg.id);
+            if (Number.isFinite(id) && renderedMessageIds.has(id)) return false;
+            if (Number.isFinite(id) && id > 0) {
+                renderedMessageIds.add(id);
+                latestMessageId = Math.max(Number(latestMessageId || 0), id);
+            }
+            const wrapper = buildMessageNode(msg);
+            chatPane?.appendChild(wrapper);
+            if (shouldScrollToBottom && chatPane) {
+                chatPane.scrollTop = chatPane.scrollHeight;
+            }
+            updateMessageRelatedUi(msg);
+            return true;
+        };
+
         const loadOlderMessages = async () => {
             if (!chatPane || loadingOlder || !hasMoreMessages || !oldestMessageId) return;
             loadingOlder = true;
@@ -1006,6 +1032,43 @@
             });
         }
 
+        const pollLatestMessages = async () => {
+            if (pollingInFlight) return;
+            pollingInFlight = true;
+            try {
+                const url = `${messagesSinceEndpoint}?after_id=${encodeURIComponent(latestMessageId || 0)}&limit=20`;
+                const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } });
+                if (!response.ok) throw new Error('poll failed');
+                const payload = await response.json();
+                const list = Array.isArray(payload.messages) ? payload.messages : [];
+                if (list.length) {
+                    const shouldStickBottom = chatPane ? ((chatPane.scrollHeight - chatPane.scrollTop - chatPane.clientHeight) < 80) : false;
+                    list.forEach((msg) => {
+                        const inserted = appendIfNew(msg, shouldStickBottom);
+                        if (!inserted) return;
+                        const incomingOutOfView = msg.direction === 'in' && (document.hidden || !document.hasFocus() || !isChatVisible());
+                        if (incomingOutOfView) {
+                            unseenIncomingCount += 1;
+                            sidebarUnreadCount += 1;
+                            refreshUnreadUi();
+                            const senderName = msg.user?.name ?? 'Contact';
+                            notifyIncoming(senderName, msg.body ?? '');
+                        } else if (msg.direction === 'in') {
+                            clearUnread();
+                        }
+                    });
+                }
+                if (payload.latest_id) {
+                    latestMessageId = Math.max(Number(latestMessageId || 0), Number(payload.latest_id || 0));
+                }
+            } catch (_) {
+                // keep silent; polling is best-effort fallback
+            } finally {
+                pollingInFlight = false;
+            }
+        };
+        setInterval(pollLatestMessages, 4000);
+
         const sendMessageForm = async (formEl) => {
             if (!formEl || sendInFlight) return;
             sendInFlight = true;
@@ -1032,14 +1095,7 @@
 
                 const msg = payload?.message;
                 if (msg) {
-                    const id = Number(msg.id);
-                    if (!Number.isFinite(id) || !renderedMessageIds.has(id)) {
-                        if (Number.isFinite(id) && id > 0) renderedMessageIds.add(id);
-                        const wrapper = buildMessageNode(msg);
-                        chatPane?.appendChild(wrapper);
-                        if (chatPane) chatPane.scrollTop = chatPane.scrollHeight;
-                    }
-                    if (chatLastMessageTime) chatLastMessageTime.textContent = 'Last Message: just now';
+                    appendIfNew(msg, true);
                 }
 
                 if (formEl === sendForm && messageInput) {
@@ -1088,13 +1144,9 @@
             window.Echo.private('conversations.' + convId)
                 .listen('App\\Modules\\Conversations\\Events\\ConversationMessageCreated', (e) => {
                     const msg = e.message;
-                    const id = Number(msg.id);
-                    if (Number.isFinite(id) && renderedMessageIds.has(id)) return;
-                    if (Number.isFinite(id) && id > 0) renderedMessageIds.add(id);
-                    const wrapper = buildMessageNode(msg);
-                    chatPane?.appendChild(wrapper);
-                    if (chatPane) chatPane.scrollTop = chatPane.scrollHeight;
-                    if (chatLastMessageTime) chatLastMessageTime.textContent = 'Last Message: just now';
+                    const shouldStickBottom = chatPane ? ((chatPane.scrollHeight - chatPane.scrollTop - chatPane.clientHeight) < 80) : true;
+                    const inserted = appendIfNew(msg, shouldStickBottom);
+                    if (!inserted) return;
 
                     const incomingOutOfView = msg.direction === 'in' && (document.hidden || !document.hasFocus() || !isChatVisible());
                     if (incomingOutOfView) {

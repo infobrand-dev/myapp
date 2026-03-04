@@ -330,14 +330,14 @@ class ConversationHubController extends Controller
         return back()->with('status', 'Pengguna diundang.');
     }
 
-    public function send(Request $request, Conversation $conversation): RedirectResponse
+    public function send(Request $request, Conversation $conversation): RedirectResponse|JsonResponse
     {
         $user = $request->user();
 
         $this->authorizeParticipant($conversation, $user);
 
         if ($conversation->channel === 'wa_api' && (!$conversation->instance_id || !$this->waInstanceExists((int) $conversation->instance_id))) {
-            return back()->with('status', 'Instance untuk percakapan WA API tidak ditemukan. Pastikan WA Instance masih aktif.');
+            return $this->sendErrorResponse($request, 'Instance untuk percakapan WA API tidak ditemukan. Pastikan WA Instance masih aktif.');
         }
 
         $mode = $conversation->channel === 'wa_api'
@@ -346,7 +346,7 @@ class ConversationHubController extends Controller
 
         if ($mode === 'template') {
             if (!$this->isWaTemplateReady()) {
-                return back()->with('status', 'Template WA belum tersedia. Aktifkan module WhatsApp API terlebih dahulu.');
+                return $this->sendErrorResponse($request, 'Template WA belum tersedia. Aktifkan module WhatsApp API terlebih dahulu.');
             }
 
             $data = $request->validate([
@@ -357,14 +357,14 @@ class ConversationHubController extends Controller
 
             $template = $this->waTemplateModelClass()::find($data['template_id']);
             if (!$template) {
-                return back()->with('status', 'Template tidak ditemukan.');
+                return $this->sendErrorResponse($request, 'Template tidak ditemukan.');
             }
             $payload = $this->buildTemplatePayload($template, $request->input('template_params', []));
 
             // Pastikan semua placeholder terisi
             foreach ($payload['placeholders'] as $idx) {
                 if (!isset($request->input('template_params')[$idx]) || trim($request->input('template_params')[$idx]) === '') {
-                    return back()->with('status', "Nilai untuk placeholder {{$idx}} wajib diisi.");
+                    return $this->sendErrorResponse($request, "Nilai untuk placeholder {{$idx}} wajib diisi.");
                 }
             }
 
@@ -383,7 +383,7 @@ class ConversationHubController extends Controller
             ]);
 
             if ($conversation->channel === 'wa_api' && !$this->isWithinWaCustomerCareWindow($conversation)) {
-                return back()->with('status', 'Di luar jendela 24 jam. Gunakan template message untuk mengirim pesan.');
+                return $this->sendErrorResponse($request, 'Di luar jendela 24 jam. Gunakan template message untuk mengirim pesan.');
             }
 
             $message = ConversationMessage::create([
@@ -409,7 +409,41 @@ class ConversationHubController extends Controller
 
         $this->log($conversation, $user->id, 'send', 'Kirim pesan');
 
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'ok' => true,
+                'message' => $this->messagePayload($message),
+            ]);
+        }
+
         return redirect()->route('conversations.show', $conversation)->with('status', 'Pesan terkirim.');
+    }
+
+    private function sendErrorResponse(Request $request, string $message): RedirectResponse|JsonResponse
+    {
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json(['message' => $message], 422);
+        }
+
+        return back()->with('status', $message);
+    }
+
+    private function messagePayload(ConversationMessage $message): array
+    {
+        $message->loadMissing('user:id,name,avatar');
+
+        return [
+            'id' => $message->id,
+            'direction' => $message->direction,
+            'type' => $message->type,
+            'body' => $message->body,
+            'status' => $message->status,
+            'created_at' => optional($message->created_at)->format('d M H:i') ?? '',
+            'user' => $message->user ? [
+                'name' => $message->user->name,
+                'avatar' => $message->user->avatar,
+            ] : null,
+        ];
     }
 
     private function isWithinWaCustomerCareWindow(Conversation $conversation): bool

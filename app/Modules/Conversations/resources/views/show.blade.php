@@ -597,6 +597,7 @@
                         <input type="text" name="body" class="form-control" placeholder="Type a message..." required autocomplete="off" id="message-input">
                         <button class="btn btn-primary" type="submit">Send</button>
                     </div>
+                    <div id="send-feedback" class="small mt-2 text-danger d-none"></div>
                 </form>
                 @if($conversation->channel === 'wa_api' && $waTemplates->isNotEmpty())
                     <div class="section-divider">
@@ -727,6 +728,10 @@
         const convId = {{ $conversation->id }};
         const sidebarUnreadBadge = document.getElementById('sidebar-conv-unread-badge');
         const chatLastMessageTime = document.getElementById('chat-last-message-time');
+        const sendForm = document.getElementById('send-form');
+        const templateForm = document.getElementById('template-form');
+        const messageInput = document.getElementById('message-input');
+        const sendFeedback = document.getElementById('send-feedback');
         const mobileBackInbox = document.getElementById('mobile-back-inbox');
         const mobileOpenDetail = document.getElementById('mobile-open-detail');
         const mobileBackChat = document.getElementById('mobile-back-chat');
@@ -753,6 +758,7 @@
         const basePageTitle = document.title;
         let sidebarUnreadCount = Number(sidebarUnreadBadge?.dataset.count ?? 0) || 0;
         let readSyncInFlight = false;
+        let sendInFlight = false;
 
         const isMobile = () => window.matchMedia('(max-width: 991.98px)').matches;
         const isChatVisible = () => !isMobile() || dashboardRoot?.classList.contains('mobile-view-chat');
@@ -784,6 +790,18 @@
             unseenIncomingCount = 0;
             refreshUnreadUi();
             syncReadToServer();
+        };
+        const setSendFeedback = (message = '', variant = 'danger') => {
+            if (!sendFeedback) return;
+            if (!message) {
+                sendFeedback.classList.add('d-none');
+                sendFeedback.textContent = '';
+                sendFeedback.classList.remove('text-danger', 'text-success');
+                return;
+            }
+            sendFeedback.textContent = message;
+            sendFeedback.classList.remove('d-none', 'text-danger', 'text-success');
+            sendFeedback.classList.add(variant === 'success' ? 'text-success' : 'text-danger');
         };
         const notifyIncoming = (name, body) => {
             if (!('Notification' in window)) return;
@@ -987,6 +1005,66 @@
                 }
             });
         }
+
+        const sendMessageForm = async (formEl) => {
+            if (!formEl || sendInFlight) return;
+            sendInFlight = true;
+            setSendFeedback('');
+            const submitBtn = formEl.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
+
+            try {
+                const response = await fetch(formEl.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                    },
+                    body: new FormData(formEl),
+                });
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    const message = payload?.message || payload?.errors?.body?.[0] || payload?.errors?.template_id?.[0] || 'Failed to send message.';
+                    setSendFeedback(message, 'danger');
+                    return;
+                }
+
+                const msg = payload?.message;
+                if (msg) {
+                    const id = Number(msg.id);
+                    if (!Number.isFinite(id) || !renderedMessageIds.has(id)) {
+                        if (Number.isFinite(id) && id > 0) renderedMessageIds.add(id);
+                        const wrapper = buildMessageNode(msg);
+                        chatPane?.appendChild(wrapper);
+                        if (chatPane) chatPane.scrollTop = chatPane.scrollHeight;
+                    }
+                    if (chatLastMessageTime) chatLastMessageTime.textContent = 'Last Message: just now';
+                }
+
+                if (formEl === sendForm && messageInput) {
+                    messageInput.value = '';
+                    messageInput.focus();
+                }
+                if (formEl === templateForm) {
+                    formEl.reset();
+                }
+            } catch (_) {
+                setSendFeedback('Network error while sending message.', 'danger');
+            } finally {
+                sendInFlight = false;
+                if (submitBtn) submitBtn.disabled = false;
+            }
+        };
+
+        sendForm?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            sendMessageForm(sendForm);
+        });
+        templateForm?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            sendMessageForm(templateForm);
+        });
 
         if (lockSpan && lockedUntil) {
             let lockTimer = null;

@@ -3,88 +3,92 @@
 @section('content')
 <style>
     .conv-dashboard {
-        --conv-bg: linear-gradient(180deg, #f6f8fb 0%, #f9fbfd 100%);
-        --conv-card-shadow: 0 10px 26px rgba(25, 42, 70, 0.06);
-        --conv-soft-border: rgba(74, 96, 126, 0.12);
-        --conv-muted: #64748b;
-        --conv-chat-bg: radial-gradient(circle at top right, rgba(32, 107, 196, 0.08), transparent 40%), #f8fafc;
+        --conv-shell-bg: #f8fafc;
+        --conv-surface: #ffffff;
+        --conv-border: rgba(74, 96, 126, 0.16);
+        --conv-border-soft: rgba(74, 96, 126, 0.1);
+        --conv-muted: #66788a;
+        --conv-text: #223446;
+        --conv-primary: #206bc4;
+        color: var(--conv-text);
     }
-    .conv-dashboard .conv-panel {
-        border: 0;
-        border-radius: 1rem;
-        box-shadow: var(--conv-card-shadow);
-        background: #fff;
+    .conv-dashboard .conv-surface {
+        background: var(--conv-surface);
+        border: 1px solid var(--conv-border-soft);
+        border-radius: .9rem;
     }
     .conv-dashboard .conv-section-title {
         letter-spacing: .01em;
-        font-size: .95rem;
+        font-size: .9rem;
         font-weight: 600;
+        color: #41566d;
+        margin: 0;
     }
     .conv-dashboard .conv-list {
         max-height: 65vh;
         overflow: auto;
-        background: var(--conv-bg);
-        border-radius: .9rem;
+        background: var(--conv-shell-bg);
+        border-radius: .75rem;
+        padding: .3rem;
     }
     .conv-dashboard .conv-item {
-        margin: .35rem;
-        border-radius: .8rem;
+        margin: .2rem;
+        border-radius: .65rem;
         border: 1px solid transparent;
         transition: all .16s ease-in-out;
-        background: rgba(255, 255, 255, 0.8);
+        background: rgba(255, 255, 255, 0.85);
     }
     .conv-dashboard .conv-item:hover {
         background: #fff;
-        border-color: var(--conv-soft-border);
-        transform: translateY(-1px);
-        box-shadow: 0 8px 16px rgba(15, 23, 42, 0.06);
+        border-color: var(--conv-border);
     }
     .conv-dashboard .conv-item.active {
-        background: rgba(32, 107, 196, 0.12);
-        border-color: rgba(32, 107, 196, 0.26);
-        color: #1f3f6b;
+        background: rgba(32, 107, 196, 0.08);
+        border-color: rgba(32, 107, 196, 0.2);
+        color: #274767;
     }
     .conv-dashboard .conv-item.active .text-muted {
-        color: #3b82a8 !important;
+        color: #4d6a86 !important;
     }
     .conv-dashboard .channel-icon {
-        width: 1.95rem;
-        height: 1.95rem;
+        width: 1.85rem;
+        height: 1.85rem;
         border-radius: 999px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        font-size: 1rem;
+        font-size: .95rem;
         flex-shrink: 0;
     }
-    .conv-dashboard .channel-whatsapp { color: #15803d; background: #dcfce7; }
-    .conv-dashboard .channel-social { color: #1d4ed8; background: #dbeafe; }
-    .conv-dashboard .channel-internal { color: #7c3aed; background: #ede9fe; }
-    .conv-dashboard .channel-default { color: #475569; background: #e2e8f0; }
+    .conv-dashboard .channel-whatsapp { color: #146d38; background: #eaf7ef; }
+    .conv-dashboard .channel-social { color: #2a5fa5; background: #edf3fb; }
+    .conv-dashboard .channel-internal { color: #5f5aa2; background: #f1effb; }
+    .conv-dashboard .channel-default { color: #4f6275; background: #eef2f6; }
     .conv-dashboard #chat-pane {
         height: 60vh;
         overflow: auto;
-        background: var(--conv-chat-bg);
-        border-radius: .95rem;
+        background: var(--conv-shell-bg);
+        border: 1px solid var(--conv-border-soft);
+        border-radius: .75rem;
         padding: 1rem;
     }
     .conv-dashboard .chat-row {
-        margin-bottom: .95rem;
+        margin-bottom: .8rem;
     }
     .conv-dashboard .chat-bubble {
         max-width: 80%;
-        border-radius: .95rem;
-        padding: .72rem .9rem;
-        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+        border-radius: .82rem;
+        padding: .68rem .85rem;
         border: 1px solid transparent;
     }
     .conv-dashboard .chat-bubble-in {
         background: #fff;
-        border-color: rgba(74, 96, 126, 0.15);
+        border-color: var(--conv-border-soft);
     }
     .conv-dashboard .chat-bubble-out {
-        background: linear-gradient(180deg, #206bc4 0%, #1d5ea8 100%);
+        background: var(--conv-primary);
         color: #fff;
+        border-color: transparent;
     }
     .conv-dashboard .chat-meta {
         font-size: .75rem;
@@ -95,38 +99,55 @@
         color: rgba(255, 255, 255, 0.82);
     }
     .conv-dashboard .composer-shell {
-        border: 1px solid rgba(74, 96, 126, 0.18);
-        border-radius: .95rem;
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
-        padding: .45rem;
+        border: 1px solid var(--conv-border);
+        border-radius: .78rem;
+        padding: .35rem;
         background: #fff;
     }
     .conv-dashboard .composer-shell .form-control {
         border: 0;
         box-shadow: none;
         padding-left: .65rem;
+        font-size: .95rem;
+    }
+    .conv-dashboard .composer-shell .btn {
+        border-radius: .62rem !important;
+        padding-left: .95rem;
+        padding-right: .95rem;
     }
     .conv-dashboard .detail-list .detail-row {
         display: flex;
         justify-content: space-between;
         gap: .75rem;
-        padding: .45rem 0;
-        border-bottom: 1px dashed rgba(74, 96, 126, 0.16);
+        padding: .5rem 0;
+        border-bottom: 1px solid rgba(74, 96, 126, 0.1);
     }
     .conv-dashboard .detail-list .detail-row:last-child {
         border-bottom: 0;
         padding-bottom: 0;
     }
     .conv-dashboard .detail-key {
-        font-size: .78rem;
-        text-transform: uppercase;
-        letter-spacing: .04em;
+        font-size: .82rem;
         color: var(--conv-muted);
     }
     .conv-dashboard .detail-value {
-        font-weight: 600;
-        color: #243b53;
+        font-weight: 500;
+        color: #2f455c;
         text-align: right;
+    }
+    .conv-dashboard .section-head {
+        padding: .75rem .9rem .5rem;
+    }
+    .conv-dashboard .section-body {
+        padding: 0 .9rem .9rem;
+    }
+    .conv-dashboard .section-body-tight {
+        padding: 0 .75rem .75rem;
+    }
+    .conv-dashboard .section-divider {
+        border-top: 1px solid rgba(74, 96, 126, 0.1);
+        margin-top: .85rem;
+        padding-top: .85rem;
     }
 </style>
 <div class="conv-dashboard">
@@ -162,9 +183,10 @@
 
 <div class="row g-3">
     <div class="col-md-3">
-        <div class="card conv-panel">
-            <div class="card-header border-0 pb-1"><h3 class="card-title mb-0 conv-section-title">Percakapan</h3></div>
-            <div class="list-group list-group-flush conv-list">
+        <div class="conv-surface">
+            <div class="section-head"><h3 class="conv-section-title">Percakapan</h3></div>
+            <div class="section-body section-body-tight">
+                <div class="list-group list-group-flush conv-list">
                 @forelse($conversationsList as $c)
                     @php
                         $channel = strtolower($c->channel ?? 'internal');
@@ -186,7 +208,7 @@
                             <span class="channel-icon {{ $channelAccent }}"><i class="{{ $channelIcon }}" aria-hidden="true"></i></span>
                             <div>
                                 <div class="fw-semibold">{{ $c->contact_name ?? $c->contact_external_id ?? 'Internal' }}</div>
-                                <div class="text-muted small">{{ strtoupper($c->channel ?? 'internal') }}</div>
+                                <div class="text-muted" style="font-size:.78rem;">{{ strtoupper($c->channel ?? 'internal') }}</div>
                             </div>
                         </div>
                         @if(($waModuleReady ?? false) && $c->instance)
@@ -197,19 +219,20 @@
                     <div class="text-muted small p-2">Belum ada percakapan.</div>
                 @endforelse
             </div>
+            </div>
         </div>
     </div>
     <div class="col-md-6">
-        <div class="card conv-panel">
-            <div class="card-header border-0 pb-1">
-                <h3 class="card-title mb-0 conv-section-title">Chat</h3>
+        <div class="conv-surface">
+            <div class="section-head">
+                <h3 class="conv-section-title">Chat</h3>
             </div>
-            <div class="card-body" id="chat-pane">
+            <div class="section-body pt-0" id="chat-pane">
                 @forelse($conversation->messages as $msg)
                     <div class="chat-row d-flex {{ $msg->direction === 'out' ? 'justify-content-end' : 'justify-content-start' }}">
                         <div class="chat-bubble {{ $msg->direction === 'out' ? 'chat-bubble-out' : 'chat-bubble-in' }}">
-                            <div class="small fw-semibold mb-1">{{ $msg->user->name ?? ($msg->direction === 'out' ? 'You' : 'System') }}</div>
-                            <div class="small">
+                            <div class="fw-semibold mb-1" style="font-size:.82rem;">{{ $msg->user->name ?? ($msg->direction === 'out' ? 'You' : 'System') }}</div>
+                            <div style="font-size:.9rem;">
                                 @if($msg->type === 'template')
                                     <div class="badge bg-azure-lt text-azure mb-1">WA Template</div>
                                 @endif
@@ -222,16 +245,16 @@
                     <div class="text-muted">Belum ada pesan.</div>
                 @endforelse
             </div>
-            <div class="card-footer">
+            <div class="section-body pt-2">
                 <form method="POST" action="{{ route('conversations.send', $conversation) }}" class="mb-3" id="send-form">
                     @csrf
                     <div class="composer-shell d-flex align-items-center gap-2">
                         <input type="text" name="body" class="form-control" placeholder="Ketik pesan..." required autocomplete="off" id="message-input">
-                        <button class="btn btn-primary rounded-pill px-4" type="submit">Kirim</button>
+                        <button class="btn btn-primary" type="submit">Kirim</button>
                     </div>
                 </form>
                 @if($conversation->channel === 'wa_api' && $waTemplates->isNotEmpty())
-                    <div class="border-top pt-3">
+                    <div class="section-divider">
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <div class="fw-bold">Kirim Template WA</div>
                             <span class="text-muted small">Sesuai 24h rules</span>
@@ -266,9 +289,9 @@
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card conv-panel mb-3">
-            <div class="card-header border-0 pb-1"><h3 class="card-title mb-0 conv-section-title">Detail</h3></div>
-            <div class="card-body detail-list pt-1">
+        <div class="conv-surface mb-3">
+            <div class="section-head"><h3 class="conv-section-title">Detail</h3></div>
+            <div class="section-body detail-list pt-0">
                 <div class="detail-row"><span class="detail-key">Kontak</span><span class="detail-value">{{ $conversation->contact_name ?? $conversation->contact_external_id ?? 'Internal' }}</span></div>
                 <div class="detail-row"><span class="detail-key">Owner</span><span class="detail-value">{{ $conversation->owner->name ?? 'Unassigned' }}</span></div>
                 <div class="detail-row"><span class="detail-key">Status</span><span class="detail-value">{{ ucfirst($conversation->status) }}</span></div>
@@ -278,9 +301,9 @@
                 @endif
             </div>
         </div>
-        <div class="card conv-panel">
-            <div class="card-header border-0 pb-1"><h3 class="card-title mb-0 conv-section-title">Invite</h3></div>
-            <div class="card-body">
+        <div class="conv-surface">
+            <div class="section-head"><h3 class="conv-section-title">Invite</h3></div>
+            <div class="section-body">
                 @if($conversation->owner_id === auth()->id() || auth()->user()->hasRole('Super-admin'))
                     <form method="POST" action="{{ route('conversations.invite', $conversation) }}" class="d-flex gap-2" onsubmit="return confirm('Undang ' + document.getElementById('invite-query').value + '?')">
                         @csrf
@@ -302,9 +325,9 @@
                 @endforelse
             </div>
         </div>
-        <div class="card conv-panel mt-3">
-            <div class="card-header border-0 pb-1"><h3 class="card-title mb-0 conv-section-title">Aktivitas</h3></div>
-            <div class="card-body" id="log-body" style="max-height: 240px; overflow:auto;">
+        <div class="conv-surface mt-3">
+            <div class="section-head"><h3 class="conv-section-title">Aktivitas</h3></div>
+            <div class="section-body pt-0" id="log-body" style="max-height: 240px; overflow:auto;">
                 <div class="text-muted small">Memuat log...</div>
             </div>
         </div>

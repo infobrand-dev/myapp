@@ -9,6 +9,7 @@ Route::middleware(['web', 'auth'])
     ->name('conversations.')
     ->group(function () {
         Route::get('/', [ConversationHubController::class, 'index'])->name('index');
+        Route::get('/users/search', [ConversationHubController::class, 'searchUsers'])->name('users.search');
         Route::post('/start', [ConversationHubController::class, 'start'])->name('start');
         Route::get('/{conversation}', [ConversationHubController::class, 'show'])->name('show');
         Route::get('/{conversation}/messages', [ConversationHubController::class, 'messages'])->name('messages');

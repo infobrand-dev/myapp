@@ -152,7 +152,6 @@ class ConversationHubController extends Controller
         $waTemplates = ($conversation->channel === 'wa_api' && $this->isWaTemplateReady())
             ? $this->waTemplateModelClass()::where('status', 'active')->orderBy('name')->get()
             : collect();
-
         return view('conversations::show', [
             'conversation' => $conversation,
             'conversationsList' => $conversationsList,
@@ -162,6 +161,40 @@ class ConversationHubController extends Controller
             'oldestMessageId' => $oldestMessageId,
             'latestMessageId' => $latestMessageId,
             'hasMoreMessages' => $hasMoreMessages,
+        ]);
+    }
+
+    public function searchUsers(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $query = trim((string) $request->input('q', ''));
+        $page = max(1, (int) $request->integer('page', 1));
+        $limit = max(10, min(25, (int) $request->integer('limit', 15)));
+
+        if (mb_strlen($query) < 2) {
+            return response()->json([
+                'items' => [],
+                'has_more' => false,
+                'page' => $page,
+            ]);
+        }
+
+        $users = User::query()
+            ->where('id', '!=', $user->id)
+            ->where(function ($q) use ($query) {
+                $q->where('name', 'like', '%' . $query . '%')
+                    ->orWhere('email', 'like', '%' . $query . '%');
+            })
+            ->orderBy('name')
+            ->simplePaginate($limit, ['id', 'name', 'email'], 'page', $page);
+
+        return response()->json([
+            'items' => collect($users->items())->map(fn ($u) => [
+                'id' => $u->id,
+                'text' => "{$u->name} ({$u->email})",
+            ])->values(),
+            'has_more' => $users->hasMorePages(),
+            'page' => $page,
         ]);
     }
 

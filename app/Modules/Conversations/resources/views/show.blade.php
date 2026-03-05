@@ -146,6 +146,14 @@
     }
     .conv-dashboard .chat-row {
         margin-bottom: .8rem;
+        width: 100%;
+    }
+    .conv-dashboard .chat-row-in {
+        justify-content: flex-start;
+    }
+    .conv-dashboard .chat-row-out {
+        justify-content: flex-end;
+        flex-direction: row-reverse;
     }
     .conv-dashboard .chat-loader {
         text-align: center;
@@ -225,11 +233,13 @@
     .conv-dashboard .chat-bubble-in {
         background: #fff;
         border-color: var(--conv-border-soft);
+        border-top-left-radius: .35rem;
     }
     .conv-dashboard .chat-bubble-out {
         background: var(--conv-primary);
         color: #fff;
         border-color: transparent;
+        border-top-right-radius: .35rem;
     }
     .conv-dashboard .chat-meta {
         font-size: .75rem;
@@ -380,7 +390,33 @@
         justify-content: center;
         padding: 0;
     }
+    .conv-dashboard .inbox-add-btn {
+        width: 1.9rem;
+        height: 1.9rem;
+        border-radius: .55rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+    }
     @media (max-width: 991.98px) {
+        .conv-dashboard .conv-page-head {
+            align-items: flex-start !important;
+            margin-bottom: .75rem !important;
+            position: sticky;
+            top: 3.25rem;
+            z-index: 20;
+            background: var(--tblr-bg-surface, #fff);
+            padding: .35rem 0 .55rem;
+            border-bottom: 1px solid rgba(74, 96, 126, 0.1);
+        }
+        .conv-dashboard .conv-page-subtitle {
+            font-size: .8rem;
+            margin-top: .1rem;
+        }
+        .conv-dashboard .conv-page-actions {
+            display: none !important;
+        }
         .conv-dashboard .mobile-nav {
             display: inline-flex;
             align-items: center;
@@ -398,15 +434,92 @@
         .conv-dashboard.mobile-view-detail .conv-col-detail {
             display: block;
         }
+        .conv-dashboard .conv-list {
+            max-height: calc(100dvh - 16.5rem);
+        }
+        .conv-dashboard #chat-pane {
+            height: calc(100dvh - 22rem);
+            min-height: 42dvh;
+            max-height: 62dvh;
+        }
+        .conv-dashboard .chat-bubble {
+            max-width: calc(100% - 2.85rem);
+        }
+        .conv-dashboard .chat-head {
+            flex-wrap: wrap;
+            gap: .15rem .4rem !important;
+        }
+        .conv-dashboard .chat-contact-last {
+            max-width: 200px;
+        }
+        .conv-dashboard .conv-item-snippet {
+            max-width: 100%;
+        }
+        .conv-dashboard .detail-list .detail-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: .2rem;
+        }
+        .conv-dashboard .detail-value {
+            text-align: left;
+        }
+        .conv-dashboard .participant-item {
+            align-items: flex-start;
+        }
+        .conv-dashboard .section-head {
+            padding: .2rem 0 .5rem;
+        }
+        .conv-dashboard .composer-shell {
+            position: sticky;
+            bottom: .25rem;
+            background: #fff;
+            z-index: 5;
+        }
+    }
+    .conv-dashboard .user-search-wrap {
+        position: relative;
+    }
+    .conv-dashboard .user-search-results {
+        position: absolute;
+        top: calc(100% + .3rem);
+        left: 0;
+        right: 0;
+        z-index: 20;
+        background: #fff;
+        border: 1px solid var(--conv-border-soft);
+        border-radius: .55rem;
+        max-height: 230px;
+        overflow: auto;
+        display: none;
+    }
+    .conv-dashboard .user-search-results.show {
+        display: block;
+    }
+    .conv-dashboard .user-search-item {
+        width: 100%;
+        text-align: left;
+        border: 0;
+        background: transparent;
+        padding: .5rem .65rem;
+        font-size: .86rem;
+        color: #2e455d;
+    }
+    .conv-dashboard .user-search-item:hover {
+        background: rgba(32, 107, 196, 0.08);
+    }
+    .conv-dashboard .user-search-note {
+        padding: .55rem .65rem;
+        font-size: .78rem;
+        color: var(--conv-muted);
     }
 </style>
-<div class="conv-dashboard" id="conv-dashboard-root">
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="conv-dashboard mobile-view-inbox" id="conv-dashboard-root">
+<div class="conv-page-head d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0 fw-semibold">Conversations</h2>
         <div class="conv-page-subtitle">Unified inbox for handling customer and internal conversations across channels.</div>
     </div>
-    <div class="btn-list">
+    <div class="btn-list conv-page-actions">
         <a href="{{ route('conversations.index') }}" class="btn btn-outline-secondary">Kembali</a>
         @if($conversation->owner_id === auth()->id())
             <form method="POST" action="{{ route('conversations.release', $conversation) }}" class="d-inline">
@@ -427,7 +540,17 @@
 <div class="row g-3">
     <div class="col-md-3 conv-col conv-col-inbox">
         <div class="conv-surface">
-            <div class="section-head"><h3 class="conv-section-title">Inbox</h3></div>
+            <div class="section-head d-flex align-items-center justify-content-between">
+                <h3 class="conv-section-title">Inbox</h3>
+                <button
+                    type="button"
+                    class="btn btn-outline-primary btn-sm inbox-add-btn"
+                    data-bs-toggle="modal"
+                    data-bs-target="#start-conversation-modal"
+                    aria-label="Start conversation">
+                    <i class="ti ti-user-plus" aria-hidden="true"></i>
+                </button>
+            </div>
             <div class="section-body section-body-tight">
                 <div class="mb-2">
                     <div class="nav nav-pills conv-tabs" id="conversation-filter-tabs" role="tablist" aria-label="Conversation filters">
@@ -564,7 +687,7 @@
                         $tones = ['avatar-tone-1', 'avatar-tone-2', 'avatar-tone-3', 'avatar-tone-4', 'avatar-tone-5'];
                         $avatarTone = $tones[abs(crc32($senderName)) % count($tones)];
                     @endphp
-                    <div class="chat-row d-flex align-items-end gap-2 {{ $msg->direction === 'out' ? 'justify-content-end flex-row-reverse' : 'justify-content-start' }}" data-message-id="{{ $msg->id }}">
+                    <div class="chat-row chat-row-{{ $msg->direction === 'out' ? 'out' : 'in' }} d-flex align-items-end gap-2" data-message-id="{{ $msg->id }}">
                         <div class="chat-avatar">
                             @if($senderAvatar)
                                 <img src="{{ $senderAvatar }}" alt="{{ $senderName }}">
@@ -718,6 +841,40 @@
     </div>
 </div>
 </div>
+
+<div class="modal fade" id="start-conversation-modal" tabindex="-1" aria-labelledby="start-conversation-modal-label" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="POST" action="{{ route('conversations.start') }}">
+                @csrf
+                <div class="modal-header">
+                    <h3 class="modal-title fs-5 mb-0" id="start-conversation-modal-label">Start Conversation</h3>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="start-user-picker" class="form-label">Select user</label>
+                    <div class="user-search-wrap">
+                        <input
+                            type="text"
+                            id="start-user-picker"
+                            class="form-control"
+                            placeholder="Search name or email..."
+                            autocomplete="off"
+                            required>
+                        <div id="start-user-results" class="user-search-results"></div>
+                    </div>
+                    <input type="hidden" name="query" id="start-user-id" required>
+                    <div id="start-user-invalid" class="text-danger small mt-2 d-none">Please select a user from the dropdown list.</div>
+                    <div class="text-muted small mt-2">Type at least 2 characters to search users.</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Start</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -751,6 +908,12 @@
         let pollingInFlight = false;
         const filterTabs = document.querySelectorAll('#conversation-filter-tabs [data-filter]');
         const conversationSearch = document.getElementById('conversation-search');
+        const startUserForm = document.querySelector('#start-conversation-modal form');
+        const startUserPicker = document.getElementById('start-user-picker');
+        const startUserId = document.getElementById('start-user-id');
+        const startUserResults = document.getElementById('start-user-results');
+        const startUserInvalid = document.getElementById('start-user-invalid');
+        const startUserSearchEndpoint = "{{ route('conversations.users.search') }}";
         const conversationItems = Array.from(document.querySelectorAll('.conv-list .conv-item'));
         const conversationEmpty = document.getElementById('conversation-empty-state');
         const renderedMessageIds = new Set(
@@ -764,6 +927,8 @@
         let sidebarUnreadCount = Number(sidebarUnreadBadge?.dataset.count ?? 0) || 0;
         let readSyncInFlight = false;
         let sendInFlight = false;
+        let userSearchTimer = null;
+        let userSearchController = null;
 
         const isMobile = () => window.matchMedia('(max-width: 991.98px)').matches;
         const isChatVisible = () => !isMobile() || dashboardRoot?.classList.contains('mobile-view-chat');
@@ -908,6 +1073,88 @@
 
         applyConversationFilters();
 
+        const hideUserResults = () => {
+            if (!startUserResults) return;
+            startUserResults.classList.remove('show');
+            startUserResults.innerHTML = '';
+        };
+        const renderUserResults = (items, query) => {
+            if (!startUserResults) return;
+            startUserResults.innerHTML = '';
+            if (!query || query.length < 2) {
+                startUserResults.innerHTML = '<div class="user-search-note">Type at least 2 characters.</div>';
+                startUserResults.classList.add('show');
+                return;
+            }
+            if (!items.length) {
+                startUserResults.innerHTML = '<div class="user-search-note">No users found.</div>';
+                startUserResults.classList.add('show');
+                return;
+            }
+            items.forEach((item) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'user-search-item';
+                btn.textContent = item.text;
+                btn.dataset.userId = item.id;
+                btn.addEventListener('click', () => {
+                    if (startUserPicker) startUserPicker.value = item.text;
+                    if (startUserId) startUserId.value = String(item.id);
+                    if (startUserInvalid) startUserInvalid.classList.add('d-none');
+                    hideUserResults();
+                });
+                startUserResults.appendChild(btn);
+            });
+            startUserResults.classList.add('show');
+        };
+        const searchUsersRemote = async (query) => {
+            if (!startUserPicker || !startUserId || !startUserResults) return;
+            startUserId.value = '';
+            if (query.length < 2) {
+                renderUserResults([], query);
+                return;
+            }
+            if (userSearchController) userSearchController.abort();
+            userSearchController = new AbortController();
+            startUserResults.innerHTML = '<div class="user-search-note">Searching...</div>';
+            startUserResults.classList.add('show');
+            try {
+                const url = `${startUserSearchEndpoint}?q=${encodeURIComponent(query)}&limit=15`;
+                const response = await fetch(url, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+                    signal: userSearchController.signal,
+                });
+                if (!response.ok) throw new Error('search failed');
+                const payload = await response.json();
+                renderUserResults(Array.isArray(payload.items) ? payload.items : [], query);
+            } catch (_) {
+                startUserResults.innerHTML = '<div class="user-search-note">Failed to search users.</div>';
+                startUserResults.classList.add('show');
+            }
+        };
+        startUserPicker?.addEventListener('input', () => {
+            if (startUserInvalid) startUserInvalid.classList.add('d-none');
+            const query = (startUserPicker.value || '').trim();
+            clearTimeout(userSearchTimer);
+            userSearchTimer = setTimeout(() => searchUsersRemote(query), 250);
+        });
+        startUserPicker?.addEventListener('focus', () => {
+            const query = (startUserPicker.value || '').trim();
+            searchUsersRemote(query);
+        });
+        document.addEventListener('click', (e) => {
+            if (!startUserResults || !startUserPicker) return;
+            if (startUserResults.contains(e.target) || startUserPicker.contains(e.target)) return;
+            hideUserResults();
+        });
+        startUserForm?.addEventListener('submit', (e) => {
+            if (!startUserId?.value) {
+                e.preventDefault();
+                startUserPicker?.focus();
+                if (startUserInvalid) startUserInvalid.classList.remove('d-none');
+            }
+        });
+
         const escapeHtml = (value) => (value || '')
             .toString()
             .replaceAll('&', '&amp;')
@@ -950,7 +1197,7 @@
                 : `<span class="chat-avatar-fallback ${avatarTone(name)}">${escapeHtml(initials(name))}</span>`;
 
             const wrapper = document.createElement('div');
-            wrapper.className = 'chat-row d-flex align-items-end gap-2 ' + (msg.direction === 'out' ? 'justify-content-end flex-row-reverse' : 'justify-content-start');
+            wrapper.className = 'chat-row chat-row-' + (msg.direction === 'out' ? 'out' : 'in') + ' d-flex align-items-end gap-2';
             wrapper.dataset.messageId = msg.id ?? '';
             wrapper.innerHTML = `
                 <div class="chat-avatar">${avatarHtml}</div>

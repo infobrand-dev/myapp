@@ -63,7 +63,9 @@
                             <div class="fw-bold">{{ $conv->contact_name ?? $conv->contact_external_id }}</div>
                             <div class="text-muted small">{{ $conv->contact_external_id }}</div>
                         </td>
-                        <td><span class="badge bg-azure-lt text-azure">{{ $conv->instance->name }}</span></td>
+                        <td>
+                            <span class="badge bg-azure-lt text-azure">{{ $conv->instance?->name ?? 'Instance missing' }}</span>
+                        </td>
                         <td>
                             <div class="d-flex flex-wrap gap-1">
                                 <span class="badge {{ $conv->status === 'closed' ? 'text-bg-secondary' : 'text-bg-primary' }}">{{ ucfirst($conv->status) }}</span>
@@ -125,7 +127,7 @@
                                                         <label class="form-label">User</label>
                                                         <select name="user_id" class="form-select" required>
                                                             <option value="">Pilih user</option>
-                                                            @foreach(($conv->instance->users ?? collect()) as $invitee)
+                                                            @foreach((optional($conv->instance)->users ?? collect()) as $invitee)
                                                                 @if((int) $invitee->id !== (int) auth()->id())
                                                                     <option value="{{ $invitee->id }}">{{ $invitee->name }} (ID: {{ $invitee->id }})</option>
                                                                 @endif
@@ -172,7 +174,7 @@
                         <div class="fw-bold">{{ $conv->contact_name ?? $conv->contact_external_id }}</div>
                         <div class="text-muted small">{{ $conv->contact_external_id }}</div>
                     </div>
-                    <span class="badge bg-azure-lt text-azure">{{ $conv->instance->name }}</span>
+                    <span class="badge bg-azure-lt text-azure">{{ $conv->instance?->name ?? 'Instance missing' }}</span>
                 </div>
 
                 <div class="d-flex flex-wrap gap-1 mb-2">

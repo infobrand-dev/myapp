@@ -9,6 +9,7 @@
     { "label": "Inbox", "route": "whatsapp-api.inbox" },
     { "label": "Instances", "route": "whatsapp-api.instances.index", "role": "Super-admin" },
     { "label": "Templates", "route": "whatsapp-api.templates.index", "role": "Super-admin" },
+    { "label": "Blast Campaigns", "route": "whatsapp-api.blast-campaigns.index", "role": "Super-admin" },
     { "label": "Logs", "route": "whatsapp-api.logs.index", "role": "Super-admin" }
   ]
 }

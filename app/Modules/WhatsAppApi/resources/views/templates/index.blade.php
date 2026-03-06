@@ -6,7 +6,10 @@
         <h2 class="mb-0">WA Templates</h2>
         <div class="text-muted small">Template WABA (nama & bahasa harus sesuai di Meta).</div>
     </div>
-    <a href="{{ route('whatsapp-api.templates.create') }}" class="btn btn-primary">Tambah Template</a>
+    <div class="d-flex gap-2">
+        <a href="{{ route('whatsapp-api.blast-campaigns.index') }}" class="btn btn-outline-secondary">Blast Campaigns</a>
+        <a href="{{ route('whatsapp-api.templates.create') }}" class="btn btn-primary">Tambah Template</a>
+    </div>
 </div>
 
 <div class="card">

@@ -3,13 +3,13 @@
 namespace App\Modules\WhatsAppApi\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\WhatsAppApi\Jobs\SubmitTemplateToMeta;
 use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
-use App\Modules\WhatsAppApi\Jobs\SubmitTemplateToMeta;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 
 class WATemplateController extends Controller
 {
@@ -128,48 +128,84 @@ class WATemplateController extends Controller
             'header_type' => ['nullable', 'in:none,text,image,document,video'],
             'header_text' => ['nullable', 'string', 'max:60'],
             'header_media_url' => ['nullable', 'url', 'max:255'],
+            'footer_text' => ['nullable', 'string', 'max:60'],
 
-            // quick reply buttons
+            // New generic Meta button rows
+            'buttons' => ['nullable', 'array'],
+            'buttons.*.type' => ['nullable', 'in:quick_reply,url,phone_number,copy_code'],
+            'buttons.*.label' => ['nullable', 'string', 'max:25'],
+            'buttons.*.url' => ['nullable', 'url', 'max:2000'],
+            'buttons.*.phone_number' => ['nullable', 'regex:/^\+?[1-9]\d{6,14}$/'],
+            'buttons.*.example' => ['nullable', 'string', 'max:255'],
+
+            // Legacy form compatibility
             'qr_label' => ['array'],
             'qr_label.*' => ['nullable', 'string', 'max:25'],
-
-            // CTA buttons
             'cta_url_label' => ['nullable', 'string', 'max:25'],
             'cta_url_value' => ['nullable', 'url'],
             'cta_phone_label' => ['nullable', 'string', 'max:25'],
-            'cta_phone_value' => ['nullable', 'regex:/^\\+?[1-9]\\d{6,14}$/'],
-
+            'cta_phone_value' => ['nullable', 'regex:/^\+?[1-9]\d{6,14}$/'],
             'button_mode' => ['nullable', 'in:none,quick_reply,cta'],
         ]);
 
-        // Meta rules: placeholders sequential, header/text pairing, CTA URL whitelist (optional)
         $this->assertPlaceholders($data['body'], 'Body');
         if (($data['header_type'] ?? 'none') === 'text' && !empty($data['header_text'])) {
             $this->assertPlaceholders($data['header_text'], 'Header');
         }
-        if (!empty($data['namespace']) && strlen($data['namespace']) < 3) {
-            throw ValidationException::withMessages(['namespace' => 'Namespace terlalu pendek.']);
-        }
 
-        // Header media must have url if format media
-        if (in_array($data['header_type'] ?? 'none', ['image','document','video'], true) && empty($data['header_media_url'])) {
+        if (in_array($data['header_type'] ?? 'none', ['image', 'document', 'video'], true) && empty($data['header_media_url'])) {
             throw ValidationException::withMessages(['header_media_url' => 'URL media header wajib diisi untuk tipe media.']);
         }
 
+        $this->validateButtons($request);
+
         return $data;
+    }
+
+    private function validateButtons(Request $request): void
+    {
+        $rows = $this->extractButtons($request);
+        if (count($rows) > 10) {
+            throw ValidationException::withMessages(['buttons' => 'Maksimal 10 tombol per template.']);
+        }
+
+        $quickCount = 0;
+        foreach ($rows as $i => $button) {
+            if (empty($button['text'])) {
+                throw ValidationException::withMessages(["buttons.{$i}.label" => 'Label tombol wajib diisi.']);
+            }
+
+            if ($button['type'] === 'QUICK_REPLY') {
+                $quickCount++;
+            }
+
+            if ($button['type'] === 'URL' && empty($button['url'])) {
+                throw ValidationException::withMessages(["buttons.{$i}.url" => 'URL wajib diisi untuk button URL.']);
+            }
+
+            if ($button['type'] === 'PHONE_NUMBER' && empty($button['phone_number'])) {
+                throw ValidationException::withMessages(["buttons.{$i}.phone_number" => 'Nomor telepon wajib diisi untuk button Phone.']);
+            }
+        }
+
+        if ($quickCount > 10) {
+            throw ValidationException::withMessages(['buttons' => 'Quick Reply maksimal 10 tombol.']);
+        }
     }
 
     private function buildComponents(Request $request): ?array
     {
         $components = [];
+
         $headerType = $request->input('header_type', 'none');
         if ($headerType === 'text' && $request->filled('header_text')) {
             $components[] = [
                 'type' => 'header',
                 'format' => 'TEXT',
+                'text' => $request->input('header_text'),
                 'parameters' => [['type' => 'text', 'text' => $request->input('header_text')]],
             ];
-        } elseif (in_array($headerType, ['image','document','video'], true)) {
+        } elseif (in_array($headerType, ['image', 'document', 'video'], true)) {
             $mediaParam = [];
             if ($request->filled('header_media_url')) {
                 $mediaParam[] = ['type' => $headerType, 'link' => $request->input('header_media_url')];
@@ -180,62 +216,119 @@ class WATemplateController extends Controller
                 'parameters' => $mediaParam ?: null,
             ];
         }
+
         if ($request->filled('footer_text')) {
             $components[] = [
                 'type' => 'footer',
                 'text' => $request->input('footer_text'),
             ];
         }
-        $mode = $request->input('button_mode', 'none');
-        if ($mode === 'quick_reply') {
-            $labels = $request->input('qr_label', []);
-            $added = 0;
-            foreach ($labels as $idx => $label) {
-                if ($added >= 3) break;
-                if (!trim($label)) continue;
-                $components[] = [
-                    'type' => 'button',
-                    'sub_type' => 'quick_reply',
-                    'index' => (string)$added,
-                    'parameters' => [
-                        ['type' => 'text', 'text' => $label],
-                    ],
-                ];
-                $added++;
-            }
-        } elseif ($mode === 'cta') {
-            $cta = [];
-            $urlLabel = $request->input('cta_url_label');
-            $urlValue = $request->input('cta_url_value');
-            if (trim($urlLabel) && trim($urlValue)) {
-                $cta[] = [
-                    'type' => 'button',
-                    'sub_type' => 'url',
-                    'index' => '0',
-                    'parameters' => [['type' => 'text', 'text' => $urlLabel]],
-                    'url' => $urlValue,
-                ];
-            }
-            $phoneLabel = $request->input('cta_phone_label');
-            $phoneValue = $request->input('cta_phone_value');
-            if (trim($phoneLabel) && trim($phoneValue)) {
-                $cta[] = [
-                    'type' => 'button',
-                    'sub_type' => 'phone_number',
-                    'index' => '1',
-                    'parameters' => [['type' => 'text', 'text' => $phoneLabel]],
-                    'phone_number' => $phoneValue,
-                ];
-            }
-            $components = array_merge($components, array_slice($cta, 0, 2));
+
+        $buttons = $this->extractButtons($request);
+        if (!empty($buttons)) {
+            $components[] = [
+                'type' => 'buttons',
+                'buttons' => $buttons,
+            ];
         }
 
         return $components ?: null;
     }
 
+    private function extractButtons(Request $request): array
+    {
+        $rows = [];
+
+        // New format first
+        foreach ((array) $request->input('buttons', []) as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $typeRaw = strtolower(trim((string) ($row['type'] ?? '')));
+            $label = trim((string) ($row['label'] ?? ''));
+            if ($typeRaw === '' && $label === '') {
+                continue;
+            }
+
+            $mappedType = match ($typeRaw) {
+                'quick_reply' => 'QUICK_REPLY',
+                'url' => 'URL',
+                'phone_number' => 'PHONE_NUMBER',
+                'copy_code' => 'COPY_CODE',
+                default => null,
+            };
+            if (!$mappedType) {
+                continue;
+            }
+
+            $item = [
+                'type' => $mappedType,
+                'text' => $label,
+            ];
+
+            $url = trim((string) ($row['url'] ?? ''));
+            $phone = trim((string) ($row['phone_number'] ?? ''));
+            $example = trim((string) ($row['example'] ?? ''));
+
+            if ($mappedType === 'URL' && $url !== '') {
+                $item['url'] = $url;
+            }
+            if ($mappedType === 'PHONE_NUMBER' && $phone !== '') {
+                $item['phone_number'] = $phone;
+            }
+            if (in_array($mappedType, ['URL', 'COPY_CODE'], true) && $example !== '') {
+                $item['example'] = $example;
+            }
+
+            $rows[] = $item;
+        }
+
+        if (!empty($rows)) {
+            return array_values($rows);
+        }
+
+        // Legacy compatibility
+        $mode = $request->input('button_mode', 'none');
+        if ($mode === 'quick_reply') {
+            $labels = $request->input('qr_label', []);
+            foreach ($labels as $label) {
+                $label = trim((string) $label);
+                if ($label === '') {
+                    continue;
+                }
+                $rows[] = [
+                    'type' => 'QUICK_REPLY',
+                    'text' => $label,
+                ];
+            }
+        } elseif ($mode === 'cta') {
+            $urlLabel = trim((string) $request->input('cta_url_label'));
+            $urlValue = trim((string) $request->input('cta_url_value'));
+            if ($urlLabel !== '' && $urlValue !== '') {
+                $rows[] = [
+                    'type' => 'URL',
+                    'text' => $urlLabel,
+                    'url' => $urlValue,
+                ];
+            }
+            $phoneLabel = trim((string) $request->input('cta_phone_label'));
+            $phoneValue = trim((string) $request->input('cta_phone_value'));
+            if ($phoneLabel !== '' && $phoneValue !== '') {
+                $rows[] = [
+                    'type' => 'PHONE_NUMBER',
+                    'text' => $phoneLabel,
+                    'phone_number' => $phoneValue,
+                ];
+            }
+        }
+
+        return array_values($rows);
+    }
+
     private function assertPlaceholders(string $text, string $label): void
     {
-        preg_match_all('/\\{\\{(\\d+)\\}\\}/', $text, $matches);
+        preg_match_all('/\{\{(\d+)\}\}/', $text, $matches);
         $indexes = array_map('intval', $matches[1] ?? []);
         if (empty($indexes)) {
             return;

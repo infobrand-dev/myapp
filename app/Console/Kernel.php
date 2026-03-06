@@ -17,6 +17,7 @@ class Kernel extends ConsoleKernel
     {
         $schedule->command('conversations:release-expired-locks')->everyFiveMinutes();
         $schedule->command('whatsapp:check-instances')->everyTenMinutes();
+        $schedule->command('whatsapp:dispatch-scheduled-blasts')->everyMinute();
     }
 
     /**
@@ -31,3 +32,4 @@ class Kernel extends ConsoleKernel
         require base_path('routes/console.php');
     }
 }
+

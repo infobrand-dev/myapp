@@ -79,7 +79,7 @@ class SubmitTemplateToMeta implements ShouldQueue
         if ($header) {
             $comp = ['type' => 'HEADER', 'format' => data_get($header, 'format', 'TEXT')];
             if (strtoupper($comp['format']) === 'TEXT') {
-                $comp['text'] = data_get($header, 'parameters.0.text');
+                $comp['text'] = data_get($header, 'text') ?: data_get($header, 'parameters.0.text');
             }
             $components[] = $comp;
         }
@@ -100,28 +100,50 @@ class SubmitTemplateToMeta implements ShouldQueue
         }
 
         // BUTTONS
-        $buttons = $tplComponents->where('type', 'button')->values();
-        if ($buttons->isNotEmpty()) {
+        $buttonsComponent = $tplComponents->firstWhere('type', 'buttons');
+        if (is_array($buttonsComponent) && is_array(data_get($buttonsComponent, 'buttons'))) {
             $btnArray = [];
-            foreach ($buttons as $btn) {
-                $sub = strtolower(data_get($btn, 'sub_type'));
-                if ($sub === 'quick_reply') {
+            foreach ((array) data_get($buttonsComponent, 'buttons', []) as $btn) {
+                $btnType = strtoupper((string) data_get($btn, 'type'));
+                if ($btnType === 'QUICK_REPLY') {
                     $btnArray[] = [
                         'type' => 'QUICK_REPLY',
-                        'text' => data_get($btn, 'parameters.0.text'),
+                        'text' => data_get($btn, 'text'),
                     ];
-                } elseif ($sub === 'url') {
-                    $btnArray[] = [
+                    continue;
+                }
+
+                if ($btnType === 'URL') {
+                    $item = [
                         'type' => 'URL',
-                        'text' => data_get($btn, 'parameters.0.text'),
+                        'text' => data_get($btn, 'text'),
                         'url' => data_get($btn, 'url'),
                     ];
-                } elseif ($sub === 'phone_number') {
+                    if (data_get($btn, 'example')) {
+                        $item['example'] = data_get($btn, 'example');
+                    }
+                    $btnArray[] = $item;
+                    continue;
+                }
+
+                if ($btnType === 'PHONE_NUMBER') {
                     $btnArray[] = [
                         'type' => 'PHONE_NUMBER',
-                        'text' => data_get($btn, 'parameters.0.text'),
+                        'text' => data_get($btn, 'text'),
                         'phone_number' => data_get($btn, 'phone_number'),
                     ];
+                    continue;
+                }
+
+                if ($btnType === 'COPY_CODE') {
+                    $item = [
+                        'type' => 'COPY_CODE',
+                        'text' => data_get($btn, 'text'),
+                    ];
+                    if (data_get($btn, 'example')) {
+                        $item['example'] = data_get($btn, 'example');
+                    }
+                    $btnArray[] = $item;
                 }
             }
             if ($btnArray) {
@@ -129,6 +151,39 @@ class SubmitTemplateToMeta implements ShouldQueue
                     'type' => 'BUTTONS',
                     'buttons' => array_values($btnArray),
                 ];
+            }
+        } else {
+            // Backward compatibility for old per-button component format.
+            $buttons = $tplComponents->where('type', 'button')->values();
+            if ($buttons->isNotEmpty()) {
+                $btnArray = [];
+                foreach ($buttons as $btn) {
+                    $sub = strtolower(data_get($btn, 'sub_type'));
+                    if ($sub === 'quick_reply') {
+                        $btnArray[] = [
+                            'type' => 'QUICK_REPLY',
+                            'text' => data_get($btn, 'parameters.0.text'),
+                        ];
+                    } elseif ($sub === 'url') {
+                        $btnArray[] = [
+                            'type' => 'URL',
+                            'text' => data_get($btn, 'parameters.0.text'),
+                            'url' => data_get($btn, 'url'),
+                        ];
+                    } elseif ($sub === 'phone_number') {
+                        $btnArray[] = [
+                            'type' => 'PHONE_NUMBER',
+                            'text' => data_get($btn, 'parameters.0.text'),
+                            'phone_number' => data_get($btn, 'phone_number'),
+                        ];
+                    }
+                }
+                if ($btnArray) {
+                    $components[] = [
+                        'type' => 'BUTTONS',
+                        'buttons' => array_values($btnArray),
+                    ];
+                }
             }
         }
 

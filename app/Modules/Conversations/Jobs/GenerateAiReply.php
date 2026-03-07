@@ -4,6 +4,7 @@ namespace App\Modules\Conversations\Jobs;
 
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
+use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -71,7 +72,7 @@ class GenerateAiReply implements ShouldQueue
         $payload = [
             'model' => $aiAccount->model ?: config('services.openai.model', 'gpt-4o-mini'),
             'messages' => array_merge([
-                ['role' => 'system', 'content' => $this->systemPrompt($conversation->channel)],
+                ['role' => 'system', 'content' => $this->systemPrompt($conversation)],
             ], $history),
             'max_tokens' => 200,
             'temperature' => 0.5,
@@ -93,7 +94,7 @@ class GenerateAiReply implements ShouldQueue
             $reply = "Terima kasih, pesan Anda sudah kami terima.";
         }
 
-        $outgoing = $this->buildOutgoingReply((string) $reply, $conversation->channel);
+        $outgoing = $this->buildOutgoingReply((string) $reply, $conversation);
 
         $replyMessage = ConversationMessage::create([
             'conversation_id' => $conversation->id,
@@ -119,11 +120,11 @@ class GenerateAiReply implements ShouldQueue
         }
     }
 
-    private function systemPrompt(string $channel): string
+    private function systemPrompt(Conversation $conversation): string
     {
         $base = 'Kamu adalah asisten CS singkat dan sopan berbahasa Indonesia.';
 
-        if ($channel !== 'wa_api') {
+        if ($conversation->channel !== 'wa_api' || !$this->supportsInteractiveButtons($conversation)) {
             return $base;
         }
 
@@ -132,14 +133,24 @@ class GenerateAiReply implements ShouldQueue
             . 'Gunakan max 3 tombol. Jika tidak perlu tombol, jawab teks biasa.';
     }
 
-    private function buildOutgoingReply(string $rawReply, string $channel): array
+    private function buildOutgoingReply(string $rawReply, Conversation $conversation): array
     {
         $fallbackText = trim($rawReply) !== '' ? trim($rawReply) : 'Terima kasih, pesan Anda sudah kami terima.';
 
-        if ($channel !== 'wa_api') {
+        if ($conversation->channel !== 'wa_api') {
             return [
                 'type' => 'text',
                 'body' => $fallbackText,
+                'payload' => null,
+            ];
+        }
+
+        if (!$this->supportsInteractiveButtons($conversation)) {
+            $structured = $this->parseStructuredReply($rawReply);
+
+            return [
+                'type' => 'text',
+                'body' => $structured['text'] ?? $fallbackText,
                 'payload' => null,
             ];
         }
@@ -237,7 +248,30 @@ class GenerateAiReply implements ShouldQueue
             }
         }
 
+        $firstBrace = strpos($trimmed, '{');
+        $lastBrace = strrpos($trimmed, '}');
+        if ($firstBrace !== false && $lastBrace !== false && $lastBrace > $firstBrace) {
+            $decoded = json_decode(substr($trimmed, $firstBrace, $lastBrace - $firstBrace + 1), true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
         return null;
+    }
+
+    private function supportsInteractiveButtons(Conversation $conversation): bool
+    {
+        if ($conversation->channel !== 'wa_api' || !$conversation->instance_id) {
+            return false;
+        }
+
+        $instance = WhatsAppInstance::query()->find($conversation->instance_id);
+        if (!$instance) {
+            return false;
+        }
+
+        return strtolower((string) ($instance->provider ?? '')) === 'cloud';
     }
 
     private function shouldPauseForHuman(Conversation $conversation, $aiAccount): bool

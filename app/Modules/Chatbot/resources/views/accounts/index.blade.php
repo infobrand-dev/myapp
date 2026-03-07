@@ -20,6 +20,7 @@
                     <th>Nama</th>
                     <th>Provider</th>
                     <th>Model</th>
+                    <th>Mode</th>
                     <th>RAG</th>
                     <th>Mirror</th>
                     <th>Status</th>
@@ -32,6 +33,11 @@
                         <td>{{ $acc->name }}</td>
                         <td>{{ strtoupper($acc->provider) }}</td>
                         <td>{{ $acc->model ?? '-' }}</td>
+                        <td>
+                            <span class="badge {{ $acc->operation_mode === 'ai_then_human' ? 'text-bg-warning' : 'text-bg-primary' }}">
+                                {{ $acc->operation_mode === 'ai_then_human' ? 'AI->Human' : 'AI Only' }}
+                            </span>
+                        </td>
                         <td>
                             <span class="badge {{ $acc->rag_enabled ? 'text-bg-success' : 'text-bg-secondary' }}">
                                 {{ $acc->rag_enabled ? 'ON' : 'OFF' }}
@@ -56,7 +62,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="7" class="text-muted">Belum ada akun.</td></tr>
+                    <tr><td colspan="8" class="text-muted">Belum ada akun.</td></tr>
                 @endforelse
             </tbody>
         </table>

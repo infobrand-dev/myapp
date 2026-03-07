@@ -4,7 +4,14 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="theme-color" content="#206bc4">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="MyApp">
     <title>MyApp</title>
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/pwa-icon-192.svg">
     <script>
         // Early apply saved theme to avoid FOUC
         (function() {
@@ -208,6 +215,79 @@
     </div>
     <script src="{{ mix('js/app.js') }}" defer></script>
     <script>
+        window.MyAppNotifier = (() => {
+            let swRegistrationPromise = null;
+
+            const supportsNotifications = () => ('Notification' in window);
+            const supportsServiceWorker = () => ('serviceWorker' in navigator);
+
+            const registerServiceWorker = () => {
+                if (!supportsServiceWorker()) return Promise.resolve(null);
+                if (!swRegistrationPromise) {
+                    swRegistrationPromise = navigator.serviceWorker.register('/sw.js')
+                        .then(() => navigator.serviceWorker.ready)
+                        .catch(() => null);
+                }
+                return swRegistrationPromise;
+            };
+
+            const permission = () => supportsNotifications() ? Notification.permission : 'denied';
+
+            const ensurePermission = async (prompt = false) => {
+                if (!supportsNotifications()) return false;
+                if (Notification.permission === 'granted') return true;
+                if (Notification.permission === 'denied') return false;
+                if (!prompt) return false;
+                try {
+                    const next = await Notification.requestPermission();
+                    return next === 'granted';
+                } catch (_) {
+                    return false;
+                }
+            };
+
+            const show = async (title, body, url, tag = 'myapp-notify') => {
+                const granted = await ensurePermission(false);
+                if (!granted) return false;
+
+                const notificationOptions = {
+                    body: (body || '').toString().slice(0, 180),
+                    tag,
+                    data: { url: url || window.location.href },
+                    icon: '/pwa-icon-192.svg',
+                    badge: '/pwa-icon-192.svg',
+                };
+
+                const reg = await registerServiceWorker();
+                if (reg && typeof reg.showNotification === 'function') {
+                    reg.showNotification((title || 'MyApp').toString(), notificationOptions);
+                    return true;
+                }
+
+                try {
+                    const fallback = new Notification((title || 'MyApp').toString(), notificationOptions);
+                    fallback.onclick = () => {
+                        window.focus();
+                        if (url) window.location.href = url;
+                    };
+                    return true;
+                } catch (_) {
+                    return false;
+                }
+            };
+
+            registerServiceWorker();
+
+            return {
+                registerServiceWorker,
+                supportsNotifications,
+                supportsServiceWorker,
+                permission,
+                ensurePermission,
+                show,
+            };
+        })();
+
         // Dynamic favicon: green by default, turns red if tab hidden for 30 minutes.
         const faviconEl = document.getElementById('dynamic-favicon');
         const faviconGreen = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='30' fill='%2314b8a6'/></svg>";

@@ -40,6 +40,14 @@
                         @endforeach
                     </select>
                 </div>
+                <div class="col-md-3">
+                    <label class="form-label">Operation Mode</label>
+                    <select name="operation_mode" class="form-select">
+                        <option value="ai_only" {{ old('operation_mode', $account->operation_mode ?: 'ai_only') === 'ai_only' ? 'selected' : '' }}>AI Only</option>
+                        <option value="ai_then_human" {{ old('operation_mode', $account->operation_mode ?: 'ai_only') === 'ai_then_human' ? 'selected' : '' }}>AI then Human</option>
+                    </select>
+                    <div class="form-hint">AI then Human akan pause bot saat user minta agent/manusia.</div>
+                </div>
                 <div class="col-12">
                     <label class="form-label">API Key</label>
                     <input

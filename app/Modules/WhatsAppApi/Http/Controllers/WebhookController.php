@@ -161,7 +161,9 @@ class WebhookController extends Controller
         ]);
 
         $chatbot = $this->chatbotIntegration($instance);
-        $shouldAutoReply = $chatbot['auto_reply'] && $chatbot['chatbot_account_id'] && $isIncoming;
+        $shouldAutoReply = $chatbot['auto_reply']
+            && $isIncoming
+            && $this->shouldAutoReply($conversation, $chatbot['chatbot_account_id'], (string) ($msg->body ?? ''));
         if ($shouldAutoReply) {
             GenerateAiReply::dispatch($conversation->id, $msg->id, $chatbot['chatbot_account_id']);
         }
@@ -374,7 +376,7 @@ class WebhookController extends Controller
             ]);
 
             $chatbot = $this->chatbotIntegration($instance);
-            if ($chatbot['auto_reply'] && $chatbot['chatbot_account_id']) {
+            if ($chatbot['auto_reply'] && $this->shouldAutoReply($conversation, $chatbot['chatbot_account_id'], (string) ($message->body ?? ''))) {
                 GenerateAiReply::dispatch($conversation->id, $message->id, $chatbot['chatbot_account_id']);
             }
         }
@@ -401,6 +403,87 @@ class WebhookController extends Controller
             'auto_reply' => (bool) $integration->auto_reply,
             'chatbot_account_id' => $integration->chatbot_account_id ? (int) $integration->chatbot_account_id : null,
         ];
+    }
+
+    private function shouldAutoReply(Conversation $conversation, ?int $chatbotAccountId, string $incomingBody): bool
+    {
+        if (!$chatbotAccountId) {
+            return false;
+        }
+
+        $account = $this->resolveChatbotAccount($chatbotAccountId);
+        if (!$account) {
+            return false;
+        }
+
+        $mode = strtolower((string) ($account->operation_mode ?? 'ai_only'));
+        if ($mode === 'ai_only') {
+            return true;
+        }
+
+        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
+        if ((bool) ($metadata['auto_reply_paused'] ?? false)) {
+            return false;
+        }
+
+        if ($this->shouldHandoffToHuman($incomingBody)) {
+            $this->markConversationHandoff($conversation, 'keyword_request_human');
+            return false;
+        }
+
+        return true;
+    }
+
+    private function resolveChatbotAccount(int $chatbotAccountId)
+    {
+        $chatbotClass = \App\Modules\Chatbot\Models\ChatbotAccount::class;
+        if (!class_exists($chatbotClass) || !Schema::hasTable('chatbot_accounts')) {
+            return null;
+        }
+
+        return $chatbotClass::query()
+            ->where('status', 'active')
+            ->find($chatbotAccountId);
+    }
+
+    private function shouldHandoffToHuman(string $text): bool
+    {
+        $haystack = mb_strtolower(trim($text));
+        if ($haystack === '') {
+            return false;
+        }
+
+        $keywords = [
+            'agent',
+            'admin',
+            'operator',
+            'manusia',
+            'human',
+            'cs',
+            'customer service',
+            'staff',
+        ];
+
+        foreach ($keywords as $keyword) {
+            if (mb_stripos($haystack, $keyword) !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function markConversationHandoff(Conversation $conversation, string $reason): void
+    {
+        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
+        $metadata['needs_human'] = true;
+        $metadata['auto_reply_paused'] = true;
+        $metadata['handoff_reason'] = $reason;
+        $metadata['handoff_at'] = now()->toDateTimeString();
+
+        $conversation->update([
+            'metadata' => $metadata,
+        ]);
     }
 
     private function handleCloudMessageStatuses(array $value): void

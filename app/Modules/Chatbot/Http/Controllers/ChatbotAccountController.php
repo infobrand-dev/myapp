@@ -23,6 +23,7 @@ class ChatbotAccountController extends Controller
             'status' => 'active',
             'model' => 'gpt-4o-mini',
             'response_style' => 'balanced',
+            'operation_mode' => 'ai_only',
             'rag_top_k' => 3,
         ]);
         return view('chatbot::accounts.form', compact('account'));
@@ -68,6 +69,7 @@ class ChatbotAccountController extends Controller
             'system_prompt' => ['nullable', 'string', 'max:10000'],
             'focus_scope' => ['nullable', 'string', 'max:10000'],
             'response_style' => ['required', 'in:concise,balanced,detailed'],
+            'operation_mode' => ['required', 'in:ai_only,ai_then_human'],
             'api_key' => [$isEdit ? 'nullable' : 'required', 'string'],
             'status' => ['required', 'in:active,inactive'],
             'mirror_to_conversations' => ['sometimes', 'boolean'],

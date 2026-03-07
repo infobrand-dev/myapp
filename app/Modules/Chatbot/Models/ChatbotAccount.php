@@ -22,6 +22,7 @@ class ChatbotAccount extends Model
         'system_prompt',
         'focus_scope',
         'response_style',
+        'operation_mode',
         'api_key',
         'status',
         'mirror_to_conversations',

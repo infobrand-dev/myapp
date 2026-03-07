@@ -47,7 +47,7 @@
                                 <div class="badge {{ $msg->role === 'assistant' ? 'text-bg-primary' : 'text-bg-secondary' }}">
                                     {{ strtoupper($msg->role) }}
                                 </div>
-                                <div class="border rounded p-2 mt-1">{{ $msg->content }}</div>
+                                <div class="border rounded p-2 mt-1" style="white-space: pre-wrap; line-height: 1.5;">{{ $msg->content }}</div>
                             </div>
                         @endforeach
                     </div>
@@ -86,4 +86,3 @@
     </div>
 </div>
 @endsection
-

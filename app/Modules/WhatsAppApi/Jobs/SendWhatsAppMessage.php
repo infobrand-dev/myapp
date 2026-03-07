@@ -76,6 +76,9 @@ class SendWhatsAppMessage implements ShouldQueue
             $payload['media_url'] = $message->media_url ?: data_get($message->payload, 'link');
             $payload['message'] = $message->body;
             $payload['payload'] = $message->payload;
+        } elseif ($message->type === 'interactive') {
+            $payload['type'] = 'text';
+            $payload['message'] = $this->interactiveFallbackText($message);
         } else {
             $payload['type'] = 'text';
             $payload['message'] = $message->body;
@@ -156,6 +159,22 @@ class SendWhatsAppMessage implements ShouldQueue
                 'name' => data_get($message->payload, 'name'),
                 'address' => data_get($message->payload, 'address'),
             ];
+        } elseif ($message->type === 'interactive') {
+            $interactive = is_array(data_get($message->payload, 'interactive'))
+                ? data_get($message->payload, 'interactive')
+                : null;
+
+            if ($this->isValidInteractivePayload($interactive)) {
+                $payload['type'] = 'interactive';
+                $payload['interactive'] = $interactive;
+            } else {
+                // Safe fallback when payload malformed.
+                $payload['type'] = 'text';
+                $payload['text'] = [
+                    'preview_url' => false,
+                    'body' => $this->interactiveFallbackText($message),
+                ];
+            }
         } else {
             $payload['type'] = 'text';
             $payload['text'] = [
@@ -233,6 +252,47 @@ class SendWhatsAppMessage implements ShouldQueue
         ]);
 
         throw new RuntimeException($shortError);
+    }
+
+    private function isValidInteractivePayload($interactive): bool
+    {
+        if (!is_array($interactive)) {
+            return false;
+        }
+
+        if (strtolower((string) data_get($interactive, 'type')) !== 'button') {
+            return false;
+        }
+
+        $buttons = data_get($interactive, 'action.buttons');
+        if (!is_array($buttons) || empty($buttons)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function interactiveFallbackText(ConversationMessage $message): string
+    {
+        $base = trim((string) $message->body);
+        $buttons = data_get($message->payload, 'interactive.action.buttons', []);
+        if (!is_array($buttons) || empty($buttons)) {
+            return $base !== '' ? $base : 'Silakan pilih opsi yang tersedia.';
+        }
+
+        $lines = [];
+        foreach ($buttons as $index => $button) {
+            $title = trim((string) data_get($button, 'reply.title', ''));
+            if ($title === '') {
+                continue;
+            }
+            $lines[] = ($index + 1) . '. ' . $title;
+        }
+
+        $suffix = !empty($lines) ? "\n" . implode("\n", $lines) : '';
+        $text = ($base !== '' ? $base : 'Silakan pilih opsi berikut:') . $suffix;
+
+        return mb_substr($text, 0, 1024);
     }
 }
 

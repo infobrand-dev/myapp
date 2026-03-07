@@ -1,6 +1,15 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $conversationMeta = is_array($conversation->metadata) ? $conversation->metadata : [];
+    $isSocialConversation = strtolower((string) ($conversation->channel ?? '')) === 'social_dm';
+    $socialBotPaused = (bool) ($conversationMeta['auto_reply_paused'] ?? false);
+    $canResumeSocialBot = $isSocialConversation && $socialBotPaused
+        && ((int) ($conversation->owner_id ?? 0) === (int) auth()->id() || auth()->user()->hasRole('Super-admin'));
+    $canPauseSocialBot = $isSocialConversation && !$socialBotPaused
+        && ((int) ($conversation->owner_id ?? 0) === (int) auth()->id() || auth()->user()->hasRole('Super-admin'));
+@endphp
 <style>
     .conv-dashboard {
         --conv-shell-bg: #f8fafc;
@@ -521,6 +530,19 @@
     </div>
     <div class="btn-list conv-page-actions">
         <a href="{{ route('conversations.index') }}" class="btn btn-outline-secondary">Kembali</a>
+        <button type="button" class="btn btn-outline-primary d-none" id="enable-web-notif-btn">Aktifkan Notifikasi</button>
+        @if($canPauseSocialBot)
+            <form method="POST" action="{{ route('social-media.conversations.pause-bot', $conversation) }}" class="d-inline">
+                @csrf
+                <button class="btn btn-outline-warning" type="submit">Pause Bot</button>
+            </form>
+        @endif
+        @if($canResumeSocialBot)
+            <form method="POST" action="{{ route('social-media.conversations.resume-bot', $conversation) }}" class="d-inline">
+                @csrf
+                <button class="btn btn-outline-success" type="submit">Resume Bot</button>
+            </form>
+        @endif
         @if($conversation->owner_id === auth()->id())
             <form method="POST" action="{{ route('conversations.release', $conversation) }}" class="d-inline">
                 @csrf
@@ -788,6 +810,18 @@
                 <div class="detail-row"><span class="detail-key">Kontak</span><span class="detail-value">{{ $conversation->contact_name ?? $conversation->contact_external_id ?? 'Internal' }}</span></div>
                 <div class="detail-row"><span class="detail-key">Owner</span><span class="detail-value">{{ $conversation->owner->name ?? 'Unassigned' }}</span></div>
                 <div class="detail-row"><span class="detail-key">Status</span><span class="detail-value">{{ ucfirst($conversation->status) }}</span></div>
+                @if($isSocialConversation)
+                    <div class="detail-row">
+                        <span class="detail-key">Bot Mode</span>
+                        <span class="detail-value">
+                            @if($socialBotPaused)
+                                <span class="badge text-bg-warning">Paused (Need Human)</span>
+                            @else
+                                <span class="badge text-bg-success">Active</span>
+                            @endif
+                        </span>
+                    </div>
+                @endif
                 <div class="detail-row"><span class="detail-key">Last message</span><span class="detail-value" id="detail-last-message-time">{{ optional($conversation->last_message_at)->diffForHumans() ?? '-' }}</span></div>
                 @if(($waModuleReady ?? false) && $conversation->instance)
                     <div class="detail-row"><span class="detail-key">Instance</span><span class="detail-value">{{ $conversation->instance->name }}</span></div>
@@ -918,6 +952,7 @@
         const messagesEndpoint = "{{ route('conversations.messages', $conversation) }}";
         const messagesSinceEndpoint = "{{ route('conversations.messages.since', $conversation) }}";
         const markReadEndpoint = "{{ route('conversations.read', $conversation) }}";
+        const conversationUrl = "{{ route('conversations.show', $conversation) }}";
         const csrfToken = @json(csrf_token());
         let oldestMessageId = @json($oldestMessageId);
         let latestMessageId = @json($latestMessageId);
@@ -931,6 +966,7 @@
         const startUserId = document.getElementById('start-user-id');
         const startUserResults = document.getElementById('start-user-results');
         const startUserInvalid = document.getElementById('start-user-invalid');
+        const enableWebNotifBtn = document.getElementById('enable-web-notif-btn');
         const startUserSearchEndpoint = "{{ route('conversations.users.search') }}";
         const conversationItems = Array.from(document.querySelectorAll('.conv-list .conv-item'));
         const conversationEmpty = document.getElementById('conversation-empty-state');
@@ -997,19 +1033,28 @@
             if (activeInboxPreview) activeInboxPreview.textContent = (msg?.body || 'New message').toString();
         };
         const notifyIncoming = (name, body) => {
-            if (!('Notification' in window)) return;
-            if (Notification.permission === 'granted') {
-                try {
-                    new Notification(`New message from ${name}`, {
-                        body: (body || '').toString().slice(0, 140),
-                        tag: `conv-${convId}`,
-                    });
-                } catch (_) {}
-                return;
-            }
-            if (Notification.permission === 'default' && !document.hidden) {
-                Notification.requestPermission().catch(() => {});
-            }
+            const notifier = window.MyAppNotifier;
+            if (!notifier || typeof notifier.show !== 'function') return;
+            notifier.show(`New message from ${name}`, body, conversationUrl, `conv-${convId}`);
+        };
+        const refreshWebNotifButton = () => {
+            const notifier = window.MyAppNotifier;
+            if (!enableWebNotifBtn || !notifier || !notifier.supportsNotifications?.()) return;
+            const currentPermission = notifier.permission?.() || 'denied';
+            enableWebNotifBtn.classList.toggle('d-none', currentPermission !== 'default');
+        };
+        const initWebNotifButton = () => {
+            refreshWebNotifButton();
+            enableWebNotifBtn?.addEventListener('click', async () => {
+                const notifier = window.MyAppNotifier;
+                if (!notifier || typeof notifier.ensurePermission !== 'function') return;
+                const granted = await notifier.ensurePermission(true);
+                if (granted) {
+                    enableWebNotifBtn.classList.add('d-none');
+                } else {
+                    refreshWebNotifButton();
+                }
+            });
         };
         const setMobileView = (view) => {
             if (!dashboardRoot) return;
@@ -1028,6 +1073,7 @@
 
         if (chatPane) chatPane.scrollTop = chatPane.scrollHeight;
         initMobileView();
+        initWebNotifButton();
         refreshUnreadUi();
 
         conversationItems.forEach((item) => {

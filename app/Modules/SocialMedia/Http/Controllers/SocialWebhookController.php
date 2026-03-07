@@ -10,6 +10,7 @@ use App\Modules\SocialMedia\Models\SocialAccountChatbotIntegration;
 use App\Modules\Conversations\Jobs\GenerateAiReply;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -29,8 +30,10 @@ class SocialWebhookController extends Controller
         ]);
 
         $account = SocialAccount::query()
+            ->where('status', 'active')
+            ->where('platform', $data['platform'])
             ->when($data['account_id'] ?? null, fn ($q) => $q->where('id', $data['account_id']))
-            ->when(!($data['account_id'] ?? null), fn ($q) => $q->where('access_token', $data['token']))
+            ->where('access_token', $data['token'])
             ->first();
 
         if (!$account) {
@@ -53,6 +56,17 @@ class SocialWebhookController extends Controller
             ]
         );
 
+        if (!empty($data['external_message_id'])) {
+            $alreadyStored = ConversationMessage::query()
+                ->where('conversation_id', $conversation->id)
+                ->where('external_message_id', $data['external_message_id'])
+                ->exists();
+
+            if ($alreadyStored) {
+                return response()->json(['stored' => true, 'deduplicated' => true]);
+            }
+        }
+
         $conversation->update([
             'contact_name' => $data['contact_name'] ?? $conversation->contact_name,
             'last_message_at' => now(),
@@ -72,7 +86,9 @@ class SocialWebhookController extends Controller
         ]);
 
         $chatbot = $this->chatbotIntegration($account);
-        $shouldAutoReply = $chatbot['auto_reply'] && $chatbot['chatbot_account_id'] && (($data['direction'] ?? 'in') === 'in');
+        $shouldAutoReply = $chatbot['auto_reply']
+            && (($data['direction'] ?? 'in') === 'in')
+            && $this->shouldAutoReply($conversation, $chatbot['chatbot_account_id'], (string) ($message->body ?? ''));
         if ($shouldAutoReply) {
             GenerateAiReply::dispatch($conversation->id, $message->id, $chatbot['chatbot_account_id']);
         }
@@ -81,11 +97,12 @@ class SocialWebhookController extends Controller
     }
 
     // Meta challenge verify
-    public function verify(Request $request): JsonResponse
+    public function verify(Request $request)
     {
         $verifyToken = config('services.meta.verify_token', 'changeme');
         if ($request->get('hub_verify_token') === $verifyToken) {
-            return response()->json($request->get('hub_challenge'));
+            return response((string) $request->get('hub_challenge'), Response::HTTP_OK)
+                ->header('Content-Type', 'text/plain');
         }
         return response()->json(['message' => 'Invalid verify token'], Response::HTTP_FORBIDDEN);
     }
@@ -111,6 +128,105 @@ class SocialWebhookController extends Controller
             'auto_reply' => (bool) $integration->auto_reply,
             'chatbot_account_id' => $integration->chatbot_account_id ? (int) $integration->chatbot_account_id : null,
         ];
+    }
+
+    private function shouldAutoReply(Conversation $conversation, ?int $chatbotAccountId, string $incomingBody): bool
+    {
+        if (!$chatbotAccountId) {
+            return false;
+        }
+
+        $account = $this->resolveChatbotAccount($chatbotAccountId);
+        if (!$account) {
+            return false;
+        }
+
+        $mode = strtolower((string) ($account->operation_mode ?? 'ai_only'));
+        if ($mode === 'ai_only') {
+            return true;
+        }
+
+        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
+        if ((bool) ($metadata['auto_reply_paused'] ?? false)) {
+            return false;
+        }
+
+        if ($this->shouldHandoffToHuman($incomingBody)) {
+            $this->markConversationHandoff($conversation, 'keyword_request_human');
+            return false;
+        }
+
+        return true;
+    }
+
+    private function resolveChatbotAccount(int $chatbotAccountId)
+    {
+        $chatbotClass = \App\Modules\Chatbot\Models\ChatbotAccount::class;
+        if (!class_exists($chatbotClass) || !Schema::hasTable('chatbot_accounts')) {
+            return null;
+        }
+
+        return $chatbotClass::query()
+            ->where('status', 'active')
+            ->find($chatbotAccountId);
+    }
+
+    private function shouldHandoffToHuman(string $text): bool
+    {
+        $haystack = mb_strtolower(trim($text));
+        if ($haystack === '') {
+            return false;
+        }
+
+        $keywords = [
+            'agent',
+            'admin',
+            'operator',
+            'manusia',
+            'human',
+            'cs',
+            'customer service',
+            'staff',
+        ];
+
+        foreach ($keywords as $keyword) {
+            if (mb_stripos($haystack, $keyword) !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function markConversationHandoff(Conversation $conversation, string $reason): void
+    {
+        self::pauseBotForConversation($conversation, $reason);
+    }
+
+    public static function pauseBotForConversation(Conversation $conversation, string $reason = 'manual_pause'): void
+    {
+        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
+        $metadata['needs_human'] = true;
+        $metadata['auto_reply_paused'] = true;
+        $metadata['handoff_reason'] = $reason;
+        $metadata['handoff_at'] = now()->toDateTimeString();
+
+        $conversation->update([
+            'metadata' => $metadata,
+        ]);
+    }
+
+    public static function resumeBotForConversation(Conversation $conversation): void
+    {
+        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
+        Arr::set($metadata, 'needs_human', false);
+        Arr::set($metadata, 'auto_reply_paused', false);
+        Arr::set($metadata, 'handoff_resumed_at', now()->toDateTimeString());
+        Arr::forget($metadata, ['handoff_reason', 'handoff_at']);
+
+        $conversation->update([
+            'metadata' => $metadata,
+        ]);
     }
 }
 

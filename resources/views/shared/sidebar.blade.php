@@ -137,6 +137,7 @@
                     })
                     ->filter(fn($module) => $module['items']->isNotEmpty())
                     ->values();
+                $conversationBadgeRendered = false;
             @endphp
 
             @if($moduleMenus->isNotEmpty())
@@ -167,8 +168,12 @@
                             </span>
                             <span class="nav-link-title">{{ $menu['name'] }}</span>
                             @if($isConversationRoute)
+                                @php
+                                    $useConversationBadgeId = !$conversationBadgeRendered;
+                                    $conversationBadgeRendered = true;
+                                @endphp
                                 <span
-                                    id="sidebar-conv-unread-badge"
+                                    @if($useConversationBadgeId) id="sidebar-conv-unread-badge" @endif
                                     data-count="{{ $conversationUnreadTotal }}"
                                     class="badge bg-red-lt text-red ms-auto {{ $conversationUnreadTotal > 0 ? '' : 'd-none' }}">
                                     {{ $conversationUnreadTotal }}
@@ -187,8 +192,12 @@
                             </span>
                             <span class="nav-link-title">{{ $menu['name'] }}</span>
                             @if(collect($routes)->contains(fn($r) => str_starts_with((string) $r, 'conversations.')))
+                                @php
+                                    $useConversationBadgeId = !$conversationBadgeRendered;
+                                    $conversationBadgeRendered = true;
+                                @endphp
                                 <span
-                                    id="sidebar-conv-unread-badge"
+                                    @if($useConversationBadgeId) id="sidebar-conv-unread-badge" @endif
                                     data-count="{{ $conversationUnreadTotal }}"
                                     class="badge bg-red-lt text-red ms-auto {{ $conversationUnreadTotal > 0 ? '' : 'd-none' }}">
                                     {{ $conversationUnreadTotal }}

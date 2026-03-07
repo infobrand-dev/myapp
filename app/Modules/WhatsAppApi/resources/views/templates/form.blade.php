@@ -69,7 +69,7 @@
         <a href="{{ route('whatsapp-api.templates.index') }}" class="btn btn-outline-secondary">Kembali</a>
     </div>
 
-    <form method="POST" action="{{ $isEdit ? route('whatsapp-api.templates.update', $template) : route('whatsapp-api.templates.store') }}" id="wa-template-form">
+    <form method="POST" action="{{ $isEdit ? route('whatsapp-api.templates.update', $template) : route('whatsapp-api.templates.store') }}" id="wa-template-form" enctype="multipart/form-data">
         @csrf
         @if($isEdit) @method('PUT') @endif
         <input type="hidden" name="status" value="{{ old('status', $template->status ?: 'draft') }}">
@@ -149,9 +149,14 @@
                                 @error('header_text') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-8 header-media-wrap" style="{{ in_array($headerType, ['image', 'document', 'video']) ? '' : 'display:none;' }}">
-                                <label class="form-label">Header media URL</label>
-                                <input class="form-control" name="header_media_url" id="header_media_url" placeholder="https://..." value="{{ old('header_media_url', data_get($headerComp, 'parameters.0.link', '')) }}">
-                                @error('header_media_url') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                                @php $existingHeaderMedia = old('header_media_url', data_get($headerComp, 'parameters.0.link', '')); @endphp
+                                <label class="form-label">Header media file</label>
+                                <input type="file" class="form-control" name="header_media_file" id="header_media_file" accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.mp4,.mov,.avi,.mkv">
+                                <input type="hidden" name="header_media_url" id="header_media_url" value="{{ $existingHeaderMedia }}">
+                                @if($existingHeaderMedia)
+                                    <div class="tiny mt-1">File saat ini: <a href="{{ $existingHeaderMedia }}" target="_blank" rel="noopener">lihat media</a></div>
+                                @endif
+                                @error('header_media_file') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                             </div>
                         </div>
                     </div>
@@ -300,6 +305,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const headerType = document.getElementById('header_type');
     const headerInput = document.getElementById('header_text');
+    const headerMediaFileInput = document.getElementById('header_media_file');
     const headerMediaInput = document.getElementById('header_media_url');
     const bodyInput = document.getElementById('body_input');
     const footerInput = document.getElementById('footer_input');
@@ -433,7 +439,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const hType = headerType?.value || 'none';
         const hText = headerInput?.value || '';
-        const hMedia = headerMediaInput?.value || '';
+        const hMedia = headerMediaFileInput?.files?.[0]?.name || headerMediaInput?.value || '';
         const body = bodyInput?.value || '';
         const footer = footerInput?.value || '';
 
@@ -467,6 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
     Array.from(container.querySelectorAll('[data-row]')).forEach(bindRow);
     addBtn?.addEventListener('click', addRow);
     nsSelect?.addEventListener('change', syncNamespace);
+    headerMediaFileInput?.addEventListener('change', render);
     [headerType, headerInput, headerMediaInput, bodyInput, footerInput].forEach((el) => el?.addEventListener('input', render));
     syncNamespace();
     render();

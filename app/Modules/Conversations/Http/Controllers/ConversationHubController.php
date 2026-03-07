@@ -12,6 +12,7 @@ use App\Modules\Conversations\Events\ConversationMessageCreated;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -445,6 +446,44 @@ class ConversationHubController extends Controller
                 'payload' => $payload,
                 'status' => 'queued',
             ]);
+        } elseif ($mode === 'media') {
+            $data = $request->validate([
+                'media_file' => ['required', 'file', 'max:20480'],
+                'body' => ['nullable', 'string', 'max:1000'],
+            ]);
+
+            if ($conversation->channel === 'wa_api' && !$this->isWithinWaCustomerCareWindow($conversation)) {
+                return $this->sendErrorResponse($request, 'Di luar jendela 24 jam. Gunakan template message untuk mengirim pesan.');
+            }
+
+            /** @var UploadedFile $uploaded */
+            $uploaded = $request->file('media_file');
+            [$mediaType, $mediaMime] = $this->resolveWaMediaType($uploaded);
+            if (!$mediaType) {
+                return $this->sendErrorResponse($request, 'Tipe file tidak didukung untuk WhatsApp.');
+            }
+
+            $path = $uploaded->store('wa_messages/' . now()->format('Y/m'), 'public');
+            $publicUrl = asset('storage/' . ltrim($path, '/'));
+            $filename = $uploaded->getClientOriginalName();
+            $caption = trim((string) ($data['body'] ?? ''));
+            $bodyText = $caption !== '' ? $caption : $filename;
+
+            $message = ConversationMessage::create([
+                'conversation_id' => $conversation->id,
+                'user_id' => $user->id,
+                'direction' => 'out',
+                'type' => $mediaType,
+                'body' => $bodyText,
+                'media_url' => $publicUrl,
+                'media_mime' => $mediaMime,
+                'payload' => [
+                    'link' => $publicUrl,
+                    'filename' => $filename,
+                ],
+                'status' => $conversation->channel === 'wa_api' ? 'queued' : 'sent',
+                'sent_at' => $conversation->channel === 'wa_api' ? null : now(),
+            ]);
         } else {
             $data = $request->validate([
                 'body' => ['required', 'string'],
@@ -485,6 +524,29 @@ class ConversationHubController extends Controller
         }
 
         return redirect()->route('conversations.show', $conversation)->with('status', 'Pesan terkirim.');
+    }
+
+    private function resolveWaMediaType(UploadedFile $file): array
+    {
+        $mime = strtolower((string) ($file->getMimeType() ?? ''));
+        $ext = strtolower((string) $file->getClientOriginalExtension());
+
+        if (str_starts_with($mime, 'image/')) {
+            return ['image', $mime];
+        }
+        if (str_starts_with($mime, 'video/')) {
+            return ['video', $mime];
+        }
+        if (str_starts_with($mime, 'audio/')) {
+            return ['audio', $mime];
+        }
+
+        $allowedDocExt = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'zip'];
+        if (in_array($ext, $allowedDocExt, true)) {
+            return ['document', $mime ?: 'application/octet-stream'];
+        }
+
+        return [null, $mime ?: 'application/octet-stream'];
     }
 
     private function sendErrorResponse(Request $request, string $message): RedirectResponse|JsonResponse

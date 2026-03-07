@@ -7,6 +7,7 @@ use App\Modules\WhatsAppApi\Jobs\SubmitTemplateToMeta;
 use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -127,7 +128,8 @@ class WATemplateController extends Controller
             'status' => ['required', 'in:draft,pending,active,inactive'],
             'header_type' => ['nullable', 'in:none,text,image,document,video'],
             'header_text' => ['nullable', 'string', 'max:60'],
-            'header_media_url' => ['nullable', 'url', 'max:255'],
+            'header_media_url' => ['nullable', 'string', 'max:2048'],
+            'header_media_file' => ['nullable', 'file', 'max:20480'],
             'footer_text' => ['nullable', 'string', 'max:60'],
 
             // New generic Meta button rows
@@ -153,8 +155,14 @@ class WATemplateController extends Controller
             $this->assertPlaceholders($data['header_text'], 'Header');
         }
 
-        if (in_array($data['header_type'] ?? 'none', ['image', 'document', 'video'], true) && empty($data['header_media_url'])) {
-            throw ValidationException::withMessages(['header_media_url' => 'URL media header wajib diisi untuk tipe media.']);
+        if (in_array($data['header_type'] ?? 'none', ['image', 'document', 'video'], true)
+            && !$request->hasFile('header_media_file')
+            && empty($data['header_media_url'])) {
+            throw ValidationException::withMessages(['header_media_file' => 'Upload file media header wajib untuk tipe media.']);
+        }
+
+        if ($request->hasFile('header_media_file')) {
+            $this->validateHeaderMediaFile($request->file('header_media_file'), (string) ($data['header_type'] ?? 'none'));
         }
 
         $this->validateButtons($request);
@@ -207,8 +215,9 @@ class WATemplateController extends Controller
             ];
         } elseif (in_array($headerType, ['image', 'document', 'video'], true)) {
             $mediaParam = [];
-            if ($request->filled('header_media_url')) {
-                $mediaParam[] = ['type' => $headerType, 'link' => $request->input('header_media_url')];
+            $mediaUrl = $this->resolveHeaderMediaUrl($request);
+            if ($mediaUrl) {
+                $mediaParam[] = ['type' => $headerType, 'link' => $mediaUrl];
             }
             $components[] = [
                 'type' => 'header',
@@ -233,6 +242,47 @@ class WATemplateController extends Controller
         }
 
         return $components ?: null;
+    }
+
+    private function resolveHeaderMediaUrl(Request $request): ?string
+    {
+        if ($request->hasFile('header_media_file')) {
+            /** @var UploadedFile $file */
+            $file = $request->file('header_media_file');
+            $path = $file->store('wa_templates/headers/' . now()->format('Y/m'), 'public');
+            return asset('storage/' . ltrim($path, '/'));
+        }
+
+        $existingUrl = trim((string) $request->input('header_media_url', ''));
+        return $existingUrl !== '' ? $existingUrl : null;
+    }
+
+    private function validateHeaderMediaFile(UploadedFile $file, string $headerType): void
+    {
+        $mime = strtolower((string) ($file->getMimeType() ?? ''));
+        if ($mime === '') {
+            throw ValidationException::withMessages([
+                'header_media_file' => 'Mime type file tidak dikenali.',
+            ]);
+        }
+
+        if ($headerType === 'image' && !str_starts_with($mime, 'image/')) {
+            throw ValidationException::withMessages([
+                'header_media_file' => 'File header harus bertipe image.',
+            ]);
+        }
+
+        if ($headerType === 'video' && !str_starts_with($mime, 'video/')) {
+            throw ValidationException::withMessages([
+                'header_media_file' => 'File header harus bertipe video.',
+            ]);
+        }
+
+        if ($headerType === 'document' && (str_starts_with($mime, 'image/') || str_starts_with($mime, 'video/'))) {
+            throw ValidationException::withMessages([
+                'header_media_file' => 'Header document tidak boleh image/video.',
+            ]);
+        }
     }
 
     private function extractButtons(Request $request): array

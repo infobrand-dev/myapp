@@ -6,6 +6,6 @@
   "version": "1.0.0",
   "requires": [],
   "navigation": [
-    { "label": "Chatbot", "route": "chatbot.accounts.index" }
+    { "label": "Chatbot", "route": "chatbot.playground.index" }
   ]
 }

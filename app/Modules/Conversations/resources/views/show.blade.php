@@ -722,6 +722,23 @@
                     </div>
                     <div id="send-feedback" class="small mt-2 text-danger d-none"></div>
                 </form>
+                @if($conversation->channel === 'wa_api')
+                    <form method="POST" action="{{ route('conversations.send', $conversation) }}" class="mb-3" id="media-form" enctype="multipart/form-data">
+                        @csrf
+                        <input type="hidden" name="message_type" value="media">
+                        <div class="row g-2">
+                            <div class="col-md-5">
+                                <input type="file" name="media_file" class="form-control" required>
+                            </div>
+                            <div class="col-md-5">
+                                <input type="text" name="body" class="form-control" placeholder="Caption (opsional)">
+                            </div>
+                            <div class="col-md-2 d-grid">
+                                <button class="btn btn-outline-primary" type="submit">Send File</button>
+                            </div>
+                        </div>
+                    </form>
+                @endif
                 @if($conversation->channel === 'wa_api' && $waTemplates->isNotEmpty())
                     <div class="section-divider">
                         <div class="d-flex align-items-center justify-content-between mb-2">
@@ -888,6 +905,7 @@
         const detailLastMessageTime = document.getElementById('detail-last-message-time');
         const activeInboxPreview = document.querySelector('.conv-item.active .conv-item-preview');
         const sendForm = document.getElementById('send-form');
+        const mediaForm = document.getElementById('media-form');
         const templateForm = document.getElementById('template-form');
         const messageInput = document.getElementById('message-input');
         const sendFeedback = document.getElementById('send-feedback');
@@ -1335,7 +1353,7 @@
                 });
                 const payload = await response.json().catch(() => ({}));
                 if (!response.ok) {
-                    const message = payload?.message || payload?.errors?.body?.[0] || payload?.errors?.template_id?.[0] || 'Failed to send message.';
+                    const message = payload?.message || payload?.errors?.body?.[0] || payload?.errors?.template_id?.[0] || payload?.errors?.media_file?.[0] || 'Failed to send message.';
                     setSendFeedback(message, 'danger');
                     return;
                 }
@@ -1350,6 +1368,9 @@
                     messageInput.focus();
                 }
                 if (formEl === templateForm) {
+                    formEl.reset();
+                }
+                if (formEl === mediaForm) {
                     formEl.reset();
                 }
             } catch (_) {
@@ -1367,6 +1388,10 @@
         templateForm?.addEventListener('submit', (e) => {
             e.preventDefault();
             sendMessageForm(templateForm);
+        });
+        mediaForm?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            sendMessageForm(mediaForm);
         });
 
         if (lockSpan && lockedUntil) {

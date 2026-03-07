@@ -32,9 +32,34 @@
                     <label class="form-label">Model</label>
                     <input type="text" name="model" class="form-control" placeholder="gpt-4o-mini" value="{{ old('model', $account->model) }}">
                 </div>
+                <div class="col-md-3">
+                    <label class="form-label">Response Style</label>
+                    <select name="response_style" class="form-select">
+                        @foreach(['concise' => 'Concise', 'balanced' => 'Balanced', 'detailed' => 'Detailed'] as $val => $label)
+                            <option value="{{ $val }}" {{ old('response_style', $account->response_style ?: 'balanced') === $val ? 'selected' : '' }}>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
                 <div class="col-12">
                     <label class="form-label">API Key</label>
-                    <input type="text" name="api_key" class="form-control" value="{{ old('api_key', $account->api_key) }}" required>
+                    <input
+                        type="password"
+                        name="api_key"
+                        class="form-control"
+                        placeholder="{{ $isEdit ? 'Kosongkan jika tidak diubah' : 'sk-...' }}"
+                        autocomplete="off"
+                        {{ $isEdit ? '' : 'required' }}
+                    >
+                    <div class="form-hint">Nilai API key disimpan aman dan tidak ditampilkan kembali.</div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">System Prompt</label>
+                    <textarea name="system_prompt" rows="4" class="form-control" placeholder="Instruksi inti untuk chatbot ini...">{{ old('system_prompt', $account->system_prompt) }}</textarea>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Focus Scope</label>
+                    <textarea name="focus_scope" rows="3" class="form-control" placeholder="Contoh: hanya jawab soal produk A, harga, onboarding.">{{ old('focus_scope', $account->focus_scope) }}</textarea>
+                    <div class="form-hint">Gunakan untuk membatasi domain jawaban chatbot ini.</div>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Status</label>
@@ -43,6 +68,40 @@
                             <option value="{{ $st }}" {{ old('status', $account->status) === $st ? 'selected' : '' }}>{{ ucfirst($st) }}</option>
                         @endforeach
                     </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label d-block">Integrasi</label>
+                    <label class="form-check form-switch m-0">
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            role="switch"
+                            name="mirror_to_conversations"
+                            value="1"
+                            {{ old('mirror_to_conversations', $account->mirror_to_conversations ? '1' : '0') === '1' ? 'checked' : '' }}
+                        >
+                        <span class="form-check-label">Mirror chat Playground ke Conversations</span>
+                    </label>
+                    <div class="form-hint">Saat aktif, pesan masuk/keluar dari Playground dicatat juga ke module Conversations lewat queue.</div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label d-block">RAG</label>
+                    <label class="form-check form-switch m-0">
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            role="switch"
+                            name="rag_enabled"
+                            value="1"
+                            {{ old('rag_enabled', $account->rag_enabled ? '1' : '0') === '1' ? 'checked' : '' }}
+                        >
+                        <span class="form-check-label">Aktifkan RAG</span>
+                    </label>
+                    <div class="form-hint">Gunakan knowledge base account ini sebagai konteks jawaban.</div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">RAG Top K</label>
+                    <input type="number" min="1" max="8" name="rag_top_k" class="form-control" value="{{ old('rag_top_k', $account->rag_top_k ?: 3) }}">
                 </div>
             </div>
             <div class="mt-4 d-flex justify-content-end gap-2">

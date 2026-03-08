@@ -130,7 +130,9 @@ class GenerateAiReply implements ShouldQueue
 
         return $base . ' Jika relevan, kamu boleh menambahkan tombol cepat WhatsApp dengan format JSON berikut TANPA teks lain: '
             . '{"text":"teks balasan","buttons":[{"id":"id_opsi_1","title":"Label 1"},{"id":"id_opsi_2","title":"Label 2"}]}. '
-            . 'Gunakan max 3 tombol. Jika tidak perlu tombol, jawab teks biasa.';
+            . 'Gunakan max 3 tombol. Jika user ingin terhubung ke manusia, admin, agent, operator, tim event, atau customer service, wajib gunakan tombol dengan id "handoff_human". '
+            . 'Contoh: {"text":"Saya bisa hubungkan Anda ke tim kami.","buttons":[{"id":"handoff_human","title":"Hubungi Sekarang"}]}. '
+            . 'Jika tidak perlu tombol, jawab teks biasa.';
     }
 
     private function buildOutgoingReply(string $rawReply, Conversation $conversation): array

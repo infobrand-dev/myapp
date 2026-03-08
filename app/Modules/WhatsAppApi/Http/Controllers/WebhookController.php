@@ -376,7 +376,7 @@ class WebhookController extends Controller
             ]);
 
             $chatbot = $this->chatbotIntegration($instance);
-            if ($chatbot['auto_reply'] && $this->shouldAutoReply($conversation, $chatbot['chatbot_account_id'], (string) ($message->body ?? ''))) {
+            if ($chatbot['auto_reply'] && $this->shouldAutoReply($conversation, $chatbot['chatbot_account_id'], (string) ($message->body ?? ''), (array) $item)) {
                 GenerateAiReply::dispatch($conversation->id, $message->id, $chatbot['chatbot_account_id']);
             }
         }
@@ -405,7 +405,7 @@ class WebhookController extends Controller
         ];
     }
 
-    private function shouldAutoReply(Conversation $conversation, ?int $chatbotAccountId, string $incomingBody): bool
+    private function shouldAutoReply(Conversation $conversation, ?int $chatbotAccountId, string $incomingBody, array $incomingPayload = []): bool
     {
         if (!$chatbotAccountId) {
             return false;
@@ -426,8 +426,9 @@ class WebhookController extends Controller
             return false;
         }
 
-        if ($this->shouldHandoffToHuman($incomingBody)) {
-            $this->markConversationHandoff($conversation, 'keyword_request_human');
+        $handoffReason = $this->detectHandoffReason($incomingBody, $incomingPayload);
+        if ($handoffReason !== null) {
+            $this->markConversationHandoff($conversation, $handoffReason);
             return false;
         }
 
@@ -444,6 +445,17 @@ class WebhookController extends Controller
         return $chatbotClass::query()
             ->where('status', 'active')
             ->find($chatbotAccountId);
+    }
+
+    private function detectHandoffReason(string $incomingBody, array $incomingPayload = []): ?string
+    {
+        if ($this->isHumanHandoffInteractiveReply($incomingPayload)) {
+            return 'interactive_request_human';
+        }
+
+        return $this->shouldHandoffToHuman($incomingBody)
+            ? 'keyword_request_human'
+            : null;
     }
 
     private function shouldHandoffToHuman(string $text): bool
@@ -471,6 +483,39 @@ class WebhookController extends Controller
         }
 
         return false;
+    }
+
+    private function isHumanHandoffInteractiveReply(array $payload): bool
+    {
+        $interactiveType = strtolower((string) Arr::get($payload, 'interactive.type', ''));
+        if (!in_array($interactiveType, ['button_reply', 'list_reply'], true)) {
+            return false;
+        }
+
+        $id = trim((string) (
+            Arr::get($payload, 'interactive.button_reply.id')
+            ?: Arr::get($payload, 'interactive.list_reply.id')
+        ));
+
+        if ($id === '') {
+            return false;
+        }
+
+        $normalizedId = strtolower(trim((string) preg_replace('/[^a-z0-9]+/i', '_', $id), '_'));
+
+        $handoffIds = [
+            'handoff_human',
+            'request_human',
+            'hubungi_human',
+            'hubungi_cs',
+            'hubungi_admin',
+            'connect_human',
+            'connect_agent',
+            'talk_to_human',
+            'talk_to_agent',
+        ];
+
+        return in_array($normalizedId, $handoffIds, true);
     }
 
     private function markConversationHandoff(Conversation $conversation, string $reason): void

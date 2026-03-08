@@ -5,10 +5,15 @@
     $conversationMeta = is_array($conversation->metadata) ? $conversation->metadata : [];
     $isSocialConversation = strtolower((string) ($conversation->channel ?? '')) === 'social_dm';
     $socialBotPaused = (bool) ($conversationMeta['auto_reply_paused'] ?? false);
+    $isOwner = (int) ($conversation->owner_id ?? 0) === (int) auth()->id();
+    $isParticipant = $conversation->participants->contains(fn ($participant) => (int) $participant->user_id === (int) auth()->id());
+    $isSuperAdmin = auth()->user()->hasRole('Super-admin');
+    $canReply = $isOwner || $isParticipant || $isSuperAdmin;
+    $replyDisabledMessage = 'Claim conversation atau minta owner mengundang Anda sebagai participant untuk membalas.';
     $canResumeSocialBot = $isSocialConversation && $socialBotPaused
-        && ((int) ($conversation->owner_id ?? 0) === (int) auth()->id() || auth()->user()->hasRole('Super-admin'));
+        && ($isOwner || $isSuperAdmin);
     $canPauseSocialBot = $isSocialConversation && !$socialBotPaused
-        && ((int) ($conversation->owner_id ?? 0) === (int) auth()->id() || auth()->user()->hasRole('Super-admin'));
+        && ($isOwner || $isSuperAdmin);
 @endphp
 <style>
     .conv-dashboard {
@@ -736,11 +741,16 @@
                 @endforelse
             </div>
             <div class="section-body pt-2">
+                @unless($canReply)
+                    <div class="alert alert-warning py-2 px-3 mb-3">
+                        {{ $replyDisabledMessage }}
+                    </div>
+                @endunless
                 <form method="POST" action="{{ route('conversations.send', $conversation) }}" class="mb-3" id="send-form">
                     @csrf
                     <div class="composer-shell d-flex align-items-center gap-2">
-                        <input type="text" name="body" class="form-control" placeholder="Type a message..." required autocomplete="off" id="message-input">
-                        <button class="btn btn-primary" type="submit">Send</button>
+                        <input type="text" name="body" class="form-control" placeholder="Type a message..." required autocomplete="off" id="message-input" {{ $canReply ? '' : 'disabled' }}>
+                        <button class="btn btn-primary" type="submit" {{ $canReply ? '' : 'disabled' }}>Send</button>
                     </div>
                     <div id="send-feedback" class="small mt-2 text-danger d-none"></div>
                 </form>
@@ -750,13 +760,13 @@
                         <input type="hidden" name="message_type" value="media">
                         <div class="row g-2">
                             <div class="col-md-5">
-                                <input type="file" name="media_file" class="form-control" required>
+                                <input type="file" name="media_file" class="form-control" required {{ $canReply ? '' : 'disabled' }}>
                             </div>
                             <div class="col-md-5">
-                                <input type="text" name="body" class="form-control" placeholder="Caption (opsional)">
+                                <input type="text" name="body" class="form-control" placeholder="Caption (opsional)" {{ $canReply ? '' : 'disabled' }}>
                             </div>
                             <div class="col-md-2 d-grid">
-                                <button class="btn btn-outline-primary" type="submit">Send File</button>
+                                <button class="btn btn-outline-primary" type="submit" {{ $canReply ? '' : 'disabled' }}>Send File</button>
                             </div>
                         </div>
                     </form>
@@ -772,7 +782,7 @@
                             <input type="hidden" name="message_type" value="template">
                             <div class="row g-2">
                                 <div class="col-md-7">
-                                    <select name="template_id" id="template_id" class="form-select" required>
+                                    <select name="template_id" id="template_id" class="form-select" required {{ $canReply ? '' : 'disabled' }}>
                                         <option value="">Pilih template</option>
                                         @foreach($waTemplates as $tpl)
                                             <option value="{{ $tpl->id }}" data-body="{{ e($tpl->body) }}" data-header="{{ e(data_get(collect($tpl->components)->firstWhere('type','header'), 'parameters.0.text')) }}">
@@ -785,7 +795,7 @@
                                     <input type="text" class="form-control" id="tpl_lang" placeholder="Lang" disabled>
                                 </div>
                                 <div class="col-md-2">
-                                    <button class="btn btn-success w-100" type="submit">Kirim</button>
+                                    <button class="btn btn-success w-100" type="submit" {{ $canReply ? '' : 'disabled' }}>Kirim</button>
                                 </div>
                             </div>
                             <div id="tpl-vars" class="row g-2 mt-2"></div>
@@ -881,12 +891,6 @@
                     <div class="text-muted small">Belum ada peserta.</div>
                 @endforelse
                 </div>
-            </div>
-        </div>
-        <div class="conv-surface mt-3">
-            <div class="section-head"><h3 class="conv-section-title">Aktivitas</h3></div>
-            <div class="section-body pt-0" id="log-body" style="max-height: 240px; overflow:auto;">
-                <div class="text-muted small">Memuat log...</div>
             </div>
         </div>
     </div>
@@ -1521,28 +1525,6 @@
         tplSelect?.addEventListener('change', renderVars);
         if (tplSelect) renderVars();
 
-        // Load activity log
-        fetch('{{ route('conversations.logs', $conversation) }}')
-            .then(r => r.json())
-            .then(list => {
-                const body = document.getElementById('log-body');
-                body.innerHTML = '';
-                if (!list.length) {
-                    body.innerHTML = '<div class=\"text-muted small\">Belum ada aktivitas.</div>';
-                    return;
-                }
-                list.forEach(item => {
-                    const div = document.createElement('div');
-                    div.className = 'small mb-1';
-                    const name = item.user?.name ?? 'System';
-                    div.innerHTML = `<span class="text-secondary">${item.created_at}</span> - <strong>${name}</strong> ${item.action}${item.detail ? ': ' + item.detail : ''}`;
-                    body.appendChild(div);
-                });
-            })
-            .catch(() => {
-                const body = document.getElementById('log-body');
-                body.innerHTML = '<div class=\"text-danger small\">Gagal memuat log.</div>';
-            });
     });
 </script>
 @endpush

@@ -607,8 +607,7 @@ class ConversationHubController extends Controller
         }
 
         $allowed = $conversation->owner_id === $user->id
-            || $conversation->participants()->where('user_id', $user->id)->exists()
-            || $this->hasInstanceAccess($conversation, (int) $user->id);
+            || $conversation->participants()->where('user_id', $user->id)->exists();
 
         abort_unless($allowed, 403);
     }
@@ -636,16 +635,6 @@ class ConversationHubController extends Controller
                 $query->where(function ($q) use ($user) {
                     $q->where('owner_id', $user->id)
                         ->orWhereHas('participants', fn ($p) => $p->where('user_id', $user->id));
-
-                    if ($this->isWhatsAppApiReady()) {
-                        $instanceIds = $this->accessibleWhatsAppInstanceIds((int) $user->id);
-                        if (!empty($instanceIds)) {
-                            $q->orWhere(function ($waQ) use ($instanceIds) {
-                                $waQ->where('channel', 'wa_api')
-                                    ->whereIn('instance_id', $instanceIds);
-                            });
-                        }
-                    }
                 });
             });
     }

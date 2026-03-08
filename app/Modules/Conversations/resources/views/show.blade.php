@@ -704,7 +704,8 @@
                     <a href="{{ route('conversations.show', $c) }}"
                        class="list-group-item list-group-item-action d-flex justify-content-between align-items-start conv-item {{ $c->id === $conversation->id ? 'active' : '' }}"
                        data-name="{{ mb_strtolower($c->contact_name ?? $c->contact_external_id ?? 'internal') }}"
-                       data-assignment="{{ $isUnsigned ? 'unsigned' : 'assigned' }}">
+                       data-assignment="{{ $isUnsigned ? 'unsigned' : 'assigned' }}"
+                       data-unread-count="{{ (int) ($c->unread_count ?? 0) }}">
                         <div class="d-flex align-items-start gap-2 me-2">
                             <span class="inbox-avatar">
                                 @if($listAvatar)
@@ -721,8 +722,8 @@
                                 </div>
                             </div>
                         </div>
-                        @if(($waModuleReady ?? false) && $c->instance)
-                            <span class="badge {{ $c->instance->status === 'connected' ? 'text-bg-success' : ($c->instance->status === 'error' ? 'text-bg-danger' : 'text-bg-secondary') }}">{{ $c->instance->status }}</span>
+                        @if((int) ($c->unread_count ?? 0) > 0)
+                            <span class="badge text-bg-danger">{{ (int) $c->unread_count }}</span>
                         @endif
                     </a>
                 @empty
@@ -1086,6 +1087,7 @@
         const chatLastMessageTime = document.getElementById('chat-last-message-time');
         const detailLastMessageTime = document.getElementById('detail-last-message-time');
         const activeInboxPreview = document.querySelector('.conv-item.active .conv-item-preview');
+        const activeConversationBadge = document.querySelector('.conv-item.active .badge');
         const sendForm = document.getElementById('send-form');
         const mediaForm = document.getElementById('media-form');
         const templateForm = document.getElementById('template-form');
@@ -1160,6 +1162,14 @@
                 sidebarUnreadCount = Math.max(0, sidebarUnreadCount - unseenIncomingCount);
             }
             unseenIncomingCount = 0;
+            const activeConversationItem = document.querySelector('.conv-item.active');
+            if (activeConversationItem) {
+                activeConversationItem.dataset.unreadCount = '0';
+            }
+            if (activeConversationBadge) {
+                activeConversationBadge.classList.add('d-none');
+                activeConversationBadge.textContent = '0';
+            }
             refreshUnreadUi();
             syncReadToServer();
         };

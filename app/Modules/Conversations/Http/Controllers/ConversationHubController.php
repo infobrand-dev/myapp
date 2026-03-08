@@ -16,6 +16,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Throwable;
 
@@ -464,7 +465,17 @@ class ConversationHubController extends Controller
             }
 
             $path = $uploaded->store('wa_messages/' . now()->format('Y/m'), 'public');
-            $publicUrl = asset('storage/' . ltrim($path, '/'));
+            $publicUrl = $this->publicStorageUrl($path);
+
+            if ($conversation->channel === 'wa_api' && $this->requiresPublicHttpsMedia($conversation) && !$this->isPublicHttpsUrl($publicUrl)) {
+                Storage::disk('public')->delete($path);
+
+                return $this->sendErrorResponse(
+                    $request,
+                    'Upload file untuk WhatsApp Cloud membutuhkan APP_URL publik HTTPS dan folder public/storage yang bisa diakses dari internet.'
+                );
+            }
+
             $filename = $uploaded->getClientOriginalName();
             $caption = trim((string) ($data['body'] ?? ''));
             $bodyText = $caption !== '' ? $caption : $filename;
@@ -774,6 +785,52 @@ class ConversationHubController extends Controller
             ->where('instance_id', (int) $conversation->instance_id)
             ->where('user_id', $userId)
             ->exists();
+    }
+
+    private function publicStorageUrl(string $path): string
+    {
+        return url(Storage::disk('public')->url($path));
+    }
+
+    private function requiresPublicHttpsMedia(Conversation $conversation): bool
+    {
+        if ($conversation->channel !== 'wa_api' || !$conversation->instance_id || !$this->isWhatsAppApiReady()) {
+            return false;
+        }
+
+        $provider = DB::table('whatsapp_instances')
+            ->where('id', (int) $conversation->instance_id)
+            ->value('provider');
+
+        return strtolower((string) $provider) === 'cloud';
+    }
+
+    private function isPublicHttpsUrl(string $url): bool
+    {
+        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+            return false;
+        }
+
+        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+
+        if ($scheme !== 'https' || $host === '') {
+            return false;
+        }
+
+        if (in_array($host, ['localhost', '127.0.0.1', '::1'], true)) {
+            return false;
+        }
+
+        if (filter_var($host, FILTER_VALIDATE_IP)) {
+            return filter_var(
+                $host,
+                FILTER_VALIDATE_IP,
+                FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+            ) !== false;
+        }
+
+        return is_dir(public_path('storage'));
     }
 
     private function dispatchOutboundJob(string $channel, int $messageId): void

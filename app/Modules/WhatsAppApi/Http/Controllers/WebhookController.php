@@ -3,9 +3,11 @@
 namespace App\Modules\WhatsAppApi\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Conversations\Events\ConversationMessageCreated;
 use App\Modules\Conversations\Jobs\GenerateAiReply;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
+use App\Modules\WhatsAppApi\Jobs\SendWhatsAppMessage;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstanceChatbotIntegration;
 use App\Modules\WhatsAppApi\Models\WhatsAppWebhookEvent;
@@ -428,6 +430,7 @@ class WebhookController extends Controller
 
         $handoffReason = $this->detectHandoffReason($incomingBody, $incomingPayload);
         if ($handoffReason !== null) {
+            $this->sendHumanHandoffAcknowledgement($conversation);
             $this->markConversationHandoff($conversation, $handoffReason);
             return false;
         }
@@ -529,6 +532,52 @@ class WebhookController extends Controller
         $conversation->update([
             'metadata' => $metadata,
         ]);
+    }
+
+    private function sendHumanHandoffAcknowledgement(Conversation $conversation): void
+    {
+        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
+        if ((bool) ($metadata['auto_reply_paused'] ?? false)) {
+            return;
+        }
+
+        $instance = $conversation->instance_id ? WhatsAppInstance::query()->find($conversation->instance_id) : null;
+        $body = $this->humanHandoffAcknowledgementMessage($instance);
+
+        $message = ConversationMessage::create([
+            'conversation_id' => $conversation->id,
+            'user_id' => null,
+            'direction' => 'out',
+            'type' => 'text',
+            'body' => $body,
+            'status' => 'queued',
+        ]);
+
+        $conversation->update([
+            'last_message_at' => now(),
+            'last_outgoing_at' => now(),
+        ]);
+
+        SendWhatsAppMessage::dispatch($message->id);
+
+        try {
+            broadcast(new ConversationMessageCreated($message))->toOthers();
+        } catch (Throwable $e) {
+            Log::warning('Broadcast handoff acknowledgement skipped', [
+                'conversation_id' => $conversation->id,
+                'message_id' => $message->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function humanHandoffAcknowledgementMessage(?WhatsAppInstance $instance): string
+    {
+        $configured = trim((string) Arr::get($instance?->settings ?? [], 'handoff_ack_message', ''));
+
+        return $configured !== ''
+            ? $configured
+            : 'Baik, Anda akan kami hubungkan dengan Customer Service kami. Mohon tunggu, tim kami akan merespons secepatnya.';
     }
 
     private function handleCloudMessageStatuses(array $value): void

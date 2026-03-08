@@ -595,6 +595,7 @@ class InstanceController extends Controller
             'api_token' => ['nullable', 'string', 'max:255'],
             'is_active' => ['boolean'],
             'settings' => ['nullable'],
+            'handoff_ack_message' => ['nullable', 'string', 'max:2000'],
             'wa_cloud_verify_token' => ['nullable', 'string', 'max:255'],
             'wa_cloud_app_secret' => ['nullable', 'string', 'max:255'],
             'auto_reply' => ['sometimes', 'boolean'],
@@ -621,8 +622,16 @@ class InstanceController extends Controller
         if ($request->filled('wa_cloud_app_secret')) {
             $settings['wa_cloud_app_secret'] = trim((string) $request->input('wa_cloud_app_secret'));
         }
+        if ($request->exists('handoff_ack_message')) {
+            $handoffAckMessage = trim((string) $request->input('handoff_ack_message', ''));
+            if ($handoffAckMessage !== '') {
+                $settings['handoff_ack_message'] = $handoffAckMessage;
+            } else {
+                unset($settings['handoff_ack_message']);
+            }
+        }
         $data['settings'] = $settings ?: null;
-        unset($data['wa_cloud_verify_token'], $data['wa_cloud_app_secret']);
+        unset($data['wa_cloud_verify_token'], $data['wa_cloud_app_secret'], $data['handoff_ack_message']);
 
         $provider = strtolower((string) ($data['provider'] ?? ''));
         $isCloud = $provider === 'cloud';

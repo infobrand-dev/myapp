@@ -210,6 +210,18 @@
                             </div>
                             @error('chatbot_account_id') <div class="text-danger small">{{ $message }}</div> @enderror
                         </div>
+                        <div class="col-12">
+                            <label class="form-label" for="handoff_ack_message">Pesan Saat Escalate ke Human</label>
+                            <textarea
+                                name="handoff_ack_message"
+                                id="handoff_ack_message"
+                                class="form-control"
+                                rows="3"
+                                placeholder="Baik, Anda akan kami hubungkan dengan Customer Service kami. Mohon tunggu, tim kami akan merespons secepatnya."
+                            >{{ old('handoff_ack_message', data_get($instance->settings, 'handoff_ack_message', '')) }}</textarea>
+                            <div class="text-muted small">Dikirim otomatis saat customer meminta dihubungkan ke human/customer service.</div>
+                            @error('handoff_ack_message') <div class="text-danger small">{{ $message }}</div> @enderror
+                        </div>
                     </div>
                 </div>
             </div>

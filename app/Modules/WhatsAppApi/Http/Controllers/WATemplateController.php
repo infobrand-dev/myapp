@@ -401,8 +401,14 @@ class WATemplateController extends Controller
     private function connectedCloudInstances()
     {
         return WhatsAppInstance::where('provider', 'cloud')
-            ->where('status', 'connected')
+            ->whereNotNull('cloud_business_account_id')
+            ->where('cloud_business_account_id', '!=', '')
+            ->whereNotNull('phone_number_id')
+            ->where('phone_number_id', '!=', '')
+            ->whereNotNull('cloud_token')
+            ->where('cloud_token', '!=', '')
             ->select(['id', 'name', 'cloud_business_account_id'])
+            ->orderByDesc('is_active')
             ->orderBy('name')
             ->get();
     }
@@ -413,7 +419,8 @@ class WATemplateController extends Controller
             return null;
         }
         return WhatsAppInstance::where('provider', 'cloud')
-            ->where('status', 'connected')
+            ->whereNotNull('cloud_business_account_id')
+            ->where('cloud_business_account_id', '!=', '')
             ->where('cloud_business_account_id', $namespace)
             ->first();
     }
@@ -422,12 +429,17 @@ class WATemplateController extends Controller
     {
         $instance = WhatsAppInstance::where('id', $request->integer('instance_id'))
             ->where('provider', 'cloud')
-            ->where('status', 'connected')
+            ->whereNotNull('cloud_business_account_id')
+            ->where('cloud_business_account_id', '!=', '')
+            ->whereNotNull('phone_number_id')
+            ->where('phone_number_id', '!=', '')
+            ->whereNotNull('cloud_token')
+            ->where('cloud_token', '!=', '')
             ->first();
 
         if (!$instance) {
             throw ValidationException::withMessages([
-                'instance_id' => 'Pilih instance Cloud yang connected.',
+                'instance_id' => 'Pilih instance Cloud yang kredensialnya lengkap.',
             ]);
         }
 

@@ -4,7 +4,10 @@
 @php
     $conversationMeta = is_array($conversation->metadata) ? $conversation->metadata : [];
     $isSocialConversation = strtolower((string) ($conversation->channel ?? '')) === 'social_dm';
+    $isWhatsAppConversation = strtolower((string) ($conversation->channel ?? '')) === 'wa_api';
     $socialBotPaused = (bool) ($conversationMeta['auto_reply_paused'] ?? false);
+    $needsHuman = (bool) ($conversationMeta['needs_human'] ?? false);
+    $handoffAt = $conversationMeta['handoff_at'] ?? null;
     $isOwner = (int) ($conversation->owner_id ?? 0) === (int) auth()->id();
     $isParticipant = $conversation->participants->contains(fn ($participant) => (int) $participant->user_id === (int) auth()->id());
     $isSuperAdmin = auth()->user()->hasRole('Super-admin');
@@ -820,6 +823,21 @@
                 <div class="detail-row"><span class="detail-key">Kontak</span><span class="detail-value">{{ $conversation->contact_name ?? $conversation->contact_external_id ?? 'Internal' }}</span></div>
                 <div class="detail-row"><span class="detail-key">Owner</span><span class="detail-value">{{ $conversation->owner->name ?? 'Unassigned' }}</span></div>
                 <div class="detail-row"><span class="detail-key">Status</span><span class="detail-value">{{ ucfirst($conversation->status) }}</span></div>
+                @if($isWhatsAppConversation)
+                    <div class="detail-row">
+                        <span class="detail-key">Bot Mode</span>
+                        <span class="detail-value">
+                            @if($needsHuman)
+                                <span class="badge text-bg-warning">Paused (Need Human)</span>
+                                @if($handoffAt)
+                                    <div class="text-muted small mt-1">{{ \Illuminate\Support\Carbon::parse($handoffAt)->diffForHumans() }}</div>
+                                @endif
+                            @else
+                                <span class="badge text-bg-success">Active</span>
+                            @endif
+                        </span>
+                    </div>
+                @endif
                 @if($isSocialConversation)
                     <div class="detail-row">
                         <span class="detail-key">Bot Mode</span>

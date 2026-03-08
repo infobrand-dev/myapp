@@ -10,6 +10,7 @@ use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -39,10 +40,14 @@ class BlastCampaignController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'language', 'namespace', 'body']);
 
+        $contacts = $this->availableContacts();
+
         return view('whatsappapi::blast.form', [
             'campaign' => new WABlastCampaign(),
             'instances' => $instances,
             'templates' => $templates,
+            'contacts' => $contacts,
+            'contactsEnabled' => $this->isContactsModuleReady(),
         ]);
     }
 
@@ -52,7 +57,11 @@ class BlastCampaignController extends Controller
             'name' => ['required', 'string', 'max:150'],
             'instance_id' => ['required', 'exists:whatsapp_instances,id'],
             'template_id' => ['required', 'exists:wa_templates,id'],
-            'recipients_text' => ['required', 'string'],
+            'recipient_source' => ['required', 'in:manual,csv,contacts'],
+            'recipients_text' => ['nullable', 'string'],
+            'recipients_file' => ['nullable', 'file', 'max:5120', 'mimes:csv,txt'],
+            'contact_ids' => ['nullable', 'array'],
+            'contact_ids.*' => ['integer'],
             'scheduled_at' => ['nullable', 'date'],
             'delay_ms' => ['nullable', 'integer', 'min:0', 'max:5000'],
             'action' => ['nullable', 'in:draft,send_now,schedule'],
@@ -79,10 +88,10 @@ class BlastCampaignController extends Controller
             ]);
         }
 
-        [$rows, $invalidRows] = $this->parseRecipients((string) $data['recipients_text']);
+        [$rows, $invalidRows] = $this->resolveRecipientRows($request, $data);
         if (empty($rows)) {
             throw ValidationException::withMessages([
-                'recipients_text' => 'Tidak ada recipient valid. Format minimal: nomor,nama,var1,var2',
+                'recipients_text' => 'Tidak ada recipient valid dari sumber yang dipilih.',
             ]);
         }
 
@@ -107,6 +116,7 @@ class BlastCampaignController extends Controller
                 'total_count' => count($rows),
                 'settings' => [
                     'delay_ms' => (int) ($data['delay_ms'] ?? 300),
+                    'recipient_source' => (string) ($data['recipient_source'] ?? 'manual'),
                 ],
                 'scheduled_at' => $scheduledAt,
             ]);
@@ -237,6 +247,103 @@ class BlastCampaignController extends Controller
         }
 
         return [$rows, $invalid];
+    }
+
+    private function resolveRecipientRows(Request $request, array $data): array
+    {
+        $source = (string) ($data['recipient_source'] ?? 'manual');
+
+        if ($source === 'csv') {
+            /** @var UploadedFile|null $file */
+            $file = $request->file('recipients_file');
+            if (!$file) {
+                throw ValidationException::withMessages([
+                    'recipients_file' => 'Upload file CSV/TXT terlebih dahulu.',
+                ]);
+            }
+
+            return $this->parseRecipients((string) file_get_contents($file->getRealPath()));
+        }
+
+        if ($source === 'contacts') {
+            $contactIds = collect((array) ($data['contact_ids'] ?? []))
+                ->map(fn ($id) => (int) $id)
+                ->filter(fn ($id) => $id > 0)
+                ->values()
+                ->all();
+
+            if (empty($contactIds)) {
+                throw ValidationException::withMessages([
+                    'contact_ids' => 'Pilih minimal satu contact.',
+                ]);
+            }
+
+            return [$this->contactsToRecipientRows($contactIds), []];
+        }
+
+        $raw = trim((string) ($data['recipients_text'] ?? ''));
+        if ($raw === '') {
+            throw ValidationException::withMessages([
+                'recipients_text' => 'Input recipients manual wajib diisi.',
+            ]);
+        }
+
+        return $this->parseRecipients($raw);
+    }
+
+    private function contactsToRecipientRows(array $contactIds): array
+    {
+        $contactClass = \App\Modules\Contacts\Models\Contact::class;
+        if (!class_exists($contactClass)) {
+            return [];
+        }
+
+        $contacts = $contactClass::query()
+            ->whereIn('id', $contactIds)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'phone', 'mobile']);
+
+        $rows = [];
+        $seen = [];
+
+        foreach ($contacts as $contact) {
+            $phone = $this->normalizePhone((string) ($contact->mobile ?: $contact->phone));
+            if ($phone === null || isset($seen[$phone])) {
+                continue;
+            }
+
+            $seen[$phone] = true;
+            $rows[] = [
+                'phone_number' => $phone,
+                'contact_name' => trim((string) $contact->name) !== '' ? (string) $contact->name : null,
+                'variables' => null,
+            ];
+        }
+
+        return $rows;
+    }
+
+    private function availableContacts()
+    {
+        $contactClass = \App\Modules\Contacts\Models\Contact::class;
+        if (!class_exists($contactClass)) {
+            return collect();
+        }
+
+        return $contactClass::query()
+            ->where('is_active', true)
+            ->where(function ($query) {
+                $query->whereNotNull('mobile')->where('mobile', '!=', '')
+                    ->orWhereNotNull('phone')->where('phone', '!=', '');
+            })
+            ->orderBy('name')
+            ->get(['id', 'name', 'mobile', 'phone']);
+    }
+
+    private function isContactsModuleReady(): bool
+    {
+        return class_exists(\App\Modules\Contacts\Models\Contact::class);
     }
 
     private function normalizePhone(string $value): ?string

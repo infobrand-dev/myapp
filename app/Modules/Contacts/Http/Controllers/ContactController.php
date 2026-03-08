@@ -6,8 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Modules\Contacts\Models\Contact;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use ZipArchive;
+use SimpleXMLElement;
 
 class ContactController extends Controller
 {
@@ -18,6 +22,126 @@ class ContactController extends Controller
             ->paginate(15);
 
         return view('contacts::index', compact('contacts'));
+    }
+
+    public function downloadTemplate(string $format)
+    {
+        $headers = $this->importHeaders();
+        $sampleRow = $this->sampleImportRow();
+
+        if ($format === 'csv') {
+            $callback = function () use ($headers, $sampleRow) {
+                $stream = fopen('php://output', 'w');
+                fputcsv($stream, $headers);
+                fputcsv($stream, $sampleRow);
+                fclose($stream);
+            };
+
+            return response()->streamDownload($callback, 'contacts-import-template.csv', [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+            ]);
+        }
+
+        if ($format === 'xlsx') {
+            return response()->streamDownload(function () use ($headers, $sampleRow) {
+                echo $this->buildTemplateXlsx([$headers, $sampleRow]);
+            }, 'contacts-import-template.xlsx', [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            ]);
+        }
+
+        abort(404);
+    }
+
+    public function import(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'import_file' => ['required', 'file', 'max:10240', 'mimes:csv,txt,xlsx'],
+        ]);
+
+        $file = $data['import_file'];
+        $extension = strtolower((string) $file->getClientOriginalExtension());
+        $rows = $extension === 'xlsx'
+            ? $this->parseXlsxFile($file->getRealPath())
+            : $this->parseCsvFile($file->getRealPath());
+
+        if (count($rows) < 2) {
+            throw ValidationException::withMessages([
+                'import_file' => 'File import harus berisi header dan minimal satu baris data.',
+            ]);
+        }
+
+        [$headerMap, $recognizedColumns] = $this->resolveImportHeaders($rows[0]);
+        if (empty($recognizedColumns) || !in_array('name', $recognizedColumns, true)) {
+            throw ValidationException::withMessages([
+                'import_file' => 'Header tidak dikenali. Gunakan template download atau sertakan minimal kolom "name".',
+            ]);
+        }
+
+        $result = DB::transaction(function () use ($rows, $headerMap) {
+            $created = 0;
+            $skipped = [];
+
+            foreach (array_slice($rows, 1) as $index => $rawRow) {
+                if ($this->rowIsEmpty($rawRow)) {
+                    continue;
+                }
+
+                $rowNumber = $index + 2;
+                $payload = $this->mapImportedRow($rawRow, $headerMap);
+                $normalized = $this->normalizeImportedContact($payload);
+
+                if (empty($normalized['name'])) {
+                    $skipped[] = "Baris {$rowNumber}: nama wajib diisi.";
+                    continue;
+                }
+
+                try {
+                    $companyId = $this->resolveImportedCompanyId($normalized);
+                    if ($normalized['type'] === 'company') {
+                        $companyId = null;
+                    }
+
+                    Contact::create([
+                        'type' => $normalized['type'],
+                        'company_id' => $companyId,
+                        'name' => $normalized['name'],
+                        'job_title' => $normalized['job_title'],
+                        'email' => $normalized['email'],
+                        'phone' => $normalized['phone'],
+                        'mobile' => $normalized['mobile'],
+                        'website' => $normalized['website'],
+                        'vat' => $normalized['vat'],
+                        'company_registry' => $normalized['company_registry'],
+                        'industry' => $normalized['industry'],
+                        'street' => $normalized['street'],
+                        'street2' => $normalized['street2'],
+                        'city' => $normalized['city'],
+                        'state' => $normalized['state'],
+                        'zip' => $normalized['zip'],
+                        'country' => $normalized['country'],
+                        'notes' => $normalized['notes'],
+                        'is_active' => $normalized['is_active'],
+                    ]);
+
+                    $created++;
+                } catch (\Throwable $e) {
+                    $skipped[] = "Baris {$rowNumber}: {$e->getMessage()}";
+                }
+            }
+
+            return compact('created', 'skipped');
+        });
+
+        $message = "Import selesai. {$result['created']} contact ditambahkan.";
+        if (!empty($result['skipped'])) {
+            $message .= ' ' . count($result['skipped']) . ' baris dilewati.';
+        }
+
+        return redirect()
+            ->route('contacts.index')
+            ->with('status', $message)
+            ->with('import_skipped', $result['skipped']);
     }
 
     public function create(): View
@@ -108,5 +232,484 @@ class ContactController extends Controller
             'notes' => ['nullable', 'string'],
             'is_active' => ['nullable', 'boolean'],
         ]);
+    }
+
+    private function importHeaders(): array
+    {
+        return [
+            'type',
+            'name',
+            'company_name',
+            'job_title',
+            'email',
+            'phone',
+            'mobile',
+            'website',
+            'vat',
+            'company_registry',
+            'industry',
+            'street',
+            'street2',
+            'city',
+            'state',
+            'zip',
+            'country',
+            'notes',
+            'is_active',
+        ];
+    }
+
+    private function sampleImportRow(): array
+    {
+        return [
+            'individual',
+            'Budi Santoso',
+            'PT Contoh Sukses',
+            'Event Coordinator',
+            'budi@example.com',
+            '0215551234',
+            '628123456789',
+            'https://contoh.co.id',
+            '',
+            '',
+            'Event Organizer',
+            'Jl. Sudirman No. 10',
+            'Lantai 5',
+            'Jakarta',
+            'DKI Jakarta',
+            '10220',
+            'Indonesia',
+            'Prospek event 2026',
+            '1',
+        ];
+    }
+
+    private function parseCsvFile(string $path): array
+    {
+        $rows = [];
+        $handle = fopen($path, 'rb');
+        if ($handle === false) {
+            throw ValidationException::withMessages([
+                'import_file' => 'File CSV tidak bisa dibaca.',
+            ]);
+        }
+
+        while (($row = fgetcsv($handle)) !== false) {
+            $rows[] = array_map(fn ($value) => is_string($value) ? trim($value) : $value, $row);
+        }
+
+        fclose($handle);
+
+        return $rows;
+    }
+
+    private function parseXlsxFile(string $path): array
+    {
+        $zip = new ZipArchive();
+        if ($zip->open($path) !== true) {
+            throw ValidationException::withMessages([
+                'import_file' => 'File XLSX tidak bisa dibuka.',
+            ]);
+        }
+
+        $sharedStrings = $this->readXlsxSharedStrings($zip);
+        $sheetPath = $this->resolveFirstWorksheetPath($zip);
+        $sheetXml = $zip->getFromName($sheetPath);
+        $zip->close();
+
+        if ($sheetXml === false) {
+            throw ValidationException::withMessages([
+                'import_file' => 'Worksheet XLSX tidak ditemukan.',
+            ]);
+        }
+
+        $xml = simplexml_load_string($sheetXml);
+        if (!$xml instanceof SimpleXMLElement) {
+            throw ValidationException::withMessages([
+                'import_file' => 'Worksheet XLSX tidak valid.',
+            ]);
+        }
+
+        $xml->registerXPathNamespace('main', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main');
+        $rows = [];
+
+        foreach ($xml->xpath('//main:sheetData/main:row') ?: [] as $rowNode) {
+            $row = [];
+            foreach ($rowNode->c as $cell) {
+                $ref = (string) $cell['r'];
+                $columnLetters = preg_replace('/\d+/', '', $ref);
+                $columnIndex = $this->columnLettersToIndex($columnLetters);
+                $row[$columnIndex] = $this->extractXlsxCellValue($cell, $sharedStrings);
+            }
+
+            if (!empty($row)) {
+                ksort($row);
+                $maxIndex = max(array_keys($row));
+                $normalizedRow = [];
+                for ($i = 0; $i <= $maxIndex; $i++) {
+                    $normalizedRow[] = $row[$i] ?? '';
+                }
+                $rows[] = $normalizedRow;
+            }
+        }
+
+        return $rows;
+    }
+
+    private function readXlsxSharedStrings(ZipArchive $zip): array
+    {
+        $xml = $zip->getFromName('xl/sharedStrings.xml');
+        if ($xml === false) {
+            return [];
+        }
+
+        $shared = simplexml_load_string($xml);
+        if (!$shared instanceof SimpleXMLElement) {
+            return [];
+        }
+
+        $shared->registerXPathNamespace('main', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main');
+
+        return collect($shared->xpath('//main:si') ?: [])
+            ->map(function ($item) {
+                $parts = $item->xpath('.//main:t') ?: [];
+                return collect($parts)->map(fn ($node) => (string) $node)->implode('');
+            })
+            ->all();
+    }
+
+    private function resolveFirstWorksheetPath(ZipArchive $zip): string
+    {
+        $workbookXml = $zip->getFromName('xl/workbook.xml');
+        $relsXml = $zip->getFromName('xl/_rels/workbook.xml.rels');
+
+        if ($workbookXml === false || $relsXml === false) {
+            return 'xl/worksheets/sheet1.xml';
+        }
+
+        $workbook = simplexml_load_string($workbookXml);
+        $rels = simplexml_load_string($relsXml);
+
+        if (!$workbook instanceof SimpleXMLElement || !$rels instanceof SimpleXMLElement) {
+            return 'xl/worksheets/sheet1.xml';
+        }
+
+        $workbook->registerXPathNamespace('main', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main');
+        $workbook->registerXPathNamespace('r', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships');
+        $rels->registerXPathNamespace('rel', 'http://schemas.openxmlformats.org/package/2006/relationships');
+
+        $sheet = ($workbook->xpath('//main:sheets/main:sheet[1]') ?: [])[0] ?? null;
+        if (!$sheet) {
+            return 'xl/worksheets/sheet1.xml';
+        }
+
+        $relationshipId = (string) $sheet->attributes('http://schemas.openxmlformats.org/officeDocument/2006/relationships')['id'];
+        foreach ($rels->xpath('//rel:Relationship') ?: [] as $relationship) {
+            if ((string) $relationship['Id'] === $relationshipId) {
+                return 'xl/' . ltrim((string) $relationship['Target'], '/');
+            }
+        }
+
+        return 'xl/worksheets/sheet1.xml';
+    }
+
+    private function extractXlsxCellValue(SimpleXMLElement $cell, array $sharedStrings): string
+    {
+        $type = (string) $cell['t'];
+        if ($type === 'inlineStr') {
+            return trim((string) ($cell->is->t ?? ''));
+        }
+
+        $value = trim((string) ($cell->v ?? ''));
+        if ($type === 's') {
+            return trim((string) ($sharedStrings[(int) $value] ?? ''));
+        }
+
+        if ($type === 'b') {
+            return $value === '1' ? '1' : '0';
+        }
+
+        return $value;
+    }
+
+    private function columnLettersToIndex(string $letters): int
+    {
+        $letters = strtoupper($letters);
+        $index = 0;
+        foreach (str_split($letters) as $letter) {
+            $index = ($index * 26) + (ord($letter) - 64);
+        }
+
+        return max(0, $index - 1);
+    }
+
+    private function resolveImportHeaders(array $headerRow): array
+    {
+        $aliases = $this->headerAliases();
+        $headerMap = [];
+        $recognized = [];
+
+        foreach ($headerRow as $index => $header) {
+            $normalized = $this->normalizeHeader((string) $header);
+            $canonical = $aliases[$normalized] ?? null;
+            if ($canonical) {
+                $headerMap[$index] = $canonical;
+                $recognized[] = $canonical;
+            }
+        }
+
+        return [$headerMap, array_values(array_unique($recognized))];
+    }
+
+    private function headerAliases(): array
+    {
+        return [
+            'type' => 'type',
+            'jenis' => 'type',
+            'contacttype' => 'type',
+            'name' => 'name',
+            'nama' => 'name',
+            'fullname' => 'name',
+            'company' => 'company_name',
+            'companyname' => 'company_name',
+            'namaperusahaan' => 'company_name',
+            'companynama' => 'company_name',
+            'jobtitle' => 'job_title',
+            'jabatan' => 'job_title',
+            'email' => 'email',
+            'phone' => 'phone',
+            'telepon' => 'phone',
+            'telephone' => 'phone',
+            'mobile' => 'mobile',
+            'hp' => 'mobile',
+            'nohp' => 'mobile',
+            'nomorhp' => 'mobile',
+            'website' => 'website',
+            'vat' => 'vat',
+            'companyregistry' => 'company_registry',
+            'nib' => 'company_registry',
+            'industry' => 'industry',
+            'industri' => 'industry',
+            'street' => 'street',
+            'address' => 'street',
+            'alamat' => 'street',
+            'street2' => 'street2',
+            'address2' => 'street2',
+            'alamat2' => 'street2',
+            'city' => 'city',
+            'kota' => 'city',
+            'state' => 'state',
+            'provinsi' => 'state',
+            'zip' => 'zip',
+            'zipcode' => 'zip',
+            'postalcode' => 'zip',
+            'kodepos' => 'zip',
+            'country' => 'country',
+            'negara' => 'country',
+            'notes' => 'notes',
+            'catatan' => 'notes',
+            'isactive' => 'is_active',
+            'active' => 'is_active',
+            'aktif' => 'is_active',
+        ];
+    }
+
+    private function normalizeHeader(string $header): string
+    {
+        $header = strtolower(trim($header));
+
+        return (string) preg_replace('/[^a-z0-9]+/', '', $header);
+    }
+
+    private function mapImportedRow(array $row, array $headerMap): array
+    {
+        $payload = [];
+        foreach ($row as $index => $value) {
+            $field = $headerMap[$index] ?? null;
+            if ($field === null) {
+                continue;
+            }
+            $payload[$field] = is_string($value) ? trim($value) : $value;
+        }
+
+        return $payload;
+    }
+
+    private function normalizeImportedContact(array $payload): array
+    {
+        $type = strtolower(trim((string) ($payload['type'] ?? 'individual')));
+        if (!in_array($type, ['company', 'individual'], true)) {
+            $type = 'individual';
+        }
+
+        return [
+            'type' => $type,
+            'name' => trim((string) ($payload['name'] ?? '')),
+            'company_name' => trim((string) ($payload['company_name'] ?? '')),
+            'job_title' => $this->nullableString($payload['job_title'] ?? null),
+            'email' => $this->nullableString($payload['email'] ?? null),
+            'phone' => $this->nullableString($payload['phone'] ?? null),
+            'mobile' => $this->nullableString($payload['mobile'] ?? null),
+            'website' => $this->nullableString($payload['website'] ?? null),
+            'vat' => $this->nullableString($payload['vat'] ?? null),
+            'company_registry' => $this->nullableString($payload['company_registry'] ?? null),
+            'industry' => $this->nullableString($payload['industry'] ?? null),
+            'street' => $this->nullableString($payload['street'] ?? null),
+            'street2' => $this->nullableString($payload['street2'] ?? null),
+            'city' => $this->nullableString($payload['city'] ?? null),
+            'state' => $this->nullableString($payload['state'] ?? null),
+            'zip' => $this->nullableString($payload['zip'] ?? null),
+            'country' => $this->nullableString($payload['country'] ?? null),
+            'notes' => $this->nullableString($payload['notes'] ?? null),
+            'is_active' => $this->normalizeBoolean($payload['is_active'] ?? '1'),
+        ];
+    }
+
+    private function resolveImportedCompanyId(array $normalized): ?int
+    {
+        $companyName = $normalized['company_name'] ?? null;
+        if (!$companyName) {
+            return null;
+        }
+
+        $company = Contact::query()
+            ->where('type', 'company')
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower($companyName)])
+            ->first();
+
+        if ($company) {
+            return (int) $company->id;
+        }
+
+        $company = Contact::create([
+            'type' => 'company',
+            'company_id' => null,
+            'name' => $companyName,
+            'is_active' => true,
+        ]);
+
+        return (int) $company->id;
+    }
+
+    private function rowIsEmpty(array $row): bool
+    {
+        return collect($row)->every(fn ($value) => trim((string) $value) === '');
+    }
+
+    private function nullableString($value): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
+    }
+
+    private function normalizeBoolean($value): bool
+    {
+        $normalized = strtolower(trim((string) $value));
+
+        return in_array($normalized, ['1', 'true', 'yes', 'y', 'aktif', 'active'], true);
+    }
+
+    private function buildTemplateXlsx(array $rows): string
+    {
+        $sheetXml = $this->buildXlsxWorksheetXml($rows);
+        $tempPath = tempnam(sys_get_temp_dir(), 'contacts_tpl_');
+        $zip = new ZipArchive();
+        $zip->open($tempPath, ZipArchive::OVERWRITE);
+        $zip->addFromString('[Content_Types].xml', $this->xlsxContentTypesXml());
+        $zip->addFromString('_rels/.rels', $this->xlsxRootRelsXml());
+        $zip->addFromString('xl/workbook.xml', $this->xlsxWorkbookXml());
+        $zip->addFromString('xl/_rels/workbook.xml.rels', $this->xlsxWorkbookRelsXml());
+        $zip->addFromString('xl/styles.xml', $this->xlsxStylesXml());
+        $zip->addFromString('xl/worksheets/sheet1.xml', $sheetXml);
+        $zip->close();
+
+        $binary = file_get_contents($tempPath) ?: '';
+        @unlink($tempPath);
+
+        return $binary;
+    }
+
+    private function buildXlsxWorksheetXml(array $rows): string
+    {
+        $xmlRows = [];
+        foreach ($rows as $rowIndex => $row) {
+            $cells = [];
+            foreach (array_values($row) as $colIndex => $value) {
+                $cellRef = $this->columnIndexToLetters($colIndex) . ($rowIndex + 1);
+                $safeValue = htmlspecialchars((string) $value, ENT_XML1);
+                $cells[] = "<c r=\"{$cellRef}\" t=\"inlineStr\"><is><t>{$safeValue}</t></is></c>";
+            }
+            $rowNumber = $rowIndex + 1;
+            $xmlRows[] = "<row r=\"{$rowNumber}\">" . implode('', $cells) . '</row>';
+        }
+
+        return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            . '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+            . '<sheetData>' . implode('', $xmlRows) . '</sheetData>'
+            . '</worksheet>';
+    }
+
+    private function columnIndexToLetters(int $index): string
+    {
+        $index++;
+        $letters = '';
+        while ($index > 0) {
+            $mod = ($index - 1) % 26;
+            $letters = chr(65 + $mod) . $letters;
+            $index = intdiv($index - 1, 26);
+        }
+
+        return $letters;
+    }
+
+    private function xlsxContentTypesXml(): string
+    {
+        return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            . '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+            . '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+            . '<Default Extension="xml" ContentType="application/xml"/>'
+            . '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+            . '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
+            . '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'
+            . '</Types>';
+    }
+
+    private function xlsxRootRelsXml(): string
+    {
+        return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            . '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            . '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
+            . '</Relationships>';
+    }
+
+    private function xlsxWorkbookXml(): string
+    {
+        return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            . '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+            . '<sheets><sheet name="Contacts" sheetId="1" r:id="rId1"/></sheets>'
+            . '</workbook>';
+    }
+
+    private function xlsxWorkbookRelsXml(): string
+    {
+        return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            . '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            . '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'
+            . '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'
+            . '</Relationships>';
+    }
+
+    private function xlsxStylesXml(): string
+    {
+        return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            . '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+            . '<fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts>'
+            . '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>'
+            . '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>'
+            . '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
+            . '<cellXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/></cellXfs>'
+            . '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'
+            . '</styleSheet>';
     }
 }

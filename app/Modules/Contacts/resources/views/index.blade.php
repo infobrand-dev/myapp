@@ -6,12 +6,57 @@
         <h2 class="mb-0">Contacts</h2>
         <div class="text-muted small">Database perusahaan dan individu.</div>
     </div>
-    <a href="{{ route('contacts.create') }}" class="btn btn-primary">Tambah Contact</a>
+    <div class="btn-list">
+        <a href="{{ route('contacts.import-template', 'csv') }}" class="btn btn-outline-secondary">Download Template CSV</a>
+        <a href="{{ route('contacts.import-template', 'xlsx') }}" class="btn btn-outline-secondary">Download Template XLSX</a>
+        <a href="{{ route('contacts.create') }}" class="btn btn-primary">Tambah Contact</a>
+    </div>
 </div>
 
 @if(session('status'))
     <div class="alert alert-info">{{ session('status') }}</div>
 @endif
+
+@if($errors->has('import_file'))
+    <div class="alert alert-danger">{{ $errors->first('import_file') }}</div>
+@endif
+
+@if(session('import_skipped'))
+    <div class="alert alert-warning">
+        <div class="fw-semibold mb-1">Baris yang dilewati</div>
+        <ul class="mb-0 ps-3">
+            @foreach(collect(session('import_skipped'))->take(8) as $rowError)
+                <li>{{ $rowError }}</li>
+            @endforeach
+        </ul>
+        @if(count(session('import_skipped')) > 8)
+            <div class="small text-muted mt-2">Menampilkan 8 error pertama dari {{ count(session('import_skipped')) }} baris yang dilewati.</div>
+        @endif
+    </div>
+@endif
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-lg-7">
+                <div class="fw-semibold">Import Contacts</div>
+                <div class="text-muted small">Upload file CSV atau XLSX dengan header template. Sistem akan mencoba mencocokkan header umum seperti <code>nama</code>, <code>company</code>, <code>mobile</code>, dan <code>email</code> tanpa mapping manual.</div>
+            </div>
+            <div class="col-lg-5">
+                <form method="POST" action="{{ route('contacts.import') }}" enctype="multipart/form-data" class="row g-2">
+                    @csrf
+                    <div class="col-md-8">
+                        <input type="file" name="import_file" class="form-control" accept=".csv,.txt,.xlsx" required>
+                    </div>
+                    <div class="col-md-4 d-grid">
+                        <button type="submit" class="btn btn-primary">Import</button>
+                    </div>
+                </form>
+                <div class="text-muted small mt-2">Kolom minimum yang wajib ada: <code>name</code>. Untuk individual yang terhubung ke perusahaan, isi <code>company_name</code>.</div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="card">
     <div class="table-responsive">

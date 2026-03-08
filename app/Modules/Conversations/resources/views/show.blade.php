@@ -170,7 +170,16 @@
     }
     .conv-dashboard .chat-row-out {
         justify-content: flex-end;
-        flex-direction: row-reverse;
+    }
+    .conv-dashboard .chat-row-out .chat-avatar {
+        order: 2;
+    }
+    .conv-dashboard .chat-row-out .chat-bubble {
+        order: 1;
+        text-align: right;
+    }
+    .conv-dashboard .chat-row-in .chat-bubble {
+        text-align: left;
     }
     .conv-dashboard .chat-loader {
         text-align: center;
@@ -266,6 +275,12 @@
     .conv-dashboard .chat-head {
         margin-bottom: .2rem;
     }
+    .conv-dashboard .chat-row-out .chat-head {
+        justify-content: flex-end !important;
+    }
+    .conv-dashboard .chat-row-in .chat-head {
+        justify-content: flex-start !important;
+    }
     .conv-dashboard .chat-sender {
         font-size: .82rem;
         font-weight: 600;
@@ -277,9 +292,74 @@
     }
     .conv-dashboard .chat-bubble-out .chat-meta {
         color: rgba(255, 255, 255, 0.82);
+        text-align: right;
     }
     .conv-dashboard .chat-bubble-out .chat-state {
         color: rgba(255, 255, 255, 0.82);
+    }
+    .conv-dashboard .chat-bubble-in .chat-meta {
+        text-align: left;
+    }
+    .conv-dashboard .chat-bubble-in .chat-state {
+        text-align: left;
+    }
+    .conv-dashboard .chat-message-body {
+        font-size: .9rem;
+    }
+    .conv-dashboard .chat-media {
+        margin-bottom: .55rem;
+    }
+    .conv-dashboard .chat-media img,
+    .conv-dashboard .chat-media video {
+        display: block;
+        max-width: min(100%, 320px);
+        max-height: 260px;
+        border-radius: .7rem;
+        background: rgba(15, 23, 42, 0.06);
+    }
+    .conv-dashboard .chat-media audio {
+        display: block;
+        width: min(100%, 320px);
+    }
+    .conv-dashboard .chat-file-card {
+        display: inline-flex;
+        align-items: center;
+        gap: .7rem;
+        padding: .7rem .8rem;
+        border-radius: .7rem;
+        border: 1px solid var(--conv-border-soft);
+        background: rgba(255, 255, 255, 0.72);
+        color: inherit;
+        text-decoration: none;
+        max-width: min(100%, 320px);
+    }
+    .conv-dashboard .chat-bubble-out .chat-file-card {
+        background: rgba(255, 255, 255, 0.16);
+        border-color: rgba(255, 255, 255, 0.2);
+        color: #fff;
+    }
+    .conv-dashboard .chat-file-icon {
+        width: 2.2rem;
+        height: 2.2rem;
+        border-radius: .6rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(32, 107, 196, 0.12);
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+    .conv-dashboard .chat-bubble-out .chat-file-icon {
+        background: rgba(255, 255, 255, 0.18);
+    }
+    .conv-dashboard .chat-file-name {
+        font-weight: 600;
+        line-height: 1.2;
+        word-break: break-word;
+    }
+    .conv-dashboard .chat-file-meta {
+        font-size: .75rem;
+        opacity: .8;
     }
     .conv-dashboard .composer-shell {
         border: 1px solid var(--conv-border);
@@ -730,11 +810,57 @@
                                 <span class="chat-sender">{{ $senderName }}</span>
                                 <span class="chat-state">{{ $msg->direction === 'out' ? 'Outgoing' : 'Incoming' }}{{ $msg->status ? ' | ' . ucfirst($msg->status) : '' }}</span>
                             </div>
-                            <div style="font-size:.9rem;">
+                            @php
+                                $messageMediaUrl = $msg->media_url;
+                                $messageFilename = data_get($msg->payload, 'filename') ?: $msg->body;
+                                $isPreviewableMediaUrl = is_string($messageMediaUrl) && \Illuminate\Support\Str::startsWith($messageMediaUrl, ['http://', 'https://', '/']);
+                            @endphp
+                            <div class="chat-message-body">
                                 @if($msg->type === 'template')
                                     <div class="badge bg-azure-lt text-azure mb-1">WA Template</div>
                                 @endif
-                                {{ $msg->body }}
+                                @if($msg->type === 'image' && $isPreviewableMediaUrl)
+                                    <div class="chat-media">
+                                        <a href="{{ $messageMediaUrl }}" target="_blank" rel="noopener noreferrer">
+                                            <img src="{{ $messageMediaUrl }}" alt="{{ $msg->body ?: 'Image' }}">
+                                        </a>
+                                    </div>
+                                @elseif($msg->type === 'video' && $isPreviewableMediaUrl)
+                                    <div class="chat-media">
+                                        <video controls preload="metadata">
+                                            <source src="{{ $messageMediaUrl }}" type="{{ $msg->media_mime ?: 'video/mp4' }}">
+                                        </video>
+                                    </div>
+                                @elseif($msg->type === 'audio' && $isPreviewableMediaUrl)
+                                    <div class="chat-media">
+                                        <audio controls preload="none">
+                                            <source src="{{ $messageMediaUrl }}" type="{{ $msg->media_mime ?: 'audio/mpeg' }}">
+                                        </audio>
+                                    </div>
+                                @elseif(in_array($msg->type, ['document', 'file'], true))
+                                    <div class="chat-media">
+                                        @if($isPreviewableMediaUrl)
+                                            <a href="{{ $messageMediaUrl }}" target="_blank" rel="noopener noreferrer" class="chat-file-card">
+                                                <span class="chat-file-icon">FILE</span>
+                                                <span>
+                                                    <span class="chat-file-name d-block">{{ $messageFilename ?: 'Document' }}</span>
+                                                    <span class="chat-file-meta d-block">{{ $msg->media_mime ?: strtoupper($msg->type) }}</span>
+                                                </span>
+                                            </a>
+                                        @else
+                                            <div class="chat-file-card">
+                                                <span class="chat-file-icon">FILE</span>
+                                                <span>
+                                                    <span class="chat-file-name d-block">{{ $messageFilename ?: 'Document' }}</span>
+                                                    <span class="chat-file-meta d-block">{{ $msg->media_mime ?: strtoupper($msg->type) }}</span>
+                                                </span>
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endif
+                                @if($msg->body)
+                                    <div>{{ $msg->body }}</div>
+                                @endif
                             </div>
                             <div class="chat-meta">{{ optional($msg->created_at)->format('d M H:i') }}</div>
                         </div>
@@ -1274,6 +1400,47 @@
             return '/storage/' + value.replace(/^\/+/, '');
         };
 
+        const isPreviewableMediaUrl = (raw) => {
+            const value = (raw || '').toString().trim();
+            return value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/');
+        };
+
+        const buildMediaHtml = (msg) => {
+            const type = (msg.type || '').toString().toLowerCase();
+            const mediaUrl = (msg.media_url || '').toString();
+            const mediaMime = (msg.media_mime || '').toString();
+            const filename = (msg.filename || msg.body || `${type || 'file'}`).toString();
+
+            if (!['image', 'video', 'audio', 'document', 'file'].includes(type)) {
+                return '';
+            }
+
+            if (type === 'image' && isPreviewableMediaUrl(mediaUrl)) {
+                return `<div class="chat-media"><a href="${escapeHtml(mediaUrl)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(mediaUrl)}" alt="${escapeHtml(msg.body || 'Image')}"></a></div>`;
+            }
+
+            if (type === 'video' && isPreviewableMediaUrl(mediaUrl)) {
+                return `<div class="chat-media"><video controls preload="metadata"><source src="${escapeHtml(mediaUrl)}" type="${escapeHtml(mediaMime || 'video/mp4')}"></video></div>`;
+            }
+
+            if (type === 'audio' && isPreviewableMediaUrl(mediaUrl)) {
+                return `<div class="chat-media"><audio controls preload="none"><source src="${escapeHtml(mediaUrl)}" type="${escapeHtml(mediaMime || 'audio/mpeg')}"></audio></div>`;
+            }
+
+            const fileInner = `
+                <span class="chat-file-icon">FILE</span>
+                <span>
+                    <span class="chat-file-name d-block">${escapeHtml(filename || 'Document')}</span>
+                    <span class="chat-file-meta d-block">${escapeHtml(mediaMime || type.toUpperCase())}</span>
+                </span>`;
+
+            if (isPreviewableMediaUrl(mediaUrl)) {
+                return `<div class="chat-media"><a href="${escapeHtml(mediaUrl)}" target="_blank" rel="noopener noreferrer" class="chat-file-card">${fileInner}</a></div>`;
+            }
+
+            return `<div class="chat-media"><div class="chat-file-card">${fileInner}</div></div>`;
+        };
+
         const buildMessageNode = (msg) => {
             const name = msg.user?.name ?? (msg.direction === 'out' ? 'You' : 'System');
             const state = `${msg.direction === 'out' ? 'Outgoing' : 'Incoming'}${msg.status ? ' | ' + msg.status : ''}`;
@@ -1281,6 +1448,8 @@
             const avatarHtml = avatar
                 ? `<img src="${escapeHtml(avatar)}" alt="${escapeHtml(name)}">`
                 : `<span class="chat-avatar-fallback ${avatarTone(name)}">${escapeHtml(initials(name))}</span>`;
+            const mediaHtml = buildMediaHtml(msg);
+            const bodyHtml = msg.body ? `<div>${escapeHtml(msg.body)}</div>` : '';
 
             const wrapper = document.createElement('div');
             wrapper.className = 'chat-row chat-row-' + (msg.direction === 'out' ? 'out' : 'in') + ' d-flex align-items-end gap-2';
@@ -1292,7 +1461,7 @@
                         <span class="chat-sender">${escapeHtml(name)}</span>
                         <span class="chat-state">${escapeHtml(state)}</span>
                     </div>
-                    <div style="font-size:.9rem;">${escapeHtml(msg.body)}</div>
+                    <div class="chat-message-body">${mediaHtml}${bodyHtml}</div>
                     <div class="chat-meta">${msg.created_at ?? ''}</div>
                 </div>`;
             return wrapper;

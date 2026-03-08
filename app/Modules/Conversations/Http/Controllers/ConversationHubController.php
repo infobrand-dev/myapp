@@ -578,6 +578,9 @@ class ConversationHubController extends Controller
             'direction' => $message->direction,
             'type' => $message->type,
             'body' => $message->body,
+            'media_url' => $message->media_url,
+            'media_mime' => $message->media_mime,
+            'filename' => data_get($message->payload, 'filename'),
             'status' => $message->status,
             'created_at' => optional($message->created_at)->format('d M H:i') ?? '',
             'user' => $message->user ? [

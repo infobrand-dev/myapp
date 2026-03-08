@@ -10,6 +10,7 @@ use App\Modules\Chatbot\Models\ChatbotSession;
 use App\Modules\Chatbot\Services\RagContextBuilder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -20,6 +21,7 @@ class ChatbotPlaygroundController extends Controller
     private const HISTORY_LIMIT = 12;
     private const HISTORY_ITEM_MAX_CHARS = 1200;
     private const ROLLING_SUMMARY_LINES = 8;
+    private const RESPONSE_CACHE_TTL_SECONDS = 600;
     private RagContextBuilder $rag;
 
     public function __construct(RagContextBuilder $rag)
@@ -114,24 +116,41 @@ class ChatbotPlaygroundController extends Controller
         $error = null;
 
         try {
-            $response = Http::withToken($account->api_key)
-                ->timeout(30)
-                ->post('https://api.openai.com/v1/chat/completions', $payload);
+            $cacheKey = $this->responseCacheKey((int) $account->id, $payload);
+            $cached = Cache::get($cacheKey);
 
-            $raw = $response->json();
-            if ($response->successful()) {
-                $reply = trim((string) ($response->json('choices.0.message.content') ?? ''));
-                $usage = $response->json('usage');
+            if (is_array($cached)) {
+                $reply = trim((string) ($cached['reply'] ?? ''));
+                $usage = is_array($cached['usage'] ?? null) ? $cached['usage'] : null;
+                $raw = is_array($cached['raw'] ?? null) ? $cached['raw'] : null;
             } else {
-                $error = (string) ($response->json('error.message') ?: $response->body() ?: 'Unknown error');
-                Log::warning('chatbot.playground.openai_failed', [
-                    'user_id' => $user->id,
-                    'session_id' => $session->id,
-                    'chatbot_account_id' => $account->id,
-                    'http_status' => $response->status(),
-                    'request_id' => $response->header('x-request-id'),
-                    'error' => Str::limit($error, 300),
-                ]);
+                $response = Http::withToken($account->api_key)
+                    ->timeout(30)
+                    ->post('https://api.openai.com/v1/chat/completions', $payload);
+
+                $raw = $response->json();
+                if ($response->successful()) {
+                    $reply = trim((string) ($response->json('choices.0.message.content') ?? ''));
+                    $usage = $response->json('usage');
+
+                    if ($reply !== '') {
+                        Cache::put($cacheKey, [
+                            'reply' => $reply,
+                            'usage' => is_array($usage) ? $usage : null,
+                            'raw' => is_array($raw) ? $raw : null,
+                        ], now()->addSeconds(self::RESPONSE_CACHE_TTL_SECONDS));
+                    }
+                } else {
+                    $error = (string) ($response->json('error.message') ?: $response->body() ?: 'Unknown error');
+                    Log::warning('chatbot.playground.openai_failed', [
+                        'user_id' => $user->id,
+                        'session_id' => $session->id,
+                        'chatbot_account_id' => $account->id,
+                        'http_status' => $response->status(),
+                        'request_id' => $response->header('x-request-id'),
+                        'error' => Str::limit($error, 300),
+                    ]);
+                }
             }
         } catch (\Throwable $e) {
             $error = $e->getMessage();
@@ -302,5 +321,10 @@ class ChatbotPlaygroundController extends Controller
         }
 
         return 0.5;
+    }
+
+    private function responseCacheKey(int $accountId, array $payload): string
+    {
+        return 'chatbot_playground_cache:' . $accountId . ':' . sha1(json_encode($payload));
     }
 }

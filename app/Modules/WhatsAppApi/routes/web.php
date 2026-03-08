@@ -25,6 +25,7 @@ Route::middleware(['web', 'auth'])
             Route::post('templates/{template}/submit', [WATemplateController::class, 'submit'])->name('templates.submit');
             Route::get('blast-campaigns', [BlastCampaignController::class, 'index'])->name('blast-campaigns.index');
             Route::get('blast-campaigns/create', [BlastCampaignController::class, 'create'])->name('blast-campaigns.create');
+            Route::post('blast-campaigns/matches', [BlastCampaignController::class, 'matches'])->name('blast-campaigns.matches');
             Route::post('blast-campaigns', [BlastCampaignController::class, 'store'])->name('blast-campaigns.store');
             Route::post('blast-campaigns/{blastCampaign}/launch', [BlastCampaignController::class, 'launch'])->name('blast-campaigns.launch');
             Route::post('blast-campaigns/{blastCampaign}/retry-failed', [BlastCampaignController::class, 'retryFailed'])->name('blast-campaigns.retry-failed');

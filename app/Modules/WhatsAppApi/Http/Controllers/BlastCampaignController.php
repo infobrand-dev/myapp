@@ -3,6 +3,7 @@
 namespace App\Modules\WhatsAppApi\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Contacts\Models\Contact;
 use App\Modules\WhatsAppApi\Jobs\ProcessWABlastCampaign;
 use App\Modules\WhatsAppApi\Models\WABlastCampaign;
 use App\Modules\WhatsAppApi\Models\WABlastRecipient;
@@ -39,16 +40,23 @@ class BlastCampaignController extends Controller
             ->where('status', 'approved')
             ->orderBy('name')
             ->get(['id', 'name', 'language', 'namespace', 'body']);
-
-        $contacts = $this->availableContacts();
+        [$filters, $contacts] = $this->filteredContacts(request(), []);
 
         return view('whatsappapi::blast.form', [
             'campaign' => new WABlastCampaign(),
             'instances' => $instances,
             'templates' => $templates,
-            'contacts' => $contacts,
+            'filters' => $filters,
+            'matchCount' => $contacts->count(),
             'contactsEnabled' => $this->isContactsModuleReady(),
         ]);
+    }
+
+    public function matches(Request $request)
+    {
+        [, $contacts] = $this->filteredContacts($request, $request->input('filters', []));
+
+        return response()->json(['count' => $contacts->count()]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -60,12 +68,12 @@ class BlastCampaignController extends Controller
             'recipient_source' => ['required', 'in:manual,csv,contacts'],
             'recipients_text' => ['nullable', 'string'],
             'recipients_file' => ['nullable', 'file', 'max:5120', 'mimes:csv,txt'],
-            'contact_ids' => ['nullable', 'array'],
-            'contact_ids.*' => ['integer'],
+            'filters' => ['nullable', 'array'],
             'scheduled_at' => ['nullable', 'date'],
             'delay_ms' => ['nullable', 'integer', 'min:0', 'max:5000'],
             'action' => ['nullable', 'in:draft,send_now,schedule'],
         ]);
+        $normalizedFilters = [];
 
         $instance = WhatsAppInstance::query()->findOrFail((int) $data['instance_id']);
         $template = WATemplate::query()->findOrFail((int) $data['template_id']);
@@ -86,6 +94,10 @@ class BlastCampaignController extends Controller
             throw ValidationException::withMessages([
                 'template_id' => 'Template bukan milik WABA instance terpilih.',
             ]);
+        }
+
+        if (($data['recipient_source'] ?? null) === 'contacts') {
+            [$normalizedFilters] = $this->filteredContacts($request, $data['filters'] ?? []);
         }
 
         [$rows, $invalidRows] = $this->resolveRecipientRows($request, $data);
@@ -117,6 +129,7 @@ class BlastCampaignController extends Controller
                 'settings' => [
                     'delay_ms' => (int) ($data['delay_ms'] ?? 300),
                     'recipient_source' => (string) ($data['recipient_source'] ?? 'manual'),
+                    'filters' => $normalizedFilters,
                 ],
                 'scheduled_at' => $scheduledAt,
             ]);
@@ -266,19 +279,17 @@ class BlastCampaignController extends Controller
         }
 
         if ($source === 'contacts') {
-            $contactIds = collect((array) ($data['contact_ids'] ?? []))
-                ->map(fn ($id) => (int) $id)
-                ->filter(fn ($id) => $id > 0)
-                ->values()
-                ->all();
+            [$filters, $contacts] = $this->filteredContacts($request, $data['filters'] ?? []);
 
-            if (empty($contactIds)) {
+            if ($contacts->isEmpty()) {
                 throw ValidationException::withMessages([
-                    'contact_ids' => 'Pilih minimal satu contact.',
+                    'filters' => 'Tidak ada contact yang match dengan rule filter.',
                 ]);
             }
 
-            return [$this->contactsToRecipientRows($contactIds), []];
+            $data['filters'] = $filters;
+
+            return [$this->contactsToRecipientRows($contacts), []];
         }
 
         $raw = trim((string) ($data['recipients_text'] ?? ''));
@@ -291,19 +302,8 @@ class BlastCampaignController extends Controller
         return $this->parseRecipients($raw);
     }
 
-    private function contactsToRecipientRows(array $contactIds): array
+    private function contactsToRecipientRows($contacts): array
     {
-        $contactClass = \App\Modules\Contacts\Models\Contact::class;
-        if (!class_exists($contactClass)) {
-            return [];
-        }
-
-        $contacts = $contactClass::query()
-            ->whereIn('id', $contactIds)
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'name', 'phone', 'mobile']);
-
         $rows = [];
         $seen = [];
 
@@ -324,26 +324,76 @@ class BlastCampaignController extends Controller
         return $rows;
     }
 
-    private function availableContacts()
+    private function filteredContacts(Request $request, $filtersInput = []): array
     {
-        $contactClass = \App\Modules\Contacts\Models\Contact::class;
-        if (!class_exists($contactClass)) {
-            return collect();
+        if (!$this->isContactsModuleReady()) {
+            return [[], collect()];
         }
 
-        return $contactClass::query()
-            ->where('is_active', true)
+        if (is_string($filtersInput)) {
+            $filtersInput = json_decode($filtersInput, true) ?? [];
+        }
+
+        $filters = collect($filtersInput)
+            ->filter(fn ($row) => !empty($row['value']))
+            ->values();
+
+        $query = Contact::query()
+            ->leftJoin('contacts as company', 'company.id', '=', 'contacts.company_id')
+            ->where('contacts.is_active', true)
             ->where(function ($query) {
-                $query->whereNotNull('mobile')->where('mobile', '!=', '')
-                    ->orWhereNotNull('phone')->where('phone', '!=', '');
-            })
-            ->orderBy('name')
-            ->get(['id', 'name', 'mobile', 'phone']);
+                $query->whereNotNull('contacts.mobile')->where('contacts.mobile', '!=', '')
+                    ->orWhereNotNull('contacts.phone')->where('contacts.phone', '!=', '');
+            });
+
+        if ($filters->isNotEmpty()) {
+            $filters->each(function ($row) use ($query) {
+                $field = $row['field'] ?? 'name';
+                $op = $row['operator'] ?? 'contains';
+                $value = $row['value'] ?? '';
+
+                $query->where(function ($q) use ($field, $op, $value) {
+                    $column = match ($field) {
+                        'company' => 'company.name',
+                        'phone' => 'contacts.phone',
+                        'mobile' => 'contacts.mobile',
+                        default => 'contacts.name',
+                    };
+
+                    switch ($op) {
+                        case 'not_contains':
+                            $q->where($column, 'not like', '%' . $value . '%');
+                            break;
+                        case 'equals':
+                            $q->where($column, '=', $value);
+                            break;
+                        case 'starts_with':
+                            $q->where($column, 'like', $value . '%');
+                            break;
+                        default:
+                            $q->where($column, 'like', '%' . $value . '%');
+                            break;
+                    }
+                });
+            });
+        }
+
+        $contacts = $query
+            ->orderBy('contacts.name')
+            ->get([
+                'contacts.id',
+                'contacts.name',
+                'contacts.mobile',
+                'contacts.phone',
+                'company.name as company_name',
+            ]);
+
+        return [$filters->toArray(), $contacts];
     }
 
     private function isContactsModuleReady(): bool
     {
-        return class_exists(\App\Modules\Contacts\Models\Contact::class);
+        return class_exists(Contact::class);
     }
 
     private function normalizePhone(string $value): ?string

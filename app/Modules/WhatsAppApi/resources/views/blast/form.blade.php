@@ -95,21 +95,35 @@
 
                     @if($contactsEnabled ?? false)
                         <div class="mt-3 recipient-source-panel" data-source-panel="contacts" style="{{ $recipientSource === 'contacts' ? '' : 'display:none;' }}">
-                            <label class="form-label">Pilih Contacts</label>
-                            <select name="contact_ids[]" class="form-select" multiple size="10">
-                                @foreach(($contacts ?? collect()) as $contact)
-                                    @php
-                                        $selectedContacts = collect(old('contact_ids', []))->map(fn ($id) => (string) $id)->all();
-                                        $contactPhone = $contact->mobile ?: $contact->phone;
-                                    @endphp
-                                    <option value="{{ $contact->id }}" {{ in_array((string) $contact->id, $selectedContacts, true) ? 'selected' : '' }}>
-                                        {{ $contact->name }} - {{ $contactPhone }}
-                                    </option>
+                            <label class="form-label">Filter Contacts</label>
+                            <div id="filter-rows" class="mb-2">
+                                @php $filterRows = old('filters', $filters ?? [['field' => 'name', 'operator' => 'contains', 'value' => '']]); @endphp
+                                @foreach($filterRows as $idx => $filter)
+                                    <div class="d-flex gap-2 align-items-center mb-2 filter-row">
+                                        <select name="filters[{{$idx}}][field]" class="form-select form-select-sm filter-input" style="max-width:140px;">
+                                            <option value="name" {{ ($filter['field'] ?? '') === 'name' ? 'selected' : '' }}>Name</option>
+                                            <option value="company" {{ ($filter['field'] ?? '') === 'company' ? 'selected' : '' }}>Company</option>
+                                            <option value="mobile" {{ ($filter['field'] ?? '') === 'mobile' ? 'selected' : '' }}>Mobile</option>
+                                            <option value="phone" {{ ($filter['field'] ?? '') === 'phone' ? 'selected' : '' }}>Phone</option>
+                                        </select>
+                                        <select name="filters[{{$idx}}][operator]" class="form-select form-select-sm filter-input" style="max-width:140px;">
+                                            <option value="contains" {{ ($filter['operator'] ?? '') === 'contains' ? 'selected' : '' }}>contains</option>
+                                            <option value="not_contains" {{ ($filter['operator'] ?? '') === 'not_contains' ? 'selected' : '' }}>not contains</option>
+                                            <option value="equals" {{ ($filter['operator'] ?? '') === 'equals' ? 'selected' : '' }}>equals</option>
+                                            <option value="starts_with" {{ ($filter['operator'] ?? '') === 'starts_with' ? 'selected' : '' }}>starts with</option>
+                                        </select>
+                                        <input type="text" name="filters[{{$idx}}][value]" class="form-control form-control-sm filter-input" placeholder="value" value="{{ $filter['value'] ?? '' }}">
+                                        <button class="btn btn-link text-danger btn-sm remove-row" type="button">Hapus</button>
+                                    </div>
                                 @endforeach
-                            </select>
-                            @error('contact_ids') <div class="text-danger small">{{ $message }}</div> @enderror
-                            @error('contact_ids.*') <div class="text-danger small">{{ $message }}</div> @enderror
-                            <div class="text-muted small mt-2">Contact aktif yang punya nomor di field mobile atau phone.</div>
+                            </div>
+                            <div class="d-flex gap-2 mb-2">
+                                <button class="btn btn-outline-secondary btn-sm" type="button" id="add-filter">Tambah Rule</button>
+                                <button class="btn btn-outline-primary btn-sm" type="button" id="apply-filter">Terapkan Filter</button>
+                                <span class="badge bg-azure-lt text-azure" id="matches-badge">Matches: {{ $matchCount ?? 0 }}</span>
+                            </div>
+                            @error('filters') <div class="text-danger small">{{ $message }}</div> @enderror
+                            <div class="text-muted small mt-2">Contact aktif dengan nomor di field mobile atau phone. Rule kosong akan diabaikan.</div>
                         </div>
                     @endif
 
@@ -132,6 +146,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const templateSelect = document.getElementById('template_id');
     const recipientSource = document.getElementById('recipient_source');
     const sourcePanels = Array.from(document.querySelectorAll('[data-source-panel]'));
+    const filterWrap = document.getElementById('filter-rows');
+    const addFilterBtn = document.getElementById('add-filter');
+    const applyFilterBtn = document.getElementById('apply-filter');
+    const matchesBadge = document.getElementById('matches-badge');
+    const csrfToken = document.querySelector('input[name="_token"]')?.value;
     if (!instanceSelect || !templateSelect) return;
 
     const syncTemplates = () => {
@@ -159,6 +178,66 @@ document.addEventListener('DOMContentLoaded', () => {
 
     recipientSource?.addEventListener('change', syncRecipientPanels);
     syncRecipientPanels();
+
+    addFilterBtn?.addEventListener('click', () => {
+        const idx = filterWrap?.querySelectorAll('.filter-row').length ?? 0;
+        const row = document.createElement('div');
+        row.className = 'd-flex gap-2 align-items-center mb-2 filter-row';
+        row.innerHTML = `
+            <select name="filters[${idx}][field]" class="form-select form-select-sm filter-input" style="max-width:140px;">
+                <option value="name">Name</option>
+                <option value="company">Company</option>
+                <option value="mobile">Mobile</option>
+                <option value="phone">Phone</option>
+            </select>
+            <select name="filters[${idx}][operator]" class="form-select form-select-sm filter-input" style="max-width:140px;">
+                <option value="contains">contains</option>
+                <option value="not_contains">not contains</option>
+                <option value="equals">equals</option>
+                <option value="starts_with">starts with</option>
+            </select>
+            <input type="text" name="filters[${idx}][value]" class="form-control form-control-sm filter-input" placeholder="value">
+            <button class="btn btn-link text-danger btn-sm remove-row" type="button">Hapus</button>
+        `;
+        filterWrap?.appendChild(row);
+    });
+
+    filterWrap?.addEventListener('click', (event) => {
+        const removeBtn = event.target.closest('.remove-row');
+        if (!removeBtn) return;
+        removeBtn.parentElement?.remove();
+    });
+
+    applyFilterBtn?.addEventListener('click', () => {
+        if (!csrfToken) return;
+
+        const formData = new FormData();
+        filterWrap?.querySelectorAll('.filter-row').forEach((row, idx) => {
+            row.querySelectorAll('select, input').forEach((input) => {
+                const normalizedName = input.name.replace(/\d+/, idx);
+                formData.append(normalizedName, input.value);
+            });
+        });
+
+        fetch("{{ route('whatsapp-api.blast-campaigns.matches') }}", {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+            },
+            body: formData,
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                if (matchesBadge) {
+                    matchesBadge.textContent = 'Matches: ' + (data.count ?? 0);
+                }
+            })
+            .catch(() => {
+                if (matchesBadge) {
+                    matchesBadge.textContent = 'Matches: error';
+                }
+            });
+    });
 });
 </script>
 @endpush

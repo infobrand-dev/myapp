@@ -30,7 +30,7 @@ class WATemplateController extends Controller
             return $redirect;
         }
 
-        $template = new WATemplate(['language' => 'en', 'status' => 'active', 'category' => 'utility']);
+        $template = new WATemplate(['language' => 'en', 'status' => 'draft', 'category' => 'utility']);
         $namespaces = WATemplate::whereNotNull('namespace')->distinct()->pluck('namespace');
         $instances = $this->connectedCloudInstances();
         return view('whatsappapi::templates.form', compact('template', 'namespaces', 'instances'));
@@ -125,7 +125,7 @@ class WATemplateController extends Controller
             'category' => ['required', 'in:utility,marketing,authentication'],
             'instance_id' => ['required', 'integer'],
             'body' => ['required', 'string', 'max:1024'],
-            'status' => ['required', 'in:draft,pending,active,inactive'],
+            'status' => ['required', 'in:draft,pending,approved,rejected'],
             'header_type' => ['nullable', 'in:none,text,image,document,video'],
             'header_text' => ['nullable', 'string', 'max:60'],
             'header_media_url' => ['nullable', 'string', 'max:2048'],

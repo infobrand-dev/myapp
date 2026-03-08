@@ -39,7 +39,7 @@ class SubmitTemplateToMeta implements ShouldQueue
         $base = rtrim(config('services.wa_cloud.base_url', 'https://graph.facebook.com/v22.0'), '/');
 
         if (!$businessId || !$token) {
-            $template?->update(['status' => 'inactive', 'last_submit_error' => 'Missing business_id/token']);
+            $template?->update(['status' => 'rejected', 'last_submit_error' => 'Missing business_id/token']);
             return;
         }
 
@@ -56,14 +56,14 @@ class SubmitTemplateToMeta implements ShouldQueue
                 ]);
             } else {
                 $template->update([
-                    'status' => 'inactive',
+                    'status' => 'rejected',
                     'last_submit_error' => $response->body(),
                 ]);
             }
         } catch (\Throwable $e) {
             Log::error('Meta template submit failed', ['template_id' => $this->templateId, 'error' => $e->getMessage()]);
             $template?->update([
-                'status' => 'inactive',
+                'status' => 'rejected',
                 'last_submit_error' => $e->getMessage(),
             ]);
         }

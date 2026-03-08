@@ -31,9 +31,16 @@
                         <td>{{ $tpl->language }}</td>
                         <td>{{ $tpl->category ?? '-' }}</td>
                         <td>
-                            <span class="badge {{ $tpl->status === 'active' ? 'bg-green-lt text-green' : ($tpl->status === 'pending' ? 'bg-yellow-lt text-yellow' : 'bg-secondary-lt text-secondary') }}">
+                            <span class="badge {{
+                                $tpl->status === 'approved' ? 'bg-green-lt text-green'
+                                : ($tpl->status === 'pending' ? 'bg-yellow-lt text-yellow'
+                                : ($tpl->status === 'rejected' ? 'bg-red-lt text-red' : 'bg-secondary-lt text-secondary'))
+                            }}">
                                 {{ $tpl->status }}
                             </span>
+                            @if($tpl->status === 'rejected' && $tpl->last_submit_error)
+                                <div class="text-danger small mt-1">{{ \Illuminate\Support\Str::limit((string) $tpl->last_submit_error, 120) }}</div>
+                            @endif
                         </td>
                         <td class="text-end align-middle">
                             <div class="table-actions">
@@ -43,7 +50,7 @@
                                 <a href="{{ route('whatsapp-api.templates.edit', $tpl) }}" class="btn btn-sm btn-outline-secondary btn-icon" title="Edit" aria-label="Edit">
                                     <i class="ti ti-pencil icon" aria-hidden="true"></i>
                                 </a>
-                                @if($tpl->status !== 'pending' && $tpl->status !== 'active')
+                                @if($tpl->status !== 'pending' && $tpl->status !== 'approved')
                                     <form class="d-inline-block m-0" method="POST" action="{{ route('whatsapp-api.templates.submit', $tpl) }}">
                                         @csrf
                                         <button class="btn btn-sm btn-outline-azure btn-icon" type="submit" title="Submit Approval" aria-label="Submit Approval">

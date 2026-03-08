@@ -486,9 +486,10 @@ class InstanceController extends Controller
                     }
 
                     $status = match ($rawStatus) {
-                        'approved', 'active' => 'active',
+                        'approved', 'active' => 'approved',
                         'pending', 'in_appeal', 'paused' => 'pending',
-                        default => 'inactive',
+                        'rejected', 'disabled', 'deleted' => 'rejected',
+                        default => 'rejected',
                     };
 
                     if ($metaId !== '') {

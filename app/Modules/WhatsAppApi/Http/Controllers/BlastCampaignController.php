@@ -35,7 +35,7 @@ class BlastCampaignController extends Controller
             ->get(['id', 'name', 'cloud_business_account_id', 'status']);
 
         $templates = WATemplate::query()
-            ->where('status', 'active')
+            ->where('status', 'approved')
             ->orderBy('name')
             ->get(['id', 'name', 'language', 'namespace', 'body']);
 
@@ -67,9 +67,9 @@ class BlastCampaignController extends Controller
             ]);
         }
 
-        if ((string) $template->status !== 'active') {
+        if ((string) $template->status !== 'approved') {
             throw ValidationException::withMessages([
-                'template_id' => 'Template harus berstatus active.',
+                'template_id' => 'Template harus berstatus approved.',
             ]);
         }
 

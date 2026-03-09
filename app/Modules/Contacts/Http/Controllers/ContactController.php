@@ -24,6 +24,11 @@ class ContactController extends Controller
         return view('contacts::index', compact('contacts'));
     }
 
+    public function importPage(): View
+    {
+        return view('contacts::import');
+    }
+
     public function downloadTemplate(string $format)
     {
         $headers = $this->importHeaders();
@@ -139,7 +144,7 @@ class ContactController extends Controller
         }
 
         return redirect()
-            ->route('contacts.index')
+            ->route('contacts.import-page')
             ->with('status', $message)
             ->with('import_skipped', $result['skipped']);
     }

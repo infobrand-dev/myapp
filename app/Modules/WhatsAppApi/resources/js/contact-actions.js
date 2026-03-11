@@ -46,6 +46,15 @@ document.addEventListener('DOMContentLoaded', () => {
         '"': '&quot;',
         '\'': '&#39;',
     }[char] || char));
+    const formatWhatsAppText = (value) => {
+        const escaped = esc(value || '');
+
+        return escaped
+            .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+            .replace(/\*([^\*\n]+)\*/g, '<strong>$1</strong>')
+            .replace(/_([^_\n]+)_/g, '<em>$1</em>')
+            .replace(/~([^~\n]+)~/g, '<s>$1</s>');
+    };
 
     const contactContext = () => ({
         name: state.contact?.name || '',
@@ -162,18 +171,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const computedHeader = interpolate(headerText, values).trim();
         if (computedHeader !== '') {
-            previewHeader.textContent = computedHeader;
+            previewHeader.innerHTML = formatWhatsAppText(computedHeader);
             previewHeader.style.display = 'block';
         } else {
             previewHeader.style.display = 'none';
         }
 
         const computedBody = interpolate(template.body || '', values).trim();
-        previewBody.textContent = computedBody !== '' ? computedBody : '(isi body kosong)';
+        previewBody.innerHTML = computedBody !== '' ? formatWhatsAppText(computedBody) : '(isi body kosong)';
 
         const computedFooter = interpolate((footer && footer.text) || '', values).trim();
         if (computedFooter !== '') {
-            previewFooter.textContent = computedFooter;
+            previewFooter.innerHTML = formatWhatsAppText(computedFooter);
             previewFooter.style.display = 'block';
         } else {
             previewFooter.style.display = 'none';
@@ -197,6 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
         placeholders.forEach((index) => {
             const mapping = template?.variable_mappings?.[index] || template?.variable_mappings?.[String(index)] || {};
             const sourceType = String(mapping.source_type || 'text');
+            const readOnly = sourceType === 'contact_field' || sourceType === 'sender_field';
             let sourceLabel = 'Free text';
             if (sourceType === 'contact_field') {
                 sourceLabel = `Field Contact: ${state.contactFieldOptions[mapping.contact_field] || mapping.contact_field || 'name'}`;
@@ -205,14 +215,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const fallbackLabel = String(mapping.fallback_value || '').trim();
             const row = document.createElement('label');
-            row.className = 'form-label mb-0';
+            row.className = `form-label mb-0 wa-variable-row${readOnly ? ' is-readonly' : ''}`;
             row.innerHTML = `
                 <div class="small text-muted mb-1">Variable {{${index}}}</div>
-                <input type="text" class="form-control" name="variables[${index}]" data-var-index="${index}" value="${esc(defaultVariableValue(index, template))}">
-                <div class="form-hint mt-1">${esc(sourceLabel)}${fallbackLabel ? ` | Fallback: ${esc(fallbackLabel)}` : ''}</div>
+                <input type="text" class="form-control" name="variables[${index}]" data-var-index="${index}" value="${esc(defaultVariableValue(index, template))}" ${readOnly ? 'readonly' : ''}>
+                <div class="form-hint mt-1">${esc(sourceLabel)}${fallbackLabel ? ` | Fallback: ${esc(fallbackLabel)}` : ''}${readOnly ? ' | Auto dari mapping template' : ' | Bisa dioverride manual'}</div>
             `;
             const input = row.querySelector('input');
-            input?.addEventListener('input', renderPreview);
+            if (!readOnly) {
+                input?.addEventListener('input', renderPreview);
+            }
             variablesWrap.appendChild(row);
         });
 

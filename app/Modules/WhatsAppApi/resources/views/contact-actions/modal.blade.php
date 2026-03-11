@@ -9,19 +9,34 @@
 @endphp
 
 <style>
+    #wa-contact-action-modal .modal-content { max-height: calc(100vh - 2rem); }
+    #wa-contact-action-modal .modal-body { overflow-y: auto; }
     .wa-contact-preview-shell { background: transparent; }
     .wa-phone { border-radius: 1rem; overflow: hidden; border: 1px solid #d3d8dd; box-shadow: 0 .5rem 1rem rgba(0,0,0,.08); background: #fff; }
     .wa-head { background: #1f2c34; color: #e9edef; padding: .65rem .8rem; display: flex; align-items: center; gap: .55rem; }
     .wa-av { width: 1.9rem; height: 1.9rem; border-radius: 50%; background: #3a4a55; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: .75rem; }
-    .wa-body { min-height: 24rem; padding: 1rem; background: #efeae2; background-image: radial-gradient(rgba(17,27,33,.05) 1px, transparent 1px); background-size: 12px 12px; }
+    .wa-body { min-height: 20rem; max-height: 26rem; overflow-y: auto; padding: 1rem; background: #efeae2; background-image: radial-gradient(rgba(17,27,33,.05) 1px, transparent 1px); background-size: 12px 12px; }
     .wa-bubble { background: #fff; border-radius: .85rem; border-top-left-radius: .35rem; padding: .7rem .75rem .55rem; box-shadow: 0 .15rem .45rem rgba(17,27,33,.08); }
     .wa-bubble-header { font-weight: 700; margin-bottom: .35rem; color: #1f2c34; }
     .wa-bubble-body { line-height: 1.38; color: #111b21; white-space: pre-wrap; word-break: break-word; }
+    .wa-bubble-body strong,
+    .wa-bubble-header strong,
+    .wa-bubble-footer strong { font-weight: 700; }
+    .wa-bubble-body em,
+    .wa-bubble-header em,
+    .wa-bubble-footer em { font-style: italic; }
+    .wa-bubble-body s,
+    .wa-bubble-header s,
+    .wa-bubble-footer s { text-decoration: line-through; }
+    .wa-bubble-body code,
+    .wa-bubble-header code,
+    .wa-bubble-footer code { font-family: var(--tblr-font-monospace, monospace); background: rgba(15, 23, 42, .06); padding: 0 .18rem; border-radius: .2rem; color: inherit; }
     .wa-bubble-footer { margin-top: .45rem; font-size: .78rem; color: #667781; }
     .wa-media { border: 1px dashed #c8ccd0; border-radius: .5rem; font-size: .78rem; color: #5b6670; background: #f7f8f8; padding: .45rem .55rem; margin-bottom: .45rem; word-break: break-all; }
     .wa-btns { margin-top: .6rem; display: flex; flex-direction: column; gap: .35rem; }
     .wa-btn { border: 1px solid #d6dadd; background: #f5f6f6; border-radius: .55rem; padding: .4rem .55rem; font-size: .8rem; display: flex; justify-content: space-between; color: #0f6f5c; font-weight: 600; }
     .wa-btn small { color: #667781; margin-left: .45rem; font-weight: 500; text-transform: uppercase; }
+    .wa-variable-row.is-readonly input { background: var(--tblr-bg-surface-secondary, #f6f8fb); }
 </style>
 
 <div class="modal modal-blur fade" id="wa-contact-action-modal" tabindex="-1" aria-hidden="true">

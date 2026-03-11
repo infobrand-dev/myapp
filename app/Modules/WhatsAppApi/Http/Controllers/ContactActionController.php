@@ -158,7 +158,7 @@ class ContactActionController extends Controller
         $templates = WATemplate::query()
             ->where('status', 'approved')
             ->orderBy('name')
-            ->get(['id', 'name', 'meta_name', 'language', 'namespace', 'body', 'components'])
+            ->get(['id', 'name', 'meta_name', 'language', 'namespace', 'body', 'components', 'variable_mappings'])
             ->map(fn (WATemplate $template) => [
                 'id' => $template->id,
                 'name' => $template->name,

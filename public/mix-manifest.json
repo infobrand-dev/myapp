@@ -1,5 +1,6 @@
 {
-    "/js/app.js": "/js/app.js?id=0b012e57120106a1d8c856f5f7e86305",
-    "/js/modules/conversations/show.js": "/js/modules/conversations/show.js?id=186d09c076aeacd01010985a675e93f8",
-    "/css/app.css": "/css/app.css?id=5803fdf780e7bdaaa0238a05c99748f2"
+    "/js/app.js": "/js/app.js?id=a6a9307c234beba94628c4d25069a856",
+    "/js/modules/conversations/show.js": "/js/modules/conversations/show.js?id=06087582c8ac17655326899910414bda",
+    "/js/modules/whatsapp-api/contact-actions.js": "/js/modules/whatsapp-api/contact-actions.js?id=f54aa60a1061c11e161a6e3148d5df1f",
+    "/css/app.css": "/css/app.css?id=45b08660ddd6acc5004955b1680b1ff9"
 }

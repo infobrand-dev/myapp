@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Modules\WhatsAppApi\Http\Controllers\InstanceController;
 use App\Modules\WhatsAppApi\Http\Controllers\ConversationController;
+use App\Modules\WhatsAppApi\Http\Controllers\ContactActionController;
 use App\Modules\WhatsAppApi\Http\Controllers\MessageLogController;
 use App\Modules\WhatsAppApi\Http\Controllers\WebhookController;
 use App\Modules\WhatsAppApi\Http\Controllers\WATemplateController;
@@ -41,6 +42,7 @@ Route::middleware(['web', 'auth'])
         });
 
         Route::get('/', [ConversationController::class, 'index'])->name('inbox');
+        Route::post('/contact-actions/send-template', [ContactActionController::class, 'sendTemplate'])->name('contact-actions.send-template');
         Route::post('/conversations/{conversation}/claim', [ConversationController::class, 'claim'])->name('conversations.claim');
         Route::post('/conversations/{conversation}/release', [ConversationController::class, 'release'])->name('conversations.release');
         Route::post('/conversations/{conversation}/invite', [ConversationController::class, 'invite'])->name('conversations.invite');

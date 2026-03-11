@@ -1,0 +1,289 @@
+<?php
+
+namespace App\Modules\WhatsAppApi\Http\Controllers;
+
+use App\Http\Controllers\Controller;
+use App\Modules\Contacts\Models\Contact;
+use App\Modules\Conversations\Models\Conversation;
+use App\Modules\Conversations\Models\ConversationMessage;
+use App\Modules\WhatsAppApi\Jobs\SendWhatsAppMessage;
+use App\Modules\WhatsAppApi\Models\WATemplate;
+use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
+
+class ContactActionController extends Controller
+{
+    public function sendTemplate(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'contact_id' => ['required', 'integer'],
+            'instance_id' => ['required', 'integer'],
+            'template_id' => ['required', 'integer', 'exists:wa_templates,id'],
+            'variables' => ['nullable', 'array'],
+            'variables.*' => ['nullable', 'string', 'max:500'],
+            'return_to' => ['nullable', 'url'],
+        ]);
+
+        $contact = Contact::query()->findOrFail((int) $data['contact_id']);
+        $instance = $this->resolveInstance((int) $data['instance_id'], $request->user());
+        $template = WATemplate::query()->findOrFail((int) $data['template_id']);
+
+        if ((string) $template->status !== 'approved') {
+            throw ValidationException::withMessages([
+                'template_id' => 'Template harus berstatus approved.',
+            ]);
+        }
+
+        if ($template->namespace && $instance->cloud_business_account_id && $template->namespace !== $instance->cloud_business_account_id) {
+            throw ValidationException::withMessages([
+                'template_id' => 'Template bukan milik WABA instance terpilih.',
+            ]);
+        }
+
+        $phone = $this->normalizePhone((string) ($contact->mobile ?: $contact->phone));
+        if ($phone === null) {
+            throw ValidationException::withMessages([
+                'contact_id' => 'Contact tidak memiliki nomor WhatsApp yang valid.',
+            ]);
+        }
+
+        $variables = $this->normalizeVariables((array) ($data['variables'] ?? []));
+        $payload = $this->buildTemplatePayload($template, $variables);
+        $messageBody = $this->renderTemplateText($template->body, $variables);
+
+        DB::transaction(function () use ($contact, $instance, $template, $phone, $payload, $messageBody, $request): void {
+            $conversation = Conversation::query()->firstOrCreate(
+                [
+                    'channel' => 'wa_api',
+                    'instance_id' => $instance->id,
+                    'contact_external_id' => $phone,
+                ],
+                [
+                    'contact_name' => $contact->name,
+                    'status' => 'open',
+                    'owner_id' => $request->user()->id,
+                    'claimed_at' => now(),
+                    'locked_until' => now()->addMinutes((int) config('conversations.lock_minutes', 30)),
+                    'last_message_at' => now(),
+                    'last_outgoing_at' => now(),
+                    'unread_count' => 0,
+                    'metadata' => [
+                        'source' => 'contacts_whatsapp_api',
+                        'contact_id' => $contact->id,
+                    ],
+                ]
+            );
+
+            $conversation->fill([
+                'contact_name' => $contact->name,
+                'last_message_at' => now(),
+                'last_outgoing_at' => now(),
+            ])->save();
+
+            $message = ConversationMessage::query()->create([
+                'conversation_id' => $conversation->id,
+                'user_id' => $request->user()->id,
+                'direction' => 'out',
+                'type' => 'template',
+                'body' => $messageBody,
+                'status' => 'queued',
+                'payload' => [
+                    'name' => $template->name,
+                    'language' => $template->language,
+                    'components' => $payload['components'],
+                    'variables' => $payload['params'],
+                    'template_id' => $template->id,
+                    'source' => 'contacts_action',
+                    'contact_id' => $contact->id,
+                ],
+            ]);
+
+            SendWhatsAppMessage::dispatch($message->id);
+        });
+
+        $target = $data['return_to'] ?? route('contacts.show', $contact);
+
+        return redirect()->to($target)->with('status', 'Template WhatsApp berhasil diantrikan.');
+    }
+
+    public static function modalData(?\Illuminate\Contracts\Auth\Authenticatable $user): array
+    {
+        if (!$user || !class_exists(Contact::class) || !Schema::hasTable('whatsapp_instances') || !Schema::hasTable('wa_templates')) {
+            return [
+                'instances' => [],
+                'templates' => [],
+            ];
+        }
+
+        $instanceQuery = WhatsAppInstance::query()
+            ->where('is_active', true)
+            ->orderBy('name');
+
+        if (method_exists($user, 'hasRole') && !$user->hasRole('Super-admin') && Schema::hasTable('whatsapp_instance_user')) {
+            $instanceQuery->whereHas('users', fn ($query) => $query->where('user_id', $user->id));
+        }
+
+        $instances = $instanceQuery->get(['id', 'name', 'provider', 'cloud_business_account_id'])
+            ->map(fn (WhatsAppInstance $instance) => [
+                'id' => $instance->id,
+                'name' => $instance->name,
+                'provider' => $instance->provider,
+                'namespace' => $instance->cloud_business_account_id,
+            ])
+            ->values()
+            ->all();
+
+        $templates = WATemplate::query()
+            ->where('status', 'approved')
+            ->orderBy('name')
+            ->get(['id', 'name', 'language', 'namespace', 'body', 'components'])
+            ->map(fn (WATemplate $template) => [
+                'id' => $template->id,
+                'name' => $template->name,
+                'language' => $template->language,
+                'namespace' => $template->namespace,
+                'body' => (string) $template->body,
+                'components' => $template->components ?? [],
+                'placeholders' => self::placeholderIndexes($template->body, $template->components ?? []),
+            ])
+            ->values()
+            ->all();
+
+        return compact('instances', 'templates');
+    }
+
+    private function resolveInstance(int $instanceId, $user): WhatsAppInstance
+    {
+        $query = WhatsAppInstance::query()
+            ->where('id', $instanceId)
+            ->where('is_active', true);
+
+        if (method_exists($user, 'hasRole') && !$user->hasRole('Super-admin') && Schema::hasTable('whatsapp_instance_user')) {
+            $query->whereHas('users', fn ($builder) => $builder->where('user_id', $user->id));
+        }
+
+        return $query->firstOrFail();
+    }
+
+    private function normalizeVariables(array $variables): array
+    {
+        $normalized = [];
+
+        foreach ($variables as $key => $value) {
+            $index = (int) preg_replace('/[^0-9]/', '', (string) $key);
+            if ($index <= 0) {
+                continue;
+            }
+
+            $normalized[$index] = trim((string) $value);
+        }
+
+        ksort($normalized);
+
+        return $normalized;
+    }
+
+    private function buildTemplatePayload(WATemplate $template, array $params): array
+    {
+        $componentsSource = collect($template->components ?? []);
+        $header = $componentsSource->firstWhere('type', 'header');
+        $headerText = null;
+
+        if (is_array($header)) {
+            $headerText = data_get($header, 'text') ?: data_get($header, 'parameters.0.text');
+        }
+
+        $bodyIndexes = self::placeholderIndexes((string) $template->body);
+        $headerIndexes = self::placeholderIndexes((string) $headerText);
+        $allIndexes = array_values(array_unique(array_merge($bodyIndexes, $headerIndexes)));
+        sort($allIndexes);
+
+        $components = [];
+        $headerParams = [];
+
+        if ($headerText) {
+            foreach ($headerIndexes as $idx) {
+                $headerParams[] = ['type' => 'text', 'text' => (string) ($params[$idx] ?? '')];
+            }
+        } elseif (is_array($header) && data_get($header, 'parameters.0.link')) {
+            $headerParams[] = [
+                'type' => strtolower((string) data_get($header, 'parameters.0.type', 'image')),
+                'link' => data_get($header, 'parameters.0.link'),
+            ];
+        }
+
+        if (!empty($headerParams)) {
+            $components[] = ['type' => 'header', 'parameters' => $headerParams];
+        }
+
+        $bodyParams = [];
+        foreach ($bodyIndexes as $idx) {
+            $bodyParams[] = ['type' => 'text', 'text' => (string) ($params[$idx] ?? '')];
+        }
+
+        if (!empty($bodyParams)) {
+            $components[] = ['type' => 'body', 'parameters' => $bodyParams];
+        }
+
+        return [
+            'components' => $components,
+            'params' => $params,
+            'placeholders' => $allIndexes,
+        ];
+    }
+
+    private function renderTemplateText(string $text, array $params): string
+    {
+        return (string) preg_replace_callback('/\{\{(\d+)\}\}/', function (array $matches) use ($params): string {
+            $index = (int) ($matches[1] ?? 0);
+            return (string) ($params[$index] ?? '');
+        }, $text);
+    }
+
+    private function normalizePhone(string $value): ?string
+    {
+        $digits = preg_replace('/\D+/', '', $value) ?? '';
+        if ($digits === '') {
+            return null;
+        }
+
+        if (str_starts_with($digits, '0')) {
+            $digits = '62' . substr($digits, 1);
+        }
+
+        return strlen($digits) >= 8 ? $digits : null;
+    }
+
+    public static function placeholderIndexes(?string $body, array $components = []): array
+    {
+        $indexes = self::extractPlaceholderIndexes((string) $body);
+
+        foreach ($components as $component) {
+            if (!is_array($component) || strtolower((string) ($component['type'] ?? '')) !== 'header') {
+                continue;
+            }
+
+            $headerText = (string) (($component['text'] ?? '') ?: data_get($component, 'parameters.0.text', ''));
+            $indexes = array_merge($indexes, self::extractPlaceholderIndexes($headerText));
+        }
+
+        $indexes = array_values(array_unique(array_map('intval', $indexes)));
+        sort($indexes);
+
+        return $indexes;
+    }
+
+    private static function extractPlaceholderIndexes(?string $text): array
+    {
+        if (!$text) {
+            return [];
+        }
+
+        preg_match_all('/\{\{(\d+)\}\}/', $text, $matches);
+        return array_map('intval', $matches[1] ?? []);
+    }
+}

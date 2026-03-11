@@ -8,7 +8,10 @@
 ## Core vs module boundaries
 - Core files must stay clean and contain no module-specific logic, routes, views, assets, migrations, service wiring, or hardcoded references to any optional module.
 - The base app must remain usable without optional modules installed or enabled. If a feature is optional, its implementation must live entirely inside its own module folder.
+- Every module must provide a `module.json` manifest as the single source of truth for module metadata such as slug, name, provider, version, dependency requirements, and navigation items.
+- When reading or integrating a module, check `module.json` first to understand what the module exposes, what it requires, and how it should be registered.
 - Every module must be standalone by default. A module may depend on another module only when that dependency is explicitly required by the feature design.
+- Any cross-module dependency must be declared explicitly in `module.json` via `requires`; do not rely on hidden runtime coupling or silent fallbacks as a substitute for declaring dependencies.
 - If one module needs another module, the dependent module must still load or inject its own scripts, assets, bootstrapping, and integration code from its own folder instead of placing that code in core files.
 - Do not move module behavior into core just to make integration easier. Prefer module service providers, module routes, module views, module assets, and module-local initialization.
 - When adding new work, treat `app`, `resources`, `routes`, `database`, and other core paths as framework/app-shell territory only unless the change is truly part of the non-optional core product.

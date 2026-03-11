@@ -1,6 +1,7 @@
 @extends('layouts.admin')
 
 @section('content')
+@php($hooks = app(\App\Support\HookManager::class))
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">{{ $contact->name }}</h2>
@@ -12,6 +13,9 @@
         </div>
     </div>
     <div class="d-flex gap-2">
+        @foreach($hooks->render('contacts.show.header_actions', ['contact' => $contact]) as $hookedAction)
+            {!! $hookedAction !!}
+        @endforeach
         <a href="{{ route('contacts.edit', $contact) }}" class="btn btn-outline-secondary">Edit</a>
         <a href="{{ route('contacts.index') }}" class="btn btn-outline-secondary">Kembali</a>
     </div>
@@ -107,4 +111,7 @@
         </div>
     @endif
 </div>
+@foreach($hooks->render('contacts.show.after_content', ['contact' => $contact]) as $hookedContent)
+    {!! $hookedContent !!}
+@endforeach
 @endsection

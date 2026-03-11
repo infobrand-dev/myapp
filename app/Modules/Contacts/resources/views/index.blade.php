@@ -1,6 +1,7 @@
 @extends('layouts.admin')
 
 @section('content')
+@php($hooks = app(\App\Support\HookManager::class))
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Contacts</h2>
@@ -47,6 +48,9 @@
                     <td>{{ $contact->phone ?? $contact->mobile ?? '-' }}</td>
                     <td class="text-end align-middle">
                         <div class="table-actions">
+                            @foreach($hooks->render('contacts.index.row_actions', ['contact' => $contact]) as $hookedAction)
+                                {!! $hookedAction !!}
+                            @endforeach
                             <a class="btn btn-icon btn-outline-secondary" href="{{ route('contacts.edit', $contact) }}" title="Edit">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                     <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
@@ -81,4 +85,7 @@
         {{ $contacts->links() }}
     </div>
 </div>
+@foreach($hooks->render('contacts.index.after_content', ['contacts' => $contacts]) as $hookedContent)
+    {!! $hookedContent !!}
+@endforeach
 @endsection

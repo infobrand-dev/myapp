@@ -258,7 +258,7 @@ class WebhookController extends Controller
         foreach ((array) ($payload['entry'] ?? []) as $entry) {
             foreach ((array) ($entry['changes'] ?? []) as $change) {
                 $value = (array) ($change['value'] ?? []);
-                $instance = $this->resolveCloudInstance($value, (array) $entry, (array) $change);
+                $instance = $this->resolveCloudInstance($value, (array) $entry, (array) $change, $request);
                 if (!$instance) {
                     $candidatePhoneId = (string) Arr::get($value, 'metadata.phone_number_id', '');
                     $candidateBusinessId = (string) (
@@ -317,7 +317,7 @@ class WebhookController extends Controller
         ];
     }
 
-    private function resolveCloudInstance(array $value, array $entry = [], array $change = []): ?WhatsAppInstance
+    private function resolveCloudInstance(array $value, array $entry = [], array $change = [], ?Request $request = null): ?WhatsAppInstance
     {
         $phoneNumberId = (string) Arr::get($value, 'metadata.phone_number_id', '');
         if ($phoneNumberId === '') {
@@ -329,17 +329,42 @@ class WebhookController extends Controller
             );
 
             if ($businessId === '') {
-                return null;
+                return $request ? $this->resolveCloudInstanceBySignature($request) : null;
             }
 
-            return WhatsAppInstance::where('provider', 'cloud')
+            $instance = WhatsAppInstance::where('provider', 'cloud')
                 ->where('cloud_business_account_id', $businessId)
                 ->first();
+
+            return $instance ?: ($request ? $this->resolveCloudInstanceBySignature($request) : null);
         }
 
-        return WhatsAppInstance::where('provider', 'cloud')
+        $instance = WhatsAppInstance::where('provider', 'cloud')
             ->where('phone_number_id', $phoneNumberId)
             ->first();
+
+        return $instance ?: ($request ? $this->resolveCloudInstanceBySignature($request) : null);
+    }
+
+    private function resolveCloudInstanceBySignature(Request $request): ?WhatsAppInstance
+    {
+        $signature = (string) $request->header('X-Hub-Signature-256', '');
+        if (!str_starts_with($signature, 'sha256=')) {
+            return null;
+        }
+
+        $matches = WhatsAppInstance::query()
+            ->where('provider', 'cloud')
+            ->where('is_active', true)
+            ->get()
+            ->filter(fn (WhatsAppInstance $instance) => $this->isValidCloudSignature($request, $instance))
+            ->values();
+
+        if ($matches->count() === 1) {
+            return $matches->first();
+        }
+
+        return null;
     }
 
     private function handleCloudIncomingMessages(WhatsAppInstance $instance, array $value): void

@@ -108,12 +108,14 @@ class SendWhatsAppMessage implements ShouldQueue
             return;
         }
 
+        $existingError = $this->sanitizeStoredError($message->error_message);
+        $queueError = $this->sanitizeStoredError('Queue failed: ' . $e->getMessage());
         $message->update([
             'status' => 'error',
-            'error_message' => mb_substr(
-                ($message->error_message ? $message->error_message . ' | ' : '') . 'Queue failed: ' . $e->getMessage(),
-                0,
-                1000
+            'error_message' => $this->limitErrorMessage(
+                $existingError && $existingError !== $queueError
+                    ? $existingError . ' | ' . $queueError
+                    : ($existingError ?: $queueError)
             ),
         ]);
     }
@@ -230,7 +232,7 @@ class SendWhatsAppMessage implements ShouldQueue
         $statusCode = $response->status();
         $body = trim((string) $response->body());
         $errorMessage = "{$source} {$statusCode}: " . ($body !== '' ? $body : 'Unknown error');
-        $shortError = mb_substr($errorMessage, 0, 1000);
+        $shortError = $this->limitErrorMessage($errorMessage);
 
         $message->update([
             'status' => 'error',
@@ -244,7 +246,7 @@ class SendWhatsAppMessage implements ShouldQueue
 
     private function markRetryableFailure(ConversationMessage $message, string $error): void
     {
-        $shortError = mb_substr($error, 0, 1000);
+        $shortError = $this->limitErrorMessage($error);
 
         $message->update([
             'status' => 'error',
@@ -293,6 +295,26 @@ class SendWhatsAppMessage implements ShouldQueue
         $text = ($base !== '' ? $base : 'Silakan pilih opsi berikut:') . $suffix;
 
         return mb_substr($text, 0, 1024);
+    }
+
+    private function sanitizeStoredError(?string $error): string
+    {
+        $value = trim((string) $error);
+        if ($value === '') {
+            return '';
+        }
+
+        // Collapse repeated queue wrappers so the root provider error remains readable.
+        while (str_starts_with($value, 'Queue failed: ')) {
+            $value = trim(substr($value, 14));
+        }
+
+        return $this->limitErrorMessage($value);
+    }
+
+    private function limitErrorMessage(string $error): string
+    {
+        return mb_substr(trim($error), 0, 240);
     }
 }
 

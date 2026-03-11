@@ -216,9 +216,12 @@ class ContactActionController extends Controller
                 $headerParams[] = ['type' => 'text', 'text' => (string) ($params[$idx] ?? '')];
             }
         } elseif (is_array($header) && data_get($header, 'parameters.0.link')) {
+            $mediaType = strtolower((string) data_get($header, 'parameters.0.type', 'image'));
             $headerParams[] = [
-                'type' => strtolower((string) data_get($header, 'parameters.0.type', 'image')),
-                'link' => data_get($header, 'parameters.0.link'),
+                'type' => $mediaType,
+                $mediaType => [
+                    'link' => data_get($header, 'parameters.0.link'),
+                ],
             ];
         }
 

@@ -78,6 +78,13 @@
         <a href="{{ route('whatsapp-api.templates.index') }}" class="btn btn-outline-secondary">Kembali</a>
     </div>
 
+    @if($isEdit && $template->last_submit_error)
+        <div class="alert alert-danger">
+            <div class="fw-semibold mb-1">Last Submit Error</div>
+            <pre class="mb-0 small" style="white-space: pre-wrap;">{{ $template->last_submit_error }}</pre>
+        </div>
+    @endif
+
     <form method="POST" action="{{ $isEdit ? route('whatsapp-api.templates.update', $template) : route('whatsapp-api.templates.store') }}" id="wa-template-form" enctype="multipart/form-data">
         @csrf
         @if($isEdit) @method('PUT') @endif
@@ -97,7 +104,7 @@
                             <div class="col-md-3">
                                 <label class="form-label">Meta Name</label>
                                 <input class="form-control" name="meta_name" value="{{ old('meta_name', $template->meta_name) }}" placeholder="contoh: idpba_followup_1">
-                                <div class="tiny mt-1">Huruf kecil, angka, underscore. Jika kosong, otomatis digenerate dari nama internal.</div>
+                                <div class="tiny mt-1">Hanya huruf kecil dan underscore. Jika kosong, otomatis digenerate dari nama internal.</div>
                                 @error('meta_name') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-3">

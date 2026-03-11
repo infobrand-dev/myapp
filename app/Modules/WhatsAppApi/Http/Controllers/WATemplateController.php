@@ -128,7 +128,7 @@ class WATemplateController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:150'],
-            'meta_name' => ['nullable', 'string', 'max:150', 'regex:/^[a-z0-9_]+$/'],
+            'meta_name' => ['nullable', 'string', 'max:150', 'regex:/^[a-z_]+$/'],
             'language' => ['required', 'regex:/^[a-z]{2}(?:_[A-Z]{2})?$/'],
             'category' => ['required', 'in:utility,marketing,authentication'],
             'instance_id' => ['required', 'integer'],
@@ -212,7 +212,7 @@ class WATemplateController extends Controller
         }
 
         $normalized = strtolower($source);
-        $normalized = preg_replace('/[^a-z0-9]+/', '_', $normalized) ?? '';
+        $normalized = preg_replace('/[^a-z]+/', '_', $normalized) ?? '';
         $normalized = trim($normalized, '_');
         $normalized = preg_replace('/_+/', '_', $normalized) ?? '';
 

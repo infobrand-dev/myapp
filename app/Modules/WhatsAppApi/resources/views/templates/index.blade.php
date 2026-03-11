@@ -41,7 +41,10 @@
                                 {{ $tpl->status }}
                             </span>
                             @if($tpl->status === 'rejected' && $tpl->last_submit_error)
-                                <div class="text-danger small mt-1">{{ \Illuminate\Support\Str::limit((string) $tpl->last_submit_error, 120) }}</div>
+                                <details class="mt-2">
+                                    <summary class="text-danger small" style="cursor:pointer;">Lihat error lengkap</summary>
+                                    <pre class="small text-danger bg-light border rounded p-2 mt-2 mb-0" style="white-space: pre-wrap;">{{ $tpl->last_submit_error }}</pre>
+                                </details>
                             @endif
                         </td>
                         <td class="text-end align-middle">

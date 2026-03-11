@@ -8,6 +8,8 @@ Route::middleware(['web', 'auth', 'role:Super-admin|Admin'])
     ->name('contacts.')
     ->group(function () {
         Route::get('/', [ContactController::class, 'index'])->name('index');
+        Route::get('/merge-candidates', [ContactController::class, 'mergeCandidates'])->name('merge-candidates');
+        Route::post('/merge', [ContactController::class, 'merge'])->name('merge');
         Route::get('/import', [ContactController::class, 'importPage'])->name('import-page');
         Route::get('/import-template/{format}', [ContactController::class, 'downloadTemplate'])->name('import-template');
         Route::post('/import', [ContactController::class, 'import'])->name('import');

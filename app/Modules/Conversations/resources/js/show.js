@@ -107,6 +107,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const isNearBottom = () => chatPane
         ? ((chatPane.scrollHeight - chatPane.scrollTop - chatPane.clientHeight) < 80)
         : true;
+    const lastRenderedRow = () => {
+        if (!chatPane) {
+            return null;
+        }
+
+        const rows = chatPane.querySelectorAll('.chat-row[data-message-id]');
+        return rows.length ? rows[rows.length - 1] : null;
+    };
     const scrollChatToBottom = (behavior = 'auto') => {
         if (!chatPane) {
             return;
@@ -118,6 +126,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     behavior,
                 });
             });
+        });
+    };
+    const ensureLatestMessageVisible = (behavior = 'auto') => {
+        if (!chatPane) {
+            return;
+        }
+
+        const sync = () => {
+            const lastRow = lastRenderedRow();
+            if (lastRow) {
+                lastRow.scrollIntoView({ block: 'end', behavior });
+            }
+            chatPane.scrollTop = chatPane.scrollHeight;
+        };
+
+        requestAnimationFrame(() => {
+            sync();
+            requestAnimationFrame(sync);
         });
     };
     const bindDeferredMediaScroll = (scope) => {
@@ -278,8 +304,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const setMobileView = (view) => {
         dashboardRoot.classList.remove('mobile-view-inbox', 'mobile-view-chat', 'mobile-view-detail');
         dashboardRoot.classList.add(`mobile-view-${view}`);
-        if (view === 'chat' && document.hasFocus()) {
-            clearUnread();
+        if (view === 'chat') {
+            ensureLatestMessageVisible();
+            if (document.hasFocus()) {
+                clearUnread();
+            }
         }
     };
     const initMobileView = () => {
@@ -794,7 +823,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     bindDeferredMediaScroll(chatPane);
-    scrollChatToBottom();
+    ensureLatestMessageVisible();
+    setTimeout(() => ensureLatestMessageVisible(), 80);
     initMobileView();
     initWebNotifButton();
     initTemplateSelector();
@@ -840,6 +870,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', () => {
         if (!isMobile()) {
             dashboardRoot.classList.remove('mobile-view-inbox', 'mobile-view-chat', 'mobile-view-detail');
+            ensureLatestMessageVisible();
             if (document.hasFocus()) {
                 clearUnread();
             }
@@ -849,6 +880,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setMobileView('inbox');
         }
     });
+    window.addEventListener('load', () => ensureLatestMessageVisible());
     startUserPicker?.addEventListener('input', () => {
         if (startUserInvalid) {
             startUserInvalid.classList.add('d-none');

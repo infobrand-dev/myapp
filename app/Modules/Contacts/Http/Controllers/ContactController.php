@@ -7,7 +7,9 @@ use App\Modules\Contacts\Models\Contact;
 use App\Modules\Contacts\Support\ContactPhoneNormalizer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -22,7 +24,16 @@ class ContactController extends Controller
             ->orderByDesc('created_at')
             ->paginate(15);
 
-        return view('contacts::index', compact('contacts'));
+        $mergeCandidateCount = count($this->buildMergeCandidateGroups());
+
+        return view('contacts::index', compact('contacts', 'mergeCandidateCount'));
+    }
+
+    public function mergeCandidates(): View
+    {
+        $groups = $this->buildMergeCandidateGroups();
+
+        return view('contacts::merge-candidates', compact('groups'));
     }
 
     public function importPage(): View
@@ -228,6 +239,69 @@ class ContactController extends Controller
         $contact->delete();
 
         return back()->with('status', 'Contact dihapus.');
+    }
+
+    public function merge(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'primary_id' => ['required', 'integer', 'exists:contacts,id'],
+            'duplicate_ids' => ['required', 'array', 'min:1'],
+            'duplicate_ids.*' => ['integer', 'distinct', 'exists:contacts,id'],
+        ]);
+
+        $primaryId = (int) $data['primary_id'];
+        $duplicateIds = collect($data['duplicate_ids'])
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id !== $primaryId)
+            ->values();
+
+        if ($duplicateIds->isEmpty()) {
+            throw ValidationException::withMessages([
+                'duplicate_ids' => 'Pilih minimal satu contact lain untuk digabungkan.',
+            ]);
+        }
+
+        $allIds = $duplicateIds
+            ->concat([$primaryId])
+            ->unique()
+            ->values();
+
+        $contacts = Contact::query()
+            ->whereIn('id', $allIds->all())
+            ->get()
+            ->keyBy('id');
+
+        $primary = $contacts->get($primaryId);
+        if (!$primary) {
+            throw ValidationException::withMessages([
+                'primary_id' => 'Contact utama tidak ditemukan.',
+            ]);
+        }
+
+        $duplicates = $duplicateIds
+            ->map(fn ($id) => $contacts->get($id))
+            ->filter();
+
+        if ($duplicates->count() !== $duplicateIds->count()) {
+            throw ValidationException::withMessages([
+                'duplicate_ids' => 'Salah satu contact duplikat tidak ditemukan.',
+            ]);
+        }
+
+        $types = $duplicates->pluck('type')->push($primary->type)->unique()->values();
+        if ($types->count() > 1) {
+            throw ValidationException::withMessages([
+                'duplicate_ids' => 'Merge hanya bisa dilakukan untuk contact dengan tipe yang sama.',
+            ]);
+        }
+
+        DB::transaction(function () use ($primary, $duplicates): void {
+            $this->mergeContactsIntoPrimary($primary, $duplicates);
+        });
+
+        return redirect()
+            ->route('contacts.merge-candidates')
+            ->with('status', 'Contact berhasil digabungkan.');
     }
 
     private function validatedData(Request $request): array
@@ -649,6 +723,170 @@ class ContactController extends Controller
         }
 
         return $data;
+    }
+
+    private function buildMergeCandidateGroups(): array
+    {
+        $contacts = Contact::query()
+            ->with('company')
+            ->orderBy('name')
+            ->get();
+
+        $signatureMap = [];
+
+        foreach ($contacts as $contact) {
+            foreach ($this->contactMatchSignatures($contact) as $signature) {
+                $key = $signature['type'] . ':' . $signature['value'];
+                if (!isset($signatureMap[$key])) {
+                    $signatureMap[$key] = [
+                        'match_type' => $signature['type'],
+                        'match_label' => $signature['label'],
+                        'match_value' => $signature['value'],
+                        'contact_ids' => [],
+                    ];
+                }
+
+                $signatureMap[$key]['contact_ids'][] = $contact->id;
+            }
+        }
+
+        $groups = collect($signatureMap)
+            ->map(function (array $group) use ($contacts): ?array {
+                $contactIds = collect($group['contact_ids'])
+                    ->map(fn ($id) => (int) $id)
+                    ->unique()
+                    ->values();
+
+                if ($contactIds->count() < 2) {
+                    return null;
+                }
+
+                $matchedContacts = $contacts
+                    ->whereIn('id', $contactIds->all())
+                    ->sortBy('id')
+                    ->values();
+
+                return [
+                    'match_type' => $group['match_type'],
+                    'match_label' => $group['match_label'],
+                    'match_value' => $group['match_value'],
+                    'contacts' => $matchedContacts,
+                    'default_primary_id' => (int) $matchedContacts->first()->id,
+                ];
+            })
+            ->filter()
+            ->sortBy(fn (array $group) => $group['match_type'] . '|' . $group['match_value'])
+            ->values()
+            ->all();
+
+        return $groups;
+    }
+
+    private function contactMatchSignatures(Contact $contact): array
+    {
+        $signatures = [];
+
+        foreach (collect([$contact->phone, $contact->mobile])->filter()->unique()->values() as $phone) {
+            $signatures[] = [
+                'type' => 'phone',
+                'label' => 'Nomor',
+                'value' => (string) $phone,
+            ];
+        }
+
+        $email = mb_strtolower(trim((string) ($contact->email ?? '')));
+        if ($email !== '') {
+            $signatures[] = [
+                'type' => 'email',
+                'label' => 'Email',
+                'value' => $email,
+            ];
+        }
+
+        return $signatures;
+    }
+
+    private function mergeContactsIntoPrimary(Contact $primary, Collection $duplicates): void
+    {
+        $duplicates = $duplicates
+            ->filter(fn ($contact) => $contact instanceof Contact && (int) $contact->id !== (int) $primary->id)
+            ->sortBy('id')
+            ->values();
+
+        if ($duplicates->isEmpty()) {
+            return;
+        }
+
+        $fillableFields = [
+            'company_id',
+            'job_title',
+            'email',
+            'phone',
+            'mobile',
+            'website',
+            'vat',
+            'company_registry',
+            'industry',
+            'street',
+            'street2',
+            'city',
+            'state',
+            'zip',
+            'country',
+        ];
+
+        foreach ($fillableFields as $field) {
+            if (!blank($primary->{$field})) {
+                continue;
+            }
+
+            foreach ($duplicates as $duplicate) {
+                if (blank($duplicate->{$field})) {
+                    continue;
+                }
+
+                $value = $duplicate->{$field};
+                if ($field === 'company_id' && (int) $value === (int) $primary->id) {
+                    continue;
+                }
+
+                $primary->{$field} = $value;
+                break;
+            }
+        }
+
+        $notes = collect([$primary->notes])
+            ->merge($duplicates->pluck('notes'))
+            ->filter(fn ($note) => !blank($note))
+            ->map(fn ($note) => trim((string) $note))
+            ->unique()
+            ->values();
+
+        $primary->notes = $notes->isEmpty() ? null : $notes->implode("\n\n---\n\n");
+        $primary->is_active = $primary->is_active || $duplicates->contains(fn (Contact $contact) => (bool) $contact->is_active);
+
+        $duplicateIds = $duplicates->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+        Contact::query()
+            ->whereIn('company_id', $duplicateIds)
+            ->where('id', '!=', $primary->id)
+            ->update(['company_id' => $primary->id]);
+
+        if ((int) ($primary->company_id ?? 0) !== 0 && in_array((int) $primary->company_id, $duplicateIds, true)) {
+            $primary->company_id = null;
+        }
+
+        if (Schema::hasTable('email_campaign_recipients')) {
+            DB::table('email_campaign_recipients')
+                ->whereIn('contact_id', $duplicateIds)
+                ->update(['contact_id' => $primary->id]);
+        }
+
+        $primary->save();
+
+        Contact::query()
+            ->whereIn('id', $duplicateIds)
+            ->delete();
     }
 
     private function buildTemplateXlsx(array $rows): string

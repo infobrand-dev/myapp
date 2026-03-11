@@ -483,13 +483,17 @@
         gap: .35rem;
     }
     .conv-dashboard .detail-action-btn {
-        width: 2rem;
-        height: 2rem;
-        border-radius: .55rem;
+        width: 2.45rem;
+        height: 2.45rem;
+        border-radius: .7rem;
         padding: 0;
         display: inline-flex;
         align-items: center;
         justify-content: center;
+    }
+    .conv-dashboard .detail-action-btn i {
+        font-size: 1.1rem;
+        line-height: 1;
     }
     .conv-dashboard .detail-collapse-panel {
         margin-top: .55rem;

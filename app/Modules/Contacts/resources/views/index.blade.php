@@ -8,6 +8,7 @@
         <div class="text-muted small">Database perusahaan dan individu.</div>
     </div>
     <div class="btn-list">
+        <a href="{{ route('contacts.merge-candidates') }}" class="btn btn-outline-warning">Merge Contacts ({{ $mergeCandidateCount ?? 0 }})</a>
         <a href="{{ route('contacts.import-page') }}" class="btn btn-outline-secondary">Import Contacts</a>
         <a href="{{ route('contacts.create') }}" class="btn btn-primary">Tambah Contact</a>
     </div>

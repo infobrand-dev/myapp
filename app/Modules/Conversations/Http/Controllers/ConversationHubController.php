@@ -9,6 +9,8 @@ use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\Conversations\Models\ConversationParticipant;
 use App\Modules\Conversations\Models\ConversationActivityLog;
 use App\Modules\Conversations\Events\ConversationMessageCreated;
+use App\Modules\Contacts\Models\Contact;
+use App\Modules\Contacts\Support\ContactPhoneNormalizer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -154,6 +156,8 @@ class ConversationHubController extends Controller
         $waTemplates = ($conversation->channel === 'wa_api' && $this->isWaTemplateReady())
             ? $this->waTemplateModelClass()::where('status', 'active')->orderBy('name')->get()
             : collect();
+        $relatedContact = $this->findRelatedContact($conversation);
+
         return view('conversations::show', [
             'conversation' => $conversation,
             'conversationsList' => $conversationsList,
@@ -163,6 +167,7 @@ class ConversationHubController extends Controller
             'oldestMessageId' => $oldestMessageId,
             'latestMessageId' => $latestMessageId,
             'hasMoreMessages' => $hasMoreMessages,
+            'relatedContact' => $relatedContact,
         ]);
     }
 
@@ -398,6 +403,29 @@ class ConversationHubController extends Controller
         $this->log($conversation, $user->id, 'invite', "Invite user {$invitee->id}");
 
         return back()->with('status', 'Pengguna diundang.');
+    }
+
+    public function updateContactNote(Request $request, Conversation $conversation): RedirectResponse
+    {
+        $user = $request->user();
+        $this->authorizeParticipant($conversation, $user);
+
+        $contact = $this->findRelatedContact($conversation);
+        if (!$contact) {
+            return back()->with('status', 'Contact terkait tidak ditemukan.');
+        }
+
+        $data = $request->validate([
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        $contact->update([
+            'notes' => $data['notes'] ?? null,
+        ]);
+
+        $this->log($conversation, $user->id, 'update_contact_note', "Update notes untuk contact {$contact->id}");
+
+        return back()->with('status', 'Catatan contact diperbarui.');
     }
 
     public function send(Request $request, Conversation $conversation): RedirectResponse|JsonResponse
@@ -746,6 +774,34 @@ class ConversationHubController extends Controller
     {
         return class_exists($this->waTemplateModelClass())
             && Schema::hasTable('wa_templates');
+    }
+
+    private function isContactsReady(): bool
+    {
+        return class_exists(Contact::class)
+            && class_exists(ContactPhoneNormalizer::class)
+            && Schema::hasTable('contacts');
+    }
+
+    private function findRelatedContact(Conversation $conversation): ?Contact
+    {
+        if (!$this->isContactsReady()) {
+            return null;
+        }
+
+        $phone = ContactPhoneNormalizer::normalize((string) ($conversation->contact_external_id ?? ''));
+        if (!$phone) {
+            return null;
+        }
+
+        return Contact::query()
+            ->where(function ($query) use ($phone) {
+                $query->where('mobile', $phone)
+                    ->orWhere('phone', $phone);
+            })
+            ->orderByRaw('CASE WHEN mobile = ? THEN 0 ELSE 1 END', [$phone])
+            ->orderBy('name')
+            ->first();
     }
 
     private function waTemplateModelClass(): string

@@ -27,6 +27,9 @@ Route::middleware(['web', 'auth'])
         Route::post('/{conversation}/invite', [ConversationHubController::class, 'invite'])
             ->middleware('throttle:20,1')
             ->name('invite');
+        Route::post('/{conversation}/contact-note', [ConversationHubController::class, 'updateContactNote'])
+            ->middleware('throttle:20,1')
+            ->name('contact-note.update');
         Route::post('/{conversation}/message', [ConversationHubController::class, 'send'])
             ->middleware('throttle:60,1')
             ->name('send');

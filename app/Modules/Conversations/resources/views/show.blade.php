@@ -469,6 +469,14 @@
         color: #2f455c;
         text-align: right;
     }
+    .conv-dashboard .detail-value-detail {
+        width: 100%;
+        text-align: left;
+    }
+    .conv-dashboard .detail-inline-form textarea {
+        min-height: 7rem;
+        resize: vertical;
+    }
     .conv-dashboard .section-head {
         padding: .15rem 0 .6rem;
     }
@@ -1049,29 +1057,61 @@
             </div>
             <div class="section-body detail-list pt-0">
                 <div class="detail-row"><span class="detail-key">Kontak</span><span class="detail-value">{{ $conversation->contact_name ?? $conversation->contact_external_id ?? 'Internal' }}</span></div>
+                @if($conversation->channel === 'wa_api' && !empty($conversation->contact_external_id))
+                    <div class="detail-row">
+                        <span class="detail-key">Contact CRM</span>
+                        <span class="detail-value">
+                            @if(!empty($relatedContact))
+                                <a href="{{ route('contacts.show', $relatedContact) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="ti ti-address-book me-1" aria-hidden="true"></i>Open Contact
+                                </a>
+                            @elseif(Route::has('contacts.create'))
+                                <a
+                                    href="{{ route('contacts.create', [
+                                        'type' => 'individual',
+                                        'name' => $conversation->contact_name,
+                                        'mobile' => $conversation->contact_external_id,
+                                        'phone' => $conversation->contact_external_id,
+                                        'notes' => 'Created from conversation #' . $conversation->id,
+                                    ]) }}"
+                                    class="btn btn-sm btn-outline-success"
+                                >
+                                    <i class="ti ti-user-plus me-1" aria-hidden="true"></i>Add Contact
+                                </a>
+                            @else
+                                <span class="text-muted">Contacts module not available.</span>
+                            @endif
+                        </span>
+                    </div>
+                @endif
+                @if(!empty($relatedContact))
+                    <div class="detail-row">
+                        <span class="detail-key">Contact Notes</span>
+                        <div class="detail-value detail-value-detail">
+                            <form method="POST" action="{{ route('conversations.contact-note.update', $conversation) }}" class="detail-inline-form">
+                                @csrf
+                                <textarea name="notes" class="form-control form-control-sm mb-2" {{ $canReply ? '' : 'disabled' }}>{{ old('notes', $relatedContact->notes ?? '') }}</textarea>
+                                <div class="d-flex justify-content-between align-items-center gap-2">
+                                    <a href="{{ route('contacts.show', $relatedContact) }}" class="btn btn-sm btn-outline-primary">Open Contact</a>
+                                    <button type="submit" class="btn btn-sm btn-primary" {{ $canReply ? '' : 'disabled' }}>Save Note</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                @endif
                 <div class="detail-row"><span class="detail-key">Owner</span><span class="detail-value">{{ $conversation->owner->name ?? 'Unassigned' }}</span></div>
                 <div class="detail-row"><span class="detail-key">Status</span><span class="detail-value">{{ ucfirst($conversation->status) }}</span></div>
                 @if($isWhatsAppConversation)
                     <div class="detail-row">
-                        <span class="detail-key">Bot Mode</span>
+                        <span class="detail-key">AI Bot</span>
                         <span class="detail-value">
                             @if($needsHuman)
                                 <span class="badge text-bg-warning">Paused (Need Human)</span>
                                 @if($handoffAt)
                                     <div class="text-muted small mt-1">{{ \Illuminate\Support\Carbon::parse($handoffAt)->diffForHumans() }}</div>
                                 @endif
-                            @else
-                                <span class="badge text-bg-success">Active</span>
-                            @endif
-                        </span>
-                    </div>
-                @endif
-                @if($needsHuman || $botPaused || $handoffAt)
-                    <div class="detail-row">
-                        <span class="detail-key">AI Mode</span>
-                        <span class="detail-value">
-                            @if($botPaused)
-                                <span class="badge text-bg-warning">Paused (Need Human)</span>
+                            @elseif($botPaused)
+                                <span class="badge text-bg-warning">Paused</span>
                             @else
                                 <span class="badge text-bg-success">Active</span>
                             @endif

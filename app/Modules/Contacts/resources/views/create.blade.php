@@ -23,7 +23,7 @@
     @csrf
     <div class="card">
         <div class="card-body">
-            @include('contacts::_form', ['contact' => null, 'companies' => $companies])
+            @include('contacts::_form', ['contact' => $contact, 'companies' => $companies])
         </div>
         <div class="card-footer d-flex justify-content-end">
             <button class="btn btn-primary" type="submit">Simpan</button>

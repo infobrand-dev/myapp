@@ -49,10 +49,12 @@ class ContactController extends Controller
         }
 
         if ($format === 'xlsx') {
-            return response()->streamDownload(function () use ($headers, $sampleRow) {
-                echo $this->buildTemplateXlsx([$headers, $sampleRow]);
-            }, 'contacts-import-template.xlsx', [
+            $binary = $this->buildTemplateXlsx([$headers, $sampleRow]);
+
+            return response($binary, 200, [
                 'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Disposition' => 'attachment; filename="contacts-import-template.xlsx"',
+                'Content-Length' => (string) strlen($binary),
             ]);
         }
 
@@ -152,12 +154,25 @@ class ContactController extends Controller
 
     public function create(): View
     {
+        $prefill = new Contact([
+            'type' => request()->input('type', 'individual'),
+            'name' => request()->input('name', ''),
+            'phone' => request()->input('phone', ''),
+            'mobile' => request()->input('mobile', ''),
+            'email' => request()->input('email', ''),
+            'notes' => request()->input('notes', ''),
+            'is_active' => true,
+        ]);
+
         $companies = Contact::query()
             ->where('type', 'company')
             ->orderBy('name')
             ->get();
 
-        return view('contacts::create', compact('companies'));
+        return view('contacts::create', [
+            'companies' => $companies,
+            'contact' => $prefill,
+        ]);
     }
 
     public function store(Request $request): RedirectResponse

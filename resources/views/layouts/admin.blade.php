@@ -89,6 +89,14 @@
         .app-shell {
             min-height: 100vh;
         }
+        .page-body {
+            padding-top: .95rem;
+            padding-bottom: 1.1rem;
+        }
+        .page-body > .container-xl {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
         #app-sidebar {
             --bs-offcanvas-width: min(84vw, 320px);
         }
@@ -101,7 +109,7 @@
                 min-height: 3.5rem;
             }
             .page-body {
-                padding-top: .85rem;
+                padding-top: .65rem;
             }
             .page-body > .container-xl {
                 padding-left: .75rem;

@@ -378,6 +378,60 @@
         padding-left: .95rem;
         padding-right: .95rem;
     }
+    .conv-dashboard .composer-plus-btn {
+        width: 2.65rem;
+        height: 2.65rem;
+        border-radius: .7rem !important;
+        padding: 0 !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .conv-dashboard .composer-action-menu {
+        min-width: 14rem;
+        padding: .45rem;
+        border-radius: .85rem;
+        border-color: var(--conv-border-soft);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+    }
+    .conv-dashboard .composer-action-menu .dropdown-item {
+        border-radius: .65rem;
+        padding: .6rem .72rem;
+        font-weight: 600;
+        color: #334a62;
+    }
+    .conv-dashboard .composer-action-menu .dropdown-item i {
+        font-size: 1rem;
+        margin-right: .55rem;
+        color: #58728f;
+    }
+    .conv-dashboard .media-upload-panel {
+        border: 1px solid var(--conv-border-soft);
+        border-radius: .82rem;
+        padding: .8rem;
+        background: linear-gradient(180deg, rgba(32, 107, 196, 0.04), rgba(255, 255, 255, 0.98));
+    }
+    .conv-dashboard .media-upload-title {
+        font-size: .84rem;
+        font-weight: 700;
+        color: #2d4f77;
+        margin-bottom: .12rem;
+    }
+    .conv-dashboard .media-upload-file {
+        font-size: .8rem;
+        color: var(--conv-muted);
+        word-break: break-word;
+    }
+    .conv-dashboard .media-upload-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: .55rem;
+        margin-top: .7rem;
+    }
+    .conv-dashboard .media-upload-trigger {
+        border-radius: .62rem;
+    }
     .conv-dashboard .detail-list .detail-row {
         display: flex;
         justify-content: space-between;
@@ -571,6 +625,18 @@
             bottom: .25rem;
             background: #fff;
             z-index: 5;
+        }
+        .conv-dashboard .composer-action-menu {
+            min-width: 12.25rem;
+        }
+        .conv-dashboard .media-upload-panel {
+            padding: .72rem;
+        }
+        .conv-dashboard .media-upload-actions {
+            flex-direction: column-reverse;
+        }
+        .conv-dashboard .media-upload-actions .btn {
+            width: 100%;
         }
     }
     .conv-dashboard .user-search-wrap {
@@ -879,24 +945,50 @@
                 <form method="POST" action="{{ route('conversations.send', $conversation) }}" class="mb-3" id="send-form">
                     @csrf
                     <div class="composer-shell d-flex align-items-center gap-2">
+                        @if($conversation->channel === 'wa_api')
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary composer-plus-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" {{ $canReply ? '' : 'disabled' }}>
+                                    <i class="ti ti-plus" aria-hidden="true"></i>
+                                </button>
+                                <div class="dropdown-menu composer-action-menu">
+                                    <button type="button" class="dropdown-item" data-media-picker="file" {{ $canReply ? '' : 'disabled' }}>
+                                        <i class="ti ti-file-text" aria-hidden="true"></i>Kirim file
+                                    </button>
+                                    <button type="button" class="dropdown-item" data-media-picker="image" {{ $canReply ? '' : 'disabled' }}>
+                                        <i class="ti ti-photo" aria-hidden="true"></i>Kirim image
+                                    </button>
+                                    <button type="button" class="dropdown-item" data-media-picker="video" {{ $canReply ? '' : 'disabled' }}>
+                                        <i class="ti ti-video" aria-hidden="true"></i>Kirim video
+                                    </button>
+                                </div>
+                            </div>
+                        @endif
                         <input type="text" name="body" class="form-control" placeholder="Type a message..." required autocomplete="off" id="message-input" {{ $canReply ? '' : 'disabled' }}>
                         <button class="btn btn-primary" type="submit" {{ $canReply ? '' : 'disabled' }}>Send</button>
                     </div>
                     <div id="send-feedback" class="small mt-2 text-danger d-none"></div>
                 </form>
                 @if($conversation->channel === 'wa_api')
-                    <form method="POST" action="{{ route('conversations.send', $conversation) }}" class="mb-3" id="media-form" enctype="multipart/form-data">
+                    <form method="POST" action="{{ route('conversations.send', $conversation) }}" class="mb-3 d-none" id="media-form" enctype="multipart/form-data">
                         @csrf
                         <input type="hidden" name="message_type" value="media">
-                        <div class="row g-2">
-                            <div class="col-md-5">
-                                <input type="file" name="media_file" class="form-control" required {{ $canReply ? '' : 'disabled' }}>
+                        <input type="file" name="media_file" id="media-file-input" class="d-none" required {{ $canReply ? '' : 'disabled' }}>
+                        <div class="media-upload-panel" id="media-upload-panel">
+                            <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
+                                <div class="min-w-0">
+                                    <div class="media-upload-title" id="media-upload-title">Pilih media</div>
+                                    <div class="media-upload-file" id="media-upload-file">Belum ada file dipilih.</div>
+                                </div>
+                                <button type="button" class="btn-close" id="media-upload-cancel" aria-label="Cancel"></button>
                             </div>
-                            <div class="col-md-5">
-                                <input type="text" name="body" class="form-control" placeholder="Caption (opsional)" {{ $canReply ? '' : 'disabled' }}>
+                            <div class="row g-2">
+                                <div class="col-12">
+                                    <input type="text" name="body" id="media-caption-input" class="form-control" placeholder="Caption (opsional)" {{ $canReply ? '' : 'disabled' }}>
+                                </div>
                             </div>
-                            <div class="col-md-2 d-grid">
-                                <button class="btn btn-outline-primary" type="submit" {{ $canReply ? '' : 'disabled' }}>Send File</button>
+                            <div class="media-upload-actions">
+                                <button type="button" class="btn btn-outline-secondary media-upload-trigger" id="media-upload-change" {{ $canReply ? '' : 'disabled' }}>Pilih ulang</button>
+                                <button class="btn btn-outline-primary" type="submit" id="media-upload-submit" {{ $canReply ? '' : 'disabled' }}>Kirim media</button>
                             </div>
                         </div>
                     </form>
@@ -1093,6 +1185,15 @@
         const templateForm = document.getElementById('template-form');
         const messageInput = document.getElementById('message-input');
         const sendFeedback = document.getElementById('send-feedback');
+        const mediaFileInput = document.getElementById('media-file-input');
+        const mediaUploadPanel = document.getElementById('media-upload-panel');
+        const mediaUploadTitle = document.getElementById('media-upload-title');
+        const mediaUploadFile = document.getElementById('media-upload-file');
+        const mediaUploadCancel = document.getElementById('media-upload-cancel');
+        const mediaUploadChange = document.getElementById('media-upload-change');
+        const mediaUploadSubmit = document.getElementById('media-upload-submit');
+        const mediaCaptionInput = document.getElementById('media-caption-input');
+        const mediaPickerButtons = Array.from(document.querySelectorAll('[data-media-picker]'));
         const mobileBackInbox = document.getElementById('mobile-back-inbox');
         const mobileOpenDetail = document.getElementById('mobile-open-detail');
         const mobileBackChat = document.getElementById('mobile-back-chat');
@@ -1133,6 +1234,25 @@
         let sendInFlight = false;
         let userSearchTimer = null;
         let userSearchController = null;
+        let activeMediaPickerKind = 'file';
+
+        const mediaPickerConfig = {
+            file: {
+                label: 'Kirim file',
+                submitLabel: 'Kirim file',
+                accept: '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip',
+            },
+            image: {
+                label: 'Kirim image',
+                submitLabel: 'Kirim image',
+                accept: 'image/*',
+            },
+            video: {
+                label: 'Kirim video',
+                submitLabel: 'Kirim video',
+                accept: 'video/*',
+            },
+        };
 
         const isMobile = () => window.matchMedia('(max-width: 991.98px)').matches;
         const isChatVisible = () => !isMobile() || dashboardRoot?.classList.contains('mobile-view-chat');
@@ -1184,6 +1304,42 @@
             sendFeedback.textContent = message;
             sendFeedback.classList.remove('d-none', 'text-danger', 'text-success');
             sendFeedback.classList.add(variant === 'success' ? 'text-success' : 'text-danger');
+        };
+        const resetMediaComposer = () => {
+            if (!mediaForm || !mediaUploadTitle || !mediaUploadFile || !mediaUploadSubmit) return;
+            mediaForm.reset();
+            mediaForm.classList.add('d-none');
+            activeMediaPickerKind = 'file';
+            mediaFileInput?.removeAttribute('accept');
+            mediaUploadTitle.textContent = 'Pilih media';
+            mediaUploadFile.textContent = 'Belum ada file dipilih.';
+            mediaUploadSubmit.textContent = 'Kirim media';
+        };
+        const openMediaPicker = (kind) => {
+            if (!mediaFileInput) return;
+            const config = mediaPickerConfig[kind] || mediaPickerConfig.file;
+            activeMediaPickerKind = Object.prototype.hasOwnProperty.call(mediaPickerConfig, kind) ? kind : 'file';
+            if (config.accept) {
+                mediaFileInput.setAttribute('accept', config.accept);
+            } else {
+                mediaFileInput.removeAttribute('accept');
+            }
+            mediaFileInput.click();
+        };
+        const syncMediaComposerUi = () => {
+            if (!mediaForm || !mediaFileInput || !mediaUploadTitle || !mediaUploadFile || !mediaUploadSubmit) return;
+            const file = mediaFileInput.files?.[0];
+            if (!file) {
+                resetMediaComposer();
+                return;
+            }
+
+            const config = mediaPickerConfig[activeMediaPickerKind] || mediaPickerConfig.file;
+            mediaForm.classList.remove('d-none');
+            mediaUploadTitle.textContent = config.label;
+            mediaUploadFile.textContent = file.name;
+            mediaUploadSubmit.textContent = config.submitLabel;
+            mediaCaptionInput?.focus();
         };
         const updateMessageRelatedUi = (msg) => {
             if (chatLastMessageTime) chatLastMessageTime.textContent = 'Last Message: just now';
@@ -1618,7 +1774,7 @@
                     formEl.reset();
                 }
                 if (formEl === mediaForm) {
-                    formEl.reset();
+                    resetMediaComposer();
                 }
             } catch (_) {
                 setSendFeedback('Network error while sending message.', 'danger');
@@ -1639,6 +1795,19 @@
         mediaForm?.addEventListener('submit', (e) => {
             e.preventDefault();
             sendMessageForm(mediaForm);
+        });
+        mediaPickerButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                openMediaPicker(button.dataset.mediaPicker || 'file');
+            });
+        });
+        mediaFileInput?.addEventListener('change', syncMediaComposerUi);
+        mediaUploadCancel?.addEventListener('click', () => {
+            resetMediaComposer();
+            messageInput?.focus();
+        });
+        mediaUploadChange?.addEventListener('click', () => {
+            openMediaPicker(activeMediaPickerKind);
         });
 
         if (lockSpan && lockedUntil) {

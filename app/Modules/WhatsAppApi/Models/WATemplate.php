@@ -19,6 +19,7 @@ class WATemplate extends Model
         'meta_template_id',
         'body',
         'components',
+        'variable_mappings',
         'status',
         'last_submitted_at',
         'last_submit_error',
@@ -26,6 +27,7 @@ class WATemplate extends Model
 
     protected $casts = [
         'components' => 'array',
+        'variable_mappings' => 'array',
         'last_submitted_at' => 'datetime',
     ];
 }

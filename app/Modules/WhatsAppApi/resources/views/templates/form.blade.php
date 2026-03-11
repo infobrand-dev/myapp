@@ -33,6 +33,12 @@
     if (empty($buttonRows)) {
         $buttonRows[] = ['type' => 'quick_reply', 'label' => '', 'url' => '', 'phone_number' => '', 'example' => ''];
     }
+    $headerTextValue = old('header_text', data_get($headerComp, 'text') ?: data_get($headerComp, 'parameters.0.text', ''));
+    $placeholderIndexes = \App\Modules\WhatsAppApi\Support\TemplateVariableResolver::placeholderIndexes(
+        old('body', $template->body),
+        $headerType === 'text' ? $headerTextValue : null
+    );
+    $variableMappings = old('variable_mappings', $template->variable_mappings ?? []);
 @endphp
 
 <style>
@@ -58,6 +64,7 @@
 .wa-template-wrap .wa-btns { margin-top: .6rem; display: flex; flex-direction: column; gap: .35rem; }
 .wa-template-wrap .wa-btn { border: 1px solid #d6dadd; background: #f5f6f6; border-radius: .55rem; padding: .4rem .55rem; font-size: .8rem; display: flex; justify-content: space-between; color: #0f6f5c; font-weight: 600; }
 .wa-template-wrap .wa-btn small { color: #667781; margin-left: .45rem; font-weight: 500; }
+.wa-template-wrap .var-row { border: 1px solid rgba(18, 29, 40, .08); border-radius: .6rem; padding: .75rem; background: #fcfcfd; }
 </style>
 
 <div class="wa-template-wrap">
@@ -144,7 +151,7 @@
                             </div>
                             <div class="col-md-8 header-text-wrap" style="{{ $headerType === 'text' ? '' : 'display:none;' }}">
                                 <label class="form-label d-flex justify-content-between"><span>Header text</span><span class="pill" id="header-count">0/60</span></label>
-                                <input class="form-control" name="header_text" id="header_text" maxlength="60" value="{{ old('header_text', data_get($headerComp, 'text') ?: data_get($headerComp, 'parameters.0.text', '')) }}">
+                                <input class="form-control" name="header_text" id="header_text" maxlength="60" value="{{ $headerTextValue }}">
                                 <div class="tiny mt-1">Format teks: <code>*bold*</code>, <code>_italic_</code>, <code>~strike~</code>, <code>`code`</code>.</div>
                                 @error('header_text') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                             </div>
@@ -176,6 +183,19 @@
                             <input class="form-control" name="footer_text" id="footer_input" maxlength="60" value="{{ old('footer_text', data_get($footerComp, 'text', '')) }}">
                             @error('footer_text') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                         </div>
+                    </div>
+                </div>
+
+                <div class="card section-card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="section-title mb-0">Variable Mapping</div>
+                            <span class="pill" id="variable-count">{{ count($placeholderIndexes) }} placeholder</span>
+                        </div>
+                        <div class="tiny mb-2">Setiap placeholder bisa diisi dari free text, field contact, atau field user pengirim. Jika hasil field kosong, fallback default akan dipakai.</div>
+                        <div id="variable-mappings-empty" class="text-muted small" style="{{ count($placeholderIndexes) ? 'display:none;' : '' }}">Belum ada placeholder di body/header.</div>
+                        <div id="variable-mappings" class="d-grid gap-2"></div>
+                        @error('variable_mappings') <div class="text-danger small mt-2">{{ $message }}</div> @enderror
                     </div>
                 </div>
 
@@ -326,6 +346,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const addBtn = document.getElementById('add-button-row');
     const container = document.getElementById('buttons-container');
     const template = document.getElementById('btn-row-template');
+    const variableWrap = document.getElementById('variable-mappings');
+    const variableEmpty = document.getElementById('variable-mappings-empty');
+    const variableCount = document.getElementById('variable-count');
+    const contactFieldOptions = @json($contactFieldOptions ?? []);
+    const senderFieldOptions = @json($senderFieldOptions ?? []);
+    const senderPreviewContext = @json($senderPreviewContext ?? []);
+    let variableState = @json($variableMappings);
+    let currentPlaceholderKey = null;
 
     const esc = (s) => (s || '').replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m] || m));
     const fmt = (s) => {
@@ -339,6 +367,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return t;
     };
     const placeholders = (text) => [...new Set([...(text || '').matchAll(/\{\{(\d+)\}\}/g)].map((x) => Number(x[1])))].sort((a, b) => a - b);
+    const contactFieldLabel = (key) => contactFieldOptions[key] || key;
+    const senderFieldLabel = (key) => senderFieldOptions[key] || key;
 
     function syncNamespace() {
         if (!nsSelect || !nsInput) return;
@@ -355,6 +385,117 @@ document.addEventListener('DOMContentLoaded', () => {
         if (headerCount) headerCount.textContent = `${(headerInput?.value || '').length}/60`;
         if (bodyCount) bodyCount.textContent = `${(bodyInput?.value || '').length}/1024`;
         if (footerCount) footerCount.textContent = `${(footerInput?.value || '').length}/60`;
+    }
+
+    function captureVariableState() {
+        if (!variableWrap) return;
+
+        variableWrap.querySelectorAll('[data-var-row]').forEach((row) => {
+            const idx = row.dataset.varIndex;
+            variableState[idx] = {
+                source_type: row.querySelector('[data-role="source_type"]')?.value || 'text',
+                text_value: row.querySelector('[data-role="text_value"]')?.value || '',
+                contact_field: row.querySelector('[data-role="contact_field"]')?.value || 'name',
+                sender_field: row.querySelector('[data-role="sender_field"]')?.value || 'name',
+                fallback_value: row.querySelector('[data-role="fallback_value"]')?.value || '',
+            };
+        });
+    }
+
+    function syncVariableRow(row) {
+        const sourceType = row.querySelector('[data-role="source_type"]')?.value || 'text';
+        const textInput = row.querySelector('[data-role="text_value"]');
+        const contactFieldSelect = row.querySelector('[data-role="contact_field"]');
+        const senderFieldSelect = row.querySelector('[data-role="sender_field"]');
+        const textWrap = row.querySelector('[data-role-wrap="text_value"]');
+        const contactFieldWrap = row.querySelector('[data-role-wrap="contact_field"]');
+        const senderFieldWrap = row.querySelector('[data-role-wrap="sender_field"]');
+
+        if (textWrap) textWrap.style.display = sourceType === 'text' ? '' : 'none';
+        if (contactFieldWrap) contactFieldWrap.style.display = sourceType === 'contact_field' ? '' : 'none';
+        if (senderFieldWrap) senderFieldWrap.style.display = sourceType === 'sender_field' ? '' : 'none';
+        if (textInput) textInput.disabled = sourceType !== 'text';
+        if (contactFieldSelect) contactFieldSelect.disabled = sourceType !== 'contact_field';
+        if (senderFieldSelect) senderFieldSelect.disabled = sourceType !== 'sender_field';
+    }
+
+    function renderVariableMappings(indexes) {
+        if (!variableWrap || !variableEmpty) return;
+
+        captureVariableState();
+        variableWrap.innerHTML = '';
+        variableCount.textContent = `${indexes.length} placeholder`;
+        variableEmpty.style.display = indexes.length ? 'none' : 'block';
+
+        indexes.forEach((idx) => {
+            const state = variableState[idx] || {};
+            const sourceType = ['contact_field', 'sender_field'].includes(state.source_type) ? state.source_type : 'text';
+            const textValue = state.text_value || '';
+            const contactField = state.contact_field || 'name';
+            const senderField = state.sender_field || 'name';
+            const fallbackValue = state.fallback_value || '';
+            const contactFieldOptionsHtml = Object.entries(contactFieldOptions).map(([key, label]) => (
+                `<option value="${esc(key)}" ${contactField === key ? 'selected' : ''}>${esc(label)}</option>`
+            )).join('');
+            const senderFieldOptionsHtml = Object.entries(senderFieldOptions).map(([key, label]) => (
+                `<option value="${esc(key)}" ${senderField === key ? 'selected' : ''}>${esc(label)}</option>`
+            )).join('');
+
+            const row = document.createElement('div');
+            row.className = 'var-row';
+            row.dataset.varRow = '1';
+            row.dataset.varIndex = String(idx);
+            row.innerHTML = `
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-2">
+                        <label class="form-label">Placeholder</label>
+                        <input class="form-control" value="{{'{{'}}${idx}{{'}}'}}" disabled>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Sumber</label>
+                        <select class="form-select" name="variable_mappings[${idx}][source_type]" data-role="source_type">
+                            <option value="text" ${sourceType === 'text' ? 'selected' : ''}>Free text</option>
+                            <option value="contact_field" ${sourceType === 'contact_field' ? 'selected' : ''}>Field Contact</option>
+                            <option value="sender_field" ${sourceType === 'sender_field' ? 'selected' : ''}>Field User Pengirim</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4" data-role-wrap="text_value">
+                        <label class="form-label">Nilai</label>
+                        <input class="form-control" name="variable_mappings[${idx}][text_value]" data-role="text_value" value="${esc(textValue)}" placeholder="Isi text default">
+                    </div>
+                    <div class="col-md-4" data-role-wrap="contact_field">
+                        <label class="form-label">Field Contact</label>
+                        <select class="form-select" name="variable_mappings[${idx}][contact_field]" data-role="contact_field">
+                            ${contactFieldOptionsHtml}
+                        </select>
+                    </div>
+                    <div class="col-md-4" data-role-wrap="sender_field">
+                        <label class="form-label">Field User Pengirim</label>
+                        <select class="form-select" name="variable_mappings[${idx}][sender_field]" data-role="sender_field">
+                            ${senderFieldOptionsHtml}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Fallback Default</label>
+                        <input class="form-control" name="variable_mappings[${idx}][fallback_value]" data-role="fallback_value" value="${esc(fallbackValue)}" placeholder="Dipakai jika kosong">
+                    </div>
+                </div>
+            `;
+
+            row.querySelectorAll('input, select').forEach((el) => {
+                el.addEventListener('input', () => {
+                    captureVariableState();
+                    render();
+                });
+                el.addEventListener('change', () => {
+                    syncVariableRow(row);
+                    captureVariableState();
+                    render();
+                });
+            });
+            syncVariableRow(row);
+            variableWrap.appendChild(row);
+        });
     }
 
     function setTypeRules(row) {
@@ -466,8 +607,38 @@ document.addEventListener('DOMContentLoaded', () => {
         renderButtons();
 
         const allPh = [...new Set([...placeholders(body), ...placeholders(hText)])].sort((a, b) => a - b);
+        const placeholderKey = JSON.stringify(allPh);
+        if (placeholderKey !== currentPlaceholderKey) {
+            renderVariableMappings(allPh);
+            currentPlaceholderKey = placeholderKey;
+        } else {
+            captureVariableState();
+        }
         const placeholderLabels = allPh.map((n) => '{' + '{' + n + '}' + '}').join(', ');
         placeholderHint.innerHTML = allPh.length ? `Placeholder: ${placeholderLabels}` : 'Tidak ada placeholder.';
+
+        const previewValues = Object.fromEntries(allPh.map((idx) => {
+            const cfg = variableState[idx] || {};
+            let value = '';
+            if ((cfg.source_type || 'text') === 'contact_field') {
+                const fallback = cfg.fallback_value || '';
+                value = fallback || `[${contactFieldLabel(cfg.contact_field || 'name')}]`;
+            } else if ((cfg.source_type || 'text') === 'sender_field') {
+                value = senderPreviewContext[cfg.sender_field || 'name'] || cfg.fallback_value || `[${senderFieldLabel(cfg.sender_field || 'name')}]`;
+            } else {
+                value = cfg.text_value || cfg.fallback_value || '';
+            }
+
+            return [idx, value];
+        }));
+
+        previewBody.innerHTML = body.trim()
+            ? fmt(body.replace(/\{\{(\d+)\}\}/g, (_, idx) => previewValues[idx] || '____'))
+            : '(isi body)';
+        if (hType === 'text' && hText.trim()) {
+            previewHeader.innerHTML = fmt(hText.replace(/\{\{(\d+)\}\}/g, (_, idx) => previewValues[idx] || '____'));
+            previewHeader.style.display = 'block';
+        }
     }
 
     Array.from(container.querySelectorAll('[data-row]')).forEach(bindRow);

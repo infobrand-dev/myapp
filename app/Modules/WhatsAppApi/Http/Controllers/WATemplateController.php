@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\WhatsAppApi\Jobs\SubmitTemplateToMeta;
 use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
+use App\Modules\WhatsAppApi\Support\TemplateVariableResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Http\Request;
@@ -33,7 +34,10 @@ class WATemplateController extends Controller
         $template = new WATemplate(['language' => 'en', 'status' => 'draft', 'category' => 'utility']);
         $namespaces = WATemplate::whereNotNull('namespace')->distinct()->pluck('namespace');
         $instances = $this->connectedCloudInstances();
-        return view('whatsappapi::templates.form', compact('template', 'namespaces', 'instances'));
+        $contactFieldOptions = TemplateVariableResolver::contactFieldOptions();
+        $senderFieldOptions = TemplateVariableResolver::senderFieldOptions();
+        $senderPreviewContext = TemplateVariableResolver::contextFromSender($request->user());
+        return view('whatsappapi::templates.form', compact('template', 'namespaces', 'instances', 'contactFieldOptions', 'senderFieldOptions', 'senderPreviewContext'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -67,7 +71,10 @@ class WATemplateController extends Controller
 
         $namespaces = WATemplate::whereNotNull('namespace')->distinct()->pluck('namespace');
         $instances = $this->connectedCloudInstances();
-        return view('whatsappapi::templates.form', compact('template', 'namespaces', 'instances'));
+        $contactFieldOptions = TemplateVariableResolver::contactFieldOptions();
+        $senderFieldOptions = TemplateVariableResolver::senderFieldOptions();
+        $senderPreviewContext = TemplateVariableResolver::contextFromSender($request->user());
+        return view('whatsappapi::templates.form', compact('template', 'namespaces', 'instances', 'contactFieldOptions', 'senderFieldOptions', 'senderPreviewContext'));
     }
 
     public function update(Request $request, WATemplate $template): RedirectResponse
@@ -131,6 +138,12 @@ class WATemplateController extends Controller
             'header_media_url' => ['nullable', 'string', 'max:2048'],
             'header_media_file' => ['nullable', 'file', 'max:20480'],
             'footer_text' => ['nullable', 'string', 'max:60'],
+            'variable_mappings' => ['nullable', 'array'],
+            'variable_mappings.*.source_type' => ['nullable', 'in:text,contact_field,sender_field'],
+            'variable_mappings.*.text_value' => ['nullable', 'string', 'max:500'],
+            'variable_mappings.*.contact_field' => ['nullable', 'string', 'max:50'],
+            'variable_mappings.*.sender_field' => ['nullable', 'string', 'max:50'],
+            'variable_mappings.*.fallback_value' => ['nullable', 'string', 'max:500'],
 
             // New generic Meta button rows
             'buttons' => ['nullable', 'array'],
@@ -151,9 +164,17 @@ class WATemplateController extends Controller
         ]);
 
         $this->assertPlaceholders($data['body'], 'Body');
+        $headerText = null;
         if (($data['header_type'] ?? 'none') === 'text' && !empty($data['header_text'])) {
             $this->assertPlaceholders($data['header_text'], 'Header');
+            $headerText = (string) $data['header_text'];
         }
+
+        $placeholders = TemplateVariableResolver::placeholderIndexes($data['body'], $headerText);
+        $data['variable_mappings'] = TemplateVariableResolver::normalizeMappings(
+            (array) $request->input('variable_mappings', []),
+            $placeholders
+        );
 
         if (in_array($data['header_type'] ?? 'none', ['image', 'document', 'video'], true)
             && !$request->hasFile('header_media_file')

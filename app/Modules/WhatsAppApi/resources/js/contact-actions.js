@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    let config = { instances: [], templates: [], defaults: {} };
+    let config = { instances: [], templates: [], defaults: {}, contactFieldOptions: {}, senderFieldOptions: {}, senderContext: {} };
     try {
         config = JSON.parse(configEl.textContent || '{}');
     } catch (_) {
@@ -35,21 +35,64 @@ document.addEventListener('DOMContentLoaded', () => {
     const state = {
         contact: null,
         templates: Array.isArray(config.templates) ? config.templates : [],
+        contactFieldOptions: config.contactFieldOptions || {},
+        senderFieldOptions: config.senderFieldOptions || {},
+        senderContext: config.senderContext || {},
+    };
+    const esc = (value) => String(value || '').replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        '\'': '&#39;',
+    }[char] || char));
+
+    const contactContext = () => ({
+        name: state.contact?.name || '',
+        mobile: state.contact?.phone || '',
+        phone: state.contact?.phone || '',
+        email: state.contact?.email || '',
+        company_name: state.contact?.company || '',
+        job_title: state.contact?.jobTitle || '',
+        website: state.contact?.website || '',
+        industry: state.contact?.industry || '',
+        city: state.contact?.city || '',
+        state: state.contact?.state || '',
+        country: state.contact?.country || '',
+    });
+
+    const senderContext = () => ({
+        name: state.senderContext?.name || '',
+        email: state.senderContext?.email || '',
+        phone: state.senderContext?.phone || '',
+        mobile: state.senderContext?.mobile || '',
+        avatar: state.senderContext?.avatar || '',
+    });
+
+    const resolveMappingValue = (mapping) => {
+        const sourceType = String(mapping?.source_type || 'text');
+        const fallback = String(mapping?.fallback_value || '').trim();
+
+        if (sourceType === 'contact_field') {
+            const field = String(mapping?.contact_field || 'name');
+            const value = String(contactContext()[field] || '').trim();
+            return value || fallback;
+        }
+
+        if (sourceType === 'sender_field') {
+            const field = String(mapping?.sender_field || 'name');
+            const value = String(senderContext()[field] || '').trim();
+            return value || fallback;
+        }
+
+        const textValue = String(mapping?.text_value || '').trim();
+        return textValue || fallback;
     };
 
-    const defaultVariableValue = (index) => {
-        if (!state.contact) return '';
-
-        const contact = state.contact;
-        const map = {
-            1: contact.name || '',
-            2: contact.phone || '',
-            3: contact.email || '',
-            4: contact.company || '',
-            5: contact.jobTitle || '',
-        };
-
-        return map[index] || '';
+    const defaultVariableValue = (index, template) => {
+        const mappings = template?.variable_mappings || {};
+        const mapping = mappings[index] || mappings[String(index)] || null;
+        return resolveMappingValue(mapping);
     };
 
     const interpolate = (text, variables) => String(text || '').replace(/\{\{(\d+)\}\}/g, (_, rawIndex) => {
@@ -152,11 +195,21 @@ document.addEventListener('DOMContentLoaded', () => {
         variablesEmpty.style.display = 'none';
 
         placeholders.forEach((index) => {
+            const mapping = template?.variable_mappings?.[index] || template?.variable_mappings?.[String(index)] || {};
+            const sourceType = String(mapping.source_type || 'text');
+            let sourceLabel = 'Free text';
+            if (sourceType === 'contact_field') {
+                sourceLabel = `Field Contact: ${state.contactFieldOptions[mapping.contact_field] || mapping.contact_field || 'name'}`;
+            } else if (sourceType === 'sender_field') {
+                sourceLabel = `Field User Pengirim: ${state.senderFieldOptions[mapping.sender_field] || mapping.sender_field || 'name'}`;
+            }
+            const fallbackLabel = String(mapping.fallback_value || '').trim();
             const row = document.createElement('label');
             row.className = 'form-label mb-0';
             row.innerHTML = `
                 <div class="small text-muted mb-1">Variable {{${index}}}</div>
-                <input type="text" class="form-control" name="variables[${index}]" data-var-index="${index}" value="${defaultVariableValue(index).replace(/"/g, '&quot;')}">
+                <input type="text" class="form-control" name="variables[${index}]" data-var-index="${index}" value="${esc(defaultVariableValue(index, template))}">
+                <div class="form-hint mt-1">${esc(sourceLabel)}${fallbackLabel ? ` | Fallback: ${esc(fallbackLabel)}` : ''}</div>
             `;
             const input = row.querySelector('input');
             input?.addEventListener('input', renderPreview);
@@ -206,11 +259,16 @@ document.addEventListener('DOMContentLoaded', () => {
             email: trigger.dataset.contactEmail || '',
             company: trigger.dataset.contactCompany || '',
             jobTitle: trigger.dataset.contactJobTitle || '',
+            website: trigger.dataset.contactWebsite || '',
+            industry: trigger.dataset.contactIndustry || '',
+            city: trigger.dataset.contactCity || '',
+            state: trigger.dataset.contactState || '',
+            country: trigger.dataset.contactCountry || '',
         };
 
         contactIdInput.value = state.contact.id;
         returnToInput.value = trigger.dataset.returnTo || config.defaults.returnTo || window.location.href;
-        subtitleEl.textContent = `${state.contact.name || 'Contact'} • ${state.contact.phone || '-'}`;
+        subtitleEl.textContent = `${state.contact.name || 'Contact'} - ${state.contact.phone || '-'}`;
         previewContactName.textContent = state.contact.name || 'Contact';
         previewContactPhone.textContent = state.contact.phone || '-';
         previewHeaderContact.textContent = state.contact.name || 'Contact';

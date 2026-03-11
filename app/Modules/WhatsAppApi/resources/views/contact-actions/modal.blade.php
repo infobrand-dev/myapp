@@ -67,6 +67,7 @@
                                         </div>
                                         <div class="col-12">
                                             <div class="text-uppercase text-muted small fw-bold mb-2">Variables</div>
+                                            <div class="text-muted small mb-2">Nilai awal mengikuti mapping template. Anda masih bisa override sebelum kirim.</div>
                                             <div id="wa-contact-variables-empty" class="text-muted small">Template ini tidak membutuhkan variable.</div>
                                             <div id="wa-contact-variables" class="d-grid gap-2"></div>
                                         </div>

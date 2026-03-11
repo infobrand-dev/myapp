@@ -1,7 +1,7 @@
 {
-    "/js/app.js": "/js/app.js?id=b3a12cdf2baab65f8af73178cb7683b0",
-    "/js/modules/conversations/show.js": "/js/modules/conversations/show.js?id=06087582c8ac17655326899910414bda",
-    "/js/modules/conversations/dashboard-card.js": "/js/modules/conversations/dashboard-card.js?id=371d6b2f31ae0291d6181d402c655688",
-    "/js/modules/whatsapp-api/contact-actions.js": "/js/modules/whatsapp-api/contact-actions.js?id=f54aa60a1061c11e161a6e3148d5df1f",
-    "/css/app.css": "/css/app.css?id=968cbde5c43c0a2386b02f1c498be892"
+    "/js/app.js": "/js/app.js?id=3e36990405241f166dd4df3e7fc76395",
+    "/js/modules/conversations/show.js": "/js/modules/conversations/show.js?id=671f349ac33835c561f0491d980a2065",
+    "/js/modules/conversations/dashboard-card.js": "/js/modules/conversations/dashboard-card.js?id=8f2e26dd679e1a01a6b185a2a2505b75",
+    "/js/modules/whatsapp-api/contact-actions.js": "/js/modules/whatsapp-api/contact-actions.js?id=484e561c2ba0be99ce63584138dcd5f8",
+    "/css/app.css": "/css/app.css?id=40209f4f6ff1b8776516c712d8bcba7e"
 }

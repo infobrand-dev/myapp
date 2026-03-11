@@ -9,6 +9,7 @@ use App\Modules\WhatsAppApi\Models\WABlastCampaign;
 use App\Modules\WhatsAppApi\Models\WABlastRecipient;
 use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
+use App\Modules\WhatsAppApi\Support\TemplateVariableResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -39,7 +40,7 @@ class BlastCampaignController extends Controller
         $templates = WATemplate::query()
             ->where('status', 'approved')
             ->orderBy('name')
-            ->get(['id', 'name', 'language', 'namespace', 'body']);
+            ->get(['id', 'name', 'language', 'namespace', 'body', 'components', 'variable_mappings']);
         [$filters, $contacts] = $this->filteredContacts(request(), []);
 
         return view('whatsappapi::blast.form', [
@@ -49,6 +50,7 @@ class BlastCampaignController extends Controller
             'filters' => $filters,
             'matchCount' => $contacts->count(),
             'contactsEnabled' => $this->isContactsModuleReady(),
+            'contactFieldOptions' => TemplateVariableResolver::contactFieldOptions(),
         ]);
     }
 
@@ -100,7 +102,7 @@ class BlastCampaignController extends Controller
             [$normalizedFilters] = $this->filteredContacts($request, $data['filters'] ?? []);
         }
 
-        [$rows, $invalidRows] = $this->resolveRecipientRows($request, $data);
+        [$rows, $invalidRows] = $this->resolveRecipientRows($request, $data, $template);
         if (empty($rows)) {
             throw ValidationException::withMessages([
                 'recipients_text' => 'Tidak ada recipient valid dari sumber yang dipilih.',
@@ -118,7 +120,7 @@ class BlastCampaignController extends Controller
         }
 
         $campaign = null;
-        DB::transaction(function () use ($data, $rows, $request, $status, $scheduledAt, &$campaign) {
+        DB::transaction(function () use ($data, $rows, $request, $status, $scheduledAt, $normalizedFilters, &$campaign) {
             $campaign = WABlastCampaign::create([
                 'name' => $data['name'],
                 'instance_id' => (int) $data['instance_id'],
@@ -262,7 +264,7 @@ class BlastCampaignController extends Controller
         return [$rows, $invalid];
     }
 
-    private function resolveRecipientRows(Request $request, array $data): array
+    private function resolveRecipientRows(Request $request, array $data, WATemplate $template): array
     {
         $source = (string) ($data['recipient_source'] ?? 'manual');
 
@@ -275,7 +277,8 @@ class BlastCampaignController extends Controller
                 ]);
             }
 
-            return $this->parseRecipients((string) file_get_contents($file->getRealPath()));
+            [$rows, $invalid] = $this->parseRecipients((string) file_get_contents($file->getRealPath()));
+            return [$this->applyTemplateVariablesToRows($rows, $template), $invalid];
         }
 
         if ($source === 'contacts') {
@@ -289,7 +292,7 @@ class BlastCampaignController extends Controller
 
             $data['filters'] = $filters;
 
-            return [$this->contactsToRecipientRows($contacts), []];
+            return [$this->contactsToRecipientRows($contacts, $template), []];
         }
 
         $raw = trim((string) ($data['recipients_text'] ?? ''));
@@ -299,10 +302,11 @@ class BlastCampaignController extends Controller
             ]);
         }
 
-        return $this->parseRecipients($raw);
+        [$rows, $invalid] = $this->parseRecipients($raw);
+        return [$this->applyTemplateVariablesToRows($rows, $template), $invalid];
     }
 
-    private function contactsToRecipientRows($contacts): array
+    private function contactsToRecipientRows($contacts, WATemplate $template): array
     {
         $rows = [];
         $seen = [];
@@ -317,11 +321,47 @@ class BlastCampaignController extends Controller
             $rows[] = [
                 'phone_number' => $phone,
                 'contact_name' => trim((string) $contact->name) !== '' ? (string) $contact->name : null,
-                'variables' => null,
+                'variables' => TemplateVariableResolver::resolve(
+                    $template,
+                    TemplateVariableResolver::contextFromArray([
+                        'name' => $contact->name,
+                        'mobile' => $contact->mobile,
+                        'phone' => $contact->phone,
+                        'email' => $contact->email,
+                        'company_name' => $contact->company_name,
+                        'job_title' => $contact->job_title,
+                        'website' => $contact->website,
+                        'industry' => $contact->industry,
+                        'city' => $contact->city,
+                        'state' => $contact->state,
+                        'country' => $contact->country,
+                        'phone_number' => $phone,
+                    ]),
+                    TemplateVariableResolver::contextFromSender(auth()->user())
+                ),
             ];
         }
 
         return $rows;
+    }
+
+    private function applyTemplateVariablesToRows(array $rows, WATemplate $template): array
+    {
+        return array_map(function (array $row) use ($template): array {
+            $row['variables'] = TemplateVariableResolver::resolve(
+                $template,
+                TemplateVariableResolver::contextFromArray([
+                    'name' => $row['contact_name'] ?? '',
+                    'mobile' => $row['phone_number'] ?? '',
+                    'phone' => $row['phone_number'] ?? '',
+                    'phone_number' => $row['phone_number'] ?? '',
+                ]),
+                TemplateVariableResolver::contextFromSender(auth()->user()),
+                (array) ($row['variables'] ?? [])
+            );
+
+            return $row;
+        }, $rows);
     }
 
     private function filteredContacts(Request $request, $filtersInput = []): array
@@ -385,6 +425,13 @@ class BlastCampaignController extends Controller
                 'contacts.name',
                 'contacts.mobile',
                 'contacts.phone',
+                'contacts.email',
+                'contacts.job_title',
+                'contacts.website',
+                'contacts.industry',
+                'contacts.city',
+                'contacts.state',
+                'contacts.country',
                 'company.name as company_name',
             ]);
 

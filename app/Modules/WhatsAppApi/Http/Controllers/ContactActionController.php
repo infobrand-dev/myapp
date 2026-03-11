@@ -9,6 +9,7 @@ use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\WhatsAppApi\Jobs\SendWhatsAppMessage;
 use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
+use App\Modules\WhatsAppApi\Support\TemplateVariableResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -51,9 +52,22 @@ class ContactActionController extends Controller
             ]);
         }
 
-        $variables = $this->normalizeVariables((array) ($data['variables'] ?? []));
+        $variables = TemplateVariableResolver::resolveForContact(
+            $template,
+            $contact->loadMissing('company'),
+            $request->user(),
+            (array) ($data['variables'] ?? [])
+        );
         $payload = $this->buildTemplatePayload($template, $variables);
         $messageBody = $this->renderTemplateText($template->body, $variables);
+
+        foreach ($payload['placeholders'] as $idx) {
+            if (!isset($variables[$idx]) || trim((string) $variables[$idx]) === '') {
+                throw ValidationException::withMessages([
+                    'variables' => "Nilai untuk placeholder {{$idx}} kosong. Cek mapping template atau isi override manual.",
+                ]);
+            }
+        }
 
         DB::transaction(function () use ($contact, $instance, $template, $phone, $payload, $messageBody, $request): void {
             $conversation = Conversation::query()->firstOrCreate(
@@ -116,6 +130,9 @@ class ContactActionController extends Controller
             return [
                 'instances' => [],
                 'templates' => [],
+                'contactFieldOptions' => TemplateVariableResolver::contactFieldOptions(),
+                'senderFieldOptions' => TemplateVariableResolver::senderFieldOptions(),
+                'senderContext' => TemplateVariableResolver::contextFromSender($user instanceof \App\Models\User ? $user : null),
             ];
         }
 
@@ -148,12 +165,17 @@ class ContactActionController extends Controller
                 'namespace' => $template->namespace,
                 'body' => (string) $template->body,
                 'components' => $template->components ?? [],
+                'variable_mappings' => $template->variable_mappings ?? [],
                 'placeholders' => self::placeholderIndexes($template->body, $template->components ?? []),
             ])
             ->values()
             ->all();
 
-        return compact('instances', 'templates');
+        $contactFieldOptions = TemplateVariableResolver::contactFieldOptions();
+        $senderFieldOptions = TemplateVariableResolver::senderFieldOptions();
+        $senderContext = TemplateVariableResolver::contextFromSender($user instanceof \App\Models\User ? $user : null);
+
+        return compact('instances', 'templates', 'contactFieldOptions', 'senderFieldOptions', 'senderContext');
     }
 
     private function resolveInstance(int $instanceId, $user): WhatsAppInstance
@@ -167,24 +189,6 @@ class ContactActionController extends Controller
         }
 
         return $query->firstOrFail();
-    }
-
-    private function normalizeVariables(array $variables): array
-    {
-        $normalized = [];
-
-        foreach ($variables as $key => $value) {
-            $index = (int) preg_replace('/[^0-9]/', '', (string) $key);
-            if ($index <= 0) {
-                continue;
-            }
-
-            $normalized[$index] = trim((string) $value);
-        }
-
-        ksort($normalized);
-
-        return $normalized;
     }
 
     private function buildTemplatePayload(WATemplate $template, array $params): array

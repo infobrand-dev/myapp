@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Buat WA Blast Campaign</h2>
-        <div class="text-muted small">Format recipient per baris: <code>nomor,nama,var1,var2,...</code> atau pakai pemisah <code>|</code>.</div>
+        <div class="text-muted small">Template variable mengikuti mapping di template. Untuk recipient manual/CSV, kolom <code>var1,var2,...</code> akan override mapping default bila diisi.</div>
     </div>
     <a href="{{ route('whatsapp-api.blast-campaigns.index') }}" class="btn btn-outline-secondary">Kembali</a>
 </div>
@@ -46,6 +46,7 @@
                             @error('template_id') <div class="text-danger small">{{ $message }}</div> @enderror
                         </div>
                     </div>
+                    <div class="mt-2 small text-muted" id="template-variable-summary">Pilih template untuk melihat ringkasan variable.</div>
 
                     <div class="row g-3 mt-1">
                         <div class="col-md-6">
@@ -144,6 +145,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const instanceSelect = document.getElementById('instance_id');
     const templateSelect = document.getElementById('template_id');
+    const templateSummary = document.getElementById('template-variable-summary');
     const recipientSource = document.getElementById('recipient_source');
     const sourcePanels = Array.from(document.querySelectorAll('[data-source-panel]'));
     const filterWrap = document.getElementById('filter-rows');
@@ -151,7 +153,46 @@ document.addEventListener('DOMContentLoaded', () => {
     const applyFilterBtn = document.getElementById('apply-filter');
     const matchesBadge = document.getElementById('matches-badge');
     const csrfToken = document.querySelector('input[name="_token"]')?.value;
+    const templates = @json(
+        $templates->map(fn ($template) => [
+            'id' => $template->id,
+            'placeholders' => \App\Modules\WhatsAppApi\Support\TemplateVariableResolver::placeholderIndexes(
+                $template->body,
+                \App\Modules\WhatsAppApi\Support\TemplateVariableResolver::headerText($template)
+            ),
+            'variable_mappings' => $template->variable_mappings ?? [],
+        ])->values()
+    );
     if (!instanceSelect || !templateSelect) return;
+
+    const describeTemplate = () => {
+        const current = templates.find((item) => String(item.id) === String(templateSelect.value || ''));
+        if (!templateSummary) return;
+
+        if (!current) {
+            templateSummary.textContent = 'Pilih template untuk melihat ringkasan variable.';
+            return;
+        }
+
+        if (!Array.isArray(current.placeholders) || current.placeholders.length === 0) {
+            templateSummary.textContent = 'Template ini tidak punya placeholder.';
+            return;
+        }
+
+        const labels = current.placeholders.map((idx) => {
+            const config = current.variable_mappings?.[idx] || current.variable_mappings?.[String(idx)] || {};
+            if ((config.source_type || 'text') === 'contact_field') {
+                return `{{${idx}}} -> field:${config.contact_field || 'name'}${config.fallback_value ? ` (fallback: ${config.fallback_value})` : ''}`;
+            }
+            if ((config.source_type || 'text') === 'sender_field') {
+                return `{{${idx}}} -> user:${config.sender_field || 'name'}${config.fallback_value ? ` (fallback: ${config.fallback_value})` : ''}`;
+            }
+
+            return `{{${idx}}} -> text${config.text_value ? `:${config.text_value}` : ''}${config.fallback_value ? ` (fallback: ${config.fallback_value})` : ''}`;
+        });
+
+        templateSummary.textContent = labels.join(' | ');
+    };
 
     const syncTemplates = () => {
         const ns = instanceSelect.selectedOptions[0]?.dataset.namespace || '';
@@ -164,10 +205,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 opt.selected = false;
             }
         });
+        describeTemplate();
     };
 
     instanceSelect.addEventListener('change', syncTemplates);
+    templateSelect.addEventListener('change', describeTemplate);
     syncTemplates();
+    describeTemplate();
 
     const syncRecipientPanels = () => {
         const activeSource = recipientSource?.value || 'manual';

@@ -10,6 +10,7 @@ use App\Modules\WhatsAppApi\Models\WABlastCampaign;
 use App\Modules\WhatsAppApi\Models\WABlastRecipient;
 use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
+use App\Modules\WhatsAppApi\Support\TemplateVariableResolver;
 use Illuminate\Bus\Queueable;
 use Illuminate\Http\Client\Response;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -33,7 +34,7 @@ class ProcessWABlastCampaign implements ShouldQueue
 
     public function handle(): void
     {
-        $campaign = WABlastCampaign::with(['instance', 'template'])->find($this->campaignId);
+        $campaign = WABlastCampaign::with(['instance', 'template', 'creator'])->find($this->campaignId);
         if (!$campaign) {
             return;
         }
@@ -118,16 +119,29 @@ class ProcessWABlastCampaign implements ShouldQueue
         ]);
 
         try {
-            $payload = $this->buildTemplatePayload($template, $recipient->variables ?? []);
+            $resolvedVariables = TemplateVariableResolver::resolve(
+                $template,
+                TemplateVariableResolver::contextFromArray([
+                    'name' => $recipient->contact_name,
+                    'mobile' => $recipient->phone_number,
+                    'phone' => $recipient->phone_number,
+                    'phone_number' => $recipient->phone_number,
+                ]),
+                TemplateVariableResolver::contextFromSender($campaign->creator),
+                (array) ($recipient->variables ?? [])
+            );
+            $payload = $this->buildTemplatePayload($template, $resolvedVariables);
             foreach ($payload['placeholders'] as $idx) {
                 if (!isset($payload['params'][$idx]) || trim((string) $payload['params'][$idx]) === '') {
                     $recipient->update([
-                        'status' => 'failed',
+                    'status' => 'failed',
                         'error_message' => "Placeholder {{$idx}} kosong.",
                     ]);
                     return;
                 }
             }
+
+            $recipient->forceFill(['variables' => $resolvedVariables])->save();
 
             $response = $this->sendTemplate($instance, $recipient->phone_number, $template, $payload['components']);
             $success = $response->successful();

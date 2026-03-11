@@ -79,12 +79,23 @@
             backdrop-filter: blur(14px);
             background: color-mix(in srgb, var(--tblr-bg-surface, #fff) 88%, transparent);
         }
+        .desktop-topbar {
+            min-height: 3.7rem;
+            border-bottom: 1px solid rgba(74, 96, 126, 0.12);
+            background: var(--tblr-bg-surface, #fff);
+        }
         .mobile-topbar-brand {
             font-size: .95rem;
             font-weight: 700;
             letter-spacing: .01em;
             color: inherit;
             text-decoration: none;
+        }
+        .desktop-topbar-title {
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: .01em;
+            color: var(--tblr-body-color, #1f2d3d);
         }
         .app-shell {
             min-height: 100vh;
@@ -113,6 +124,9 @@
         @media (max-width: 991.98px) {
             .app-shell {
                 display: block;
+            }
+            .desktop-topbar {
+                display: none;
             }
             .mobile-topbar {
                 position: sticky;
@@ -208,6 +222,9 @@
             .mobile-topbar {
                 display: none;
             }
+            .desktop-topbar {
+                display: flex;
+            }
         }
     </style>
 </head>
@@ -216,6 +233,17 @@
         @include('shared.sidebar')
 
         <div class="page-wrapper">
+            <header class="navbar desktop-topbar d-none d-lg-flex">
+                <div class="container-fluid">
+                    <div class="d-flex align-items-center justify-content-between w-100 gap-3">
+                        <div class="desktop-topbar-title">MyApp</div>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button class="btn btn-sm btn-outline-primary" type="submit">Logout</button>
+                        </form>
+                    </div>
+                </div>
+            </header>
             <header class="navbar navbar-expand-md mobile-topbar d-lg-none">
                 <div class="container-fluid">
                     <div class="d-flex align-items-center gap-3 w-100">

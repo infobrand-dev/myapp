@@ -13,6 +13,7 @@ class WATemplate extends Model
 
     protected $fillable = [
         'name',
+        'meta_name',
         'language',
         'category',
         'namespace',
@@ -30,4 +31,9 @@ class WATemplate extends Model
         'variable_mappings' => 'array',
         'last_submitted_at' => 'datetime',
     ];
+
+    public function metaTemplateName(): string
+    {
+        return (string) ($this->meta_name ?: $this->name);
+    }
 }

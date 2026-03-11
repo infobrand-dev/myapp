@@ -716,6 +716,7 @@ class ConversationHubController extends Controller
         return [
             'template_id' => $template->id,
             'name' => $template->name,
+            'meta_name' => method_exists($template, 'metaTemplateName') ? $template->metaTemplateName() : ($template->meta_name ?: $template->name),
             'language' => $template->language,
             'components' => $components,
             'placeholders' => $allIndexes,

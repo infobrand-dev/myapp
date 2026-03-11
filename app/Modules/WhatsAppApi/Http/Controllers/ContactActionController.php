@@ -107,6 +107,7 @@ class ContactActionController extends Controller
                 'status' => 'queued',
                 'payload' => [
                     'name' => $template->name,
+                    'meta_name' => method_exists($template, 'metaTemplateName') ? $template->metaTemplateName() : ($template->meta_name ?: $template->name),
                     'language' => $template->language,
                     'components' => $payload['components'],
                     'variables' => $payload['params'],
@@ -157,10 +158,11 @@ class ContactActionController extends Controller
         $templates = WATemplate::query()
             ->where('status', 'approved')
             ->orderBy('name')
-            ->get(['id', 'name', 'language', 'namespace', 'body', 'components'])
+            ->get(['id', 'name', 'meta_name', 'language', 'namespace', 'body', 'components'])
             ->map(fn (WATemplate $template) => [
                 'id' => $template->id,
                 'name' => $template->name,
+                'meta_name' => $template->meta_name,
                 'language' => $template->language,
                 'namespace' => $template->namespace,
                 'body' => (string) $template->body,

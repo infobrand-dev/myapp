@@ -135,7 +135,7 @@ class SendWhatsAppMessage implements ShouldQueue
             $tpl = $message->payload;
             $payload['type'] = 'template';
             $payload['template'] = [
-                'name' => $tpl['name'],
+                'name' => $tpl['meta_name'] ?? $tpl['name'],
                 'language' => ['code' => $tpl['language']],
                 'components' => $tpl['components'] ?? [],
             ];

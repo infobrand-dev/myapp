@@ -188,7 +188,7 @@ class SubmitTemplateToMeta implements ShouldQueue
         }
 
         return [
-            'name' => $template->name,
+            'name' => method_exists($template, 'metaTemplateName') ? $template->metaTemplateName() : ($template->meta_name ?: $template->name),
             'category' => strtoupper($template->category ?? 'UTILITY'),
             'language' => $this->mapLanguage($template->language),
             'components' => $components,

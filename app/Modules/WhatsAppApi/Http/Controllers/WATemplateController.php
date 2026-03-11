@@ -128,6 +128,7 @@ class WATemplateController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:150'],
+            'meta_name' => ['nullable', 'string', 'max:150', 'regex:/^[a-z0-9_]+$/'],
             'language' => ['required', 'regex:/^[a-z]{2}(?:_[A-Z]{2})?$/'],
             'category' => ['required', 'in:utility,marketing,authentication'],
             'instance_id' => ['required', 'integer'],
@@ -170,6 +171,18 @@ class WATemplateController extends Controller
             $headerText = (string) $data['header_text'];
         }
 
+        $normalizedMetaName = $this->normalizeMetaName(
+            (string) ($data['meta_name'] ?? ''),
+            (string) $data['name']
+        );
+        $data['meta_name'] = $normalizedMetaName;
+
+        if ((string) $request->input('action') === 'submit' && $normalizedMetaName === '') {
+            throw ValidationException::withMessages([
+                'meta_name' => 'Meta Name wajib diisi atau bisa digenerate dari nama internal sebelum submit.',
+            ]);
+        }
+
         $placeholders = TemplateVariableResolver::placeholderIndexes($data['body'], $headerText);
         $data['variable_mappings'] = TemplateVariableResolver::normalizeMappings(
             (array) $request->input('variable_mappings', []),
@@ -189,6 +202,21 @@ class WATemplateController extends Controller
         $this->validateButtons($request);
 
         return $data;
+    }
+
+    private function normalizeMetaName(string $metaName, string $displayName): string
+    {
+        $source = trim($metaName) !== '' ? trim($metaName) : trim($displayName);
+        if ($source === '') {
+            return '';
+        }
+
+        $normalized = strtolower($source);
+        $normalized = preg_replace('/[^a-z0-9]+/', '_', $normalized) ?? '';
+        $normalized = trim($normalized, '_');
+        $normalized = preg_replace('/_+/', '_', $normalized) ?? '';
+
+        return mb_substr($normalized, 0, 150);
     }
 
     private function validateButtons(Request $request): void

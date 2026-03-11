@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">WA Templates</h2>
-        <div class="text-muted small">Template WABA (nama & bahasa harus sesuai di Meta).</div>
+        <div class="text-muted small">Nama internal untuk aplikasi. Meta Name dipakai khusus saat submit/send ke WhatsApp.</div>
     </div>
     <div class="d-flex gap-2">
         <a href="{{ route('whatsapp-api.blast-campaigns.index') }}" class="btn btn-outline-secondary">Blast Campaigns</a>
@@ -18,6 +18,7 @@
             <thead>
                 <tr>
                     <th>Nama</th>
+                    <th>Meta Name</th>
                     <th>Language</th>
                     <th>Category</th>
                     <th>Status</th>
@@ -28,6 +29,7 @@
                 @forelse($templates as $tpl)
                     <tr>
                         <td class="fw-bold">{{ $tpl->name }}</td>
+                        <td><code>{{ $tpl->meta_name ?: '-' }}</code></td>
                         <td>{{ $tpl->language }}</td>
                         <td>{{ $tpl->category ?? '-' }}</td>
                         <td>
@@ -69,7 +71,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="text-muted">Belum ada template.</td></tr>
+                    <tr><td colspan="6" class="text-muted">Belum ada template.</td></tr>
                 @endforelse
             </tbody>
         </table>

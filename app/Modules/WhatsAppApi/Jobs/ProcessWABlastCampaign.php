@@ -272,7 +272,7 @@ class ProcessWABlastCampaign implements ShouldQueue
             'to' => $to,
             'type' => 'template',
             'template' => [
-                'name' => $template->name,
+                'name' => method_exists($template, 'metaTemplateName') ? $template->metaTemplateName() : ($template->meta_name ?: $template->name),
                 'language' => ['code' => $template->language],
                 'components' => $components,
             ],
@@ -367,6 +367,7 @@ class ProcessWABlastCampaign implements ShouldQueue
             'external_message_id' => $externalMessageId,
             'payload' => [
                 'name' => $template->name,
+                'meta_name' => method_exists($template, 'metaTemplateName') ? $template->metaTemplateName() : ($template->meta_name ?: $template->name),
                 'language' => $template->language,
                 'components' => $components,
                 'blast_campaign_id' => $campaign->id,

@@ -90,9 +90,15 @@
                         <div class="section-title">Template Info</div>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Nama Template</label>
+                                <label class="form-label">Nama Internal</label>
                                 <input class="form-control" name="name" value="{{ old('name', $template->name) }}" required>
                                 @error('name') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Meta Name</label>
+                                <input class="form-control" name="meta_name" value="{{ old('meta_name', $template->meta_name) }}" placeholder="contoh: idpba_followup_1">
+                                <div class="tiny mt-1">Huruf kecil, angka, underscore. Jika kosong, otomatis digenerate dari nama internal.</div>
+                                @error('meta_name') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Language</label>

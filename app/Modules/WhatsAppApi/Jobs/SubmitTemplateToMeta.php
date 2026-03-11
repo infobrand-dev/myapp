@@ -11,6 +11,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
 
 class SubmitTemplateToMeta implements ShouldQueue
 {
@@ -89,11 +90,16 @@ class SubmitTemplateToMeta implements ShouldQueue
                     ];
                 }
             } else {
-                $sampleMedia = data_get($header, 'parameters.0.link');
+                $sampleMedia = data_get($header, 'parameters.0.handle') ?: data_get($header, 'parameters.0.link');
                 if ($sampleMedia) {
+                    if (!$this->looksLikeMetaHeaderHandle((string) $sampleMedia)) {
+                        throw new RuntimeException('Template header media membutuhkan sample `example.header_handle` dari Resumable Upload API Meta. URL file biasa tidak valid untuk submit template.');
+                    }
                     $comp['example'] = [
                         'header_handle' => [(string) $sampleMedia],
                     ];
+                } else {
+                    throw new RuntimeException('Template header media membutuhkan sample `example.header_handle`, tetapi handle media belum tersedia.');
                 }
             }
             $components[] = $comp;
@@ -141,7 +147,7 @@ class SubmitTemplateToMeta implements ShouldQueue
                         'url' => data_get($btn, 'url'),
                     ];
                     if (data_get($btn, 'example')) {
-                        $item['example'] = data_get($btn, 'example');
+                        $item['example'] = [(string) data_get($btn, 'example')];
                     }
                     $btnArray[] = $item;
                     continue;
@@ -266,5 +272,15 @@ class SubmitTemplateToMeta implements ShouldQueue
         }
 
         return 'sample_' . $index;
+    }
+
+    private function looksLikeMetaHeaderHandle(string $value): bool
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return false;
+        }
+
+        return preg_match('/^\d+:/', $value) === 1 || str_starts_with($value, 'upload:');
     }
 }

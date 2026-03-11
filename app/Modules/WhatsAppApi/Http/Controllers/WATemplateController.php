@@ -168,6 +168,7 @@ class WATemplateController extends Controller
         $headerText = null;
         if (($data['header_type'] ?? 'none') === 'text' && !empty($data['header_text'])) {
             $this->assertPlaceholders($data['header_text'], 'Header');
+            $this->assertHeaderTextPlaceholderRules((string) $data['header_text']);
             $headerText = (string) $data['header_text'];
         }
 
@@ -199,6 +200,13 @@ class WATemplateController extends Controller
             $this->validateHeaderMediaFile($request->file('header_media_file'), (string) ($data['header_type'] ?? 'none'));
         }
 
+        if ((string) $request->input('action') === 'submit'
+            && in_array((string) ($data['header_type'] ?? 'none'), ['image', 'document', 'video'], true)) {
+            throw ValidationException::withMessages([
+                'header_media_file' => 'Template dengan media header butuh sample Meta `header_handle` dari Resumable Upload API. Modul ini belum bisa generate handle otomatis dari file/URL saat submit.',
+            ]);
+        }
+
         $this->validateButtons($request);
 
         return $data;
@@ -227,6 +235,11 @@ class WATemplateController extends Controller
         }
 
         $quickCount = 0;
+        $urlCount = 0;
+        $phoneCount = 0;
+        $copyCodeCount = 0;
+        $typePattern = [];
+
         foreach ($rows as $i => $button) {
             if (empty($button['text'])) {
                 throw ValidationException::withMessages(["buttons.{$i}.label" => 'Label tombol wajib diisi.']);
@@ -236,6 +249,8 @@ class WATemplateController extends Controller
                 $quickCount++;
             }
 
+             $typePattern[] = $button['type'] === 'QUICK_REPLY' ? 'Q' : 'N';
+
             if ($button['type'] === 'URL' && empty($button['url'])) {
                 throw ValidationException::withMessages(["buttons.{$i}.url" => 'URL wajib diisi untuk button URL.']);
             }
@@ -243,10 +258,63 @@ class WATemplateController extends Controller
             if ($button['type'] === 'PHONE_NUMBER' && empty($button['phone_number'])) {
                 throw ValidationException::withMessages(["buttons.{$i}.phone_number" => 'Nomor telepon wajib diisi untuk button Phone.']);
             }
+
+            if ($button['type'] === 'URL') {
+                $urlCount++;
+                preg_match_all('/\{\{(\d+)\}\}/', (string) ($button['url'] ?? ''), $matches);
+                $urlVars = array_values(array_unique($matches[1] ?? []));
+                if (count($urlVars) > 1) {
+                    throw ValidationException::withMessages([
+                        "buttons.{$i}.url" => 'Button URL Meta hanya mendukung maksimal 1 placeholder.',
+                    ]);
+                }
+
+                if (!empty($urlVars) && empty($button['example'])) {
+                    throw ValidationException::withMessages([
+                        "buttons.{$i}.example" => 'Button URL yang memakai placeholder wajib punya sample/example URL.',
+                    ]);
+                }
+            }
+
+            if ($button['type'] === 'PHONE_NUMBER') {
+                $phoneCount++;
+            }
+
+            if ($button['type'] === 'COPY_CODE') {
+                $copyCodeCount++;
+                if (empty($button['example'])) {
+                    throw ValidationException::withMessages([
+                        "buttons.{$i}.example" => 'Button Copy Code wajib punya sample/example code.',
+                    ]);
+                }
+                if (mb_strlen((string) $button['example']) > 15) {
+                    throw ValidationException::withMessages([
+                        "buttons.{$i}.example" => 'Sample Copy Code maksimal 15 karakter sesuai batas Meta.',
+                    ]);
+                }
+            }
         }
 
         if ($quickCount > 10) {
             throw ValidationException::withMessages(['buttons' => 'Quick Reply maksimal 10 tombol.']);
+        }
+
+        if ($urlCount > 2) {
+            throw ValidationException::withMessages(['buttons' => 'Template Meta dibatasi maksimal 2 tombol URL.']);
+        }
+
+        if ($phoneCount > 1) {
+            throw ValidationException::withMessages(['buttons' => 'Template Meta dibatasi maksimal 1 tombol Phone Number.']);
+        }
+
+        if ($copyCodeCount > 1) {
+            throw ValidationException::withMessages(['buttons' => 'Template Meta dibatasi maksimal 1 tombol Copy Code.']);
+        }
+
+        if ($this->hasInterleavedQuickReplyButtons($typePattern)) {
+            throw ValidationException::withMessages([
+                'buttons' => 'Quick Reply harus dikelompokkan berurutan di awal atau di akhir, tidak boleh diselingi tombol lain.',
+            ]);
         }
     }
 
@@ -449,6 +517,35 @@ class WATemplateController extends Controller
                 'body' => "{$label}: maksimal 60 placeholder sesuai batas Meta.",
             ]);
         }
+    }
+
+    private function assertHeaderTextPlaceholderRules(?string $text): void
+    {
+        preg_match_all('/\{\{(\d+)\}\}/', (string) $text, $matches);
+        $indexes = array_values(array_unique(array_map('intval', $matches[1] ?? [])));
+        if (count($indexes) > 1) {
+            throw ValidationException::withMessages([
+                'header_text' => 'Header text Meta hanya mendukung maksimal 1 placeholder.',
+            ]);
+        }
+    }
+
+    private function hasInterleavedQuickReplyButtons(array $typePattern): bool
+    {
+        if (count($typePattern) < 3) {
+            return false;
+        }
+
+        $transitions = 0;
+        $previous = $typePattern[0];
+        foreach (array_slice($typePattern, 1) as $current) {
+            if ($current !== $previous) {
+                $transitions++;
+                $previous = $current;
+            }
+        }
+
+        return $transitions > 1;
     }
 
     private function connectedCloudInstances()

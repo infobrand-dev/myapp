@@ -423,7 +423,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function insertPlaceholder(input) {
         if (!input) return;
 
-        const placeholder = `{{${nextPlaceholderValue()}}}`;
+        const placeholderNumber = nextPlaceholderValue();
+        const placeholder = '{' + '{' + placeholderNumber + '}' + '}';
         replaceSelection(input, '', '', placeholder);
     }
 

@@ -73,13 +73,21 @@ class SubmitTemplateToMeta implements ShouldQueue
     {
         $components = [];
         $tplComponents = collect($template->components ?? []);
+        $variableMappings = (array) ($template->variable_mappings ?? []);
 
         // HEADER
         $header = $tplComponents->firstWhere('type', 'header');
         if ($header) {
             $comp = ['type' => 'HEADER', 'format' => data_get($header, 'format', 'TEXT')];
             if (strtoupper($comp['format']) === 'TEXT') {
-                $comp['text'] = data_get($header, 'text') ?: data_get($header, 'parameters.0.text');
+                $headerText = data_get($header, 'text') ?: data_get($header, 'parameters.0.text');
+                $comp['text'] = $headerText;
+                $headerExamples = $this->placeholderExamples((string) $headerText, $variableMappings);
+                if (!empty($headerExamples)) {
+                    $comp['example'] = [
+                        'header_text' => $headerExamples,
+                    ];
+                }
             } else {
                 $sampleMedia = data_get($header, 'parameters.0.link');
                 if ($sampleMedia) {
@@ -96,6 +104,12 @@ class SubmitTemplateToMeta implements ShouldQueue
             'type' => 'BODY',
             'text' => $template->body,
         ];
+        $bodyExamples = $this->placeholderExamples((string) $template->body, $variableMappings);
+        if (!empty($bodyExamples)) {
+            $components[count($components) - 1]['example'] = [
+                'body_text' => [$bodyExamples],
+            ];
+        }
 
         // FOOTER
         $footer = $tplComponents->firstWhere('type', 'footer');
@@ -209,5 +223,48 @@ class SubmitTemplateToMeta implements ShouldQueue
             'en' => 'en_US',
             default => $lang,
         };
+    }
+
+    private function placeholderExamples(string $text, array $variableMappings): array
+    {
+        preg_match_all('/\{\{(\d+)\}\}/', $text, $matches);
+        $indexes = array_values(array_unique(array_map('intval', $matches[1] ?? [])));
+        sort($indexes);
+
+        if (empty($indexes)) {
+            return [];
+        }
+
+        $examples = [];
+        foreach ($indexes as $index) {
+            $mapping = $variableMappings[$index] ?? $variableMappings[(string) $index] ?? [];
+            $examples[] = $this->exampleValueForMapping($index, is_array($mapping) ? $mapping : []);
+        }
+
+        return $examples;
+    }
+
+    private function exampleValueForMapping(int $index, array $mapping): string
+    {
+        $textValue = trim((string) ($mapping['text_value'] ?? ''));
+        if ($textValue !== '') {
+            return $textValue;
+        }
+
+        $fallbackValue = trim((string) ($mapping['fallback_value'] ?? ''));
+        if ($fallbackValue !== '') {
+            return $fallbackValue;
+        }
+
+        $sourceType = strtolower(trim((string) ($mapping['source_type'] ?? 'text')));
+        if ($sourceType === 'contact_field') {
+            return 'sample_' . trim((string) ($mapping['contact_field'] ?? 'value'));
+        }
+
+        if ($sourceType === 'sender_field') {
+            return 'sample_' . trim((string) ($mapping['sender_field'] ?? 'value'));
+        }
+
+        return 'sample_' . $index;
     }
 }

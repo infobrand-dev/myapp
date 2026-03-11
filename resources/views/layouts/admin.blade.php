@@ -108,6 +108,8 @@
         .page-wrapper {
             min-width: 0;
             width: 100%;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
             margin-top: 0 !important;
             padding-top: 0 !important;
         }

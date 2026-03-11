@@ -477,6 +477,25 @@
         min-height: 7rem;
         resize: vertical;
     }
+    .conv-dashboard .detail-action-group {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+    }
+    .conv-dashboard .detail-action-btn {
+        width: 2rem;
+        height: 2rem;
+        border-radius: .55rem;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .conv-dashboard .detail-collapse-panel {
+        margin-top: .55rem;
+        padding-top: .65rem;
+        border-top: 1px solid rgba(74, 96, 126, 0.08);
+    }
     .conv-dashboard .section-head {
         padding: .15rem 0 .6rem;
     }
@@ -1061,10 +1080,23 @@
                     <div class="detail-row">
                         <span class="detail-key">Contact CRM</span>
                         <span class="detail-value">
+                            <span class="detail-action-group">
                             @if(!empty($relatedContact))
-                                <a href="{{ route('contacts.show', $relatedContact) }}" class="btn btn-sm btn-outline-primary">
-                                    <i class="ti ti-address-book me-1" aria-hidden="true"></i>Open Contact
+                                <a href="{{ route('contacts.edit', $relatedContact) }}" class="btn btn-sm btn-outline-primary detail-action-btn" title="Open Contact" aria-label="Open Contact">
+                                    <i class="ti ti-address-book" aria-hidden="true"></i>
                                 </a>
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-secondary detail-action-btn"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#contact-note-panel"
+                                    aria-expanded="false"
+                                    aria-controls="contact-note-panel"
+                                    title="Open Note"
+                                    aria-label="Open Note"
+                                >
+                                    <i class="ti ti-notebook" aria-hidden="true"></i>
+                                </button>
                             @elseif(Route::has('contacts.create'))
                                 <a
                                     href="{{ route('contacts.create', [
@@ -1074,13 +1106,16 @@
                                         'phone' => $conversation->contact_external_id,
                                         'notes' => 'Created from conversation #' . $conversation->id,
                                     ]) }}"
-                                    class="btn btn-sm btn-outline-success"
+                                    class="btn btn-sm btn-outline-success detail-action-btn"
+                                    title="Add Contact"
+                                    aria-label="Add Contact"
                                 >
-                                    <i class="ti ti-user-plus me-1" aria-hidden="true"></i>Add Contact
+                                    <i class="ti ti-user-plus" aria-hidden="true"></i>
                                 </a>
                             @else
                                 <span class="text-muted">Contacts module not available.</span>
                             @endif
+                            </span>
                         </span>
                     </div>
                 @endif
@@ -1088,14 +1123,17 @@
                     <div class="detail-row">
                         <span class="detail-key">Contact Notes</span>
                         <div class="detail-value detail-value-detail">
-                            <form method="POST" action="{{ route('conversations.contact-note.update', $conversation) }}" class="detail-inline-form">
-                                @csrf
-                                <textarea name="notes" class="form-control form-control-sm mb-2" {{ $canReply ? '' : 'disabled' }}>{{ old('notes', $relatedContact->notes ?? '') }}</textarea>
-                                <div class="d-flex justify-content-between align-items-center gap-2">
-                                    <a href="{{ route('contacts.show', $relatedContact) }}" class="btn btn-sm btn-outline-primary">Open Contact</a>
-                                    <button type="submit" class="btn btn-sm btn-primary" {{ $canReply ? '' : 'disabled' }}>Save Note</button>
+                            <div class="collapse" id="contact-note-panel">
+                                <div class="detail-collapse-panel">
+                                    <form method="POST" action="{{ route('conversations.contact-note.update', $conversation) }}" class="detail-inline-form">
+                                        @csrf
+                                        <textarea name="notes" class="form-control form-control-sm mb-2" {{ $canReply ? '' : 'disabled' }}>{{ old('notes', $relatedContact->notes ?? '') }}</textarea>
+                                        <div class="d-flex justify-content-end">
+                                            <button type="submit" class="btn btn-sm btn-primary" {{ $canReply ? '' : 'disabled' }}>Save Note</button>
+                                        </div>
+                                    </form>
                                 </div>
-                            </form>
+                            </div>
                         </div>
                     </div>
                 @endif

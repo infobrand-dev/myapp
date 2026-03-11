@@ -4,12 +4,12 @@
 @php
     $isEdit = $template->exists;
     $components = collect($template->components ?? []);
-    $headerComp = $components->firstWhere('type', 'header');
-    $footerComp = $components->firstWhere('type', 'footer');
+    $headerComp = $components->first(fn ($component) => strtolower((string) data_get($component, 'type', '')) === 'header');
+    $footerComp = $components->first(fn ($component) => strtolower((string) data_get($component, 'type', '')) === 'footer');
     $headerType = strtolower(old('header_type', data_get($headerComp, 'format', 'none')));
 
     $buttonRows = [];
-    $buttonsComp = $components->firstWhere('type', 'buttons');
+    $buttonsComp = $components->first(fn ($component) => strtolower((string) data_get($component, 'type', '')) === 'buttons');
     if (is_array($buttonsComp) && is_array(data_get($buttonsComp, 'buttons'))) {
         foreach ((array) data_get($buttonsComp, 'buttons', []) as $btn) {
             $typeMap = [

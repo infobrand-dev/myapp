@@ -776,6 +776,9 @@ class WATemplateController extends Controller
                     }
 
                     $isNew = !$model->exists;
+                    $mergedComponents = is_array($components)
+                        ? $this->mergeSyncedTemplateComponents($model->components, $components)
+                        : null;
                     $model->fill([
                         'name' => $model->name ?: ($name ?: 'unnamed_template'),
                         'meta_name' => $name ?: ($model->meta_name ?: null),
@@ -784,7 +787,7 @@ class WATemplateController extends Controller
                         'namespace' => $businessId,
                         'meta_template_id' => $metaId !== '' ? $metaId : $model->meta_template_id,
                         'body' => $bodyText !== '' ? $bodyText : ($model->body ?: '-'),
-                        'components' => is_array($components) ? $components : null,
+                        'components' => $mergedComponents,
                         'status' => $status,
                         'last_submit_error' => null,
                     ]);
@@ -826,6 +829,36 @@ class WATemplateController extends Controller
             ->where('cloud_business_account_id', '!=', '')
             ->where('cloud_business_account_id', $namespace)
             ->first();
+    }
+
+    private function mergeSyncedTemplateComponents($existingComponents, array $syncedComponents): array
+    {
+        $existing = collect(is_array($existingComponents) ? $existingComponents : []);
+        $existingHeader = $existing->first(fn ($component) => strtolower((string) data_get($component, 'type', '')) === 'header');
+
+        return collect($syncedComponents)->map(function ($component) use ($existingHeader) {
+            if (strtolower((string) data_get($component, 'type', '')) !== 'header' || !is_array($existingHeader)) {
+                return $component;
+            }
+
+            $format = strtolower((string) data_get($component, 'format', data_get($component, 'parameters.0.type', '')));
+            $syncedHasLink = data_get($component, 'parameters.0.link')
+                || data_get($component, 'parameters.0.image.link')
+                || data_get($component, 'parameters.0.video.link')
+                || data_get($component, 'parameters.0.document.link');
+
+            if (!in_array($format, ['image', 'video', 'document'], true) || $syncedHasLink) {
+                return $component;
+            }
+
+            $existingParam = data_get($existingHeader, 'parameters.0');
+            if (!is_array($existingParam)) {
+                return $component;
+            }
+
+            $component['parameters'] = [$existingParam];
+            return $component;
+        })->values()->all();
     }
 
     private function requireInstance(Request $request): WhatsAppInstance

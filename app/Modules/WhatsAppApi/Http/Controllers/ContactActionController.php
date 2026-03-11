@@ -196,11 +196,15 @@ class ContactActionController extends Controller
     private function buildTemplatePayload(WATemplate $template, array $params): array
     {
         $componentsSource = collect($template->components ?? []);
-        $header = $componentsSource->firstWhere('type', 'header');
+        $header = $componentsSource->first(function ($component) {
+            return strtolower((string) data_get($component, 'type', '')) === 'header';
+        });
         $headerText = null;
+        $headerFormat = '';
 
         if (is_array($header)) {
             $headerText = data_get($header, 'text') ?: data_get($header, 'parameters.0.text');
+            $headerFormat = strtolower((string) data_get($header, 'format', data_get($header, 'parameters.0.type', '')));
         }
 
         $bodyIndexes = self::placeholderIndexes((string) $template->body);
@@ -215,14 +219,26 @@ class ContactActionController extends Controller
             foreach ($headerIndexes as $idx) {
                 $headerParams[] = ['type' => 'text', 'text' => (string) ($params[$idx] ?? '')];
             }
-        } elseif (is_array($header) && data_get($header, 'parameters.0.link')) {
-            $mediaType = strtolower((string) data_get($header, 'parameters.0.type', 'image'));
+        } elseif (is_array($header)) {
+            $mediaType = in_array($headerFormat, ['image', 'video', 'document'], true) ? $headerFormat : 'image';
+            $mediaLink = (string) (
+                data_get($header, "parameters.0.{$mediaType}.link")
+                ?: data_get($header, 'parameters.0.link')
+                ?: data_get($header, 'example.header_url.0')
+            );
+
+            if ($mediaLink !== '') {
             $headerParams[] = [
                 'type' => $mediaType,
                 $mediaType => [
-                    'link' => data_get($header, 'parameters.0.link'),
-                ],
-            ];
+                        'link' => $mediaLink,
+                    ],
+                ];
+            } elseif (in_array($mediaType, ['image', 'video', 'document'], true)) {
+                throw ValidationException::withMessages([
+                    'template_id' => 'Template ini memakai media header, tetapi URL media header belum tersimpan di aplikasi. Buka template lalu upload/set ulang media header sebelum kirim.',
+                ]);
+            }
         }
 
         if (!empty($headerParams)) {

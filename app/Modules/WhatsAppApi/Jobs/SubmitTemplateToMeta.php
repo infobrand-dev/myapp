@@ -80,6 +80,13 @@ class SubmitTemplateToMeta implements ShouldQueue
             $comp = ['type' => 'HEADER', 'format' => data_get($header, 'format', 'TEXT')];
             if (strtoupper($comp['format']) === 'TEXT') {
                 $comp['text'] = data_get($header, 'text') ?: data_get($header, 'parameters.0.text');
+            } else {
+                $sampleMedia = data_get($header, 'parameters.0.link');
+                if ($sampleMedia) {
+                    $comp['example'] = [
+                        'header_handle' => [(string) $sampleMedia],
+                    ];
+                }
             }
             $components[] = $comp;
         }

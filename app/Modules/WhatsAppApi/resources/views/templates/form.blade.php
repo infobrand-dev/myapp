@@ -67,6 +67,23 @@
 .wa-template-wrap .var-row { border: 1px solid rgba(18, 29, 40, .08); border-radius: .6rem; padding: .75rem; background: #fcfcfd; }
 .wa-template-wrap .editor-toolbar { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .55rem; }
 .wa-template-wrap .editor-toolbar .btn { min-width: 2.4rem; }
+.wa-template-wrap .media-picker { border: 1px dashed #c8ccd0; border-radius: .8rem; background: #f8fafb; overflow: hidden; cursor: pointer; transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease; }
+.wa-template-wrap .media-picker:hover { border-color: #76a9fa; box-shadow: 0 .35rem .9rem rgba(31, 44, 52, .08); transform: translateY(-1px); }
+.wa-template-wrap .media-picker.is-empty { min-height: 14rem; display: flex; align-items: center; justify-content: center; }
+.wa-template-wrap .media-picker-shell { position: relative; min-height: 14rem; }
+.wa-template-wrap .media-picker-empty { text-align: center; padding: 1.25rem; color: #5b6670; }
+.wa-template-wrap .media-picker-plus { width: 3rem; height: 3rem; border-radius: 50%; background: #e8f1ff; color: #206bc4; display: inline-flex; align-items: center; justify-content: center; font-size: 1.6rem; font-weight: 700; margin-bottom: .75rem; }
+.wa-template-wrap .media-picker-preview { position: relative; min-height: 14rem; background: #eef2f4; }
+.wa-template-wrap .media-picker-preview img,
+.wa-template-wrap .media-picker-preview video { width: 100%; height: 14rem; object-fit: cover; display: block; background: #000; }
+.wa-template-wrap .media-picker-doc { min-height: 14rem; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.25rem; text-align: center; color: #425466; }
+.wa-template-wrap .media-picker-doc-icon { width: 3.2rem; height: 3.2rem; border-radius: .9rem; background: #e9eef5; display: inline-flex; align-items: center; justify-content: center; font-size: 1.35rem; font-weight: 700; margin-bottom: .8rem; }
+.wa-template-wrap .media-picker-meta { position: absolute; left: .75rem; right: .75rem; bottom: .75rem; background: rgba(15, 23, 42, .72); color: #fff; border-radius: .65rem; padding: .45rem .6rem; display: flex; align-items: center; justify-content: space-between; gap: .75rem; font-size: .78rem; }
+.wa-template-wrap .media-picker-meta strong { display: block; font-size: .82rem; }
+.wa-template-wrap .media-picker-meta span { color: rgba(255,255,255,.82); }
+.wa-template-wrap .media-picker-action { border: 0; background: rgba(255,255,255,.16); color: #fff; padding: .28rem .55rem; border-radius: .45rem; }
+.wa-template-wrap .media-picker-replace { position: absolute; top: .75rem; right: .75rem; width: 2.4rem; height: 2.4rem; border-radius: 50%; background: rgba(15, 23, 42, .72); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 1.15rem; box-shadow: 0 .2rem .5rem rgba(0,0,0,.18); }
+.wa-template-wrap .media-picker-input { display: none; }
 </style>
 
 <div class="wa-template-wrap">
@@ -179,11 +196,22 @@
                             <div class="col-md-8 header-media-wrap" style="{{ in_array($headerType, ['image', 'document', 'video']) ? '' : 'display:none;' }}">
                                 @php $existingHeaderMedia = old('header_media_url', data_get($headerComp, 'parameters.0.link', '')); @endphp
                                 <label class="form-label">Header media file</label>
-                                <input type="file" class="form-control" name="header_media_file" id="header_media_file" accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.mp4,.mov,.avi,.mkv">
+                                <label class="media-picker {{ $existingHeaderMedia ? '' : 'is-empty' }}" id="header_media_picker" for="header_media_file">
+                                    <div class="media-picker-shell">
+                                        <div class="media-picker-empty" id="header_media_empty" style="{{ $existingHeaderMedia ? 'display:none;' : '' }}">
+                                            <div class="media-picker-plus">+</div>
+                                            <div class="fw-semibold">Klik untuk pilih file</div>
+                                            <div class="tiny mt-1">Thumbnail untuk image/video. File lain tampil sebagai kartu dokumen.</div>
+                                        </div>
+                                        <div class="media-picker-preview" id="header_media_preview" style="{{ $existingHeaderMedia ? '' : 'display:none;' }}"></div>
+                                    </div>
+                                </label>
+                                <input type="file" class="media-picker-input" name="header_media_file" id="header_media_file" accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.mp4,.mov,.avi,.mkv">
                                 <input type="hidden" name="header_media_url" id="header_media_url" value="{{ $existingHeaderMedia }}">
-                                @if($existingHeaderMedia)
-                                    <div class="tiny mt-1">File saat ini: <a href="{{ $existingHeaderMedia }}" target="_blank" rel="noopener">lihat media</a></div>
-                                @endif
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <div class="tiny">Klik kartu untuk ganti file. Jika tidak diganti, media lama tetap dipakai.</div>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" id="header_media_clear" style="{{ $existingHeaderMedia ? '' : 'display:none;' }}">Hapus</button>
+                                </div>
                                 @error('header_media_file') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                             </div>
                         </div>
@@ -357,6 +385,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const headerInput = document.getElementById('header_text');
     const headerMediaFileInput = document.getElementById('header_media_file');
     const headerMediaInput = document.getElementById('header_media_url');
+    const headerMediaPicker = document.getElementById('header_media_picker');
+    const headerMediaPreview = document.getElementById('header_media_preview');
+    const headerMediaEmpty = document.getElementById('header_media_empty');
+    const headerMediaClear = document.getElementById('header_media_clear');
     const bodyInput = document.getElementById('body_input');
     const footerInput = document.getElementById('footer_input');
     const headerCount = document.getElementById('header-count');
@@ -401,6 +433,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const contactFieldLabel = (key) => contactFieldOptions[key] || key;
     const senderFieldLabel = (key) => senderFieldOptions[key] || key;
     let metaNameTouched = Boolean(metaNameInput?.value);
+    let selectedHeaderMediaObjectUrl = null;
 
     function syncNamespace() {
         if (!nsSelect || !nsInput) return;
@@ -481,10 +514,94 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function fileExtension(name = '') {
+        const normalized = String(name || '').split('?')[0];
+        const parts = normalized.split('.');
+        return parts.length > 1 ? parts.pop().toLowerCase() : '';
+    }
+
+    function mediaKindFromSource(type, source, filename = '') {
+        const headerKind = String(type || '').toLowerCase();
+        if (headerKind === 'image') return 'image';
+        if (headerKind === 'video') return 'video';
+        if (headerKind === 'document') return 'document';
+
+        const ext = fileExtension(filename || source);
+        if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext)) return 'image';
+        if (['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext)) return 'video';
+        return 'document';
+    }
+
+    function documentLabel(filename = '', source = '') {
+        const ext = fileExtension(filename || source);
+        return ext ? ext.toUpperCase() : 'FILE';
+    }
+
+    function revokeHeaderObjectUrl() {
+        if (selectedHeaderMediaObjectUrl) {
+            URL.revokeObjectURL(selectedHeaderMediaObjectUrl);
+            selectedHeaderMediaObjectUrl = null;
+        }
+    }
+
+    function renderHeaderMediaPicker() {
+        if (!headerMediaPicker || !headerMediaPreview || !headerMediaEmpty) return;
+
+        const currentType = headerType?.value || 'none';
+        const file = headerMediaFileInput?.files?.[0] || null;
+        let source = '';
+        if (file) {
+            revokeHeaderObjectUrl();
+            selectedHeaderMediaObjectUrl = URL.createObjectURL(file);
+            source = selectedHeaderMediaObjectUrl;
+        } else {
+            source = headerMediaInput?.value || '';
+        }
+        const filename = file ? file.name : (source.split('/').pop() || source || '');
+
+        if (!['image', 'document', 'video'].includes(currentType)) {
+            headerMediaPreview.innerHTML = '';
+            headerMediaPreview.style.display = 'none';
+            headerMediaEmpty.style.display = 'none';
+            headerMediaPicker.classList.add('is-empty');
+            if (headerMediaClear) headerMediaClear.style.display = 'none';
+            return;
+        }
+
+        if (!source) {
+            headerMediaPreview.innerHTML = '';
+            headerMediaPreview.style.display = 'none';
+            headerMediaEmpty.style.display = '';
+            headerMediaPicker.classList.add('is-empty');
+            if (headerMediaClear) headerMediaClear.style.display = 'none';
+            return;
+        }
+
+        const kind = mediaKindFromSource(currentType, source, filename);
+        const safeName = esc(filename || 'media');
+        const safeSource = esc(source);
+        let html = '';
+
+        if (kind === 'image') {
+            html = `<img src="${safeSource}" alt="${safeName}"><div class="media-picker-replace" aria-hidden="true">+</div><div class="media-picker-meta"><div><strong>${safeName}</strong><span>Image header</span></div><span class="media-picker-action">Ganti file</span></div>`;
+        } else if (kind === 'video') {
+            html = `<video src="${safeSource}" muted controls preload="metadata"></video><div class="media-picker-replace" aria-hidden="true">+</div><div class="media-picker-meta"><div><strong>${safeName}</strong><span>Video header</span></div><span class="media-picker-action">Ganti file</span></div>`;
+        } else {
+            html = `<div class="media-picker-doc"><div class="media-picker-doc-icon">${esc(documentLabel(filename, source))}</div><div class="fw-semibold">${safeName}</div><div class="tiny mt-1">Document header</div></div><div class="media-picker-replace" aria-hidden="true">+</div><div class="media-picker-meta"><div><strong>${safeName}</strong><span>Document header</span></div><span class="media-picker-action">Ganti file</span></div>`;
+        }
+
+        headerMediaPreview.innerHTML = html;
+        headerMediaPreview.style.display = '';
+        headerMediaEmpty.style.display = 'none';
+        headerMediaPicker.classList.remove('is-empty');
+        if (headerMediaClear) headerMediaClear.style.display = '';
+    }
+
     function syncHeaderWrap() {
         const t = headerType?.value || 'none';
         headerTextWrap.style.display = t === 'text' ? '' : 'none';
         headerMediaWrap.style.display = ['image', 'document', 'video'].includes(t) ? '' : 'none';
+        renderHeaderMediaPicker();
     }
 
     function updateCounters() {
@@ -752,15 +869,26 @@ document.addEventListener('DOMContentLoaded', () => {
     editorToolbars.forEach(bindEditorToolbar);
     addBtn?.addEventListener('click', addRow);
     nsSelect?.addEventListener('change', syncNamespace);
+    headerMediaClear?.addEventListener('click', () => {
+        revokeHeaderObjectUrl();
+        if (headerMediaFileInput) headerMediaFileInput.value = '';
+        if (headerMediaInput) headerMediaInput.value = '';
+        renderHeaderMediaPicker();
+        render();
+    });
     nameInput?.addEventListener('input', () => syncMetaName(false));
     metaNameInput?.addEventListener('input', () => {
         metaNameTouched = true;
         syncMetaName(false);
     });
-    headerMediaFileInput?.addEventListener('change', render);
+    headerMediaFileInput?.addEventListener('change', () => {
+        renderHeaderMediaPicker();
+        render();
+    });
     [headerType, headerInput, headerMediaInput, bodyInput, footerInput].forEach((el) => el?.addEventListener('input', render));
     syncNamespace();
     syncMetaName(true);
+    renderHeaderMediaPicker();
     render();
 });
 </script>

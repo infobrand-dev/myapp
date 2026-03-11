@@ -8,6 +8,7 @@ use App\Modules\Contacts\Support\ContactPhoneNormalizer;
 use App\Modules\WhatsAppApi\Jobs\ProcessWABlastCampaign;
 use App\Modules\WhatsAppApi\Models\WABlastCampaign;
 use App\Modules\WhatsAppApi\Models\WABlastRecipient;
+use App\Modules\WhatsAppApi\Models\WAContactPhoneStatus;
 use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use App\Modules\WhatsAppApi\Support\TemplateVariableResolver;
@@ -435,6 +436,20 @@ class BlastCampaignController extends Controller
                 'contacts.country',
                 'company.name as company_name',
             ]);
+
+        $blockedPhones = WAContactPhoneStatus::query()
+            ->where('status', 'blocked')
+            ->pluck('phone_number')
+            ->filter()
+            ->all();
+
+        if (!empty($blockedPhones)) {
+            $blockedLookup = array_fill_keys($blockedPhones, true);
+            $contacts = $contacts->filter(function ($contact) use ($blockedLookup) {
+                $phone = $contact->whatsappPhoneNumber();
+                return !$phone || !isset($blockedLookup[$phone]);
+            })->values();
+        }
 
         return [$filters->toArray(), $contacts];
     }

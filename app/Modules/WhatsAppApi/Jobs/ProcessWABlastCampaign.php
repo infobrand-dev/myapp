@@ -8,6 +8,7 @@ use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\Conversations\Models\ConversationParticipant;
 use App\Modules\WhatsAppApi\Models\WABlastCampaign;
 use App\Modules\WhatsAppApi\Models\WABlastRecipient;
+use App\Modules\WhatsAppApi\Models\WAContactPhoneStatus;
 use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use App\Modules\WhatsAppApi\Support\TemplateVariableResolver;
@@ -155,6 +156,10 @@ class ProcessWABlastCampaign implements ShouldQueue
                 'error_message' => $errorMessage,
             ]);
 
+            if (!$success && $this->shouldBlockPhoneNumber($response)) {
+                $this->blockRecipientPhone($recipient->phone_number, $recipient->contact_name, $errorMessage);
+            }
+
             if ($success) {
                 $message = $this->syncConversationForBlast($campaign, $recipient, $template, $payload['components'], $externalMessageId);
                 $recipient->update([
@@ -167,6 +172,10 @@ class ProcessWABlastCampaign implements ShouldQueue
                 'status' => 'failed',
                 'error_message' => mb_substr($e->getMessage(), 0, 65535),
             ]);
+
+            if ($this->shouldBlockPhoneNumberFromMessage($e->getMessage())) {
+                $this->blockRecipientPhone($recipient->phone_number, $recipient->contact_name, $e->getMessage());
+            }
         }
     }
 
@@ -281,6 +290,52 @@ class ProcessWABlastCampaign implements ShouldQueue
         return Http::withToken($token)
             ->timeout(20)
             ->post($url, $payload);
+    }
+
+    private function shouldBlockPhoneNumber(Response $response): bool
+    {
+        if ($response->status() < 400 || $response->status() >= 500) {
+            return false;
+        }
+
+        return $this->shouldBlockPhoneNumberFromMessage($response->body());
+    }
+
+    private function shouldBlockPhoneNumberFromMessage(?string $message): bool
+    {
+        $haystack = strtolower((string) $message);
+        if ($haystack === '') {
+            return false;
+        }
+
+        $markers = [
+            '"code":131026',
+            '131026',
+            'not a whatsapp user',
+            'not a valid whatsapp',
+            'invalid whatsapp',
+            'phone number is not valid',
+            'is not a valid whatsapp phone number',
+        ];
+
+        foreach ($markers as $marker) {
+            if (str_contains($haystack, $marker)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function blockRecipientPhone(string $phoneNumber, ?string $contactName, ?string $errorMessage): void
+    {
+        $status = WAContactPhoneStatus::query()->firstOrNew(['phone_number' => $phoneNumber]);
+        $status->last_contact_name = $contactName;
+        $status->status = 'blocked';
+        $status->failure_count = ((int) $status->failure_count) + 1;
+        $status->last_error = mb_substr((string) $errorMessage, 0, 65535);
+        $status->last_failed_at = now();
+        $status->save();
     }
 
     private function syncConversationForBlast(

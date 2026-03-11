@@ -102,6 +102,8 @@
             display: flex;
             flex-direction: row;
             align-items: stretch;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
         }
         .page-wrapper {
             min-width: 0;

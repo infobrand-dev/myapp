@@ -113,6 +113,11 @@
         .page > .navbar-vertical {
             box-shadow: none;
         }
+        @media (min-width: 992px) {
+            .page > .navbar-vertical #sidebar-menu.collapse:not(.show) {
+                display: block !important;
+            }
+        }
         @media (max-width: 991.98px) {
             .desktop-topbar {
                 display: none;

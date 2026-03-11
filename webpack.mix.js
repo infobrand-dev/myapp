@@ -13,6 +13,7 @@ const mix = require('laravel-mix');
 
 mix.js('resources/js/app.js', 'public/js')
     .js('app/Modules/Conversations/resources/js/show.js', 'public/js/modules/conversations')
+    .js('app/Modules/Conversations/resources/js/dashboard-card.js', 'public/js/modules/conversations')
     .js('app/Modules/WhatsAppApi/resources/js/contact-actions.js', 'public/js/modules/whatsapp-api')
     .postCss('resources/css/app.css', 'public/css', [
         require('tailwindcss'),

@@ -4,6 +4,7 @@ namespace App\Modules\Conversations;
 
 use App\Modules\Conversations\Console\Commands\ReleaseExpiredLocks;
 use App\Modules\Conversations\Models\Conversation;
+use App\Support\HookManager;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\DB;
@@ -25,6 +26,7 @@ class ConversationsServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
 
         $this->registerBroadcastChannels();
+        $this->registerDashboardHooks();
         $this->registerSidebarState();
         $this->registerConsoleHooks();
     }
@@ -78,6 +80,26 @@ class ConversationsServiceProvider extends ServiceProvider
             $badges = $view->getData()['moduleNavBadges'] ?? [];
             $badges['conversation_unread_total'] = $this->conversationUnreadTotal();
             $view->with('moduleNavBadges', $badges);
+        });
+    }
+
+    private function registerDashboardHooks(): void
+    {
+        /** @var HookManager $hooks */
+        $hooks = $this->app->make(HookManager::class);
+
+        $hooks->register('dashboard.overview.cards', 'conversations.dashboard.card', function (): string {
+            if (!Schema::hasTable('conversations')) {
+                return '';
+            }
+
+            $metrics = [
+                'open' => Conversation::query()->where('status', 'open')->count(),
+                'claimed' => Conversation::query()->whereNotNull('owner_id')->count(),
+                'unread' => Conversation::query()->where('unread_count', '>', 0)->sum('unread_count'),
+            ];
+
+            return view('conversations::dashboard.card', compact('metrics'))->render();
         });
     }
 

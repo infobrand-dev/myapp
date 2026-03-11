@@ -92,6 +92,11 @@ class WATemplateController extends Controller
         $template->update($data);
 
         if ($action === 'submit') {
+            if ($this->isMetaManagedTemplate($template)) {
+                return redirect()
+                    ->route('whatsapp-api.templates.edit', $template)
+                    ->with('status', 'Template ini sudah terdaftar di Meta dan tidak bisa di-submit ulang sebagai template yang sama. Simpan perubahan sebagai draft lokal atau buat template baru dengan Meta Name baru.');
+            }
             SubmitTemplateToMeta::dispatch($template->id, $instance->id);
         }
         return redirect()->route('whatsapp-api.templates.index')->with('status', $action === 'submit'
@@ -113,6 +118,10 @@ class WATemplateController extends Controller
     {
         if ($redirect = $this->ensureAnyInstanceExists($request)) {
             return $redirect;
+        }
+
+        if ($this->isMetaManagedTemplate($template)) {
+            return back()->with('status', 'Template ini sudah ada di Meta. Untuk perubahan konten, buat template baru dengan Meta Name baru lalu submit template baru tersebut.');
         }
 
         $instance = $this->findInstanceForNamespace($template->namespace);
@@ -669,6 +678,11 @@ class WATemplateController extends Controller
             ->orderByDesc('is_active')
             ->orderBy('name')
             ->get();
+    }
+
+    private function isMetaManagedTemplate(WATemplate $template): bool
+    {
+        return trim((string) $template->meta_template_id) !== '';
     }
 
     private function syncTemplatesForInstance(WhatsAppInstance $instance): array

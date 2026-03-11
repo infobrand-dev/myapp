@@ -59,7 +59,7 @@
                                 <a href="{{ route('whatsapp-api.templates.edit', $tpl) }}" class="btn btn-sm btn-outline-secondary btn-icon" title="Edit" aria-label="Edit">
                                     <i class="ti ti-pencil icon" aria-hidden="true"></i>
                                 </a>
-                                @if($tpl->status !== 'pending' && $tpl->status !== 'approved')
+                                @if(!$tpl->meta_template_id && $tpl->status !== 'pending' && $tpl->status !== 'approved')
                                     <form class="d-inline-block m-0" method="POST" action="{{ route('whatsapp-api.templates.submit', $tpl) }}">
                                         @csrf
                                         <button class="btn btn-sm btn-outline-azure btn-icon" type="submit" title="Submit Approval" aria-label="Submit Approval">

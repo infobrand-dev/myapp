@@ -102,6 +102,12 @@
         </div>
     @endif
 
+    @if($isEdit && $template->meta_template_id)
+        <div class="alert alert-warning">
+            Template ini sudah terdaftar di Meta dengan ID <code>{{ $template->meta_template_id }}</code>. Edit di halaman ini hanya mengubah data lokal. Jika ingin mengirim versi konten baru ke Meta, buat template baru dengan <code>Meta Name</code> baru.
+        </div>
+    @endif
+
     <form method="POST" action="{{ $isEdit ? route('whatsapp-api.templates.update', $template) : route('whatsapp-api.templates.store') }}" id="wa-template-form" enctype="multipart/form-data">
         @csrf
         @if($isEdit) @method('PUT') @endif
@@ -304,7 +310,9 @@
 
                 <div class="d-flex justify-content-end gap-2">
                     <button class="btn btn-secondary" type="submit" name="action" value="draft">Simpan Draft</button>
-                    <button class="btn btn-primary" type="submit" name="action" value="submit">Submit Approval</button>
+                    <button class="btn btn-primary" type="submit" name="action" value="submit" {{ $isEdit && $template->meta_template_id ? 'disabled' : '' }}>
+                        Submit Approval
+                    </button>
                 </div>
             </div>
 

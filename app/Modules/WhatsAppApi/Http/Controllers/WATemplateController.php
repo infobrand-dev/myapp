@@ -318,6 +318,14 @@ class WATemplateController extends Controller
 
             $typeRaw = strtolower(trim((string) ($row['type'] ?? '')));
             $label = trim((string) ($row['label'] ?? ''));
+            $url = trim((string) ($row['url'] ?? ''));
+            $phone = trim((string) ($row['phone_number'] ?? ''));
+            $example = trim((string) ($row['example'] ?? ''));
+
+            if ($label === '' && $url === '' && $phone === '' && $example === '') {
+                continue;
+            }
+
             if ($typeRaw === '' && $label === '') {
                 continue;
             }
@@ -337,10 +345,6 @@ class WATemplateController extends Controller
                 'type' => $mappedType,
                 'text' => $label,
             ];
-
-            $url = trim((string) ($row['url'] ?? ''));
-            $phone = trim((string) ($row['phone_number'] ?? ''));
-            $example = trim((string) ($row['example'] ?? ''));
 
             if ($mappedType === 'URL' && $url !== '') {
                 $item['url'] = $url;

@@ -445,11 +445,12 @@ document.addEventListener('DOMContentLoaded', () => {
             row.className = 'var-row';
             row.dataset.varRow = '1';
             row.dataset.varIndex = String(idx);
+            const placeholderLabel = '{' + '{' + idx + '}' + '}';
             row.innerHTML = `
                 <div class="row g-2 align-items-end">
                     <div class="col-md-2">
                         <label class="form-label">Placeholder</label>
-                        <input class="form-control" value="{{'{{'}}${idx}{{'}}'}}" disabled>
+                        <input class="form-control" value="${esc(placeholderLabel)}" disabled>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Sumber</label>

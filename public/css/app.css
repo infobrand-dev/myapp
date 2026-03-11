@@ -1260,6 +1260,9 @@ input:where([type='file']):focus{
 .pr-4{
   padding-right: 1rem;
 }
+.ps-3{
+  padding-inline-start: 0.75rem;
+}
 .pt-0{
   padding-top: 0px;
 }

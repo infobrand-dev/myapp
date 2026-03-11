@@ -851,6 +851,7 @@
                 </div>
             </div>
             <div class="section-body pt-0" id="chat-pane">
+                <div id="chat-history-sentinel" class="h-0"></div>
                 <div id="chat-loader" class="chat-loader {{ $hasMoreMessages ? '' : 'd-none' }}">Scroll up to load older messages...</div>
                 @forelse($conversation->messages as $msg)
                     @php
@@ -1235,6 +1236,10 @@
         let userSearchTimer = null;
         let userSearchController = null;
         let activeMediaPickerKind = 'file';
+        const chatHistorySentinel = document.getElementById('chat-history-sentinel');
+        let pollingTimer = null;
+        let olderMessagesObserver = null;
+        let hasRealtimeChannel = false;
 
         const mediaPickerConfig = {
             file: {
@@ -1256,6 +1261,36 @@
 
         const isMobile = () => window.matchMedia('(max-width: 991.98px)').matches;
         const isChatVisible = () => !isMobile() || dashboardRoot?.classList.contains('mobile-view-chat');
+        const isPageActive = () => document.visibilityState === 'visible' && document.hasFocus();
+        const isNearBottom = () => chatPane
+            ? ((chatPane.scrollHeight - chatPane.scrollTop - chatPane.clientHeight) < 80)
+            : true;
+        const scrollChatToBottom = (behavior = 'auto') => {
+            if (!chatPane) return;
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    chatPane.scrollTo({
+                        top: chatPane.scrollHeight,
+                        behavior,
+                    });
+                });
+            });
+        };
+        const bindDeferredMediaScroll = (scope) => {
+            if (!scope) return;
+            const mediaNodes = scope.querySelectorAll('img, video');
+            mediaNodes.forEach((mediaNode) => {
+                if (mediaNode.dataset.chatScrollBound === '1') return;
+                mediaNode.dataset.chatScrollBound = '1';
+                const syncScroll = () => {
+                    if (isNearBottom()) {
+                        scrollChatToBottom();
+                    }
+                };
+                mediaNode.addEventListener('load', syncScroll, { once: true });
+                mediaNode.addEventListener('loadedmetadata', syncScroll, { once: true });
+            });
+        };
         const refreshUnreadUi = () => {
             if (sidebarUnreadBadge) {
                 sidebarUnreadBadge.dataset.count = String(Math.max(0, sidebarUnreadCount));
@@ -1385,7 +1420,8 @@
             setMobileView(openChat ? 'chat' : 'inbox');
         };
 
-        if (chatPane) chatPane.scrollTop = chatPane.scrollHeight;
+        bindDeferredMediaScroll(chatPane);
+        scrollChatToBottom();
         initMobileView();
         initWebNotifButton();
         refreshUnreadUi();
@@ -1401,11 +1437,13 @@
         mobileBackChat?.addEventListener('click', () => setMobileView('chat'));
         window.addEventListener('focus', () => {
             if (isChatVisible()) clearUnread();
+            refreshPollingState();
         });
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible' && isChatVisible()) {
                 clearUnread();
             }
+            refreshPollingState();
         });
         window.addEventListener('resize', () => {
             if (!isMobile() && dashboardRoot) {
@@ -1642,8 +1680,9 @@
             }
             const wrapper = buildMessageNode(msg);
             chatPane?.appendChild(wrapper);
+            bindDeferredMediaScroll(wrapper);
             if (shouldScrollToBottom && chatPane) {
-                chatPane.scrollTop = chatPane.scrollHeight;
+                scrollChatToBottom();
             }
             updateMessageRelatedUi(msg);
             return true;
@@ -1669,9 +1708,12 @@
                         const id = Number(msg.id);
                         if (Number.isFinite(id) && renderedMessageIds.has(id)) return;
                         if (Number.isFinite(id) && id > 0) renderedMessageIds.add(id);
-                        fragment.appendChild(buildMessageNode(msg));
+                        const node = buildMessageNode(msg);
+                        bindDeferredMediaScroll(node);
+                        fragment.appendChild(node);
                     });
-                    chatPane.insertBefore(fragment, chatPane.firstChild);
+                    const insertAnchor = chatHistorySentinel?.nextSibling ?? chatPane.firstChild;
+                    chatPane.insertBefore(fragment, insertAnchor);
                     const newHeight = chatPane.scrollHeight;
                     chatPane.scrollTop = newHeight - prevHeight + prevTop;
                 }
@@ -1692,7 +1734,19 @@
             }
         };
 
-        if (chatPane) {
+        if (chatPane && chatHistorySentinel && 'IntersectionObserver' in window) {
+            olderMessagesObserver = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        loadOlderMessages();
+                    }
+                });
+            }, {
+                root: chatPane,
+                threshold: 0.1,
+            });
+            olderMessagesObserver.observe(chatHistorySentinel);
+        } else if (chatPane) {
             chatPane.addEventListener('scroll', () => {
                 if (chatPane.scrollTop <= 48) {
                     loadOlderMessages();
@@ -1701,7 +1755,7 @@
         }
 
         const pollLatestMessages = async () => {
-            if (pollingInFlight) return;
+            if (pollingInFlight || !isPageActive()) return;
             pollingInFlight = true;
             try {
                 const url = `${messagesSinceEndpoint}?after_id=${encodeURIComponent(latestMessageId || 0)}&limit=20`;
@@ -1710,7 +1764,7 @@
                 const payload = await response.json();
                 const list = Array.isArray(payload.messages) ? payload.messages : [];
                 if (list.length) {
-                    const shouldStickBottom = chatPane ? ((chatPane.scrollHeight - chatPane.scrollTop - chatPane.clientHeight) < 80) : false;
+                    const shouldStickBottom = isNearBottom();
                     list.forEach((msg) => {
                         const inserted = appendIfNew(msg, shouldStickBottom);
                         if (!inserted) return;
@@ -1735,7 +1789,23 @@
                 pollingInFlight = false;
             }
         };
-        setInterval(pollLatestMessages, 4000);
+        const stopPolling = () => {
+            if (!pollingTimer) return;
+            clearInterval(pollingTimer);
+            pollingTimer = null;
+        };
+        const startPolling = () => {
+            if (pollingTimer || hasRealtimeChannel) return;
+            pollingTimer = setInterval(pollLatestMessages, 4000);
+        };
+        function refreshPollingState() {
+            if (hasRealtimeChannel || !isPageActive()) {
+                stopPolling();
+                return;
+            }
+            startPolling();
+        }
+        refreshPollingState();
 
         const sendMessageForm = async (formEl) => {
             if (!formEl || sendInFlight) return;
@@ -1829,10 +1899,12 @@
         }
 
         if (window.Echo) {
+            hasRealtimeChannel = true;
+            stopPolling();
             window.Echo.private('conversations.' + convId)
                 .listen('App\\Modules\\Conversations\\Events\\ConversationMessageCreated', (e) => {
                     const msg = e.message;
-                    const shouldStickBottom = chatPane ? ((chatPane.scrollHeight - chatPane.scrollTop - chatPane.clientHeight) < 80) : true;
+                    const shouldStickBottom = isNearBottom();
                     const inserted = appendIfNew(msg, shouldStickBottom);
                     if (!inserted) return;
 
@@ -1848,6 +1920,8 @@
                         clearUnread();
                     }
                 });
+        } else {
+            refreshPollingState();
         }
 
         // Template selector (WA API)

@@ -460,6 +460,13 @@
         border-bottom: 0;
         padding-bottom: 0;
     }
+    .conv-dashboard .detail-list .detail-row-stack {
+        display: block;
+    }
+    .conv-dashboard .detail-list .detail-row-stack .detail-key {
+        display: block;
+        margin-bottom: .35rem;
+    }
     .conv-dashboard .detail-key {
         font-size: .82rem;
         color: var(--conv-muted);
@@ -499,6 +506,9 @@
         margin-top: .55rem;
         padding-top: .65rem;
         border-top: 1px solid rgba(74, 96, 126, 0.08);
+    }
+    .conv-dashboard .detail-inline-form {
+        width: 100%;
     }
     .conv-dashboard .section-head {
         padding: .15rem 0 .6rem;
@@ -1124,7 +1134,7 @@
                     </div>
                 @endif
                 @if(!empty($relatedContact))
-                    <div class="detail-row">
+                    <div class="detail-row detail-row-stack">
                         <span class="detail-key">Contact Notes</span>
                         <div class="detail-value detail-value-detail">
                             <div class="collapse" id="contact-note-panel">
@@ -1279,6 +1289,50 @@
 @push('scripts')
 <script id="conversation-show-config" type="application/json">{{ \Illuminate\Support\Js::from($conversationShowConfig) }}</script>
 <script src="{{ mix('js/modules/conversations/show.js') }}" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const chatPane = document.getElementById('chat-pane');
+
+    if (!chatPane) {
+        return;
+    }
+
+    const forceConversationBottom = () => {
+        const rows = chatPane.querySelectorAll('.chat-row[data-message-id]');
+        const lastRow = rows.length ? rows[rows.length - 1] : null;
+
+        if (lastRow) {
+            lastRow.scrollIntoView({
+                block: 'end',
+                behavior: 'auto',
+            });
+        }
+
+        chatPane.scrollTop = chatPane.scrollHeight;
+    };
+
+    const scheduleForceBottom = () => {
+        requestAnimationFrame(() => {
+            forceConversationBottom();
+            requestAnimationFrame(forceConversationBottom);
+        });
+    };
+
+    scheduleForceBottom();
+    setTimeout(scheduleForceBottom, 60);
+    setTimeout(scheduleForceBottom, 180);
+    setTimeout(scheduleForceBottom, 360);
+
+    window.addEventListener('load', scheduleForceBottom);
+    window.addEventListener('pageshow', scheduleForceBottom);
+    window.addEventListener('resize', scheduleForceBottom);
+
+    chatPane.querySelectorAll('img, video').forEach((media) => {
+        media.addEventListener('load', scheduleForceBottom, { once: true });
+        media.addEventListener('loadedmetadata', scheduleForceBottom, { once: true });
+    });
+});
+</script>
 @endpush
 
 

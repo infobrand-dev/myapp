@@ -9,6 +9,8 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -38,15 +40,15 @@ class SubmitTemplateToMeta implements ShouldQueue
         $businessId = $instance->cloud_business_account_id;
         $token = $instance->cloud_token;
         $base = rtrim(config('services.wa_cloud.base_url', 'https://graph.facebook.com/v22.0'), '/');
+        $appId = trim((string) data_get($instance->settings, 'wa_cloud_app_id', config('services.wa_cloud.app_id', '')));
 
         if (!$businessId || !$token) {
             $template?->update(['status' => 'rejected', 'last_submit_error' => 'Missing business_id/token']);
             return;
         }
 
-        $payload = $this->buildPayload($template);
-
         try {
+            $payload = $this->buildPayload($template, $token, $base, $appId);
             $response = Http::withToken($token)->post("{$base}/{$businessId}/message_templates", $payload);
             if ($response->successful()) {
                 $template->update([
@@ -70,10 +72,11 @@ class SubmitTemplateToMeta implements ShouldQueue
         }
     }
 
-    private function buildPayload(WATemplate $template): array
+    private function buildPayload(WATemplate $template, string $token, string $base, string $appId): array
     {
         $components = [];
-        $tplComponents = collect($template->components ?? []);
+        $storedComponents = (array) ($template->components ?? []);
+        $tplComponents = collect($storedComponents);
         $variableMappings = (array) ($template->variable_mappings ?? []);
 
         // HEADER
@@ -90,7 +93,10 @@ class SubmitTemplateToMeta implements ShouldQueue
                     ];
                 }
             } else {
-                $sampleMedia = data_get($header, 'parameters.0.handle') ?: data_get($header, 'parameters.0.link');
+                $sampleMedia = data_get($header, 'parameters.0.handle');
+                if (!$sampleMedia) {
+                    $sampleMedia = $this->uploadHeaderMediaAndStoreHandle($template, $header, $storedComponents, $token, $base, $appId);
+                }
                 if ($sampleMedia) {
                     if (!$this->looksLikeMetaHeaderHandle((string) $sampleMedia)) {
                         throw new RuntimeException('Template header media membutuhkan sample `example.header_handle` dari Resumable Upload API Meta. URL file biasa tidak valid untuk submit template.');
@@ -192,17 +198,30 @@ class SubmitTemplateToMeta implements ShouldQueue
                             'text' => data_get($btn, 'parameters.0.text'),
                         ];
                     } elseif ($sub === 'url') {
-                        $btnArray[] = [
+                        $item = [
                             'type' => 'URL',
                             'text' => data_get($btn, 'parameters.0.text'),
                             'url' => data_get($btn, 'url'),
                         ];
+                        if (data_get($btn, 'example')) {
+                            $item['example'] = [(string) data_get($btn, 'example')];
+                        }
+                        $btnArray[] = $item;
                     } elseif ($sub === 'phone_number') {
                         $btnArray[] = [
                             'type' => 'PHONE_NUMBER',
                             'text' => data_get($btn, 'parameters.0.text'),
                             'phone_number' => data_get($btn, 'phone_number'),
                         ];
+                    } elseif ($sub === 'copy_code') {
+                        $item = [
+                            'type' => 'COPY_CODE',
+                            'text' => data_get($btn, 'parameters.0.text'),
+                        ];
+                        if (data_get($btn, 'example')) {
+                            $item['example'] = (string) data_get($btn, 'example');
+                        }
+                        $btnArray[] = $item;
                     }
                 }
                 if ($btnArray) {
@@ -282,5 +301,191 @@ class SubmitTemplateToMeta implements ShouldQueue
         }
 
         return preg_match('/^\d+:/', $value) === 1 || str_starts_with($value, 'upload:');
+    }
+
+    private function uploadHeaderMediaAndStoreHandle(
+        WATemplate $template,
+        array $header,
+        array $storedComponents,
+        string $token,
+        string $base,
+        string $appId
+    ): string {
+        if ($appId === '') {
+            throw new RuntimeException('WA_CLOUD_APP_ID / META_APP_ID belum dikonfigurasi. Meta Resumable Upload API membutuhkan App ID untuk membuat header_handle.');
+        }
+
+        $media = $this->resolveHeaderMediaBinary($header);
+        $uploadSessionId = $this->createMetaUploadSession(
+            $base,
+            $appId,
+            $token,
+            $media['filename'],
+            $media['mime_type'],
+            strlen($media['contents'])
+        );
+        $handle = $this->uploadMetaUploadSessionChunk($base, $uploadSessionId, $token, $media['contents']);
+
+        foreach ($storedComponents as $componentIndex => $component) {
+            if (!is_array($component) || strtolower((string) Arr::get($component, 'type')) !== 'header') {
+                continue;
+            }
+
+            $parameters = (array) Arr::get($component, 'parameters', []);
+            if (isset($parameters[0]) && is_array($parameters[0])) {
+                $parameters[0]['handle'] = $handle;
+                $storedComponents[$componentIndex]['parameters'] = $parameters;
+                break;
+            }
+        }
+
+        $template->forceFill(['components' => $storedComponents])->save();
+
+        return $handle;
+    }
+
+    private function resolveHeaderMediaBinary(array $header): array
+    {
+        $param = (array) data_get($header, 'parameters.0', []);
+        $disk = (string) ($param['storage_disk'] ?? 'public');
+        $storagePath = trim((string) ($param['storage_path'] ?? ''));
+        $filename = trim((string) ($param['original_name'] ?? ''));
+        $mimeType = trim((string) ($param['mime_type'] ?? ''));
+
+        if ($storagePath !== '' && Storage::disk($disk)->exists($storagePath)) {
+            $contents = (string) Storage::disk($disk)->get($storagePath);
+
+            return [
+                'contents' => $contents,
+                'filename' => $filename !== '' ? $filename : basename($storagePath),
+                'mime_type' => $mimeType !== '' ? $mimeType : $this->guessMimeTypeFromFilename(basename($storagePath)),
+            ];
+        }
+
+        $link = trim((string) ($param['link'] ?? ''));
+        if ($link === '') {
+            throw new RuntimeException('Header media tidak memiliki file lokal maupun URL sumber yang bisa diunggah ke Meta.');
+        }
+
+        $localPublicPath = $this->publicStoragePathFromUrl($link);
+        if ($localPublicPath && is_file($localPublicPath)) {
+            $contents = file_get_contents($localPublicPath);
+            if ($contents === false) {
+                throw new RuntimeException('Gagal membaca file header media lokal untuk sample template.');
+            }
+
+            return [
+                'contents' => $contents,
+                'filename' => $filename !== '' ? $filename : basename($localPublicPath),
+                'mime_type' => $mimeType !== '' ? $mimeType : $this->guessMimeTypeFromFilename(basename($localPublicPath)),
+            ];
+        }
+
+        $response = Http::timeout(60)->get($link);
+        if (!$response->successful()) {
+            throw new RuntimeException('Gagal mengunduh header media sample dari URL: ' . ($response->body() ?: $response->status()));
+        }
+
+        $resolvedFilename = $filename !== '' ? $filename : basename((string) (parse_url($link, PHP_URL_PATH) ?: 'header-sample'));
+        $resolvedMime = $mimeType !== '' ? $mimeType : trim((string) $response->header('Content-Type'));
+        if ($resolvedMime === '') {
+            $resolvedMime = $this->guessMimeTypeFromFilename($resolvedFilename);
+        }
+
+        return [
+            'contents' => (string) $response->body(),
+            'filename' => $resolvedFilename,
+            'mime_type' => $resolvedMime,
+        ];
+    }
+
+    private function createMetaUploadSession(
+        string $base,
+        string $appId,
+        string $token,
+        string $filename,
+        string $mimeType,
+        int $byteLength
+    ): string {
+        $query = http_build_query([
+            'file_name' => $filename,
+            'file_length' => $byteLength,
+            'file_type' => $mimeType,
+        ]);
+
+        $response = Http::withToken($token)->post("{$base}/{$appId}/uploads?{$query}");
+        if (!$response->successful()) {
+            throw new RuntimeException('Gagal membuat upload session Meta: ' . ($response->body() ?: $response->status()));
+        }
+
+        $sessionId = trim((string) $response->json('id'));
+        if ($sessionId === '') {
+            throw new RuntimeException('Upload session Meta tidak mengembalikan id session.');
+        }
+
+        return $sessionId;
+    }
+
+    private function uploadMetaUploadSessionChunk(string $base, string $sessionId, string $token, string $contents): string
+    {
+        $response = Http::withHeaders([
+            'Authorization' => 'OAuth ' . $token,
+            'file_offset' => '0',
+        ])->withBody($contents, 'application/octet-stream')->post("{$base}/{$sessionId}");
+
+        if (!$response->successful()) {
+            throw new RuntimeException('Gagal upload media sample ke Meta: ' . ($response->body() ?: $response->status()));
+        }
+
+        $handle = trim((string) ($response->json('h') ?? ''));
+        if ($handle === '') {
+            throw new RuntimeException('Meta upload berhasil tetapi tidak mengembalikan header_handle.');
+        }
+
+        return $handle;
+    }
+
+    private function publicStoragePathFromUrl(string $url): ?string
+    {
+        $path = parse_url($url, PHP_URL_PATH);
+        if (!is_string($path) || $path === '') {
+            return null;
+        }
+
+        $path = str_replace('\\', '/', $path);
+        $marker = '/storage/';
+        $position = strpos($path, $marker);
+        if ($position === false) {
+            return null;
+        }
+
+        $relative = ltrim(substr($path, $position + strlen($marker)), '/');
+
+        return public_path('storage/' . $relative);
+    }
+
+    private function guessMimeTypeFromFilename(string $filename): string
+    {
+        $extension = strtolower((string) pathinfo($filename, PATHINFO_EXTENSION));
+
+        return match ($extension) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'webp' => 'image/webp',
+            'gif' => 'image/gif',
+            'pdf' => 'application/pdf',
+            'doc' => 'application/msword',
+            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'xls' => 'application/vnd.ms-excel',
+            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'ppt' => 'application/vnd.ms-powerpoint',
+            'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'txt' => 'text/plain',
+            'mp4' => 'video/mp4',
+            'mov' => 'video/quicktime',
+            'avi' => 'video/x-msvideo',
+            'mkv' => 'video/x-matroska',
+            default => 'application/octet-stream',
+        };
     }
 }

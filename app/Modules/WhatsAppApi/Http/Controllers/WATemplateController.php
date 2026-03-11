@@ -150,7 +150,7 @@ class WATemplateController extends Controller
             'buttons' => ['nullable', 'array'],
             'buttons.*.type' => ['nullable', 'in:quick_reply,url,phone_number,copy_code'],
             'buttons.*.label' => ['nullable', 'string', 'max:25'],
-            'buttons.*.url' => ['nullable', 'url', 'max:2000'],
+            'buttons.*.url' => ['nullable', 'string', 'max:2000'],
             'buttons.*.phone_number' => ['nullable', 'regex:/^\+?[1-9]\d{6,14}$/'],
             'buttons.*.example' => ['nullable', 'string', 'max:255'],
 
@@ -158,7 +158,7 @@ class WATemplateController extends Controller
             'qr_label' => ['array'],
             'qr_label.*' => ['nullable', 'string', 'max:25'],
             'cta_url_label' => ['nullable', 'string', 'max:25'],
-            'cta_url_value' => ['nullable', 'url'],
+            'cta_url_value' => ['nullable', 'string', 'max:2000'],
             'cta_phone_label' => ['nullable', 'string', 'max:25'],
             'cta_phone_value' => ['nullable', 'regex:/^\+?[1-9]\d{6,14}$/'],
             'button_mode' => ['nullable', 'in:none,quick_reply,cta'],
@@ -200,13 +200,7 @@ class WATemplateController extends Controller
             $this->validateHeaderMediaFile($request->file('header_media_file'), (string) ($data['header_type'] ?? 'none'));
         }
 
-        if ((string) $request->input('action') === 'submit'
-            && in_array((string) ($data['header_type'] ?? 'none'), ['image', 'document', 'video'], true)) {
-            throw ValidationException::withMessages([
-                'header_media_file' => 'Template dengan media header butuh sample Meta `header_handle` dari Resumable Upload API. Modul ini belum bisa generate handle otomatis dari file/URL saat submit.',
-            ]);
-        }
-
+        $this->validateCategorySpecificRules($data, $request);
         $this->validateButtons($request);
 
         return $data;
@@ -261,6 +255,7 @@ class WATemplateController extends Controller
 
             if ($button['type'] === 'URL') {
                 $urlCount++;
+                $this->assertValidMetaUrlButton((string) ($button['url'] ?? ''), "buttons.{$i}.url");
                 preg_match_all('/\{\{(\d+)\}\}/', (string) ($button['url'] ?? ''), $matches);
                 $urlVars = array_values(array_unique($matches[1] ?? []));
                 if (count($urlVars) > 1) {
@@ -318,6 +313,36 @@ class WATemplateController extends Controller
         }
     }
 
+    private function validateCategorySpecificRules(array $data, Request $request): void
+    {
+        $category = strtolower((string) ($data['category'] ?? 'utility'));
+        if ($category !== 'authentication') {
+            return;
+        }
+
+        $headerType = strtolower((string) ($data['header_type'] ?? 'none'));
+        if (in_array($headerType, ['image', 'document', 'video'], true)) {
+            throw ValidationException::withMessages([
+                'header_type' => 'Template authentication yang didukung modul ini tidak mendukung media header.',
+            ]);
+        }
+
+        $buttons = $this->extractButtons($request);
+        if (count($buttons) > 1) {
+            throw ValidationException::withMessages([
+                'buttons' => 'Template authentication yang didukung modul ini maksimal 1 tombol.',
+            ]);
+        }
+
+        foreach ($buttons as $index => $button) {
+            if (($button['type'] ?? '') !== 'COPY_CODE') {
+                throw ValidationException::withMessages([
+                    "buttons.{$index}.type" => 'Template authentication pada modul ini saat ini hanya mendukung tombol Copy Code.',
+                ]);
+            }
+        }
+    }
+
     private function buildComponents(Request $request): ?array
     {
         $components = [];
@@ -332,9 +357,22 @@ class WATemplateController extends Controller
             ];
         } elseif (in_array($headerType, ['image', 'document', 'video'], true)) {
             $mediaParam = [];
-            $mediaUrl = $this->resolveHeaderMediaUrl($request);
+            $storedPath = $this->resolveStoredHeaderMediaPath($request);
+            $mediaUrl = $storedPath ? asset('storage/' . ltrim($storedPath, '/')) : $this->resolveHeaderMediaUrl($request);
+            /** @var UploadedFile|null $uploadedFile */
+            $uploadedFile = $request->hasFile('header_media_file') ? $request->file('header_media_file') : null;
             if ($mediaUrl) {
-                $mediaParam[] = ['type' => $headerType, 'link' => $mediaUrl];
+                $param = ['type' => $headerType, 'link' => $mediaUrl];
+                if ($storedPath) {
+                    $param['storage_disk'] = 'public';
+                    $param['storage_path'] = $storedPath;
+                }
+                if ($uploadedFile) {
+                    $param['original_name'] = $uploadedFile->getClientOriginalName();
+                    $param['mime_type'] = $uploadedFile->getMimeType();
+                    $param['size'] = $uploadedFile->getSize();
+                }
+                $mediaParam[] = $param;
             }
             $components[] = [
                 'type' => 'header',
@@ -372,6 +410,19 @@ class WATemplateController extends Controller
 
         $existingUrl = trim((string) $request->input('header_media_url', ''));
         return $existingUrl !== '' ? $existingUrl : null;
+    }
+
+    private function resolveStoredHeaderMediaPath(Request $request): ?string
+    {
+        if (!$request->hasFile('header_media_file')) {
+            return null;
+        }
+
+        /** @var UploadedFile $file */
+        $file = $request->file('header_media_file');
+        $path = $file->store('wa_templates/headers/' . now()->format('Y/m'), 'public');
+
+        return $path !== '' ? ltrim(str_replace('\\', '/', $path), '/') : null;
     }
 
     private function validateHeaderMediaFile(UploadedFile $file, string $headerType): void
@@ -526,6 +577,27 @@ class WATemplateController extends Controller
         if (count($indexes) > 1) {
             throw ValidationException::withMessages([
                 'header_text' => 'Header text Meta hanya mendukung maksimal 1 placeholder.',
+            ]);
+        }
+    }
+
+    private function assertValidMetaUrlButton(string $url, string $field): void
+    {
+        $trimmed = trim($url);
+        if ($trimmed === '') {
+            return;
+        }
+
+        $sanitized = preg_replace('/\{\{\d+\}\}/', 'placeholder', $trimmed);
+        if (!is_string($sanitized) || $sanitized === '') {
+            throw ValidationException::withMessages([
+                $field => 'URL tombol tidak valid.',
+            ]);
+        }
+
+        if (filter_var($sanitized, FILTER_VALIDATE_URL) === false) {
+            throw ValidationException::withMessages([
+                $field => 'URL tombol harus berupa URL absolut yang valid. Placeholder boleh dipakai maksimal 1 kali.',
             ]);
         }
     }

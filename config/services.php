@@ -45,6 +45,7 @@ return [
 
     'wa_cloud' => [
         'base_url' => env('WA_CLOUD_BASE_URL', 'https://graph.facebook.com/v22.0'),
+        'app_id' => env('WA_CLOUD_APP_ID', env('META_APP_ID')),
         'phone_number_id' => env('WA_CLOUD_PHONE_NUMBER_ID'),
         'token' => env('WA_CLOUD_ACCESS_TOKEN'),
         'verify_token' => env('WA_CLOUD_VERIFY_TOKEN', 'changeme'),

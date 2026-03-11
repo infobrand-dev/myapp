@@ -177,6 +177,18 @@
                             <div class="text-muted small">Wajib untuk validasi signature X-Hub-Signature-256 webhook Cloud.</div>
                             @error('wa_cloud_app_secret') <div class="text-danger small">{{ $message }}</div> @enderror
                         </div>
+                        <div class="cloud-fields col-md-6">
+                            <label class="form-label">Meta App ID</label>
+                            <input
+                                type="text"
+                                name="wa_cloud_app_id"
+                                class="form-control"
+                                value="{{ old('wa_cloud_app_id', data_get($instance->settings, 'wa_cloud_app_id', '')) }}"
+                                placeholder="123456789012345"
+                            >
+                            <div class="text-muted small">Dipakai untuk Resumable Upload API saat submit template dengan media header.</div>
+                            @error('wa_cloud_app_id') <div class="text-danger small">{{ $message }}</div> @enderror
+                        </div>
                     </div>
                 </div>
             </div>
@@ -274,7 +286,7 @@
                         <hr>
                         <div class="text-muted small">
                             <div class="fw-semibold mb-1">Wajib untuk Cloud:</div>
-                            <div>Phone Number ID, WABA ID, Cloud Token, Verify Token, App Secret.</div>
+                            <div>Phone Number ID, WABA ID, Cloud Token, Verify Token, App Secret. App ID wajib jika submit template dengan media header.</div>
                         </div>
                     </div>
                 </div>

@@ -89,14 +89,26 @@ class ConversationsServiceProvider extends ServiceProvider
         $hooks = $this->app->make(HookManager::class);
 
         $hooks->register('dashboard.overview.cards', 'conversations.dashboard.card', function (): string {
-            if (!Schema::hasTable('conversations')) {
+            $user = auth()->user();
+
+            if (!$user || !Schema::hasTable('conversations')) {
                 return '';
             }
 
+            $baseQuery = Conversation::query();
+
+            if (!$user->hasAnyRole(['Super-admin', 'Admin'])) {
+                $baseQuery->where(function ($query) use ($user): void {
+                    $query->where('owner_id', $user->id)
+                        ->orWhereHas('participants', fn ($participants) => $participants->where('user_id', $user->id));
+                });
+            }
+
             $metrics = [
-                'open' => Conversation::query()->where('status', 'open')->count(),
-                'claimed' => Conversation::query()->whereNotNull('owner_id')->count(),
-                'unread' => Conversation::query()->where('unread_count', '>', 0)->sum('unread_count'),
+                'open' => (clone $baseQuery)->where('status', 'open')->count(),
+                'claimed' => (clone $baseQuery)->whereNotNull('owner_id')->count(),
+                'unread' => (clone $baseQuery)->where('unread_count', '>', 0)->sum('unread_count'),
+                'audience' => $user->hasAnyRole(['Super-admin', 'Admin']) ? 'global' : 'personal',
             ];
 
             return view('conversations::dashboard.card', compact('metrics'))->render();

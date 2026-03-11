@@ -3,9 +3,8 @@
 @section('content')
 @php
     $conversationMeta = is_array($conversation->metadata) ? $conversation->metadata : [];
-    $isSocialConversation = strtolower((string) ($conversation->channel ?? '')) === 'social_dm';
     $isWhatsAppConversation = strtolower((string) ($conversation->channel ?? '')) === 'wa_api';
-    $socialBotPaused = (bool) ($conversationMeta['auto_reply_paused'] ?? false);
+    $botPaused = (bool) ($conversationMeta['auto_reply_paused'] ?? false);
     $needsHuman = (bool) ($conversationMeta['needs_human'] ?? false);
     $handoffAt = $conversationMeta['handoff_at'] ?? null;
     $isOwner = (int) ($conversation->owner_id ?? 0) === (int) auth()->id();
@@ -13,10 +12,7 @@
     $isSuperAdmin = auth()->user()->hasRole('Super-admin');
     $canReply = $isOwner || $isParticipant || $isSuperAdmin;
     $replyDisabledMessage = 'Claim conversation atau minta owner mengundang Anda sebagai participant untuk membalas.';
-    $canResumeSocialBot = $isSocialConversation && $socialBotPaused
-        && ($isOwner || $isSuperAdmin);
-    $canPauseSocialBot = $isSocialConversation && !$socialBotPaused
-        && ($isOwner || $isSuperAdmin);
+    $hooks = app(\App\Support\HookManager::class);
 @endphp
 <style>
     .conv-dashboard {
@@ -685,18 +681,9 @@
     <div class="btn-list conv-page-actions">
         <a href="{{ route('conversations.index') }}" class="btn btn-outline-secondary">Kembali</a>
         <button type="button" class="btn btn-outline-primary d-none" id="enable-web-notif-btn">Aktifkan Notifikasi</button>
-        @if($canPauseSocialBot)
-            <form method="POST" action="{{ route('social-media.conversations.pause-bot', $conversation) }}" class="d-inline">
-                @csrf
-                <button class="btn btn-outline-warning" type="submit">Pause Bot</button>
-            </form>
-        @endif
-        @if($canResumeSocialBot)
-            <form method="POST" action="{{ route('social-media.conversations.resume-bot', $conversation) }}" class="d-inline">
-                @csrf
-                <button class="btn btn-outline-success" type="submit">Resume Bot</button>
-            </form>
-        @endif
+        @foreach($hooks->render('conversations.show.actions', ['conversation' => $conversation, 'user' => auth()->user()]) as $hookedAction)
+            {!! $hookedAction !!}
+        @endforeach
         @if($conversation->owner_id === auth()->id())
             <form method="POST" action="{{ route('conversations.release', $conversation) }}" class="d-inline">
                 @csrf
@@ -1058,11 +1045,11 @@
                         </span>
                     </div>
                 @endif
-                @if($isSocialConversation)
+                @if($needsHuman || $botPaused || $handoffAt)
                     <div class="detail-row">
-                        <span class="detail-key">Bot Mode</span>
+                        <span class="detail-key">AI Mode</span>
                         <span class="detail-value">
-                            @if($socialBotPaused)
+                            @if($botPaused)
                                 <span class="badge text-bg-warning">Paused (Need Human)</span>
                             @else
                                 <span class="badge text-bg-success">Active</span>
@@ -1170,20 +1157,24 @@
 </div>
 @endsection
 
+@php
+    $conversationShowConfig = [
+        'convId' => $conversation->id,
+        'lockedUntil' => optional($conversation->locked_until)->toIso8601String(),
+        'messagesEndpoint' => route('conversations.messages', $conversation),
+        'messagesSinceEndpoint' => route('conversations.messages.since', $conversation),
+        'markReadEndpoint' => route('conversations.read', $conversation),
+        'conversationUrl' => route('conversations.show', $conversation),
+        'csrfToken' => csrf_token(),
+        'oldestMessageId' => $oldestMessageId,
+        'latestMessageId' => $latestMessageId,
+        'hasMoreMessages' => $hasMoreMessages,
+        'startUserSearchEndpoint' => route('conversations.users.search'),
+    ];
+@endphp
+
 @push('scripts')
-<script id="conversation-show-config" type="application/json">@json([
-    'convId' => $conversation->id,
-    'lockedUntil' => optional($conversation->locked_until)->toIso8601String(),
-    'messagesEndpoint' => route('conversations.messages', $conversation),
-    'messagesSinceEndpoint' => route('conversations.messages.since', $conversation),
-    'markReadEndpoint' => route('conversations.read', $conversation),
-    'conversationUrl' => route('conversations.show', $conversation),
-    'csrfToken' => csrf_token(),
-    'oldestMessageId' => $oldestMessageId,
-    'latestMessageId' => $latestMessageId,
-    'hasMoreMessages' => $hasMoreMessages,
-    'startUserSearchEndpoint' => route('conversations.users.search'),
-])</script>
+<script id="conversation-show-config" type="application/json">{{ \Illuminate\Support\Js::from($conversationShowConfig) }}</script>
 <script src="{{ mix('js/modules/conversations/show.js') }}" defer></script>
 @endpush
 

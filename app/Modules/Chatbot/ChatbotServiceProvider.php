@@ -2,6 +2,7 @@
 
 namespace App\Modules\Chatbot;
 
+use App\Support\HookManager;
 use Illuminate\Support\ServiceProvider;
 
 class ChatbotServiceProvider extends ServiceProvider
@@ -16,5 +17,46 @@ class ChatbotServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__ . '/routes/web.php');
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'chatbot');
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
+
+        $this->registerConversationHooks();
+    }
+
+    private function registerConversationHooks(): void
+    {
+        /** @var HookManager $hooks */
+        $hooks = $this->app->make(HookManager::class);
+
+        $hooks->register('conversations.show.actions', 'chatbot.bot-actions', function (array $context): string {
+            $conversation = $context['conversation'] ?? null;
+            $user = $context['user'] ?? auth()->user();
+
+            if (!$conversation || !$user) {
+                return '';
+            }
+
+            /** @var \App\Modules\Chatbot\Services\ConversationBotManager $manager */
+            $manager = $this->app->make(\App\Modules\Chatbot\Services\ConversationBotManager::class);
+            $integration = $manager->integrationForConversation($conversation);
+
+            if (!($integration['connected'] ?? false)) {
+                return '';
+            }
+
+            $isOwner = (int) ($conversation->owner_id ?? 0) === (int) $user->id;
+            $isSuperAdmin = method_exists($user, 'hasRole') && $user->hasRole('Super-admin');
+
+            if (!$isOwner && !$isSuperAdmin) {
+                return '';
+            }
+
+            $meta = is_array($conversation->metadata) ? $conversation->metadata : [];
+            $botPaused = (bool) ($meta['auto_reply_paused'] ?? false);
+
+            return view('chatbot::conversations.actions', [
+                'conversation' => $conversation,
+                'showPause' => !$botPaused,
+                'showResume' => $botPaused,
+            ])->render();
+        });
     }
 }

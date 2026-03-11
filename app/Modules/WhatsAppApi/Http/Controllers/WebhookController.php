@@ -3,6 +3,7 @@
 namespace App\Modules\WhatsAppApi\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Chatbot\Services\ConversationBotManager;
 use App\Modules\Conversations\Events\ConversationMessageCreated;
 use App\Modules\Conversations\Jobs\GenerateAiReply;
 use App\Modules\Conversations\Models\Conversation;
@@ -523,15 +524,7 @@ class WebhookController extends Controller
 
     private function markConversationHandoff(Conversation $conversation, string $reason): void
     {
-        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
-        $metadata['needs_human'] = true;
-        $metadata['auto_reply_paused'] = true;
-        $metadata['handoff_reason'] = $reason;
-        $metadata['handoff_at'] = now()->toDateTimeString();
-
-        $conversation->update([
-            'metadata' => $metadata,
-        ]);
+        app(ConversationBotManager::class)->pause($conversation, $reason);
     }
 
     private function sendHumanHandoffAcknowledgement(Conversation $conversation): void

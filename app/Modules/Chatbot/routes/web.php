@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Modules\Chatbot\Http\Controllers\ChatbotAccountController;
+use App\Modules\Chatbot\Http\Controllers\ConversationBotController;
 use App\Modules\Chatbot\Http\Controllers\ChatbotKnowledgeController;
 use App\Modules\Chatbot\Http\Controllers\ChatbotPlaygroundController;
 
@@ -24,4 +25,8 @@ Route::middleware(['web', 'auth'])
         Route::post('playground/send', [ChatbotPlaygroundController::class, 'send'])
             ->middleware('throttle:20,1')
             ->name('playground.send');
+        Route::post('conversations/{conversation}/pause-bot', [ConversationBotController::class, 'pause'])
+            ->name('conversations.pause-bot');
+        Route::post('conversations/{conversation}/resume-bot', [ConversationBotController::class, 'resume'])
+            ->name('conversations.resume-bot');
     });

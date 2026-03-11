@@ -5,12 +5,12 @@ namespace App\Modules\SocialMedia\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
+use App\Modules\Chatbot\Services\ConversationBotManager;
 use App\Modules\SocialMedia\Models\SocialAccount;
 use App\Modules\SocialMedia\Models\SocialAccountChatbotIntegration;
 use App\Modules\Conversations\Jobs\GenerateAiReply;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -200,33 +200,7 @@ class SocialWebhookController extends Controller
 
     private function markConversationHandoff(Conversation $conversation, string $reason): void
     {
-        self::pauseBotForConversation($conversation, $reason);
-    }
-
-    public static function pauseBotForConversation(Conversation $conversation, string $reason = 'manual_pause'): void
-    {
-        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
-        $metadata['needs_human'] = true;
-        $metadata['auto_reply_paused'] = true;
-        $metadata['handoff_reason'] = $reason;
-        $metadata['handoff_at'] = now()->toDateTimeString();
-
-        $conversation->update([
-            'metadata' => $metadata,
-        ]);
-    }
-
-    public static function resumeBotForConversation(Conversation $conversation): void
-    {
-        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
-        Arr::set($metadata, 'needs_human', false);
-        Arr::set($metadata, 'auto_reply_paused', false);
-        Arr::set($metadata, 'handoff_resumed_at', now()->toDateTimeString());
-        Arr::forget($metadata, ['handoff_reason', 'handoff_at']);
-
-        $conversation->update([
-            'metadata' => $metadata,
-        ]);
+        app(ConversationBotManager::class)->pause($conversation, $reason);
     }
 }
 

@@ -4,7 +4,7 @@
   "description": "Akun AI chatbot untuk automasi balasan.",
   "provider": "App\\Modules\\Chatbot\\ChatbotServiceProvider",
   "version": "1.0.0",
-  "requires": [],
+  "requires": ["conversations"],
   "navigation": [
     { "label": "Chatbot", "route": "chatbot.playground.index" }
   ]

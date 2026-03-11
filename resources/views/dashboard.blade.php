@@ -85,7 +85,11 @@
                             {{ auth()->user()->name }}, sistem siap dipakai hari ini.
                         </h1>
                         <p class="mb-0" style="max-width: 46rem; color: var(--db-muted); font-size: 1rem;">
-                            Ringkasan ini menampilkan kondisi inti aplikasi, modul yang sedang aktif, dan widget tambahan dari module yang memang terpasang. Core dashboard tetap bersih; data module masuk lewat inject widget.
+                            @if($isPrivileged)
+                                Ringkasan ini menampilkan kondisi inti aplikasi, modul yang sedang aktif, dan widget tambahan dari module yang memang terpasang. Core dashboard tetap bersih; data module masuk lewat inject widget.
+                            @else
+                                Ringkasan ini fokus ke workspace Anda sendiri: akses fitur yang tersedia, status akun, dan widget tambahan dari module aktif yang relevan untuk user saat ini.
+                            @endif
                         </p>
                     </div>
                     <div class="col-lg-4">
@@ -144,10 +148,10 @@
             <div class="dashboard-panel p-3 p-lg-4 h-100">
                 <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
                     <div>
-                        <div class="text-secondary text-uppercase small fw-bold">Recent Users</div>
-                        <h3 class="mb-0">Latest activity in core accounts</h3>
+                        <div class="text-secondary text-uppercase small fw-bold">{{ $isPrivileged ? 'Recent Users' : 'Your Account' }}</div>
+                        <h3 class="mb-0">{{ $isPrivileged ? 'Latest activity in core accounts' : 'Personal workspace summary' }}</h3>
                     </div>
-                    <span class="dashboard-chip">{{ $recentUsers->count() }} latest records</span>
+                    <span class="dashboard-chip">{{ $isPrivileged ? $recentUsers->count() . ' latest records' : 'Private overview' }}</span>
                 </div>
 
                 <div class="d-grid gap-2">
@@ -163,11 +167,13 @@
                                         <div class="text-muted small text-truncate">{{ $recentUser->email }}</div>
                                     </div>
                                 </div>
-                                <div class="text-muted small text-nowrap">{{ optional($recentUser->created_at)->diffForHumans() }}</div>
+                                <div class="text-muted small text-nowrap">
+                                    {{ $isPrivileged ? optional($recentUser->created_at)->diffForHumans() : (auth()->user()->email_verified_at ? 'Verified' : 'Verification pending') }}
+                                </div>
                             </div>
                         </div>
                     @empty
-                        <div class="text-muted">Belum ada data user.</div>
+                        <div class="text-muted">{{ $isPrivileged ? 'Belum ada data user.' : 'Data akun belum tersedia.' }}</div>
                     @endforelse
                 </div>
             </div>
@@ -177,8 +183,8 @@
             <div class="dashboard-panel p-3 p-lg-4 h-100">
                 <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
                     <div>
-                        <div class="text-secondary text-uppercase small fw-bold">Active Modules</div>
-                        <h3 class="mb-0">Live product surface</h3>
+                        <div class="text-secondary text-uppercase small fw-bold">{{ $isPrivileged ? 'Active Modules' : 'Available Modules' }}</div>
+                        <h3 class="mb-0">{{ $isPrivileged ? 'Live product surface' : 'Features available in your workspace' }}</h3>
                     </div>
                     <span class="dashboard-chip">{{ $moduleHighlights->count() }} visible</span>
                 </div>
@@ -198,7 +204,11 @@
                             </div>
                         </div>
                     @empty
-                        <div class="text-muted">Belum ada module aktif. Aktifkan module lewat menu Modules untuk menampilkan widget tambahan.</div>
+                        <div class="text-muted">
+                            {{ $isPrivileged
+                                ? 'Belum ada module aktif. Aktifkan module lewat menu Modules untuk menampilkan widget tambahan.'
+                                : 'Belum ada module aktif yang tersedia untuk akun ini.' }}
+                        </div>
                     @endforelse
                 </div>
             </div>

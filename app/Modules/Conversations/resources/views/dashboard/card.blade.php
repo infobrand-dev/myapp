@@ -14,7 +14,11 @@
             <div>
                 <div class="text-secondary text-uppercase small fw-bold">Conversations</div>
                 <div class="mt-2 fw-bold" style="font-size: 2rem; line-height: 1; color: var(--db-ink);">{{ $metrics['unread'] ?? 0 }}</div>
-                <div class="text-muted small mt-2">Unread items across active inbox data.</div>
+                <div class="text-muted small mt-2">
+                    {{ ($metrics['audience'] ?? 'global') === 'global'
+                        ? 'Unread items across active inbox data.'
+                        : 'Unread items in conversations assigned or shared with you.' }}
+                </div>
             </div>
             <span class="badge bg-red-lt text-red">Live</span>
         </div>

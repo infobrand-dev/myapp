@@ -1,12 +1,14 @@
-<aside class="navbar navbar-vertical navbar-expand-lg border-end" style="min-height: 100vh;">
-    <div class="container-fluid">
-        <div class="sidebar-brand-wrap d-flex align-items-center justify-content-between w-100 px-1 py-3 border-bottom">
-            <a href="{{ route('dashboard') }}" class="navbar-brand sidebar-brand mb-0 text-decoration-none">MyApp</a>
-            <button type="button" class="btn btn-outline-secondary btn-sm d-lg-none mobile-nav-toggle" id="mobile-nav-close" aria-label="Close menu">
-                <i class="ti ti-x" aria-hidden="true"></i>
-            </button>
-        </div>
-        <ul class="navbar-nav pt-lg-3">
+<aside class="navbar navbar-vertical navbar-expand-lg border-end offcanvas-lg offcanvas-start" id="app-sidebar" tabindex="-1" aria-labelledby="app-sidebar-label">
+    <div class="offcanvas-header d-lg-none">
+        <a href="{{ route('dashboard') }}" class="navbar-brand sidebar-brand mb-0 text-decoration-none" id="app-sidebar-label">MyApp</a>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#app-sidebar" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body p-0">
+        <div class="container-fluid">
+            <div class="sidebar-brand-wrap d-none d-lg-flex align-items-center justify-content-between w-100 px-1 py-3 border-bottom">
+                <a href="{{ route('dashboard') }}" class="navbar-brand sidebar-brand mb-0 text-decoration-none">MyApp</a>
+            </div>
+            <ul class="navbar-nav pt-lg-3">
             <li class="nav-item">
                 <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('dashboard') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('dashboard') }}">
                     <span class="nav-link-icon">
@@ -212,6 +214,7 @@
                     </li>
                 @endif
             @endforeach
-        </ul>
+            </ul>
+        </div>
     </div>
 </aside>

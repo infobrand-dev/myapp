@@ -68,86 +68,98 @@
             margin-bottom: .35rem;
         }
         .mobile-nav-toggle {
-            width: 2rem;
-            height: 2rem;
+            width: 2.5rem;
+            height: 2.5rem;
             padding: 0;
             display: inline-flex;
             align-items: center;
             justify-content: center;
         }
-        .sidebar-backdrop {
-            display: none;
+        .mobile-topbar {
+            backdrop-filter: blur(14px);
+            background: color-mix(in srgb, var(--tblr-bg-surface, #fff) 88%, transparent);
+        }
+        .mobile-topbar-brand {
+            font-size: .95rem;
+            font-weight: 700;
+            letter-spacing: .01em;
+            color: inherit;
+            text-decoration: none;
+        }
+        .app-shell {
+            min-height: 100vh;
+        }
+        #app-sidebar {
+            --bs-offcanvas-width: min(84vw, 320px);
         }
         @media (max-width: 991.98px) {
-            .page-wrapper > .navbar {
+            .mobile-topbar {
                 position: sticky;
                 top: 0;
                 z-index: 1030;
-                background: var(--tblr-bg-surface, #fff);
                 border-bottom: 1px solid rgba(74, 96, 126, 0.14);
-                min-height: 3.25rem;
+                min-height: 3.5rem;
             }
             .page-body {
-                padding-top: .7rem;
+                padding-top: .85rem;
             }
             .page-body > .container-xl {
                 padding-left: .75rem;
                 padding-right: .75rem;
             }
-            .page > aside.navbar-vertical {
-                position: fixed;
-                top: 0;
-                left: 0;
-                bottom: 0;
-                width: min(78vw, 300px);
-                z-index: 1045;
-                transform: translateX(-100%);
-                transition: transform .2s ease-in-out;
-                background: var(--tblr-bg-surface, #fff);
-                overflow-y: auto;
-                box-shadow: 0 10px 30px rgba(15, 23, 42, 0.2);
+            #app-sidebar {
+                border-right: 0 !important;
+                box-shadow: 0 18px 40px rgba(15, 23, 42, 0.2);
             }
-            .page > aside.navbar-vertical .container-fluid {
+            #app-sidebar .offcanvas-header {
+                padding: 1rem .9rem .75rem;
+                border-bottom: 1px solid rgba(74, 96, 126, 0.12);
+            }
+            #app-sidebar .offcanvas-body {
+                padding: 0;
+            }
+            #app-sidebar .container-fluid {
                 padding-left: .7rem;
                 padding-right: .7rem;
             }
-            .page > aside.navbar-vertical .navbar-nav {
+            #app-sidebar .navbar-nav {
                 padding-top: .15rem !important;
+                padding-bottom: .9rem;
             }
-            .page > aside.navbar-vertical .nav-item {
+            #app-sidebar .nav-item {
                 margin-top: .15rem;
             }
-            .page > aside.navbar-vertical .nav-link {
+            #app-sidebar .nav-link {
                 padding-left: .7rem !important;
                 padding-right: .7rem !important;
-                min-height: 2.2rem;
+                min-height: 2.45rem;
                 gap: .55rem !important;
                 align-items: center !important;
                 border-radius: .55rem !important;
                 white-space: normal;
                 line-height: 1.2;
             }
-            .page > aside.navbar-vertical .nav-link .nav-link-icon,
-            .page > aside.navbar-vertical .nav-link .icon {
+            #app-sidebar .nav-link .nav-link-icon,
+            #app-sidebar .nav-link .icon {
                 width: 1.1rem;
                 min-width: 1.1rem;
                 margin-top: 0;
             }
-            .page > aside.navbar-vertical .nav-link .nav-link-title {
+            #app-sidebar .nav-link .nav-link-title {
                 display: block;
                 overflow-wrap: anywhere;
                 word-break: break-word;
             }
-            .page > aside.navbar-vertical .badge {
+            #app-sidebar .badge {
                 margin-left: auto !important;
                 font-size: .68rem;
                 line-height: 1.1;
             }
-            .page > aside.navbar-vertical .dropdown-menu {
+            #app-sidebar .dropdown-menu {
                 margin-left: 0 !important;
                 padding: .15rem 0 .2rem .45rem !important;
             }
-            .page > aside.navbar-vertical .dropdown-item {
+            #app-sidebar .dropdown-item {
                 border-radius: .45rem;
                 white-space: normal;
                 overflow-wrap: anywhere;
@@ -155,7 +167,7 @@
                 padding-top: .36rem;
                 padding-bottom: .36rem;
             }
-            .page > aside.navbar-vertical .text-uppercase {
+            #app-sidebar .text-uppercase {
                 font-size: .68rem !important;
                 letter-spacing: .05em;
             }
@@ -163,42 +175,50 @@
                 min-width: 0;
                 width: 100%;
             }
-            body.sidebar-open .page > aside.navbar-vertical {
-                transform: translateX(0);
+            .mobile-topbar .btn-outline-secondary {
+                --tblr-btn-bg: transparent;
+                --tblr-btn-border-color: rgba(74, 96, 126, 0.2);
+                --tblr-btn-hover-bg: rgba(var(--tblr-primary-rgb), 0.08);
             }
-            .sidebar-backdrop {
-                position: fixed;
-                inset: 0;
-                background: rgba(15, 23, 42, 0.36);
-                z-index: 1040;
+        }
+        @media (min-width: 992px) {
+            #app-sidebar {
+                position: sticky;
+                top: 0;
+                align-self: flex-start;
+                min-height: 100vh;
             }
-            body.sidebar-open .sidebar-backdrop {
-                display: block;
-            }
-            body.sidebar-open {
-                overflow: hidden;
+            .mobile-topbar {
+                display: none;
             }
         }
     </style>
 </head>
 <body class="bg-body">
-    <div class="page">
+    <div class="page app-shell">
         @include('shared.sidebar')
-        <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
         <div class="page-wrapper">
-            <header class="navbar navbar-expand-md">
+            <header class="navbar navbar-expand-md mobile-topbar d-lg-none">
                 <div class="container-fluid">
-                    <div class="d-flex align-items-center gap-2 d-lg-none">
-                        <button type="button" class="btn btn-outline-secondary mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Open menu">
+                    <div class="d-flex align-items-center gap-3 w-100">
+                        <button
+                            type="button"
+                            class="btn btn-outline-secondary mobile-nav-toggle"
+                            data-bs-toggle="offcanvas"
+                            data-bs-target="#app-sidebar"
+                            aria-controls="app-sidebar"
+                            aria-label="Open menu"
+                        >
                             <i class="ti ti-menu-2" aria-hidden="true"></i>
                         </button>
-                    </div>
-                    <div class="d-flex align-items-center gap-3 ms-auto">
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-                            <button class="btn btn-sm btn-outline-primary" type="submit">Logout</button>
-                        </form>
+                        <a href="{{ route('dashboard') }}" class="mobile-topbar-brand">MyApp</a>
+                        <div class="ms-auto">
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button class="btn btn-sm btn-outline-primary" type="submit">Logout</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -309,34 +329,16 @@
         document.addEventListener('visibilitychange', handleVisibility);
         handleVisibility();
 
-        // Mobile sidebar toggle
-        const sidebarToggleBtn = document.getElementById('mobile-nav-toggle');
-        const sidebarCloseBtn = document.getElementById('mobile-nav-close');
-        const sidebarBackdrop = document.getElementById('sidebar-backdrop');
-        const sidebarEl = document.querySelector('.page > aside.navbar-vertical');
-        const closeSidebar = () => document.body.classList.remove('sidebar-open');
-        const openSidebar = () => document.body.classList.add('sidebar-open');
-
-        sidebarToggleBtn?.addEventListener('click', () => {
-            if (document.body.classList.contains('sidebar-open')) {
-                closeSidebar();
-            } else {
-                openSidebar();
-            }
-        });
-        sidebarCloseBtn?.addEventListener('click', closeSidebar);
-        sidebarBackdrop?.addEventListener('click', closeSidebar);
+        const sidebarEl = document.getElementById('app-sidebar');
         sidebarEl?.querySelectorAll('a.nav-link, a.dropdown-item').forEach((a) => {
             a.addEventListener('click', () => {
-                if (window.matchMedia('(max-width: 991.98px)').matches) {
-                    closeSidebar();
+                if (!window.matchMedia('(max-width: 991.98px)').matches) {
+                    return;
                 }
+
+                const sidebarInstance = window.bootstrap?.Offcanvas.getInstance(sidebarEl);
+                sidebarInstance?.hide();
             });
-        });
-        window.addEventListener('resize', () => {
-            if (!window.matchMedia('(max-width: 991.98px)').matches) {
-                closeSidebar();
-            }
         });
     </script>
     @stack('scripts')

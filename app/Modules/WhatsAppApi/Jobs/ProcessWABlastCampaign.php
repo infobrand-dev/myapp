@@ -2,6 +2,10 @@
 
 namespace App\Modules\WhatsAppApi\Jobs;
 
+use App\Modules\Conversations\Events\ConversationMessageCreated;
+use App\Modules\Conversations\Models\Conversation;
+use App\Modules\Conversations\Models\ConversationMessage;
+use App\Modules\Conversations\Models\ConversationParticipant;
 use App\Modules\WhatsAppApi\Models\WABlastCampaign;
 use App\Modules\WhatsAppApi\Models\WABlastRecipient;
 use App\Modules\WhatsAppApi\Models\WATemplate;
@@ -127,13 +131,23 @@ class ProcessWABlastCampaign implements ShouldQueue
 
             $response = $this->sendTemplate($instance, $recipient->phone_number, $template, $payload['components']);
             $success = $response->successful();
+            $externalMessageId = $response->json('messages.0.id');
             $errorMessage = $success ? null : mb_substr("Cloud API {$response->status()}: " . $response->body(), 0, 65535);
 
             $recipient->update([
                 'status' => $success ? 'sent' : 'failed',
                 'sent_at' => $success ? now() : null,
+                'message_id' => null,
                 'error_message' => $errorMessage,
             ]);
+
+            if ($success) {
+                $message = $this->syncConversationForBlast($campaign, $recipient, $template, $payload['components'], $externalMessageId);
+                $recipient->update([
+                    'conversation_id' => $message?->conversation_id,
+                    'message_id' => $message?->id,
+                ]);
+            }
         } catch (Throwable $e) {
             $recipient->update([
                 'status' => 'failed',
@@ -253,5 +267,102 @@ class ProcessWABlastCampaign implements ShouldQueue
         return Http::withToken($token)
             ->timeout(20)
             ->post($url, $payload);
+    }
+
+    private function syncConversationForBlast(
+        WABlastCampaign $campaign,
+        WABlastRecipient $recipient,
+        WATemplate $template,
+        array $components,
+        ?string $externalMessageId
+    ): ?ConversationMessage {
+        if (!class_exists(Conversation::class) || !class_exists(ConversationMessage::class)) {
+            return null;
+        }
+
+        $instanceKey = $campaign->instance_id ?: 0;
+        $ownerId = (int) ($campaign->created_by ?? 0) ?: null;
+        $now = now();
+
+        $conversation = Conversation::firstOrCreate(
+            [
+                'channel' => 'wa_api',
+                'instance_id' => $instanceKey,
+                'contact_external_id' => $recipient->phone_number,
+            ],
+            [
+                'contact_name' => $recipient->contact_name,
+                'status' => 'open',
+                'owner_id' => $ownerId,
+                'claimed_at' => $ownerId ? $now : null,
+                'locked_until' => $ownerId ? $now->copy()->addMinutes((int) config('conversations.lock_minutes', 30)) : null,
+                'last_message_at' => $now,
+                'last_outgoing_at' => $now,
+                'unread_count' => 0,
+                'metadata' => [
+                    'source' => 'wa_blast',
+                    'last_blast_campaign_id' => $campaign->id,
+                ],
+            ]
+        );
+
+        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
+        $metadata['source'] = $metadata['source'] ?? 'wa_blast';
+        $metadata['last_blast_campaign_id'] = $campaign->id;
+
+        $updates = [
+            'contact_name' => $conversation->contact_name ?: $recipient->contact_name,
+            'last_message_at' => $now,
+            'last_outgoing_at' => $now,
+            'metadata' => $metadata,
+        ];
+
+        if ($ownerId && !$conversation->owner_id) {
+            $updates['owner_id'] = $ownerId;
+            $updates['claimed_at'] = $conversation->claimed_at ?: $now;
+            $updates['locked_until'] = $now->copy()->addMinutes((int) config('conversations.lock_minutes', 30));
+        }
+
+        $conversation->update($updates);
+
+        if ($ownerId && class_exists(ConversationParticipant::class)) {
+            ConversationParticipant::firstOrCreate(
+                ['conversation_id' => $conversation->id, 'user_id' => $ownerId],
+                ['role' => 'owner', 'invited_by' => $ownerId, 'invited_at' => $now]
+            );
+        }
+
+        if ($externalMessageId) {
+            $message = ConversationMessage::query()
+                ->where('conversation_id', $conversation->id)
+                ->where('external_message_id', $externalMessageId)
+                ->first();
+
+            if ($message) {
+                return $message;
+            }
+        }
+
+        $message = ConversationMessage::create([
+            'conversation_id' => $conversation->id,
+            'user_id' => $ownerId,
+            'direction' => 'out',
+            'type' => 'template',
+            'body' => $template->body ?: $template->name,
+            'status' => 'sent',
+            'external_message_id' => $externalMessageId,
+            'payload' => [
+                'name' => $template->name,
+                'language' => $template->language,
+                'components' => $components,
+                'blast_campaign_id' => $campaign->id,
+                'blast_recipient_id' => $recipient->id,
+            ],
+            'sent_at' => $now,
+        ]);
+
+        event(new ConversationMessageCreated($message));
+
+        return $message;
     }
 }

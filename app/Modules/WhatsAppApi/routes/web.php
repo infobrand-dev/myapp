@@ -28,6 +28,7 @@ Route::middleware(['web', 'auth'])
             Route::match(['post', 'put', 'patch'], 'instances/{instance}/save-and-sync-templates', [InstanceController::class, 'saveAndSyncTemplates'])->name('instances.save-and-sync-templates');
             Route::resource('instances', InstanceController::class)->except(['show']);
             Route::resource('templates', WATemplateController::class)->except(['show']);
+            Route::post('templates/refresh-statuses', [WATemplateController::class, 'refreshStatuses'])->name('templates.refresh-statuses');
             Route::post('templates/{template}/submit', [WATemplateController::class, 'submit'])->name('templates.submit');
             Route::get('blast-campaigns', [BlastCampaignController::class, 'index'])->name('blast-campaigns.index');
             Route::get('blast-campaigns/create', [BlastCampaignController::class, 'create'])->name('blast-campaigns.create');

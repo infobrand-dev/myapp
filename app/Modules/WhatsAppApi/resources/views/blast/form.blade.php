@@ -140,6 +140,19 @@
 </div>
 @endsection
 
+@php
+    $templatePayload = $templates->map(function ($template) {
+        return [
+            'id' => $template->id,
+            'placeholders' => \App\Modules\WhatsAppApi\Support\TemplateVariableResolver::placeholderIndexes(
+                $template->body,
+                \App\Modules\WhatsAppApi\Support\TemplateVariableResolver::headerText($template)
+            ),
+            'variable_mappings' => $template->variable_mappings ?? [],
+        ];
+    })->values();
+@endphp
+
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -153,16 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const applyFilterBtn = document.getElementById('apply-filter');
     const matchesBadge = document.getElementById('matches-badge');
     const csrfToken = document.querySelector('input[name="_token"]')?.value;
-    const templates = @json(
-        $templates->map(fn ($template) => [
-            'id' => $template->id,
-            'placeholders' => \App\Modules\WhatsAppApi\Support\TemplateVariableResolver::placeholderIndexes(
-                $template->body,
-                \App\Modules\WhatsAppApi\Support\TemplateVariableResolver::headerText($template)
-            ),
-            'variable_mappings' => $template->variable_mappings ?? [],
-        ])->values()
-    );
+    const templates = @json($templatePayload);
     if (!instanceSelect || !templateSelect) return;
 
     const describeTemplate = () => {

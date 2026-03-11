@@ -9,6 +9,7 @@ use App\Modules\Conversations\Jobs\GenerateAiReply;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\WhatsAppApi\Jobs\SendWhatsAppMessage;
+use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstanceChatbotIntegration;
 use App\Modules\WhatsAppApi\Models\WhatsAppWebhookEvent;
@@ -252,16 +253,23 @@ class WebhookController extends Controller
     private function handleCloudPayload(array $payload, Request $request, WhatsAppWebhookEvent $event): array
     {
         $matchedInstance = false;
-        $unmatchedPhoneIds = [];
+        $unmatchedTargets = [];
 
         foreach ((array) ($payload['entry'] ?? []) as $entry) {
             foreach ((array) ($entry['changes'] ?? []) as $change) {
                 $value = (array) ($change['value'] ?? []);
-                $instance = $this->resolveCloudInstance($value);
+                $instance = $this->resolveCloudInstance($value, (array) $entry, (array) $change);
                 if (!$instance) {
                     $candidatePhoneId = (string) Arr::get($value, 'metadata.phone_number_id', '');
+                    $candidateBusinessId = (string) (
+                        Arr::get($entry, 'id', '')
+                        ?: Arr::get($value, 'business_account_id', '')
+                        ?: Arr::get($value, 'waba_id', '')
+                    );
                     if ($candidatePhoneId !== '') {
-                        $unmatchedPhoneIds[] = $candidatePhoneId;
+                        $unmatchedTargets[] = 'phone_number_id:' . $candidatePhoneId;
+                    } elseif ($candidateBusinessId !== '') {
+                        $unmatchedTargets[] = 'waba_id:' . $candidateBusinessId;
                     }
                     continue;
                 }
@@ -286,13 +294,14 @@ class WebhookController extends Controller
 
                 $this->handleCloudIncomingMessages($instance, $value);
                 $this->handleCloudMessageStatuses($value);
+                $this->handleCloudTemplateStatusUpdates($instance, (array) $change, $value);
             }
         }
 
         if (!$matchedInstance) {
-            $detail = !empty($unmatchedPhoneIds)
-                ? 'phone_number_id: ' . implode(', ', array_unique($unmatchedPhoneIds))
-                : 'payload tidak mengandung metadata.phone_number_id yang dikenali';
+            $detail = !empty($unmatchedTargets)
+                ? implode(', ', array_unique($unmatchedTargets))
+                : 'payload tidak mengandung target instance cloud yang dikenali';
 
             return [
                 'ok' => false,
@@ -308,11 +317,24 @@ class WebhookController extends Controller
         ];
     }
 
-    private function resolveCloudInstance(array $value): ?WhatsAppInstance
+    private function resolveCloudInstance(array $value, array $entry = [], array $change = []): ?WhatsAppInstance
     {
         $phoneNumberId = (string) Arr::get($value, 'metadata.phone_number_id', '');
         if ($phoneNumberId === '') {
-            return null;
+            $businessId = (string) (
+                Arr::get($entry, 'id', '')
+                ?: Arr::get($value, 'business_account_id', '')
+                ?: Arr::get($value, 'waba_id', '')
+                ?: Arr::get($change, 'value.business_account_id', '')
+            );
+
+            if ($businessId === '') {
+                return null;
+            }
+
+            return WhatsAppInstance::where('provider', 'cloud')
+                ->where('cloud_business_account_id', $businessId)
+                ->first();
         }
 
         return WhatsAppInstance::where('provider', 'cloud')
@@ -620,6 +642,135 @@ class WebhookController extends Controller
                 ]);
             }
         }
+    }
+
+    private function handleCloudTemplateStatusUpdates(WhatsAppInstance $instance, array $change, array $value): void
+    {
+        $field = strtolower((string) Arr::get($change, 'field', ''));
+        $items = (array) ($value['statuses'] ?? []);
+        if (empty($items) && !empty($value)) {
+            $items = [$value];
+        }
+
+        foreach ($items as $statusItem) {
+            if (!is_array($statusItem)) {
+                continue;
+            }
+
+            $type = strtolower((string) Arr::get($statusItem, 'type', $field));
+            if ($type !== 'message_template_status_update' && $field !== 'message_template_status_update') {
+                continue;
+            }
+
+            $rawStatus = strtoupper((string) (
+                Arr::get($statusItem, 'status', '')
+                ?: Arr::get($statusItem, 'event', '')
+            ));
+            if ($rawStatus === '') {
+                continue;
+            }
+
+            $template = $this->findTemplateForStatusUpdate($instance, $statusItem);
+            if (!$template) {
+                Log::info('WhatsApp template status webhook unmatched', [
+                    'instance_id' => $instance->id,
+                    'payload' => $statusItem,
+                ]);
+                continue;
+            }
+
+            $normalizedStatus = $this->normalizeTemplateStatus($rawStatus);
+            $errorDetail = $this->templateStatusErrorDetail($statusItem, $normalizedStatus);
+            $metaTemplateId = trim((string) (
+                Arr::get($statusItem, 'message_template_id', '')
+                ?: Arr::get($statusItem, 'template_id', '')
+                ?: Arr::get($statusItem, 'id', '')
+            ));
+            $templateName = trim((string) (
+                Arr::get($statusItem, 'message_template_name', '')
+                ?: Arr::get($statusItem, 'template_name', '')
+                ?: Arr::get($statusItem, 'name', '')
+            ));
+
+            $template->fill([
+                'status' => $normalizedStatus,
+                'namespace' => $instance->cloud_business_account_id ?: $template->namespace,
+                'meta_template_id' => $metaTemplateId !== '' ? $metaTemplateId : $template->meta_template_id,
+                'meta_name' => $templateName !== '' ? $templateName : $template->meta_name,
+                'last_submit_error' => $errorDetail,
+            ]);
+            $template->save();
+        }
+    }
+
+    private function findTemplateForStatusUpdate(WhatsAppInstance $instance, array $statusItem): ?WATemplate
+    {
+        $metaTemplateId = trim((string) (
+            Arr::get($statusItem, 'message_template_id', '')
+            ?: Arr::get($statusItem, 'template_id', '')
+            ?: Arr::get($statusItem, 'id', '')
+        ));
+        if ($metaTemplateId !== '') {
+            return WATemplate::query()
+                ->where('meta_template_id', $metaTemplateId)
+                ->first();
+        }
+
+        $templateName = trim((string) (
+            Arr::get($statusItem, 'message_template_name', '')
+            ?: Arr::get($statusItem, 'template_name', '')
+            ?: Arr::get($statusItem, 'name', '')
+        ));
+        $language = trim((string) (
+            Arr::get($statusItem, 'message_template_language', '')
+            ?: Arr::get($statusItem, 'template_language', '')
+            ?: Arr::get($statusItem, 'language', '')
+        ));
+
+        if ($templateName === '') {
+            return null;
+        }
+
+        return WATemplate::query()
+            ->where('namespace', $instance->cloud_business_account_id)
+            ->when($language !== '', fn ($query) => $query->where('language', $language))
+            ->where(function ($query) use ($templateName) {
+                $query->where('meta_name', $templateName)
+                    ->orWhere(function ($fallbackQuery) use ($templateName) {
+                        $fallbackQuery->whereNull('meta_name')
+                            ->where('name', $templateName);
+                    });
+            })
+            ->first();
+    }
+
+    private function normalizeTemplateStatus(string $rawStatus): string
+    {
+        return match (strtoupper($rawStatus)) {
+            'APPROVED', 'ACTIVE' => 'approved',
+            'PENDING', 'IN_APPEAL', 'PAUSED' => 'pending',
+            'REJECTED', 'DISABLED', 'DELETED' => 'rejected',
+            default => 'rejected',
+        };
+    }
+
+    private function templateStatusErrorDetail(array $statusItem, string $normalizedStatus): ?string
+    {
+        if ($normalizedStatus === 'approved') {
+            return null;
+        }
+
+        $parts = array_values(array_filter([
+            trim((string) Arr::get($statusItem, 'reason', '')),
+            trim((string) Arr::get($statusItem, 'information', '')),
+            trim((string) Arr::get($statusItem, 'rejection_reason', '')),
+        ], fn ($value) => $value !== ''));
+
+        if (empty($parts)) {
+            return null;
+        }
+
+        return mb_substr(implode(' | ', array_unique($parts)), 0, 65535);
     }
 
     private function extractIncomingMessageData(array $item): array

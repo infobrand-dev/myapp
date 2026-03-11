@@ -7,9 +7,11 @@ use App\Modules\WhatsAppApi\Jobs\SubmitTemplateToMeta;
 use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use App\Modules\WhatsAppApi\Support\TemplateVariableResolver;
+use Illuminate\Support\Arr;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -119,6 +121,43 @@ class WATemplateController extends Controller
         }
         SubmitTemplateToMeta::dispatch($template->id, $instance->id);
         return back()->with('status', 'Template masuk antrean submit. Status akan berubah pending setelah Meta menerima request.');
+    }
+
+    public function refreshStatuses(Request $request): RedirectResponse
+    {
+        if ($redirect = $this->ensureAnyInstanceExists($request)) {
+            return $redirect;
+        }
+
+        $instances = $this->connectedCloudInstances();
+        if ($instances->isEmpty()) {
+            return back()->with('status', 'Tidak ada instance Cloud dengan kredensial lengkap untuk sync template.');
+        }
+
+        $created = 0;
+        $updated = 0;
+        $fetched = 0;
+        $errors = [];
+
+        foreach ($instances as $instance) {
+            $result = $this->syncTemplatesForInstance($instance);
+            if (!($result['ok'] ?? false)) {
+                $label = $instance->name ?: ('Instance #' . $instance->id);
+                $errors[] = $label . ': ' . ($result['error'] ?? $result['message'] ?? 'Gagal sync');
+                continue;
+            }
+
+            $fetched += (int) data_get($result, 'data.fetched', 0);
+            $created += (int) data_get($result, 'data.created', 0);
+            $updated += (int) data_get($result, 'data.updated', 0);
+        }
+
+        $message = "Status template disegarkan. Fetched: {$fetched}, Created: {$created}, Updated: {$updated}.";
+        if ($errors) {
+            $message .= ' Error: ' . implode(' | ', $errors);
+        }
+
+        return redirect()->route('whatsapp-api.templates.index')->with('status', $message);
     }
 
     private function validated(Request $request): array
@@ -626,10 +665,141 @@ class WATemplateController extends Controller
             ->where('phone_number_id', '!=', '')
             ->whereNotNull('cloud_token')
             ->where('cloud_token', '!=', '')
-            ->select(['id', 'name', 'cloud_business_account_id'])
+            ->select(['id', 'name', 'phone_number_id', 'cloud_business_account_id', 'cloud_token'])
             ->orderByDesc('is_active')
             ->orderBy('name')
             ->get();
+    }
+
+    private function syncTemplatesForInstance(WhatsAppInstance $instance): array
+    {
+        $businessId = trim((string) $instance->cloud_business_account_id);
+        $cloudToken = trim((string) $instance->cloud_token);
+
+        if ($businessId === '' || $cloudToken === '') {
+            return [
+                'ok' => false,
+                'message' => 'Kredensial Cloud belum lengkap.',
+                'status' => 422,
+            ];
+        }
+
+        $base = rtrim((string) config('services.wa_cloud.base_url', 'https://graph.facebook.com/v22.0'), '/');
+        $url = "{$base}/{$businessId}/message_templates";
+
+        $created = 0;
+        $updated = 0;
+        $fetched = 0;
+        $nextAfter = null;
+        $loops = 0;
+
+        try {
+            do {
+                $query = [
+                    'limit' => 100,
+                    'fields' => 'id,name,status,category,language,components',
+                ];
+                if ($nextAfter) {
+                    $query['after'] = $nextAfter;
+                }
+
+                $response = Http::timeout(20)
+                    ->withToken($cloudToken)
+                    ->get($url, $query);
+
+                if (!$response->successful()) {
+                    return [
+                        'ok' => false,
+                        'message' => 'Gagal sync template dari WhatsApp Cloud API.',
+                        'error' => (string) ($response->json('error.message') ?: $response->body() ?: 'Unknown error'),
+                        'status' => 422,
+                    ];
+                }
+
+                $items = (array) $response->json('data', []);
+                $fetched += count($items);
+
+                foreach ($items as $item) {
+                    $metaId = trim((string) Arr::get($item, 'id', ''));
+                    $name = trim((string) Arr::get($item, 'name', ''));
+                    $language = trim((string) Arr::get($item, 'language', 'en'));
+                    $category = strtolower((string) Arr::get($item, 'category', 'utility'));
+                    $rawStatus = strtolower((string) Arr::get($item, 'status', ''));
+                    $components = Arr::get($item, 'components');
+                    $bodyText = '';
+
+                    foreach ((array) $components as $component) {
+                        if (strtolower((string) Arr::get($component, 'type', '')) === 'body') {
+                            $bodyText = (string) Arr::get($component, 'text', '');
+                            break;
+                        }
+                    }
+
+                    $status = match ($rawStatus) {
+                        'approved', 'active' => 'approved',
+                        'pending', 'in_appeal', 'paused' => 'pending',
+                        'rejected', 'disabled', 'deleted' => 'rejected',
+                        default => 'rejected',
+                    };
+
+                    if ($metaId !== '') {
+                        $model = WATemplate::firstOrNew(['meta_template_id' => $metaId]);
+                    } else {
+                        $model = WATemplate::query()
+                            ->where('language', $language)
+                            ->where('namespace', $businessId)
+                            ->where(function ($query) use ($name) {
+                                $query->where('meta_name', $name)
+                                    ->orWhere(function ($fallbackQuery) use ($name) {
+                                        $fallbackQuery->whereNull('meta_name')
+                                            ->where('name', $name);
+                                    });
+                            })
+                            ->first() ?? new WATemplate([
+                                'language' => $language,
+                                'namespace' => $businessId,
+                            ]);
+                    }
+
+                    $isNew = !$model->exists;
+                    $model->fill([
+                        'name' => $model->name ?: ($name ?: 'unnamed_template'),
+                        'meta_name' => $name ?: ($model->meta_name ?: null),
+                        'language' => $language ?: 'en',
+                        'category' => $category ?: 'utility',
+                        'namespace' => $businessId,
+                        'meta_template_id' => $metaId !== '' ? $metaId : $model->meta_template_id,
+                        'body' => $bodyText !== '' ? $bodyText : ($model->body ?: '-'),
+                        'components' => is_array($components) ? $components : null,
+                        'status' => $status,
+                        'last_submit_error' => null,
+                    ]);
+                    $model->save();
+
+                    if ($isNew) {
+                        $created++;
+                    } else {
+                        $updated++;
+                    }
+                }
+
+                $nextAfter = $response->json('paging.cursors.after');
+                $loops++;
+            } while ($nextAfter && $loops < 10);
+
+            return [
+                'ok' => true,
+                'message' => 'Sync template berhasil.',
+                'data' => compact('fetched', 'created', 'updated'),
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'ok' => false,
+                'message' => 'Gagal sync template dari WhatsApp Cloud API.',
+                'error' => $e->getMessage(),
+                'status' => 500,
+            ];
+        }
     }
 
     private function findInstanceForNamespace(?string $namespace): ?WhatsAppInstance

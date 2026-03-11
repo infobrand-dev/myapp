@@ -7,6 +7,10 @@
         <div class="text-muted small">Nama internal untuk aplikasi. Meta Name dipakai khusus saat submit/send ke WhatsApp.</div>
     </div>
     <div class="d-flex gap-2">
+        <form method="POST" action="{{ route('whatsapp-api.templates.refresh-statuses') }}">
+            @csrf
+            <button type="submit" class="btn btn-outline-primary">Refresh Status</button>
+        </form>
         <a href="{{ route('whatsapp-api.blast-campaigns.index') }}" class="btn btn-outline-secondary">Blast Campaigns</a>
         <a href="{{ route('whatsapp-api.templates.create') }}" class="btn btn-primary">Tambah Template</a>
     </div>

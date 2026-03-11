@@ -495,16 +495,26 @@ class InstanceController extends Controller
                     if ($metaId !== '') {
                         $model = WATemplate::firstOrNew(['meta_template_id' => $metaId]);
                     } else {
-                        $model = WATemplate::firstOrNew([
-                            'name' => $name,
-                            'language' => $language,
-                            'namespace' => $businessId,
-                        ]);
+                        $model = WATemplate::query()
+                            ->where('language', $language)
+                            ->where('namespace', $businessId)
+                            ->where(function ($query) use ($name) {
+                                $query->where('meta_name', $name)
+                                    ->orWhere(function ($fallbackQuery) use ($name) {
+                                        $fallbackQuery->whereNull('meta_name')
+                                            ->where('name', $name);
+                                    });
+                            })
+                            ->first() ?? new WATemplate([
+                                'language' => $language,
+                                'namespace' => $businessId,
+                            ]);
                     }
 
                     $isNew = !$model->exists;
                     $model->fill([
-                        'name' => $name ?: ($model->name ?: 'unnamed_template'),
+                        'name' => $model->name ?: ($name ?: 'unnamed_template'),
+                        'meta_name' => $name ?: ($model->meta_name ?: null),
                         'language' => $language ?: 'en',
                         'category' => $category ?: 'utility',
                         'namespace' => $businessId,

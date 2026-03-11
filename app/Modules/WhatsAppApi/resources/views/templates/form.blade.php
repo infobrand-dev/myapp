@@ -104,7 +104,6 @@
                             <div class="col-md-3">
                                 <label class="form-label">Meta Name</label>
                                 <input class="form-control" name="meta_name" value="{{ old('meta_name', $template->meta_name) }}" placeholder="contoh: idpba_followup_1">
-                                <div class="tiny mt-1">Hanya huruf kecil dan underscore. Jika kosong, otomatis digenerate dari nama internal.</div>
                                 @error('meta_name') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-3">
@@ -353,6 +352,8 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const headerType = document.getElementById('header_type');
+    const nameInput = document.querySelector('input[name="name"]');
+    const metaNameInput = document.querySelector('input[name="meta_name"]');
     const headerInput = document.getElementById('header_text');
     const headerMediaFileInput = document.getElementById('header_media_file');
     const headerMediaInput = document.getElementById('header_media_url');
@@ -399,10 +400,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const placeholders = (text) => [...new Set([...(text || '').matchAll(/\{\{(\d+)\}\}/g)].map((x) => Number(x[1])))].sort((a, b) => a - b);
     const contactFieldLabel = (key) => contactFieldOptions[key] || key;
     const senderFieldLabel = (key) => senderFieldOptions[key] || key;
+    let metaNameTouched = Boolean(metaNameInput?.value);
 
     function syncNamespace() {
         if (!nsSelect || !nsInput) return;
         nsInput.value = nsSelect.selectedOptions[0]?.dataset.namespace || '';
+    }
+
+    function normalizeMetaName(value) {
+        let normalized = String(value || '').toLowerCase();
+        normalized = normalized.replace(/[^a-z]+/g, '_');
+        normalized = normalized.replace(/^_+|_+$/g, '');
+        normalized = normalized.replace(/_+/g, '_');
+        return normalized.slice(0, 150);
+    }
+
+    function syncMetaName(force = false) {
+        if (!metaNameInput) return;
+
+        const current = metaNameInput.value || '';
+        if (!force && metaNameTouched && current.trim() !== '') {
+            metaNameInput.value = normalizeMetaName(current);
+            return;
+        }
+
+        metaNameInput.value = normalizeMetaName(nameInput?.value || current);
     }
 
     function nextPlaceholderValue() {
@@ -730,9 +752,15 @@ document.addEventListener('DOMContentLoaded', () => {
     editorToolbars.forEach(bindEditorToolbar);
     addBtn?.addEventListener('click', addRow);
     nsSelect?.addEventListener('change', syncNamespace);
+    nameInput?.addEventListener('input', () => syncMetaName(false));
+    metaNameInput?.addEventListener('input', () => {
+        metaNameTouched = true;
+        syncMetaName(false);
+    });
     headerMediaFileInput?.addEventListener('change', render);
     [headerType, headerInput, headerMediaInput, bodyInput, footerInput].forEach((el) => el?.addEventListener('input', render));
     syncNamespace();
+    syncMetaName(true);
     render();
 });
 </script>

@@ -36,11 +36,15 @@
     </div>
     <div class="col-md-3">
         <label class="form-label">Telepon</label>
-        <input type="text" name="phone" class="form-control" value="{{ old('phone', $contact->phone ?? '') }}">
+        <input type="text" name="phone" class="form-control" value="{{ old('phone', $contact->phone ?? '') }}" placeholder="628123456789 / +628123456789">
+        <div class="text-muted small">Akan dinormalisasi ke format internasional angka saja agar aman dipakai untuk telepon/WhatsApp.</div>
+        @error('phone') <div class="text-danger small">{{ $message }}</div> @enderror
     </div>
     <div class="col-md-3">
         <label class="form-label">Mobile</label>
-        <input type="text" name="mobile" class="form-control" value="{{ old('mobile', $contact->mobile ?? '') }}">
+        <input type="text" name="mobile" class="form-control" value="{{ old('mobile', $contact->mobile ?? '') }}" placeholder="628123456789 / +628123456789">
+        <div class="text-muted small">Disarankan isi nomor WhatsApp utama. Format lokal 08... akan otomatis jadi 628...</div>
+        @error('mobile') <div class="text-danger small">{{ $message }}</div> @enderror
     </div>
     <div class="col-md-6">
         <label class="form-label">Website</label>

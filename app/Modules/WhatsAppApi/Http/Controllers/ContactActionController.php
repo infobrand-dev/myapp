@@ -45,7 +45,7 @@ class ContactActionController extends Controller
             ]);
         }
 
-        $phone = $this->normalizePhone((string) ($contact->mobile ?: $contact->phone));
+        $phone = $contact->whatsappPhoneNumber();
         if ($phone === null) {
             throw ValidationException::withMessages([
                 'contact_id' => 'Contact tidak memiliki nomor WhatsApp yang valid.',
@@ -248,20 +248,6 @@ class ContactActionController extends Controller
             $index = (int) ($matches[1] ?? 0);
             return (string) ($params[$index] ?? '');
         }, $text);
-    }
-
-    private function normalizePhone(string $value): ?string
-    {
-        $digits = preg_replace('/\D+/', '', $value) ?? '';
-        if ($digits === '') {
-            return null;
-        }
-
-        if (str_starts_with($digits, '0')) {
-            $digits = '62' . substr($digits, 1);
-        }
-
-        return strlen($digits) >= 8 ? $digits : null;
     }
 
     public static function placeholderIndexes(?string $body, array $components = []): array

@@ -4,6 +4,7 @@ namespace App\Modules\WhatsAppApi\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Contacts\Support\ContactPhoneNormalizer;
 use App\Modules\WhatsAppApi\Jobs\ProcessWABlastCampaign;
 use App\Modules\WhatsAppApi\Models\WABlastCampaign;
 use App\Modules\WhatsAppApi\Models\WABlastRecipient;
@@ -236,7 +237,7 @@ class BlastCampaignController extends Controller
             $delimiter = str_contains($raw, '|') ? '|' : (str_contains($raw, ';') ? ';' : ',');
             $parts = array_map('trim', explode($delimiter, $raw));
 
-            $phone = $this->normalizePhone($parts[0] ?? '');
+            $phone = ContactPhoneNormalizer::normalize($parts[0] ?? '');
             if ($phone === null) {
                 $invalid[] = ['line' => $lineNo + 1, 'reason' => 'Nomor tidak valid'];
                 continue;
@@ -312,7 +313,7 @@ class BlastCampaignController extends Controller
         $seen = [];
 
         foreach ($contacts as $contact) {
-            $phone = $this->normalizePhone((string) ($contact->mobile ?: $contact->phone));
+            $phone = $contact->whatsappPhoneNumber();
             if ($phone === null || isset($seen[$phone])) {
                 continue;
             }
@@ -443,17 +444,4 @@ class BlastCampaignController extends Controller
         return class_exists(Contact::class);
     }
 
-    private function normalizePhone(string $value): ?string
-    {
-        $digits = preg_replace('/\D+/', '', $value);
-        if (!$digits) {
-            return null;
-        }
-
-        if (strlen($digits) < 7 || strlen($digits) > 15) {
-            return null;
-        }
-
-        return $digits;
-    }
 }

@@ -95,7 +95,7 @@
         <a href="{{ route('whatsapp-api.templates.index') }}" class="btn btn-outline-secondary">Kembali</a>
     </div>
 
-    @if($isEdit && $template->last_submit_error)
+    @if($isEdit && $template->status === 'rejected' && $template->last_submit_error)
         <div class="alert alert-danger">
             <div class="fw-semibold mb-1">Last Submit Error</div>
             <pre class="mb-0 small" style="white-space: pre-wrap;">{{ $template->last_submit_error }}</pre>

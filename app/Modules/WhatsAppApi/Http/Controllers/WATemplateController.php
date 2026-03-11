@@ -50,9 +50,6 @@ class WATemplateController extends Controller
         $instance = $this->requireInstance($request);
         $data['namespace'] = $instance->cloud_business_account_id;
         $action = $request->input('action');
-        if ($action === 'submit') {
-            $data['status'] = 'pending';
-        }
         $data['components'] = $this->buildComponents($request);
         $template = WATemplate::create($data);
 
@@ -60,7 +57,9 @@ class WATemplateController extends Controller
             SubmitTemplateToMeta::dispatch($template->id, $instance->id);
         }
 
-        return redirect()->route('whatsapp-api.templates.index')->with('status', 'Template dibuat.');
+        return redirect()->route('whatsapp-api.templates.index')->with('status', $action === 'submit'
+            ? 'Template dibuat dan masuk antrean submit. Status akan berubah pending setelah Meta menerima request.'
+            : 'Template dibuat.');
     }
 
     public function edit(Request $request, WATemplate $template): View|RedirectResponse
@@ -87,16 +86,15 @@ class WATemplateController extends Controller
         $instance = $this->requireInstance($request);
         $data['namespace'] = $instance->cloud_business_account_id;
         $action = $request->input('action');
-        if ($action === 'submit') {
-            $data['status'] = 'pending';
-        }
         $data['components'] = $this->buildComponents($request);
         $template->update($data);
 
         if ($action === 'submit') {
             SubmitTemplateToMeta::dispatch($template->id, $instance->id);
         }
-        return redirect()->route('whatsapp-api.templates.index')->with('status', 'Template diperbarui.');
+        return redirect()->route('whatsapp-api.templates.index')->with('status', $action === 'submit'
+            ? 'Template diperbarui dan masuk antrean submit. Status akan berubah pending setelah Meta menerima request.'
+            : 'Template diperbarui.');
     }
 
     public function destroy(Request $request, WATemplate $template): RedirectResponse
@@ -119,9 +117,8 @@ class WATemplateController extends Controller
         if (!$instance) {
             return back()->with('status', 'Instance cloud connected dengan namespace tersebut tidak ditemukan.');
         }
-        $template->update(['status' => 'pending']);
         SubmitTemplateToMeta::dispatch($template->id, $instance->id);
-        return back()->with('status', 'Template dikirim ke Meta (pending).');
+        return back()->with('status', 'Template masuk antrean submit. Status akan berubah pending setelah Meta menerima request.');
     }
 
     private function validated(Request $request): array

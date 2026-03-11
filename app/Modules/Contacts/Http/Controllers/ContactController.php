@@ -4,6 +4,7 @@ namespace App\Modules\Contacts\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Contacts\Support\ContactPhoneNormalizer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -216,7 +217,7 @@ class ContactController extends Controller
 
     private function validatedData(Request $request): array
     {
-        return $request->validate([
+        $data = $request->validate([
             'type' => ['required', Rule::in(['company', 'individual'])],
             'company_id' => ['nullable', 'integer', 'exists:contacts,id'],
             'name' => ['required', 'string', 'max:255'],
@@ -237,6 +238,8 @@ class ContactController extends Controller
             'notes' => ['nullable', 'string'],
             'is_active' => ['nullable', 'boolean'],
         ]);
+
+        return $this->normalizeValidatedContactData($data);
     }
 
     private function importHeaders(): array
@@ -547,7 +550,7 @@ class ContactController extends Controller
             $type = 'individual';
         }
 
-        return [
+        return $this->normalizeValidatedContactData([
             'type' => $type,
             'name' => trim((string) ($payload['name'] ?? '')),
             'company_name' => trim((string) ($payload['company_name'] ?? '')),
@@ -567,7 +570,7 @@ class ContactController extends Controller
             'country' => $this->nullableString($payload['country'] ?? null),
             'notes' => $this->nullableString($payload['notes'] ?? null),
             'is_active' => $this->normalizeBoolean($payload['is_active'] ?? '1'),
-        ];
+        ], false);
     }
 
     private function resolveImportedCompanyId(array $normalized): ?int
@@ -613,6 +616,24 @@ class ContactController extends Controller
         $normalized = strtolower(trim((string) $value));
 
         return in_array($normalized, ['1', 'true', 'yes', 'y', 'aktif', 'active'], true);
+    }
+
+    private function normalizeValidatedContactData(array $data, bool $strict = true): array
+    {
+        foreach (['phone', 'mobile'] as $field) {
+            $original = $this->nullableString($data[$field] ?? null);
+            $normalized = ContactPhoneNormalizer::normalize($original);
+
+            if ($strict && $original !== null && $normalized === null) {
+                throw ValidationException::withMessages([
+                    $field => 'Nomor harus valid untuk telepon/WhatsApp. Gunakan format internasional seperti 628123456789 atau +628123456789.',
+                ]);
+            }
+
+            $data[$field] = $normalized;
+        }
+
+        return $data;
     }
 
     private function buildTemplateXlsx(array $rows): string

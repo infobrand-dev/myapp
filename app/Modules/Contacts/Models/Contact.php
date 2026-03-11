@@ -2,6 +2,7 @@
 
 namespace App\Modules\Contacts\Models;
 
+use App\Modules\Contacts\Support\ContactPhoneNormalizer;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -42,5 +43,20 @@ class Contact extends Model
     public function employees(): HasMany
     {
         return $this->hasMany(Contact::class, 'company_id');
+    }
+
+    public function setPhoneAttribute($value): void
+    {
+        $this->attributes['phone'] = ContactPhoneNormalizer::normalize($value);
+    }
+
+    public function setMobileAttribute($value): void
+    {
+        $this->attributes['mobile'] = ContactPhoneNormalizer::normalize($value);
+    }
+
+    public function whatsappPhoneNumber(): ?string
+    {
+        return ContactPhoneNormalizer::normalize($this->mobile ?: $this->phone);
     }
 }

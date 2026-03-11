@@ -88,6 +88,9 @@
         }
         .app-shell {
             min-height: 100vh;
+            display: flex;
+            flex-direction: row;
+            align-items: stretch;
         }
         .page-wrapper {
             min-width: 0;
@@ -96,6 +99,7 @@
             padding-top: 0 !important;
         }
         .page-body {
+            margin-top: 0;
             padding-top: .95rem;
             padding-bottom: 1.1rem;
         }
@@ -107,6 +111,9 @@
             --bs-offcanvas-width: min(84vw, 320px);
         }
         @media (max-width: 991.98px) {
+            .app-shell {
+                display: block;
+            }
             .mobile-topbar {
                 position: sticky;
                 top: 0;

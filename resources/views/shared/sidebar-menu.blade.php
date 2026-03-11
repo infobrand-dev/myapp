@@ -77,11 +77,14 @@
         $routes = $menu['items']->pluck('route')->all();
         $isOpen = in_array($currentRouteName, $routes, true);
         $single = $menu['items']->count() === 1;
+        $moduleBadgeKey = $menu['items']->pluck('badge')->filter()->first();
+        $moduleBadgeCount = $moduleBadgeKey ? (int) ($moduleNavBadges[$moduleBadgeKey] ?? 0) : 0;
     @endphp
     @if($single)
         @php
             $item = $menu['items']->first();
-            $isConversationRoute = str_starts_with((string) $item['route'], 'conversations.');
+            $badgeKey = $item['badge'] ?? null;
+            $badgeCount = $badgeKey ? (int) ($moduleNavBadges[$badgeKey] ?? 0) : 0;
         @endphp
         <li class="nav-item">
             <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ $isOpen ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route($item['route']) }}">
@@ -92,16 +95,14 @@
                     </svg>
                 </span>
                 <span class="nav-link-title">{{ $menu['name'] }}</span>
-                @if($isConversationRoute)
-                    @php
-                        $useConversationBadgeId = !$conversationBadgeRendered;
-                        $conversationBadgeRendered = true;
-                    @endphp
+                @if($badgeKey)
+                    @php $useBadgeId = !$moduleBadgeRendered; @endphp
+                    @php $moduleBadgeRendered = $moduleBadgeRendered || $useBadgeId; @endphp
                     <span
-                        @if($useConversationBadgeId) id="sidebar-conv-unread-badge" @endif
-                        data-count="{{ $conversationUnreadTotal }}"
-                        class="badge bg-red-lt text-red ms-auto {{ $conversationUnreadTotal > 0 ? '' : 'd-none' }}">
-                        {{ $conversationUnreadTotal }}
+                        @if($useBadgeId) id="sidebar-module-badge-{{ $badgeKey }}" @endif
+                        data-count="{{ $badgeCount }}"
+                        class="badge bg-red-lt text-red ms-auto {{ $badgeCount > 0 ? '' : 'd-none' }}">
+                        {{ $badgeCount }}
                     </span>
                 @endif
             </a>
@@ -116,16 +117,14 @@
                     </svg>
                 </span>
                 <span class="nav-link-title">{{ $menu['name'] }}</span>
-                @if(collect($routes)->contains(fn($r) => str_starts_with((string) $r, 'conversations.')))
-                    @php
-                        $useConversationBadgeId = !$conversationBadgeRendered;
-                        $conversationBadgeRendered = true;
-                    @endphp
+                @if($moduleBadgeKey)
+                    @php $useBadgeId = !$moduleBadgeRendered; @endphp
+                    @php $moduleBadgeRendered = $moduleBadgeRendered || $useBadgeId; @endphp
                     <span
-                        @if($useConversationBadgeId) id="sidebar-conv-unread-badge" @endif
-                        data-count="{{ $conversationUnreadTotal }}"
-                        class="badge bg-red-lt text-red ms-auto {{ $conversationUnreadTotal > 0 ? '' : 'd-none' }}">
-                        {{ $conversationUnreadTotal }}
+                        @if($useBadgeId) id="sidebar-module-badge-{{ $moduleBadgeKey }}" @endif
+                        data-count="{{ $moduleBadgeCount }}"
+                        class="badge bg-red-lt text-red ms-auto {{ $moduleBadgeCount > 0 ? '' : 'd-none' }}">
+                        {{ $moduleBadgeCount }}
                     </span>
                 @endif
             </a>

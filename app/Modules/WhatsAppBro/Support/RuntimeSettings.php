@@ -1,26 +1,30 @@
 <?php
 
-namespace App\Support;
+namespace App\Modules\WhatsAppBro\Support;
 
-use App\Models\WhatsAppApiSetting;
+use App\Modules\WhatsAppBro\Models\WhatsAppBroSetting;
 
-class ModuleRuntimeSettings
+class RuntimeSettings
 {
-    private static ?WhatsAppApiSetting $cachedWhatsAppSetting = null;
+    private static ?WhatsAppBroSetting $cachedWhatsAppSetting = null;
     private static bool $loaded = false;
 
     public static function waBroBridgeUrl(): string
     {
+        $setting = self::setting();
+
         return self::stringOrFallback(
-            self::setting()?->base_url,
+            $setting ? $setting->base_url : null,
             (string) config('modules.whatsapp_bro.bridge_url', 'http://localhost:3020')
         );
     }
 
     public static function waBroWebhookToken(): ?string
     {
+        $setting = self::setting();
+
         return self::nullable(
-            self::setting()?->verify_token ?: config('modules.whatsapp_bro.webhook_token')
+            ($setting ? $setting->verify_token : null) ?: config('modules.whatsapp_bro.webhook_token')
         );
     }
 
@@ -30,10 +34,10 @@ class ModuleRuntimeSettings
         self::$cachedWhatsAppSetting = null;
     }
 
-    private static function setting(): ?WhatsAppApiSetting
+    private static function setting(): ?WhatsAppBroSetting
     {
         if (!self::$loaded) {
-            self::$cachedWhatsAppSetting = WhatsAppApiSetting::query()->first();
+            self::$cachedWhatsAppSetting = WhatsAppBroSetting::query()->first();
             self::$loaded = true;
         }
 

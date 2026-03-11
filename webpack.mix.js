@@ -12,7 +12,7 @@ const mix = require('laravel-mix');
  */
 
 mix.js('resources/js/app.js', 'public/js')
-    .js('resources/js/modules/conversations/show.js', 'public/js/modules/conversations')
+    .js('app/Modules/Conversations/resources/js/show.js', 'public/js/modules/conversations')
     .postCss('resources/css/app.css', 'public/css', [
         require('tailwindcss'),
         require('autoprefixer'),

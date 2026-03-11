@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Models;
+namespace App\Modules\WhatsAppBro\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class WhatsAppApiSetting extends Model
+class WhatsAppBroSetting extends Model
 {
     protected $table = 'whatsapp_api_settings';
     protected $fillable = [

@@ -6,6 +6,6 @@
   "version": "1.0.0",
   "requires": [],
   "navigation": [
-    { "label": "Conversations", "route": "conversations.index" }
+    { "label": "Conversations", "route": "conversations.index", "badge": "conversation_unread_total" }
   ]
 }

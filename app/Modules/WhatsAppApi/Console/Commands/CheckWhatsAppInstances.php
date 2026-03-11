@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Modules\WhatsAppApi\Console\Commands;
 
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use Illuminate\Console\Command;

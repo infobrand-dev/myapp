@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders;
+namespace App\Modules\WhatsAppApi\Database\Seeders;
 
 use App\Models\User;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;

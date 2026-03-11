@@ -15,9 +15,7 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        $schedule->command('conversations:release-expired-locks')->everyFiveMinutes();
-        $schedule->command('whatsapp:check-instances')->everyTenMinutes();
-        $schedule->command('whatsapp:dispatch-scheduled-blasts')->everyMinute();
+        //
     }
 
     /**

@@ -7,9 +7,14 @@ use App\Modules\WhatsAppApi\Http\Controllers\MessageLogController;
 use App\Modules\WhatsAppApi\Http\Controllers\WebhookController;
 use App\Modules\WhatsAppApi\Http\Controllers\WATemplateController;
 use App\Modules\WhatsAppApi\Http\Controllers\BlastCampaignController;
+use App\Http\Middleware\VerifyCsrfToken;
 
-Route::post('/whatsapp-api/webhook', [WebhookController::class, 'inbound'])->name('whatsapp-api.webhook');
-Route::get('/whatsapp-api/webhook', [WebhookController::class, 'verify'])->name('whatsapp-api.webhook.verify');
+Route::middleware('web')
+    ->withoutMiddleware([VerifyCsrfToken::class])
+    ->group(function () {
+        Route::post('/whatsapp-api/webhook', [WebhookController::class, 'inbound'])->name('whatsapp-api.webhook');
+        Route::get('/whatsapp-api/webhook', [WebhookController::class, 'verify'])->name('whatsapp-api.webhook.verify');
+    });
 
 Route::middleware(['web', 'auth'])
     ->prefix('whatsapp-api')

@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const chatPane = document.getElementById('chat-pane');
-    const sidebarUnreadBadge = document.getElementById('sidebar-conv-unread-badge');
+    const sidebarUnreadBadge = document.getElementById('sidebar-module-badge-conversation_unread_total');
     const chatLastMessageTime = document.getElementById('chat-last-message-time');
     const detailLastMessageTime = document.getElementById('detail-last-message-time');
     const activeInboxPreview = document.querySelector('.conv-item.active .conv-item-preview');

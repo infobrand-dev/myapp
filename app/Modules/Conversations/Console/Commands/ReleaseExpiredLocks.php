@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Modules\Conversations\Console\Commands;
 
 use App\Modules\Conversations\Models\Conversation;
 use Illuminate\Console\Command;

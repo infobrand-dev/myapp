@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders;
+namespace App\Modules\Conversations\Database\Seeders;
 
 use App\Models\User;
 use App\Modules\Conversations\Models\Conversation;
@@ -83,4 +83,3 @@ class ConversationDemoSeeder extends Seeder
         }
     }
 }
-

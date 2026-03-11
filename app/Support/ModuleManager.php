@@ -236,6 +236,7 @@ class ModuleManager
                 'label' => (string) $item['label'],
                 'route' => (string) $item['route'],
                 'role' => isset($item['role']) ? (string) $item['role'] : null,
+                'badge' => isset($item['badge']) ? (string) $item['badge'] : null,
             ];
         }
 

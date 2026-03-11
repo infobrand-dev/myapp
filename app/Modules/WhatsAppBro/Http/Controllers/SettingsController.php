@@ -3,8 +3,8 @@
 namespace App\Modules\WhatsAppBro\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\WhatsAppApiSetting;
-use App\Support\ModuleRuntimeSettings;
+use App\Modules\WhatsAppBro\Models\WhatsAppBroSetting;
+use App\Modules\WhatsAppBro\Support\RuntimeSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,14 +14,14 @@ class SettingsController extends Controller
 {
     public function edit(): View
     {
-        $setting = WhatsAppApiSetting::first();
+        $setting = WhatsAppBroSetting::first();
 
         return view('whatsappbro::settings', compact('setting'));
     }
 
     public function update(Request $request): RedirectResponse
     {
-        $setting = WhatsAppApiSetting::first();
+        $setting = WhatsAppBroSetting::first();
 
         $validated = $request->validate([
             'base_url' => ['required', 'url'],
@@ -33,7 +33,7 @@ class SettingsController extends Controller
 
         DB::transaction(function () use (&$setting, $request, $validated, $webhookToken): void {
             if (!$setting) {
-                $setting = new WhatsAppApiSetting();
+                $setting = new WhatsAppBroSetting();
                 $setting->created_by = $request->user()->id;
             }
 
@@ -46,7 +46,7 @@ class SettingsController extends Controller
             $setting->save();
         });
 
-        ModuleRuntimeSettings::clearCache();
+        RuntimeSettings::clearCache();
 
         return redirect()
             ->route('whatsappbro.settings.edit')

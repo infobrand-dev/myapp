@@ -27077,7 +27077,7 @@ if (EchoLib && PusherLib) {
   var wsScheme = "http" || (0);
   window.Echo = new EchoLib({
     broadcaster: 'pusher',
-    key: "",
+    key: "local-key",
     cluster: (_process$env$MIX_PUSH = "mt1") !== null && _process$env$MIX_PUSH !== void 0 ? _process$env$MIX_PUSH : 'mt1',
     wsHost: wsHost,
     wsPort: wsPort,

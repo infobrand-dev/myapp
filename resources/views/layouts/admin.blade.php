@@ -99,36 +99,21 @@
         }
         .app-shell {
             min-height: 100vh;
-            display: flex;
-            flex-direction: row;
-            align-items: stretch;
-            padding-left: 0 !important;
-            padding-right: 0 !important;
-        }
-        .page-wrapper {
-            min-width: 0;
-            width: 100%;
-            margin-left: 0 !important;
-            margin-right: 0 !important;
-            margin-top: 0 !important;
-            padding-top: 0 !important;
         }
         .page-body {
-            margin-top: 0;
-            padding-top: .95rem;
-            padding-bottom: 1.1rem;
+            margin-top: .9rem;
+            margin-bottom: 1rem;
+            padding-top: 0;
+            padding-bottom: 0;
         }
         .page-body > .container-xl {
             padding-left: 1rem;
             padding-right: 1rem;
         }
-        #app-sidebar {
-            --bs-offcanvas-width: min(84vw, 320px);
+        .page > .navbar-vertical {
+            box-shadow: none;
         }
         @media (max-width: 991.98px) {
-            .app-shell {
-                display: block;
-            }
             .desktop-topbar {
                 display: none;
             }
@@ -140,35 +125,33 @@
                 min-height: 3.5rem;
             }
             .page-body {
-                padding-top: .65rem;
+                margin-top: .65rem;
             }
             .page-body > .container-xl {
                 padding-left: .75rem;
                 padding-right: .75rem;
             }
-            #app-sidebar {
+            .page > .navbar-vertical {
+                position: static;
+                width: 100%;
+                min-height: auto;
                 border-right: 0 !important;
-                box-shadow: 0 18px 40px rgba(15, 23, 42, 0.2);
-            }
-            #app-sidebar .offcanvas-header {
-                padding: 1rem .9rem .75rem;
                 border-bottom: 1px solid rgba(74, 96, 126, 0.12);
             }
-            #app-sidebar .offcanvas-body {
-                padding: 0;
-            }
-            #app-sidebar .container-fluid {
+            .page > .navbar-vertical .container-fluid {
                 padding-left: .7rem;
                 padding-right: .7rem;
             }
-            #app-sidebar .navbar-nav {
-                padding-top: .15rem !important;
-                padding-bottom: .9rem;
+            .page > .navbar-vertical .navbar-collapse {
+                padding-bottom: .75rem;
             }
-            #app-sidebar .nav-item {
+            #sidebar-menu .navbar-nav {
+                padding-top: .15rem !important;
+            }
+            #sidebar-menu .nav-item {
                 margin-top: .15rem;
             }
-            #app-sidebar .nav-link {
+            #sidebar-menu .nav-link {
                 padding-left: .7rem !important;
                 padding-right: .7rem !important;
                 min-height: 2.45rem;
@@ -178,27 +161,27 @@
                 white-space: normal;
                 line-height: 1.2;
             }
-            #app-sidebar .nav-link .nav-link-icon,
-            #app-sidebar .nav-link .icon {
+            #sidebar-menu .nav-link .nav-link-icon,
+            #sidebar-menu .nav-link .icon {
                 width: 1.1rem;
                 min-width: 1.1rem;
                 margin-top: 0;
             }
-            #app-sidebar .nav-link .nav-link-title {
+            #sidebar-menu .nav-link .nav-link-title {
                 display: block;
                 overflow-wrap: anywhere;
                 word-break: break-word;
             }
-            #app-sidebar .badge {
+            #sidebar-menu .badge {
                 margin-left: auto !important;
                 font-size: .68rem;
                 line-height: 1.1;
             }
-            #app-sidebar .dropdown-menu {
+            #sidebar-menu .dropdown-menu {
                 margin-left: 0 !important;
                 padding: .15rem 0 .2rem .45rem !important;
             }
-            #app-sidebar .dropdown-item {
+            #sidebar-menu .dropdown-item {
                 border-radius: .45rem;
                 white-space: normal;
                 overflow-wrap: anywhere;
@@ -206,7 +189,7 @@
                 padding-top: .36rem;
                 padding-bottom: .36rem;
             }
-            #app-sidebar .text-uppercase {
+            #sidebar-menu .text-uppercase {
                 font-size: .68rem !important;
                 letter-spacing: .05em;
             }
@@ -217,12 +200,6 @@
             }
         }
         @media (min-width: 992px) {
-            #app-sidebar {
-                position: sticky;
-                top: 0;
-                align-self: flex-start;
-                min-height: 100vh;
-            }
             .mobile-topbar {
                 display: none;
             }
@@ -254,9 +231,9 @@
                         <button
                             type="button"
                             class="btn btn-outline-secondary mobile-nav-toggle"
-                            data-bs-toggle="offcanvas"
-                            data-bs-target="#app-sidebar"
-                            aria-controls="app-sidebar"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#sidebar-menu"
+                            aria-controls="sidebar-menu"
                             aria-label="Open menu"
                         >
                             <i class="ti ti-menu-2" aria-hidden="true"></i>
@@ -378,14 +355,14 @@
         document.addEventListener('visibilitychange', handleVisibility);
         handleVisibility();
 
-        const sidebarEl = document.getElementById('app-sidebar');
+        const sidebarEl = document.getElementById('sidebar-menu');
         sidebarEl?.querySelectorAll('a.nav-link, a.dropdown-item').forEach((a) => {
             a.addEventListener('click', () => {
                 if (!window.matchMedia('(max-width: 991.98px)').matches) {
                     return;
                 }
 
-                const sidebarInstance = window.bootstrap?.Offcanvas.getInstance(sidebarEl);
+                const sidebarInstance = window.bootstrap?.Collapse.getInstance(sidebarEl);
                 sidebarInstance?.hide();
             });
         });

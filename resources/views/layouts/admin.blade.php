@@ -89,6 +89,12 @@
         .app-shell {
             min-height: 100vh;
         }
+        .page-wrapper {
+            min-width: 0;
+            width: 100%;
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+        }
         .page-body {
             padding-top: .95rem;
             padding-bottom: 1.1rem;
@@ -178,10 +184,6 @@
             #app-sidebar .text-uppercase {
                 font-size: .68rem !important;
                 letter-spacing: .05em;
-            }
-            .page-wrapper {
-                min-width: 0;
-                width: 100%;
             }
             .mobile-topbar .btn-outline-secondary {
                 --tblr-btn-bg: transparent;

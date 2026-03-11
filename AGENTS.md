@@ -19,10 +19,17 @@
 ## How to run (generic)
 - Backend deps: `composer install` (PHP ≥ 8.2).
 - Frontend deps: `npm install`.
-- Build assets: `npm run build` (or `npm run dev -- --host` for local dev).
+- Build assets: `npm run production` (or `npm run development` / `npm run watch` for local dev).
 - DB setup: configure `.env`, then `php artisan migrate --seed`.
 - Caches: `php artisan config:clear && php artisan route:clear && php artisan view:clear`.
 - WhatsApp bridge: run `node app/Modules/WhatsAppBro/node/server.js` (Socket.IO, default port 3020).
+
+## Realtime / broadcasting
+- Realtime features use the Laravel `pusher` broadcast driver and Pusher-compatible clients, but the intended server is self-hosted `soketi` (free), not the paid Pusher SaaS.
+- `pusher/pusher-php-server` on the backend and `pusher-js` / `laravel-echo` on the frontend are used as protocol-compatible libraries so Laravel can talk to a Pusher-compatible websocket server.
+- Prefer `soketi` for local/dev/self-hosted realtime. Do not assume the app should use the hosted Pusher service unless explicitly requested.
+- Default local websocket env pattern: `BROADCAST_DRIVER=pusher`, `MIX_PUSHER_HOST`, `MIX_PUSHER_PORT`, and `MIX_PUSHER_SCHEME` should point to the local/self-hosted websocket server.
+- If realtime is optional for a module, keep its websocket wiring inside the module and avoid leaking channel-specific logic into core.
 
 ## Auth & roles
 - Seeded roles: `Super-admin`, `Admin`; seeded super admin user `superadmin@myapp.test` / `password123!`.

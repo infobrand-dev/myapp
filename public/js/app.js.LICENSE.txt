@@ -5,6 +5,14 @@
 	  */
 
 /*!
+ * Pusher JavaScript Library v8.4.0
+ * https://pusher.com/
+ *
+ * Copyright 2020, Pusher
+ * Released under the MIT licence.
+ */
+
+/*!
  * Tabler v1.4.0 (https://tabler.io)
  * Copyright 2018-2025 The Tabler Authors
  * Copyright 2018-2025 codecalm.net Paweł Kuna

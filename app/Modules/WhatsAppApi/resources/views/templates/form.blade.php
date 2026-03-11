@@ -65,6 +65,8 @@
 .wa-template-wrap .wa-btn { border: 1px solid #d6dadd; background: #f5f6f6; border-radius: .55rem; padding: .4rem .55rem; font-size: .8rem; display: flex; justify-content: space-between; color: #0f6f5c; font-weight: 600; }
 .wa-template-wrap .wa-btn small { color: #667781; margin-left: .45rem; font-weight: 500; }
 .wa-template-wrap .var-row { border: 1px solid rgba(18, 29, 40, .08); border-radius: .6rem; padding: .75rem; background: #fcfcfd; }
+.wa-template-wrap .editor-toolbar { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .55rem; }
+.wa-template-wrap .editor-toolbar .btn { min-width: 2.4rem; }
 </style>
 
 <div class="wa-template-wrap">
@@ -151,6 +153,13 @@
                             </div>
                             <div class="col-md-8 header-text-wrap" style="{{ $headerType === 'text' ? '' : 'display:none;' }}">
                                 <label class="form-label d-flex justify-content-between"><span>Header text</span><span class="pill" id="header-count">0/60</span></label>
+                                <div class="editor-toolbar" data-editor-toolbar data-target="header_text">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-wrap="*">B</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-wrap="_">I</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-wrap="~">S</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-wrap="`">Code</button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-placeholder-target="header_text">+ Placeholder</button>
+                                </div>
                                 <input class="form-control" name="header_text" id="header_text" maxlength="60" value="{{ $headerTextValue }}">
                                 <div class="tiny mt-1">Format teks: <code>*bold*</code>, <code>_italic_</code>, <code>~strike~</code>, <code>`code`</code>.</div>
                                 @error('header_text') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
@@ -174,6 +183,13 @@
                         <div class="section-title">Body & Footer</div>
                         <div class="mb-3">
                             <label class="form-label d-flex justify-content-between"><span>Body</span><span class="pill" id="body-count">0/1024</span></label>
+                            <div class="editor-toolbar" data-editor-toolbar data-target="body_input">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" data-wrap="*">B</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" data-wrap="_">I</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" data-wrap="~">S</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" data-wrap="`">Code</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-placeholder-target="body_input">+ Placeholder</button>
+                            </div>
                             <textarea class="form-control" rows="5" name="body" id="body_input" maxlength="1024" required>{{ old('body', $template->body) }}</textarea>
                             <div class="tiny mt-1">Placeholder: <code>@{{1}}</code>, <code>@{{2}}</code>, dst.</div>
                             @error('body') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
@@ -352,6 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const contactFieldOptions = @json($contactFieldOptions ?? []);
     const senderFieldOptions = @json($senderFieldOptions ?? []);
     const senderPreviewContext = @json($senderPreviewContext ?? []);
+    const editorToolbars = Array.from(document.querySelectorAll('[data-editor-toolbar]'));
     let variableState = @json($variableMappings);
     let currentPlaceholderKey = null;
 
@@ -373,6 +390,59 @@ document.addEventListener('DOMContentLoaded', () => {
     function syncNamespace() {
         if (!nsSelect || !nsInput) return;
         nsInput.value = nsSelect.selectedOptions[0]?.dataset.namespace || '';
+    }
+
+    function nextPlaceholderValue() {
+        const indexes = [...new Set([
+            ...placeholders(bodyInput?.value || ''),
+            ...placeholders(headerInput?.value || ''),
+        ])].sort((a, b) => a - b);
+
+        return (indexes[indexes.length - 1] || 0) + 1;
+    }
+
+    function replaceSelection(input, before, after = before, fallback = '') {
+        if (!input) return;
+
+        const start = input.selectionStart ?? input.value.length;
+        const end = input.selectionEnd ?? input.value.length;
+        const selected = input.value.slice(start, end);
+        const inner = selected || fallback;
+        const inserted = `${before}${inner}${after}`;
+
+        input.setRangeText(inserted, start, end, 'end');
+
+        const newStart = start + before.length;
+        const newEnd = newStart + inner.length;
+
+        input.focus();
+        input.setSelectionRange(newStart, newEnd);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    function insertPlaceholder(input) {
+        if (!input) return;
+
+        const placeholder = `{{${nextPlaceholderValue()}}}`;
+        replaceSelection(input, '', '', placeholder);
+    }
+
+    function bindEditorToolbar(toolbar) {
+        const target = document.getElementById(toolbar.dataset.target || '');
+        if (!target) return;
+
+        toolbar.querySelectorAll('[data-wrap]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const marker = button.dataset.wrap || '';
+                replaceSelection(target, marker, marker, 'text');
+            });
+        });
+
+        toolbar.querySelectorAll('[data-placeholder-target]').forEach((button) => {
+            button.addEventListener('click', () => {
+                insertPlaceholder(target);
+            });
+        });
     }
 
     function syncHeaderWrap() {
@@ -643,6 +713,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     Array.from(container.querySelectorAll('[data-row]')).forEach(bindRow);
+    editorToolbars.forEach(bindEditorToolbar);
     addBtn?.addEventListener('click', addRow);
     nsSelect?.addEventListener('change', syncNamespace);
     headerMediaFileInput?.addEventListener('change', render);

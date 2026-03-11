@@ -305,6 +305,16 @@ document.addEventListener('DOMContentLoaded', () => {
         .replaceAll('>', '&gt;')
         .replaceAll('"', '&quot;')
         .replaceAll("'", '&#039;');
+    const formatMessageHtml = (value) => {
+        const escaped = escapeHtml(value);
+
+        return escaped
+            .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+            .replace(/\*([^\*\n]+)\*/g, '<strong>$1</strong>')
+            .replace(/_([^_\n]+)_/g, '<em>$1</em>')
+            .replace(/~([^~\n]+)~/g, '<s>$1</s>')
+            .replace(/\r\n|\r|\n/g, '<br>');
+    };
     const initials = (name) => {
         const parts = (name || '').trim().split(/\s+/).filter(Boolean);
         const first = parts[0]?.[0] || '?';
@@ -378,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ? `<img src="${escapeHtml(avatar)}" alt="${escapeHtml(name)}">`
             : `<span class="chat-avatar-fallback ${avatarTone(name)}">${escapeHtml(initials(name))}</span>`;
         const mediaHtml = buildMediaHtml(msg);
-        const bodyHtml = msg.body ? `<div>${escapeHtml(msg.body)}</div>` : '';
+        const bodyHtml = msg.body ? `<div class="chat-message-text">${formatMessageHtml(msg.body)}</div>` : '';
 
         const wrapper = document.createElement('div');
         wrapper.className = `chat-row chat-row-${msg.direction === 'out' ? 'out' : 'in'} d-flex align-items-end gap-2`;
@@ -761,7 +771,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const placeholders = [...new Set([...extractPlaceholders(body), ...extractPlaceholders(header)])];
             tplVars.innerHTML = '';
             tplLang.value = opt.textContent.match(/\((.*?)\)/)?.[1] ?? '';
-            tplPreview.textContent = body ? `Preview body: ${body}` : '';
+            tplPreview.innerHTML = body ? `Preview body:<br>${formatMessageHtml(body)}` : '';
             placeholders.forEach((idx) => {
                 const col = document.createElement('div');
                 col.className = 'col-md-6';

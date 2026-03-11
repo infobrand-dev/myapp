@@ -302,6 +302,27 @@
     .conv-dashboard .chat-message-body {
         font-size: .9rem;
     }
+    .conv-dashboard .chat-message-text {
+        white-space: normal;
+        word-break: break-word;
+        line-height: 1.45;
+    }
+    .conv-dashboard .chat-message-text strong {
+        font-weight: 700;
+    }
+    .conv-dashboard .chat-message-text em {
+        font-style: italic;
+    }
+    .conv-dashboard .chat-message-text s {
+        text-decoration: line-through;
+    }
+    .conv-dashboard .chat-message-text code {
+        font-family: var(--tblr-font-monospace, monospace);
+        background: rgba(15, 23, 42, 0.06);
+        padding: 0 .18rem;
+        border-radius: .2rem;
+        color: inherit;
+    }
     .conv-dashboard .chat-media {
         margin-bottom: .55rem;
     }

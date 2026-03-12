@@ -12,6 +12,9 @@
                 <label class="form-label">Nama</label>
                 <input type="text" name="name" class="form-control" value="{{ old('name') }}" required>
             </div>
+            <div class="alert alert-info">
+                Gunakan nama role yang jelas. Assign role ke user dilakukan dari halaman Users, dan role user bisa diedit kapan saja dari sana.
+            </div>
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary">Simpan</button>
                 <a href="{{ route('roles.index') }}" class="btn btn-outline-secondary">Batal</a>

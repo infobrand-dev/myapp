@@ -42,5 +42,6 @@
         @error('role')
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror
+        <div class="text-muted small mt-1">Hak akses user mengikuti role yang dipilih di sini dan bisa diubah lagi kapan saja dari halaman Users.</div>
     </div>
 </div>

@@ -1,24 +1,56 @@
 @extends('layouts.admin')
 
 @section('content')
-<div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h2 class="card-title mb-0">Roles</h2>
-        <a href="{{ route('roles.create') }}" class="btn btn-primary">Tambah Role</a>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-0">Roles</h2>
+        <div class="text-muted small">Lihat hak akses tiap role dan user yang saat ini memegang role tersebut.</div>
     </div>
-    <div class="card-body">
+    <a href="{{ route('roles.create') }}" class="btn btn-primary">Tambah Role</a>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-vcenter">
                 <thead>
                     <tr>
                         <th>Nama</th>
+                        <th>Hak Akses</th>
+                        <th>User Yang Bisa Akses</th>
                         <th class="text-end">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($roles as $role)
+                        @php($roleAccess = $roleAccessMap[$role->name] ?? ['summary' => 'Akses mengikuti middleware dan navigasi role ini.', 'items' => ['Profile', 'Fitur/module yang mengizinkan role ini']])
                         <tr>
-                            <td>{{ $role->name }}</td>
+                            <td>
+                                <div class="fw-semibold">{{ $role->name }}</div>
+                                <div class="text-muted small">{{ $role->users_count }} user</div>
+                            </td>
+                            <td>
+                                <div class="small text-muted mb-1">{{ $roleAccess['summary'] ?? '-' }}</div>
+                                <div class="d-flex flex-wrap gap-1">
+                                    @foreach(($roleAccess['items'] ?? []) as $accessItem)
+                                        <span class="badge bg-azure-lt text-azure">{{ $accessItem }}</span>
+                                    @endforeach
+                                </div>
+                            </td>
+                            <td>
+                                @if($role->users->isNotEmpty())
+                                    <div class="d-flex flex-wrap gap-1">
+                                        @foreach($role->users->take(4) as $user)
+                                            <a href="{{ route('users.edit', $user) }}" class="badge bg-secondary-lt text-secondary text-decoration-none">{{ $user->name }}</a>
+                                        @endforeach
+                                        @if($role->users_count > 4)
+                                            <span class="badge bg-light text-muted">+{{ $role->users_count - 4 }} lagi</span>
+                                        @endif
+                                    </div>
+                                @else
+                                    <span class="text-muted small">Belum ada user.</span>
+                                @endif
+                            </td>
                             <td class="text-end align-middle">
                                 <div class="table-actions">
                                     <a href="{{ route('roles.edit', $role) }}" class="btn btn-sm btn-outline-primary">Edit</a>
@@ -32,12 +64,15 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="2" class="text-center text-muted">Belum ada role.</td>
+                            <td colspan="4" class="text-center text-muted">Belum ada role.</td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
+    </div>
+    <div class="card-footer">
+        {{ $roles->links() }}
     </div>
 </div>
 @endsection

@@ -11,8 +11,15 @@ class RoleController extends Controller
 {
     public function index()
     {
-        $roles = Role::orderBy('name')->paginate(15);
-        return view('roles.index', compact('roles'));
+        $roles = Role::query()
+            ->with(['users:id,name,email'])
+            ->withCount('users')
+            ->orderBy('name')
+            ->paginate(15);
+
+        $roleAccessMap = $this->roleAccessMap();
+
+        return view('roles.index', compact('roles', 'roleAccessMap'));
     }
 
     public function create()
@@ -32,7 +39,10 @@ class RoleController extends Controller
 
     public function edit(Role $role)
     {
-        return view('roles.edit', compact('role'));
+        $role->load(['users' => fn ($query) => $query->select('users.id', 'name', 'email')->orderBy('name')]);
+        $roleAccess = $this->roleAccessMap()[$role->name] ?? $this->defaultRoleAccess();
+
+        return view('roles.edit', compact('role', 'roleAccess'));
     }
 
     public function update(Request $request, Role $role): RedirectResponse
@@ -49,5 +59,44 @@ class RoleController extends Controller
     {
         $role->delete();
         return back()->with('status', 'Role dihapus.');
+    }
+
+    private function roleAccessMap(): array
+    {
+        return [
+            'Super-admin' => [
+                'summary' => 'Akses penuh ke dashboard, users, roles, modules, dan seluruh fitur admin.',
+                'items' => [
+                    'Dashboard',
+                    'Profile',
+                    'Users',
+                    'Roles',
+                    'Modules',
+                    'Semua module yang aktif',
+                ],
+            ],
+            'Admin' => [
+                'summary' => 'Akses operasional ke dashboard dan module kerja, tanpa manajemen users, roles, atau modules.',
+                'items' => [
+                    'Dashboard',
+                    'Profile',
+                    'Contacts',
+                    'Conversations',
+                    'Task/Internal Memo jika module aktif',
+                    'WhatsApp/Email tools sesuai module aktif',
+                ],
+            ],
+        ];
+    }
+
+    private function defaultRoleAccess(): array
+    {
+        return [
+            'summary' => 'Akses mengikuti middleware dan navigasi yang dipasang untuk role ini.',
+            'items' => [
+                'Profile',
+                'Fitur/module yang mengizinkan role ini',
+            ],
+        ];
     }
 }

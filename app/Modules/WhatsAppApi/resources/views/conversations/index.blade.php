@@ -57,6 +57,8 @@
                     @php
                         $isOwner = (int) $conv->owner_id === (int) auth()->id();
                         $isLockedByOther = $conv->owner_id && !$isOwner && optional($conv->locked_until)->isFuture();
+                        $metadata = is_array($conv->metadata) ? $conv->metadata : [];
+                        $isBotPaused = (bool) ($metadata['auto_reply_paused'] ?? false);
                     @endphp
                     <tr>
                         <td>
@@ -69,6 +71,9 @@
                         <td>
                             <div class="d-flex flex-wrap gap-1">
                                 <span class="badge {{ $conv->status === 'closed' ? 'text-bg-secondary' : 'text-bg-primary' }}">{{ ucfirst($conv->status) }}</span>
+                                @if($isBotPaused)
+                                    <span class="badge bg-yellow-lt text-yellow">Bot Paused</span>
+                                @endif
                                 @if($isLockedByOther)
                                     <span class="badge bg-orange-lt text-orange">Locked {{ optional($conv->locked_until)->format('H:i') }}</span>
                                 @endif
@@ -166,6 +171,8 @@
         @php
             $isOwner = (int) $conv->owner_id === (int) auth()->id();
             $isLockedByOther = $conv->owner_id && !$isOwner && optional($conv->locked_until)->isFuture();
+            $metadata = is_array($conv->metadata) ? $conv->metadata : [];
+            $isBotPaused = (bool) ($metadata['auto_reply_paused'] ?? false);
         @endphp
         <div class="card">
             <div class="card-body">
@@ -179,6 +186,9 @@
 
                 <div class="d-flex flex-wrap gap-1 mb-2">
                     <span class="badge {{ $conv->status === 'closed' ? 'text-bg-secondary' : 'text-bg-primary' }}">{{ ucfirst($conv->status) }}</span>
+                    @if($isBotPaused)
+                        <span class="badge bg-yellow-lt text-yellow">Bot Paused</span>
+                    @endif
                     @if($isLockedByOther)
                         <span class="badge bg-orange-lt text-orange">Locked {{ optional($conv->locked_until)->format('H:i') }}</span>
                     @endif

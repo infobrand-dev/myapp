@@ -44,7 +44,7 @@ class SendWhatsAppMessage implements ShouldQueue
         $conversation = $message->conversation;
         $instance = WhatsAppInstance::find($conversation->instance_id);
         if (!$instance) {
-            $message->update(['status' => 'error', 'error_message' => 'Instance not found']);
+            $message->update(['status' => 'error_permanent', 'error_message' => 'Instance not found']);
             return;
         }
 
@@ -60,7 +60,7 @@ class SendWhatsAppMessage implements ShouldQueue
         }
 
         if (!$instance->api_base_url || !$instance->api_token) {
-            $message->update(['status' => 'error', 'error_message' => 'Instance not configured']);
+            $message->update(['status' => 'error_permanent', 'error_message' => 'Instance not configured']);
             return;
         }
 
@@ -111,7 +111,7 @@ class SendWhatsAppMessage implements ShouldQueue
         $existingError = $this->sanitizeStoredError($message->error_message);
         $queueError = $this->sanitizeStoredError('Queue failed: ' . $e->getMessage());
         $message->update([
-            'status' => 'error',
+            'status' => $this->isPermanentStatus((string) $message->status) ? 'error_permanent' : 'error_retryable',
             'error_message' => $this->limitErrorMessage(
                 $existingError && $existingError !== $queueError
                     ? $existingError . ' | ' . $queueError
@@ -233,13 +233,14 @@ class SendWhatsAppMessage implements ShouldQueue
         $body = trim((string) $response->body());
         $errorMessage = "{$source} {$statusCode}: " . ($body !== '' ? $body : 'Unknown error');
         $shortError = $this->limitErrorMessage($errorMessage);
+        $retryable = $statusCode === 429 || $statusCode >= 500;
 
         $message->update([
-            'status' => 'error',
+            'status' => $retryable ? 'error_retryable' : 'error_permanent',
             'error_message' => $shortError,
         ]);
 
-        if ($statusCode === 429 || $statusCode >= 500) {
+        if ($retryable) {
             throw new RuntimeException($shortError);
         }
     }
@@ -249,11 +250,16 @@ class SendWhatsAppMessage implements ShouldQueue
         $shortError = $this->limitErrorMessage($error);
 
         $message->update([
-            'status' => 'error',
+            'status' => 'error_retryable',
             'error_message' => $shortError,
         ]);
 
         throw new RuntimeException($shortError);
+    }
+
+    private function isPermanentStatus(string $status): bool
+    {
+        return $status === 'error_permanent';
     }
 
     private function isValidInteractivePayload($interactive): bool

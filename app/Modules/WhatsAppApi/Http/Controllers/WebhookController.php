@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
+use Illuminate\Http\RedirectResponse;
 
 class WebhookController extends Controller
 {
@@ -60,38 +61,84 @@ class WebhookController extends Controller
             return response()->json(['stored' => true, 'deduplicated' => true, 'mode' => 'event']);
         }
 
+        $result = $this->processStoredEvent($event, $payload, $request);
+
+        if (($result['status_code'] ?? 200) !== 200) {
+            return response()->json(['message' => $result['message'] ?? 'Webhook processing failed'], $result['status_code']);
+        }
+
+        return response()->json($result['payload'] ?? ['stored' => true]);
+    }
+
+    public function reprocessEvent(WhatsAppWebhookEvent $event): RedirectResponse
+    {
+        if (!$event->canReprocess()) {
+            return back()->with('status', 'Webhook event ini tidak bisa direprocess otomatis. Hanya gateway atau cloud dengan signature valid yang didukung.');
+        }
+
+        $event->update([
+            'process_status' => 'pending',
+            'processed_at' => null,
+            'error_message' => null,
+        ]);
+
+        $result = $this->processStoredEvent($event, (array) ($event->payload ?? []), null, true);
+        $status = $result['payload']['stored'] ?? false
+            ? 'Webhook berhasil direprocess.'
+            : ($result['message'] ?? 'Webhook direprocess dengan hasil tidak diketahui.');
+
+        return back()->with('status', $status);
+    }
+
+    private function processStoredEvent(WhatsAppWebhookEvent $event, array $payload, ?Request $request = null, bool $trustedReplay = false): array
+    {
         if ($this->looksLikeCloudPayload($payload)) {
             try {
-                $result = $this->handleCloudPayload($payload, $request, $event);
+                $result = $this->handleCloudPayload($payload, $request, $event, $trustedReplay);
                 if (!($result['ok'] ?? false)) {
                     $reason = (string) ($result['reason'] ?? 'Cloud payload ignored');
                     $status = (string) ($result['status'] ?? 'failed');
 
                     if ($status === 'unauthorized') {
                         $this->markWebhookEventFailed($event, $reason, false);
-                        return response()->json(['message' => $reason], Response::HTTP_UNAUTHORIZED);
+                        return [
+                            'status_code' => Response::HTTP_UNAUTHORIZED,
+                            'message' => $reason,
+                        ];
                     }
 
-                    $this->markWebhookEventFailed($event, $reason);
-                    // Return 200 to avoid noisy retries for unmapped/malformed events.
-                    return response()->json(['stored' => false, 'ignored' => true, 'message' => $reason], Response::HTTP_OK);
+                    $this->markWebhookEventFailed($event, $reason, null, $status === 'ignored' ? 'ignored' : 'failed');
+                    return [
+                        'status_code' => Response::HTTP_OK,
+                        'message' => $reason,
+                        'payload' => ['stored' => false, 'ignored' => true, 'message' => $reason],
+                    ];
                 }
 
                 if (($result['signature_valid'] ?? null) === false) {
                     $this->markWebhookEventFailed($event, 'Invalid signature', false);
-                    return response()->json(['message' => 'Invalid signature'], Response::HTTP_UNAUTHORIZED);
+                    return [
+                        'status_code' => Response::HTTP_UNAUTHORIZED,
+                        'message' => 'Invalid signature',
+                    ];
                 }
             } catch (Throwable $e) {
                 Log::error('WhatsApp cloud webhook process failed', ['error' => $e->getMessage()]);
                 $this->markWebhookEventFailed($event, $e->getMessage());
-                return response()->json(['message' => 'Webhook processing failed'], Response::HTTP_INTERNAL_SERVER_ERROR);
+                return [
+                    'status_code' => Response::HTTP_INTERNAL_SERVER_ERROR,
+                    'message' => 'Webhook processing failed',
+                ];
             }
 
             $this->markWebhookEventProcessed($event);
-            return response()->json(['stored' => true, 'mode' => 'cloud']);
+            return [
+                'status_code' => Response::HTTP_OK,
+                'payload' => ['stored' => true, 'mode' => 'cloud'],
+            ];
         }
 
-        $data = $request->validate([
+        $data = validator($payload, [
             'token' => ['required', 'string'],
             'contact_id' => ['required', 'string'],
             'contact_name' => ['nullable', 'string'],
@@ -99,7 +146,7 @@ class WebhookController extends Controller
             'external_message_id' => ['nullable', 'string'],
             'direction' => ['nullable', 'in:in,out'],
             'instance_key' => ['nullable', 'string'],
-        ]);
+        ])->validate();
 
         $instance = WhatsAppInstance::where('api_token', $data['token'])
             ->when($data['instance_key'] ?? null, fn ($q) => $q->where('id', $data['instance_key']))
@@ -107,7 +154,10 @@ class WebhookController extends Controller
 
         if (!$instance) {
             $this->markWebhookEventFailed($event, 'Invalid token');
-            return response()->json(['message' => 'Invalid token'], Response::HTTP_UNAUTHORIZED);
+            return [
+                'status_code' => Response::HTTP_UNAUTHORIZED,
+                'message' => 'Invalid token',
+            ];
         }
 
         $event->update([
@@ -138,7 +188,10 @@ class WebhookController extends Controller
                 ->exists();
             if ($alreadyStored) {
                 $this->markWebhookEventProcessed($event);
-                return response()->json(['stored' => true, 'deduplicated' => true]);
+                return [
+                    'status_code' => Response::HTTP_OK,
+                    'payload' => ['stored' => true, 'deduplicated' => true],
+                ];
             }
         }
 
@@ -173,7 +226,10 @@ class WebhookController extends Controller
         }
 
         $this->markWebhookEventProcessed($event);
-        return response()->json(['stored' => true]);
+        return [
+            'status_code' => Response::HTTP_OK,
+            'payload' => ['stored' => true],
+        ];
     }
 
     private function createOrTouchWebhookEvent(Request $request, array $payload, string $rawPayload): WhatsAppWebhookEvent
@@ -213,10 +269,10 @@ class WebhookController extends Controller
         ]);
     }
 
-    private function markWebhookEventFailed(WhatsAppWebhookEvent $event, string $error, ?bool $signatureValid = null): void
+    private function markWebhookEventFailed(WhatsAppWebhookEvent $event, string $error, ?bool $signatureValid = null, string $processStatus = 'failed'): void
     {
         $updates = [
-            'process_status' => 'failed',
+            'process_status' => $processStatus,
             'error_message' => mb_substr($error, 0, 65535),
             'processed_at' => now(),
         ];
@@ -250,7 +306,7 @@ class WebhookController extends Controller
         return hash_equals($expected, $signature);
     }
 
-    private function handleCloudPayload(array $payload, Request $request, WhatsAppWebhookEvent $event): array
+    private function handleCloudPayload(array $payload, ?Request $request, WhatsAppWebhookEvent $event, bool $trustedReplay = false): array
     {
         $matchedInstance = false;
         $unmatchedTargets = [];
@@ -280,14 +336,24 @@ class WebhookController extends Controller
                     'provider' => 'cloud',
                 ]);
 
-                if (!$this->isValidCloudSignature($request, $instance)) {
-                    $event->update(['signature_valid' => false]);
-                    return [
-                        'ok' => false,
-                        'status' => 'unauthorized',
-                        'reason' => 'Invalid signature',
-                        'signature_valid' => false,
-                    ];
+                if (!$trustedReplay) {
+                    if (!$request) {
+                        return [
+                            'ok' => false,
+                            'status' => 'failed',
+                            'reason' => 'Stored cloud event membutuhkan request asli atau signature valid tersimpan untuk direprocess.',
+                        ];
+                    }
+
+                    if (!$this->isValidCloudSignature($request, $instance)) {
+                        $event->update(['signature_valid' => false]);
+                        return [
+                            'ok' => false,
+                            'status' => 'unauthorized',
+                            'reason' => 'Invalid signature',
+                            'signature_valid' => false,
+                        ];
+                    }
                 }
 
                 $event->update(['signature_valid' => true]);
@@ -613,7 +679,8 @@ class WebhookController extends Controller
 
     private function humanHandoffAcknowledgementMessage(?WhatsAppInstance $instance): string
     {
-        $configured = trim((string) Arr::get($instance?->settings ?? [], 'handoff_ack_message', ''));
+        $settings = $instance && is_array($instance->settings) ? $instance->settings : [];
+        $configured = trim((string) Arr::get($settings, 'handoff_ack_message', ''));
 
         return $configured !== ''
             ? $configured
@@ -651,10 +718,8 @@ class WebhookController extends Controller
                 $updates['status'] = 'read';
                 $updates['read_at'] = $timestamp ?? now();
             } elseif (in_array($status, ['failed', 'undelivered', 'rejected'], true)) {
-                $updates['status'] = 'error';
-                $updates['error_message'] = Arr::get($statusItem, 'errors.0.title')
-                    ?? Arr::get($statusItem, 'errors.0.message')
-                    ?? json_encode($statusItem);
+                $updates['status'] = $this->classifyCloudFailureStatus($statusItem);
+                $updates['error_message'] = $this->cloudFailureErrorMessage($statusItem);
             } else {
                 continue;
             }
@@ -869,6 +934,35 @@ class WebhookController extends Controller
         }
 
         return null;
+    }
+
+    private function classifyCloudFailureStatus(array $statusItem): string
+    {
+        $code = (string) (Arr::get($statusItem, 'errors.0.code', '') ?: Arr::get($statusItem, 'error.code', ''));
+        $message = mb_strtolower($this->cloudFailureErrorMessage($statusItem));
+
+        $retryableCodes = ['2', '4', '80007', '130429', '131016'];
+        if (in_array($code, $retryableCodes, true)) {
+            return 'error_retryable';
+        }
+
+        $retryableMarkers = ['rate limit', 'temporar', 'try again', 'timeout', 'unavailable', 'internal error'];
+        foreach ($retryableMarkers as $marker) {
+            if (str_contains($message, $marker)) {
+                return 'error_retryable';
+            }
+        }
+
+        return 'error_permanent';
+    }
+
+    private function cloudFailureErrorMessage(array $statusItem): string
+    {
+        return (string) (
+            Arr::get($statusItem, 'errors.0.title')
+            ?? Arr::get($statusItem, 'errors.0.message')
+            ?? json_encode($statusItem)
+        );
     }
 }
 

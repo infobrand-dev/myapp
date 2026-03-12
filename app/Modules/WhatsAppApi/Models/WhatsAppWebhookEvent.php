@@ -38,5 +38,17 @@ class WhatsAppWebhookEvent extends Model
     {
         return $this->belongsTo(WhatsAppInstance::class, 'instance_id');
     }
-}
 
+    public function canReprocess(): bool
+    {
+        if ($this->process_status === 'processed') {
+            return false;
+        }
+
+        if ($this->provider === 'gateway') {
+            return true;
+        }
+
+        return $this->provider === 'cloud' && $this->signature_valid === true;
+    }
+}

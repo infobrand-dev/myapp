@@ -27,6 +27,16 @@ class MessageLogController extends Controller
             ->orderBy('name')
             ->get(['id', 'name']);
 
+        $statusOptions = [
+            'queued' => 'Queued',
+            'sent' => 'Sent',
+            'delivered' => 'Delivered',
+            'read' => 'Read',
+            'error_retryable' => 'Error Retryable',
+            'error_permanent' => 'Error Permanent',
+            'error' => 'Error Legacy',
+        ];
+
         $messages = ConversationMessage::query()
             ->with(['conversation.instance', 'user'])
             ->whereHas('conversation', fn ($q) => $q->where('channel', 'wa_api'))
@@ -39,7 +49,7 @@ class MessageLogController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        return view('whatsappapi::logs.index', compact('messages', 'instances', 'filters'));
+        return view('whatsappapi::logs.index', compact('messages', 'instances', 'filters', 'statusOptions'));
     }
 
     public function retryFailed(Request $request): RedirectResponse
@@ -52,7 +62,7 @@ class MessageLogController extends Controller
 
         $query = ConversationMessage::query()
             ->where('direction', 'out')
-            ->where('status', 'error')
+            ->whereIn('status', ['error', 'error_retryable'])
             ->whereHas('conversation', fn ($q) => $q->where('channel', 'wa_api'));
 
         if (!empty($data['instance_id'])) {
@@ -69,7 +79,7 @@ class MessageLogController extends Controller
         $messages = $query->orderBy('id')->limit(200)->get(['id']);
 
         if ($messages->isEmpty()) {
-            return back()->with('status', 'Tidak ada pesan gagal yang cocok untuk diretry.');
+            return back()->with('status', 'Tidak ada pesan retryable yang cocok untuk diretry.');
         }
 
         $count = 0;
@@ -85,7 +95,7 @@ class MessageLogController extends Controller
             $count++;
         }
 
-        return back()->with('status', "Retry queued untuk {$count} pesan gagal.");
+        return back()->with('status', "Retry queued untuk {$count} pesan retryable.");
     }
 
     public function requeue(ConversationMessage $message): RedirectResponse
@@ -99,8 +109,8 @@ class MessageLogController extends Controller
             return back()->with('status', 'Pesan ini bukan outbound WhatsApp API.');
         }
 
-        if ((string) $message->status !== 'error') {
-            return back()->with('status', 'Requeue hanya tersedia untuk pesan berstatus error.');
+        if (!in_array((string) $message->status, ['error', 'error_retryable', 'error_permanent'], true)) {
+            return back()->with('status', 'Requeue hanya tersedia untuk pesan error.');
         }
 
         $message->update([

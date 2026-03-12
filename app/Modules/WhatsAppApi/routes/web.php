@@ -5,9 +5,11 @@ use App\Modules\WhatsAppApi\Http\Controllers\InstanceController;
 use App\Modules\WhatsAppApi\Http\Controllers\ConversationController;
 use App\Modules\WhatsAppApi\Http\Controllers\ContactActionController;
 use App\Modules\WhatsAppApi\Http\Controllers\MessageLogController;
+use App\Modules\WhatsAppApi\Http\Controllers\WebhookEventController;
 use App\Modules\WhatsAppApi\Http\Controllers\WebhookController;
 use App\Modules\WhatsAppApi\Http\Controllers\WATemplateController;
 use App\Modules\WhatsAppApi\Http\Controllers\BlastCampaignController;
+use App\Modules\WhatsAppApi\Http\Controllers\WAFlowController;
 use App\Http\Middleware\VerifyCsrfToken;
 
 Route::middleware('web')
@@ -28,6 +30,10 @@ Route::middleware(['web', 'auth'])
             Route::match(['post', 'put', 'patch'], 'instances/{instance}/save-and-sync-templates', [InstanceController::class, 'saveAndSyncTemplates'])->name('instances.save-and-sync-templates');
             Route::resource('instances', InstanceController::class)->except(['show']);
             Route::resource('templates', WATemplateController::class)->except(['show']);
+            Route::resource('flows', WAFlowController::class)->except(['show']);
+            Route::post('flows/{flow}/sync', [WAFlowController::class, 'sync'])->name('flows.sync');
+            Route::post('flows/{flow}/refresh', [WAFlowController::class, 'refresh'])->name('flows.refresh');
+            Route::post('flows/{flow}/publish', [WAFlowController::class, 'publish'])->name('flows.publish');
             Route::post('templates/refresh-statuses', [WATemplateController::class, 'refreshStatuses'])->name('templates.refresh-statuses');
             Route::post('templates/{template}/submit', [WATemplateController::class, 'submit'])->name('templates.submit');
             Route::get('blast-campaigns', [BlastCampaignController::class, 'index'])->name('blast-campaigns.index');
@@ -40,6 +46,8 @@ Route::middleware(['web', 'auth'])
             Route::get('logs', [MessageLogController::class, 'index'])->name('logs.index');
             Route::post('logs/retry-failed', [MessageLogController::class, 'retryFailed'])->name('logs.retry-failed');
             Route::post('logs/{message}/requeue', [MessageLogController::class, 'requeue'])->name('logs.requeue');
+            Route::get('webhook-events', [WebhookEventController::class, 'index'])->name('webhook-events.index');
+            Route::post('webhook-events/{event}/reprocess', [WebhookController::class, 'reprocessEvent'])->name('webhook-events.reprocess');
         });
 
         Route::get('/', [ConversationController::class, 'index'])->name('inbox');

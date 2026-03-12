@@ -7,12 +7,13 @@
         <div class="text-muted small">Audit trail kirim/terima pesan untuk troubleshooting.</div>
     </div>
     <div class="d-flex gap-2">
-        <form method="POST" action="{{ route('whatsapp-api.logs.retry-failed') }}" onsubmit="return confirm('Retry semua pesan gagal sesuai filter aktif? (maks 200 pesan per aksi)');">
+        <a href="{{ route('whatsapp-api.webhook-events.index') }}" class="btn btn-outline-secondary">Webhook Events</a>
+        <form method="POST" action="{{ route('whatsapp-api.logs.retry-failed') }}" onsubmit="return confirm('Retry semua pesan retryable sesuai filter aktif? (maks 200 pesan per aksi)');">
             @csrf
             <input type="hidden" name="instance_id" value="{{ $filters['instance_id'] ?? '' }}">
             <input type="hidden" name="date_from" value="{{ $filters['date_from'] ?? '' }}">
             <input type="hidden" name="date_to" value="{{ $filters['date_to'] ?? '' }}">
-            <button type="submit" class="btn btn-outline-primary">Retry Failed</button>
+            <button type="submit" class="btn btn-outline-primary">Retry Retryable</button>
         </form>
         <a href="{{ route('whatsapp-api.inbox') }}" class="btn btn-outline-secondary">Kembali ke Inbox</a>
     </div>
@@ -36,8 +37,8 @@
                 <label class="form-label">Status</label>
                 <select name="status" class="form-select">
                     <option value="">Semua</option>
-                    @foreach(['queued','sent','delivered','read','error'] as $status)
-                        <option value="{{ $status }}" {{ ($filters['status'] ?? '') === $status ? 'selected' : '' }}>{{ ucfirst($status) }}</option>
+                    @foreach($statusOptions as $status => $label)
+                        <option value="{{ $status }}" {{ ($filters['status'] ?? '') === $status ? 'selected' : '' }}>{{ $label }}</option>
                     @endforeach
                 </select>
             </div>
@@ -87,8 +88,14 @@
                             'sent' => 'text-bg-blue',
                             'delivered' => 'text-bg-green',
                             'read' => 'text-bg-teal',
-                            'error' => 'text-bg-red',
+                            'error_retryable' => 'text-bg-orange',
+                            'error_permanent', 'error' => 'text-bg-red',
                             default => 'text-bg-secondary',
+                        };
+                        $statusLabel = match($msg->status) {
+                            'error_retryable' => 'Error Retryable',
+                            'error_permanent' => 'Error Permanent',
+                            default => ucfirst((string) $msg->status),
                         };
                     @endphp
                     <tr>
@@ -100,12 +107,12 @@
                             </span>
                         </td>
                         <td>{{ strtoupper((string) $msg->type) }}</td>
-                        <td><span class="badge {{ $statusClass }}">{{ ucfirst((string) $msg->status) }}</span></td>
+                        <td><span class="badge {{ $statusClass }}">{{ $statusLabel }}</span></td>
                         <td class="text-muted small">{{ $msg->external_message_id ?: '-' }}</td>
                         <td class="text-muted small">{{ \Illuminate\Support\Str::limit((string) $msg->body, 90) }}</td>
                         <td class="text-danger small">{{ \Illuminate\Support\Str::limit((string) $msg->error_message, 90) }}</td>
                         <td class="text-end align-middle">
-                            @if($msg->direction === 'out' && (string) $msg->status === 'error')
+                            @if($msg->direction === 'out' && in_array((string) $msg->status, ['error', 'error_retryable', 'error_permanent'], true))
                                 <div class="table-actions">
                                     <form class="d-inline-block m-0" method="POST" action="{{ route('whatsapp-api.logs.requeue', $msg) }}">
                                         @csrf

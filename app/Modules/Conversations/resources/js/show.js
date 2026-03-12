@@ -616,13 +616,13 @@ document.addEventListener('DOMContentLoaded', () => {
         pollingTimer = null;
     };
     const startPolling = () => {
-        if (pollingTimer || hasRealtimeChannel) {
+        if (pollingTimer) {
             return;
         }
         pollingTimer = setInterval(pollLatestMessages, 4000);
     };
     function refreshPollingState() {
-        if (hasRealtimeChannel || !isPageActive()) {
+        if (!isPageActive()) {
             stopPolling();
             return;
         }
@@ -977,8 +977,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (window.Echo && convId > 0) {
-        hasRealtimeChannel = true;
-        stopPolling();
         window.Echo.private(`conversations.${convId}`)
             .listen('App\\Modules\\Conversations\\Events\\ConversationMessageCreated', (event) => {
                 const msg = event.message;
@@ -1000,7 +998,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     clearUnread();
                 }
             });
-    } else {
-        refreshPollingState();
     }
+
+    refreshPollingState();
 });

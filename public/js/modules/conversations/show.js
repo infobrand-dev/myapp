@@ -645,13 +645,13 @@ document.addEventListener('DOMContentLoaded', function () {
     pollingTimer = null;
   };
   var startPolling = function startPolling() {
-    if (pollingTimer || hasRealtimeChannel) {
+    if (pollingTimer) {
       return;
     }
     pollingTimer = setInterval(pollLatestMessages, 4000);
   };
   function refreshPollingState() {
-    if (hasRealtimeChannel || !isPageActive()) {
+    if (!isPageActive()) {
       stopPolling();
       return;
     }
@@ -1062,8 +1062,6 @@ document.addEventListener('DOMContentLoaded', function () {
     lockTimer = setInterval(tick, 1000);
   }
   if (window.Echo && convId > 0) {
-    hasRealtimeChannel = true;
-    stopPolling();
     window.Echo["private"]("conversations.".concat(convId)).listen('App\\Modules\\Conversations\\Events\\ConversationMessageCreated', function (event) {
       var msg = event.message;
       var shouldStickBottom = isNearBottom();
@@ -1084,9 +1082,8 @@ document.addEventListener('DOMContentLoaded', function () {
         clearUnread();
       }
     });
-  } else {
-    refreshPollingState();
   }
+  refreshPollingState();
 });
 /******/ })()
 ;

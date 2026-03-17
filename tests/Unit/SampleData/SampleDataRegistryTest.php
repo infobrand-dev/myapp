@@ -40,7 +40,7 @@ class SampleDataRegistryTest extends TestCase
         $this->assertCount(2, $modules->get('whatsapp_api')['seeders']);
 
         $this->assertTrue($modules->has('shortlink'));
-        $this->assertFalse($modules->get('shortlink')['ready']);
-        $this->assertSame([], $modules->get('shortlink')['seeders']);
+        $this->assertTrue($modules->get('shortlink')['ready']);
+        $this->assertCount(1, $modules->get('shortlink')['seeders']);
     }
 }

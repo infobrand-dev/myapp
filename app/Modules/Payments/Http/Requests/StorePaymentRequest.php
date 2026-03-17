@@ -14,6 +14,12 @@ class StorePaymentRequest extends FormRequest
 
     public function rules(): array
     {
+        $receivedByRules = ['nullable', 'integer', 'exists:users,id'];
+
+        if (!$this->user() || !$this->user()->can('payments.assign_receiver')) {
+            $receivedByRules = ['prohibited'];
+        }
+
         return [
             'payment_method_id' => ['required', 'integer', 'exists:payment_methods,id'],
             'amount' => ['required', 'numeric', 'gt:0'],
@@ -24,7 +30,7 @@ class StorePaymentRequest extends FormRequest
             'reference_number' => ['nullable', 'string', 'max:100'],
             'external_reference' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string'],
-            'received_by' => ['nullable', 'integer', 'exists:users,id'],
+            'received_by' => $receivedByRules,
             'outlet_id' => ['nullable', 'integer', 'min:1'],
             'allocations' => ['required', 'array', 'min:1'],
             'allocations.*.payable_type' => ['required', Rule::in(['sale'])],

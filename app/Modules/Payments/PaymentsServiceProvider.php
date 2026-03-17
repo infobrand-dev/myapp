@@ -23,6 +23,7 @@ class PaymentsServiceProvider extends ServiceProvider
         'payments.view_all',
         'payments.view_own',
         'payments.create',
+        'payments.assign_receiver',
         'payments.void',
         'payments.manage_methods',
         'payments.print',

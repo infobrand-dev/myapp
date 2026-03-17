@@ -4,6 +4,7 @@ namespace Tests\Feature\Sales;
 
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Payments\PaymentsServiceProvider;
 use App\Modules\Products\Models\Product;
 use App\Modules\Sales\Actions\CreateDraftSaleAction;
 use App\Modules\Sales\Actions\FinalizeSaleAction;
@@ -23,6 +24,7 @@ class SalesHookDispatchTest extends TestCase
     {
         parent::setUp();
 
+        $this->app->register(PaymentsServiceProvider::class);
         $this->app->register(SalesServiceProvider::class);
 
         $this->artisan('migrate', [
@@ -32,6 +34,11 @@ class SalesHookDispatchTest extends TestCase
 
         $this->artisan('migrate', [
             '--path' => 'app/Modules/Products/database/migrations',
+            '--realpath' => false,
+        ])->run();
+
+        $this->artisan('migrate', [
+            '--path' => 'app/Modules/Payments/database/migrations',
             '--realpath' => false,
         ])->run();
 

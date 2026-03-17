@@ -138,6 +138,41 @@ class SalesApiChannelTest extends TestCase
         );
     }
 
+    public function test_channel_api_rejects_mismatched_payload_for_existing_external_reference(): void
+    {
+        $user = $this->salesUser(['sales.create']);
+        Sanctum::actingAs($user);
+
+        $contact = $this->customer();
+        $product = $this->product('API Mismatch Product', 'API-MISMATCH-002', 'api-mismatch-product');
+
+        $payload = [
+            'contact_id' => $contact->id,
+            'source' => 'api',
+            'external_reference' => 'EXT-API-2002',
+            'payment_status' => 'unpaid',
+            'transaction_date' => now()->format('Y-m-d H:i:s'),
+            'currency_code' => 'IDR',
+            'items' => [
+                [
+                    'sellable_key' => 'product:' . $product->id,
+                    'qty' => 1,
+                    'unit_price' => 25000,
+                    'discount_total' => 0,
+                    'tax_total' => 0,
+                ],
+            ],
+        ];
+
+        $this->postJson('/api/sales/channel-transactions', $payload)->assertCreated();
+
+        $payload['items'][0]['qty'] = 2;
+
+        $this->postJson('/api/sales/channel-transactions', $payload)
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('external_reference');
+    }
+
     private function salesUser(array $permissions): User
     {
         $user = User::factory()->create();

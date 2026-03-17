@@ -31,6 +31,7 @@ class Sale extends Model
     protected $fillable = [
         'sale_number',
         'external_reference',
+        'idempotency_payload_hash',
         'contact_id',
         'customer_name_snapshot',
         'customer_email_snapshot',

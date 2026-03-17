@@ -273,6 +273,52 @@ class SalesWorkflowTest extends TestCase
         });
     }
 
+    public function test_voiding_sale_with_posted_payment_is_blocked(): void
+    {
+        $user = $this->salesUser([
+            'sales.create',
+            'sales.finalize',
+            'sales.void',
+            'payments.create',
+        ]);
+        $contact = $this->customer();
+        $product = $this->product('Produk Void Block', 'VOID-BLOCK-001', 'produk-void-block');
+
+        $sale = app(CreateDraftSaleAction::class)->execute([
+            'contact_id' => $contact->id,
+            'source' => 'manual',
+            'payment_status' => 'unpaid',
+            'transaction_date' => now()->format('Y-m-d H:i:s'),
+            'currency_code' => 'IDR',
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'qty' => 1,
+                    'unit_price' => 50000,
+                    'discount_total' => 0,
+                    'tax_total' => 0,
+                ],
+            ],
+        ], $user);
+
+        $sale = app(FinalizeSaleAction::class)->execute($sale, [
+            'payment_status' => 'unpaid',
+        ], $user);
+
+        app(RecordSalePaymentAction::class)->execute($sale, [
+            'payment_method' => 'cash',
+            'amount' => 10000,
+            'payment_date' => now()->format('Y-m-d H:i:s'),
+        ], $user);
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('payment posted');
+
+        app(VoidSaleAction::class)->execute($sale, [
+            'reason' => 'Should be blocked',
+        ], $user);
+    }
+
     public function test_pos_request_is_idempotent_by_source_and_external_reference(): void
     {
         $user = $this->salesUser([
@@ -397,6 +443,42 @@ class SalesWorkflowTest extends TestCase
 
         $response->assertSessionHasErrors('external_reference');
         $this->assertDatabaseCount('sales', 0);
+    }
+
+    public function test_idempotent_request_rejects_mismatched_payload_for_same_external_reference(): void
+    {
+        $user = $this->salesUser([
+            'sales.create',
+            'sales.view',
+        ]);
+        $contact = $this->customer();
+        $product = $this->product('Produk API Mismatch', 'API-MISMATCH-001', 'produk-api-mismatch');
+
+        $payload = [
+            'contact_id' => $contact->id,
+            'source' => 'api',
+            'external_reference' => 'EXT-MISMATCH-1001',
+            'payment_status' => 'unpaid',
+            'transaction_date' => now()->format('Y-m-d H:i:s'),
+            'currency_code' => 'IDR',
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'qty' => 1,
+                    'unit_price' => 25000,
+                    'discount_total' => 0,
+                    'tax_total' => 0,
+                ],
+            ],
+        ];
+
+        app(CreateDraftSaleAction::class)->execute($payload, $user);
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('payload transaksi yang berbeda');
+
+        $payload['items'][0]['qty'] = 2;
+        app(CreateDraftSaleAction::class)->execute($payload, $user);
     }
 
     private function salesUser(array $permissions): User

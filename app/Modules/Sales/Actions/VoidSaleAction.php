@@ -3,6 +3,7 @@
 namespace App\Modules\Sales\Actions;
 
 use App\Models\User;
+use App\Modules\Payments\Models\Payment;
 use App\Modules\Sales\Events\SaleVoided;
 use App\Modules\Sales\Models\Sale;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,16 @@ class VoidSaleAction
             if (!$sale->isFinalized()) {
                 throw ValidationException::withMessages([
                     'sale' => 'Hanya sale final yang dapat di-void.',
+                ]);
+            }
+
+            $hasPostedPayments = $sale->paymentAllocations()
+                ->whereHas('payment', fn ($query) => $query->where('status', Payment::STATUS_POSTED))
+                ->exists();
+
+            if ($hasPostedPayments) {
+                throw ValidationException::withMessages([
+                    'sale' => 'Sale yang masih memiliki payment posted tidak dapat di-void. Void/refund payment terlebih dahulu.',
                 ]);
             }
 

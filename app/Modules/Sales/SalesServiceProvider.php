@@ -16,6 +16,7 @@ use App\Modules\Sales\Listeners\DispatchFinalizedSaleHooks;
 use App\Modules\Sales\Listeners\DispatchVoidedSaleHooks;
 use App\Modules\Sales\Repositories\SaleRepository;
 use App\Modules\Sales\Services\SaleIntegrationPayloadBuilder;
+use App\Modules\Sales\Services\SaleIdempotencyService;
 use App\Modules\Sales\Services\SaleLookupService;
 use App\Modules\Sales\Services\SaleNumberService;
 use App\Modules\Sales\Services\SalePaymentSummaryService;
@@ -56,6 +57,7 @@ class SalesServiceProvider extends ServiceProvider
         $this->app->singleton(SaleRepository::class);
         $this->app->singleton(SaleLookupService::class);
         $this->app->singleton(SaleIntegrationPayloadBuilder::class);
+        $this->app->singleton(SaleIdempotencyService::class);
         $this->app->singleton(SaleNumberService::class);
         $this->app->singleton(SalePaymentSummaryService::class);
         $this->app->singleton(SaleSnapshotService::class);

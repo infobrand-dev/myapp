@@ -5,6 +5,7 @@ namespace App\Modules\Sales\Actions;
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Sales\Models\Sale;
+use App\Modules\Sales\Services\SaleIdempotencyService;
 use App\Modules\Sales\Services\SaleNumberService;
 use App\Modules\Sales\Services\SaleSnapshotService;
 use Illuminate\Database\QueryException;
@@ -14,17 +15,20 @@ class CreateDraftSaleAction
 {
     private $recalculateTotals;
     private $saleNumberService;
+    private $idempotencyService;
     private $snapshotService;
     private $syncPaymentSummary;
 
     public function __construct(
         RecalculateSaleTotalsAction $recalculateTotals,
         SaleNumberService $saleNumberService,
+        SaleIdempotencyService $idempotencyService,
         SaleSnapshotService $snapshotService,
         SyncSalePaymentSummaryAction $syncPaymentSummary
     ) {
         $this->recalculateTotals = $recalculateTotals;
         $this->saleNumberService = $saleNumberService;
+        $this->idempotencyService = $idempotencyService;
         $this->snapshotService = $snapshotService;
         $this->syncPaymentSummary = $syncPaymentSummary;
     }
@@ -39,6 +43,8 @@ class CreateDraftSaleAction
                     ->first();
 
                 if ($existingSale) {
+                    $this->idempotencyService->assertMatches($existingSale, $data);
+
                     return $existingSale->load('items');
                 }
             }
@@ -53,6 +59,7 @@ class CreateDraftSaleAction
                 $sale = Sale::query()->create([
                     'sale_number' => $this->saleNumberService->generate(),
                     'external_reference' => $data['external_reference'] ?? null,
+                    'idempotency_payload_hash' => $this->idempotencyService->hashFromPayload($data),
                     'contact_id' => $contact ? $contact->id : null,
                     'customer_name_snapshot' => $customer['name'],
                     'customer_email_snapshot' => $customer['email'],
@@ -72,10 +79,10 @@ class CreateDraftSaleAction
                     'currency_code' => $data['currency_code'] ?? 'IDR',
                     'notes' => $data['notes'] ?? null,
                     'totals_snapshot' => $totals['totals_snapshot'],
-                    'meta' => [
+                    'meta' => $this->idempotencyService->mergeMeta([
                         'source_context' => $data['source_context'] ?? null,
                         'draft_created_from' => $data['source'],
-                    ],
+                    ], $data),
                     'created_by' => $actor ? $actor->id : null,
                     'updated_by' => $actor ? $actor->id : null,
                 ]);
@@ -92,6 +99,8 @@ class CreateDraftSaleAction
                 if (!$sale) {
                     throw $exception;
                 }
+
+                $this->idempotencyService->assertMatches($sale, $data);
 
                 return $sale->load('items');
             }

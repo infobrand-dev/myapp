@@ -83,13 +83,7 @@ class PaymentController extends Controller
 
     public function show(Payment $payment): View
     {
-        $user = request()->user();
-
-        abort_unless(
-            ($user && $user->can('payments.view_all'))
-            || ($user && (int) $payment->received_by === (int) $user->id && $user->can('payments.view_own')),
-            403
-        );
+        $this->authorize('view', $payment);
 
         return view('payments::show', [
             'payment' => $this->repository->findForDetail($payment),
@@ -99,6 +93,8 @@ class PaymentController extends Controller
 
     public function void(VoidPaymentRequest $request, Payment $payment): RedirectResponse
     {
+        $this->authorize('void', $payment);
+
         $payment = $this->voidPayment->execute($payment, $request->validated(), $request->user());
 
         return redirect()->route('payments.show', $payment)->with('status', 'Payment berhasil di-void.');

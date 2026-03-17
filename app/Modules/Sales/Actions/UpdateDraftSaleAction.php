@@ -5,6 +5,7 @@ namespace App\Modules\Sales\Actions;
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Sales\Models\Sale;
+use App\Modules\Sales\Services\SaleIdempotencyService;
 use App\Modules\Sales\Services\SaleSnapshotService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -12,15 +13,18 @@ use Illuminate\Validation\ValidationException;
 class UpdateDraftSaleAction
 {
     private $recalculateTotals;
+    private $idempotencyService;
     private $snapshotService;
     private $syncPaymentSummary;
 
     public function __construct(
         RecalculateSaleTotalsAction $recalculateTotals,
+        SaleIdempotencyService $idempotencyService,
         SaleSnapshotService $snapshotService,
         SyncSalePaymentSummaryAction $syncPaymentSummary
     ) {
         $this->recalculateTotals = $recalculateTotals;
+        $this->idempotencyService = $idempotencyService;
         $this->snapshotService = $snapshotService;
         $this->syncPaymentSummary = $syncPaymentSummary;
     }
@@ -43,6 +47,7 @@ class UpdateDraftSaleAction
 
             $sale->update([
                 'external_reference' => $data['external_reference'] ?? null,
+                'idempotency_payload_hash' => $this->idempotencyService->hashFromPayload($data),
                 'contact_id' => $contact ? $contact->id : null,
                 'customer_name_snapshot' => $customer['name'],
                 'customer_email_snapshot' => $customer['email'],
@@ -60,9 +65,9 @@ class UpdateDraftSaleAction
                 'currency_code' => $data['currency_code'] ?? $sale->currency_code,
                 'notes' => $data['notes'] ?? null,
                 'totals_snapshot' => $totals['totals_snapshot'],
-                'meta' => array_merge($sale->meta ?? [], [
+                'meta' => $this->idempotencyService->mergeMeta(array_merge($sale->meta ?? [], [
                     'source_context' => $data['source_context'] ?? ($sale->meta['source_context'] ?? null),
-                ]),
+                ]), $data),
                 'updated_by' => $actor ? $actor->id : null,
             ]);
 

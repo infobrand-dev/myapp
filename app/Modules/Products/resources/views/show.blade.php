@@ -39,7 +39,7 @@
                     <div class="col-md-3"><div class="text-muted small">Harga member default</div><div>{{ $product->member_price !== null ? 'Rp ' . number_format((float) $product->member_price, 0, ',', '.') : '-' }}</div></div>
                 </div>
                 <div class="alert alert-secondary">
-                    Harga di halaman ini adalah base/default pricing. Jika ada promo aktif, source of truth tetap berasal dari module Discounts.
+                    Harga di halaman ini adalah base/default pricing dari tabel `product_prices`. Jika ada promo aktif, source of truth tetap berasal dari module Discounts.
                 </div>
                 <div class="table-responsive">
                     <table class="table table-sm table-vcenter">

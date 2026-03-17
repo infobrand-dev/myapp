@@ -56,20 +56,26 @@
                             <td class="text-end">
                                 <div class="btn-list justify-content-end">
                                     @if(!$module['installed'])
-                                        <form method="POST" action="{{ route('modules.install', $module['slug']) }}">
-                                            @csrf
-                                            <button type="submit" class="btn btn-sm btn-primary">Install</button>
-                                        </form>
+                                        @can('modules.install')
+                                            <form method="POST" action="{{ route('modules.install', $module['slug']) }}">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-primary">Install</button>
+                                            </form>
+                                        @endcan
                                     @elseif(!$module['active'])
-                                        <form method="POST" action="{{ route('modules.activate', $module['slug']) }}">
-                                            @csrf
-                                            <button type="submit" class="btn btn-sm btn-success">Activate</button>
-                                        </form>
+                                        @can('modules.activate')
+                                            <form method="POST" action="{{ route('modules.activate', $module['slug']) }}">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-success">Activate</button>
+                                            </form>
+                                        @endcan
                                     @else
-                                        <form method="POST" action="{{ route('modules.deactivate', $module['slug']) }}">
-                                            @csrf
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">Deactivate</button>
-                                        </form>
+                                        @can('modules.deactivate')
+                                            <form method="POST" action="{{ route('modules.deactivate', $module['slug']) }}">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">Deactivate</button>
+                                            </form>
+                                        @endcan
                                     @endif
                                 </div>
                             </td>
@@ -85,4 +91,3 @@
         </div>
     </div>
 </x-app-layout>
-

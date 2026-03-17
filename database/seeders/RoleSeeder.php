@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Modules\Discounts\DiscountsServiceProvider;
 use App\Modules\Inventory\InventoryServiceProvider;
 use App\Modules\Products\ProductsServiceProvider;
+use App\Support\CorePermissions;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -15,12 +16,14 @@ class RoleSeeder extends Seeder
     public function run(): void
     {
         $modulePermissionMaps = [
+            CorePermissions::DEFAULT_ROLE_PERMISSIONS,
             ProductsServiceProvider::DEFAULT_ROLE_PERMISSIONS,
             InventoryServiceProvider::DEFAULT_ROLE_PERMISSIONS,
             DiscountsServiceProvider::DEFAULT_ROLE_PERMISSIONS,
         ];
 
         $allPermissions = array_unique(array_merge(
+            CorePermissions::PERMISSIONS,
             ProductsServiceProvider::PERMISSIONS,
             InventoryServiceProvider::PERMISSIONS,
             DiscountsServiceProvider::PERMISSIONS
@@ -47,7 +50,7 @@ class RoleSeeder extends Seeder
                     $roles[$roleName] = Role::firstOrCreate(['name' => $roleName]);
                 }
 
-                $roles[$roleName]->givePermissionTo($permissions);
+                $roles[$roleName]->syncPermissions($permissions);
             }
         }
 

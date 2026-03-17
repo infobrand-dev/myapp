@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\CorePermissions;
+use App\Support\ModuleManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -10,7 +12,7 @@ use Spatie\Permission\Models\Role;
 
 class RoleController extends Controller
 {
-    public function index()
+    public function index(ModuleManager $modules)
     {
         $roles = Role::query()
             ->with(['users:id,name,email'])
@@ -18,14 +20,14 @@ class RoleController extends Controller
             ->withCount('users')
             ->orderBy('name')
             ->paginate(15);
-        $permissionGroups = $this->permissionGroups();
+        $permissionGroups = $this->permissionGroups($modules);
 
         return view('roles.index', compact('roles', 'permissionGroups'));
     }
 
-    public function create()
+    public function create(ModuleManager $modules)
     {
-        $permissionGroups = $this->permissionGroups();
+        $permissionGroups = $this->permissionGroups($modules);
 
         return view('roles.create', compact('permissionGroups'));
     }
@@ -44,27 +46,45 @@ class RoleController extends Controller
         return redirect()->route('roles.index')->with('status', 'Role ditambahkan.');
     }
 
-    public function edit(Role $role)
+    public function edit(Role $role, ModuleManager $modules)
     {
         $role->load([
             'users' => fn ($query) => $query->select('users.id', 'name', 'email')->orderBy('name'),
             'permissions:id,name',
         ]);
-        $permissionGroups = $this->permissionGroups();
+        $permissionGroups = $this->permissionGroups($modules);
         $selectedPermissions = $role->permissions->pluck('name')->all();
+        $visiblePermissions = collect($permissionGroups)->flatMap(fn (array $group) => collect($group['permissions'])->pluck('name'))->all();
+        $inactiveAssignedPermissions = $role->permissions
+            ->pluck('name')
+            ->reject(fn (string $permission) => in_array($permission, $visiblePermissions, true))
+            ->values()
+            ->all();
 
-        return view('roles.edit', compact('role', 'permissionGroups', 'selectedPermissions'));
+        return view('roles.edit', compact('role', 'permissionGroups', 'selectedPermissions', 'inactiveAssignedPermissions'));
     }
 
-    public function update(Request $request, Role $role): RedirectResponse
+    public function update(Request $request, Role $role, ModuleManager $modules): RedirectResponse
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255', Rule::unique('roles', 'name')->ignore($role->id)],
             'permissions' => ['nullable', 'array'],
             'permissions.*' => ['string', Rule::exists('permissions', 'name')],
         ]);
+
+        $visiblePermissions = collect($this->permissionGroups($modules))
+            ->flatMap(fn (array $group) => collect($group['permissions'])->pluck('name'))
+            ->all();
+        $inactiveAssignedPermissions = $role->permissions
+            ->pluck('name')
+            ->reject(fn (string $permission) => in_array($permission, $visiblePermissions, true))
+            ->all();
+
         $role->update(['name' => $data['name']]);
-        $role->syncPermissions($data['permissions'] ?? []);
+        $role->syncPermissions(array_values(array_unique(array_merge(
+            $data['permissions'] ?? [],
+            $inactiveAssignedPermissions
+        ))));
 
         return redirect()->route('roles.index')->with('status', 'Role diperbarui.');
     }
@@ -75,11 +95,19 @@ class RoleController extends Controller
         return back()->with('status', 'Role dihapus.');
     }
 
-    private function permissionGroups(): array
+    private function permissionGroups(ModuleManager $modules): array
     {
+        $visibleGroups = array_fill_keys($this->visiblePermissionGroups($modules), true);
+
         return Permission::query()
             ->orderBy('name')
             ->get(['id', 'name'])
+            ->filter(function (Permission $permission) use ($visibleGroups) {
+                $segments = explode('.', $permission->name, 2);
+                $group = $segments[0] ?? 'general';
+
+                return isset($visibleGroups[$group]);
+            })
             ->groupBy(function (Permission $permission) {
                 $segments = explode('.', $permission->name, 2);
 
@@ -97,6 +125,22 @@ class RoleController extends Controller
                     })->values()->all(),
                 ];
             })
+            ->values()
+            ->all();
+    }
+
+    private function visiblePermissionGroups(ModuleManager $modules): array
+    {
+        $coreGroups = collect(CorePermissions::PERMISSIONS)
+            ->map(fn (string $permission) => explode('.', $permission, 2)[0] ?? 'general');
+
+        $activeModuleGroups = collect($modules->all())
+            ->filter(fn (array $module) => $module['installed'] && $module['active'])
+            ->pluck('slug');
+
+        return $coreGroups
+            ->merge($activeModuleGroups)
+            ->unique()
             ->values()
             ->all();
     }

@@ -6,7 +6,9 @@
         <h2 class="mb-0">Roles</h2>
         <div class="text-muted small">Lihat hak akses tiap role dan user yang saat ini memegang role tersebut.</div>
     </div>
-    <a href="{{ route('roles.create') }}" class="btn btn-primary">Tambah Role</a>
+    @can('roles.create')
+        <a href="{{ route('roles.create') }}" class="btn btn-primary">Tambah Role</a>
+    @endcan
 </div>
 
 <div class="card">
@@ -47,7 +49,11 @@
                                 @if($role->users->isNotEmpty())
                                     <div class="d-flex flex-wrap gap-1">
                                         @foreach($role->users->take(4) as $user)
-                                            <a href="{{ route('users.edit', $user) }}" class="badge bg-secondary-lt text-secondary text-decoration-none">{{ $user->name }}</a>
+                                            @can('users.update')
+                                                <a href="{{ route('users.edit', $user) }}" class="badge bg-secondary-lt text-secondary text-decoration-none">{{ $user->name }}</a>
+                                            @else
+                                                <span class="badge bg-secondary-lt text-secondary">{{ $user->name }}</span>
+                                            @endcan
                                         @endforeach
                                         @if($role->users_count > 4)
                                             <span class="badge bg-light text-muted">+{{ $role->users_count - 4 }} lagi</span>
@@ -59,12 +65,16 @@
                             </td>
                             <td class="text-end align-middle">
                                 <div class="table-actions">
-                                    <a href="{{ route('roles.edit', $role) }}" class="btn btn-sm btn-outline-primary">Edit</a>
-                                    <form class="d-inline-block m-0" method="POST" action="{{ route('roles.destroy', $role) }}" onsubmit="return confirm('Hapus role ini?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">Hapus</button>
-                                    </form>
+                                    @can('roles.update')
+                                        <a href="{{ route('roles.edit', $role) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                    @endcan
+                                    @can('roles.delete')
+                                        <form class="d-inline-block m-0" method="POST" action="{{ route('roles.destroy', $role) }}" onsubmit="return confirm('Hapus role ini?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Hapus</button>
+                                        </form>
+                                    @endcan
                                 </div>
                             </td>
                         </tr>

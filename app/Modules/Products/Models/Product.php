@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Collection;
 
 class Product extends Model
 {
@@ -23,8 +24,6 @@ class Product extends Model
         'description',
         'cost_price',
         'sell_price',
-        'wholesale_price',
-        'member_price',
         'is_active',
         'track_stock',
         'featured_image_path',
@@ -37,8 +36,6 @@ class Product extends Model
     protected $casts = [
         'cost_price' => 'decimal:2',
         'sell_price' => 'decimal:2',
-        'wholesale_price' => 'decimal:2',
-        'member_price' => 'decimal:2',
         'is_active' => 'boolean',
         'track_stock' => 'boolean',
         'meta' => 'array',
@@ -82,5 +79,42 @@ class Product extends Model
     public function gallery(): HasMany
     {
         return $this->media()->where('collection_name', 'gallery');
+    }
+
+    public function wholesalePrice(): ?float
+    {
+        return $this->priceForLevelCode('wholesale');
+    }
+
+    public function memberPrice(): ?float
+    {
+        return $this->priceForLevelCode('member');
+    }
+
+    public function getWholesalePriceAttribute(): ?float
+    {
+        return $this->wholesalePrice();
+    }
+
+    public function getMemberPriceAttribute(): ?float
+    {
+        return $this->memberPrice();
+    }
+
+    private function priceForLevelCode(string $code): ?float
+    {
+        $price = $this->priceRows()
+            ->first(fn (ProductPrice $item) => $item->priceLevel?->code === $code);
+
+        return $price ? (float) $price->price : null;
+    }
+
+    private function priceRows(): Collection
+    {
+        $relation = $this->relationLoaded('prices')
+            ? $this->getRelation('prices')
+            : $this->prices()->with('priceLevel')->get();
+
+        return $relation instanceof Collection ? $relation : collect($relation);
     }
 }

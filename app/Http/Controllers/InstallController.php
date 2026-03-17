@@ -11,7 +11,9 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
 use RuntimeException;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 use Throwable;
 
 class InstallController extends Controller
@@ -97,6 +99,10 @@ class InstallController extends Controller
             DB::transaction(function () use ($data): void {
                 $role = Role::findOrCreate('Super-admin');
                 Role::findOrCreate('Admin');
+
+                $allPermissionNames = Permission::query()->pluck('name')->all();
+                $role->syncPermissions($allPermissionNames);
+                app(PermissionRegistrar::class)->forgetCachedPermissions();
 
                 $user = User::query()->firstOrNew(['email' => $data['admin_email']]);
                 $user->forceFill([

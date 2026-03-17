@@ -23,7 +23,7 @@
     </a>
 </li>
 
-@role('Super-admin')
+@can('users.view')
 <li class="nav-item">
     <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('users.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('users.index') }}">
         <span class="nav-link-icon">
@@ -38,6 +38,8 @@
         <span class="nav-link-title">Users</span>
     </a>
 </li>
+@endcan
+@can('roles.view')
 <li class="nav-item">
     <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('roles.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('roles.index') }}">
         <span class="nav-link-icon">
@@ -50,6 +52,8 @@
         <span class="nav-link-title">Roles</span>
     </a>
 </li>
+@endcan
+@can('modules.view')
 <li class="nav-item">
     <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('modules.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('modules.index') }}">
         <span class="nav-link-icon">
@@ -64,7 +68,7 @@
         <span class="nav-link-title">Modules</span>
     </a>
 </li>
-@endrole
+@endcan
 
 @if($moduleMenus->isNotEmpty())
 <li class="nav-item mt-2">

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Collection;
 
 class ProductVariant extends Model
 {
@@ -20,8 +21,6 @@ class ProductVariant extends Model
         'barcode',
         'cost_price',
         'sell_price',
-        'wholesale_price',
-        'member_price',
         'is_active',
         'track_stock',
         'position',
@@ -31,8 +30,6 @@ class ProductVariant extends Model
     protected $casts = [
         'cost_price' => 'decimal:2',
         'sell_price' => 'decimal:2',
-        'wholesale_price' => 'decimal:2',
-        'member_price' => 'decimal:2',
         'is_active' => 'boolean',
         'track_stock' => 'boolean',
         'position' => 'integer',
@@ -62,5 +59,42 @@ class ProductVariant extends Model
     public function media(): HasMany
     {
         return $this->hasMany(ProductMedia::class, 'product_variant_id');
+    }
+
+    public function wholesalePrice(): ?float
+    {
+        return $this->priceForLevelCode('wholesale');
+    }
+
+    public function memberPrice(): ?float
+    {
+        return $this->priceForLevelCode('member');
+    }
+
+    public function getWholesalePriceAttribute(): ?float
+    {
+        return $this->wholesalePrice();
+    }
+
+    public function getMemberPriceAttribute(): ?float
+    {
+        return $this->memberPrice();
+    }
+
+    private function priceForLevelCode(string $code): ?float
+    {
+        $price = $this->priceRows()
+            ->first(fn (ProductPrice $item) => $item->priceLevel?->code === $code);
+
+        return $price ? (float) $price->price : null;
+    }
+
+    private function priceRows(): Collection
+    {
+        $relation = $this->relationLoaded('prices')
+            ? $this->getRelation('prices')
+            : $this->prices()->with('priceLevel')->get();
+
+        return $relation instanceof Collection ? $relation : collect($relation);
     }
 }

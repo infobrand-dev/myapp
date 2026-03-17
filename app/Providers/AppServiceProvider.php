@@ -3,8 +3,12 @@
 namespace App\Providers;
 
 use App\Support\HookManager;
+use App\Support\CorePermissions;
 use App\Support\ModuleManager;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -26,6 +30,22 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        //
+        if (!Schema::hasTable('permissions')) {
+            return;
+        }
+
+        $created = false;
+        foreach (CorePermissions::PERMISSIONS as $permission) {
+            $record = Permission::query()->firstOrCreate([
+                'name' => $permission,
+                'guard_name' => 'web',
+            ]);
+
+            $created = $created || $record->wasRecentlyCreated;
+        }
+
+        if ($created) {
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
+        }
     }
 }

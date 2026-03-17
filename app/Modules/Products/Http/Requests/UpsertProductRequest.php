@@ -86,6 +86,21 @@ class UpsertProductRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $priceLevels = collect($this->input('price_levels', []))
+            ->map(function ($row) {
+                if (!is_array($row)) {
+                    return $row;
+                }
+
+                if (($row['price'] ?? null) === '') {
+                    $row['price'] = null;
+                }
+
+                return $row;
+            })
+            ->values()
+            ->all();
+
         $variants = collect($this->input('variants', []))
             ->map(function ($variant) {
                 if (!is_array($variant)) {
@@ -112,6 +127,7 @@ class UpsertProductRequest extends FormRequest
             'barcode' => $this->filled('barcode') ? trim((string) $this->input('barcode')) : null,
             'is_active' => $this->boolean('is_active'),
             'track_stock' => $this->boolean('track_stock'),
+            'price_levels' => $priceLevels,
             'variants' => $variants,
         ]);
     }

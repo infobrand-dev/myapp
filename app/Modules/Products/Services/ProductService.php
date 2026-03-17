@@ -7,6 +7,7 @@ use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductMedia;
 use App\Modules\Products\Models\ProductOptionGroup;
 use App\Modules\Products\Models\ProductOptionValue;
+use App\Modules\Products\Models\ProductPriceLevel;
 use App\Modules\Products\Models\ProductVariant;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -82,7 +83,16 @@ class ProductService
 
     private function syncProductGraph(Product $product, array $data): void
     {
-        $this->syncProductPrices($product, $data['price_levels'] ?? []);
+        $this->syncProductPrices(
+            $product,
+            $this->normalizePriceLevels(
+                $data['price_levels'] ?? [],
+                [
+                    'wholesale' => $data['wholesale_price'] ?? null,
+                    'member' => $data['member_price'] ?? null,
+                ]
+            )
+        );
         $this->syncProductMedia($product, $data);
         $this->syncVariants($product, $data['variants'] ?? []);
     }
@@ -106,8 +116,6 @@ class ProductService
             'description' => $this->nullableString($data['description'] ?? null),
             'cost_price' => $data['cost_price'] ?? 0,
             'sell_price' => $data['sell_price'] ?? 0,
-            'wholesale_price' => $this->nullableDecimal($data['wholesale_price'] ?? null),
-            'member_price' => $this->nullableDecimal($data['member_price'] ?? null),
             'is_active' => (bool) ($data['is_active'] ?? true),
             'track_stock' => $data['type'] === 'service' ? false : (bool) ($data['track_stock'] ?? false),
             'meta' => [
@@ -197,6 +205,7 @@ class ProductService
     {
         if ($product->type !== 'variant') {
             $product->variants()->get()->each(function (ProductVariant $variant) {
+                $variant->prices()->delete();
                 $variant->optionValues()->detach();
                 $variant->delete();
             });
@@ -222,13 +231,19 @@ class ProductService
                     'barcode' => $this->nullableString($variantData['barcode'] ?? null),
                     'cost_price' => $variantData['cost_price'] ?? 0,
                     'sell_price' => $variantData['sell_price'] ?? 0,
-                    'wholesale_price' => $this->nullableDecimal($variantData['wholesale_price'] ?? null),
-                    'member_price' => $this->nullableDecimal($variantData['member_price'] ?? null),
                     'is_active' => (bool) ($variantData['is_active'] ?? true),
                     'track_stock' => (bool) ($variantData['track_stock'] ?? $product->track_stock),
                     'position' => $index,
                     'meta' => [],
                 ]
+            );
+
+            $this->syncVariantPrices(
+                $variant,
+                $this->normalizePriceLevels([], [
+                    'wholesale' => $variantData['wholesale_price'] ?? null,
+                    'member' => $variantData['member_price'] ?? null,
+                ])
             );
 
             $keptIds[] = $variant->id;
@@ -321,6 +336,28 @@ class ProductService
         }
     }
 
+    private function syncVariantPrices(ProductVariant $variant, array $prices): void
+    {
+        $variant->prices()->delete();
+
+        foreach ($prices as $priceRow) {
+            $levelId = $priceRow['price_level_id'] ?? null;
+            $price = $priceRow['price'] ?? null;
+            if (!$levelId || $price === null || $price === '') {
+                continue;
+            }
+
+            $variant->prices()->create([
+                'product_id' => $variant->product_id,
+                'product_price_level_id' => $levelId,
+                'currency_code' => 'IDR',
+                'price' => $price,
+                'minimum_qty' => $priceRow['minimum_qty'] ?? 1,
+                'is_active' => true,
+            ]);
+        }
+    }
+
     private function parseAttributeSummary(?string $summary): array
     {
         $summary = trim((string) $summary);
@@ -351,12 +388,47 @@ class ProductService
         return $value === '' ? null : $value;
     }
 
-    private function nullableDecimal($value): ?string
+    private function normalizePriceLevels(array $prices, array $baseTierPrices = []): array
     {
-        if ($value === null || $value === '') {
-            return null;
+        $levelsByCode = ProductPriceLevel::query()
+            ->whereIn('code', array_keys($baseTierPrices))
+            ->get()
+            ->keyBy('code');
+
+        $normalized = collect($prices)
+            ->filter(fn ($row) => is_array($row))
+            ->map(function (array $row) {
+                return [
+                    'price_level_id' => $row['price_level_id'] ?? null,
+                    'price' => $row['price'] ?? null,
+                    'minimum_qty' => $row['minimum_qty'] ?? 1,
+                ];
+            });
+
+        foreach ($baseTierPrices as $code => $price) {
+            $level = $levelsByCode->get($code);
+            if (!$level) {
+                continue;
+            }
+
+            $normalized = $normalized
+                ->reject(fn (array $row) => (int) ($row['price_level_id'] ?? 0) === (int) $level->id)
+                ->values();
+
+            if ($price === null || $price === '') {
+                continue;
+            }
+
+            $normalized->push([
+                'price_level_id' => $level->id,
+                'price' => $price,
+                'minimum_qty' => 1,
+            ]);
         }
 
-        return (string) $value;
+        return $normalized
+            ->filter(fn (array $row) => !empty($row['price_level_id']) && $row['price'] !== null && $row['price'] !== '')
+            ->values()
+            ->all();
     }
 }

@@ -1,10 +1,19 @@
 @php($selectedPermissions = $selectedPermissions ?? [])
+@php($inactiveAssignedPermissions = $inactiveAssignedPermissions ?? [])
 
 <div class="mb-3">
     <label class="form-label">Permissions</label>
     <div class="text-muted small mb-3">
-        Permission didaftarkan oleh masing-masing module. Default role diberikan saat seeding, lalu bisa diubah kapan saja dari halaman ini.
+        Hanya permission core dan module yang sedang aktif yang ditampilkan di sini. Permission dari module yang belum aktif tidak bisa diubah dari form ini.
     </div>
+
+    @if(!empty($inactiveAssignedPermissions))
+        <div class="alert alert-warning">
+            Role ini masih memiliki permission dari module yang belum aktif:
+            {{ implode(', ', $inactiveAssignedPermissions) }}.
+            Permission tersebut dipertahankan sampai module terkait aktif kembali atau dibersihkan manual.
+        </div>
+    @endif
 
     @if(empty($permissionGroups))
         <div class="alert alert-secondary mb-0">Belum ada permission yang terdaftar.</div>

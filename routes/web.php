@@ -45,13 +45,25 @@ Route::middleware(['auth'])->prefix('presence')->name('presence.')->group(functi
     Route::post('/status', [UserPresenceController::class, 'setStatus'])->name('status');
 });
 
-Route::middleware(['auth', 'role:Super-admin'])->group(function () {
-    Route::resource('users', UserController::class)->except(['show']);
-    Route::resource('roles', RoleController::class)->except(['show']);
-    Route::get('/modules', [ModuleController::class, 'index'])->name('modules.index');
-    Route::post('/modules/{slug}/install', [ModuleController::class, 'install'])->name('modules.install');
-    Route::post('/modules/{slug}/activate', [ModuleController::class, 'activate'])->name('modules.activate');
-    Route::post('/modules/{slug}/deactivate', [ModuleController::class, 'deactivate'])->name('modules.deactivate');
+Route::middleware(['auth'])->group(function () {
+    Route::get('/users', [UserController::class, 'index'])->middleware('permission:users.view')->name('users.index');
+    Route::get('/users/create', [UserController::class, 'create'])->middleware('permission:users.create')->name('users.create');
+    Route::post('/users', [UserController::class, 'store'])->middleware('permission:users.create')->name('users.store');
+    Route::get('/users/{user}/edit', [UserController::class, 'edit'])->middleware('permission:users.update')->name('users.edit');
+    Route::put('/users/{user}', [UserController::class, 'update'])->middleware('permission:users.update')->name('users.update');
+    Route::delete('/users/{user}', [UserController::class, 'destroy'])->middleware('permission:users.delete')->name('users.destroy');
+
+    Route::get('/roles', [RoleController::class, 'index'])->middleware('permission:roles.view')->name('roles.index');
+    Route::get('/roles/create', [RoleController::class, 'create'])->middleware('permission:roles.create')->name('roles.create');
+    Route::post('/roles', [RoleController::class, 'store'])->middleware('permission:roles.create')->name('roles.store');
+    Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])->middleware('permission:roles.update')->name('roles.edit');
+    Route::put('/roles/{role}', [RoleController::class, 'update'])->middleware('permission:roles.update')->name('roles.update');
+    Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->middleware('permission:roles.delete')->name('roles.destroy');
+
+    Route::get('/modules', [ModuleController::class, 'index'])->middleware('permission:modules.view')->name('modules.index');
+    Route::post('/modules/{slug}/install', [ModuleController::class, 'install'])->middleware('permission:modules.install')->name('modules.install');
+    Route::post('/modules/{slug}/activate', [ModuleController::class, 'activate'])->middleware('permission:modules.activate')->name('modules.activate');
+    Route::post('/modules/{slug}/deactivate', [ModuleController::class, 'deactivate'])->middleware('permission:modules.deactivate')->name('modules.deactivate');
 });
 
 require __DIR__ . '/auth.php';

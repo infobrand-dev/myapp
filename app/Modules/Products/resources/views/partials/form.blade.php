@@ -1,5 +1,7 @@
 @php
     $isEdit = $product->exists;
+    $wholesaleLevelId = optional($priceLevels->firstWhere('code', 'wholesale'))->id;
+    $memberLevelId = optional($priceLevels->firstWhere('code', 'member'))->id;
     $variantRows = old('variants', $product->variants->map(function ($variant) {
         return [
             'id' => $variant->id,
@@ -15,7 +17,9 @@
             'track_stock' => $variant->track_stock,
         ];
     })->values()->all());
-    $priceRows = old('price_levels', $product->prices->map(function ($price) {
+    $priceRows = old('price_levels', $product->prices->filter(function ($price) {
+        return !in_array($price->priceLevel?->code, ['wholesale', 'member'], true);
+    })->map(function ($price) {
         return [
             'price_level_id' => $price->product_price_level_id,
             'price' => $price->price,
@@ -118,7 +122,7 @@
                     <div class="col-md-3"><label class="form-label">Harga member default</label><input type="number" step="0.01" min="0" name="member_price" class="form-control" value="{{ old('member_price', $product->member_price) }}"></div>
                     <div class="col-12">
                         <div class="text-muted small">
-                            Harga grosir/member di sini adalah base pricing tier default. Promo sementara, voucher, bundling, dan campaign diskon tidak disimpan di Products.
+                            Harga grosir/member di sini tetap tersimpan sebagai `product_prices` level `wholesale` dan `member`. Promo sementara, voucher, bundling, dan campaign diskon tidak disimpan di Products.
                         </div>
                     </div>
                 </div>
@@ -137,6 +141,7 @@
                                 <select name="price_levels[{{ $index }}][price_level_id]" class="form-select">
                                     <option value="">Pilih level</option>
                                     @foreach($priceLevels as $level)
+                                        @continue(in_array($level->code, ['wholesale', 'member'], true))
                                         <option value="{{ $level->id }}" @selected((string) ($priceRow['price_level_id'] ?? '') === (string) $level->id)>{{ $level->name }}</option>
                                     @endforeach
                                 </select>
@@ -244,7 +249,7 @@
         const row = document.createElement('div');
         row.className = 'row g-2 align-items-end mb-2 price-row';
         row.innerHTML = `
-            <div class="col-md-5"><label class="form-label">Price level</label><select name="price_levels[${index}][price_level_id]" class="form-select"><option value="">Pilih level</option>@foreach($priceLevels as $level)<option value="{{ $level->id }}">{{ $level->name }}</option>@endforeach</select></div>
+            <div class="col-md-5"><label class="form-label">Price level</label><select name="price_levels[${index}][price_level_id]" class="form-select"><option value="">Pilih level</option>@foreach($priceLevels as $level)@continue(in_array($level->code, ['wholesale', 'member'], true))<option value="{{ $level->id }}">{{ $level->name }}</option>@endforeach</select></div>
             <div class="col-md-3"><label class="form-label">Harga</label><input type="number" min="0" step="0.01" name="price_levels[${index}][price]" class="form-control"></div>
             <div class="col-md-3"><label class="form-label">Min qty</label><input type="number" min="1" step="0.01" name="price_levels[${index}][minimum_qty]" class="form-control" value="1"></div>
             <div class="col-md-1"><button type="button" class="btn btn-outline-danger w-100 remove-price-row"><i class="ti ti-x"></i></button></div>

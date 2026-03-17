@@ -6,7 +6,9 @@
         <h2 class="mb-0">Users</h2>
         <div class="text-muted small">Kelola user & role.</div>
     </div>
-    <a href="{{ route('users.create') }}" class="btn btn-primary">Tambah User</a>
+    @can('users.create')
+        <a href="{{ route('users.create') }}" class="btn btn-primary">Tambah User</a>
+    @endcan
 </div>
 
 <div class="card">
@@ -28,27 +30,31 @@
                     <td>{{ $user->roles->pluck('name')->join(', ') ?: '-' }}</td>
                     <td class="text-end align-middle">
                         <div class="table-actions">
-                            <a class="btn btn-icon btn-outline-secondary" href="{{ route('users.edit', $user) }}" title="Edit">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                    <path d="M12 20h9" />
-                                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3l-11 11l-4 1l1 -4z" />
-                                </svg>
-                            </a>
-                            <form class="d-inline-block m-0" method="POST" action="{{ route('users.destroy', $user) }}" onsubmit="return confirm('Hapus user ini?')">
-                                @csrf
-                                @method('DELETE')
-                                <button class="btn btn-icon btn-outline-danger" title="Delete">
+                            @can('users.update')
+                                <a class="btn btn-icon btn-outline-secondary" href="{{ route('users.edit', $user) }}" title="Edit">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                         <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                        <path d="M4 7h16" />
-                                        <path d="M10 11v6" />
-                                        <path d="M14 11v6" />
-                                        <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" />
-                                        <path d="M9 7v-3h6v3" />
+                                        <path d="M12 20h9" />
+                                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3l-11 11l-4 1l1 -4z" />
                                     </svg>
-                                </button>
-                            </form>
+                                </a>
+                            @endcan
+                            @can('users.delete')
+                                <form class="d-inline-block m-0" method="POST" action="{{ route('users.destroy', $user) }}" onsubmit="return confirm('Hapus user ini?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button class="btn btn-icon btn-outline-danger" title="Delete">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                            <path d="M4 7h16" />
+                                            <path d="M10 11v6" />
+                                            <path d="M14 11v6" />
+                                            <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" />
+                                            <path d="M9 7v-3h6v3" />
+                                        </svg>
+                                    </button>
+                                </form>
+                            @endcan
                         </div>
                     </td>
                 </tr>

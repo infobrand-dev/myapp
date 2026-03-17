@@ -5,6 +5,12 @@
   "provider": "App\\Modules\\Conversations\\ConversationsServiceProvider",
   "version": "1.0.0",
   "requires": [],
+  "sample_data": {
+    "description": "Membuat satu percakapan internal beserta participant dan pesan.",
+    "seeders": [
+      "App\\Modules\\Conversations\\Database\\Seeders\\ConversationSampleSeeder"
+    ]
+  },
   "navigation": [
     { "label": "Conversations", "route": "conversations.index", "badge": "conversation_unread_total" }
   ]

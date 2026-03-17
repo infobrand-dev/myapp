@@ -5,6 +5,12 @@
   "provider": "App\\Modules\\Sales\\SalesServiceProvider",
   "version": "1.0.0",
   "requires": ["products", "contacts", "payments"],
+  "sample_data": {
+    "description": "Membuat satu transaksi penjualan finalized dengan item sample.",
+    "seeders": [
+      "App\\Modules\\Sales\\Database\\Seeders\\SaleSampleSeeder"
+    ]
+  },
   "navigation": [
     { "label": "Sales", "route": "sales.index" }
   ]

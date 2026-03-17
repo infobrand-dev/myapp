@@ -5,6 +5,12 @@
   "provider": "App\\Modules\\Inventory\\InventoryServiceProvider",
   "version": "1.0.0",
   "requires": ["products"],
+  "sample_data": {
+    "description": "Membuat stok, mutasi, opening, adjustment, dan transfer sample.",
+    "seeders": [
+      "App\\Modules\\Inventory\\Database\\Seeders\\InventorySampleSeeder"
+    ]
+  },
   "navigation": [
     { "label": "Dashboard", "route": "inventory.dashboard" },
     { "label": "Stock List", "route": "inventory.stocks.index" },

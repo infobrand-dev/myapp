@@ -5,6 +5,12 @@
   "provider": "App\\Modules\\Shortlink\\ShortlinkServiceProvider",
   "version": "1.0.0",
   "requires": [],
+  "sample_data": {
+    "description": "Membuat shortlink, code, dan satu click contoh.",
+    "seeders": [
+      "App\\Modules\\Shortlink\\Database\\Seeders\\ShortlinkSampleSeeder"
+    ]
+  },
   "navigation": [
     { "label": "Shortlink", "route": "shortlinks.index" }
   ]

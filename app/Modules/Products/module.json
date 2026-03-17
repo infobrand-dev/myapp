@@ -5,6 +5,12 @@
   "provider": "App\\Modules\\Products\\ProductsServiceProvider",
   "version": "1.0.0",
   "requires": [],
+  "sample_data": {
+    "description": "Membuat kategori, brand, unit, produk, dan harga tier contoh.",
+    "seeders": [
+      "App\\Modules\\Products\\Database\\Seeders\\ProductSampleSeeder"
+    ]
+  },
   "navigation": [
     { "label": "Products", "route": "products.index" }
   ]

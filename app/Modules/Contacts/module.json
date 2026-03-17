@@ -5,6 +5,12 @@
   "provider": "App\\Modules\\Contacts\\ContactsServiceProvider",
   "version": "1.0.0",
   "requires": [],
+  "sample_data": {
+    "description": "Membuat company dan PIC contoh.",
+    "seeders": [
+      "App\\Modules\\Contacts\\Database\\Seeders\\ContactSampleSeeder"
+    ]
+  },
   "navigation": [
     { "label": "Contacts", "route": "contacts.index" }
   ]

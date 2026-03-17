@@ -5,6 +5,12 @@
   "provider": "App\\Modules\\Chatbot\\ChatbotServiceProvider",
   "version": "1.0.0",
   "requires": ["conversations"],
+  "sample_data": {
+    "description": "Membuat akun bot, knowledge base, dan sesi percakapan chatbot.",
+    "seeders": [
+      "App\\Modules\\Chatbot\\Database\\Seeders\\ChatbotSampleSeeder"
+    ]
+  },
   "navigation": [
     { "label": "Chatbot", "route": "chatbot.playground.index" }
   ]

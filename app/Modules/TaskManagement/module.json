@@ -5,6 +5,12 @@
   "provider": "App\\Modules\\TaskManagement\\TaskServiceProvider",
   "version": "1.0.0",
   "requires": [],
+  "sample_data": {
+    "description": "Membuat memo, task, subtask, dan task template contoh.",
+    "seeders": [
+      "App\\Modules\\TaskManagement\\Database\\Seeders\\TaskManagementSampleSeeder"
+    ]
+  },
   "navigation": [
     { "label": "Internal Memo", "route": "memos.index" },
     { "label": "Task Templates", "route": "tasktemplates.index" }

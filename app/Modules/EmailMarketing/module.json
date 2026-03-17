@@ -5,6 +5,12 @@
   "provider": "App\\Modules\\EmailMarketing\\EmailMarketingServiceProvider",
   "version": "1.0.0",
   "requires": ["contacts"],
+  "sample_data": {
+    "description": "Membuat campaign, attachment template, dan recipient contoh.",
+    "seeders": [
+      "App\\Modules\\EmailMarketing\\Database\\Seeders\\EmailMarketingSampleSeeder"
+    ]
+  },
   "navigation": [
     { "label": "Campaign", "route": "email-marketing.index" },
     { "label": "Attachment", "route": "email-marketing.templates.index" }

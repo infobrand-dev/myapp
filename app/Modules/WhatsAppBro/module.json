@@ -5,6 +5,12 @@
   "provider": "App\\Modules\\WhatsAppBro\\WhatsAppBroServiceProvider",
   "version": "1.0.0",
   "requires": ["conversations"],
+  "sample_data": {
+    "description": "Membuat konfigurasi bridge WhatsApp Bro contoh.",
+    "seeders": [
+      "App\\Modules\\WhatsAppBro\\Database\\Seeders\\WhatsAppBroSampleSeeder"
+    ]
+  },
   "navigation": [
     { "label": "Panel", "route": "whatsappbro.index" },
     { "label": "Settings", "route": "whatsappbro.settings.edit", "role": "Super-admin" }

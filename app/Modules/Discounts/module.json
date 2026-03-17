@@ -5,6 +5,12 @@
   "provider": "App\\Modules\\Discounts\\DiscountsServiceProvider",
   "version": "1.0.0",
   "requires": ["products"],
+  "sample_data": {
+    "description": "Membuat rule diskon, voucher, dan usage sample untuk produk demo.",
+    "seeders": [
+      "App\\Modules\\Discounts\\Database\\Seeders\\DiscountSampleSeeder"
+    ]
+  },
   "navigation": [
     { "label": "Discounts", "route": "discounts.index" },
     { "label": "Vouchers", "route": "discounts.vouchers.index" },

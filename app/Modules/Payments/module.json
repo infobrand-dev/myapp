@@ -5,6 +5,12 @@
   "provider": "App\\Modules\\Payments\\PaymentsServiceProvider",
   "version": "1.0.0",
   "requires": [],
+  "sample_data": {
+    "description": "Membuat satu payment posted menggunakan metode yang tersedia.",
+    "seeders": [
+      "App\\Modules\\Payments\\Database\\Seeders\\PaymentSampleSeeder"
+    ]
+  },
   "navigation": [
     { "label": "Payment List", "route": "payments.index" },
     { "label": "Payment Methods", "route": "payments.methods.index" }

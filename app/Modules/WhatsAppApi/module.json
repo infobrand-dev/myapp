@@ -5,6 +5,12 @@
   "provider": "App\\Modules\\WhatsAppApi\\WhatsAppApiServiceProvider",
   "version": "1.0.0",
   "requires": ["conversations"],
+  "sample_data": {
+    "description": "Membuat dummy WhatsApp instance, template, flow, blast, dan inbox demo.",
+    "seeders": [
+      "App\\Modules\\WhatsAppApi\\Database\\Seeders\\WhatsAppApiSampleSeeder"
+    ]
+  },
   "navigation": [
     { "label": "Inbox", "route": "whatsapp-api.inbox" },
     { "label": "Instances", "route": "whatsapp-api.instances.index", "role": "Super-admin" },

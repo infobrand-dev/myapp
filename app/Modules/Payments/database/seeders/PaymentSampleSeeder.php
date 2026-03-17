@@ -12,6 +12,7 @@ class PaymentSampleSeeder extends Seeder
     public function run(): void
     {
         $user = User::query()->where('email', 'superadmin@myapp.test')->first() ?? User::query()->first();
+        $userId = optional($user)->id;
 
         $method = PaymentMethod::query()->where('code', PaymentMethod::CODE_QRIS)->first()
             ?? PaymentMethod::query()->where('code', PaymentMethod::CODE_CASH)->first();
@@ -25,8 +26,8 @@ class PaymentSampleSeeder extends Seeder
                 'is_active' => true,
                 'is_system' => false,
                 'sort_order' => 99,
-                'created_by' => $user?->id,
-                'updated_by' => $user?->id,
+                'created_by' => $userId,
+                'updated_by' => $userId,
             ]);
         }
 
@@ -43,9 +44,9 @@ class PaymentSampleSeeder extends Seeder
                 'reference_number' => 'REF-DEMO-001',
                 'notes' => 'Pembayaran contoh untuk modul Payments.',
                 'meta' => ['seeded' => true],
-                'received_by' => $user?->id,
-                'created_by' => $user?->id,
-                'updated_by' => $user?->id,
+                'received_by' => $userId,
+                'created_by' => $userId,
+                'updated_by' => $userId,
             ]
         );
     }

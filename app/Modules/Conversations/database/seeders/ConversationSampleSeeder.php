@@ -13,6 +13,7 @@ class ConversationSampleSeeder extends Seeder
     public function run(): void
     {
         $user = User::query()->where('email', 'superadmin@myapp.test')->first() ?? User::query()->first();
+        $userId = optional($user)->id;
 
         $conversation = Conversation::query()->updateOrCreate(
             [
@@ -24,7 +25,7 @@ class ConversationSampleSeeder extends Seeder
                 'external_id' => 'conv-demo-001',
                 'contact_name' => 'Demo Internal Contact',
                 'status' => 'open',
-                'owner_id' => $user?->id,
+                'owner_id' => $userId,
                 'claimed_at' => now()->subMinutes(15),
                 'locked_until' => now()->addMinutes(30),
                 'last_message_at' => now()->subMinutes(2),
@@ -70,7 +71,7 @@ class ConversationSampleSeeder extends Seeder
                 'body' => 'Baik, proposal terbaru akan kami kirim hari ini.',
             ],
             [
-                'user_id' => $user?->id,
+                'user_id' => $userId,
                 'type' => 'text',
                 'status' => 'sent',
                 'payload' => ['seed' => true],

@@ -13,6 +13,7 @@ class ShortlinkSampleSeeder extends Seeder
     public function run(): void
     {
         $user = User::query()->where('email', 'superadmin@myapp.test')->first() ?? User::query()->first();
+        $userId = optional($user)->id;
 
         $shortlink = Shortlink::query()->updateOrCreate(
             ['destination_url' => 'https://example.com/promo-launch'],
@@ -22,8 +23,8 @@ class ShortlinkSampleSeeder extends Seeder
                 'utm_medium' => 'social',
                 'utm_campaign' => 'launch_demo',
                 'is_active' => true,
-                'created_by' => $user?->id,
-                'updated_by' => $user?->id,
+                'created_by' => $userId,
+                'updated_by' => $userId,
             ]
         );
 

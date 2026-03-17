@@ -11,6 +11,7 @@ class WhatsAppBroSampleSeeder extends Seeder
     public function run(): void
     {
         $user = User::query()->where('email', 'superadmin@myapp.test')->first() ?? User::query()->first();
+        $userId = optional($user)->id;
 
         DB::table('whatsapp_api_settings')->updateOrInsert(
             ['provider' => 'whatsapp_bro_demo'],
@@ -24,8 +25,8 @@ class WhatsAppBroSampleSeeder extends Seeder
                 'is_active' => true,
                 'timeout_seconds' => 30,
                 'notes' => 'Setting sample untuk modul WhatsApp Bro.',
-                'created_by' => $user?->id,
-                'updated_by' => $user?->id,
+                'created_by' => $userId,
+                'updated_by' => $userId,
                 'last_tested_at' => now()->subMinutes(10),
                 'last_test_status' => 'success',
                 'last_test_message' => 'Sample connection ready.',

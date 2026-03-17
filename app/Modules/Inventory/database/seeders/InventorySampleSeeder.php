@@ -23,6 +23,7 @@ class InventorySampleSeeder extends Seeder
         (new ProductSampleSeeder())->run();
 
         $user = User::query()->where('email', 'superadmin@myapp.test')->first() ?? User::query()->first();
+        $userId = optional($user)->id;
         $product = Product::query()->where('sku', 'DEMO-COFFEE-250')->first();
 
         if (!$product) {
@@ -89,8 +90,8 @@ class InventorySampleSeeder extends Seeder
                 'reason_code' => 'initial_stock',
                 'reason_text' => 'Opening stock sample.',
                 'occurred_at' => now()->subHour(),
-                'performed_by' => $user?->id,
-                'approved_by' => $user?->id,
+                'performed_by' => $userId,
+                'approved_by' => $userId,
                 'meta' => ['seeded' => true],
             ]
         );
@@ -102,8 +103,8 @@ class InventorySampleSeeder extends Seeder
                 'opening_date' => now()->subDays(7)->toDateString(),
                 'status' => 'posted',
                 'notes' => 'Opening stock sample.',
-                'created_by' => $user?->id,
-                'posted_by' => $user?->id,
+                'created_by' => $userId,
+                'posted_by' => $userId,
                 'posted_at' => now()->subDays(7),
                 'meta' => ['seeded' => true],
             ]
@@ -129,8 +130,8 @@ class InventorySampleSeeder extends Seeder
                 'status' => 'posted',
                 'reason_code' => 'stock_opname',
                 'reason_text' => 'Adjustment sample setelah stock opname.',
-                'created_by' => $user?->id,
-                'approved_by' => $user?->id,
+                'created_by' => $userId,
+                'approved_by' => $userId,
                 'approved_at' => now()->subDays(2),
                 'meta' => ['seeded' => true],
             ]
@@ -154,9 +155,9 @@ class InventorySampleSeeder extends Seeder
                 'transfer_date' => now()->subDay()->toDateString(),
                 'status' => 'sent',
                 'notes' => 'Transfer sample ke toko.',
-                'created_by' => $user?->id,
-                'approved_by' => $user?->id,
-                'sent_by' => $user?->id,
+                'created_by' => $userId,
+                'approved_by' => $userId,
+                'sent_by' => $userId,
                 'approved_at' => now()->subDay(),
                 'sent_at' => now()->subDay(),
                 'meta' => ['seeded' => true],

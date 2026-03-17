@@ -19,18 +19,26 @@ class SaleSampleSeeder extends Seeder
         (new ContactSampleSeeder())->run();
 
         $user = User::query()->where('email', 'superadmin@myapp.test')->first() ?? User::query()->first();
+        $userId = optional($user)->id;
         $contact = Contact::query()->where('email', 'procurement@demo-nusantara.test')->first();
         $product = Product::query()->where('sku', 'DEMO-COFFEE-250')->first();
+        $contactId = optional($contact)->id;
+        $contactName = optional($contact)->name;
+        $contactEmail = optional($contact)->email;
+        $contactMobile = optional($contact)->mobile;
+        $contactStreet = optional($contact)->street;
+        $contactCity = optional($contact)->city;
+        $contactCountry = optional($contact)->country;
 
         $sale = Sale::query()->updateOrCreate(
             ['sale_number' => 'SAL-DEMO-001'],
             [
                 'external_reference' => 'WEB-DEMO-001',
-                'contact_id' => $contact?->id,
-                'customer_name_snapshot' => $contact?->name,
-                'customer_email_snapshot' => $contact?->email,
-                'customer_phone_snapshot' => $contact?->mobile,
-                'customer_address_snapshot' => trim(implode(', ', array_filter([$contact?->street, $contact?->city, $contact?->country]))),
+                'contact_id' => $contactId,
+                'customer_name_snapshot' => $contactName,
+                'customer_email_snapshot' => $contactEmail,
+                'customer_phone_snapshot' => $contactMobile,
+                'customer_address_snapshot' => trim(implode(', ', array_filter([$contactStreet, $contactCity, $contactCountry]))),
                 'customer_snapshot' => ['seeded' => true],
                 'status' => Sale::STATUS_FINALIZED,
                 'payment_status' => Sale::PAYMENT_UNPAID,
@@ -47,9 +55,9 @@ class SaleSampleSeeder extends Seeder
                 'notes' => 'Transaksi sample untuk modul Sales.',
                 'totals_snapshot' => ['seeded' => true],
                 'meta' => ['seeded' => true],
-                'created_by' => $user?->id,
-                'updated_by' => $user?->id,
-                'finalized_by' => $user?->id,
+                'created_by' => $userId,
+                'updated_by' => $userId,
+                'finalized_by' => $userId,
             ]
         );
 

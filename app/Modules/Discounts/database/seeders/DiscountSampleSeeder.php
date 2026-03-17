@@ -20,7 +20,9 @@ class DiscountSampleSeeder extends Seeder
         (new ProductSampleSeeder())->run();
 
         $user = User::query()->where('email', 'superadmin@myapp.test')->first() ?? User::query()->first();
+        $userId = optional($user)->id;
         $product = Product::query()->where('sku', 'DEMO-COFFEE-250')->first();
+        $productId = optional($product)->id;
 
         $discount = Discount::query()->updateOrCreate(
             ['code' => 'DISC-DEMO-10'],
@@ -44,8 +46,8 @@ class DiscountSampleSeeder extends Seeder
                 'ends_at' => now()->addDays(30),
                 'rule_payload' => ['type' => 'percentage', 'value' => 10],
                 'meta' => ['seeded' => true],
-                'created_by' => $user?->id,
-                'updated_by' => $user?->id,
+                'created_by' => $userId,
+                'updated_by' => $userId,
             ]
         );
 
@@ -126,7 +128,7 @@ class DiscountSampleSeeder extends Seeder
             ],
             [
                 'voucher_id' => $voucher->id,
-                'product_id' => $product?->id,
+                'product_id' => $productId,
                 'variant_id' => null,
                 'quantity' => 1,
                 'subtotal_before' => 65000,

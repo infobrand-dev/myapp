@@ -16,6 +16,7 @@ class ProductSampleSeeder extends Seeder
     public function run(): void
     {
         $user = User::query()->where('email', 'superadmin@myapp.test')->first() ?? User::query()->first();
+        $userId = optional($user)->id;
 
         $category = ProductCategory::query()->updateOrCreate(
             ['slug' => 'minuman-demo'],
@@ -62,8 +63,8 @@ class ProductSampleSeeder extends Seeder
                 'is_active' => true,
                 'track_stock' => true,
                 'meta' => ['seeded' => true],
-                'created_by' => $user?->id,
-                'updated_by' => $user?->id,
+                'created_by' => $userId,
+                'updated_by' => $userId,
             ]
         );
 

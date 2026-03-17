@@ -17,6 +17,7 @@ class EmailMarketingSampleSeeder extends Seeder
         (new ContactSampleSeeder())->run();
 
         $user = User::query()->where('email', 'superadmin@myapp.test')->first() ?? User::query()->first();
+        $userId = optional($user)->id;
         $contact = Contact::query()->where('email', 'procurement@demo-nusantara.test')->first();
 
         $template = EmailAttachmentTemplate::query()->updateOrCreate(
@@ -26,7 +27,7 @@ class EmailMarketingSampleSeeder extends Seeder
                 'filename' => 'proposal-demo.pdf',
                 'html' => '<h1>Proposal Demo</h1><p>Dokumen contoh untuk campaign email.</p>',
                 'mime' => 'application/pdf',
-                'created_by' => $user?->id,
+                'created_by' => $userId,
                 'paper_size' => 'A4',
             ]
         );

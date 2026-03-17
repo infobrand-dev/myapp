@@ -19,6 +19,7 @@ class WhatsAppApiSampleSeeder extends Seeder
         (new ConversationDemoSeeder())->run();
 
         $user = User::query()->where('email', 'superadmin@myapp.test')->first() ?? User::query()->first();
+        $userId = optional($user)->id;
         $instance = WhatsAppInstance::query()->orderBy('id')->first();
 
         if (!$instance) {
@@ -61,7 +62,7 @@ class WhatsAppApiSampleSeeder extends Seeder
             ['instance_id' => $instance->id, 'name' => 'Blast Demo Launch'],
             [
                 'template_id' => $template->id,
-                'created_by' => $user?->id,
+                'created_by' => $userId,
                 'status' => 'scheduled',
                 'total_count' => 1,
                 'queued_count' => 1,

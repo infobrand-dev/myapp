@@ -15,6 +15,8 @@ class TaskManagementSampleSeeder extends Seeder
     public function run(): void
     {
         $user = User::query()->where('email', 'superadmin@myapp.test')->first() ?? User::query()->first();
+        $userId = optional($user)->id;
+        $userName = optional($user)->name;
 
         $memo = Memo::query()->updateOrCreate(
             ['title' => 'Memo Demo Aktivasi Campaign Ramadan'],
@@ -27,7 +29,7 @@ class TaskManagementSampleSeeder extends Seeder
                 'email' => 'procurement@demo-nusantara.test',
                 'address' => 'Jakarta',
                 'deadline' => now()->addWeek()->toDateString(),
-                'account_executive' => $user?->name,
+                'account_executive' => $userName,
                 'note' => 'Memo contoh untuk memperlihatkan task, subtask, dan progress.',
             ]
         );
@@ -38,7 +40,7 @@ class TaskManagementSampleSeeder extends Seeder
                 'description' => 'Buat deck singkat untuk campaign dan estimasi biaya.',
                 'status' => 'in_progress',
                 'due_date' => now()->addDays(3)->toDateString(),
-                'assigned_to' => $user?->id,
+                'assigned_to' => $userId,
             ]
         );
 
@@ -46,7 +48,7 @@ class TaskManagementSampleSeeder extends Seeder
             ['task_id' => $task->id, 'title' => 'Kumpulkan kebutuhan promo'],
             [
                 'status' => 'done',
-                'pic' => $user?->id,
+                'pic' => $userId,
                 'due_date' => now()->addDay()->toDateString(),
             ]
         );
@@ -55,7 +57,7 @@ class TaskManagementSampleSeeder extends Seeder
             ['task_id' => $task->id, 'title' => 'Susun timeline campaign'],
             [
                 'status' => 'pending',
-                'pic' => $user?->id,
+                'pic' => $userId,
                 'due_date' => now()->addDays(2)->toDateString(),
             ]
         );

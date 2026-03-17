@@ -1,0 +1,417 @@
+<?php
+
+namespace App\Modules\Products\Services;
+
+use App\Models\User;
+use App\Modules\Products\Models\Product;
+use App\Modules\Products\Models\ProductMedia;
+use App\Modules\Products\Models\ProductOptionGroup;
+use App\Modules\Products\Models\ProductOptionValue;
+use App\Modules\Products\Models\ProductVariant;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+
+class ProductService
+{
+    private ProductLookupService $lookupService;
+
+    public function __construct(ProductLookupService $lookupService)
+    {
+        $this->lookupService = $lookupService;
+    }
+
+    public function create(array $data, ?User $actor = null): Product
+    {
+        return DB::transaction(function () use ($data, $actor) {
+            $data = $this->lookupService->resolveLookupIds($data);
+
+            $product = Product::query()->create($this->productPayload($data, $actor, true));
+            $this->syncProductGraph($product, $data);
+
+            return $product->fresh();
+        });
+    }
+
+    public function update(Product $product, array $data, ?User $actor = null): Product
+    {
+        return DB::transaction(function () use ($product, $data, $actor) {
+            $data = $this->lookupService->resolveLookupIds($data);
+
+            $product->update($this->productPayload($data, $actor, false));
+            $this->syncProductGraph($product, $data);
+
+            return $product->fresh();
+        });
+    }
+
+    public function delete(Product $product, ?User $actor = null): void
+    {
+        DB::transaction(function () use ($product, $actor) {
+            $product->deleted_by = $actor ? $actor->id : null;
+            $product->save();
+            $product->delete();
+        });
+    }
+
+    public function toggleStatus(Product $product, ?bool $targetStatus = null): Product
+    {
+        $product->is_active = $targetStatus ?? !$product->is_active;
+        $product->save();
+
+        return $product->fresh();
+    }
+
+    public function bulkAction(array $productIds, string $action, ?User $actor = null): void
+    {
+        foreach (Product::query()->whereIn('id', $productIds)->get() as $product) {
+            if ($action === 'activate') {
+                $this->toggleStatus($product, true);
+            }
+
+            if ($action === 'deactivate') {
+                $this->toggleStatus($product, false);
+            }
+
+            if ($action === 'delete') {
+                $this->delete($product, $actor);
+            }
+        }
+    }
+
+    private function syncProductGraph(Product $product, array $data): void
+    {
+        $this->syncProductPrices($product, $data['price_levels'] ?? []);
+        $this->syncProductMedia($product, $data);
+        $this->syncVariants($product, $data['variants'] ?? []);
+        $this->syncProductStock($product, $data);
+    }
+
+    private function productPayload(array $data, ?User $actor, bool $isCreate): array
+    {
+        $slug = trim((string) ($data['slug'] ?? ''));
+        if ($slug === '') {
+            $slug = Str::slug((string) $data['name']);
+        }
+
+        $payload = [
+            'type' => $data['type'],
+            'category_id' => $data['category_id'] ?? null,
+            'brand_id' => $data['brand_id'] ?? null,
+            'unit_id' => $data['unit_id'] ?? null,
+            'name' => trim((string) $data['name']),
+            'slug' => $slug,
+            'sku' => trim((string) $data['sku']),
+            'barcode' => $this->nullableString($data['barcode'] ?? null),
+            'description' => $this->nullableString($data['description'] ?? null),
+            'cost_price' => $data['cost_price'] ?? 0,
+            'sell_price' => $data['sell_price'] ?? 0,
+            'wholesale_price' => $this->nullableDecimal($data['wholesale_price'] ?? null),
+            'member_price' => $this->nullableDecimal($data['member_price'] ?? null),
+            'is_active' => (bool) ($data['is_active'] ?? true),
+            'track_stock' => $data['type'] === 'service' ? false : (bool) ($data['track_stock'] ?? false),
+            'alert_low_stock' => (bool) ($data['alert_low_stock'] ?? false),
+            'min_stock' => (bool) ($data['track_stock'] ?? false) ? ($data['min_stock'] ?? 0) : 0,
+            'meta' => [
+                'module' => 'products',
+                'supports_multi_outlet' => true,
+            ],
+            'updated_by' => $actor ? $actor->id : null,
+        ];
+
+        if ($isCreate) {
+            $payload['created_by'] = $actor ? $actor->id : null;
+        }
+
+        return $payload;
+    }
+
+    private function syncProductPrices(Product $product, array $prices): void
+    {
+        $product->prices()->delete();
+
+        foreach ($prices as $priceRow) {
+            $levelId = $priceRow['price_level_id'] ?? null;
+            $price = $priceRow['price'] ?? null;
+            if (!$levelId || $price === null || $price === '') {
+                continue;
+            }
+
+            $product->prices()->create([
+                'product_price_level_id' => $levelId,
+                'currency_code' => 'IDR',
+                'price' => $price,
+                'minimum_qty' => $priceRow['minimum_qty'] ?? 1,
+                'is_active' => true,
+            ]);
+        }
+    }
+
+    private function syncProductMedia(Product $product, array $data): void
+    {
+        if (!empty($data['remove_gallery_media_ids'])) {
+            $mediaItems = ProductMedia::query()
+                ->where('product_id', $product->id)
+                ->whereIn('id', $data['remove_gallery_media_ids'])
+                ->get();
+
+            foreach ($mediaItems as $media) {
+                Storage::disk($media->disk)->delete($media->path);
+                $media->delete();
+            }
+        }
+
+        if (!empty($data['featured_image']) && $data['featured_image'] instanceof UploadedFile) {
+            if ($product->featured_image_path) {
+                Storage::disk('public')->delete($product->featured_image_path);
+            }
+
+            $path = $data['featured_image']->store('products/featured', 'public');
+            $product->update(['featured_image_path' => $path]);
+
+            $product->media()->where('collection_name', 'primary')->delete();
+            $product->media()->create([
+                'disk' => 'public',
+                'path' => $path,
+                'collection_name' => 'primary',
+                'sort_order' => 0,
+                'alt_text' => $product->name,
+            ]);
+        }
+
+        foreach (($data['gallery_images'] ?? []) as $index => $image) {
+            if (!$image instanceof UploadedFile) {
+                continue;
+            }
+
+            $path = $image->store('products/gallery', 'public');
+            $product->media()->create([
+                'disk' => 'public',
+                'path' => $path,
+                'collection_name' => 'gallery',
+                'sort_order' => $index,
+                'alt_text' => $product->name,
+            ]);
+        }
+    }
+
+    private function syncVariants(Product $product, array $variants): void
+    {
+        if ($product->type !== 'variant') {
+            $product->variants()->get()->each(function (ProductVariant $variant) {
+                $variant->optionValues()->detach();
+                $variant->delete();
+            });
+            $product->optionGroups()->delete();
+
+            return;
+        }
+
+        $existingIds = $product->variants()->pluck('id')->all();
+        $keptIds = [];
+        $attributeMatrix = [];
+
+        foreach (array_values($variants) as $index => $variantData) {
+            $variant = ProductVariant::query()->updateOrCreate(
+                [
+                    'id' => $variantData['id'] ?? null,
+                    'product_id' => $product->id,
+                ],
+                [
+                    'name' => trim((string) $variantData['name']),
+                    'attribute_summary' => $this->nullableString($variantData['attribute_summary'] ?? null),
+                    'sku' => trim((string) $variantData['sku']),
+                    'barcode' => $this->nullableString($variantData['barcode'] ?? null),
+                    'cost_price' => $variantData['cost_price'] ?? 0,
+                    'sell_price' => $variantData['sell_price'] ?? 0,
+                    'wholesale_price' => $this->nullableDecimal($variantData['wholesale_price'] ?? null),
+                    'member_price' => $this->nullableDecimal($variantData['member_price'] ?? null),
+                    'is_active' => (bool) ($variantData['is_active'] ?? true),
+                    'track_stock' => (bool) ($variantData['track_stock'] ?? $product->track_stock),
+                    'position' => $index,
+                    'meta' => [],
+                ]
+            );
+
+            $keptIds[] = $variant->id;
+            $attributeMatrix[$variant->id] = $this->parseAttributeSummary($variant->attribute_summary);
+        }
+
+        $toDeleteIds = array_diff($existingIds, $keptIds);
+        if (!empty($toDeleteIds)) {
+            ProductVariant::query()->whereIn('id', $toDeleteIds)->get()->each(function (ProductVariant $variant) {
+                $variant->optionValues()->detach();
+                $variant->delete();
+            });
+        }
+
+        $this->syncOptionMatrix($product, $attributeMatrix);
+    }
+
+    private function syncOptionMatrix(Product $product, array $attributeMatrix): void
+    {
+        $groupNames = collect($attributeMatrix)
+            ->flatMap(fn (array $attributes) => array_keys($attributes))
+            ->filter()
+            ->unique()
+            ->values();
+
+        $existingGroups = $product->optionGroups()->with('values')->get()->keyBy('name');
+        $groupIdsToKeep = [];
+        $valueIdsToKeep = [];
+
+        foreach ($groupNames as $groupIndex => $groupName) {
+            $group = $existingGroups->get($groupName)
+                ?? $product->optionGroups()->create(['name' => $groupName, 'sort_order' => $groupIndex]);
+
+            $group->sort_order = $groupIndex;
+            $group->save();
+            $groupIdsToKeep[] = $group->id;
+
+            $existingValues = $group->values()->get()->keyBy('value');
+            $values = collect($attributeMatrix)
+                ->map(fn (array $attributes) => $attributes[$groupName] ?? null)
+                ->filter()
+                ->unique()
+                ->values();
+
+            foreach ($values as $valueIndex => $valueName) {
+                $value = $existingValues->get($valueName)
+                    ?? $group->values()->create(['value' => $valueName, 'sort_order' => $valueIndex]);
+
+                $value->sort_order = $valueIndex;
+                $value->save();
+                $valueIdsToKeep[] = $value->id;
+            }
+        }
+
+        $product->optionGroups()->whereNotIn('id', $groupIdsToKeep ?: [0])->delete();
+
+        ProductOptionValue::query()
+            ->whereHas('group', fn ($query) => $query->where('product_id', $product->id))
+            ->whereNotIn('id', $valueIdsToKeep ?: [0])
+            ->delete();
+
+        foreach ($attributeMatrix as $variantId => $attributes) {
+            $variant = ProductVariant::query()->find($variantId);
+            if (!$variant) {
+                continue;
+            }
+
+            $optionValueIds = [];
+            foreach ($attributes as $groupName => $valueName) {
+                $group = ProductOptionGroup::query()
+                    ->where('product_id', $product->id)
+                    ->where('name', $groupName)
+                    ->first();
+
+                if (!$group) {
+                    continue;
+                }
+
+                $value = ProductOptionValue::query()
+                    ->where('product_option_group_id', $group->id)
+                    ->where('value', $valueName)
+                    ->first();
+
+                if ($value) {
+                    $optionValueIds[] = $value->id;
+                }
+            }
+
+            $variant->optionValues()->sync($optionValueIds);
+        }
+    }
+
+    private function syncProductStock(Product $product, array $data): void
+    {
+        if (!$product->track_stock) {
+            $product->stocks()->delete();
+            return;
+        }
+
+        $location = $this->lookupService->defaultStockLocation();
+        if (!$location) {
+            return;
+        }
+
+        if ($product->type === 'variant') {
+            $product->stocks()->whereNull('product_variant_id')->delete();
+
+            foreach ($product->variants()->whereNull('deleted_at')->get() as $variant) {
+                $input = collect($data['variants'] ?? [])
+                    ->first(fn ($row) => (int) ($row['id'] ?? 0) === (int) $variant->id || ($row['sku'] ?? null) === $variant->sku);
+
+                if (!$variant->track_stock) {
+                    $variant->stocks()->delete();
+                    continue;
+                }
+
+                $variant->stocks()->updateOrCreate(
+                    ['product_id' => $product->id, 'stock_location_id' => $location->id],
+                    [
+                        'quantity' => $input['initial_stock'] ?? 0,
+                        'reserved_quantity' => 0,
+                        'reorder_level' => $product->min_stock,
+                    ]
+                );
+            }
+
+            return;
+        }
+
+        $product->stocks()->whereNotNull('product_variant_id')->delete();
+        $product->stocks()->updateOrCreate(
+            [
+                'product_id' => $product->id,
+                'product_variant_id' => null,
+                'stock_location_id' => $location->id,
+            ],
+            [
+                'quantity' => $data['initial_stock'] ?? 0,
+                'reserved_quantity' => 0,
+                'reorder_level' => $product->min_stock,
+            ]
+        );
+    }
+
+    private function parseAttributeSummary(?string $summary): array
+    {
+        $summary = trim((string) $summary);
+        if ($summary === '') {
+            return [];
+        }
+
+        $attributes = [];
+        foreach (preg_split('/\s*\|\s*/', $summary) as $pair) {
+            [$name, $value] = array_pad(explode(':', $pair, 2), 2, null);
+            $name = trim((string) $name);
+            $value = trim((string) $value);
+
+            if ($name === '' || $value === '') {
+                continue;
+            }
+
+            $attributes[$name] = $value;
+        }
+
+        return $attributes;
+    }
+
+    private function nullableString($value): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
+    }
+
+    private function nullableDecimal($value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return (string) $value;
+    }
+}

@@ -8,6 +8,7 @@
     $integrationAutoReply = old('auto_reply', data_get($integration, 'auto_reply', false));
     $integrationChatbotAccountId = old('chatbot_account_id', data_get($integration, 'chatbot_account_id'));
     $chatbotEnabled = $chatbotEnabled ?? false;
+    $autoAssignmentEnabled = old('auto_assignment_enabled', data_get($instance->settings, 'auto_assignment_enabled', true));
 @endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
@@ -204,6 +205,17 @@
                                 <input class="form-check-input" type="checkbox" role="switch" name="auto_reply" value="1" id="auto_reply" {{ $integrationAutoReply ? 'checked' : '' }} {{ $chatbotEnabled ? '' : 'disabled' }}>
                                 <label class="form-check-label" for="auto_reply">Auto-reply AI</label>
                             </div>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-center">
+                            <div class="form-check form-switch mt-2">
+                                <input type="hidden" name="auto_assignment_enabled" value="0">
+                                <input class="form-check-input" type="checkbox" role="switch" name="auto_assignment_enabled" value="1" id="auto_assignment_enabled" {{ $autoAssignmentEnabled ? 'checked' : '' }}>
+                                <label class="form-check-label" for="auto_assignment_enabled">Auto-assignment Inbox</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-muted small mt-2">Conversation baru dari webhook otomatis di-claim ke user instance dengan beban aktif paling ringan.</div>
+                            @error('auto_assignment_enabled') <div class="text-danger small">{{ $message }}</div> @enderror
                         </div>
                         <div class="col-md-8">
                             <label class="form-label">Chatbot Account</label>

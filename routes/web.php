@@ -5,6 +5,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InstallController;
 use App\Http\Controllers\ModuleController;
+use App\Http\Controllers\UserPresenceController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -37,6 +38,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
+});
+
+Route::middleware(['auth'])->prefix('presence')->name('presence.')->group(function () {
+    Route::post('/heartbeat', [UserPresenceController::class, 'heartbeat'])->name('heartbeat');
+    Route::post('/status', [UserPresenceController::class, 'setStatus'])->name('status');
 });
 
 Route::middleware(['auth', 'role:Super-admin'])->group(function () {

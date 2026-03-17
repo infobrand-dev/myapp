@@ -19,6 +19,21 @@
     </div>
 </div>
 
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="card"><div class="card-body"><div class="text-muted small">Queued</div><div class="h2 mb-0">{{ $summary['queued'] }}</div></div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="card"><div class="card-body"><div class="text-muted small">Retryable Errors</div><div class="h2 mb-0">{{ $summary['retryable'] }}</div></div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="card"><div class="card-body"><div class="text-muted small">Permanent Errors</div><div class="h2 mb-0">{{ $summary['permanent'] }}</div></div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="card"><div class="card-body"><div class="text-muted small">Delivered/Read</div><div class="h2 mb-0">{{ $summary['delivered'] }}</div></div></div>
+    </div>
+</div>
+
 <div class="card mb-3">
     <div class="card-body">
         <form method="GET" class="row g-2 align-items-end">

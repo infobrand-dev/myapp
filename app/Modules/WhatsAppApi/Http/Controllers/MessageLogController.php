@@ -49,7 +49,26 @@ class MessageLogController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        return view('whatsappapi::logs.index', compact('messages', 'instances', 'filters', 'statusOptions'));
+        $summary = [
+            'queued' => ConversationMessage::query()
+                ->whereHas('conversation', fn ($q) => $q->where('channel', 'wa_api'))
+                ->where('status', 'queued')
+                ->count(),
+            'retryable' => ConversationMessage::query()
+                ->whereHas('conversation', fn ($q) => $q->where('channel', 'wa_api'))
+                ->whereIn('status', ['error', 'error_retryable'])
+                ->count(),
+            'permanent' => ConversationMessage::query()
+                ->whereHas('conversation', fn ($q) => $q->where('channel', 'wa_api'))
+                ->where('status', 'error_permanent')
+                ->count(),
+            'delivered' => ConversationMessage::query()
+                ->whereHas('conversation', fn ($q) => $q->where('channel', 'wa_api'))
+                ->whereIn('status', ['delivered', 'read'])
+                ->count(),
+        ];
+
+        return view('whatsappapi::logs.index', compact('messages', 'instances', 'filters', 'statusOptions', 'summary'));
     }
 
     public function retryFailed(Request $request): RedirectResponse

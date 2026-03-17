@@ -34,6 +34,7 @@ class InstanceController extends Controller
             'provider' => 'cloud',
             'settings' => [
                 'wa_cloud_verify_token' => $this->generateVerifyToken(),
+                'auto_assignment_enabled' => true,
             ],
         ]);
         $chatbotAccounts = $this->chatbotAccounts();
@@ -640,6 +641,7 @@ class InstanceController extends Controller
             'is_active' => ['boolean'],
             'settings' => ['nullable'],
             'handoff_ack_message' => ['nullable', 'string', 'max:2000'],
+            'auto_assignment_enabled' => ['sometimes', 'boolean'],
             'wa_cloud_verify_token' => ['nullable', 'string', 'max:255'],
             'wa_cloud_app_secret' => ['nullable', 'string', 'max:255'],
             'wa_cloud_app_id' => ['nullable', 'string', 'max:255'],
@@ -678,8 +680,13 @@ class InstanceController extends Controller
                 unset($settings['handoff_ack_message']);
             }
         }
+        if ($request->exists('auto_assignment_enabled')) {
+            $settings['auto_assignment_enabled'] = $request->boolean('auto_assignment_enabled');
+        } elseif (!$current && !array_key_exists('auto_assignment_enabled', $settings)) {
+            $settings['auto_assignment_enabled'] = true;
+        }
         $data['settings'] = $settings ?: null;
-        unset($data['wa_cloud_verify_token'], $data['wa_cloud_app_secret'], $data['wa_cloud_app_id'], $data['handoff_ack_message']);
+        unset($data['wa_cloud_verify_token'], $data['wa_cloud_app_secret'], $data['wa_cloud_app_id'], $data['handoff_ack_message'], $data['auto_assignment_enabled']);
 
         $provider = strtolower((string) ($data['provider'] ?? ''));
         $isCloud = $provider === 'cloud';

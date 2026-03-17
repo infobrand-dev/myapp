@@ -15,6 +15,33 @@
     </div>
 </div>
 
+@php
+    $myEffectivePresence = $myPresence->effectiveStatus();
+    $myManualPresence = $myPresence->manual_status ?: 'auto';
+@endphp
+<div class="card mb-3" data-user-presence data-heartbeat-url="{{ route('presence.heartbeat') }}" data-status-url="{{ route('presence.status') }}">
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-lg-4 col-md-6">
+                <label class="form-label">Status Saya</label>
+                <div class="d-flex gap-2 align-items-center">
+                    <select class="form-select" data-user-presence-select>
+                        <option value="auto" {{ $myManualPresence === 'auto' ? 'selected' : '' }}>Auto</option>
+                        <option value="online" {{ $myManualPresence === 'online' ? 'selected' : '' }}>Online</option>
+                        <option value="away" {{ $myManualPresence === 'away' ? 'selected' : '' }}>Away</option>
+                        <option value="busy" {{ $myManualPresence === 'busy' ? 'selected' : '' }}>Busy</option>
+                        <option value="offline" {{ $myManualPresence === 'offline' ? 'selected' : '' }}>Offline</option>
+                    </select>
+                    <span data-user-presence-badge class="badge {{ match($myEffectivePresence) { 'online' => 'bg-green-lt text-green', 'away' => 'bg-yellow-lt text-yellow', 'busy' => 'bg-red-lt text-red', default => 'bg-secondary-lt text-secondary' } }}">
+                        {{ ucfirst($myEffectivePresence) }}
+                    </span>
+                </div>
+                <div class="text-muted small mt-1">Mode `Auto` memakai heartbeat browser. Auto-assignment memprioritaskan `online`, lalu `away`.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="card mb-3">
     <div class="card-body">
         <form method="GET" class="row g-2 align-items-end">
@@ -31,7 +58,27 @@
                 <label class="form-label">Cari Kontak</label>
                 <input type="text" name="q" class="form-control" placeholder="Nama kontak / nomor WA" value="{{ $search ?? '' }}">
             </div>
-            <div class="col-lg-4 col-md-12 d-flex gap-2">
+            <div class="col-lg-2 col-md-6">
+                <label class="form-label">Assignment</label>
+                <select name="assignment" class="form-select">
+                    <option value="">Semua</option>
+                    <option value="mine" {{ ($assignment ?? '') === 'mine' ? 'selected' : '' }}>Milik Saya</option>
+                    <option value="unassigned" {{ ($assignment ?? '') === 'unassigned' ? 'selected' : '' }}>Unassigned</option>
+                    <option value="assigned" {{ ($assignment ?? '') === 'assigned' ? 'selected' : '' }}>Assigned</option>
+                    <option value="bot_paused" {{ ($assignment ?? '') === 'bot_paused' ? 'selected' : '' }}>Bot Paused</option>
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-6">
+                <label class="form-label">Owner Presence</label>
+                <select name="presence" class="form-select">
+                    <option value="">Semua</option>
+                    <option value="online" {{ ($presence ?? '') === 'online' ? 'selected' : '' }}>Online</option>
+                    <option value="away" {{ ($presence ?? '') === 'away' ? 'selected' : '' }}>Away</option>
+                    <option value="busy" {{ ($presence ?? '') === 'busy' ? 'selected' : '' }}>Busy</option>
+                    <option value="offline" {{ ($presence ?? '') === 'offline' ? 'selected' : '' }}>Offline</option>
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-12 d-flex gap-2">
                 <button class="btn btn-primary" type="submit">Apply</button>
                 <a href="{{ route('whatsapp-api.inbox') }}" class="btn btn-outline-secondary">Reset</a>
             </div>
@@ -59,6 +106,7 @@
                         $isLockedByOther = $conv->owner_id && !$isOwner && optional($conv->locked_until)->isFuture();
                         $metadata = is_array($conv->metadata) ? $conv->metadata : [];
                         $isBotPaused = (bool) ($metadata['auto_reply_paused'] ?? false);
+                        $isAutoAssigned = (bool) ($metadata['auto_assigned'] ?? false);
                     @endphp
                     <tr>
                         <td>
@@ -71,6 +119,9 @@
                         <td>
                             <div class="d-flex flex-wrap gap-1">
                                 <span class="badge {{ $conv->status === 'closed' ? 'text-bg-secondary' : 'text-bg-primary' }}">{{ ucfirst($conv->status) }}</span>
+                                @if($isAutoAssigned)
+                                    <span class="badge bg-lime-lt text-lime">Auto Assigned</span>
+                                @endif
                                 @if($isBotPaused)
                                     <span class="badge bg-yellow-lt text-yellow">Bot Paused</span>
                                 @endif
@@ -81,7 +132,11 @@
                         </td>
                         <td>
                             @if($conv->owner)
-                                <span class="badge bg-indigo-lt text-indigo">{{ $conv->owner->name }}</span>
+                                @php $ownerPresence = $ownerPresenceMap[$conv->owner->id] ?? 'offline'; @endphp
+                                <div class="d-flex flex-wrap gap-1">
+                                    <span class="badge bg-indigo-lt text-indigo">{{ $conv->owner->name }}</span>
+                                    <span class="badge {{ match($ownerPresence) { 'online' => 'bg-green-lt text-green', 'away' => 'bg-yellow-lt text-yellow', 'busy' => 'bg-red-lt text-red', default => 'bg-secondary-lt text-secondary' } }}">{{ ucfirst($ownerPresence) }}</span>
+                                </div>
                             @else
                                 <span class="text-muted">Unassigned</span>
                             @endif
@@ -173,6 +228,7 @@
             $isLockedByOther = $conv->owner_id && !$isOwner && optional($conv->locked_until)->isFuture();
             $metadata = is_array($conv->metadata) ? $conv->metadata : [];
             $isBotPaused = (bool) ($metadata['auto_reply_paused'] ?? false);
+            $isAutoAssigned = (bool) ($metadata['auto_assigned'] ?? false);
         @endphp
         <div class="card">
             <div class="card-body">
@@ -186,6 +242,9 @@
 
                 <div class="d-flex flex-wrap gap-1 mb-2">
                     <span class="badge {{ $conv->status === 'closed' ? 'text-bg-secondary' : 'text-bg-primary' }}">{{ ucfirst($conv->status) }}</span>
+                    @if($isAutoAssigned)
+                        <span class="badge bg-lime-lt text-lime">Auto Assigned</span>
+                    @endif
                     @if($isBotPaused)
                         <span class="badge bg-yellow-lt text-yellow">Bot Paused</span>
                     @endif
@@ -195,7 +254,8 @@
                 </div>
 
                 <div class="text-muted small mb-3">
-                    Owner: {{ $conv->owner?->name ?? 'Unassigned' }} | Last: {{ optional($conv->last_message_at)->diffForHumans() ?? '-' }}
+                    @php $ownerPresence = $conv->owner ? ($ownerPresenceMap[$conv->owner->id] ?? 'offline') : null; @endphp
+                    Owner: {{ $conv->owner?->name ?? 'Unassigned' }}{{ $ownerPresence ? ' (' . ucfirst($ownerPresence) . ')' : '' }} | Last: {{ optional($conv->last_message_at)->diffForHumans() ?? '-' }}
                 </div>
 
                 <div class="table-actions">
@@ -228,5 +288,9 @@
 
 <div class="mt-3">{{ $conversations->links() }}</div>
 @endsection
+
+@push('scripts')
+    @include('shared.user-presence-heartbeat')
+@endpush
 
 

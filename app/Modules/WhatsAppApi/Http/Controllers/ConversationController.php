@@ -4,6 +4,8 @@ namespace App\Modules\WhatsAppApi\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\UserPresence;
+use App\Services\Presence\UserPresenceService;
 use App\Modules\WhatsAppApi\Models\WhatsAppConversation;
 use App\Modules\WhatsAppApi\Models\WhatsAppConversationParticipant;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
@@ -13,6 +15,10 @@ use Illuminate\View\View;
 
 class ConversationController extends Controller
 {
+    public function __construct(private readonly UserPresenceService $presenceService)
+    {
+    }
+
     public function index(Request $request): View|RedirectResponse
     {
         if ($redirect = $this->ensureAnyInstanceExists($request)) {
@@ -23,6 +29,14 @@ class ConversationController extends Controller
         $lockMinutes = config('modules.whatsapp_api.lock_minutes', 30);
         $selectedInstanceId = $request->integer('instance_id') ?: null;
         $search = trim((string) $request->input('q', ''));
+        $assignment = trim((string) $request->input('assignment', ''));
+        $presence = trim((string) $request->input('presence', ''));
+        $presenceIds = $this->ownerIdsForPresence($presence);
+        $nonOfflinePresenceIds = $this->ownerIdsForAnyPresence([
+            UserPresence::STATUS_ONLINE,
+            UserPresence::STATUS_AWAY,
+            UserPresence::STATUS_BUSY,
+        ]);
 
         $instancesQuery = WhatsAppInstance::query()->where('is_active', true);
         if (!$user->hasRole('Super-admin')) {
@@ -41,18 +55,57 @@ class ConversationController extends Controller
                         ->orWhere('contact_external_id', 'like', "%{$search}%");
                 });
             })
+            ->when($assignment === 'mine', fn ($query) => $query->where('owner_id', $user->id))
+            ->when($assignment === 'unassigned', fn ($query) => $query->where(function ($q) {
+                $q->whereNull('owner_id')
+                    ->orWhere('locked_until', '<=', now());
+            }))
+            ->when($assignment === 'assigned', fn ($query) => $query->whereNotNull('owner_id')->where(function ($q) {
+                $q->whereNull('locked_until')
+                    ->orWhere('locked_until', '>', now());
+            }))
+            ->when($assignment === 'bot_paused', fn ($query) => $query->where('metadata->auto_reply_paused', true))
+            ->when(in_array($presence, [UserPresence::STATUS_ONLINE, UserPresence::STATUS_AWAY, UserPresence::STATUS_BUSY], true), function ($query) use ($presenceIds) {
+                if (empty($presenceIds)) {
+                    return $query->whereRaw('1 = 0');
+                }
+
+                return $query->whereIn('owner_id', $presenceIds);
+            })
+            ->when($presence === UserPresence::STATUS_OFFLINE, fn ($query) => $query->whereNotNull('owner_id')->whereNotIn('owner_id', $nonOfflinePresenceIds))
             ->orderByDesc('last_message_at')
             ->orderByDesc('updated_at')
             ->paginate(20)
             ->withQueryString();
+
+        $ownerPresenceMap = $this->presenceService->statusMapForUsers($conversations->getCollection()->pluck('owner_id'));
+        $myPresence = $this->presenceService->forUser($user);
 
         return view('whatsappapi::conversations.index', compact(
             'conversations',
             'instances',
             'lockMinutes',
             'selectedInstanceId',
-            'search'
+            'search',
+            'assignment',
+            'presence',
+            'ownerPresenceMap',
+            'myPresence'
         ));
+    }
+
+    private function ownerIdsForPresence(string $presence): array
+    {
+        if ($presence === '') {
+            return [];
+        }
+
+        return $this->ownerIdsForAnyPresence([$presence]);
+    }
+
+    private function ownerIdsForAnyPresence(array $statuses): array
+    {
+        return $this->presenceService->userIdsForStatuses($statuses);
     }
 
     public function claim(Request $request, WhatsAppConversation $conversation): RedirectResponse

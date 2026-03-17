@@ -13,6 +13,7 @@ use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstanceChatbotIntegration;
 use App\Modules\WhatsAppApi\Models\WhatsAppWebhookEvent;
+use App\Modules\WhatsAppApi\Support\ConversationAutoAssigner;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -25,6 +26,10 @@ use Illuminate\Http\RedirectResponse;
 
 class WebhookController extends Controller
 {
+    public function __construct(private readonly ConversationAutoAssigner $autoAssigner)
+    {
+    }
+
     public function verify(Request $request)
     {
         $mode = (string) ($request->query('hub_mode') ?? $request->query('hub.mode'));
@@ -181,6 +186,11 @@ class WebhookController extends Controller
                 'unread_count' => 0,
             ]
         );
+
+        if ($conversation->wasRecentlyCreated) {
+            $this->autoAssigner->assignIfEligible($conversation, $instance);
+            $conversation->refresh();
+        }
 
         if (!empty($data['external_message_id'])) {
             $alreadyStored = ConversationMessage::where('conversation_id', $conversation->id)
@@ -460,6 +470,11 @@ class WebhookController extends Controller
                     'unread_count' => 0,
                 ]
             );
+
+            if ($conversation->wasRecentlyCreated) {
+                $this->autoAssigner->assignIfEligible($conversation, $instance);
+                $conversation->refresh();
+            }
 
             if ($waMessageId !== '') {
                 $exists = ConversationMessage::where('conversation_id', $conversation->id)

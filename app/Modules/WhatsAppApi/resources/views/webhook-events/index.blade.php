@@ -118,6 +118,9 @@
                         <td class="text-muted small">{{ (int) $event->retry_count }}</td>
                         <td class="text-danger small">{{ \Illuminate\Support\Str::limit((string) $event->error_message, 120) ?: '-' }}</td>
                         <td class="text-end align-middle">
+                            <button type="button" class="btn btn-sm btn-outline-secondary btn-icon" data-bs-toggle="modal" data-bs-target="#eventDetail{{ $event->id }}" title="Detail" aria-label="Detail">
+                                <i class="ti ti-eye icon"></i>
+                            </button>
                             @if($event->canReprocess())
                                 <form class="d-inline-block m-0" method="POST" action="{{ route('whatsapp-api.webhook-events.reprocess', $event) }}" onsubmit="return confirm('Reprocess webhook event ini?');">
                                     @csrf
@@ -137,4 +140,52 @@
 </div>
 
 <div class="mt-3">{{ $events->links() }}</div>
+
+@foreach($events as $event)
+    <div class="modal fade" id="eventDetail{{ $event->id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content text-start">
+                <div class="modal-header">
+                    <h3 class="modal-title">Webhook Event #{{ $event->id }}</h3>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-3">
+                            <div class="text-muted small">Provider</div>
+                            <div class="fw-bold">{{ strtoupper((string) $event->provider) }}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-muted small">Status</div>
+                            <div class="fw-bold">{{ ucfirst((string) $event->process_status) }}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-muted small">Signature</div>
+                            <div class="fw-bold">{{ $event->signature_valid === null ? 'N/A' : ($event->signature_valid ? 'Valid' : 'Invalid') }}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-muted small">Received</div>
+                            <div class="fw-bold">{{ optional($event->received_at)->format('d M Y H:i:s') ?: '-' }}</div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Error Message</label>
+                        <textarea class="form-control" rows="3" readonly>{{ (string) $event->error_message }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Headers</label>
+                        <textarea class="form-control font-monospace" rows="8" readonly>{{ json_encode($event->headers ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</textarea>
+                    </div>
+                    <div>
+                        <label class="form-label">Payload</label>
+                        <textarea class="form-control font-monospace" rows="18" readonly>{{ json_encode($event->payload ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+@endforeach
 @endsection

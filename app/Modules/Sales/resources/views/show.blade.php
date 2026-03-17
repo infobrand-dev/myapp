@@ -110,6 +110,8 @@
                     <div>Discount: Rp {{ number_format((float) $sale->discount_total, 0, ',', '.') }}</div>
                     <div>Tax: Rp {{ number_format((float) $sale->tax_total, 0, ',', '.') }}</div>
                     <div class="fw-semibold">Grand: Rp {{ number_format((float) $sale->grand_total, 0, ',', '.') }}</div>
+                    <div>Paid: Rp {{ number_format((float) $sale->paid_total, 0, ',', '.') }}</div>
+                    <div>Balance Due: Rp {{ number_format((float) $sale->balance_due, 0, ',', '.') }}</div>
                 </div>
 
                 @if($sale->status === 'draft')
@@ -135,6 +137,82 @@
                         <div class="fw-semibold">Voided</div>
                         <div class="small">{{ $sale->void_reason }}</div>
                     </div>
+                @endif
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header"><h3 class="card-title">Payments</h3></div>
+            <div class="card-body">
+                @php
+                    $paymentAllocations = $sale->relationLoaded('paymentAllocations')
+                        ? $sale->paymentAllocations->sortByDesc(fn ($allocation) => optional(optional($allocation->payment)->paid_at)->timestamp ?? 0)->values()
+                        : collect();
+                @endphp
+
+                @if($paymentAllocations->isNotEmpty())
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm table-vcenter">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Method</th>
+                                    <th>Reference</th>
+                                    <th>Allocated</th>
+                                    <th>Status</th>
+                                    <th class="w-1"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($paymentAllocations as $allocation)
+                                    @php $payment = $allocation->payment; @endphp
+                                    <tr>
+                                        <td>{{ optional(optional($payment)->paid_at)->format('d M Y H:i') ?? '-' }}</td>
+                                        <td>{{ optional(optional($payment)->method)->name ?: '-' }}</td>
+                                        <td>{{ optional($payment)->reference_number ?: (optional($payment)->external_reference ?: '-') }}</td>
+                                        <td>Rp {{ number_format((float) $allocation->amount, 0, ',', '.') }}</td>
+                                        <td>{{ ucfirst(optional($payment)->status ?: '-') }}</td>
+                                        <td class="text-end">
+                                            @if($payment)
+                                                <a href="{{ route('payments.show', $payment) }}" class="btn btn-sm btn-outline-secondary">Detail</a>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @elseif($sale->payments->isNotEmpty())
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm table-vcenter">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Method</th>
+                                    <th>Reference</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($sale->payments as $payment)
+                                    <tr>
+                                        <td>{{ optional($payment->payment_date)->format('d M Y H:i') ?? '-' }}</td>
+                                        <td>{{ ucfirst(str_replace('_', ' ', $payment->payment_method)) }}</td>
+                                        <td>{{ $payment->reference_number ?: '-' }}</td>
+                                        <td>Rp {{ number_format((float) $payment->amount, 0, ',', '.') }}</td>
+                                        <td>{{ ucfirst($payment->status) }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="text-muted mb-3">Belum ada payment tercatat.</div>
+                @endif
+
+                @if($sale->status === 'finalized' && Route::has('payments.create'))
+                    <a href="{{ route('payments.create', ['sale_id' => $sale->id]) }}" class="btn btn-outline-primary w-100">Add Payment via Payments Module</a>
                 @endif
             </div>
         </div>

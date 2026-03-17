@@ -1,0 +1,12 @@
+{
+  "slug": "payments",
+  "name": "Payments",
+  "description": "Domain pembayaran reusable untuk mencatat, mengalokasikan, dan mengelola pembayaran transaksi lintas channel.",
+  "provider": "App\\Modules\\Payments\\PaymentsServiceProvider",
+  "version": "1.0.0",
+  "requires": [],
+  "navigation": [
+    { "label": "Payment List", "route": "payments.index" },
+    { "label": "Payment Methods", "route": "payments.methods.index" }
+  ]
+}

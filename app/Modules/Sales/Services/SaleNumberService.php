@@ -2,30 +2,44 @@
 
 namespace App\Modules\Sales\Services;
 
-use App\Modules\Sales\Models\Sale;
+use Illuminate\Support\Facades\DB;
 
 class SaleNumberService
 {
     public function generate(?\DateTimeInterface $date = null): string
     {
         $date = $date ?: now();
-        $prefix = 'SAL-' . $date->format('Ymd');
-        $latest = Sale::query()
-            ->where('sale_number', 'like', $prefix . '-%')
-            ->orderByDesc('sale_number')
-            ->value('sale_number');
+        $sequenceDate = $date->format('Ymd');
+        $prefix = 'SAL-' . $sequenceDate;
 
-        $nextSequence = 1;
-        if ($latest && preg_match('/-(\d{4,})$/', $latest, $matches)) {
-            $nextSequence = ((int) $matches[1]) + 1;
+        $row = DB::table('sale_sequences')
+            ->where('sequence_date', $sequenceDate)
+            ->lockForUpdate()
+            ->first();
+
+        if (!$row) {
+            DB::table('sale_sequences')->insert([
+                'sequence_date' => $sequenceDate,
+                'last_number' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $row = DB::table('sale_sequences')
+                ->where('sequence_date', $sequenceDate)
+                ->lockForUpdate()
+                ->first();
         }
 
-        do {
-            $candidate = sprintf('%s-%04d', $prefix, $nextSequence);
-            $exists = Sale::query()->where('sale_number', $candidate)->exists();
-            $nextSequence++;
-        } while ($exists);
+        $nextSequence = ((int) $row->last_number) + 1;
 
-        return $candidate;
+        DB::table('sale_sequences')
+            ->where('id', $row->id)
+            ->update([
+                'last_number' => $nextSequence,
+                'updated_at' => now(),
+            ]);
+
+        return sprintf('%s-%04d', $prefix, $nextSequence);
     }
 }

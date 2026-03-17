@@ -3,6 +3,7 @@
 namespace App\Modules\Sales\Actions;
 
 use App\Models\User;
+use App\Modules\Sales\Events\SaleVoided;
 use App\Modules\Sales\Models\Sale;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -11,7 +12,7 @@ class VoidSaleAction
 {
     public function execute(Sale $sale, array $data, ?User $actor = null): Sale
     {
-        return DB::transaction(function () use ($sale, $data, $actor) {
+        $sale = DB::transaction(function () use ($sale, $data, $actor) {
             $sale = Sale::query()->with('items')->lockForUpdate()->findOrFail($sale->id);
 
             if (!$sale->isFinalized()) {
@@ -58,5 +59,9 @@ class VoidSaleAction
 
             return $sale->load('voidLogs', 'statusHistories');
         });
+
+        event(new SaleVoided($sale));
+
+        return $sale;
     }
 }

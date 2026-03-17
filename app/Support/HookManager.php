@@ -26,4 +26,15 @@ class HookManager
 
         return $items;
     }
+
+    public function dispatch(string $name, array $context = []): array
+    {
+        $results = [];
+
+        foreach ($this->hooks[$name] ?? [] as $renderer) {
+            $results[] = $renderer($context);
+        }
+
+        return $results;
+    }
 }

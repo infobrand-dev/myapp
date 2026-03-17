@@ -139,6 +139,7 @@ class SaleController extends Controller
             'customers' => $this->lookupService->customers(),
             'sellables' => $this->lookupService->sellables(),
             'paymentStatusOptions' => $this->lookupService->paymentStatusOptions(),
+            'paymentMethodOptions' => $this->lookupService->paymentMethodOptions(),
             'sourceOptions' => $this->lookupService->sourceOptions(),
         ];
     }

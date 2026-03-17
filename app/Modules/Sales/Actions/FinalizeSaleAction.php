@@ -4,6 +4,7 @@ namespace App\Modules\Sales\Actions;
 
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Sales\Events\SaleFinalized;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Services\SaleSnapshotService;
 use Illuminate\Support\Facades\DB;
@@ -13,18 +14,24 @@ class FinalizeSaleAction
 {
     private $recalculateTotals;
     private $snapshotService;
+    private $recordSalePayment;
+    private $syncPaymentSummary;
 
     public function __construct(
         RecalculateSaleTotalsAction $recalculateTotals,
-        SaleSnapshotService $snapshotService
+        SaleSnapshotService $snapshotService,
+        RecordSalePaymentAction $recordSalePayment,
+        SyncSalePaymentSummaryAction $syncPaymentSummary
     ) {
         $this->recalculateTotals = $recalculateTotals;
         $this->snapshotService = $snapshotService;
+        $this->recordSalePayment = $recordSalePayment;
+        $this->syncPaymentSummary = $syncPaymentSummary;
     }
 
     public function execute(Sale $sale, array $data, ?User $actor = null): Sale
     {
-        return DB::transaction(function () use ($sale, $data, $actor) {
+        $sale = DB::transaction(function () use ($sale, $data, $actor) {
             $sale = Sale::query()->with('items')->lockForUpdate()->findOrFail($sale->id);
 
             if (!$sale->isDraft()) {
@@ -68,6 +75,7 @@ class FinalizeSaleAction
                 'discount_total' => $totals['discount_total'],
                 'tax_total' => $totals['tax_total'],
                 'grand_total' => $totals['grand_total'],
+                'balance_due' => $totals['grand_total'],
                 'totals_snapshot' => array_merge($totals['totals_snapshot'], [
                     'finalized_at' => now()->toDateTimeString(),
                 ]),
@@ -87,7 +95,21 @@ class FinalizeSaleAction
                 ],
             ]);
 
-            return $sale->load('items', 'statusHistories');
+            if (!empty($data['payments']) && is_array($data['payments'])) {
+                foreach ($data['payments'] as $paymentRow) {
+                    $this->recordSalePayment->execute($sale, $paymentRow, $actor);
+                }
+
+                $sale = Sale::query()->findOrFail($sale->id);
+            } else {
+                $sale = $this->syncPaymentSummary->execute($sale, $data['payment_status'] ?? $sale->payment_status);
+            }
+
+            return $sale->load('items', 'payments', 'statusHistories');
         });
+
+        event(new SaleFinalized($sale));
+
+        return $sale;
     }
 }

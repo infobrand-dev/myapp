@@ -29,6 +29,11 @@ class SaleRepository
             'contact.company',
             'items.product',
             'items.variant',
+            'paymentAllocations.payment.method',
+            'paymentAllocations.payment.receiver',
+            'paymentAllocations.payment.voider',
+            'payments.creator',
+            'payments.voider',
             'statusHistories.actor',
             'voidLogs.actor',
             'creator',
@@ -45,6 +50,8 @@ class SaleRepository
             'contact',
             'items.product',
             'items.variant',
+            'paymentAllocations.payment',
+            'payments',
         ]);
     }
 

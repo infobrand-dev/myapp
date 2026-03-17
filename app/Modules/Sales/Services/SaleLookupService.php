@@ -83,7 +83,20 @@ class SaleLookupService
             Sale::PAYMENT_UNPAID => 'Unpaid',
             Sale::PAYMENT_PARTIAL => 'Partial',
             Sale::PAYMENT_PAID => 'Paid',
+            Sale::PAYMENT_OVERPAID => 'Overpaid',
             Sale::PAYMENT_REFUNDED => 'Refunded',
+        ];
+    }
+
+    public function paymentMethodOptions(): array
+    {
+        return [
+            Sale::PAYMENT_METHOD_CASH => 'Cash',
+            Sale::PAYMENT_METHOD_BANK_TRANSFER => 'Bank Transfer',
+            Sale::PAYMENT_METHOD_CARD => 'Card',
+            Sale::PAYMENT_METHOD_EWALLET => 'E-Wallet',
+            Sale::PAYMENT_METHOD_QRIS => 'QRIS',
+            Sale::PAYMENT_METHOD_OTHER => 'Other',
         ];
     }
 
@@ -111,6 +124,12 @@ class SaleLookupService
                 'type' => 'required',
                 'status' => 'upstream',
                 'notes' => 'Customer diacu dari module Contacts dan disimpan sebagai snapshot saat transaksi final.',
+            ],
+            [
+                'module' => 'payments',
+                'type' => 'required',
+                'status' => 'downstream',
+                'notes' => 'Payment summary pada Sales harus disinkronkan dari module Payments. Sales tidak menyimpan domain pembayaran sebagai sumber utama.',
             ],
             [
                 'module' => 'inventory',

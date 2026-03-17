@@ -71,6 +71,8 @@
                     <tr><td colspan="5" class="text-end">Discount</td><td>Rp {{ number_format((float) $sale->discount_total, 0, ',', '.') }}</td></tr>
                     <tr><td colspan="5" class="text-end">Tax</td><td>Rp {{ number_format((float) $sale->tax_total, 0, ',', '.') }}</td></tr>
                     <tr><td colspan="5" class="text-end fw-bold">Grand Total</td><td class="fw-bold">Rp {{ number_format((float) $sale->grand_total, 0, ',', '.') }}</td></tr>
+                    <tr><td colspan="5" class="text-end">Paid</td><td>Rp {{ number_format((float) $sale->paid_total, 0, ',', '.') }}</td></tr>
+                    <tr><td colspan="5" class="text-end">Balance Due</td><td>Rp {{ number_format((float) $sale->balance_due, 0, ',', '.') }}</td></tr>
                 </tfoot>
             </table>
         </div>

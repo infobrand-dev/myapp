@@ -4,9 +4,11 @@ namespace App\Modules\Sales\Models;
 
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Payments\Models\PaymentAllocation;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Sale extends Model
 {
@@ -18,7 +20,15 @@ class Sale extends Model
     public const PAYMENT_UNPAID = 'unpaid';
     public const PAYMENT_PARTIAL = 'partial';
     public const PAYMENT_PAID = 'paid';
+    public const PAYMENT_OVERPAID = 'overpaid';
     public const PAYMENT_REFUNDED = 'refunded';
+
+    public const PAYMENT_METHOD_CASH = 'cash';
+    public const PAYMENT_METHOD_BANK_TRANSFER = 'bank_transfer';
+    public const PAYMENT_METHOD_CARD = 'card';
+    public const PAYMENT_METHOD_EWALLET = 'ewallet';
+    public const PAYMENT_METHOD_QRIS = 'qris';
+    public const PAYMENT_METHOD_OTHER = 'other';
 
     public const SOURCE_MANUAL = 'manual';
     public const SOURCE_POS = 'pos';
@@ -45,6 +55,8 @@ class Sale extends Model
         'discount_total',
         'tax_total',
         'grand_total',
+        'paid_total',
+        'balance_due',
         'currency_code',
         'notes',
         'void_reason',
@@ -67,6 +79,8 @@ class Sale extends Model
         'discount_total' => 'decimal:2',
         'tax_total' => 'decimal:2',
         'grand_total' => 'decimal:2',
+        'paid_total' => 'decimal:2',
+        'balance_due' => 'decimal:2',
         'totals_snapshot' => 'array',
         'meta' => 'array',
     ];
@@ -84,6 +98,16 @@ class Sale extends Model
     public function statusHistories(): HasMany
     {
         return $this->hasMany(SaleStatusHistory::class)->latest();
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(SalePayment::class)->latest('payment_date')->latest();
+    }
+
+    public function paymentAllocations(): MorphMany
+    {
+        return $this->morphMany(PaymentAllocation::class, 'payable');
     }
 
     public function voidLogs(): HasMany

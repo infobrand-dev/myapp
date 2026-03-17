@@ -63,6 +63,13 @@ class StoreDraftSaleRequest extends FormRequest
 
     protected function validateBusinessRules(Validator $validator): void
     {
+        $source = $this->input('source');
+        $externalReference = trim((string) $this->input('external_reference', ''));
+
+        if (in_array($source, [Sale::SOURCE_POS, Sale::SOURCE_ONLINE, Sale::SOURCE_API], true) && $externalReference === '') {
+            $validator->errors()->add('external_reference', 'External reference wajib diisi untuk source POS, online, atau API.');
+        }
+
         foreach ($this->input('items', []) as $index => $item) {
             if (empty($item['product_id'])) {
                 $validator->errors()->add("items.{$index}.sellable_key", 'Produk wajib valid.');

@@ -13,13 +13,16 @@ class UpdateDraftSaleAction
 {
     private $recalculateTotals;
     private $snapshotService;
+    private $syncPaymentSummary;
 
     public function __construct(
         RecalculateSaleTotalsAction $recalculateTotals,
-        SaleSnapshotService $snapshotService
+        SaleSnapshotService $snapshotService,
+        SyncSalePaymentSummaryAction $syncPaymentSummary
     ) {
         $this->recalculateTotals = $recalculateTotals;
         $this->snapshotService = $snapshotService;
+        $this->syncPaymentSummary = $syncPaymentSummary;
     }
 
     public function execute(Sale $sale, array $data, ?User $actor = null): Sale
@@ -53,6 +56,7 @@ class UpdateDraftSaleAction
                 'discount_total' => $totals['discount_total'],
                 'tax_total' => $totals['tax_total'],
                 'grand_total' => $totals['grand_total'],
+                'balance_due' => $totals['grand_total'],
                 'currency_code' => $data['currency_code'] ?? $sale->currency_code,
                 'notes' => $data['notes'] ?? null,
                 'totals_snapshot' => $totals['totals_snapshot'],
@@ -64,6 +68,7 @@ class UpdateDraftSaleAction
 
             $sale->items()->delete();
             $sale->items()->createMany($totals['items']);
+            $sale = $this->syncPaymentSummary->execute($sale, $data['payment_status']);
 
             return $sale->load('items');
         });

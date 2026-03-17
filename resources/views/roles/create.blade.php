@@ -12,8 +12,9 @@
                 <label class="form-label">Nama</label>
                 <input type="text" name="name" class="form-control" value="{{ old('name') }}" required>
             </div>
+            @include('roles.partials.permissions', ['permissionGroups' => $permissionGroups, 'selectedPermissions' => []])
             <div class="alert alert-info">
-                Gunakan nama role yang jelas. Assign role ke user dilakukan dari halaman Users, dan role user bisa diedit kapan saja dari sana.
+                Gunakan nama role yang jelas. Assign role ke user dilakukan dari halaman Users, dan permission role bisa diubah kapan saja dari halaman Roles.
             </div>
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary">Simpan</button>

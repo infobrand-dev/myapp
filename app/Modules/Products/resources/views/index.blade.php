@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Products</h2>
-        <div class="text-muted small">Master produk dengan harga, varian, barcode, SKU, dan konfigurasi stockable. Stok dikelola terpisah di module Inventory.</div>
+        <div class="text-muted small">Master produk dengan harga dasar, varian, barcode, SKU, dan konfigurasi stockable. Stok dikelola di Inventory, sedangkan promo dan voucher dikelola di module Discounts.</div>
     </div>
     <a href="{{ route('products.create') }}" class="btn btn-primary">Tambah Product</a>
 </div>

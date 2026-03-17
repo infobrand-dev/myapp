@@ -30,6 +30,17 @@ class InventoryServiceProvider extends ServiceProvider
         'inventory.view-all-locations',
     ];
 
+    public const DEFAULT_ROLE_PERMISSIONS = [
+        'Super-admin' => self::PERMISSIONS,
+        'Admin' => [
+            'inventory.view-stock',
+            'inventory.view-movement',
+            'inventory.manage-opening-stock',
+            'inventory.manage-stock-adjustment',
+            'inventory.manage-stock-transfer',
+        ],
+    ];
+
     public function register(): void
     {
         $this->app->singleton(InventoryDashboardRepository::class);

@@ -5,10 +5,31 @@ namespace App\Modules\Products;
 use App\Modules\Products\Repositories\ProductRepository;
 use App\Modules\Products\Services\ProductLookupService;
 use App\Modules\Products\Services\ProductService;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
 
 class ProductsServiceProvider extends ServiceProvider
 {
+    public const PERMISSIONS = [
+        'products.view',
+        'products.create',
+        'products.update',
+        'products.delete',
+        'products.toggle-status',
+    ];
+
+    public const DEFAULT_ROLE_PERMISSIONS = [
+        'Super-admin' => self::PERMISSIONS,
+        'Admin' => [
+            'products.view',
+            'products.create',
+            'products.update',
+            'products.toggle-status',
+        ],
+    ];
+
     public function register(): void
     {
         $this->app->singleton(ProductRepository::class);
@@ -21,5 +42,23 @@ class ProductsServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__ . '/routes/web.php');
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'products');
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
+
+        $this->ensurePermissions();
+    }
+
+    private function ensurePermissions(): void
+    {
+        if (!Schema::hasTable('permissions')) {
+            return;
+        }
+
+        foreach (self::PERMISSIONS as $permission) {
+            Permission::query()->firstOrCreate([
+                'name' => $permission,
+                'guard_name' => 'web',
+            ]);
+        }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }

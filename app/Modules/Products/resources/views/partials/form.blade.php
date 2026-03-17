@@ -114,8 +114,13 @@
                 <div class="card-body row g-3">
                     <div class="col-md-3"><label class="form-label">Harga beli</label><input type="number" step="0.01" min="0" name="cost_price" class="form-control" value="{{ old('cost_price', $product->cost_price ?? 0) }}" required></div>
                     <div class="col-md-3"><label class="form-label">Harga jual</label><input type="number" step="0.01" min="0" name="sell_price" class="form-control" value="{{ old('sell_price', $product->sell_price ?? 0) }}" required></div>
-                    <div class="col-md-3"><label class="form-label">Harga grosir</label><input type="number" step="0.01" min="0" name="wholesale_price" class="form-control" value="{{ old('wholesale_price', $product->wholesale_price) }}"></div>
-                    <div class="col-md-3"><label class="form-label">Harga member</label><input type="number" step="0.01" min="0" name="member_price" class="form-control" value="{{ old('member_price', $product->member_price) }}"></div>
+                    <div class="col-md-3"><label class="form-label">Harga grosir default</label><input type="number" step="0.01" min="0" name="wholesale_price" class="form-control" value="{{ old('wholesale_price', $product->wholesale_price) }}"></div>
+                    <div class="col-md-3"><label class="form-label">Harga member default</label><input type="number" step="0.01" min="0" name="member_price" class="form-control" value="{{ old('member_price', $product->member_price) }}"></div>
+                    <div class="col-12">
+                        <div class="text-muted small">
+                            Harga grosir/member di sini adalah base pricing tier default. Promo sementara, voucher, bundling, dan campaign diskon tidak disimpan di Products.
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -175,8 +180,8 @@
                                 <div class="col-md-3"><label class="form-label">Barcode</label><input type="text" name="variants[{{ $index }}][barcode]" class="form-control" value="{{ $variant['barcode'] ?? '' }}"></div>
                                 <div class="col-md-3"><label class="form-label">Harga beli</label><input type="number" min="0" step="0.01" name="variants[{{ $index }}][cost_price]" class="form-control" value="{{ $variant['cost_price'] ?? 0 }}"></div>
                                 <div class="col-md-3"><label class="form-label">Harga jual</label><input type="number" min="0" step="0.01" name="variants[{{ $index }}][sell_price]" class="form-control" value="{{ $variant['sell_price'] ?? 0 }}"></div>
-                                <div class="col-md-3"><label class="form-label">Harga grosir</label><input type="number" min="0" step="0.01" name="variants[{{ $index }}][wholesale_price]" class="form-control" value="{{ $variant['wholesale_price'] ?? '' }}"></div>
-                                <div class="col-md-3"><label class="form-label">Harga member</label><input type="number" min="0" step="0.01" name="variants[{{ $index }}][member_price]" class="form-control" value="{{ $variant['member_price'] ?? '' }}"></div>
+                                <div class="col-md-3"><label class="form-label">Harga grosir default</label><input type="number" min="0" step="0.01" name="variants[{{ $index }}][wholesale_price]" class="form-control" value="{{ $variant['wholesale_price'] ?? '' }}"></div>
+                                <div class="col-md-3"><label class="form-label">Harga member default</label><input type="number" min="0" step="0.01" name="variants[{{ $index }}][member_price]" class="form-control" value="{{ $variant['member_price'] ?? '' }}"></div>
                                 <div class="col-md-3"><div class="form-check mt-4"><input type="hidden" name="variants[{{ $index }}][is_active]" value="0"><input class="form-check-input" type="checkbox" name="variants[{{ $index }}][is_active]" value="1" @checked((bool) ($variant['is_active'] ?? true))><label class="form-check-label">Active</label></div></div>
                                 <div class="col-md-2"><div class="form-check mt-4"><input type="hidden" name="variants[{{ $index }}][track_stock]" value="0"><input class="form-check-input" type="checkbox" name="variants[{{ $index }}][track_stock]" value="1" @checked((bool) ($variant['track_stock'] ?? true))><label class="form-check-label">Track stock</label></div></div>
                                 <div class="col-md-1 d-flex align-items-end"><button type="button" class="btn btn-outline-danger w-100 remove-variant-row"><i class="ti ti-trash"></i></button></div>
@@ -195,7 +200,7 @@
                     <div class="col-12" id="track-stock-wrapper"><div class="form-check"><input type="hidden" name="track_stock" value="0"><input class="form-check-input" type="checkbox" name="track_stock" value="1" @checked((bool) old('track_stock', $product->track_stock))><label class="form-check-label">Track stock</label></div></div>
                     <div class="col-12">
                         <div class="alert alert-secondary mb-0">
-                            Stok, minimum stock, opening stock, adjustment, transfer, dan histori mutasi dikelola di module Inventory.
+                            Stok, minimum stock, opening stock, adjustment, transfer, dan histori mutasi dikelola di Inventory. Promo, voucher, campaign discount, dan rule evaluasi transaksi dikelola di Discounts.
                         </div>
                     </div>
                     <div class="col-12"><label class="form-label">Featured image</label><input type="file" name="featured_image" class="form-control" accept="image/*"></div>

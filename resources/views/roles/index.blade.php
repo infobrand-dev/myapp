@@ -23,19 +23,25 @@
                 </thead>
                 <tbody>
                     @forelse($roles as $role)
-                        @php($roleAccess = $roleAccessMap[$role->name] ?? ['summary' => 'Akses mengikuti middleware dan navigasi role ini.', 'items' => ['Profile', 'Fitur/module yang mengizinkan role ini']])
                         <tr>
                             <td>
                                 <div class="fw-semibold">{{ $role->name }}</div>
                                 <div class="text-muted small">{{ $role->users_count }} user</div>
                             </td>
                             <td>
-                                <div class="small text-muted mb-1">{{ $roleAccess['summary'] ?? '-' }}</div>
-                                <div class="d-flex flex-wrap gap-1">
-                                    @foreach(($roleAccess['items'] ?? []) as $accessItem)
-                                        <span class="badge bg-azure-lt text-azure">{{ $accessItem }}</span>
-                                    @endforeach
-                                </div>
+                                @if($role->permissions->isNotEmpty())
+                                    <div class="text-muted small mb-1">{{ $role->permissions->count() }} permission terpasang.</div>
+                                    <div class="d-flex flex-wrap gap-1">
+                                        @foreach($role->permissions->take(8) as $permission)
+                                            <span class="badge bg-azure-lt text-azure">{{ $permission->name }}</span>
+                                        @endforeach
+                                        @if($role->permissions->count() > 8)
+                                            <span class="badge bg-light text-muted">+{{ $role->permissions->count() - 8 }} lagi</span>
+                                        @endif
+                                    </div>
+                                @else
+                                    <span class="text-muted small">Belum ada permission.</span>
+                                @endif
                             </td>
                             <td>
                                 @if($role->users->isNotEmpty())

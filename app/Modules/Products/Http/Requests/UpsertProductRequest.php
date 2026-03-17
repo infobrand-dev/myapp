@@ -14,7 +14,13 @@ class UpsertProductRequest extends FormRequest
     {
         $user = $this->user();
 
-        return $user ? $user->hasAnyRole(['Super-admin', 'Admin']) : false;
+        if (!$user) {
+            return false;
+        }
+
+        return $this->route('product')
+            ? $user->can('products.update')
+            : $user->can('products.create');
     }
 
     public function rules(): array

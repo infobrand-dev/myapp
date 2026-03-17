@@ -15,18 +15,7 @@
                         <label class="form-label">Nama</label>
                         <input type="text" name="name" class="form-control" value="{{ old('name', $role->name) }}" required>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Ringkasan Akses</label>
-                        <div class="form-control-plaintext text-muted">{{ $roleAccess['summary'] ?? '-' }}</div>
-                    </div>
-                    <div class="mb-4">
-                        <label class="form-label">Fitur yang Umumnya Bisa Diakses</label>
-                        <div class="d-flex flex-wrap gap-1">
-                            @foreach(($roleAccess['items'] ?? []) as $accessItem)
-                                <span class="badge bg-azure-lt text-azure">{{ $accessItem }}</span>
-                            @endforeach
-                        </div>
-                    </div>
+                    @include('roles.partials.permissions', ['permissionGroups' => $permissionGroups, 'selectedPermissions' => $selectedPermissions])
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary">Simpan</button>
                         <a href="{{ route('roles.index') }}" class="btn btn-outline-secondary">Batal</a>

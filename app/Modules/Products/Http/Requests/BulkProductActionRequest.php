@@ -10,8 +10,17 @@ class BulkProductActionRequest extends FormRequest
     public function authorize(): bool
     {
         $user = $this->user();
+        if (!$user) {
+            return false;
+        }
 
-        return $user ? $user->hasAnyRole(['Super-admin', 'Admin']) : false;
+        $action = (string) $this->input('action');
+
+        if ($action === 'delete') {
+            return $user->can('products.delete');
+        }
+
+        return $user->can('products.update');
     }
 
     public function rules(): array

@@ -81,6 +81,13 @@ class ModuleManager
             $this->callArtisanOrFail('migrate', ['--path' => $relativePath, '--force' => true]);
         }
 
+        if (class_exists(\Database\Seeders\RoleSeeder::class)) {
+            $this->callArtisanOrFail('db:seed', [
+                '--class' => \Database\Seeders\RoleSeeder::class,
+                '--force' => true,
+            ]);
+        }
+
         $record = Module::query()->firstOrNew(['slug' => $slug]);
         $record->fill([
             'name' => $module['name'],

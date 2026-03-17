@@ -3,11 +3,13 @@
 namespace App\Modules\Inventory\Actions;
 
 use App\Models\User;
+use App\Modules\Inventory\Models\StockBalance;
 use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Inventory\Models\StockOpening;
 use App\Modules\Inventory\Services\StockMutationService;
 use DomainException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Str;
 
 class CreateOpeningStockAction
@@ -31,13 +33,46 @@ class CreateOpeningStockAction
             ]);
 
             foreach ($data['items'] as $item) {
+                $stockKey = $this->mutationService->stockKey(
+                    (int) $item['product_id'],
+                    isset($item['product_variant_id']) ? (int) $item['product_variant_id'] : null,
+                    (int) $data['inventory_location_id']
+                );
+
+                $stock = StockBalance::query()
+                    ->where('stock_key', $stockKey)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$stock) {
+                    try {
+                        $stock = StockBalance::query()->create([
+                            'stock_key' => $stockKey,
+                            'product_id' => $item['product_id'],
+                            'product_variant_id' => $item['product_variant_id'] ?? null,
+                            'inventory_location_id' => $data['inventory_location_id'],
+                            'current_quantity' => 0,
+                            'reserved_quantity' => 0,
+                            'minimum_quantity' => $item['minimum_quantity'] ?? 0,
+                            'reorder_quantity' => $item['reorder_quantity'] ?? 0,
+                            'allow_negative_stock' => false,
+                        ]);
+                    } catch (QueryException $exception) {
+                        $stock = null;
+                    }
+
+                    $stock = StockBalance::query()
+                        ->where('stock_key', $stockKey)
+                        ->lockForUpdate()
+                        ->firstOrFail();
+                }
+
                 $existingMovement = StockMovement::query()
-                    ->where('product_id', $item['product_id'])
-                    ->where('inventory_location_id', $data['inventory_location_id'])
-                    ->where('product_variant_id', $item['product_variant_id'] ?? null)
+                    ->where('stock_key', $stockKey)
+                    ->lockForUpdate()
                     ->exists();
 
-                if ($existingMovement) {
+                if ($existingMovement || (float) $stock->current_quantity !== 0.0) {
                     throw new DomainException('Opening stock hanya boleh dilakukan sebelum mutasi berjalan pada kombinasi product, variant, dan lokasi yang sama.');
                 }
 

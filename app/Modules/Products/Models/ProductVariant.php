@@ -59,11 +59,6 @@ class ProductVariant extends Model
         return $this->hasMany(ProductPrice::class, 'product_variant_id');
     }
 
-    public function stocks(): HasMany
-    {
-        return $this->hasMany(ProductStock::class, 'product_variant_id');
-    }
-
     public function media(): HasMany
     {
         return $this->hasMany(ProductMedia::class, 'product_variant_id');

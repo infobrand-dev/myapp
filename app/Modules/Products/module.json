@@ -1,7 +1,7 @@
 {
   "slug": "products",
   "name": "Products",
-  "description": "Master data produk POS dengan dukungan varian, harga bertingkat, media, dan stok multi lokasi dasar.",
+  "description": "Master data produk POS dengan dukungan varian, harga bertingkat, media, barcode, SKU, dan konfigurasi produk stockable.",
   "provider": "App\\Modules\\Products\\ProductsServiceProvider",
   "version": "1.0.0",
   "requires": [],

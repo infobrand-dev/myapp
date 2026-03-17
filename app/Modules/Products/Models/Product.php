@@ -27,8 +27,6 @@ class Product extends Model
         'member_price',
         'is_active',
         'track_stock',
-        'alert_low_stock',
-        'min_stock',
         'featured_image_path',
         'meta',
         'created_by',
@@ -43,8 +41,6 @@ class Product extends Model
         'member_price' => 'decimal:2',
         'is_active' => 'boolean',
         'track_stock' => 'boolean',
-        'alert_low_stock' => 'boolean',
-        'min_stock' => 'decimal:4',
         'meta' => 'array',
     ];
 
@@ -76,11 +72,6 @@ class Product extends Model
     public function prices(): HasMany
     {
         return $this->hasMany(ProductPrice::class, 'product_id')->whereNull('product_variant_id');
-    }
-
-    public function stocks(): HasMany
-    {
-        return $this->hasMany(ProductStock::class, 'product_id');
     }
 
     public function media(): HasMany

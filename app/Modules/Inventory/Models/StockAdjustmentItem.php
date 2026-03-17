@@ -1,26 +1,34 @@
 <?php
 
-namespace App\Modules\Products\Models;
+namespace App\Modules\Inventory\Models;
 
+use App\Modules\Products\Models\Product;
+use App\Modules\Products\Models\ProductVariant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ProductStock extends Model
+class StockAdjustmentItem extends Model
 {
+    protected $table = 'inventory_stock_adjustment_items';
+
     protected $fillable = [
+        'adjustment_id',
         'product_id',
         'product_variant_id',
-        'stock_location_id',
+        'direction',
         'quantity',
-        'reserved_quantity',
-        'reorder_level',
+        'movement_id',
+        'notes',
     ];
 
     protected $casts = [
         'quantity' => 'decimal:4',
-        'reserved_quantity' => 'decimal:4',
-        'reorder_level' => 'decimal:4',
     ];
+
+    public function adjustment(): BelongsTo
+    {
+        return $this->belongsTo(StockAdjustment::class, 'adjustment_id');
+    }
 
     public function product(): BelongsTo
     {
@@ -30,10 +38,5 @@ class ProductStock extends Model
     public function variant(): BelongsTo
     {
         return $this->belongsTo(ProductVariant::class, 'product_variant_id');
-    }
-
-    public function location(): BelongsTo
-    {
-        return $this->belongsTo(StockLocation::class, 'stock_location_id');
     }
 }

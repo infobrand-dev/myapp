@@ -23,7 +23,7 @@
                     <div class="col-md-6"><div class="text-muted small">Category</div><div>{{ $product->category?->name ?? '-' }}</div></div>
                     <div class="col-md-6"><div class="text-muted small">Brand</div><div>{{ $product->brand?->name ?? '-' }}</div></div>
                     <div class="col-md-6"><div class="text-muted small">Unit</div><div>{{ $product->unit?->name ?? '-' }}</div></div>
-                    <div class="col-md-6"><div class="text-muted small">Track stok</div><div>{{ $product->track_stock ? 'Ya' : 'Tidak' }}</div></div>
+                    <div class="col-md-6"><div class="text-muted small">Stockable</div><div>{{ $product->track_stock ? 'Ya' : 'Tidak' }}</div></div>
                     <div class="col-12"><div class="text-muted small">Deskripsi</div><div>{{ $product->description ?: '-' }}</div></div>
                 </div>
             </div>
@@ -65,7 +65,7 @@
                 @else
                     <div class="table-responsive">
                         <table class="table table-vcenter">
-                            <thead><tr><th>Variant</th><th>Atribut</th><th>SKU</th><th>Harga</th><th>Stok</th></tr></thead>
+                            <thead><tr><th>Variant</th><th>Atribut</th><th>SKU</th><th>Harga</th><th>Status stok</th></tr></thead>
                             <tbody>
                                 @foreach($product->variants as $variant)
                                     <tr>
@@ -73,7 +73,7 @@
                                         <td>{{ $variant->optionValues->map(fn($item) => $item->group?->name . ': ' . $item->value)->implode(', ') ?: ($variant->attribute_summary ?: '-') }}</td>
                                         <td>{{ $variant->sku }}</td>
                                         <td>Rp {{ number_format((float) $variant->sell_price, 0, ',', '.') }}</td>
-                                        <td>{{ number_format((float) ($variant->total_stock ?? 0), 2, ',', '.') }}</td>
+                                        <td><span class="badge bg-secondary-lt text-secondary">Lihat di Inventory</span></td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -86,28 +86,13 @@
 
     <div class="col-lg-4">
         <div class="card">
-            <div class="card-header"><h3 class="card-title">Stok per Lokasi</h3></div>
+            <div class="card-header"><h3 class="card-title">Inventory Boundary</h3></div>
             <div class="card-body">
-                @if(!$product->track_stock)
-                    <div class="text-muted">Produk ini ditandai sebagai non-stock / service.</div>
-                @else
-                    <div class="mb-3"><div class="text-muted small">Min stok</div><div>{{ number_format((float) $product->min_stock, 2, ',', '.') }}</div></div>
-                    <div class="table-responsive">
-                        <table class="table table-sm table-vcenter">
-                            <thead><tr><th>Lokasi</th><th>Qty</th><th>Reserved</th></tr></thead>
-                            <tbody>
-                                @forelse($product->stocks as $stock)
-                                    <tr>
-                                        <td>{{ $stock->location?->name ?? '-' }}</td>
-                                        <td>{{ number_format((float) $stock->quantity, 2, ',', '.') }}</td>
-                                        <td>{{ number_format((float) $stock->reserved_quantity, 2, ',', '.') }}</td>
-                                    </tr>
-                                @empty
-                                    <tr><td colspan="3" class="text-center text-muted">Belum ada data stok.</td></tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="text-muted mb-3">
+                    Module Products hanya menyimpan master produk. Saldo stok, mutasi, adjustment, transfer, opening stock, stock card, dan low stock report berada di module Inventory.
+                </div>
+                @if(Route::has('inventory.stocks.index'))
+                    <a href="{{ route('inventory.stocks.index', ['product_id' => $product->id]) }}" class="btn btn-primary w-100">Buka Inventory</a>
                 @endif
             </div>
         </div>

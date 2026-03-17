@@ -1,0 +1,58 @@
+<?php
+
+namespace App\Modules\Inventory\Actions;
+
+use App\Models\User;
+use App\Modules\Inventory\Models\StockTransfer;
+use App\Modules\Inventory\Services\StockMutationService;
+use DomainException;
+use Illuminate\Support\Facades\DB;
+
+class ReceiveStockTransferAction
+{
+    public function __construct(private readonly StockMutationService $mutationService)
+    {
+    }
+
+    public function execute(StockTransfer $transfer, ?User $actor = null): StockTransfer
+    {
+        if ($transfer->status !== 'sent') {
+            throw new DomainException('Transfer harus berstatus sent sebelum diterima.');
+        }
+
+        return DB::transaction(function () use ($transfer, $actor) {
+            $transfer->loadMissing('items');
+
+            foreach ($transfer->items as $item) {
+                $received = $item->sent_quantity > 0 ? $item->sent_quantity : $item->requested_quantity;
+
+                $movement = $this->mutationService->record([
+                    'product_id' => $item->product_id,
+                    'product_variant_id' => $item->product_variant_id,
+                    'inventory_location_id' => $transfer->destination_location_id,
+                    'movement_type' => 'transfer_in',
+                    'direction' => 'in',
+                    'quantity' => $received,
+                    'reference_type' => StockTransfer::class,
+                    'reference_id' => $transfer->id,
+                    'reason_text' => $transfer->notes ?? 'Transfer in',
+                    'occurred_at' => now(),
+                    'performed_by' => $actor,
+                ]);
+
+                $item->update([
+                    'received_quantity' => $received,
+                    'transfer_in_movement_id' => $movement->id,
+                ]);
+            }
+
+            $transfer->update([
+                'status' => 'received',
+                'received_by' => $actor?->id,
+                'received_at' => now(),
+            ]);
+
+            return $transfer->fresh(['sourceLocation', 'destinationLocation', 'items.product', 'items.variant']);
+        });
+    }
+}

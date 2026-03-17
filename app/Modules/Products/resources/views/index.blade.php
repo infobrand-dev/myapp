@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Products</h2>
-        <div class="text-muted small">Master produk POS dengan harga, stok, media, dan varian.</div>
+        <div class="text-muted small">Master produk dengan harga, varian, barcode, SKU, dan konfigurasi stockable. Stok dikelola terpisah di module Inventory.</div>
     </div>
     <a href="{{ route('products.create') }}" class="btn btn-primary">Tambah Product</a>
 </div>
@@ -51,16 +51,6 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-2">
-                <label class="form-label">Stok</label>
-                <select name="stock_status" class="form-select">
-                    <option value="">Semua</option>
-                    <option value="in_stock" @selected(($filters['stock_status'] ?? '') === 'in_stock')>In stock</option>
-                    <option value="low_stock" @selected(($filters['stock_status'] ?? '') === 'low_stock')>Low stock</option>
-                    <option value="out_of_stock" @selected(($filters['stock_status'] ?? '') === 'out_of_stock')>Out of stock</option>
-                    <option value="non_stock" @selected(($filters['stock_status'] ?? '') === 'non_stock')>Non stock</option>
-                </select>
-            </div>
             <div class="col-12 d-flex gap-2">
                 <button type="submit" class="btn btn-primary">Filter</button>
                 <a href="{{ route('products.index') }}" class="btn btn-outline-secondary">Reset</a>
@@ -93,7 +83,6 @@
                         <th>Tipe</th>
                         <th>Category / Brand</th>
                         <th>Harga</th>
-                        <th>Stok</th>
                         <th>Status</th>
                         <th class="w-1"></th>
                     </tr>
@@ -119,21 +108,6 @@
                             <td>
                                 <div>Jual: Rp {{ number_format((float) $product->sell_price, 0, ',', '.') }}</div>
                                 <div class="text-muted small">Beli: Rp {{ number_format((float) $product->cost_price, 0, ',', '.') }}</div>
-                            </td>
-                            <td>
-                                @if(!$product->track_stock)
-                                    <span class="badge bg-secondary-lt text-secondary">Non stock</span>
-                                @else
-                                    @php($stock = (float) ($product->total_stock ?? 0))
-                                    <div>{{ number_format($stock, 2, ',', '.') }}</div>
-                                    @if($stock <= 0)
-                                        <span class="badge bg-danger-lt text-danger">Out</span>
-                                    @elseif($stock <= (float) $product->min_stock)
-                                        <span class="badge bg-warning-lt text-warning">Low</span>
-                                    @else
-                                        <span class="badge bg-success-lt text-success">OK</span>
-                                    @endif
-                                @endif
                             </td>
                             <td>
                                 <span class="badge bg-{{ $product->is_active ? 'success' : 'secondary' }}-lt text-{{ $product->is_active ? 'success' : 'secondary' }}">
@@ -164,7 +138,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center text-muted">Belum ada product.</td>
+                            <td colspan="7" class="text-center text-muted">Belum ada product.</td>
                         </tr>
                     @endforelse
                 </tbody>

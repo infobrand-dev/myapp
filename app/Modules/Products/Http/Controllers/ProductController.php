@@ -33,7 +33,7 @@ class ProductController extends Controller
 
     public function index(Request $request): View
     {
-        $filters = $request->only(['search', 'type', 'status', 'category_id', 'brand_id', 'stock_status']);
+        $filters = $request->only(['search', 'type', 'status', 'category_id', 'brand_id']);
 
         return view('products::index', [
             'products' => $this->repository->paginateForIndex($filters, 15),
@@ -50,8 +50,6 @@ class ProductController extends Controller
             'type' => 'simple',
             'is_active' => true,
             'track_stock' => true,
-            'alert_low_stock' => true,
-            'min_stock' => 0,
         ])));
     }
 
@@ -114,7 +112,6 @@ class ProductController extends Controller
             'brands' => $this->lookupService->brands(),
             'units' => $this->lookupService->units(),
             'priceLevels' => $this->lookupService->priceLevels(),
-            'stockLocations' => $this->lookupService->stockLocations(),
             'dependencies' => $this->lookupService->dependencyMap(),
         ];
     }

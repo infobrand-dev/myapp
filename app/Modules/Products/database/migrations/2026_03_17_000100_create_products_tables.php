@@ -25,8 +25,6 @@ return new class extends Migration
             $table->decimal('member_price', 18, 2)->nullable();
             $table->boolean('is_active')->default(true);
             $table->boolean('track_stock')->default(true);
-            $table->boolean('alert_low_stock')->default(true);
-            $table->decimal('min_stock', 18, 4)->default(0);
             $table->string('featured_image_path')->nullable();
             $table->json('meta')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();

@@ -8,19 +8,6 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('product_stocks', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
-            $table->foreignId('product_variant_id')->nullable()->constrained('product_variants')->cascadeOnDelete();
-            $table->foreignId('stock_location_id')->constrained('stock_locations')->cascadeOnDelete();
-            $table->decimal('quantity', 18, 4)->default(0);
-            $table->decimal('reserved_quantity', 18, 4)->default(0);
-            $table->decimal('reorder_level', 18, 4)->default(0);
-            $table->timestamps();
-
-            $table->unique(['product_id', 'product_variant_id', 'stock_location_id'], 'product_stock_unique');
-        });
-
         Schema::create('product_media', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
@@ -39,6 +26,5 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('product_media');
-        Schema::dropIfExists('product_stocks');
     }
 };

@@ -2,7 +2,6 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -50,19 +49,7 @@ return new class extends Migration
             $table->unsignedInteger('sort_order')->default(0);
             $table->timestamps();
         });
-
-        Schema::create('stock_locations', function (Blueprint $table) {
-            $table->id();
-            $table->string('code')->unique();
-            $table->string('name');
-            $table->string('type', 50)->default('warehouse');
-            $table->boolean('is_default')->default(false);
-            $table->boolean('is_active')->default(true);
-            $table->json('meta')->nullable();
-            $table->timestamps();
-        });
-
-        DB::table('product_price_levels')->insert([
+        \Illuminate\Support\Facades\DB::table('product_price_levels')->insert([
             [
                 'code' => 'default',
                 'name' => 'Retail',
@@ -97,22 +84,10 @@ return new class extends Migration
                 'updated_at' => now(),
             ],
         ]);
-
-        DB::table('stock_locations')->insert([
-            'code' => 'MAIN',
-            'name' => 'Main Warehouse',
-            'type' => 'warehouse',
-            'is_default' => true,
-            'is_active' => true,
-            'meta' => json_encode(['source' => 'products']),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('stock_locations');
         Schema::dropIfExists('product_price_levels');
         Schema::dropIfExists('product_units');
         Schema::dropIfExists('product_brands');

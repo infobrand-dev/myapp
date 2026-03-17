@@ -11,7 +11,6 @@
             'sell_price' => $variant->sell_price,
             'wholesale_price' => $variant->wholesale_price,
             'member_price' => $variant->member_price,
-            'initial_stock' => optional($variant->stocks->first())->quantity,
             'is_active' => $variant->is_active,
             'track_stock' => $variant->track_stock,
         ];
@@ -164,7 +163,6 @@
                         'sell_price' => 0,
                         'wholesale_price' => '',
                         'member_price' => '',
-                        'initial_stock' => 0,
                         'is_active' => true,
                         'track_stock' => true,
                     ]] as $index => $variant)
@@ -177,7 +175,6 @@
                                 <div class="col-md-3"><label class="form-label">Barcode</label><input type="text" name="variants[{{ $index }}][barcode]" class="form-control" value="{{ $variant['barcode'] ?? '' }}"></div>
                                 <div class="col-md-3"><label class="form-label">Harga beli</label><input type="number" min="0" step="0.01" name="variants[{{ $index }}][cost_price]" class="form-control" value="{{ $variant['cost_price'] ?? 0 }}"></div>
                                 <div class="col-md-3"><label class="form-label">Harga jual</label><input type="number" min="0" step="0.01" name="variants[{{ $index }}][sell_price]" class="form-control" value="{{ $variant['sell_price'] ?? 0 }}"></div>
-                                <div class="col-md-3"><label class="form-label">Stok awal</label><input type="number" min="0" step="0.01" name="variants[{{ $index }}][initial_stock]" class="form-control" value="{{ $variant['initial_stock'] ?? 0 }}"></div>
                                 <div class="col-md-3"><label class="form-label">Harga grosir</label><input type="number" min="0" step="0.01" name="variants[{{ $index }}][wholesale_price]" class="form-control" value="{{ $variant['wholesale_price'] ?? '' }}"></div>
                                 <div class="col-md-3"><label class="form-label">Harga member</label><input type="number" min="0" step="0.01" name="variants[{{ $index }}][member_price]" class="form-control" value="{{ $variant['member_price'] ?? '' }}"></div>
                                 <div class="col-md-3"><div class="form-check mt-4"><input type="hidden" name="variants[{{ $index }}][is_active]" value="0"><input class="form-check-input" type="checkbox" name="variants[{{ $index }}][is_active]" value="1" @checked((bool) ($variant['is_active'] ?? true))><label class="form-check-label">Active</label></div></div>
@@ -192,13 +189,15 @@
 
         <div class="col-xl-4">
             <div class="card">
-                <div class="card-header"><h3 class="card-title">Status, Stok, dan Media</h3></div>
+                <div class="card-header"><h3 class="card-title">Status dan Media</h3></div>
                 <div class="card-body row g-3">
                     <div class="col-12"><div class="form-check"><input type="hidden" name="is_active" value="0"><input class="form-check-input" type="checkbox" name="is_active" value="1" @checked((bool) old('is_active', $product->is_active))><label class="form-check-label">Status active</label></div></div>
                     <div class="col-12" id="track-stock-wrapper"><div class="form-check"><input type="hidden" name="track_stock" value="0"><input class="form-check-input" type="checkbox" name="track_stock" value="1" @checked((bool) old('track_stock', $product->track_stock))><label class="form-check-label">Track stock</label></div></div>
-                    <div class="col-12"><div class="form-check"><input type="hidden" name="alert_low_stock" value="0"><input class="form-check-input" type="checkbox" name="alert_low_stock" value="1" @checked((bool) old('alert_low_stock', $product->alert_low_stock))><label class="form-check-label">Aktifkan notifikasi stok menipis</label></div></div>
-                    <div class="col-md-6"><label class="form-label">Min stok</label><input type="number" min="0" step="0.01" name="min_stock" class="form-control" value="{{ old('min_stock', $product->min_stock ?? 0) }}"></div>
-                    <div class="col-md-6" id="initial-stock-wrapper"><label class="form-label">Stok awal</label><input type="number" min="0" step="0.01" name="initial_stock" class="form-control" value="{{ old('initial_stock', optional($product->stocks->whereNull('product_variant_id')->first())->quantity ?? 0) }}"></div>
+                    <div class="col-12">
+                        <div class="alert alert-secondary mb-0">
+                            Stok, minimum stock, opening stock, adjustment, transfer, dan histori mutasi dikelola di module Inventory.
+                        </div>
+                    </div>
                     <div class="col-12"><label class="form-label">Featured image</label><input type="file" name="featured_image" class="form-control" accept="image/*"></div>
                     <div class="col-12"><label class="form-label">Gallery images</label><input type="file" name="gallery_images[]" class="form-control" accept="image/*" multiple></div>
                 </div>
@@ -218,7 +217,6 @@
     const typeSelect = document.getElementById('product-type');
     const variantCard = document.getElementById('variant-card');
     const trackStockWrapper = document.getElementById('track-stock-wrapper');
-    const initialStockWrapper = document.getElementById('initial-stock-wrapper');
     const variantRows = document.getElementById('variant-rows');
     const priceRows = document.getElementById('price-rows');
 
@@ -226,7 +224,6 @@
         const type = typeSelect?.value || 'simple';
         if (variantCard) variantCard.style.display = type === 'variant' ? '' : 'none';
         if (trackStockWrapper) trackStockWrapper.style.display = type === 'service' ? 'none' : '';
-        if (initialStockWrapper) initialStockWrapper.style.display = type === 'variant' || type === 'service' ? 'none' : '';
     };
 
     const reindexRows = (container, rowSelector) => {
@@ -269,7 +266,6 @@
                 <div class="col-md-3"><label class="form-label">Barcode</label><input type="text" name="variants[${index}][barcode]" class="form-control"></div>
                 <div class="col-md-3"><label class="form-label">Harga beli</label><input type="number" min="0" step="0.01" name="variants[${index}][cost_price]" class="form-control" value="0"></div>
                 <div class="col-md-3"><label class="form-label">Harga jual</label><input type="number" min="0" step="0.01" name="variants[${index}][sell_price]" class="form-control" value="0"></div>
-                <div class="col-md-3"><label class="form-label">Stok awal</label><input type="number" min="0" step="0.01" name="variants[${index}][initial_stock]" class="form-control" value="0"></div>
                 <div class="col-md-3"><label class="form-label">Harga grosir</label><input type="number" min="0" step="0.01" name="variants[${index}][wholesale_price]" class="form-control"></div>
                 <div class="col-md-3"><label class="form-label">Harga member</label><input type="number" min="0" step="0.01" name="variants[${index}][member_price]" class="form-control"></div>
                 <div class="col-md-3"><div class="form-check mt-4"><input type="hidden" name="variants[${index}][is_active]" value="0"><input class="form-check-input" type="checkbox" name="variants[${index}][is_active]" value="1" checked><label class="form-check-label">Active</label></div></div>

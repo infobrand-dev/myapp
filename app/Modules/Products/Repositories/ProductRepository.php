@@ -15,9 +15,7 @@ class ProductRepository
             ->with(['category', 'brand', 'unit'])
             ->withCount([
                 'variants as variant_count' => fn (Builder $query) => $query->whereNull('deleted_at'),
-            ])
-            ->withSum('stocks as total_stock', 'quantity')
-            ->withSum('stocks as reserved_stock', 'reserved_quantity');
+            ]);
 
         $this->applyFilters($query, $filters);
 
@@ -35,14 +33,12 @@ class ProductRepository
             'unit',
             'optionGroups.values',
             'prices.priceLevel',
-            'stocks.location',
             'media',
             'variants' => fn ($query) => $query
                 ->whereNull('deleted_at')
-                ->with(['optionValues.group', 'prices.priceLevel', 'stocks.location', 'media'])
-                ->withSum('stocks as total_stock', 'quantity')
+                ->with(['optionValues.group', 'prices.priceLevel', 'media'])
                 ->orderBy('position'),
-        ])->loadSum('stocks as total_stock', 'quantity');
+        ]);
     }
 
     public function findForEdit(Product $product): Product
@@ -52,7 +48,7 @@ class ProductRepository
             'gallery',
             'variants' => fn ($query) => $query
                 ->whereNull('deleted_at')
-                ->with(['optionValues.group', 'stocks.location'])
+                ->with(['optionValues.group'])
                 ->orderBy('position'),
         ]);
     }
@@ -94,27 +90,6 @@ class ProductRepository
 
         if (!empty($filters['brand_id'])) {
             $query->where('products.brand_id', $filters['brand_id']);
-        }
-
-        $stockStatus = $filters['stock_status'] ?? null;
-        if ($stockStatus === 'non_stock') {
-            $query->where('products.track_stock', false);
-        }
-
-        if ($stockStatus === 'out_of_stock') {
-            $query->where('products.track_stock', true)
-                ->havingRaw('COALESCE(total_stock, 0) <= 0');
-        }
-
-        if ($stockStatus === 'low_stock') {
-            $query->where('products.track_stock', true)
-                ->havingRaw('COALESCE(total_stock, 0) > 0')
-                ->havingRaw('COALESCE(total_stock, 0) <= products.min_stock');
-        }
-
-        if ($stockStatus === 'in_stock') {
-            $query->where('products.track_stock', true)
-                ->havingRaw('COALESCE(total_stock, 0) > products.min_stock');
         }
 
         return $query;

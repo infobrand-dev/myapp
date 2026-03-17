@@ -6,7 +6,6 @@ use App\Modules\Products\Models\ProductBrand;
 use App\Modules\Products\Models\ProductCategory;
 use App\Modules\Products\Models\ProductPriceLevel;
 use App\Modules\Products\Models\ProductUnit;
-use App\Modules\Products\Models\StockLocation;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -32,16 +31,6 @@ class ProductLookupService
         return ProductPriceLevel::query()->where('is_active', true)->orderBy('sort_order')->orderBy('name')->get();
     }
 
-    public function stockLocations(): Collection
-    {
-        return StockLocation::query()->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->get();
-    }
-
-    public function defaultStockLocation(): ?StockLocation
-    {
-        return StockLocation::query()->where('is_active', true)->orderByDesc('is_default')->orderBy('id')->first();
-    }
-
     public function resolveLookupIds(array $data): array
     {
         $data['category_id'] = $this->resolveCategoryId($data['category_id'] ?? null, $data['new_category_name'] ?? null);
@@ -58,19 +47,13 @@ class ProductLookupService
                 'module' => 'products',
                 'type' => 'required',
                 'status' => 'internal',
-                'notes' => 'Lookup category, brand, unit, price level, dan stock location disediakan internal agar module bisa berdiri sendiri.',
+                'notes' => 'Lookup category, brand, unit, dan price level disediakan internal agar module bisa berdiri sendiri.',
             ],
             [
                 'module' => 'inventory',
                 'type' => 'optional',
-                'status' => 'future',
-                'notes' => 'Dapat mengambil alih mutasi stok dan stock valuation tanpa mengubah kontrak data Products.',
-            ],
-            [
-                'module' => 'outlets',
-                'type' => 'optional',
-                'status' => 'future',
-                'notes' => 'Table stock location sudah siap dipetakan ke outlet atau warehouse terpisah.',
+                'status' => 'recommended',
+                'notes' => 'Inventory menjadi sumber kebenaran stok, mutasi, lokasi, stock card, dan low stock monitoring.',
             ],
             [
                 'module' => 'sales',

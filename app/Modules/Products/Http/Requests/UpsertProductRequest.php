@@ -47,9 +47,6 @@ class UpsertProductRequest extends FormRequest
             'member_price' => ['nullable', 'numeric', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
             'track_stock' => ['nullable', 'boolean'],
-            'alert_low_stock' => ['nullable', 'boolean'],
-            'min_stock' => ['nullable', 'numeric', 'min:0'],
-            'initial_stock' => ['nullable', 'numeric', 'min:0'],
             'featured_image' => ['nullable', 'image', 'max:4096'],
             'gallery_images' => ['nullable', 'array'],
             'gallery_images.*' => ['image', 'max:4096'],
@@ -69,7 +66,6 @@ class UpsertProductRequest extends FormRequest
             'variants.*.sell_price' => ['nullable', 'numeric', 'min:0'],
             'variants.*.wholesale_price' => ['nullable', 'numeric', 'min:0'],
             'variants.*.member_price' => ['nullable', 'numeric', 'min:0'],
-            'variants.*.initial_stock' => ['nullable', 'numeric', 'min:0'],
             'variants.*.is_active' => ['nullable', 'boolean'],
             'variants.*.track_stock' => ['nullable', 'boolean'],
         ];
@@ -110,7 +106,6 @@ class UpsertProductRequest extends FormRequest
             'barcode' => $this->filled('barcode') ? trim((string) $this->input('barcode')) : null,
             'is_active' => $this->boolean('is_active'),
             'track_stock' => $this->boolean('track_stock'),
-            'alert_low_stock' => $this->boolean('alert_low_stock'),
             'variants' => $variants,
         ]);
     }

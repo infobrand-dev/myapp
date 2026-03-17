@@ -28,7 +28,7 @@ class ProductService
             $data = $this->lookupService->resolveLookupIds($data);
 
             $product = Product::query()->create($this->productPayload($data, $actor, true));
-            $this->syncProductGraph($product, $data);
+        $this->syncProductGraph($product, $data);
 
             return $product->fresh();
         });
@@ -85,7 +85,6 @@ class ProductService
         $this->syncProductPrices($product, $data['price_levels'] ?? []);
         $this->syncProductMedia($product, $data);
         $this->syncVariants($product, $data['variants'] ?? []);
-        $this->syncProductStock($product, $data);
     }
 
     private function productPayload(array $data, ?User $actor, bool $isCreate): array
@@ -111,11 +110,9 @@ class ProductService
             'member_price' => $this->nullableDecimal($data['member_price'] ?? null),
             'is_active' => (bool) ($data['is_active'] ?? true),
             'track_stock' => $data['type'] === 'service' ? false : (bool) ($data['track_stock'] ?? false),
-            'alert_low_stock' => (bool) ($data['alert_low_stock'] ?? false),
-            'min_stock' => (bool) ($data['track_stock'] ?? false) ? ($data['min_stock'] ?? 0) : 0,
             'meta' => [
                 'module' => 'products',
-                'supports_multi_outlet' => true,
+                'inventory_managed' => true,
             ],
             'updated_by' => $actor ? $actor->id : null,
         ];
@@ -322,58 +319,6 @@ class ProductService
 
             $variant->optionValues()->sync($optionValueIds);
         }
-    }
-
-    private function syncProductStock(Product $product, array $data): void
-    {
-        if (!$product->track_stock) {
-            $product->stocks()->delete();
-            return;
-        }
-
-        $location = $this->lookupService->defaultStockLocation();
-        if (!$location) {
-            return;
-        }
-
-        if ($product->type === 'variant') {
-            $product->stocks()->whereNull('product_variant_id')->delete();
-
-            foreach ($product->variants()->whereNull('deleted_at')->get() as $variant) {
-                $input = collect($data['variants'] ?? [])
-                    ->first(fn ($row) => (int) ($row['id'] ?? 0) === (int) $variant->id || ($row['sku'] ?? null) === $variant->sku);
-
-                if (!$variant->track_stock) {
-                    $variant->stocks()->delete();
-                    continue;
-                }
-
-                $variant->stocks()->updateOrCreate(
-                    ['product_id' => $product->id, 'stock_location_id' => $location->id],
-                    [
-                        'quantity' => $input['initial_stock'] ?? 0,
-                        'reserved_quantity' => 0,
-                        'reorder_level' => $product->min_stock,
-                    ]
-                );
-            }
-
-            return;
-        }
-
-        $product->stocks()->whereNotNull('product_variant_id')->delete();
-        $product->stocks()->updateOrCreate(
-            [
-                'product_id' => $product->id,
-                'product_variant_id' => null,
-                'stock_location_id' => $location->id,
-            ],
-            [
-                'quantity' => $data['initial_stock'] ?? 0,
-                'reserved_quantity' => 0,
-                'reorder_level' => $product->min_stock,
-            ]
-        );
     }
 
     private function parseAttributeSummary(?string $summary): array

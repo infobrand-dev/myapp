@@ -4,6 +4,7 @@ namespace Tests\Feature\Sales;
 
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Payments\PaymentsServiceProvider;
 use App\Modules\Products\Models\Product;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\SalesServiceProvider;
@@ -21,6 +22,7 @@ class SalesApiChannelTest extends TestCase
     {
         parent::setUp();
 
+        $this->app->register(PaymentsServiceProvider::class);
         $this->app->register(SalesServiceProvider::class);
 
         $this->artisan('migrate', [
@@ -34,6 +36,11 @@ class SalesApiChannelTest extends TestCase
         ])->run();
 
         $this->artisan('migrate', [
+            '--path' => 'app/Modules/Payments/database/migrations',
+            '--realpath' => false,
+        ])->run();
+
+        $this->artisan('migrate', [
             '--path' => 'app/Modules/Sales/database/migrations',
             '--realpath' => false,
         ])->run();
@@ -43,7 +50,7 @@ class SalesApiChannelTest extends TestCase
 
     public function test_channel_api_can_create_and_finalize_sale_in_one_request(): void
     {
-        $user = $this->salesUser(['sales.create', 'sales.finalize', 'sales.manage-payment']);
+        $user = $this->salesUser(['sales.create', 'sales.finalize', 'payments.create']);
         Sanctum::actingAs($user);
 
         $contact = $this->customer();
@@ -91,7 +98,8 @@ class SalesApiChannelTest extends TestCase
             'status' => 'finalized',
             'payment_status' => 'paid',
         ]);
-        $this->assertDatabaseCount('sale_payments', 1);
+        $this->assertDatabaseCount('payments', 1);
+        $this->assertDatabaseCount('payment_allocations', 1);
     }
 
     public function test_channel_api_returns_existing_sale_for_same_source_and_external_reference(): void

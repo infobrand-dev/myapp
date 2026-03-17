@@ -9,7 +9,6 @@ use App\Modules\Sales\Actions\RecalculateSaleTotalsAction;
 use App\Modules\Sales\Actions\RecordSalePaymentAction;
 use App\Modules\Sales\Actions\SyncSalePaymentSummaryAction;
 use App\Modules\Sales\Actions\UpdateDraftSaleAction;
-use App\Modules\Sales\Actions\VoidSalePaymentAction;
 use App\Modules\Sales\Actions\VoidSaleAction;
 use App\Modules\Sales\Events\SaleFinalized;
 use App\Modules\Sales\Events\SaleVoided;
@@ -67,7 +66,6 @@ class SalesServiceProvider extends ServiceProvider
         $this->app->singleton(UpdateDraftSaleAction::class);
         $this->app->singleton(FinalizeSaleAction::class);
         $this->app->singleton(VoidSaleAction::class);
-        $this->app->singleton(VoidSalePaymentAction::class);
         $this->app->singleton(CancelDraftSaleAction::class);
     }
 

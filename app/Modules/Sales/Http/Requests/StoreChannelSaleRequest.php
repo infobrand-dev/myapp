@@ -2,6 +2,7 @@
 
 namespace App\Modules\Sales\Http\Requests;
 
+use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\Sales\Models\Sale;
 use Illuminate\Validation\Rule;
 
@@ -38,14 +39,7 @@ class StoreChannelSaleRequest extends StoreDraftSaleRequest
         $rules['auto_finalize'] = ['nullable', 'boolean'];
         $rules['finalize_reason'] = ['nullable', 'string'];
         $rules['payments'] = ['nullable', 'array'];
-        $rules['payments.*.payment_method'] = ['required_with:payments', Rule::in([
-            Sale::PAYMENT_METHOD_CASH,
-            Sale::PAYMENT_METHOD_BANK_TRANSFER,
-            Sale::PAYMENT_METHOD_CARD,
-            Sale::PAYMENT_METHOD_EWALLET,
-            Sale::PAYMENT_METHOD_QRIS,
-            Sale::PAYMENT_METHOD_OTHER,
-        ])];
+        $rules['payments.*.payment_method'] = ['required_with:payments', Rule::in(PaymentMethod::salesInputOptions())];
         $rules['payments.*.amount'] = ['required_with:payments', 'numeric', 'gt:0'];
         $rules['payments.*.currency_code'] = ['nullable', 'string', 'size:3'];
         $rules['payments.*.payment_date'] = ['nullable', 'date'];

@@ -4,6 +4,8 @@ namespace Tests\Feature\Sales;
 
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Payments\Models\Payment;
+use App\Modules\Payments\PaymentsServiceProvider;
 use App\Modules\Products\Models\Product;
 use App\Modules\Sales\Actions\CreateDraftSaleAction;
 use App\Modules\Sales\Actions\FinalizeSaleAction;
@@ -29,6 +31,7 @@ class SalesWorkflowTest extends TestCase
     {
         parent::setUp();
 
+        $this->app->register(PaymentsServiceProvider::class);
         $this->app->register(SalesServiceProvider::class);
 
         $this->artisan('migrate', [
@@ -38,6 +41,11 @@ class SalesWorkflowTest extends TestCase
 
         $this->artisan('migrate', [
             '--path' => 'app/Modules/Products/database/migrations',
+            '--realpath' => false,
+        ])->run();
+
+        $this->artisan('migrate', [
+            '--path' => 'app/Modules/Payments/database/migrations',
             '--realpath' => false,
         ])->run();
 
@@ -308,7 +316,7 @@ class SalesWorkflowTest extends TestCase
         $user = $this->salesUser([
             'sales.create',
             'sales.finalize',
-            'sales.manage-payment',
+            'payments.create',
         ]);
         $contact = $this->customer();
         $product = $this->product('Produk Payment', 'PAY-001', 'produk-payment');
@@ -356,7 +364,12 @@ class SalesWorkflowTest extends TestCase
         $this->assertSame('paid', $sale->payment_status);
         $this->assertEquals(40000.00, (float) $sale->paid_total);
         $this->assertEquals(0.00, (float) $sale->balance_due);
-        $this->assertDatabaseCount('sale_payments', 2);
+        $this->assertDatabaseCount('payments', 2);
+        $this->assertDatabaseCount('payment_allocations', 2);
+        $this->assertDatabaseHas('payments', [
+            'status' => Payment::STATUS_POSTED,
+            'reference_number' => 'TRX-001',
+        ]);
     }
 
     public function test_pos_source_requires_external_reference(): void

@@ -182,31 +182,6 @@
                             </tbody>
                         </table>
                     </div>
-                @elseif($sale->payments->isNotEmpty())
-                    <div class="table-responsive mb-3">
-                        <table class="table table-sm table-vcenter">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Method</th>
-                                    <th>Reference</th>
-                                    <th>Amount</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($sale->payments as $payment)
-                                    <tr>
-                                        <td>{{ optional($payment->payment_date)->format('d M Y H:i') ?? '-' }}</td>
-                                        <td>{{ ucfirst(str_replace('_', ' ', $payment->payment_method)) }}</td>
-                                        <td>{{ $payment->reference_number ?: '-' }}</td>
-                                        <td>Rp {{ number_format((float) $payment->amount, 0, ',', '.') }}</td>
-                                        <td>{{ ucfirst($payment->status) }}</td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
                 @else
                     <div class="text-muted mb-3">Belum ada payment tercatat.</div>
                 @endif

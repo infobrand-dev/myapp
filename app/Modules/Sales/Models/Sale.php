@@ -23,13 +23,6 @@ class Sale extends Model
     public const PAYMENT_OVERPAID = 'overpaid';
     public const PAYMENT_REFUNDED = 'refunded';
 
-    public const PAYMENT_METHOD_CASH = 'cash';
-    public const PAYMENT_METHOD_BANK_TRANSFER = 'bank_transfer';
-    public const PAYMENT_METHOD_CARD = 'card';
-    public const PAYMENT_METHOD_EWALLET = 'ewallet';
-    public const PAYMENT_METHOD_QRIS = 'qris';
-    public const PAYMENT_METHOD_OTHER = 'other';
-
     public const SOURCE_MANUAL = 'manual';
     public const SOURCE_POS = 'pos';
     public const SOURCE_ONLINE = 'online';
@@ -98,11 +91,6 @@ class Sale extends Model
     public function statusHistories(): HasMany
     {
         return $this->hasMany(SaleStatusHistory::class)->latest();
-    }
-
-    public function payments(): HasMany
-    {
-        return $this->hasMany(SalePayment::class)->latest('payment_date')->latest();
     }
 
     public function paymentAllocations(): MorphMany

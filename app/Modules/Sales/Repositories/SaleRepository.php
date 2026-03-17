@@ -32,8 +32,6 @@ class SaleRepository
             'paymentAllocations.payment.method',
             'paymentAllocations.payment.receiver',
             'paymentAllocations.payment.voider',
-            'payments.creator',
-            'payments.voider',
             'statusHistories.actor',
             'voidLogs.actor',
             'creator',
@@ -51,7 +49,6 @@ class SaleRepository
             'items.product',
             'items.variant',
             'paymentAllocations.payment',
-            'payments',
         ]);
     }
 

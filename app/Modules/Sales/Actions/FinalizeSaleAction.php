@@ -105,7 +105,7 @@ class FinalizeSaleAction
                 $sale = $this->syncPaymentSummary->execute($sale, $data['payment_status'] ?? $sale->payment_status);
             }
 
-            return $sale->load('items', 'payments', 'statusHistories');
+            return $sale->load('items', 'paymentAllocations.payment.method', 'statusHistories');
         });
 
         event(new SaleFinalized($sale));

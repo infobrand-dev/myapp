@@ -107,31 +107,11 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('sale_payments', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('sale_id')->constrained('sales')->cascadeOnDelete();
-            $table->string('payment_method', 50);
-            $table->decimal('amount', 18, 2);
-            $table->string('currency_code', 10)->default('IDR');
-            $table->dateTime('payment_date')->nullable();
-            $table->string('reference_number', 100)->nullable();
-            $table->text('notes')->nullable();
-            $table->string('status', 30)->default('posted');
-            $table->json('meta')->nullable();
-            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('voided_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->dateTime('voided_at')->nullable();
-            $table->timestamps();
-
-            $table->index(['sale_id', 'status']);
-            $table->index(['payment_method', 'payment_date']);
-        });
     }
 
     public function down(): void
     {
         Schema::dropIfExists('sale_void_logs');
-        Schema::dropIfExists('sale_payments');
         Schema::dropIfExists('sale_status_histories');
         Schema::dropIfExists('sale_items');
         Schema::dropIfExists('sales');

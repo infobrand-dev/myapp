@@ -3,6 +3,7 @@
 namespace App\Modules\Sales\Services;
 
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
 use App\Modules\Sales\Models\Sale;
@@ -91,12 +92,12 @@ class SaleLookupService
     public function paymentMethodOptions(): array
     {
         return [
-            Sale::PAYMENT_METHOD_CASH => 'Cash',
-            Sale::PAYMENT_METHOD_BANK_TRANSFER => 'Bank Transfer',
-            Sale::PAYMENT_METHOD_CARD => 'Card',
-            Sale::PAYMENT_METHOD_EWALLET => 'E-Wallet',
-            Sale::PAYMENT_METHOD_QRIS => 'QRIS',
-            Sale::PAYMENT_METHOD_OTHER => 'Other',
+            PaymentMethod::CODE_CASH => 'Cash',
+            PaymentMethod::CODE_BANK_TRANSFER => 'Bank Transfer',
+            'card' => 'Card',
+            PaymentMethod::CODE_EWALLET => 'E-Wallet',
+            PaymentMethod::CODE_QRIS => 'QRIS',
+            'other' => 'Other',
         ];
     }
 

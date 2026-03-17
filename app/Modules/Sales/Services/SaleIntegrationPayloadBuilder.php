@@ -9,8 +9,7 @@ class SaleIntegrationPayloadBuilder
 {
     public function build(Sale $sale): array
     {
-        $sale->loadMissing(['items', 'payments', 'statusHistories', 'voidLogs']);
-        $sale->loadMissing(['paymentAllocations.payment.method']);
+        $sale->loadMissing(['items', 'paymentAllocations.payment.method', 'statusHistories', 'voidLogs']);
 
         $payments = $this->paymentsPayload($sale);
 

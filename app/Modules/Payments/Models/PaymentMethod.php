@@ -9,6 +9,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PaymentMethod extends Model
 {
+    public const CODE_CASH = 'cash';
+    public const CODE_BANK_TRANSFER = 'bank_transfer';
+    public const CODE_DEBIT_CARD = 'debit_card';
+    public const CODE_CREDIT_CARD = 'credit_card';
+    public const CODE_EWALLET = 'ewallet';
+    public const CODE_QRIS = 'qris';
+    public const CODE_MANUAL = 'manual';
+
     public const TYPE_CASH = 'cash';
     public const TYPE_BANK_TRANSFER = 'bank_transfer';
     public const TYPE_DEBIT_CARD = 'debit_card';
@@ -52,5 +60,36 @@ class PaymentMethod extends Model
     public function updater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public static function salesInputOptions(): array
+    {
+        return [
+            self::CODE_CASH,
+            self::CODE_BANK_TRANSFER,
+            'card',
+            self::CODE_EWALLET,
+            self::CODE_QRIS,
+            'other',
+        ];
+    }
+
+    public static function salesInputMap(): array
+    {
+        return [
+            self::CODE_CASH => self::CODE_CASH,
+            self::CODE_BANK_TRANSFER => self::CODE_BANK_TRANSFER,
+            'card' => self::CODE_DEBIT_CARD,
+            self::CODE_EWALLET => self::CODE_EWALLET,
+            self::CODE_QRIS => self::CODE_QRIS,
+            'other' => self::CODE_MANUAL,
+        ];
+    }
+
+    public static function fromSalesInput(?string $value): string
+    {
+        $map = self::salesInputMap();
+
+        return $map[$value ?: ''] ?? self::CODE_MANUAL;
     }
 }

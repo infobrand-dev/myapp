@@ -5,8 +5,8 @@ namespace App\Modules\Sales\Actions;
 use App\Models\User;
 use App\Modules\Payments\Actions\CreatePaymentAction as CreateCentralPaymentAction;
 use App\Modules\Payments\Models\Payment;
+use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\Sales\Models\Sale;
-use App\Modules\Sales\Models\SalePayment;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -19,10 +19,10 @@ class RecordSalePaymentAction
         $this->syncPaymentSummary = $syncPaymentSummary;
     }
 
-    public function execute(Sale $sale, array $data, ?User $actor = null): SalePayment
+    public function execute(Sale $sale, array $data, ?User $actor = null): Payment
     {
         return DB::transaction(function () use ($sale, $data, $actor) {
-            $sale = Sale::query()->with('payments')->lockForUpdate()->findOrFail($sale->id);
+            $sale = Sale::query()->lockForUpdate()->findOrFail($sale->id);
 
             if (!$sale->isFinalized()) {
                 throw ValidationException::withMessages([
@@ -34,45 +34,13 @@ class RecordSalePaymentAction
 
             $this->syncPaymentSummary->execute($sale);
 
-            return new SalePayment([
-                'sale_id' => $sale->id,
-                'payment_method' => $data['payment_method'],
-                'amount' => $data['amount'],
-                'currency_code' => $data['currency_code'] ?? $sale->currency_code,
-                'payment_date' => $data['payment_date'] ?? now(),
-                'reference_number' => $data['reference_number'] ?? null,
-                'notes' => $data['notes'] ?? null,
-                'status' => SalePayment::STATUS_POSTED,
-                'meta' => [
-                    'payment_id' => $centralPayment->id,
-                ],
-                'created_by' => $actor ? $actor->id : null,
-            ]);
+            return $centralPayment;
         });
     }
 
     private function resolveCentralPaymentMethodId(?string $legacyMethod): ?int
     {
-        switch ($legacyMethod) {
-            case Sale::PAYMENT_METHOD_CASH:
-                $code = 'cash';
-                break;
-            case Sale::PAYMENT_METHOD_BANK_TRANSFER:
-                $code = 'bank_transfer';
-                break;
-            case Sale::PAYMENT_METHOD_CARD:
-                $code = 'debit_card';
-                break;
-            case Sale::PAYMENT_METHOD_EWALLET:
-                $code = 'ewallet';
-                break;
-            case Sale::PAYMENT_METHOD_QRIS:
-                $code = 'qris';
-                break;
-            default:
-                $code = 'manual';
-                break;
-        }
+        $code = PaymentMethod::fromSalesInput($legacyMethod);
 
         $methodId = DB::table('payment_methods')->where('code', $code)->value('id');
 

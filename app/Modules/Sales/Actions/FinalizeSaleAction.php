@@ -1,0 +1,93 @@
+<?php
+
+namespace App\Modules\Sales\Actions;
+
+use App\Models\User;
+use App\Modules\Contacts\Models\Contact;
+use App\Modules\Sales\Models\Sale;
+use App\Modules\Sales\Services\SaleSnapshotService;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+
+class FinalizeSaleAction
+{
+    private $recalculateTotals;
+    private $snapshotService;
+
+    public function __construct(
+        RecalculateSaleTotalsAction $recalculateTotals,
+        SaleSnapshotService $snapshotService
+    ) {
+        $this->recalculateTotals = $recalculateTotals;
+        $this->snapshotService = $snapshotService;
+    }
+
+    public function execute(Sale $sale, array $data, ?User $actor = null): Sale
+    {
+        return DB::transaction(function () use ($sale, $data, $actor) {
+            $sale = Sale::query()->with('items')->lockForUpdate()->findOrFail($sale->id);
+
+            if (!$sale->isDraft()) {
+                throw ValidationException::withMessages([
+                    'sale' => 'Hanya draft sale yang dapat di-finalize.',
+                ]);
+            }
+
+            $payload = [
+                'items' => $sale->items->map(fn ($item) => [
+                    'product_id' => $item->product_id,
+                    'product_variant_id' => $item->product_variant_id,
+                    'qty' => $item->qty,
+                    'unit_price' => $item->unit_price,
+                    'discount_total' => $item->discount_total,
+                    'tax_total' => $item->tax_total,
+                    'notes' => $item->notes,
+                ])->all(),
+            ];
+            $totals = $this->recalculateTotals->execute($payload);
+            $contact = $sale->contact_id
+                ? Contact::query()->with('company')->find($sale->contact_id)
+                : null;
+            $customer = $this->snapshotService->customerSnapshot($contact);
+
+            $sale->items()->delete();
+            $sale->items()->createMany($totals['items']);
+
+            $fromStatus = $sale->status;
+            $sale->update([
+                'customer_name_snapshot' => $customer['name'],
+                'customer_email_snapshot' => $customer['email'],
+                'customer_phone_snapshot' => $customer['phone'],
+                'customer_address_snapshot' => $customer['address'],
+                'customer_snapshot' => $customer['payload'],
+                'status' => Sale::STATUS_FINALIZED,
+                'payment_status' => $data['payment_status'] ?? $sale->payment_status,
+                'transaction_date' => $sale->transaction_date ?: now(),
+                'finalized_at' => now(),
+                'subtotal' => $totals['subtotal'],
+                'discount_total' => $totals['discount_total'],
+                'tax_total' => $totals['tax_total'],
+                'grand_total' => $totals['grand_total'],
+                'totals_snapshot' => array_merge($totals['totals_snapshot'], [
+                    'finalized_at' => now()->toDateTimeString(),
+                ]),
+                'updated_by' => $actor ? $actor->id : null,
+                'finalized_by' => $actor ? $actor->id : null,
+            ]);
+
+            $sale->statusHistories()->create([
+                'from_status' => $fromStatus,
+                'to_status' => Sale::STATUS_FINALIZED,
+                'event' => 'finalized',
+                'reason' => $data['reason'] ?? null,
+                'actor_id' => $actor ? $actor->id : null,
+                'meta' => [
+                    'payment_status' => $sale->payment_status,
+                    'source' => $sale->source,
+                ],
+            ]);
+
+            return $sale->load('items', 'statusHistories');
+        });
+    }
+}

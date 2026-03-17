@@ -1,0 +1,11 @@
+{
+  "slug": "sales",
+  "name": "Sales",
+  "description": "Sumber utama transaksi penjualan untuk manual entry, POS, online, dan integrasi channel lain dengan snapshot transaksi yang immutable setelah final.",
+  "provider": "App\\Modules\\Sales\\SalesServiceProvider",
+  "version": "1.0.0",
+  "requires": ["products", "contacts"],
+  "navigation": [
+    { "label": "Sales", "route": "sales.index" }
+  ]
+}

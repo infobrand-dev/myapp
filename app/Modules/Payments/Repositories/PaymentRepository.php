@@ -4,6 +4,7 @@ namespace App\Modules\Payments\Repositories;
 
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Sales\Models\Sale;
+use App\Modules\Sales\Models\SaleReturn;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -51,9 +52,15 @@ class PaymentRepository
                     ->orWhere('reference_number', 'like', "%{$search}%")
                     ->orWhere('external_reference', 'like', "%{$search}%")
                     ->orWhereHas('allocations', function (Builder $allocation) use ($search) {
-                        $allocation->whereHasMorph('payable', [Sale::class], function (Builder $payable) use ($search) {
-                            $payable->where('sale_number', 'like', "%{$search}%")
-                                ->orWhere('customer_name_snapshot', 'like', "%{$search}%");
+                        $allocation->where(function (Builder $morphQuery) use ($search) {
+                            $morphQuery->whereHasMorph('payable', [Sale::class], function (Builder $payable) use ($search) {
+                                $payable->where('sale_number', 'like', "%{$search}%")
+                                    ->orWhere('customer_name_snapshot', 'like', "%{$search}%");
+                            })->orWhereHasMorph('payable', [SaleReturn::class], function (Builder $payable) use ($search) {
+                                $payable->where('return_number', 'like', "%{$search}%")
+                                    ->orWhere('sale_number_snapshot', 'like', "%{$search}%")
+                                    ->orWhere('customer_name_snapshot', 'like', "%{$search}%");
+                            });
                         });
                     });
             });

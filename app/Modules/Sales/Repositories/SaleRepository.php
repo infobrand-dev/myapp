@@ -32,6 +32,7 @@ class SaleRepository
             'paymentAllocations.payment.method',
             'paymentAllocations.payment.receiver',
             'paymentAllocations.payment.voider',
+            'saleReturns.items',
             'statusHistories.actor',
             'voidLogs.actor',
             'creator',

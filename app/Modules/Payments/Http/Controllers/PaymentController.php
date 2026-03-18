@@ -69,8 +69,12 @@ class PaymentController extends Controller
             'paymentSourceOptions' => $this->lookupService->paymentSourceOptions(),
             'payableTypeOptions' => $this->lookupService->payableTypeOptions(),
             'saleOptions' => $this->lookupService->saleOptions(),
+            'saleReturnOptions' => $this->lookupService->saleReturnOptions(),
+            'purchaseOptions' => $this->lookupService->purchaseOptions(),
             'receivers' => $this->lookupService->receivers(),
             'prefillSaleId' => $request->integer('sale_id') ?: null,
+            'prefillSaleReturnId' => $request->integer('sale_return_id') ?: null,
+            'prefillPurchaseId' => $request->integer('purchase_id') ?: null,
         ]);
     }
 

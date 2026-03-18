@@ -12,6 +12,7 @@
     ]
   },
   "navigation": [
-    { "label": "Sales", "route": "sales.index" }
+    { "label": "Sales", "route": "sales.index" },
+    { "label": "Sales Returns", "route": "sales.returns.index" }
   ]
 }

@@ -31,6 +31,8 @@
                                 <td>
                                     @if($allocation->payable instanceof \App\Modules\Sales\Models\Sale)
                                         <a href="{{ route('sales.show', $allocation->payable) }}">{{ $allocation->payable->sale_number }}</a>
+                                    @elseif($allocation->payable instanceof \App\Modules\Sales\Models\SaleReturn)
+                                        <a href="{{ route('sales.returns.show', $allocation->payable) }}">{{ $allocation->payable->return_number }}</a>
                                     @else
                                         #{{ $allocation->payable_id }}
                                     @endif

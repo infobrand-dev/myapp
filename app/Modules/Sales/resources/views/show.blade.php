@@ -14,6 +14,9 @@
                 <button type="submit" class="btn btn-primary">Finalize</button>
             </form>
         @endif
+        @if($sale->status === 'finalized')
+            <a href="{{ route('sales.returns.create', ['sale_id' => $sale->id]) }}" class="btn btn-outline-warning">Create Return</a>
+        @endif
         <a href="{{ route('sales.invoice', $sale) }}" class="btn btn-outline-primary">Print / Invoice</a>
         <a href="{{ route('sales.index') }}" class="btn btn-outline-secondary">Back</a>
     </div>
@@ -51,6 +54,29 @@
                         @endforeach
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header"><h3 class="card-title">Sales Returns</h3></div>
+            <div class="card-body">
+                @if($sale->saleReturns->isNotEmpty())
+                    @foreach($sale->saleReturns as $saleReturn)
+                        <div class="border rounded p-2 mb-2">
+                            <div class="d-flex justify-content-between align-items-start gap-2">
+                                <div>
+                                    <a href="{{ route('sales.returns.show', $saleReturn) }}" class="fw-semibold text-decoration-none">{{ $saleReturn->return_number }}</a>
+                                    <div class="text-muted small">{{ optional($saleReturn->return_date)->format('d M Y H:i') ?? '-' }}</div>
+                                </div>
+                                <span class="badge bg-{{ $saleReturn->status === 'finalized' ? 'success' : ($saleReturn->status === 'draft' ? 'secondary' : 'warning') }}-lt text-{{ $saleReturn->status === 'finalized' ? 'success' : ($saleReturn->status === 'draft' ? 'secondary' : 'warning') }}">{{ ucfirst($saleReturn->status) }}</span>
+                            </div>
+                            <div class="small mt-1">Grand: Rp {{ number_format((float) $saleReturn->grand_total, 0, ',', '.') }}</div>
+                            <div class="text-muted small">Refund: {{ ucfirst($saleReturn->refund_status) }}</div>
+                        </div>
+                    @endforeach
+                @else
+                    <div class="text-muted">Belum ada sales return untuk transaksi ini.</div>
+                @endif
             </div>
         </div>
 

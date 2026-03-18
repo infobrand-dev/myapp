@@ -72,8 +72,8 @@
                 <div class="row g-3 payment-allocation-list">
                     @php
                         $oldAllocations = old('allocations', [[
-                            'payable_type' => 'sale',
-                            'payable_id' => $prefillSaleId,
+                            'payable_type' => $prefillSaleReturnId ? 'sale_return' : ($prefillPurchaseId ? 'purchase' : 'sale'),
+                            'payable_id' => $prefillSaleReturnId ?: ($prefillPurchaseId ?: $prefillSaleId),
                             'amount' => old('amount'),
                         ]]);
                     @endphp
@@ -88,12 +88,22 @@
                                 </select>
                             </div>
                             <div class="mb-2">
-                                <label class="form-label">Sale</label>
+                                <label class="form-label">Transaction</label>
                                 <select name="allocations[{{ $index }}][payable_id]" class="form-select">
-                                    <option value="">Pilih sale</option>
+                                    <option value="">Pilih transaksi</option>
                                     @foreach($saleOptions as $sale)
-                                        <option value="{{ $sale->id }}" @selected((string) ($allocation['payable_id'] ?? '') === (string) $sale->id)>
-                                            {{ $sale->sale_number }} | {{ $sale->customer_name_snapshot ?: 'Guest' }} | Due Rp {{ number_format((float) $sale->balance_due, 0, ',', '.') }}
+                                        <option value="{{ $sale->id }}" data-kind="sale" @selected(($allocation['payable_type'] ?? 'sale') === 'sale' && (string) ($allocation['payable_id'] ?? '') === (string) $sale->id)>
+                                            Sale: {{ $sale->sale_number }} | {{ $sale->customer_name_snapshot ?: 'Guest' }} | Due Rp {{ number_format((float) $sale->balance_due, 0, ',', '.') }}
+                                        </option>
+                                    @endforeach
+                                    @foreach($saleReturnOptions as $saleReturn)
+                                        <option value="{{ $saleReturn->id }}" data-kind="sale_return" @selected(($allocation['payable_type'] ?? '') === 'sale_return' && (string) ($allocation['payable_id'] ?? '') === (string) $saleReturn->id)>
+                                            Return: {{ $saleReturn->return_number }} | {{ $saleReturn->customer_name_snapshot ?: 'Guest' }} | Refund Rp {{ number_format((float) $saleReturn->refund_balance, 0, ',', '.') }}
+                                        </option>
+                                    @endforeach
+                                    @foreach($purchaseOptions as $purchase)
+                                        <option value="{{ $purchase->id }}" data-kind="purchase" @selected(($allocation['payable_type'] ?? '') === 'purchase' && (string) ($allocation['payable_id'] ?? '') === (string) $purchase->id)>
+                                            Purchase: {{ $purchase->purchase_number }} | {{ $purchase->supplier_name_snapshot ?: 'Supplier' }} | Due Rp {{ number_format((float) $purchase->balance_due, 0, ',', '.') }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -126,11 +136,17 @@
             </select>
         </div>
         <div class="mb-2">
-            <label class="form-label">Sale</label>
+            <label class="form-label">Transaction</label>
             <select class="form-select" data-name="payable_id">
-                <option value="">Pilih sale</option>
+                <option value="">Pilih transaksi</option>
                 @foreach($saleOptions as $sale)
-                    <option value="{{ $sale->id }}">{{ $sale->sale_number }} | {{ $sale->customer_name_snapshot ?: 'Guest' }} | Due Rp {{ number_format((float) $sale->balance_due, 0, ',', '.') }}</option>
+                    <option value="{{ $sale->id }}" data-kind="sale">Sale: {{ $sale->sale_number }} | {{ $sale->customer_name_snapshot ?: 'Guest' }} | Due Rp {{ number_format((float) $sale->balance_due, 0, ',', '.') }}</option>
+                @endforeach
+                @foreach($saleReturnOptions as $saleReturn)
+                    <option value="{{ $saleReturn->id }}" data-kind="sale_return">Return: {{ $saleReturn->return_number }} | {{ $saleReturn->customer_name_snapshot ?: 'Guest' }} | Refund Rp {{ number_format((float) $saleReturn->refund_balance, 0, ',', '.') }}</option>
+                @endforeach
+                @foreach($purchaseOptions as $purchase)
+                    <option value="{{ $purchase->id }}" data-kind="purchase">Purchase: {{ $purchase->purchase_number }} | {{ $purchase->supplier_name_snapshot ?: 'Supplier' }} | Due Rp {{ number_format((float) $purchase->balance_due, 0, ',', '.') }}</option>
                 @endforeach
             </select>
         </div>
@@ -147,10 +163,42 @@ document.addEventListener('DOMContentLoaded', function () {
     const list = document.querySelector('.payment-allocation-list');
     const template = document.getElementById('payment-allocation-template');
     const button = document.getElementById('add-allocation');
+    const syncTargetOptions = (wrapper) => {
+        const typeField = wrapper.querySelector('[name$="[payable_type]"]');
+        const targetField = wrapper.querySelector('[name$="[payable_id]"]');
+
+        if (!typeField || !targetField) {
+            return;
+        }
+
+        Array.from(targetField.options).forEach((option) => {
+            if (!option.value) {
+                option.hidden = false;
+                return;
+            }
+
+            option.hidden = option.dataset.kind !== typeField.value;
+        });
+
+        const selected = targetField.selectedOptions[0];
+        if (selected && selected.hidden) {
+            targetField.value = '';
+        }
+    };
 
     if (!list || !template || !button) {
         return;
     }
+
+    list.querySelectorAll('.payment-allocation-item').forEach((item) => {
+        syncTargetOptions(item);
+    });
+
+    list.addEventListener('change', function (event) {
+        if (event.target.name && event.target.name.endsWith('[payable_type]')) {
+            syncTargetOptions(event.target.closest('.payment-allocation-item'));
+        }
+    });
 
     button.addEventListener('click', function () {
         const index = list.querySelectorAll('.payment-allocation-item').length;
@@ -161,6 +209,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         list.appendChild(fragment);
+        syncTargetOptions(list.lastElementChild);
     });
 
     list.addEventListener('click', function (event) {

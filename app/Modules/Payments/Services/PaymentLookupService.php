@@ -5,7 +5,9 @@ namespace App\Modules\Payments\Services;
 use App\Models\User;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentMethod;
+use App\Modules\Purchases\Models\Purchase;
 use App\Modules\Sales\Models\Sale;
+use App\Modules\Sales\Models\SaleReturn;
 use Illuminate\Support\Collection;
 
 class PaymentLookupService
@@ -63,6 +65,8 @@ class PaymentLookupService
     {
         return [
             'sale' => 'Sale',
+            'sale_return' => 'Sales Return Refund',
+            'purchase' => 'Purchase',
         ];
     }
 
@@ -74,5 +78,26 @@ class PaymentLookupService
             ->orderByDesc('transaction_date')
             ->limit(100)
             ->get(['id', 'sale_number', 'customer_name_snapshot', 'grand_total', 'paid_total', 'balance_due']);
+    }
+
+    public function saleReturnOptions(): Collection
+    {
+        return SaleReturn::query()
+            ->where('status', SaleReturn::STATUS_FINALIZED)
+            ->where('refund_required', true)
+            ->whereNotIn('refund_status', [SaleReturn::REFUND_REFUNDED, SaleReturn::REFUND_SKIPPED])
+            ->orderByDesc('return_date')
+            ->limit(100)
+            ->get(['id', 'return_number', 'sale_number_snapshot', 'customer_name_snapshot', 'grand_total', 'refunded_total', 'refund_balance']);
+    }
+
+    public function purchaseOptions(): Collection
+    {
+        return Purchase::query()
+            ->whereIn('status', [Purchase::STATUS_CONFIRMED, Purchase::STATUS_PARTIAL_RECEIVED, Purchase::STATUS_RECEIVED])
+            ->whereNotIn('payment_status', [Purchase::PAYMENT_PAID, Purchase::PAYMENT_OVERPAID])
+            ->orderByDesc('purchase_date')
+            ->limit(100)
+            ->get(['id', 'purchase_number', 'supplier_name_snapshot', 'grand_total', 'paid_total', 'balance_due']);
     }
 }

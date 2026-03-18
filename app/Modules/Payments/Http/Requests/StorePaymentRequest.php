@@ -33,7 +33,7 @@ class StorePaymentRequest extends FormRequest
             'received_by' => $receivedByRules,
             'outlet_id' => ['nullable', 'integer', 'min:1'],
             'allocations' => ['required', 'array', 'min:1'],
-            'allocations.*.payable_type' => ['required', Rule::in(['sale'])],
+            'allocations.*.payable_type' => ['required', Rule::in(['sale', 'sale_return', 'purchase'])],
             'allocations.*.payable_id' => ['required', 'integer', 'min:1'],
             'allocations.*.amount' => ['required', 'numeric', 'gt:0'],
         ];
@@ -57,6 +57,14 @@ class StorePaymentRequest extends FormRequest
             $allocations[] = [
                 'payable_type' => 'sale',
                 'payable_id' => $this->input('sale_id'),
+                'amount' => $this->input('amount'),
+            ];
+        }
+
+        if (empty($allocations) && $this->filled('purchase_id')) {
+            $allocations[] = [
+                'payable_type' => 'purchase',
+                'payable_id' => $this->input('purchase_id'),
                 'amount' => $this->input('amount'),
             ];
         }

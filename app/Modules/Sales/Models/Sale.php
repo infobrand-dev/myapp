@@ -89,6 +89,11 @@ class Sale extends Model
         return $this->hasMany(SaleItem::class)->orderBy('line_no');
     }
 
+    public function saleReturns(): HasMany
+    {
+        return $this->hasMany(SaleReturn::class)->latest('return_date');
+    }
+
     public function statusHistories(): HasMany
     {
         return $this->hasMany(SaleStatusHistory::class)->latest();

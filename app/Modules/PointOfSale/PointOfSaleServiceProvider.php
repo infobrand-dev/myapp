@@ -4,6 +4,7 @@ namespace App\Modules\PointOfSale;
 
 use App\Modules\PointOfSale\Actions\ResolveBarcodeToSellableAction;
 use App\Modules\PointOfSale\Services\PosCartService;
+use App\Modules\PointOfSale\Services\PosCheckoutOrchestrator;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\Models\Permission;
@@ -38,6 +39,7 @@ class PointOfSaleServiceProvider extends ServiceProvider
     {
         $this->app->singleton(ResolveBarcodeToSellableAction::class);
         $this->app->singleton(PosCartService::class);
+        $this->app->singleton(PosCheckoutOrchestrator::class);
     }
 
     public function boot(): void

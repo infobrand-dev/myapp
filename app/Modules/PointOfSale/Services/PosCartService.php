@@ -16,14 +16,45 @@ class PosCartService
     public function activeCartFor(User $user): PosCart
     {
         return DB::transaction(function () use ($user) {
-            $cart = PosCart::query()
+            User::query()
+                ->whereKey($user->id)
+                ->lockForUpdate()
+                ->first();
+
+            $activeCarts = PosCart::query()
                 ->with(['items', 'contact'])
                 ->where('cashier_user_id', $user->id)
                 ->where('status', PosCart::STATUS_ACTIVE)
                 ->lockForUpdate()
-                ->first();
+                ->orderBy('id')
+                ->get();
+
+            $cart = $activeCarts->first();
 
             if ($cart) {
+                if ($activeCarts->count() > 1) {
+                    $duplicateIds = $activeCarts->slice(1)->pluck('id')->all();
+
+                    PosCart::query()
+                        ->whereIn('id', $duplicateIds)
+                        ->update([
+                            'status' => PosCart::STATUS_CANCELLED,
+                            'notes' => DB::raw("TRIM(CONCAT(COALESCE(notes, ''), ' [AUTO-CANCELLED duplicate active cart]'))"),
+                            'meta' => json_encode([
+                                'auto_cancelled_duplicate_active_cart' => true,
+                                'auto_cancelled_at' => now()->toDateTimeString(),
+                                'kept_active_cart_id' => $cart->id,
+                            ]),
+                        ]);
+
+                    $cart->notes = trim((string) $cart->notes . ' [Duplicate active carts detected and cleaned]');
+                    $cart->meta = array_merge($cart->meta ?? [], [
+                        'duplicate_active_carts_cleaned' => true,
+                        'duplicate_active_cart_ids' => $duplicateIds,
+                    ]);
+                    $cart->save();
+                }
+
                 return $cart;
             }
 
@@ -45,6 +76,26 @@ class PosCartService
             ]);
         }
 
+        if (!$product->is_active) {
+            throw ValidationException::withMessages([
+                'product_id' => 'Produk tidak aktif dan tidak bisa dijual di POS.',
+            ]);
+        }
+
+        if ($variant) {
+            if ((int) $variant->product_id !== (int) $product->id) {
+                throw ValidationException::withMessages([
+                    'product_variant_id' => 'Variant tidak cocok dengan produk yang dipilih.',
+                ]);
+            }
+
+            if (!$variant->is_active) {
+                throw ValidationException::withMessages([
+                    'product_variant_id' => 'Variant tidak aktif dan tidak bisa dijual di POS.',
+                ]);
+            }
+        }
+
         return DB::transaction(function () use ($user, $product, $variant, $qty, $barcodeScanned) {
             $cart = $this->activeCartFor($user);
             $cart = PosCart::query()->with('items')->lockForUpdate()->findOrFail($cart->id);
@@ -58,6 +109,7 @@ class PosCartService
             if ($existing) {
                 $existing->qty = round((float) $existing->qty + $qty, 4);
                 $existing->barcode_scanned = $barcodeScanned ?: $existing->barcode_scanned;
+                $existing->discount_total = 0;
                 $existing->line_total = $this->lineTotal(
                     (float) $existing->qty,
                     (float) $existing->unit_price,
@@ -87,6 +139,8 @@ class PosCartService
                     'line_total' => $this->lineTotal($qty, $price, 0, 0),
                 ]);
             }
+
+            $this->resetDiscountState($cart);
 
             return $this->refreshTotals($cart);
         });
@@ -122,6 +176,8 @@ class PosCartService
             $item->line_total = $this->lineTotal($qty, $unitPrice, (float) $item->discount_total, (float) $item->tax_total);
             $item->save();
 
+            $this->resetDiscountState($item->cart);
+
             return $this->refreshTotals($item->cart);
         });
     }
@@ -135,6 +191,8 @@ class PosCartService
             $cart = $item->cart;
             $item->delete();
 
+            $this->resetDiscountState($cart);
+
             return $this->refreshTotals($cart);
         });
     }
@@ -145,8 +203,20 @@ class PosCartService
             $cart = $this->activeCartFor($user);
             $cart = PosCart::query()->with('items')->lockForUpdate()->findOrFail($cart->id);
             $cart->items()->delete();
+            $cart->update([
+                'contact_id' => null,
+                'customer_label' => 'Walk-in Customer',
+                'notes' => null,
+                'discount_snapshot' => null,
+                'item_count' => 0,
+                'subtotal' => 0,
+                'item_discount_total' => 0,
+                'order_discount_total' => 0,
+                'tax_total' => 0,
+                'grand_total' => 0,
+            ]);
 
-            return $this->refreshTotals($cart);
+            return $cart->fresh(['items', 'contact']);
         });
     }
 
@@ -205,10 +275,22 @@ class PosCartService
                 ]);
             }
 
-            PosCart::query()
+            $activeCart = PosCart::query()
+                ->with('items')
                 ->where('cashier_user_id', $user->id)
                 ->where('status', PosCart::STATUS_ACTIVE)
-                ->delete();
+                ->lockForUpdate()
+                ->first();
+
+            if ($activeCart && (int) $activeCart->id !== (int) $heldCart->id) {
+                if ($activeCart->items->isNotEmpty()) {
+                    throw ValidationException::withMessages([
+                        'cart' => 'Masih ada cart aktif berisi item. Hold atau clear cart aktif sebelum resume cart lain.',
+                    ]);
+                }
+
+                $activeCart->delete();
+            }
 
             $heldCart->update([
                 'status' => PosCart::STATUS_ACTIVE,
@@ -227,7 +309,43 @@ class PosCartService
             'customer_label' => $label ?: ($contactId ? null : 'Walk-in Customer'),
         ]);
 
+        $this->resetDiscountState($cart);
+
         return $cart->fresh(['items', 'contact']);
+    }
+
+    public function applyDiscountEvaluation(User $user, array $evaluation): PosCart
+    {
+        return DB::transaction(function () use ($user, $evaluation) {
+            $cart = $this->activeCartFor($user);
+            $cart = PosCart::query()->with(['items', 'contact'])->lockForUpdate()->findOrFail($cart->id);
+
+            $lineTotals = collect($evaluation['line_totals'] ?? [])
+                ->filter(function ($row) {
+                    return is_array($row) && !empty($row['line_key']);
+                })
+                ->keyBy('line_key');
+
+            foreach ($cart->items as $item) {
+                $line = $lineTotals->get($item->uuid);
+
+                $item->discount_total = $line ? round((float) ($line['discount_total'] ?? 0), 2) : 0;
+                $item->line_total = $this->lineTotal(
+                    (float) $item->qty,
+                    (float) $item->unit_price,
+                    (float) $item->discount_total,
+                    (float) $item->tax_total
+                );
+                $item->save();
+            }
+
+            $cart->update([
+                'discount_snapshot' => $evaluation,
+                'order_discount_total' => 0,
+            ]);
+
+            return $this->refreshTotals($cart);
+        });
     }
 
     public function serialize(PosCart $cart): array
@@ -274,7 +392,7 @@ class PosCartService
     public function refreshTotals(PosCart $cart): PosCart
     {
         $cart = PosCart::query()->with(['items', 'contact'])->findOrFail($cart->id);
-        $itemCount = (int) $cart->items->sum(fn (PosCartItem $item) => (float) $item->qty);
+        $itemCount = (int) $cart->items->count();
         $subtotal = round((float) $cart->items->sum(fn (PosCartItem $item) => (float) $item->qty * (float) $item->unit_price), 2);
         $itemDiscountTotal = round((float) $cart->items->sum(fn (PosCartItem $item) => (float) $item->discount_total), 2);
         $taxTotal = round((float) $cart->items->sum(fn (PosCartItem $item) => (float) $item->tax_total), 2);
@@ -298,6 +416,29 @@ class PosCartService
                 'cart' => 'Cart tersebut bukan milik kasir yang sedang login.',
             ]);
         }
+    }
+
+    private function resetDiscountState(PosCart $cart): void
+    {
+        $cart = PosCart::query()->with('items')->findOrFail($cart->id);
+
+        foreach ($cart->items as $item) {
+            if ((float) $item->discount_total !== 0.0) {
+                $item->discount_total = 0;
+                $item->line_total = $this->lineTotal(
+                    (float) $item->qty,
+                    (float) $item->unit_price,
+                    0,
+                    (float) $item->tax_total
+                );
+                $item->save();
+            }
+        }
+
+        $cart->update([
+            'discount_snapshot' => null,
+            'order_discount_total' => 0,
+        ]);
     }
 
     private function lineTotal(float $qty, float $unitPrice, float $discountTotal, float $taxTotal): float

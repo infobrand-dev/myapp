@@ -22,9 +22,15 @@ class PosCartItemController extends Controller
 
     public function store(StorePosCartItemRequest $request): JsonResponse
     {
-        $product = Product::query()->with('unit')->findOrFail($request->integer('product_id'));
+        $product = Product::query()
+            ->with('unit')
+            ->where('is_active', true)
+            ->findOrFail($request->integer('product_id'));
         $variant = $request->filled('product_variant_id')
-            ? ProductVariant::query()->where('product_id', $product->id)->findOrFail($request->integer('product_variant_id'))
+            ? ProductVariant::query()
+                ->where('product_id', $product->id)
+                ->where('is_active', true)
+                ->findOrFail($request->integer('product_variant_id'))
             : null;
 
         $cart = $this->cartService->addSellable(

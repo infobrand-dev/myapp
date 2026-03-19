@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Database\Seeders\TenantSeeder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -92,9 +93,17 @@ class InstallController extends Controller
                 '--force' => true,
             ]);
 
+            // Installer web must always leave tenant id=1 available for tenant-aware writes.
+            $this->callArtisanOrFail('db:seed', [
+                '--class' => TenantSeeder::class,
+                '--force' => true,
+            ]);
+            $this->ensureDefaultTenantExists();
+
             // Keep non-user seeders, but skip default superadmin account during installer.
             config(['installer.seed_default_superadmin' => false]);
             $this->callArtisanOrFail('db:seed', ['--force' => true]);
+            $this->ensureDefaultTenantExists();
 
             DB::transaction(function () use ($data): void {
                 $role = Role::findOrCreate('Super-admin');
@@ -327,6 +336,15 @@ class InstallController extends Controller
 
         $value = trim((string) $matches[1], " \t\n\r\0\x0B\"'");
         return $value !== '';
+    }
+
+    private function ensureDefaultTenantExists(): void
+    {
+        $tenant = DB::table('tenants')->where('id', 1)->first();
+
+        if (!$tenant) {
+            throw new RuntimeException('Default tenant id=1 gagal dibuat saat instalasi.');
+        }
     }
 
     private function stripUtf8Bom(string $content): string

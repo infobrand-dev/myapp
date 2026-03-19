@@ -12,8 +12,59 @@ class ModuleController extends Controller
 {
     public function index(ModuleManager $modules): View
     {
+        $allModules = $modules->all();
+        $filters = [
+            'category' => trim((string) request('category', '')),
+            'status' => trim((string) request('status', '')),
+            'search' => trim((string) request('search', '')),
+        ];
+
+        $categories = collect($allModules)
+            ->pluck('category')
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        $filteredModules = collect($allModules)
+            ->filter(function (array $module) use ($filters) {
+                if ($filters['category'] !== '' && $module['category'] !== $filters['category']) {
+                    return false;
+                }
+
+                if ($filters['status'] !== '') {
+                    $status = !$module['installed']
+                        ? 'not-installed'
+                        : ($module['active'] ? 'active' : 'installed');
+
+                    if ($status !== $filters['status']) {
+                        return false;
+                    }
+                }
+
+                if ($filters['search'] !== '') {
+                    $needle = strtolower($filters['search']);
+                    $haystack = strtolower(implode(' ', [
+                        $module['name'],
+                        $module['slug'],
+                        $module['description'],
+                        $module['category'],
+                    ]));
+
+                    if (!str_contains($haystack, $needle)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            })
+            ->all();
+
         return view('modules.index', [
-            'modules' => $modules->all(),
+            'modules' => $filteredModules,
+            'categories' => $categories,
+            'filters' => $filters,
         ]);
     }
 
@@ -47,4 +98,3 @@ class ModuleController extends Controller
         }
     }
 }
-

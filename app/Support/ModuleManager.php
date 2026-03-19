@@ -23,6 +23,7 @@ class ModuleManager
             $modules[$slug] = [
                 'slug' => $slug,
                 'name' => $manifest['name'] ?? $slug,
+                'category' => $manifest['category'] ?? 'uncategorized',
                 'description' => $manifest['description'] ?? '',
                 'provider' => $manifest['provider'] ?? null,
                 'version' => $manifest['version'] ?? null,
@@ -30,7 +31,7 @@ class ModuleManager
                 'navigation' => $navigation,
                 'installed' => $state ? ($state->installed_at !== null) : false,
                 'active' => $state ? (bool) $state->is_active : false,
-                'installed_at' => $state?->installed_at,
+                'installed_at' => $state ? $state->installed_at : null,
                 'dependents' => $this->dependentsOf($slug, $manifests),
             ];
         }
@@ -171,6 +172,7 @@ class ModuleManager
 
             $slug = (string) $manifest['slug'];
             $manifest['_dir'] = basename($moduleDir);
+            $manifest['category'] = $this->normalizeCategory($manifest['category'] ?? null);
             $manifest['requires'] = array_values(array_filter((array) ($manifest['requires'] ?? [])));
             $data[$slug] = $manifest;
         }
@@ -248,5 +250,16 @@ class ModuleManager
         }
 
         return $normalized;
+    }
+
+    private function normalizeCategory(mixed $category): string
+    {
+        if (!is_string($category)) {
+            return 'uncategorized';
+        }
+
+        $category = trim(strtolower($category));
+
+        return $category !== '' ? $category : 'uncategorized';
     }
 }

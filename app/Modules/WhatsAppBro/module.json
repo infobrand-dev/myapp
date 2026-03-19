@@ -4,6 +4,7 @@
   "description": "Integrasi WhatsApp bridge berbasis QR dan realtime chat.",
   "provider": "App\\Modules\\WhatsAppBro\\WhatsAppBroServiceProvider",
   "version": "1.0.0",
+  "category": "communication",
   "requires": ["conversations"],
   "sample_data": {
     "description": "Membuat konfigurasi bridge WhatsApp Bro contoh.",

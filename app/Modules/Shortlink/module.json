@@ -4,6 +4,7 @@
   "description": "Pembuatan dan tracking short URL.",
   "provider": "App\\Modules\\Shortlink\\ShortlinkServiceProvider",
   "version": "1.0.0",
+  "category": "support",
   "requires": [],
   "sample_data": {
     "description": "Membuat shortlink, code, dan satu click contoh.",

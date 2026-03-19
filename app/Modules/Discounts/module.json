@@ -4,6 +4,7 @@
   "description": "Rule engine promo dan diskon reusable untuk Products, POS, Sales, Checkout, Pricing, Membership, dan Campaign Management.",
   "provider": "App\\Modules\\Discounts\\DiscountsServiceProvider",
   "version": "1.0.0",
+  "category": "commerce",
   "requires": ["products"],
   "sample_data": {
     "description": "Membuat rule diskon, voucher, dan usage sample untuk produk demo.",

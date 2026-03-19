@@ -4,6 +4,7 @@
   "description": "Domain pembayaran reusable untuk mencatat, mengalokasikan, dan mengelola pembayaran transaksi lintas channel.",
   "provider": "App\\Modules\\Payments\\PaymentsServiceProvider",
   "version": "1.0.0",
+  "category": "commerce",
   "requires": ["sales"],
   "sample_data": {
     "description": "Membuat satu payment posted menggunakan metode yang tersedia.",

@@ -4,6 +4,7 @@
   "description": "Integrasi Instagram/Facebook DM.",
   "provider": "App\\Modules\\SocialMedia\\SocialMediaServiceProvider",
   "version": "1.0.0",
+  "category": "communication",
   "requires": ["conversations"],
   "sample_data": {
     "description": "Membuat satu akun Instagram business contoh.",

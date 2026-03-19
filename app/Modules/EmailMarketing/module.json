@@ -4,6 +4,7 @@
   "description": "Campaign email, template attachment, dan tracking recipient.",
   "provider": "App\\Modules\\EmailMarketing\\EmailMarketingServiceProvider",
   "version": "1.0.0",
+  "category": "communication",
   "requires": ["contacts"],
   "sample_data": {
     "description": "Membuat campaign, attachment template, dan recipient contoh.",

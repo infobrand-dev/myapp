@@ -4,6 +4,7 @@
   "description": "Sumber kebenaran stok, mutasi, opening stock, adjustment, transfer, stock card, dan low stock monitoring.",
   "provider": "App\\Modules\\Inventory\\InventoryServiceProvider",
   "version": "1.0.0",
+  "category": "commerce",
   "requires": ["products"],
   "sample_data": {
     "description": "Membuat stok, mutasi, opening, adjustment, dan transfer sample.",

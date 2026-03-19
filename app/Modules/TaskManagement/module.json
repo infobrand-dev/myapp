@@ -4,6 +4,7 @@
   "description": "Internal memo, task, subtask, dan template task.",
   "provider": "App\\Modules\\TaskManagement\\TaskServiceProvider",
   "version": "1.0.0",
+  "category": "support",
   "requires": [],
   "sample_data": {
     "description": "Membuat memo, task, subtask, dan task template contoh.",

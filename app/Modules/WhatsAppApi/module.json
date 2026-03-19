@@ -4,6 +4,7 @@
   "description": "Integrasi WhatsApp Cloud API (instance, template, inbox, webhook).",
   "provider": "App\\Modules\\WhatsAppApi\\WhatsAppApiServiceProvider",
   "version": "1.0.0",
+  "category": "communication",
   "requires": ["conversations"],
   "sample_data": {
     "description": "Membuat dummy WhatsApp instance, template, flow, blast, dan inbox demo.",

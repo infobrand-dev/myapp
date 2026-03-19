@@ -4,6 +4,7 @@
   "description": "Unified inbox untuk aktivitas percakapan lintas channel.",
   "provider": "App\\Modules\\Conversations\\ConversationsServiceProvider",
   "version": "1.0.0",
+  "category": "communication",
   "requires": [],
   "sample_data": {
     "description": "Membuat satu percakapan internal beserta participant dan pesan.",

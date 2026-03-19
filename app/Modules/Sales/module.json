@@ -4,6 +4,7 @@
   "description": "Sumber utama transaksi penjualan untuk manual entry, POS, online, dan integrasi channel lain dengan snapshot transaksi yang immutable setelah final.",
   "provider": "App\\Modules\\Sales\\SalesServiceProvider",
   "version": "1.0.0",
+  "category": "commerce",
   "requires": ["products", "contacts", "payments"],
   "sample_data": {
     "description": "Membuat satu transaksi penjualan finalized dengan item sample.",

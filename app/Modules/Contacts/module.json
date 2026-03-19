@@ -4,6 +4,7 @@
   "description": "Manajemen data kontak.",
   "provider": "App\\Modules\\Contacts\\ContactsServiceProvider",
   "version": "1.0.0",
+  "category": "support",
   "requires": [],
   "sample_data": {
     "description": "Membuat company dan PIC contoh.",

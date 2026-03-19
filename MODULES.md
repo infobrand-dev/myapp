@@ -1,20 +1,38 @@
-# MODULES.md — Optional Modules for MyApp
+# MODULES.md - Module Overview
 
-## Internal Memo
-- Purpose: task management with subtasks, PIC (user select), due dates, progress aggregation; task templates can be applied into memos.
-- Routes/UI: menu “Internal Memo”; templates share the same form builder as memo tasks; modal edit for task/subtask; progress bars at task and memo level.
-- Data: memo + tasks + subtasks tables (with PIC, due_date, status/percentage).
-- Access: requires authenticated users; visibility via role middleware as configured.
+This file is a quick catalog. The authoritative metadata for each module lives in its own `app/Modules/<Module>/module.json`.
 
-## WhatsAppBro
-- Purpose: WhatsApp bridge with QR login, live chat via Socket.IO.
-- Run bridge: `node app/Modules/WhatsAppBro/node/server.js` (default port 3020).
-- Behavior: show QR card until authenticated, then full chat; unread badges readable; group messages display sender; session keyed to auth user ID.
-- Node artifacts not committed: `app/Modules/WhatsAppBro/node/node_modules`, `app/Modules/WhatsAppBro/node/.wwebjs_auth`.
+## Commerce
+- `products`: product master data, variants, options, units, media, pricing structure.
+- `inventory`: stock balances, movements, opening stock, adjustments, transfers, opname. Requires `products`.
+- `discounts`: discount engine and voucher rules. Requires `products`.
+- `sales`: sales workflow and returns. Requires `products`, `contacts`, `payments`.
+- `payments`: payment records, methods, allocations, void flow. Requires `sales`.
+- `purchases`: draft/finalized purchase flow and goods receiving. Requires `products`, `contacts`, `inventory`, `payments`.
+- `finance`: finance-related services and permissions used by the commerce stack.
+- `point-of-sale`: POS cart, checkout, cash session, receipt flow. Requires `products`, `contacts`, `sales`, `payments`, `discounts`.
 
-## Shortlink
-- Purpose: generate short URLs with UTM, multiple codes, and click tracking.
-- Public route: `/r/{code}` redirects to destination with UTM appended.
-- Admin routes (auth + role Super-admin|Admin): CRUD at `/shortlinks`.
-- Data: shortlinks, shortlink_codes, shortlink_clicks tables (migration in module).
-- UI: Tabler-based index (chart, top codes/referrers, copy buttons) and form for code/UTM toggles.
+## Reporting
+- `reports`: dashboard and module-level reports for sales, payments, inventory, purchases, finance, POS, and products.
+
+## Communication
+- `conversations`: shared inbox domain, message ingestion contracts, activity log, and conversation UI.
+- `whatsapp_api`: WhatsApp Cloud/API-oriented messaging, instances, templates, flows, blast, webhook ingestion. Requires `conversations`.
+- `whatsapp_web`: WhatsApp Web bridge with QR auth, chat sync, and Node bridge runtime. Requires `conversations`.
+- `social_media`: social account integrations and webhook-driven inbox flow. Requires `conversations`.
+- `email_marketing`: campaigns, recipients, attachment templates, unsubscribe flow. Requires `contacts`.
+
+## Automation
+- `chatbot`: bot accounts, playground, knowledge base, and conversation mirroring. Requires `conversations`.
+
+## Support
+- `contacts`: contact directory and merge/import flows.
+- `task_management`: internal memo, task, subtask, and task template management.
+- `shortlink`: short URL management, multi-code support, click tracking, redirect endpoint.
+- `sample_data`: sample/demo data entry points for local testing and demos.
+
+## Working rules
+- Read `module.json` before integrating or refactoring a module.
+- Declare dependencies in `requires`; do not rely on hidden coupling.
+- Keep provider logic, routes, migrations, views, and assets inside the owning module.
+- If a module integrates with another module, keep the integration adapter in the dependent module.

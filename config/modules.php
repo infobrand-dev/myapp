@@ -4,10 +4,10 @@ return [
     'task_management' => [
         'enabled' => true,
     ],
-    'whatsapp_bro' => [
+    'whatsapp_web' => [
         'enabled' => true,
-        'bridge_url' => env('WHATSAPP_BRO_BRIDGE_URL', 'http://localhost:3020'),
-        'webhook_token' => env('WHATSAPP_BRO_WEBHOOK_TOKEN'),
+        'bridge_url' => env('WHATSAPP_WEB_BRIDGE_URL', env('WHATSAPP_BRO_BRIDGE_URL', 'http://localhost:3020')),
+        'webhook_token' => env('WHATSAPP_WEB_WEBHOOK_TOKEN', env('WHATSAPP_BRO_WEBHOOK_TOKEN')),
     ],
     'whatsapp_api' => [
         'enabled' => true,

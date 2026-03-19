@@ -2,7 +2,6 @@
 
 namespace App\Modules\Inventory\Database\Seeders;
 
-use App\Models\User;
 use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Inventory\Models\StockAdjustment;
 use App\Modules\Inventory\Models\StockAdjustmentItem;
@@ -14,6 +13,7 @@ use App\Modules\Inventory\Models\StockTransfer;
 use App\Modules\Inventory\Models\StockTransferItem;
 use App\Modules\Products\Database\Seeders\ProductSampleSeeder;
 use App\Modules\Products\Models\Product;
+use App\Support\SampleDataUserResolver;
 use Illuminate\Database\Seeder;
 
 class InventorySampleSeeder extends Seeder
@@ -22,7 +22,7 @@ class InventorySampleSeeder extends Seeder
     {
         (new ProductSampleSeeder())->run();
 
-        $user = User::query()->where('email', 'superadmin@myapp.test')->first() ?? User::query()->first();
+        $user = SampleDataUserResolver::resolve();
         $userId = optional($user)->id;
         $product = Product::query()->where('sku', 'DEMO-COFFEE-250')->first();
 

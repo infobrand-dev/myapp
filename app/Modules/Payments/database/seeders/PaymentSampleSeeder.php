@@ -2,16 +2,16 @@
 
 namespace App\Modules\Payments\Database\Seeders;
 
-use App\Models\User;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentMethod;
+use App\Support\SampleDataUserResolver;
 use Illuminate\Database\Seeder;
 
 class PaymentSampleSeeder extends Seeder
 {
     public function run(): void
     {
-        $user = User::query()->where('email', 'superadmin@myapp.test')->first() ?? User::query()->first();
+        $user = SampleDataUserResolver::resolve();
         $userId = optional($user)->id;
 
         $method = PaymentMethod::query()->where('code', PaymentMethod::CODE_QRIS)->first()

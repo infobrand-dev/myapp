@@ -67,7 +67,12 @@ class Conversation extends Model
 
     public function latestMessage(): HasOne
     {
-        return $this->hasOne(ConversationMessage::class)->latestOfMany();
+        return $this->hasOne(ConversationMessage::class)->ofMany([
+            'created_at' => 'max',
+            'id' => 'max',
+        ], function ($query) {
+            $query->whereNotNull('created_at');
+        });
     }
 }
 

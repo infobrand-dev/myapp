@@ -2,13 +2,13 @@
 
 namespace App\Modules\WhatsAppApi\Database\Seeders;
 
-use App\Models\User;
 use App\Modules\Conversations\Database\Seeders\ConversationDemoSeeder;
 use App\Modules\WhatsAppApi\Models\WABlastCampaign;
 use App\Modules\WhatsAppApi\Models\WABlastRecipient;
 use App\Modules\WhatsAppApi\Models\WAFlow;
 use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
+use App\Support\SampleDataUserResolver;
 use Illuminate\Database\Seeder;
 
 class WhatsAppApiSampleSeeder extends Seeder
@@ -18,7 +18,7 @@ class WhatsAppApiSampleSeeder extends Seeder
         (new WhatsAppInstanceDummySeeder())->run();
         (new ConversationDemoSeeder())->run();
 
-        $user = User::query()->where('email', 'superadmin@myapp.test')->first() ?? User::query()->first();
+        $user = SampleDataUserResolver::resolve();
         $userId = optional($user)->id;
         $instance = WhatsAppInstance::query()->orderBy('id')->first();
 

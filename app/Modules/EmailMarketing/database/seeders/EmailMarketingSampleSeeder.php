@@ -2,12 +2,12 @@
 
 namespace App\Modules\EmailMarketing\Database\Seeders;
 
-use App\Models\User;
 use App\Modules\Contacts\Database\Seeders\ContactSampleSeeder;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\EmailMarketing\Models\EmailAttachmentTemplate;
 use App\Modules\EmailMarketing\Models\EmailCampaign;
 use App\Modules\EmailMarketing\Models\EmailCampaignRecipient;
+use App\Support\SampleDataUserResolver;
 use Illuminate\Database\Seeder;
 
 class EmailMarketingSampleSeeder extends Seeder
@@ -16,7 +16,7 @@ class EmailMarketingSampleSeeder extends Seeder
     {
         (new ContactSampleSeeder())->run();
 
-        $user = User::query()->where('email', 'superadmin@myapp.test')->first() ?? User::query()->first();
+        $user = SampleDataUserResolver::resolve();
         $userId = optional($user)->id;
         $contact = Contact::query()->where('email', 'procurement@demo-nusantara.test')->first();
 

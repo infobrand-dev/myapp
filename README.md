@@ -1,10 +1,10 @@
 # MyApp
 
-Laravel 11 + Breeze (Blade) + Tabler UI. Core fitur: Dashboard, Profile, Users, Roles. Modul lain bersifat add-on.
+Laravel 11 + Breeze (Blade) + Tabler UI. Core app menyediakan shell dasar seperti installer, auth, dashboard, profile, users, roles, dan module registry. Fitur bisnis utama ditempatkan sebagai modul di `app/Modules`.
 
-## Quick Start (Install dari nol)
+## Quick start
 
-### Opsi A (Disarankan): Web Installer
+### Opsi A: Web installer
 Setelah project dicopy dan dependency terpasang, buka:
 
 ```text
@@ -13,37 +13,23 @@ Setelah project dicopy dan dependency terpasang, buka:
 
 Installer akan:
 1. cek requirement server,
-2. simpan konfigurasi `.env`,
-3. test koneksi database,
-4. jalankan migrate + seed,
-5. buat akun Super-admin,
-6. lock installer otomatis.
+2. menyimpan konfigurasi `.env`,
+3. menguji koneksi database,
+4. menjalankan migrate + seed core,
+5. membuat akun Super-admin pertama dari form instalasi,
+6. menandai aplikasi sebagai installed.
 
-### Opsi B: Manual Command
+### Opsi B: Manual setup
 
 ### 1. Prasyarat
 - PHP `>= 8.2`
 - Composer
-- MySQL / MariaDB
+- MySQL atau MariaDB
 - Node.js + npm
 
-Cek versi yang aktif:
-```bash
-php -v
-composer -V
-node -v
-npm -v
-```
-
-### 2. Clone project dan masuk folder
+### 2. Clone project
 ```bash
 git clone <repo-url> myapp
-cd myapp
-```
-
-Contoh:
-```bash
-git clone https://github.com/infobrand-dev/myapp.git myapp
 cd myapp
 ```
 
@@ -52,17 +38,7 @@ cd myapp
 composer install
 ```
 
-Jika composer memory limit kecil:
-```bash
-php -d memory_limit=-1 composer.phar install
-```
-
-### 4. Siapkan file environment
-```bash
-cp .env.example .env
-```
-
-Untuk Windows PowerShell:
+### 4. Siapkan environment
 ```powershell
 Copy-Item .env.example .env
 ```
@@ -77,40 +53,19 @@ Lalu isi minimal:
 - `DB_USERNAME`
 - `DB_PASSWORD`
 
-Contoh lokal:
-```env
-APP_NAME=MyApp
-APP_URL=http://127.0.0.1:8000
-
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=myapp
-DB_USERNAME=root
-DB_PASSWORD=
-```
-
 ### 5. Generate app key
 ```bash
 php artisan key:generate
 ```
 
-Penjelasan:
-- Command ini mengisi `APP_KEY` di `.env`.
-- Wajib sebelum login/session/enkripsi berjalan normal.
-
-### 6. Migrasi dan seed data
+### 6. Migrasi dan seed
 ```bash
 php artisan migrate --seed
 ```
 
-Penjelasan:
-- `migrate` membuat tabel.
-- `seed` mengisi data awal termasuk role dan user default.
-- Jika hanya migrate tanpa seed:
-```bash
-php artisan migrate
-```
+Catatan:
+- Seed default membuat role dan permission inti.
+- Untuk instalasi baru, akun Super-admin sebaiknya dibuat melalui `/install`, bukan diasumsikan dari seed default lama.
 
 ### 7. Install dependency frontend
 ```bash
@@ -118,125 +73,76 @@ npm install
 ```
 
 ### 8. Build asset
-Untuk development:
+Development build:
 ```bash
 npm run dev
 ```
 
-Penjelasan:
-- Menjalankan Vite watcher (asset update realtime).
-- Gunakan ini saat coding UI.
-
-Untuk production build:
+Watch mode:
 ```bash
-npm run build
+npm run watch
 ```
 
-Penjelasan:
-- Generate asset final ke `public/build`.
-- Gunakan ini untuk deploy production.
+Production build:
+```bash
+npm run production
+```
+
+Catatan:
+- Project ini memakai Laravel Mix, bukan Vite.
 
 ### 9. Jalankan aplikasi
 ```bash
 php artisan serve
 ```
 
-Default URL:
-- `http://127.0.0.1:8000`
-
-Kalau mau host/port custom:
-```bash
-php artisan serve --host=0.0.0.0 --port=8080
-```
-
-### 10. Bersihkan cache (jika ada masalah config/route/view)
-```bash
-php artisan config:clear
-php artisan route:clear
-php artisan view:clear
-```
-
-Reset semua cache sekaligus:
+### 10. Bersihkan cache
 ```bash
 php artisan optimize:clear
 ```
 
-### 11. Akun default
-- Email: `superadmin@myapp.test`
-- Password: `password123!`
+## Installer notes
+- Installer tersedia di `/install`.
+- Installer akan redirect ulang ke dashboard bila aplikasi sudah dianggap installed.
+- Status installed ditentukan dari `APP_KEY`, `storage/app/installed.lock`, `APP_INSTALLED`, dan fallback pengecekan tabel inti untuk kompatibilitas instalasi lama.
 
 ## Queue
-- Default `QUEUE_CONNECTION=sync`.
-- Jika async:
-  1. set `QUEUE_CONNECTION=database` (atau `redis`)
-  2. jika `database`, buat tabel jobs:
-     ```bash
-     php artisan queue:table
-     php artisan migrate
-     ```
-  3. jalankan worker:
-     ```bash
-     php artisan queue:work
-     ```
+- Default dapat berjalan dengan `QUEUE_CONNECTION=sync`.
+- Jika memakai async queue, jalankan worker yang sesuai dengan driver yang dipakai.
 
-Untuk mode background (production), jalankan via Supervisor/PM2/service manager.
+Contoh untuk driver database:
+```bash
+php artisan queue:table
+php artisan migrate
+php artisan queue:work
+```
 
-## Realtime (Soketi)
-- Node 18 portable ada di: `app/Modules/WhatsAppApi/node18/`
-- Jalankan (Windows):
-  ```bat
-  set SOKETI_DEFAULT_APP_ID=local-app
-  set SOKETI_DEFAULT_APP_KEY=local-key
-  set SOKETI_DEFAULT_APP_SECRET=local-secret
-  app/Modules/WhatsAppApi/node18/node-v18.20.4-win-x64/node.exe node_modules/@soketi/soketi/bin/server.js start
-  ```
-- Port default: `6001` (WS), `9601` (metrics)
+## Realtime
+- Realtime memakai driver `pusher` dengan server yang ditujukan untuk Pusher-compatible stack.
+- Untuk local/self-hosted, gunakan `soketi`.
 
-## Webhook (global)
+## WhatsApp Web bridge
+Jalankan bridge:
+
+```bash
+node app/Modules/WhatsAppWeb/node/server.js
+```
+
+Default bridge URL lokal:
+- `http://localhost:3020`
+
+## Webhook examples
 - WhatsApp API: `POST /whatsapp-api/webhook`
 - Social Media: `POST /social-media/webhook`
 
-Catatan:
-- Endpoint ini dipakai provider eksternal (Meta/API pihak ketiga) untuk kirim event masuk.
-- Pastikan `APP_URL` dapat diakses publik jika dipakai di production.
+Pastikan `APP_URL` dan reverse proxy sesuai jika webhook dipakai di environment publik.
 
-## Seeder demo
-```bash
-php artisan db:seed --class=ConversationDemoSeeder
-```
+## Modules
+Ringkasan modul tersedia di `MODULES.md`.
 
-Fungsi:
-- Membuat sample instance WA API + sample conversation untuk testing awal.
-
-## Modul
-
-### Conversations
-- Inbox gabungan (internal/WA API/Social DM), claim/lock, activity log.
-
-### Chatbot
-- Kelola akun AI (`chatbot_accounts`).
-- Env: `OPENAI_API_KEY`, optional `OPENAI_MODEL`.
-
-### WhatsApp API
-- Inbox WA, manajemen instance (Super-admin), webhook Cloud API.
-
-### WhatsApp Bro
-- Bridge WA Web via Socket.IO:
-  ```bash
-  node app/Modules/WhatsAppBro/node/server.js
-  ```
-
-### Social Media
-- Instagram/Facebook DM, webhook Meta, integrasi Conversations.
-
-### Task Management
-- Internal Memo + Task Templates.
-
-### Shortlink
-- CRUD short URL.
-
-### Contacts
-- Manajemen kontak.
-
-### Email Marketing
-- Campaign + attachment templates.
+Kategori saat ini:
+- commerce: `products`, `inventory`, `discounts`, `sales`, `payments`, `purchases`, `finance`, `point-of-sale`
+- reporting: `reports`
+- communication: `conversations`, `whatsapp_api`, `whatsapp_web`, `social_media`, `email_marketing`
+- automation: `chatbot`
+- support: `contacts`, `task_management`, `shortlink`, `sample_data`

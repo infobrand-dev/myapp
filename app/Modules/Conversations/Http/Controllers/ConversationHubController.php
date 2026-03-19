@@ -4,6 +4,9 @@ namespace App\Modules\Conversations\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Modules\Conversations\Contracts\ConversationAccessRegistry;
+use App\Modules\Conversations\Contracts\ConversationChannelManager;
+use App\Modules\Conversations\Contracts\ConversationOutboundDispatcher;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\Conversations\Models\ConversationParticipant;
@@ -129,20 +132,21 @@ class ConversationHubController extends Controller
         $initialMessages = ConversationMessage::query()
             ->with('user:id,name,avatar')
             ->where('conversation_id', $conversation->id)
+            ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->limit(30)
             ->get()
-            ->sortBy('id')
+            ->sortBy([
+                ['created_at', 'asc'],
+                ['id', 'asc'],
+            ])
             ->values();
 
         $conversation->setRelation('messages', $initialMessages);
         $oldestMessageId = $initialMessages->first()->id ?? null;
         $latestMessageId = $initialMessages->last()->id ?? null;
         $hasMoreMessages = $oldestMessageId
-            ? ConversationMessage::query()
-                ->where('conversation_id', $conversation->id)
-                ->where('id', '<', $oldestMessageId)
-                ->exists()
+            ? $this->hasOlderMessages($conversation, $oldestMessageId)
             : false;
 
         $conversationsList = $this->baseQuery($user)
@@ -153,9 +157,14 @@ class ConversationHubController extends Controller
 
         $lockMinutes = (int) config('conversations.lock_minutes', 30);
         $waModuleReady = $this->isWhatsAppApiReady();
-        $waTemplates = ($conversation->channel === 'wa_api' && $this->isWaTemplateReady())
-            ? $this->waTemplateModelClass()::where('status', 'active')->orderBy('name')->get()
-            : collect();
+        $channelManager = app(ConversationChannelManager::class);
+        $waTemplates = $channelManager->templatesFor($conversation);
+        $channelUi = [
+            'show_ai_bot' => $channelManager->hasUiFeature($conversation, 'show_ai_bot'),
+            'show_media_composer' => $channelManager->hasUiFeature($conversation, 'show_media_composer'),
+            'show_template_composer' => $channelManager->hasUiFeature($conversation, 'show_template_composer'),
+            'show_contact_crm' => $channelManager->hasUiFeature($conversation, 'show_contact_crm'),
+        ];
         $relatedContact = $this->findRelatedContact($conversation);
 
         return view('conversations::show', [
@@ -167,6 +176,7 @@ class ConversationHubController extends Controller
             'oldestMessageId' => $oldestMessageId,
             'latestMessageId' => $latestMessageId,
             'hasMoreMessages' => $hasMoreMessages,
+            'channelUi' => $channelUi,
             'relatedContact' => $relatedContact,
         ]);
     }
@@ -231,22 +241,35 @@ class ConversationHubController extends Controller
             ->where('conversation_id', $conversation->id);
 
         if ($beforeId > 0) {
-            $query->where('id', '<', $beforeId);
+            $anchor = ConversationMessage::query()
+                ->where('conversation_id', $conversation->id)
+                ->find($beforeId);
+
+            if ($anchor) {
+                $query->where(function ($subQuery) use ($anchor): void {
+                    $subQuery->where('created_at', '<', $anchor->created_at)
+                        ->orWhere(function ($sameTimeQuery) use ($anchor): void {
+                            $sameTimeQuery->where('created_at', $anchor->created_at)
+                                ->where('id', '<', $anchor->id);
+                        });
+                });
+            }
         }
 
-        $messages = $query->orderByDesc('id')
+        $messages = $query->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->limit($limit)
             ->get();
 
-        $oldestId = $messages->last()?->id;
-        $hasMore = $oldestId
-            ? ConversationMessage::query()
-                ->where('conversation_id', $conversation->id)
-                ->where('id', '<', $oldestId)
-                ->exists()
-            : false;
+        $messages = $messages->sortBy([
+            ['created_at', 'asc'],
+            ['id', 'asc'],
+        ])->values();
 
-        $payload = $messages->sortBy('id')->values()->map(function (ConversationMessage $msg) {
+        $oldestId = $messages->first()?->id;
+        $hasMore = $oldestId ? $this->hasOlderMessages($conversation, $oldestId) : false;
+
+        $payload = $messages->map(function (ConversationMessage $msg) {
             return [
                 'id' => $msg->id,
                 'direction' => $msg->direction,
@@ -282,10 +305,23 @@ class ConversationHubController extends Controller
             ->where('conversation_id', $conversation->id);
 
         if ($afterId > 0) {
-            $query->where('id', '>', $afterId);
+            $anchor = ConversationMessage::query()
+                ->where('conversation_id', $conversation->id)
+                ->find($afterId);
+
+            if ($anchor) {
+                $query->where(function ($subQuery) use ($anchor): void {
+                    $subQuery->where('created_at', '>', $anchor->created_at)
+                        ->orWhere(function ($sameTimeQuery) use ($anchor): void {
+                            $sameTimeQuery->where('created_at', $anchor->created_at)
+                                ->where('id', '>', $anchor->id);
+                        });
+                });
+            }
         }
 
-        $messages = $query->orderBy('id')
+        $messages = $query->orderBy('created_at')
+            ->orderBy('id')
             ->limit($limit)
             ->get();
 
@@ -434,16 +470,15 @@ class ConversationHubController extends Controller
 
         $this->authorizeParticipant($conversation, $user);
 
-        if ($conversation->channel === 'wa_api' && (!$conversation->instance_id || !$this->waInstanceExists((int) $conversation->instance_id))) {
-            return $this->sendErrorResponse($request, 'Instance untuk percakapan WA API tidak ditemukan. Pastikan WA Instance masih aktif.');
+        $preflightError = app(ConversationChannelManager::class)->preflightSendError($conversation);
+        if ($preflightError !== null) {
+            return $this->sendErrorResponse($request, $preflightError);
         }
 
-        $mode = $conversation->channel === 'wa_api'
-            ? $request->input('message_type', 'text')
-            : 'text';
+        $mode = $request->input('message_type', app(ConversationChannelManager::class)->defaultMessageType($conversation));
 
         if ($mode === 'template') {
-            if (!$this->isWaTemplateReady()) {
+            if (!app(ConversationChannelManager::class)->supportsTemplates($conversation)) {
                 return $this->sendErrorResponse($request, 'Template WA belum tersedia. Aktifkan module WhatsApp API terlebih dahulu.');
             }
 
@@ -481,8 +516,9 @@ class ConversationHubController extends Controller
                 'body' => ['nullable', 'string', 'max:1000'],
             ]);
 
-            if ($conversation->channel === 'wa_api' && !$this->isWithinWaCustomerCareWindow($conversation)) {
-                return $this->sendErrorResponse($request, 'Di luar jendela 24 jam. Gunakan template message untuk mengirim pesan.');
+            $mediaError = app(ConversationChannelManager::class)->validateTextSend($conversation);
+            if ($mediaError !== null) {
+                return $this->sendErrorResponse($request, $mediaError);
             }
 
             /** @var UploadedFile $uploaded */
@@ -495,19 +531,18 @@ class ConversationHubController extends Controller
             $path = $uploaded->store('wa_messages/' . now()->format('Y/m'), 'public');
             $publicUrl = $this->publicStorageUrl($path);
 
-            if ($conversation->channel === 'wa_api' && $this->requiresPublicHttpsMedia($conversation) && !$this->isPublicHttpsUrl($publicUrl)) {
+            $mediaValidationError = app(ConversationChannelManager::class)->validateMediaSend($conversation, $publicUrl);
+            if ($mediaValidationError !== null) {
                 Storage::disk('public')->delete($path);
 
-                return $this->sendErrorResponse(
-                    $request,
-                    'Upload file untuk WhatsApp Cloud membutuhkan APP_URL publik HTTPS dan folder public/storage yang bisa diakses dari internet.'
-                );
+                return $this->sendErrorResponse($request, $mediaValidationError);
             }
 
             $filename = $uploaded->getClientOriginalName();
             $caption = trim((string) ($data['body'] ?? ''));
             $bodyText = $caption !== '' ? $caption : $filename;
 
+            $outboundDefaults = app(ConversationChannelManager::class)->outboundPersistenceDefaults($conversation);
             $message = ConversationMessage::create([
                 'conversation_id' => $conversation->id,
                 'user_id' => $user->id,
@@ -520,26 +555,28 @@ class ConversationHubController extends Controller
                     'link' => $publicUrl,
                     'filename' => $filename,
                 ],
-                'status' => $conversation->channel === 'wa_api' ? 'queued' : 'sent',
-                'sent_at' => $conversation->channel === 'wa_api' ? null : now(),
+                'status' => $outboundDefaults['status'],
+                'sent_at' => $outboundDefaults['sent_at'],
             ]);
         } else {
             $data = $request->validate([
                 'body' => ['required', 'string'],
             ]);
 
-            if ($conversation->channel === 'wa_api' && !$this->isWithinWaCustomerCareWindow($conversation)) {
-                return $this->sendErrorResponse($request, 'Di luar jendela 24 jam. Gunakan template message untuk mengirim pesan.');
+            $textError = app(ConversationChannelManager::class)->validateTextSend($conversation);
+            if ($textError !== null) {
+                return $this->sendErrorResponse($request, $textError);
             }
 
+            $outboundDefaults = app(ConversationChannelManager::class)->outboundPersistenceDefaults($conversation);
             $message = ConversationMessage::create([
                 'conversation_id' => $conversation->id,
                 'user_id' => $user->id,
                 'direction' => 'out',
                 'type' => 'text',
                 'body' => $data['body'],
-                'status' => $conversation->channel === 'wa_api' ? 'queued' : 'sent',
-                'sent_at' => $conversation->channel === 'wa_api' ? null : now(),
+                'status' => $outboundDefaults['status'],
+                'sent_at' => $outboundDefaults['sent_at'],
             ]);
         }
 
@@ -549,7 +586,7 @@ class ConversationHubController extends Controller
         ]);
 
         if ($message) {
-            $this->dispatchOutboundJob($conversation->channel, (int) $message->id);
+            $this->dispatchOutboundMessage($message);
             $this->safeBroadcastMessageCreated($message);
         }
 
@@ -618,14 +655,26 @@ class ConversationHubController extends Controller
         ];
     }
 
-    private function isWithinWaCustomerCareWindow(Conversation $conversation): bool
+    private function hasOlderMessages(Conversation $conversation, int $oldestMessageId): bool
     {
-        $lastIncomingAt = $conversation->last_incoming_at;
-        if (!$lastIncomingAt) {
+        $anchor = ConversationMessage::query()
+            ->where('conversation_id', $conversation->id)
+            ->find($oldestMessageId);
+
+        if (!$anchor) {
             return false;
         }
 
-        return $lastIncomingAt->greaterThanOrEqualTo(now()->subHours(24));
+        return ConversationMessage::query()
+            ->where('conversation_id', $conversation->id)
+            ->where(function ($query) use ($anchor): void {
+                $query->where('created_at', '<', $anchor->created_at)
+                    ->orWhere(function ($sameTimeQuery) use ($anchor): void {
+                        $sameTimeQuery->where('created_at', $anchor->created_at)
+                            ->where('id', '<', $anchor->id);
+                    });
+            })
+            ->exists();
     }
 
     private function authorizeParticipant(Conversation $conversation, User $user): void
@@ -637,7 +686,8 @@ class ConversationHubController extends Controller
         $allowed = $conversation->owner_id === $user->id
             || $conversation->participants()
                 ->where('user_id', $user->id)
-                ->exists();
+                ->exists()
+            || app(ConversationAccessRegistry::class)->canParticipate($conversation, $user);
 
         abort_unless($allowed, 403);
     }
@@ -649,7 +699,8 @@ class ConversationHubController extends Controller
         }
 
         $allowed = $conversation->owner_id === $user->id
-            || $conversation->participants()->where('user_id', $user->id)->exists();
+            || $conversation->participants()->where('user_id', $user->id)->exists()
+            || app(ConversationAccessRegistry::class)->canView($conversation, $user);
 
         abort_unless($allowed, 403);
     }
@@ -675,8 +726,9 @@ class ConversationHubController extends Controller
         return $query
             ->when(!$user->hasRole('Super-admin'), function ($query) use ($user) {
                 $query->where(function ($q) use ($user) {
-                    $q->where('owner_id', $user->id)
+                $q->where('owner_id', $user->id)
                         ->orWhereHas('participants', fn ($p) => $p->where('user_id', $user->id));
+                    app(ConversationAccessRegistry::class)->applyVisibilityScope($q, $user);
                 });
             });
     }
@@ -770,12 +822,6 @@ class ConversationHubController extends Controller
             && Schema::hasTable('whatsapp_instance_user');
     }
 
-    private function isWaTemplateReady(): bool
-    {
-        return class_exists($this->waTemplateModelClass())
-            && Schema::hasTable('wa_templates');
-    }
-
     private function isContactsReady(): bool
     {
         return class_exists(Contact::class)
@@ -809,60 +855,9 @@ class ConversationHubController extends Controller
         return \App\Modules\WhatsAppApi\Models\WATemplate::class;
     }
 
-    private function waInstanceExists(int $instanceId): bool
-    {
-        if (!$this->isWhatsAppApiReady()) {
-            return false;
-        }
-
-        return DB::table('whatsapp_instances')->where('id', $instanceId)->exists();
-    }
-
-    private function accessibleWhatsAppInstanceIds(int $userId): array
-    {
-        if (!$this->isWhatsAppApiReady()) {
-            return [];
-        }
-
-        return DB::table('whatsapp_instance_user')
-            ->where('user_id', $userId)
-            ->pluck('instance_id')
-            ->map(fn ($id) => (int) $id)
-            ->all();
-    }
-
-    private function hasInstanceAccess(Conversation $conversation, int $userId): bool
-    {
-        if ($conversation->channel !== 'wa_api' || !$conversation->instance_id) {
-            return false;
-        }
-
-        if (!$this->isWhatsAppApiReady()) {
-            return false;
-        }
-
-        return DB::table('whatsapp_instance_user')
-            ->where('instance_id', (int) $conversation->instance_id)
-            ->where('user_id', $userId)
-            ->exists();
-    }
-
     private function publicStorageUrl(string $path): string
     {
         return url(Storage::disk('public')->url($path));
-    }
-
-    private function requiresPublicHttpsMedia(Conversation $conversation): bool
-    {
-        if ($conversation->channel !== 'wa_api' || !$conversation->instance_id || !$this->isWhatsAppApiReady()) {
-            return false;
-        }
-
-        $provider = DB::table('whatsapp_instances')
-            ->where('id', (int) $conversation->instance_id)
-            ->value('provider');
-
-        return strtolower((string) $provider) === 'cloud';
     }
 
     private function isPublicHttpsUrl(string $url): bool
@@ -893,22 +888,9 @@ class ConversationHubController extends Controller
         return is_dir(public_path('storage'));
     }
 
-    private function dispatchOutboundJob(string $channel, int $messageId): void
+    private function dispatchOutboundMessage(ConversationMessage $message): void
     {
-        if ($channel === 'wa_api') {
-            $waJobClass = \App\Modules\WhatsAppApi\Jobs\SendWhatsAppMessage::class;
-            if (class_exists($waJobClass)) {
-                $waJobClass::dispatch($messageId);
-            }
-            return;
-        }
-
-        if ($channel === 'social_dm') {
-            $socialJobClass = \App\Modules\SocialMedia\Jobs\SendSocialMessage::class;
-            if (class_exists($socialJobClass)) {
-                $socialJobClass::dispatch($messageId);
-            }
-        }
+        app(ConversationOutboundDispatcher::class)->dispatch($message);
     }
 
     private function safeBroadcastMessageCreated(ConversationMessage $message): void

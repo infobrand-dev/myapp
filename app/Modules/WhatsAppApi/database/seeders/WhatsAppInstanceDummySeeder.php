@@ -2,8 +2,8 @@
 
 namespace App\Modules\WhatsAppApi\Database\Seeders;
 
-use App\Models\User;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
+use App\Support\SampleDataUserResolver;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Schema;
 
@@ -11,9 +11,7 @@ class WhatsAppInstanceDummySeeder extends Seeder
 {
     public function run(): void
     {
-        $user = User::query()
-            ->where('email', 'superadmin@myapp.test')
-            ->first() ?? User::query()->first();
+        $user = SampleDataUserResolver::resolve();
 
         $cloud = WhatsAppInstance::firstOrCreate(
             ['name' => 'Dummy WA Cloud - Sales'],

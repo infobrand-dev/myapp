@@ -1,0 +1,19 @@
+{
+  "slug": "whatsapp_web",
+  "name": "WhatsApp Web",
+  "description": "Integrasi WhatsApp Web bridge berbasis QR dan realtime chat.",
+  "provider": "App\\Modules\\WhatsAppWeb\\WhatsAppWebServiceProvider",
+  "version": "1.0.0",
+  "category": "communication",
+  "requires": ["conversations"],
+  "sample_data": {
+    "description": "Membuat konfigurasi bridge WhatsApp Web contoh.",
+    "seeders": [
+      "App\\Modules\\WhatsAppWeb\\Database\\Seeders\\WhatsAppWebSampleSeeder"
+    ]
+  },
+  "navigation": [
+    { "label": "Panel", "route": "whatsappweb.index" },
+    { "label": "Settings", "route": "whatsappweb.settings.edit", "role": "Super-admin" }
+  ]
+}

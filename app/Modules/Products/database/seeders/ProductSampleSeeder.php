@@ -2,12 +2,12 @@
 
 namespace App\Modules\Products\Database\Seeders;
 
-use App\Models\User;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductBrand;
 use App\Modules\Products\Models\ProductCategory;
 use App\Modules\Products\Models\ProductPrice;
 use App\Modules\Products\Models\ProductUnit;
+use App\Support\SampleDataUserResolver;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -15,7 +15,7 @@ class ProductSampleSeeder extends Seeder
 {
     public function run(): void
     {
-        $user = User::query()->where('email', 'superadmin@myapp.test')->first() ?? User::query()->first();
+        $user = SampleDataUserResolver::resolve();
         $userId = optional($user)->id;
 
         $category = ProductCategory::query()->updateOrCreate(

@@ -2,13 +2,20 @@
 
 namespace App\Modules\SocialMedia;
 
+use App\Modules\Conversations\Contracts\ConversationOutboundDispatcher;
+use App\Modules\Conversations\Models\ConversationMessage;
+use App\Modules\SocialMedia\Jobs\SendSocialMessage;
 use Illuminate\Support\ServiceProvider;
 
 class SocialMediaServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // bindings later
+        $this->app->afterResolving(ConversationOutboundDispatcher::class, function (ConversationOutboundDispatcher $dispatcher): void {
+            $dispatcher->register('social_dm', function (ConversationMessage $message): void {
+                SendSocialMessage::dispatch($message->id);
+            });
+        });
     }
 
     public function boot(): void

@@ -2,15 +2,15 @@
 
 namespace App\Modules\SocialMedia\Database\Seeders;
 
-use App\Models\User;
 use App\Modules\SocialMedia\Models\SocialAccount;
+use App\Support\SampleDataUserResolver;
 use Illuminate\Database\Seeder;
 
 class SocialMediaSampleSeeder extends Seeder
 {
     public function run(): void
     {
-        $user = User::query()->where('email', 'superadmin@myapp.test')->first() ?? User::query()->first();
+        $user = SampleDataUserResolver::resolve();
         $userId = optional($user)->id;
 
         SocialAccount::query()->updateOrCreate(

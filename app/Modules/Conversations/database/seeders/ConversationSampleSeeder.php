@@ -2,17 +2,17 @@
 
 namespace App\Modules\Conversations\Database\Seeders;
 
-use App\Models\User;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\Conversations\Models\ConversationParticipant;
+use App\Support\SampleDataUserResolver;
 use Illuminate\Database\Seeder;
 
 class ConversationSampleSeeder extends Seeder
 {
     public function run(): void
     {
-        $user = User::query()->where('email', 'superadmin@myapp.test')->first() ?? User::query()->first();
+        $user = SampleDataUserResolver::resolve();
         $userId = optional($user)->id;
 
         $conversation = Conversation::query()->updateOrCreate(

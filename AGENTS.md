@@ -1,87 +1,54 @@
-# AGENTS.md - Working Guide for MyApp
+# AGENTS.md - Universal Working Rules
 
-## What the app is
-- Laravel app with Breeze (Blade), Vite, Tabler UI, Spatie Permission, MySQL.
-- Core features: Dashboard, Profile (edit + password + avatar), Users & Roles CRUD.
-- Optional/modules for sale: see `MODULES.md` (Internal Memo includes Task Templates; Shortlink; WhatsAppBro).
+## Purpose
+- This file should stay generic.
+- Keep it focused on technical working rules that remain useful across the app.
+- Do not store feature inventory, module lists, route maps, credentials, or product-specific behavior here.
 
-## Core vs module boundaries
-- Core files must stay clean and contain no module-specific logic, routes, views, assets, migrations, service wiring, or hardcoded references to any optional module.
-- The base app must remain usable without optional modules installed or enabled. If a feature is optional, its implementation must live entirely inside its own module folder.
-- Every module must provide a `module.json` manifest as the single source of truth for module metadata such as slug, name, provider, version, dependency requirements, navigation items.
-- When reading or integrating a module, check `module.json` first to understand what the module exposes, what it requires, and how it should be registered.
-- Every module must be standalone by default. A module may depend on another module only when that dependency is explicitly required by the feature design.
-- Any cross-module dependency must be declared explicitly in `module.json` via `requires`; do not rely on hidden runtime coupling or silent fallbacks as a substitute for declaring dependencies.
-- If one module needs another module, the dependent module must still load or inject its own scripts, assets, bootstrapping, and integration code from its own folder instead of placing that code in core files.
-- Do not move module behavior into core just to make integration easier. Prefer module service providers, module routes, module views, module assets, and module-local initialization.
-- When adding new work, treat `app`, `resources`, `routes`, `database`, and other core paths as framework/app-shell territory only unless the change is truly part of the non-optional core product.
+## Source of truth
+- Check `README.md` for setup and runtime commands.
+- Check `MODULES.md` for module catalog and module-specific notes.
+- Check `ARCHITECTURE.md` for app-specific architecture, boundaries, and implementation patterns.
+- When a module is involved, read its `module.json` before changing code.
 
-## Module metadata roadmap
-- `module.json` should gradually support richer metadata beyond technical registration, especially `category`, `industry`, and `module_type`.
-- `category` is intended for functional grouping and filtering in the Modules page, for example: `commerce`, `communication`, `reporting`, `automation`, `support`.
-- `industry` is intended for business-domain relevance, for example: `general`, `retail`, `restaurant`, `pharmacy`, `clinic`, `workshop`.
-- `module_type` is intended to describe the architectural role of the module, for example: `core`, `industry-extension`, `support`, `integration`.
-- Categories must remain metadata only. Do not put runtime logic, dependency rules, service wiring, or authorization rules into a category layer.
-- Industry tags must remain metadata only. Do not use industry tags as a substitute for declaring real module dependencies in `requires`.
-- Long-term module strategy for reusable groups should follow these buckets.
-- `commerce`: reusable business modules such as `products`, `sales`, `payments`, `inventory`, `purchases`, `finance`, `point-of-sale`.
-- `reporting`: modules such as `reports`.
-- `communication`: modules such as `whatsapp_api`, `whatsapp_bro`, `social_media`, `email_marketing`, `conversations`.
-- `automation`: modules such as `chatbot`.
-- `support`: modules such as `contacts`, `task_management`, `sample_data`, `shortlink`.
-- When creating future industry-specific features such as restaurant or pharmacy, prefer new standalone modules that extend the reusable core instead of forcing industry logic into core modules.
-- When adding new modules, keep the source of truth for metadata in `module.json` and update the Modules management UI so filtering can use `category` now and `industry` later.
+## General engineering rules
+- Prefer changes that are small, reversible, and easy to review.
+- Do not hardcode assumptions that belong in configuration, manifests, or database state.
+- Keep documentation aligned with the current codebase; if behavior changes, update the relevant `.md` file in the same work.
+- Prefer extending existing patterns over inventing a parallel structure.
 
-## UI mode roadmap
-- The product may gradually support a user-facing UI mode toggle such as `simple` and `advanced`.
-- This UI mode is intended to change presentation, information density, and interaction depth, not the underlying source of truth or core transaction rules.
-- `simple` mode should focus on speed, minimal fields, reduced noise, and easier onboarding for cashier/staff/general operators.
-- `advanced` mode should expose additional filters, diagnostics, breakdowns, optional fields, audit context, and denser operational controls for experienced users or supervisors.
-- Prefer progressive disclosure inside the same page or module flow instead of maintaining two fully separate implementations when most of the business logic is shared.
-- The toggle should not silently change validation rules, workflow state machines, permission boundaries, accounting meaning, or transaction semantics. If business rules differ, treat that as a product/package rule, not only a UI mode rule.
-- For commercial modules such as `sales`, `payments`, `purchases`, `inventory`, `point-of-sale`, and `reports`, advanced mode is expected to affect UI/UX first, while the transactional core remains the same.
-- A future packaging strategy may reserve `advanced` mode or parts of it for the highest subscription tier or enterprise plan.
-- If advanced mode becomes package-gated, keep the gating explicit and centralized. Do not scatter plan checks randomly across core views and controllers.
-- Any future plan-based gating for advanced mode should be implemented in a way that still keeps optional or enterprise-only behavior modular and does not leak package-specific logic into unrelated core paths.
+## Boundaries
+- Keep framework or app-shell code separate from optional or feature-specific code.
+- Avoid spreading one feature across unrelated layers when it can stay localized.
+- If a feature has its own manifest, config, routes, views, migrations, or assets, keep those concerns close to the owning feature.
+- Shared code should stay generic; feature-specific integration logic should stay near the feature that needs it.
 
-## How to run (generic)
-- Backend deps: `composer install` (PHP >= 8.2).
-- Frontend deps: `npm install`.
-- Build assets: `npm run production` (or `npm run development` / `npm run watch` for local dev).
-- DB setup: configure `.env`, then `php artisan migrate --seed`.
-- Caches: `php artisan config:clear && php artisan route:clear && php artisan view:clear`.
-- WhatsApp bridge: run `node app/Modules/WhatsAppBro/node/server.js` (Socket.IO, default port 3020).
+## Configuration and secrets
+- Never commit secrets, local credentials, `.env`, keys, session artifacts, or generated runtime caches.
+- Do not document fixed default passwords as if they are guaranteed production behavior.
+- Prefer environment variables or persistent settings over hardcoded local URLs or credentials.
 
-## Realtime / broadcasting
-- Realtime features use the Laravel `pusher` broadcast driver and Pusher-compatible clients, but the intended server is self-hosted `soketi` (free), not the paid Pusher SaaS.
-- `pusher/pusher-php-server` on the backend and `pusher-js` / `laravel-echo` on the frontend are used as protocol-compatible libraries so Laravel can talk to a Pusher-compatible websocket server.
-- Prefer `soketi` for local/dev/self-hosted realtime. Do not assume the app should use the hosted Pusher service unless explicitly requested.
-- Default local websocket env pattern: `BROADCAST_DRIVER=pusher`, `MIX_PUSHER_HOST`, `MIX_PUSHER_PORT`, and `MIX_PUSHER_SCHEME` should point to the local/self-hosted websocket server.
-- If realtime is optional for a module, keep its websocket wiring inside the module and avoid leaking channel-specific logic into core.
+## Data and seeders
+- Seeders and demo data should avoid depending on fragile hardcoded identities where possible.
+- If seed data needs an acting user, resolve it using a durable rule rather than a magic email or ID.
+- Keep seeders idempotent when practical.
 
-## Auth & roles
-- Seeded roles: `Super-admin`, `Admin`; seeded super admin user `superadmin@myapp.test` / `password123!`.
-- Spatie middleware aliases: `role`, `permission`, `role_or_permission`.
-- Menu access: Users/Roles only for `Super-admin`; Internal Memo & Task Templates require auth.
+## UI and frontend
+- Reuse shared UI components before adding new duplicates.
+- Keep forms, labels, and select options human-readable.
+- Preserve the existing frontend stack and styling conventions unless the task explicitly changes them.
+- Do not mix unrelated UI patterns in the same flow without a reason.
 
-## UI guidelines (Tabler)
-- Sidebar items: Dashboard, Profile, Internal Memo, Task Templates, WhatsApp Bro, Users, Roles.
-- Avoid centered sidebar text; give each list item its own hover/active background rather than whole sidebar color change.
-- Repeatable UI parts live in `resources/views/shared` (sidebar, cards, etc.).
-- Forms: task cards and company detail cards can sit side-by-side on desktop; keep clear card titles.
-- Selects should show clean labels (no `id)>Name`), styled with `form-select`.
+## Background work and integrations
+- Verify queues, jobs, realtime, and external integrations against actual config before changing behavior.
+- Keep adapter code near the integration that owns it.
+- Separate transport-specific logic from normalized application behavior when possible.
 
-## Task Management (Internal Memo)
-- One memo holds tasks; each task has subtasks, PIC (user select), due date, progress auto-calculated from subtasks; modal edit for task/subtask; `Add Task` / `Add Subtask` use JS clones; templates reuse the same structure.
-- Task Templates: CRUD + index; form identical to memo task form; stored meta can be applied into memo.
+## Documentation hygiene
+- `AGENTS.md` should remain universal.
+- Move app-specific detail to focused docs such as `ARCHITECTURE.md`, `MODULES.md`, or other dedicated notes.
+- If a section starts reading like product documentation, it likely does not belong here.
 
-## WhatsAppBro
-- UI: show QR scan card initially; after authenticated, hide it and show full chat pane.
-- Chat list shows unread badge with readable text; group messages display sender name; live updates via Socket.IO.
-- Session key on client uses authenticated user ID.
-
-## Profile
-- Allows updating name, email, password, and avatar upload (avatar stored on users table).
-
-## Git hygiene
-- Keep out of VCS: `vendor/`, `node_modules/`, `public/build/`, `public/hot`, `.env`, `storage/*.key`, module-local node artifacts `app/Modules/*/node/node_modules` and `app/Modules/*/node/.wwebjs_auth`, IDE/editor files.
+## File hygiene
+- Keep generated dependencies, build output, local runtime state, and temporary artifacts out of version control.
+- Be careful with local caches and machine-specific files.

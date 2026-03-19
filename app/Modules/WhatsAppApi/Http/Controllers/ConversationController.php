@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\UserPresence;
 use App\Services\Presence\UserPresenceService;
-use App\Modules\WhatsAppApi\Models\WhatsAppConversation;
-use App\Modules\WhatsAppApi\Models\WhatsAppConversationParticipant;
+use App\Modules\Conversations\Models\Conversation;
+use App\Modules\Conversations\Models\ConversationParticipant;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -44,7 +44,8 @@ class ConversationController extends Controller
         }
         $instances = $instancesQuery->orderBy('name')->get();
 
-        $conversations = WhatsAppConversation::with(['instance.users:id,name', 'owner'])
+        $conversations = Conversation::with(['instance.users:id,name', 'owner'])
+            ->where('channel', 'wa_api')
             ->when(!$user->hasRole('Super-admin'), function ($query) use ($user) {
                 $query->whereHas('instance.users', fn ($q) => $q->where('users.id', $user->id));
             })
@@ -108,7 +109,7 @@ class ConversationController extends Controller
         return $this->presenceService->userIdsForStatuses($statuses);
     }
 
-    public function claim(Request $request, WhatsAppConversation $conversation): RedirectResponse
+    public function claim(Request $request, Conversation $conversation): RedirectResponse
     {
         $user = $request->user();
         $this->authorizeAccess($conversation, $user);
@@ -128,7 +129,7 @@ class ConversationController extends Controller
             'locked_until' => $now->copy()->addMinutes($lockMinutes),
         ]);
 
-        WhatsAppConversationParticipant::updateOrCreate(
+        ConversationParticipant::updateOrCreate(
             ['conversation_id' => $conversation->id, 'user_id' => $user->id],
             ['role' => 'owner', 'invited_at' => $now, 'invited_by' => $user->id]
         );
@@ -136,7 +137,7 @@ class ConversationController extends Controller
         return back()->with('status', 'Percakapan berhasil diklaim.');
     }
 
-    public function release(Request $request, WhatsAppConversation $conversation): RedirectResponse
+    public function release(Request $request, Conversation $conversation): RedirectResponse
     {
         $user = $request->user();
         $this->authorizeAccess($conversation, $user);
@@ -154,7 +155,7 @@ class ConversationController extends Controller
         return back()->with('status', 'Lock dilepas.');
     }
 
-    public function invite(Request $request, WhatsAppConversation $conversation): RedirectResponse
+    public function invite(Request $request, Conversation $conversation): RedirectResponse
     {
         $user = $request->user();
         $this->authorizeAccess($conversation, $user);
@@ -179,7 +180,7 @@ class ConversationController extends Controller
             }
         }
 
-        WhatsAppConversationParticipant::updateOrCreate(
+        ConversationParticipant::updateOrCreate(
             ['conversation_id' => $conversation->id, 'user_id' => $invitee->id],
             ['role' => $role, 'invited_at' => now(), 'invited_by' => $user->id, 'left_at' => null]
         );
@@ -187,7 +188,7 @@ class ConversationController extends Controller
         return back()->with('status', 'Pengguna diundang ke percakapan.');
     }
 
-    private function authorizeAccess(WhatsAppConversation $conversation, User $user): void
+    private function authorizeAccess(Conversation $conversation, User $user): void
     {
         if ($user->hasRole('Super-admin')) {
             return;

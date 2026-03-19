@@ -4,6 +4,8 @@ namespace App\Modules\WhatsAppApi\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Chatbot\Services\ConversationBotManager;
+use App\Modules\Conversations\Contracts\InboxMessageIngester;
+use App\Modules\Conversations\Data\InboxMessageEnvelope;
 use App\Modules\Conversations\Events\ConversationMessageCreated;
 use App\Modules\Conversations\Jobs\GenerateAiReply;
 use App\Modules\Conversations\Models\Conversation;
@@ -26,7 +28,10 @@ use Illuminate\Http\RedirectResponse;
 
 class WebhookController extends Controller
 {
-    public function __construct(private readonly ConversationAutoAssigner $autoAssigner)
+    public function __construct(
+        private readonly ConversationAutoAssigner $autoAssigner,
+        private readonly InboxMessageIngester $ingester,
+    )
     {
     }
 
@@ -171,61 +176,38 @@ class WebhookController extends Controller
         ]);
 
         $isIncoming = ($data['direction'] ?? 'in') === 'in';
-        $conversation = Conversation::firstOrCreate(
-            [
-                'channel' => 'wa_api',
-                'instance_id' => $instance->id,
-                'contact_external_id' => $data['contact_id'],
-            ],
-            [
-                'contact_name' => $data['contact_name'] ?? null,
-                'status' => 'open',
-                'last_message_at' => now(),
-                'last_incoming_at' => $isIncoming ? now() : null,
-                'last_outgoing_at' => $isIncoming ? null : now(),
-                'unread_count' => 0,
-            ]
-        );
+        $result = $this->ingester->ingest(new InboxMessageEnvelope(
+            channel: 'wa_api',
+            instanceId: (int) $instance->id,
+            conversationExternalId: null,
+            contactExternalId: $data['contact_id'],
+            contactName: $data['contact_name'] ?? null,
+            direction: $data['direction'] ?? 'in',
+            type: 'text',
+            body: $data['message'],
+            externalMessageId: $data['external_message_id'] ?? null,
+            payload: $request?->all() ?? $payload,
+            messageStatus: $isIncoming ? 'delivered' : 'sent',
+            ingestionMode: InboxMessageEnvelope::MODE_REALTIME,
+            incrementUnread: $isIncoming,
+            writeActivityLog: false,
+            broadcast: false,
+        ));
+        $conversation = $result->conversation;
+        $msg = $result->message;
 
-        if ($conversation->wasRecentlyCreated) {
+        if ($result->deduplicated) {
+            $this->markWebhookEventProcessed($event);
+            return [
+                'status_code' => Response::HTTP_OK,
+                'payload' => ['stored' => true, 'deduplicated' => true],
+            ];
+        }
+
+        if ($result->conversationWasCreated) {
             $this->autoAssigner->assignIfEligible($conversation, $instance);
             $conversation->refresh();
         }
-
-        if (!empty($data['external_message_id'])) {
-            $alreadyStored = ConversationMessage::where('conversation_id', $conversation->id)
-                ->where('external_message_id', $data['external_message_id'])
-                ->exists();
-            if ($alreadyStored) {
-                $this->markWebhookEventProcessed($event);
-                return [
-                    'status_code' => Response::HTTP_OK,
-                    'payload' => ['stored' => true, 'deduplicated' => true],
-                ];
-            }
-        }
-
-        $conversationUpdates = [
-            'contact_name' => $data['contact_name'] ?? $conversation->contact_name,
-            'last_message_at' => now(),
-        ];
-        if ($isIncoming) {
-            $conversationUpdates['last_incoming_at'] = now();
-            $conversationUpdates['unread_count'] = ($conversation->unread_count ?? 0) + 1;
-        } else {
-            $conversationUpdates['last_outgoing_at'] = now();
-        }
-        $conversation->update($conversationUpdates);
-
-        $msg = ConversationMessage::create([
-            'conversation_id' => $conversation->id,
-            'direction' => $data['direction'] ?? 'in',
-            'type' => 'text',
-            'body' => $data['message'],
-            'status' => $isIncoming ? 'delivered' : 'sent',
-            'external_message_id' => $data['external_message_id'] ?? null,
-            'payload' => $request->all(),
-        ]);
 
         $chatbot = $this->chatbotIntegration($instance);
         $shouldAutoReply = $chatbot['auto_reply']
@@ -456,55 +438,38 @@ class WebhookController extends Controller
 
             $waMessageId = (string) Arr::get($item, 'id', '');
 
-            $conversation = Conversation::firstOrCreate(
-                [
-                    'channel' => 'wa_api',
-                    'instance_id' => $instance->id,
-                    'contact_external_id' => $from,
-                ],
-                [
-                    'contact_name' => Arr::get($contacts->get($from), 'profile.name'),
-                    'status' => 'open',
-                    'last_message_at' => now(),
-                    'last_incoming_at' => now(),
-                    'unread_count' => 0,
-                ]
-            );
+            [$type, $body, $mediaUrl, $mediaMime] = $this->extractIncomingMessageData((array) $item);
+            $result = $this->ingester->ingest(new InboxMessageEnvelope(
+                channel: 'wa_api',
+                instanceId: (int) $instance->id,
+                conversationExternalId: null,
+                contactExternalId: $from,
+                contactName: Arr::get($contacts->get($from), 'profile.name'),
+                direction: 'in',
+                type: $type,
+                body: $body,
+                externalMessageId: $waMessageId !== '' ? $waMessageId : null,
+                payload: $item,
+                messageStatus: 'delivered',
+                mediaUrl: $mediaUrl,
+                mediaMime: $mediaMime,
+                occurredAt: $this->parseTimestamp(Arr::get($item, 'timestamp')),
+                ingestionMode: InboxMessageEnvelope::MODE_REALTIME,
+                incrementUnread: true,
+                writeActivityLog: false,
+                broadcast: false,
+            ));
+            $conversation = $result->conversation;
+            $message = $result->message;
 
-            if ($conversation->wasRecentlyCreated) {
+            if ($result->deduplicated) {
+                continue;
+            }
+
+            if ($result->conversationWasCreated) {
                 $this->autoAssigner->assignIfEligible($conversation, $instance);
                 $conversation->refresh();
             }
-
-            if ($waMessageId !== '') {
-                $exists = ConversationMessage::where('conversation_id', $conversation->id)
-                    ->where('external_message_id', $waMessageId)
-                    ->exists();
-                if ($exists) {
-                    continue;
-                }
-            }
-
-            [$type, $body, $mediaUrl, $mediaMime] = $this->extractIncomingMessageData((array) $item);
-
-            $message = ConversationMessage::create([
-                'conversation_id' => $conversation->id,
-                'direction' => 'in',
-                'type' => $type,
-                'body' => $body,
-                'media_url' => $mediaUrl,
-                'media_mime' => $mediaMime,
-                'status' => 'delivered',
-                'external_message_id' => $waMessageId !== '' ? $waMessageId : null,
-                'payload' => $item,
-            ]);
-
-            $conversation->update([
-                'contact_name' => Arr::get($contacts->get($from), 'profile.name', $conversation->contact_name),
-                'last_message_at' => now(),
-                'last_incoming_at' => now(),
-                'unread_count' => ($conversation->unread_count ?? 0) + 1,
-            ]);
 
             $chatbot = $this->chatbotIntegration($instance);
             if ($chatbot['auto_reply'] && $this->shouldAutoReply($conversation, $chatbot['chatbot_account_id'], (string) ($message->body ?? ''), (array) $item)) {

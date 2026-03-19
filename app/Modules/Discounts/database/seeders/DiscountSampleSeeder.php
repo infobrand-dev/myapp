@@ -2,7 +2,6 @@
 
 namespace App\Modules\Discounts\Database\Seeders;
 
-use App\Models\User;
 use App\Modules\Discounts\Models\Discount;
 use App\Modules\Discounts\Models\DiscountCondition;
 use App\Modules\Discounts\Models\DiscountTarget;
@@ -11,6 +10,7 @@ use App\Modules\Discounts\Models\DiscountUsageLine;
 use App\Modules\Discounts\Models\DiscountVoucher;
 use App\Modules\Products\Database\Seeders\ProductSampleSeeder;
 use App\Modules\Products\Models\Product;
+use App\Support\SampleDataUserResolver;
 use Illuminate\Database\Seeder;
 
 class DiscountSampleSeeder extends Seeder
@@ -19,7 +19,7 @@ class DiscountSampleSeeder extends Seeder
     {
         (new ProductSampleSeeder())->run();
 
-        $user = User::query()->where('email', 'superadmin@myapp.test')->first() ?? User::query()->first();
+        $user = SampleDataUserResolver::resolve();
         $userId = optional($user)->id;
         $product = Product::query()->where('sku', 'DEMO-COFFEE-250')->first();
         $productId = optional($product)->id;

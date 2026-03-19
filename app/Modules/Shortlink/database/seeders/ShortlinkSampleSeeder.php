@@ -2,17 +2,17 @@
 
 namespace App\Modules\Shortlink\Database\Seeders;
 
-use App\Models\User;
 use App\Modules\Shortlink\Models\Shortlink;
 use App\Modules\Shortlink\Models\ShortlinkClick;
 use App\Modules\Shortlink\Models\ShortlinkCode;
+use App\Support\SampleDataUserResolver;
 use Illuminate\Database\Seeder;
 
 class ShortlinkSampleSeeder extends Seeder
 {
     public function run(): void
     {
-        $user = User::query()->where('email', 'superadmin@myapp.test')->first() ?? User::query()->first();
+        $user = SampleDataUserResolver::resolve();
         $userId = optional($user)->id;
 
         $shortlink = Shortlink::query()->updateOrCreate(

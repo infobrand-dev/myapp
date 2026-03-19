@@ -2,8 +2,16 @@
 
 namespace App\Modules\Conversations;
 
+use App\Modules\Conversations\Contracts\ConversationAccessRegistry;
+use App\Modules\Conversations\Contracts\ConversationChannelManager;
+use App\Modules\Conversations\Contracts\ConversationOutboundDispatcher;
+use App\Modules\Conversations\Contracts\InboxMessageIngester;
 use App\Modules\Conversations\Console\Commands\ReleaseExpiredLocks;
 use App\Modules\Conversations\Models\Conversation;
+use App\Modules\Conversations\Services\ConversationInboxIngester;
+use App\Modules\Conversations\Services\ConversationAccessManager;
+use App\Modules\Conversations\Services\ConversationChannelRegistry;
+use App\Modules\Conversations\Services\ConversationOutboundRegistry;
 use App\Support\HookManager;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Broadcast;
@@ -16,7 +24,10 @@ class ConversationsServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // future bindings
+        $this->app->singleton(ConversationAccessRegistry::class, ConversationAccessManager::class);
+        $this->app->singleton(ConversationChannelManager::class, ConversationChannelRegistry::class);
+        $this->app->singleton(InboxMessageIngester::class, ConversationInboxIngester::class);
+        $this->app->singleton(ConversationOutboundDispatcher::class, ConversationOutboundRegistry::class);
     }
 
     public function boot(): void
@@ -59,18 +70,7 @@ class ConversationsServiceProvider extends ServiceProvider
                 return true;
             }
 
-            if ($conversation->channel === 'wa_api'
-                && $conversation->instance_id
-                && class_exists(\App\Modules\WhatsAppApi\Models\WhatsAppInstance::class)
-                && Schema::hasTable('whatsapp_instances')
-                && Schema::hasTable('whatsapp_instance_user')) {
-                return DB::table('whatsapp_instance_user')
-                    ->where('instance_id', (int) $conversation->instance_id)
-                    ->where('user_id', (int) $user->id)
-                    ->exists();
-            }
-
-            return false;
+            return $this->app->make(ConversationAccessRegistry::class)->canView($conversation, $user);
         });
     }
 
@@ -145,20 +145,7 @@ class ConversationsServiceProvider extends ServiceProvider
             $query->where(function ($builder) use ($authUser): void {
                 $builder->where('owner_id', $authUser->id)
                     ->orWhereHas('participants', fn ($participants) => $participants->where('user_id', $authUser->id));
-
-                if (Schema::hasTable('whatsapp_instances') && Schema::hasTable('whatsapp_instance_user')) {
-                    $instanceIds = DB::table('whatsapp_instance_user')
-                        ->where('user_id', $authUser->id)
-                        ->pluck('instance_id')
-                        ->all();
-
-                    if (!empty($instanceIds)) {
-                        $builder->orWhere(function ($waQuery) use ($instanceIds): void {
-                            $waQuery->where('channel', 'wa_api')
-                                ->whereIn('instance_id', $instanceIds);
-                        });
-                    }
-                }
+                $this->app->make(ConversationAccessRegistry::class)->applyVisibilityScope($builder, $authUser);
             });
         }
 

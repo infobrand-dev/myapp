@@ -2,19 +2,19 @@
 
 namespace App\Modules\TaskManagement\Database\Seeders;
 
-use App\Models\User;
 use App\Modules\TaskManagement\Models\Memo;
 use App\Modules\TaskManagement\Models\Subtask;
 use App\Modules\TaskManagement\Models\Task;
 use App\Modules\TaskManagement\Models\TaskTemplate;
 use App\Modules\TaskManagement\Models\TaskTemplateItem;
+use App\Support\SampleDataUserResolver;
 use Illuminate\Database\Seeder;
 
 class TaskManagementSampleSeeder extends Seeder
 {
     public function run(): void
     {
-        $user = User::query()->where('email', 'superadmin@myapp.test')->first() ?? User::query()->first();
+        $user = SampleDataUserResolver::resolve();
         $userId = optional($user)->id;
         $userName = optional($user)->name;
 

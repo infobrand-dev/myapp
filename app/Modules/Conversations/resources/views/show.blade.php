@@ -3,7 +3,6 @@
 @section('content')
 @php
     $conversationMeta = is_array($conversation->metadata) ? $conversation->metadata : [];
-    $isWhatsAppConversation = strtolower((string) ($conversation->channel ?? '')) === 'wa_api';
     $botPaused = (bool) ($conversationMeta['auto_reply_paused'] ?? false);
     $needsHuman = (bool) ($conversationMeta['needs_human'] ?? false);
     $handoffAt = $conversationMeta['handoff_at'] ?? null;
@@ -790,13 +789,13 @@
                     @php
                         $channel = strtolower($c->channel ?? 'internal');
                         $channelIcon = match($channel) {
-                            'wa_api', 'wa_bro', 'whatsapp' => 'ti ti-brand-whatsapp',
+                            'wa_api', 'wa_web', 'wa_bro', 'whatsapp' => 'ti ti-brand-whatsapp',
                             'social_dm', 'social' => 'ti ti-brand-messenger',
                             'internal' => 'ti ti-user',
                             default => 'ti ti-message',
                         };
                         $channelAccent = match($channel) {
-                            'wa_api', 'wa_bro', 'whatsapp' => 'channel-whatsapp',
+                            'wa_api', 'wa_web', 'wa_bro', 'whatsapp' => 'channel-whatsapp',
                             'social_dm', 'social' => 'channel-social',
                             'internal' => 'channel-internal',
                             default => 'channel-default',
@@ -995,7 +994,7 @@
                 <form method="POST" action="{{ route('conversations.send', $conversation) }}" class="mb-3" id="send-form">
                     @csrf
                     <div class="composer-shell d-flex align-items-center gap-2">
-                        @if($conversation->channel === 'wa_api')
+                        @if($channelUi['show_media_composer'])
                             <div class="dropdown">
                                 <button class="btn btn-outline-secondary composer-plus-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" {{ $canReply ? '' : 'disabled' }}>
                                     <i class="ti ti-plus" aria-hidden="true"></i>
@@ -1018,7 +1017,7 @@
                     </div>
                     <div id="send-feedback" class="small mt-2 text-danger d-none"></div>
                 </form>
-                @if($conversation->channel === 'wa_api')
+                @if($channelUi['show_media_composer'])
                     <form method="POST" action="{{ route('conversations.send', $conversation) }}" class="mb-3 d-none" id="media-form" enctype="multipart/form-data">
                         @csrf
                         <input type="hidden" name="message_type" value="media">
@@ -1043,7 +1042,7 @@
                         </div>
                     </form>
                 @endif
-                @if($conversation->channel === 'wa_api' && $waTemplates->isNotEmpty())
+                @if($channelUi['show_template_composer'] && $waTemplates->isNotEmpty())
                     <div class="section-divider">
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <div class="fw-bold">Kirim Template WA</div>
@@ -1090,7 +1089,7 @@
             </div>
             <div class="section-body detail-list pt-0">
                 <div class="detail-row"><span class="detail-key">Kontak</span><span class="detail-value">{{ $conversation->contact_name ?? $conversation->contact_external_id ?? 'Internal' }}</span></div>
-                @if($conversation->channel === 'wa_api' && !empty($conversation->contact_external_id))
+                @if($channelUi['show_contact_crm'] && !empty($conversation->contact_external_id))
                     <div class="detail-row">
                         <span class="detail-key">Contact CRM</span>
                         <span class="detail-value">
@@ -1153,7 +1152,7 @@
                 @endif
                 <div class="detail-row"><span class="detail-key">Owner</span><span class="detail-value">{{ $conversation->owner->name ?? 'Unassigned' }}</span></div>
                 <div class="detail-row"><span class="detail-key">Status</span><span class="detail-value">{{ ucfirst($conversation->status) }}</span></div>
-                @if($isWhatsAppConversation)
+                @if($channelUi['show_ai_bot'])
                     <div class="detail-row">
                         <span class="detail-key">AI Bot</span>
                         <span class="detail-value">

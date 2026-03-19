@@ -2,19 +2,19 @@
 
 namespace App\Modules\Chatbot\Database\Seeders;
 
-use App\Models\User;
 use App\Modules\Chatbot\Models\ChatbotAccount;
 use App\Modules\Chatbot\Models\ChatbotKnowledgeChunk;
 use App\Modules\Chatbot\Models\ChatbotKnowledgeDocument;
 use App\Modules\Chatbot\Models\ChatbotMessage;
 use App\Modules\Chatbot\Models\ChatbotSession;
+use App\Support\SampleDataUserResolver;
 use Illuminate\Database\Seeder;
 
 class ChatbotSampleSeeder extends Seeder
 {
     public function run(): void
     {
-        $user = User::query()->where('email', 'superadmin@myapp.test')->first() ?? User::query()->first();
+        $user = SampleDataUserResolver::resolve();
 
         if (!$user) {
             return;

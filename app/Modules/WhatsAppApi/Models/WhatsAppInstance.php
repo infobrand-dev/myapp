@@ -3,6 +3,7 @@
 namespace App\Modules\WhatsAppApi\Models;
 
 use App\Models\User;
+use App\Modules\Conversations\Models\Conversation;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -50,7 +51,8 @@ class WhatsAppInstance extends Model
 
     public function conversations(): HasMany
     {
-        return $this->hasMany(WhatsAppConversation::class, 'instance_id');
+        return $this->hasMany(Conversation::class, 'instance_id')
+            ->where('channel', 'wa_api');
     }
 
     public function createdBy(): BelongsTo

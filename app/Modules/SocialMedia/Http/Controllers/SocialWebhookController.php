@@ -3,8 +3,9 @@
 namespace App\Modules\SocialMedia\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Conversations\Contracts\InboxMessageIngester;
+use App\Modules\Conversations\Data\InboxMessageEnvelope;
 use App\Modules\Conversations\Models\Conversation;
-use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\Chatbot\Services\ConversationBotManager;
 use App\Modules\SocialMedia\Models\SocialAccount;
 use App\Modules\SocialMedia\Models\SocialAccountChatbotIntegration;
@@ -16,6 +17,10 @@ use Symfony\Component\HttpFoundation\Response;
 
 class SocialWebhookController extends Controller
 {
+    public function __construct(private readonly InboxMessageIngester $ingester)
+    {
+    }
+
     public function inbound(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -40,50 +45,30 @@ class SocialWebhookController extends Controller
             return response()->json(['message' => 'Invalid token/account'], Response::HTTP_UNAUTHORIZED);
         }
 
-        $conversation = Conversation::firstOrCreate(
-            [
-                'channel' => 'social_dm',
-                'instance_id' => $account->id,
-                'contact_external_id' => $data['contact_id'],
-            ],
-            [
-                'contact_name' => $data['contact_name'] ?? null,
-                'status' => 'open',
-                'last_message_at' => now(),
-                'last_incoming_at' => now(),
-                'unread_count' => 1,
-                'metadata' => ['platform' => $data['platform']],
-            ]
-        );
+        $result = $this->ingester->ingest(new InboxMessageEnvelope(
+            channel: 'social_dm',
+            instanceId: (int) $account->id,
+            conversationExternalId: null,
+            contactExternalId: $data['contact_id'],
+            contactName: $data['contact_name'] ?? null,
+            direction: $data['direction'] ?? 'in',
+            type: 'text',
+            body: $data['message'],
+            externalMessageId: $data['external_message_id'] ?? null,
+            payload: $request->all(),
+            conversationMetadata: ['platform' => $data['platform']],
+            messageStatus: (($data['direction'] ?? 'in') === 'out') ? 'sent' : 'delivered',
+            ingestionMode: InboxMessageEnvelope::MODE_REALTIME,
+            incrementUnread: ($data['direction'] ?? 'in') !== 'out',
+            writeActivityLog: false,
+            broadcast: false,
+        ));
+        $conversation = $result->conversation;
+        $message = $result->message;
 
-        if (!empty($data['external_message_id'])) {
-            $alreadyStored = ConversationMessage::query()
-                ->where('conversation_id', $conversation->id)
-                ->where('external_message_id', $data['external_message_id'])
-                ->exists();
-
-            if ($alreadyStored) {
-                return response()->json(['stored' => true, 'deduplicated' => true]);
-            }
+        if ($result->deduplicated) {
+            return response()->json(['stored' => true, 'deduplicated' => true]);
         }
-
-        $conversation->update([
-            'contact_name' => $data['contact_name'] ?? $conversation->contact_name,
-            'last_message_at' => now(),
-            'last_incoming_at' => now(),
-            'unread_count' => ($conversation->unread_count ?? 0) + 1,
-            'metadata' => array_merge($conversation->metadata ?? [], ['platform' => $data['platform']]),
-        ]);
-
-        $message = ConversationMessage::create([
-            'conversation_id' => $conversation->id,
-            'direction' => $data['direction'] ?? 'in',
-            'type' => 'text',
-            'body' => $data['message'],
-            'status' => 'delivered',
-            'external_message_id' => $data['external_message_id'] ?? null,
-            'payload' => $request->all(),
-        ]);
 
         $chatbot = $this->chatbotIntegration($account);
         $shouldAutoReply = $chatbot['auto_reply']
@@ -93,7 +78,7 @@ class SocialWebhookController extends Controller
             GenerateAiReply::dispatch($conversation->id, $message->id, $chatbot['chatbot_account_id']);
         }
 
-        return response()->json(['stored' => true]);
+        return response()->json(['stored' => true, 'deduplicated' => $result->deduplicated]);
     }
 
     // Meta challenge verify

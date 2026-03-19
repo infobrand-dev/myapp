@@ -3,6 +3,7 @@
 namespace App\Modules\PointOfSale\Services;
 
 use App\Models\User;
+use App\Modules\PointOfSale\Models\PosCashSession;
 use App\Modules\PointOfSale\Models\PosCart;
 use App\Modules\PointOfSale\Models\PosCartItem;
 use App\Modules\Products\Models\Product;
@@ -62,6 +63,8 @@ class PosCartService
                 'uuid' => (string) Str::uuid(),
                 'status' => PosCart::STATUS_ACTIVE,
                 'cashier_user_id' => $user->id,
+                'pos_cash_session_id' => optional($this->activeSession($user))->id,
+                'outlet_id' => optional($this->activeSession($user))->outlet_id,
                 'customer_label' => 'Walk-in Customer',
                 'currency_code' => 'IDR',
             ])->load(['items', 'contact']);
@@ -242,6 +245,8 @@ class PosCartService
                 'uuid' => (string) Str::uuid(),
                 'status' => PosCart::STATUS_ACTIVE,
                 'cashier_user_id' => $user->id,
+                'pos_cash_session_id' => optional($this->activeSession($user))->id,
+                'outlet_id' => optional($this->activeSession($user))->outlet_id,
                 'customer_label' => 'Walk-in Customer',
                 'currency_code' => $cart->currency_code,
             ]);
@@ -444,5 +449,14 @@ class PosCartService
     private function lineTotal(float $qty, float $unitPrice, float $discountTotal, float $taxTotal): float
     {
         return round(($qty * $unitPrice) - $discountTotal + $taxTotal, 2);
+    }
+
+    private function activeSession(User $user): ?PosCashSession
+    {
+        return PosCashSession::query()
+            ->where('cashier_user_id', $user->id)
+            ->where('status', PosCashSession::STATUS_ACTIVE)
+            ->latest('opened_at')
+            ->first();
     }
 }

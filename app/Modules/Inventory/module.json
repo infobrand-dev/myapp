@@ -17,6 +17,7 @@
     { "label": "Stock Movements", "route": "inventory.movements.index" },
     { "label": "Opening Stock", "route": "inventory.openings.index" },
     { "label": "Stock Adjustment", "route": "inventory.adjustments.index" },
+    { "label": "Stock Opname", "route": "inventory.opnames.index" },
     { "label": "Stock Transfer", "route": "inventory.transfers.index" },
     { "label": "Low Stock Report", "route": "inventory.reports.low-stock", "badge": "inventory-low-stock" }
   ]

@@ -12,6 +12,7 @@ class PurchaseRepository
         return Purchase::query()
             ->with('supplier')
             ->withCount('items')
+            ->when(($filters['scope'] ?? 'own') !== 'all', fn ($query) => $query->where('created_by', $filters['user_id'] ?? 0))
             ->when(!empty($filters['search']), function ($query) use ($filters) {
                 $search = trim((string) $filters['search']);
                 $query->where(function ($inner) use ($search) {
@@ -33,7 +34,7 @@ class PurchaseRepository
 
     public function findForDetail(Purchase $purchase): Purchase
     {
-        return Purchase::query()
+        $query = Purchase::query()
             ->with([
                 'supplier.company',
                 'items',
@@ -46,8 +47,9 @@ class PurchaseRepository
                 'confirmer',
                 'voider',
                 'canceller',
-            ])
-            ->findOrFail($purchase->id);
+            ]);
+
+        return $query->findOrFail($purchase->id);
     }
 
     public function findForEdit(Purchase $purchase): Purchase

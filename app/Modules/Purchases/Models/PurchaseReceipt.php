@@ -16,6 +16,7 @@ class PurchaseReceipt extends Model
         'purchase_id',
         'receipt_number',
         'inventory_location_id',
+        'fingerprint',
         'status',
         'receipt_date',
         'notes',

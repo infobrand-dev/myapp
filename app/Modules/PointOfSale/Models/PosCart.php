@@ -20,6 +20,7 @@ class PosCart extends Model
         'uuid',
         'status',
         'cashier_user_id',
+        'pos_cash_session_id',
         'outlet_id',
         'register_id',
         'contact_id',
@@ -64,5 +65,10 @@ class PosCart extends Model
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class, 'contact_id');
+    }
+
+    public function cashSession(): BelongsTo
+    {
+        return $this->belongsTo(PosCashSession::class, 'pos_cash_session_id');
     }
 }

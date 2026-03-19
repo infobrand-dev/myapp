@@ -4,6 +4,7 @@ namespace App\Modules\PointOfSale;
 
 use App\Modules\PointOfSale\Actions\ResolveBarcodeToSellableAction;
 use App\Modules\PointOfSale\Services\PosCartService;
+use App\Modules\PointOfSale\Services\PosCashSessionService;
 use App\Modules\PointOfSale\Services\PosCheckoutOrchestrator;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
@@ -18,6 +19,11 @@ class PointOfSaleServiceProvider extends ServiceProvider
         'pos.hold-cart',
         'pos.resume-cart',
         'pos.checkout',
+        'pos.open-shift',
+        'pos.close-shift',
+        'pos.view-shift',
+        'pos.record-cash-movement',
+        'pos.manage-all-shifts',
         'pos.print-receipt',
         'pos.reprint-receipt',
         'pos.override-price',
@@ -31,6 +37,11 @@ class PointOfSaleServiceProvider extends ServiceProvider
             'pos.hold-cart',
             'pos.resume-cart',
             'pos.checkout',
+            'pos.open-shift',
+            'pos.close-shift',
+            'pos.view-shift',
+            'pos.record-cash-movement',
+            'pos.manage-all-shifts',
             'pos.print-receipt',
         ],
     ];
@@ -39,6 +50,7 @@ class PointOfSaleServiceProvider extends ServiceProvider
     {
         $this->app->singleton(ResolveBarcodeToSellableAction::class);
         $this->app->singleton(PosCartService::class);
+        $this->app->singleton(PosCashSessionService::class);
         $this->app->singleton(PosCheckoutOrchestrator::class);
     }
 

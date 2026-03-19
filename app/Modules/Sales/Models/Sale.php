@@ -5,6 +5,7 @@ namespace App\Modules\Sales\Models;
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Payments\Models\PaymentAllocation;
+use App\Modules\PointOfSale\Models\PosCashSession;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -41,6 +42,8 @@ class Sale extends Model
         'status',
         'payment_status',
         'source',
+        'outlet_id',
+        'pos_cash_session_id',
         'transaction_date',
         'finalized_at',
         'voided_at',
@@ -92,6 +95,11 @@ class Sale extends Model
     public function saleReturns(): HasMany
     {
         return $this->hasMany(SaleReturn::class)->latest('return_date');
+    }
+
+    public function cashSession(): BelongsTo
+    {
+        return $this->belongsTo(PosCashSession::class, 'pos_cash_session_id');
     }
 
     public function statusHistories(): HasMany

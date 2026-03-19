@@ -7,6 +7,7 @@ use App\Modules\Payments\Actions\CreatePaymentAction;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\PointOfSale\Models\PosCart;
+use App\Modules\PointOfSale\Models\PosCashSession;
 use App\Modules\Sales\Actions\CreateDraftSaleAction;
 use App\Modules\Sales\Actions\FinalizeSaleAction;
 use App\Modules\Sales\Actions\UpdateDraftSaleAction;
@@ -56,6 +57,8 @@ class PosCheckoutOrchestrator
             ]);
         }
 
+        $cashSession = $this->resolveActiveShift($user, $cart);
+
         $paymentTotal = round(collect($payload['payments'])->sum(function ($payment) {
             return (float) ($payment['amount'] ?? 0);
         }), 2);
@@ -66,7 +69,7 @@ class PosCheckoutOrchestrator
             ]);
         }
 
-        $salePayload = $this->buildSalePayload($cart, $payload);
+        $salePayload = $this->buildSalePayload($cart, $payload, $cashSession);
         $sale = $this->createOrUpdateDraftSale($salePayload, $user);
 
         if ($sale->isDraft()) {
@@ -76,7 +79,7 @@ class PosCheckoutOrchestrator
             ], $user);
         }
 
-        $payments = $this->createPayments($sale, $payload, $user);
+        $payments = $this->createPayments($sale, $payload, $user, $cashSession);
         $sale = $sale->fresh(['items', 'paymentAllocations.payment.method']);
 
         $cashReceived = (float) ($payload['cash_received_amount'] ?? 0);
@@ -95,6 +98,7 @@ class PosCheckoutOrchestrator
                 'sale_id' => $sale->id,
                 'sale_number' => $sale->sale_number,
                 'change_amount' => $changeAmount,
+                'pos_cash_session_id' => $cashSession->id,
             ]),
         ]);
 
@@ -124,7 +128,7 @@ class PosCheckoutOrchestrator
         return $this->updateDraftSale->execute($existing, $payload, $user);
     }
 
-    private function createPayments(Sale $sale, array $payload, User $user): array
+    private function createPayments(Sale $sale, array $payload, User $user, PosCashSession $cashSession): array
     {
         $payments = [];
 
@@ -153,12 +157,15 @@ class PosCheckoutOrchestrator
                 'channel' => 'pos',
                 'reference_number' => $paymentRow['reference_number'] ?? null,
                 'external_reference' => $externalReference,
+                'outlet_id' => $cashSession->outlet_id,
+                'pos_cash_session_id' => $cashSession->id,
                 'notes' => $paymentRow['notes'] ?? null,
                 'received_by' => $user->id,
                 'meta' => [
                     'sale_id' => $sale->id,
                     'sale_number' => $sale->sale_number,
                     'source_module' => 'point-of-sale',
+                    'pos_cash_session_id' => $cashSession->id,
                 ],
                 'allocations' => [[
                     'payable_type' => 'sale',
@@ -171,13 +178,15 @@ class PosCheckoutOrchestrator
         return $payments;
     }
 
-    private function buildSalePayload(PosCart $cart, array $payload): array
+    private function buildSalePayload(PosCart $cart, array $payload, PosCashSession $cashSession): array
     {
         return [
             'external_reference' => $cart->uuid,
             'contact_id' => $cart->contact_id,
             'payment_status' => Sale::PAYMENT_UNPAID,
             'source' => Sale::SOURCE_POS,
+            'outlet_id' => $cashSession->outlet_id,
+            'pos_cash_session_id' => $cashSession->id,
             'transaction_date' => now(),
             'currency_code' => $cart->currency_code ?: 'IDR',
             'notes' => $payload['notes'] ?? $cart->notes,
@@ -185,6 +194,7 @@ class PosCheckoutOrchestrator
                 'module' => 'point-of-sale',
                 'pos_cart_id' => $cart->id,
                 'pos_cart_uuid' => $cart->uuid,
+                'pos_cash_session_id' => $cashSession->id,
             ],
             'items' => $cart->items->map(function ($item) {
                 return [
@@ -251,5 +261,39 @@ class PosCheckoutOrchestrator
                 ? (float) ($payment['amount'] ?? 0)
                 : 0;
         }), 2);
+    }
+
+    private function resolveActiveShift(User $user, PosCart $cart): PosCashSession
+    {
+        $shift = PosCashSession::query()
+            ->where('cashier_user_id', $user->id)
+            ->where('status', PosCashSession::STATUS_ACTIVE)
+            ->latest('opened_at')
+            ->first();
+
+        if (!$shift) {
+            throw ValidationException::withMessages([
+                'shift' => 'Checkout POS membutuhkan shift aktif. Buka shift kasir terlebih dahulu.',
+            ]);
+        }
+
+        if ($cart->pos_cash_session_id && (int) $cart->pos_cash_session_id !== (int) $shift->id) {
+            throw ValidationException::withMessages([
+                'shift' => 'Cart aktif terikat ke shift lain. Refresh cart atau buka ulang POS.',
+            ]);
+        }
+
+        if ((int) ($cart->cashier_user_id ?? 0) !== (int) $user->id) {
+            throw ValidationException::withMessages([
+                'shift' => 'Cart aktif bukan milik kasir yang sedang login.',
+            ]);
+        }
+
+        $cart->forceFill([
+            'pos_cash_session_id' => $shift->id,
+            'outlet_id' => $shift->outlet_id,
+        ])->save();
+
+        return $shift;
     }
 }

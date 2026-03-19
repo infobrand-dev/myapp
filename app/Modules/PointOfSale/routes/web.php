@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\PointOfSale\Http\Controllers\BarcodeScanController;
+use App\Modules\PointOfSale\Http\Controllers\CashSessionController;
 use App\Modules\PointOfSale\Http\Controllers\CheckoutController;
 use App\Modules\PointOfSale\Http\Controllers\HeldCartController;
 use App\Modules\PointOfSale\Http\Controllers\PosDiscountController;
@@ -17,6 +18,12 @@ Route::middleware(['web', 'auth'])
     ->group(function () {
         Route::get('/', [PosScreenController::class, 'index'])->middleware('permission:pos.use')->name('index');
         Route::get('/architecture', [PosScreenController::class, 'architecture'])->middleware('permission:pos.use')->name('architecture');
+        Route::get('/shifts', [CashSessionController::class, 'index'])->middleware('permission:pos.view-shift')->name('shifts.index');
+        Route::get('/shifts/open', [CashSessionController::class, 'create'])->middleware('permission:pos.open-shift')->name('shifts.create');
+        Route::post('/shifts', [CashSessionController::class, 'store'])->middleware('permission:pos.open-shift')->name('shifts.store');
+        Route::get('/shifts/{shift}', [CashSessionController::class, 'show'])->middleware('permission:pos.view-shift')->name('shifts.show');
+        Route::post('/shifts/{shift}/close', [CashSessionController::class, 'close'])->middleware('permission:pos.close-shift')->name('shifts.close');
+        Route::post('/shifts/{shift}/movements', [CashSessionController::class, 'storeMovement'])->middleware('permission:pos.record-cash-movement')->name('shifts.movements.store');
         Route::get('/workspace', [PosWorkspaceController::class, 'show'])->middleware('permission:pos.use')->name('workspace');
         Route::get('/products/search', [PosWorkspaceController::class, 'searchProducts'])->middleware('permission:pos.use')->name('products.search');
         Route::get('/customers/search', [PosWorkspaceController::class, 'searchCustomers'])->middleware('permission:pos.use')->name('customers.search');

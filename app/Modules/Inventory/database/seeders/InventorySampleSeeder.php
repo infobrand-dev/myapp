@@ -127,12 +127,13 @@ class InventorySampleSeeder extends Seeder
             [
                 'inventory_location_id' => $main->id,
                 'adjustment_date' => now()->subDays(2)->toDateString(),
-                'status' => 'posted',
+                'status' => StockAdjustment::STATUS_FINALIZED,
                 'reason_code' => 'stock_opname',
                 'reason_text' => 'Adjustment sample setelah stock opname.',
+                'notes' => 'Dokumen adjustment sample.',
                 'created_by' => $userId,
-                'approved_by' => $userId,
-                'approved_at' => now()->subDays(2),
+                'finalized_by' => $userId,
+                'finalized_at' => now()->subDays(2),
                 'meta' => ['seeded' => true],
             ]
         );

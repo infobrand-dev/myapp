@@ -9,6 +9,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class StockAdjustment extends Model
 {
+    public const STATUS_DRAFT = 'draft';
+
+    public const STATUS_FINALIZED = 'finalized';
+
     protected $table = 'inventory_stock_adjustments';
 
     protected $fillable = [
@@ -18,15 +22,16 @@ class StockAdjustment extends Model
         'status',
         'reason_code',
         'reason_text',
+        'notes',
         'created_by',
-        'approved_by',
-        'approved_at',
+        'finalized_by',
+        'finalized_at',
         'meta',
     ];
 
     protected $casts = [
         'adjustment_date' => 'date',
-        'approved_at' => 'datetime',
+        'finalized_at' => 'datetime',
         'meta' => 'array',
     ];
 
@@ -43,5 +48,20 @@ class StockAdjustment extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function finalizer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'finalized_by');
+    }
+
+    public function isDraft(): bool
+    {
+        return $this->status === self::STATUS_DRAFT;
+    }
+
+    public function isFinalized(): bool
+    {
+        return $this->status === self::STATUS_FINALIZED;
     }
 }

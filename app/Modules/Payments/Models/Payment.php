@@ -3,6 +3,7 @@
 namespace App\Modules\Payments\Models;
 
 use App\Models\User;
+use App\Modules\PointOfSale\Models\PosCashSession;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -33,6 +34,7 @@ class Payment extends Model
         'reference_number',
         'external_reference',
         'outlet_id',
+        'pos_cash_session_id',
         'notes',
         'meta',
         'received_by',
@@ -73,6 +75,11 @@ class Payment extends Model
     public function receiver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'received_by');
+    }
+
+    public function cashSession(): BelongsTo
+    {
+        return $this->belongsTo(PosCashSession::class, 'pos_cash_session_id');
     }
 
     public function creator(): BelongsTo

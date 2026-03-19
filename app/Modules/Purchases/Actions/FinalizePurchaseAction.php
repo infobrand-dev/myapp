@@ -3,24 +3,35 @@
 namespace App\Modules\Purchases\Actions;
 
 use App\Models\User;
+use App\Modules\Contacts\Models\Contact;
 use App\Modules\Purchases\Events\PurchaseFinalized;
 use App\Modules\Purchases\Models\Purchase;
+use App\Modules\Purchases\Services\PurchaseSnapshotService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class FinalizePurchaseAction
 {
     private $syncPaymentSummary;
+    private $snapshotService;
 
-    public function __construct(SyncPurchasePaymentSummaryAction $syncPaymentSummary)
+    public function __construct(
+        SyncPurchasePaymentSummaryAction $syncPaymentSummary,
+        PurchaseSnapshotService $snapshotService
+    )
     {
         $this->syncPaymentSummary = $syncPaymentSummary;
+        $this->snapshotService = $snapshotService;
     }
 
     public function execute(Purchase $purchase, array $data, ?User $actor = null): Purchase
     {
         $purchase = DB::transaction(function () use ($purchase, $data, $actor) {
             $purchase = Purchase::query()->with('items')->lockForUpdate()->findOrFail($purchase->id);
+
+            if ($purchase->confirmed_at) {
+                return $this->syncPaymentSummary->execute($purchase)->load('items');
+            }
 
             if (!$purchase->isDraft()) {
                 throw ValidationException::withMessages([
@@ -34,8 +45,19 @@ class FinalizePurchaseAction
                 ]);
             }
 
+            $supplier = $purchase->contact_id
+                ? Contact::query()->with('company')->find($purchase->contact_id)
+                : null;
+            $supplierSnapshot = $this->snapshotService->supplierSnapshot($supplier);
+
             $fromStatus = $purchase->status;
             $purchase->update([
+                'contact_id' => $supplier ? $supplier->id : null,
+                'supplier_name_snapshot' => $supplierSnapshot['name'],
+                'supplier_email_snapshot' => $supplierSnapshot['email'],
+                'supplier_phone_snapshot' => $supplierSnapshot['phone'],
+                'supplier_address_snapshot' => $supplierSnapshot['address'],
+                'supplier_snapshot' => $supplierSnapshot['payload'],
                 'status' => Purchase::STATUS_CONFIRMED,
                 'purchase_date' => $data['purchase_date'] ?? $purchase->purchase_date ?? now(),
                 'confirmed_at' => now(),
@@ -47,6 +69,21 @@ class FinalizePurchaseAction
                     'finalized_at' => now()->toDateTimeString(),
                 ]),
             ]);
+
+            foreach ($purchase->items as $item) {
+                if (!$item->product) {
+                    continue;
+                }
+
+                $productSnapshot = $this->snapshotService->productSnapshot($item->product, $item->variant);
+                $item->update([
+                    'product_name_snapshot' => $productSnapshot['product_name'],
+                    'variant_name_snapshot' => $productSnapshot['variant_name'],
+                    'sku_snapshot' => $productSnapshot['sku'],
+                    'unit_snapshot' => $productSnapshot['unit'],
+                    'product_snapshot' => $productSnapshot['payload'],
+                ]);
+            }
 
             $purchase->statusHistories()->create([
                 'from_status' => $fromStatus,

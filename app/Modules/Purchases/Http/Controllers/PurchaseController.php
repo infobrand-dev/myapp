@@ -56,6 +56,12 @@ class PurchaseController extends Controller
     public function index(Request $request): View
     {
         $filters = $request->only(['search', 'contact_id', 'status', 'payment_status', 'date_from', 'date_to']);
+        if ($request->user() && $request->user()->can('purchases.view_all')) {
+            $filters['scope'] = 'all';
+        } else {
+            $filters['scope'] = 'own';
+            $filters['user_id'] = $request->user() ? $request->user()->id : null;
+        }
 
         return view('purchases::index', [
             'purchases' => $this->repository->paginateForIndex($filters),
@@ -86,6 +92,8 @@ class PurchaseController extends Controller
 
     public function show(Purchase $purchase): View
     {
+        $this->authorizeView($purchase);
+
         return view('purchases::show', [
             'purchase' => $this->repository->findForDetail($purchase),
             'statusOptions' => $this->lookupService->statusOptions(),
@@ -96,12 +104,14 @@ class PurchaseController extends Controller
     public function edit(Purchase $purchase): View
     {
         abort_unless($purchase->isDraft(), 404);
+        $this->authorizeView($purchase);
 
         return view('purchases::edit', $this->formViewData($this->repository->findForEdit($purchase)));
     }
 
     public function update(UpdateDraftPurchaseRequest $request, Purchase $purchase): RedirectResponse
     {
+        $this->authorizeView($purchase);
         $purchase = $this->updateDraftPurchase->execute($purchase, $request->validated(), $request->user());
 
         return redirect()->route('purchases.show', $purchase)->with('status', 'Draft purchase berhasil diperbarui.');
@@ -109,6 +119,7 @@ class PurchaseController extends Controller
 
     public function finalize(FinalizePurchaseRequest $request, Purchase $purchase): RedirectResponse
     {
+        $this->authorizeView($purchase);
         $purchase = $this->finalizePurchase->execute($purchase, $request->validated(), $request->user());
 
         return redirect()->route('purchases.show', $purchase)->with('status', 'Purchase berhasil di-finalize.');
@@ -117,6 +128,7 @@ class PurchaseController extends Controller
     public function receive(Purchase $purchase): View
     {
         abort_unless($purchase->isConfirmedLike(), 404);
+        $this->authorizeView($purchase);
 
         return view('purchases::receive', [
             'purchase' => $this->repository->findForDetail($purchase),
@@ -126,6 +138,7 @@ class PurchaseController extends Controller
 
     public function storeReceipt(ReceiveGoodsRequest $request, Purchase $purchase): RedirectResponse
     {
+        $this->authorizeView($purchase);
         $purchase = $this->receivePurchaseGoods->execute($purchase, $request->validated(), $request->user());
 
         return redirect()->route('purchases.show', $purchase)->with('status', 'Receiving barang berhasil diposting.');
@@ -133,6 +146,7 @@ class PurchaseController extends Controller
 
     public function cancel(CancelDraftPurchaseRequest $request, Purchase $purchase): RedirectResponse
     {
+        $this->authorizeView($purchase);
         $purchase = $this->cancelDraftPurchase->execute($purchase, $request->validated(), $request->user());
 
         return redirect()->route('purchases.show', $purchase)->with('status', 'Draft purchase berhasil dibatalkan.');
@@ -140,6 +154,7 @@ class PurchaseController extends Controller
 
     public function void(VoidPurchaseRequest $request, Purchase $purchase): RedirectResponse
     {
+        $this->authorizeView($purchase);
         $purchase = $this->voidPurchase->execute($purchase, $request->validated(), $request->user());
 
         return redirect()->route('purchases.show', $purchase)->with('status', 'Purchase berhasil di-void.');
@@ -147,6 +162,7 @@ class PurchaseController extends Controller
 
     public function print(Purchase $purchase): View
     {
+        $this->authorizeView($purchase);
         return view('purchases::print', [
             'purchase' => $this->repository->findForDetail($purchase),
         ]);
@@ -160,5 +176,22 @@ class PurchaseController extends Controller
             'purchasables' => $this->lookupService->purchasables(),
             'paymentStatusOptions' => $this->lookupService->paymentStatusOptions(),
         ];
+    }
+
+    private function authorizeView(Purchase $purchase): void
+    {
+        $user = request()->user();
+        if (!$user) {
+            abort(403);
+        }
+
+        if ($user->can('purchases.view_all')) {
+            return;
+        }
+
+        abort_unless(
+            $user->can('purchases.view_own') && (int) $purchase->created_by === (int) $user->id,
+            403
+        );
     }
 }

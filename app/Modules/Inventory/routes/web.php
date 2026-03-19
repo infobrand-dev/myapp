@@ -6,6 +6,7 @@ use App\Modules\Inventory\Http\Controllers\OpeningStockController;
 use App\Modules\Inventory\Http\Controllers\StockAdjustmentController;
 use App\Modules\Inventory\Http\Controllers\StockController;
 use App\Modules\Inventory\Http\Controllers\StockMovementController;
+use App\Modules\Inventory\Http\Controllers\StockOpnameController;
 use App\Modules\Inventory\Http\Controllers\StockTransferController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +28,15 @@ Route::middleware(['web', 'auth'])
         Route::get('/adjustments', [StockAdjustmentController::class, 'index'])->middleware('permission:inventory.manage-stock-adjustment')->name('adjustments.index');
         Route::get('/adjustments/create', [StockAdjustmentController::class, 'create'])->middleware('permission:inventory.manage-stock-adjustment')->name('adjustments.create');
         Route::post('/adjustments', [StockAdjustmentController::class, 'store'])->middleware('permission:inventory.manage-stock-adjustment')->name('adjustments.store');
+        Route::get('/adjustments/{adjustment}', [StockAdjustmentController::class, 'show'])->middleware('permission:inventory.manage-stock-adjustment')->name('adjustments.show');
+        Route::post('/adjustments/{adjustment}/finalize', [StockAdjustmentController::class, 'finalize'])->middleware('permission:inventory.finalize-stock-adjustment')->name('adjustments.finalize');
+
+        Route::get('/opnames', [StockOpnameController::class, 'index'])->middleware('permission:inventory.manage-stock-opname')->name('opnames.index');
+        Route::get('/opnames/create', [StockOpnameController::class, 'create'])->middleware('permission:inventory.manage-stock-opname')->name('opnames.create');
+        Route::post('/opnames', [StockOpnameController::class, 'store'])->middleware('permission:inventory.manage-stock-opname')->name('opnames.store');
+        Route::get('/opnames/{opname}', [StockOpnameController::class, 'show'])->middleware('permission:inventory.manage-stock-opname')->name('opnames.show');
+        Route::put('/opnames/{opname}', [StockOpnameController::class, 'update'])->middleware('permission:inventory.manage-stock-opname')->name('opnames.update');
+        Route::post('/opnames/{opname}/finalize', [StockOpnameController::class, 'finalize'])->middleware('permission:inventory.finalize-stock-opname')->name('opnames.finalize');
 
         Route::get('/transfers', [StockTransferController::class, 'index'])->middleware('permission:inventory.manage-stock-transfer')->name('transfers.index');
         Route::get('/transfers/create', [StockTransferController::class, 'create'])->middleware('permission:inventory.manage-stock-transfer')->name('transfers.create');

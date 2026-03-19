@@ -6,14 +6,24 @@ use App\Http\Controllers\Controller;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\PointOfSale\Models\PosCart;
+use App\Modules\PointOfSale\Services\PosCashSessionService;
 use App\Modules\Products\Models\Product;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\File;
 
 class PosScreenController extends Controller
 {
+    private $cashSessions;
+
+    public function __construct(PosCashSessionService $cashSessions)
+    {
+        $this->cashSessions = $cashSessions;
+    }
+
     public function index(): View
     {
+        $activeShift = $this->cashSessions->activeSessionFor(auth()->user());
+
         return view('pos::index', [
             'initialProducts' => Product::query()
                 ->where('is_active', true)
@@ -33,6 +43,7 @@ class PosScreenController extends Controller
                 ->where('cashier_user_id', auth()->id())
                 ->where('status', PosCart::STATUS_HELD)
                 ->count(),
+            'activeShift' => $activeShift,
         ]);
     }
 

@@ -39,4 +39,9 @@ class StockAdjustmentItem extends Model
     {
         return $this->belongsTo(ProductVariant::class, 'product_variant_id');
     }
+
+    public function movement(): BelongsTo
+    {
+        return $this->belongsTo(StockMovement::class, 'movement_id');
+    }
 }

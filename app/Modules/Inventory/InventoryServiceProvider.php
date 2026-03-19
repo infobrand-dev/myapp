@@ -5,9 +5,13 @@ namespace App\Modules\Inventory;
 use App\Modules\Inventory\Actions\ApproveStockTransferAction;
 use App\Modules\Inventory\Actions\CreateOpeningStockAction;
 use App\Modules\Inventory\Actions\CreateStockAdjustmentAction;
+use App\Modules\Inventory\Actions\CreateStockOpnameAction;
 use App\Modules\Inventory\Actions\CreateStockTransferAction;
+use App\Modules\Inventory\Actions\FinalizeStockOpnameAction;
+use App\Modules\Inventory\Actions\FinalizeStockAdjustmentAction;
 use App\Modules\Inventory\Actions\ReceiveStockTransferAction;
 use App\Modules\Inventory\Actions\SendStockTransferAction;
+use App\Modules\Inventory\Actions\UpdateStockOpnameAction;
 use App\Modules\Inventory\Repositories\InventoryDashboardRepository;
 use App\Modules\Inventory\Repositories\StockMovementRepository;
 use App\Modules\Inventory\Repositories\StockRepository;
@@ -25,6 +29,9 @@ class InventoryServiceProvider extends ServiceProvider
         'inventory.view-movement',
         'inventory.manage-opening-stock',
         'inventory.manage-stock-adjustment',
+        'inventory.finalize-stock-adjustment',
+        'inventory.manage-stock-opname',
+        'inventory.finalize-stock-opname',
         'inventory.manage-stock-transfer',
         'inventory.approve-stock-transfer',
         'inventory.view-all-locations',
@@ -37,6 +44,9 @@ class InventoryServiceProvider extends ServiceProvider
             'inventory.view-movement',
             'inventory.manage-opening-stock',
             'inventory.manage-stock-adjustment',
+            'inventory.finalize-stock-adjustment',
+            'inventory.manage-stock-opname',
+            'inventory.finalize-stock-opname',
             'inventory.manage-stock-transfer',
         ],
     ];
@@ -50,6 +60,10 @@ class InventoryServiceProvider extends ServiceProvider
         $this->app->singleton(InventoryDashboardService::class);
         $this->app->singleton(CreateOpeningStockAction::class);
         $this->app->singleton(CreateStockAdjustmentAction::class);
+        $this->app->singleton(CreateStockOpnameAction::class);
+        $this->app->singleton(FinalizeStockAdjustmentAction::class);
+        $this->app->singleton(UpdateStockOpnameAction::class);
+        $this->app->singleton(FinalizeStockOpnameAction::class);
         $this->app->singleton(CreateStockTransferAction::class);
         $this->app->singleton(ApproveStockTransferAction::class);
         $this->app->singleton(SendStockTransferAction::class);

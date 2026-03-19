@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Modules\Discounts\DiscountsServiceProvider;
+use App\Modules\Finance\FinanceServiceProvider;
 use App\Modules\Inventory\InventoryServiceProvider;
 use App\Modules\Products\ProductsServiceProvider;
 use App\Support\CorePermissions;
@@ -20,13 +21,15 @@ class RoleSeeder extends Seeder
             ProductsServiceProvider::DEFAULT_ROLE_PERMISSIONS,
             InventoryServiceProvider::DEFAULT_ROLE_PERMISSIONS,
             DiscountsServiceProvider::DEFAULT_ROLE_PERMISSIONS,
+            FinanceServiceProvider::DEFAULT_ROLE_PERMISSIONS,
         ];
 
         $allPermissions = array_unique(array_merge(
             CorePermissions::PERMISSIONS,
             ProductsServiceProvider::PERMISSIONS,
             InventoryServiceProvider::PERMISSIONS,
-            DiscountsServiceProvider::PERMISSIONS
+            DiscountsServiceProvider::PERMISSIONS,
+            FinanceServiceProvider::PERMISSIONS
         ));
 
         foreach ($allPermissions as $permission) {

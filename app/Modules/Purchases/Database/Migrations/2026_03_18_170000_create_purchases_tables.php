@@ -15,6 +15,13 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        Schema::create('purchase_receipt_sequences', function (Blueprint $table) {
+            $table->id();
+            $table->string('sequence_date', 8)->unique();
+            $table->unsignedInteger('last_number')->default(0);
+            $table->timestamps();
+        });
+
         Schema::create('purchases', function (Blueprint $table) {
             $table->id();
             $table->string('purchase_number', 50)->unique();
@@ -92,6 +99,7 @@ return new class extends Migration
             $table->foreignId('purchase_id')->constrained('purchases')->cascadeOnDelete();
             $table->string('receipt_number', 50)->unique();
             $table->foreignId('inventory_location_id')->nullable()->constrained('inventory_locations')->nullOnDelete();
+            $table->string('fingerprint', 64)->nullable()->unique();
             $table->string('status', 30)->default('posted');
             $table->dateTime('receipt_date');
             $table->text('notes')->nullable();
@@ -149,6 +157,7 @@ return new class extends Migration
         Schema::dropIfExists('purchase_receipts');
         Schema::dropIfExists('purchase_items');
         Schema::dropIfExists('purchases');
+        Schema::dropIfExists('purchase_receipt_sequences');
         Schema::dropIfExists('purchase_sequences');
     }
 };

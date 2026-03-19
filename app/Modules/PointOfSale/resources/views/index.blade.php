@@ -64,6 +64,15 @@
         </div>
     </div>
 
+    <div class="alert {{ $activeShift ? 'alert-success' : 'alert-warning' }} mb-3">
+        @if($activeShift)
+            Shift aktif: <a href="{{ route('pos.shifts.show', $activeShift) }}" class="alert-link">{{ $activeShift->code }}</a>
+            | Opening cash: Rp {{ number_format((float) $activeShift->opening_cash_amount, 0, ',', '.') }}
+        @else
+            Tidak ada shift aktif. <a href="{{ route('pos.shifts.create') }}" class="alert-link">Buka shift</a> sebelum checkout POS.
+        @endif
+    </div>
+
     <div class="row g-3">
         <div class="col-xl-7">
             <div class="pos-panel p-3 mb-3">

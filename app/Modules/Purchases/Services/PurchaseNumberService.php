@@ -45,6 +45,38 @@ class PurchaseNumberService
 
     public function generateReceiptNumber(?\DateTimeInterface $date = null): string
     {
-        return 'GRN-' . ($date ?: now())->format('YmdHis');
+        $date = $date ?: now();
+        $sequenceDate = $date->format('Ymd');
+        $base = 'GRN-' . $sequenceDate;
+
+        $row = DB::table('purchase_receipt_sequences')
+            ->where('sequence_date', $sequenceDate)
+            ->lockForUpdate()
+            ->first();
+
+        if (!$row) {
+            DB::table('purchase_receipt_sequences')->insert([
+                'sequence_date' => $sequenceDate,
+                'last_number' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $row = DB::table('purchase_receipt_sequences')
+                ->where('sequence_date', $sequenceDate)
+                ->lockForUpdate()
+                ->first();
+        }
+
+        $nextSequence = ((int) $row->last_number) + 1;
+
+        DB::table('purchase_receipt_sequences')
+            ->where('id', $row->id)
+            ->update([
+                'last_number' => $nextSequence,
+                'updated_at' => now(),
+            ]);
+
+        return sprintf('%s-%04d', $base, $nextSequence);
     }
 }

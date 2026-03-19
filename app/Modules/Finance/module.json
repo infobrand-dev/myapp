@@ -1,0 +1,12 @@
+{
+  "slug": "finance",
+  "name": "Finance",
+  "description": "Cash flow operasional ringan untuk transaksi non-sales tanpa journal, ledger, atau COA formal.",
+  "provider": "App\\Modules\\Finance\\FinanceServiceProvider",
+  "version": "1.0.0",
+  "requires": [],
+  "navigation": [
+    { "label": "Finance", "route": "finance.transactions.index" },
+    { "label": "Finance Categories", "route": "finance.categories.index" }
+  ]
+}

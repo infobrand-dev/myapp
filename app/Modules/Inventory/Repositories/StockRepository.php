@@ -59,4 +59,14 @@ class StockRepository
     {
         return InventoryLocation::query()->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->get();
     }
+
+    public function snapshotByLocation(int $locationId): Collection
+    {
+        return StockBalance::query()
+            ->with(['product', 'variant', 'location'])
+            ->where('inventory_location_id', $locationId)
+            ->orderBy('product_id')
+            ->orderBy('product_variant_id')
+            ->get();
+    }
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\PointOfSale\Models\PosCart;
+use App\Modules\PointOfSale\Services\PosCashSessionService;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
 use Illuminate\Http\JsonResponse;
@@ -13,12 +14,27 @@ use Illuminate\Http\Request;
 
 class PosWorkspaceController extends Controller
 {
+    private $cashSessions;
+
+    public function __construct(PosCashSessionService $cashSessions)
+    {
+        $this->cashSessions = $cashSessions;
+    }
+
     public function show(Request $request): JsonResponse
     {
+        $activeShift = $this->cashSessions->activeSessionFor($request->user());
+
         return response()->json([
             'products' => $this->productOptions(),
             'customers' => $this->customerOptions(),
             'payment_methods' => $this->paymentMethodOptions(),
+            'active_shift' => $activeShift ? [
+                'id' => $activeShift->id,
+                'code' => $activeShift->code,
+                'outlet_id' => $activeShift->outlet_id,
+                'opened_at' => $activeShift->opened_at ? $activeShift->opened_at->toDateTimeString() : null,
+            ] : null,
             'held_count' => PosCart::query()
                 ->where('cashier_user_id', $request->user()->id)
                 ->where('status', PosCart::STATUS_HELD)

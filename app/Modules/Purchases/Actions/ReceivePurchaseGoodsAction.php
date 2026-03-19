@@ -43,16 +43,42 @@ class ReceivePurchaseGoodsAction
                 ]);
             }
 
+            $normalizedReceiptLines = $receiptRows
+                ->map(fn ($row) => [
+                    'purchase_item_id' => (int) $row['purchase_item_id'],
+                    'qty_received' => round((float) $row['qty_received'], 4),
+                ])
+                ->sortBy('purchase_item_id')
+                ->values()
+                ->all();
+
+            $receiptFingerprint = sha1(json_encode([
+                'purchase_id' => $purchase->id,
+                'inventory_location_id' => (int) $data['inventory_location_id'],
+                'receipt_date' => (string) ($data['receipt_date'] ?? ''),
+                'items' => $normalizedReceiptLines,
+            ]));
+
+            $existingReceipt = $purchase->receipts()
+                ->where('fingerprint', $receiptFingerprint)
+                ->first();
+
+            if ($existingReceipt) {
+                return $this->syncPaymentSummary->execute($purchase->fresh())->load('items', 'receipts.items');
+            }
+
             /** @var StockMutationService $stockMutation */
             $stockMutation = app(StockMutationService::class);
 
             $receipt = $purchase->receipts()->create([
                 'receipt_number' => $this->numberService->generateReceiptNumber(),
                 'inventory_location_id' => $data['inventory_location_id'],
+                'fingerprint' => $receiptFingerprint,
                 'status' => 'posted',
                 'receipt_date' => $data['receipt_date'] ?? now(),
                 'notes' => $data['notes'] ?? null,
                 'total_received_qty' => 0,
+                'meta' => null,
                 'received_by' => $actor ? $actor->id : null,
                 'created_by' => $actor ? $actor->id : null,
             ]);

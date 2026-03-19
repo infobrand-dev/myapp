@@ -6,6 +6,7 @@
   "version": "1.0.0",
   "requires": ["products", "contacts", "sales", "payments", "discounts"],
   "navigation": [
-    { "label": "Point Of Sale", "route": "pos.index" }
+    { "label": "Point Of Sale", "route": "pos.index" },
+    { "label": "Cash Session", "route": "pos.shifts.index" }
   ]
 }

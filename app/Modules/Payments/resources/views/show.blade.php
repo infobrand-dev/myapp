@@ -33,6 +33,8 @@
                                         <a href="{{ route('sales.show', $allocation->payable) }}">{{ $allocation->payable->sale_number }}</a>
                                     @elseif($allocation->payable instanceof \App\Modules\Sales\Models\SaleReturn)
                                         <a href="{{ route('sales.returns.show', $allocation->payable) }}">{{ $allocation->payable->return_number }}</a>
+                                    @elseif($allocation->payable instanceof \App\Modules\Purchases\Models\Purchase)
+                                        <a href="{{ route('purchases.show', $allocation->payable) }}">{{ $allocation->payable->purchase_number }}</a>
                                     @else
                                         #{{ $allocation->payable_id }}
                                     @endif

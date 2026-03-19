@@ -17,6 +17,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const sidebarUnreadBadge = document.getElementById('sidebar-module-badge-conversation_unread_total');
     const chatLastMessageTime = document.getElementById('chat-last-message-time');
     const detailLastMessageTime = document.getElementById('detail-last-message-time');
+    const detailOwnerName = document.getElementById('detail-owner-name');
+    const liveChatAssignmentStatus = document.getElementById('livechat-assignment-status');
+    const liveChatAssignmentNote = document.getElementById('livechat-assignment-note');
+    const liveChatAssignmentLock = document.getElementById('livechat-assignment-lock');
     const activeInboxPreview = document.querySelector('.conv-item.active .conv-item-preview');
     const activeConversationBadge = document.querySelector('.conv-item.active .badge');
     const sendForm = document.getElementById('send-form');
@@ -57,6 +61,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const conversationUrl = config.conversationUrl || window.location.href;
     const csrfToken = config.csrfToken || '';
     const startUserSearchEndpoint = config.startUserSearchEndpoint || '';
+    const channel = config.channel || '';
+    const liveChatAgentTypingEndpoint = config.liveChatAgentTypingEndpoint || '';
+    const liveChatStatusEndpoint = config.liveChatStatusEndpoint || '';
+    const presenceHeartbeatEndpoint = config.presenceHeartbeatEndpoint || '';
 
     let oldestMessageId = config.oldestMessageId ?? null;
     let latestMessageId = config.latestMessageId ?? null;
@@ -74,9 +82,15 @@ document.addEventListener('DOMContentLoaded', () => {
     let pollingTimer = null;
     let olderMessagesObserver = null;
     let hasRealtimeChannel = false;
+    let typingTimer = null;
+    let typingLastSentAt = 0;
+    let presenceHeartbeatTimer = null;
+    let visitorTypingActive = false;
 
     const basePageTitle = document.title;
     const maxRenderedMessages = 120;
+    const defaultChatLastMessageText = chatLastMessageTime?.dataset.defaultText || chatLastMessageTime?.textContent || '';
+    const defaultActiveInboxPreview = activeInboxPreview?.dataset.defaultPreview || activeInboxPreview?.textContent || '';
     const renderedMessageIds = new Set(
         Array.from(document.querySelectorAll('.chat-row[data-message-id]'))
             .map((el) => Number(el.dataset.messageId))
@@ -263,12 +277,65 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateMessageRelatedUi = (msg) => {
         if (chatLastMessageTime) {
             chatLastMessageTime.textContent = 'Last Message: just now';
+            chatLastMessageTime.dataset.defaultText = 'Last Message: just now';
+            chatLastMessageTime.classList.remove('is-typing');
         }
         if (detailLastMessageTime) {
             detailLastMessageTime.textContent = 'just now';
         }
         if (activeInboxPreview) {
             activeInboxPreview.textContent = (msg?.body || 'New message').toString();
+            activeInboxPreview.dataset.defaultPreview = (msg?.body || 'New message').toString();
+        }
+    };
+    const setVisitorTypingState = (isTyping) => {
+        visitorTypingActive = Boolean(isTyping);
+        if (chatLastMessageTime) {
+            chatLastMessageTime.textContent = visitorTypingActive ? 'Visitor sedang mengetik...' : (chatLastMessageTime.dataset.defaultText || defaultChatLastMessageText);
+            chatLastMessageTime.classList.toggle('is-typing', visitorTypingActive);
+        }
+        if (activeInboxPreview) {
+            activeInboxPreview.textContent = visitorTypingActive ? 'Visitor sedang mengetik...' : (activeInboxPreview.dataset.defaultPreview || defaultActiveInboxPreview);
+        }
+    };
+    const updateAssignmentUi = (assignment) => {
+        if (!assignment) {
+            return;
+        }
+
+        const ownerName = assignment.owner_name || 'Unassigned';
+        const claimable = Boolean(assignment.claimable);
+        const claimedByMe = Boolean(assignment.claimed_by_me);
+
+        if (detailOwnerName) {
+            detailOwnerName.textContent = ownerName;
+        }
+        const activeConversationItem = document.querySelector('.conv-item.active');
+        if (activeConversationItem) {
+            activeConversationItem.dataset.assignment = claimable ? 'unsigned' : 'assigned';
+        }
+        if (liveChatAssignmentStatus) {
+            liveChatAssignmentStatus.textContent = claimedByMe
+                ? 'Conversation ini sedang Anda tangani.'
+                : (claimable
+                    ? 'Conversation ini belum di-assign.'
+                    : `Conversation ini sedang dipegang ${ownerName}.`);
+        }
+        if (liveChatAssignmentNote) {
+            liveChatAssignmentNote.textContent = claimedByMe
+                ? 'Anda bisa invite anggota lain bila perlu kolaborasi atau release jika ingin melepaskan ownership.'
+                : (claimable
+                    ? 'Claim conversation dulu agar ownership dan respon tetap rapi sebelum membalas visitor.'
+                    : 'Tunggu lock berakhir, minta owner release, atau kolaborasi sebagai participant jika sudah diundang.');
+        }
+        if (liveChatAssignmentLock) {
+            if (claimable) {
+                liveChatAssignmentLock.textContent = 'Available to claim';
+            } else if (assignment.locked_until) {
+                liveChatAssignmentLock.textContent = `Locked until ${new Date(assignment.locked_until).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+            } else {
+                liveChatAssignmentLock.textContent = 'Locked';
+            }
         }
     };
     const notifyIncoming = (name, body) => {
@@ -602,6 +669,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (payload.latest_id) {
                 latestMessageId = Math.max(Number(latestMessageId || 0), Number(payload.latest_id || 0));
             }
+            await syncLiveChatStatus();
         } catch (_) {
             // keep silent; polling is best-effort fallback
         } finally {
@@ -628,6 +696,70 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         startPolling();
     }
+    const pingPresenceHeartbeat = async () => {
+        if (channel !== 'live_chat' || !presenceHeartbeatEndpoint || document.hidden) {
+            return;
+        }
+        try {
+            await fetch(presenceHeartbeatEndpoint, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': csrfToken,
+                    Accept: 'application/json',
+                },
+            });
+        } catch (_) {
+            // best effort
+        }
+    };
+    const syncLiveChatStatus = async () => {
+        if (channel !== 'live_chat' || !liveChatStatusEndpoint || document.hidden) {
+            return;
+        }
+        try {
+            const response = await fetch(liveChatStatusEndpoint, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    Accept: 'application/json',
+                },
+            });
+            if (!response.ok) {
+                throw new Error('status failed');
+            }
+            const payload = await response.json();
+            setVisitorTypingState(Boolean(payload?.typing?.visitor));
+            updateAssignmentUi(payload?.assignment || null);
+        } catch (_) {
+            // best effort
+        }
+    };
+    const sendLiveChatTyping = async () => {
+        if (channel !== 'live_chat' || !liveChatAgentTypingEndpoint || !messageInput) {
+            return;
+        }
+        const text = (messageInput.value || '').trim();
+        if (!text) {
+            return;
+        }
+        const nowMs = Date.now();
+        if ((nowMs - typingLastSentAt) < 2500) {
+            return;
+        }
+        typingLastSentAt = nowMs;
+        try {
+            await fetch(liveChatAgentTypingEndpoint, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': csrfToken,
+                    Accept: 'application/json',
+                },
+            });
+        } catch (_) {
+            // best effort
+        }
+    };
     const applyConversationFilters = () => {
         const query = normalize(conversationSearch?.value);
         let visibleCount = 0;
@@ -955,6 +1087,14 @@ document.addEventListener('DOMContentLoaded', () => {
     mediaUploadChange?.addEventListener('click', () => {
         openMediaPicker(activeMediaPickerKind);
     });
+    messageInput?.addEventListener('input', () => {
+        if (typingTimer) {
+            clearTimeout(typingTimer);
+        }
+        typingTimer = setTimeout(() => {
+            sendLiveChatTyping();
+        }, 250);
+    });
 
     if (lockSpan && lockedUntil) {
         let lockTimer = null;
@@ -1001,4 +1141,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     refreshPollingState();
+    pingPresenceHeartbeat();
+    syncLiveChatStatus();
+    if (channel === 'live_chat' && presenceHeartbeatEndpoint) {
+        presenceHeartbeatTimer = setInterval(pingPresenceHeartbeat, 30000);
+    }
 });

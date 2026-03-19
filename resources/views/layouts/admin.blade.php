@@ -67,6 +67,17 @@
         .sidebar-brand-wrap {
             margin-bottom: .35rem;
         }
+        .module-svg-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+        }
+        .module-svg-icon svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
         .mobile-nav-toggle {
             width: 2.5rem;
             height: 2.5rem;

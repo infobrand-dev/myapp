@@ -6,6 +6,7 @@
     $botPaused = (bool) ($conversationMeta['auto_reply_paused'] ?? false);
     $needsHuman = (bool) ($conversationMeta['needs_human'] ?? false);
     $handoffAt = $conversationMeta['handoff_at'] ?? null;
+    $lockExpired = !$conversation->owner_id || optional($conversation->locked_until)->isPast();
     $isOwner = (int) ($conversation->owner_id ?? 0) === (int) auth()->id();
     $isParticipant = $conversation->participants->contains(fn ($participant) => (int) $participant->user_id === (int) auth()->id());
     $isSuperAdmin = auth()->user()->hasRole('Super-admin');
@@ -122,9 +123,13 @@
         display: block;
     }
     .conv-dashboard .conv-item-channel {
-        font-size: .88rem;
+        width: 1rem;
+        height: 1rem;
         margin-right: .35rem;
         vertical-align: middle;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         flex-shrink: 0;
     }
     .conv-dashboard .conv-item-snippet {
@@ -146,6 +151,7 @@
     }
     .conv-dashboard .channel-whatsapp { color: #146d38; background: #eaf7ef; }
     .conv-dashboard .channel-social { color: #2a5fa5; background: #edf3fb; }
+    .conv-dashboard .channel-livechat { color: #9a3412; background: #fff1e8; }
     .conv-dashboard .channel-internal { color: #5f5aa2; background: #f1effb; }
     .conv-dashboard .channel-default { color: #4f6275; background: #eef2f6; }
     .conv-dashboard #chat-pane {
@@ -213,6 +219,10 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+    }
+    .conv-dashboard .chat-contact-last.is-typing {
+        color: #b45309;
+        font-weight: 600;
     }
     .conv-dashboard .chat-avatar {
         width: 2rem;
@@ -509,6 +519,11 @@
     .conv-dashboard .detail-inline-form {
         width: 100%;
     }
+    .conv-dashboard .assignment-note {
+        font-size: .8rem;
+        color: var(--conv-muted);
+        line-height: 1.45;
+    }
     .conv-dashboard .section-head {
         padding: .15rem 0 .6rem;
     }
@@ -788,15 +803,10 @@
                 @forelse($conversationsList as $c)
                     @php
                         $channel = strtolower($c->channel ?? 'internal');
-                        $channelIcon = match($channel) {
-                            'wa_api', 'wa_web', 'wa_bro', 'whatsapp' => 'ti ti-brand-whatsapp',
-                            'social_dm', 'social' => 'ti ti-brand-messenger',
-                            'internal' => 'ti ti-user',
-                            default => 'ti ti-message',
-                        };
                         $channelAccent = match($channel) {
                             'wa_api', 'wa_web', 'wa_bro', 'whatsapp' => 'channel-whatsapp',
                             'social_dm', 'social' => 'channel-social',
+                            'live_chat' => 'channel-livechat',
                             'internal' => 'channel-internal',
                             default => 'channel-default',
                         };
@@ -831,8 +841,10 @@
                             <div>
                                 <div class="fw-semibold">{{ $listName }}</div>
                                 <div class="conv-item-snippet">
-                                    <i class="{{ $channelIcon }} conv-item-channel {{ $channelAccent }}" aria-hidden="true"></i>
-                                    <span class="conv-item-preview">{{ $c->latestMessage->body ?? 'No messages yet.' }}</span>
+                                    <span class="conv-item-channel {{ $channelAccent }}" aria-hidden="true">
+                                        @include('shared.module-icon', ['channel' => $channel, 'size' => 16])
+                                    </span>
+                                    <span class="conv-item-preview" data-default-preview="{{ e($c->latestMessage->body ?? 'No messages yet.') }}">{{ $c->latestMessage->body ?? 'No messages yet.' }}</span>
                                 </div>
                             </div>
                         </div>
@@ -888,7 +900,7 @@
                     </div>
                     <div>
                         <div class="chat-contact-name">{{ $activeContactName }}</div>
-                        <div class="chat-contact-last" id="chat-last-message-time">Last Message: {{ $activeLastMessageTime }}</div>
+                        <div class="chat-contact-last" id="chat-last-message-time" data-default-text="Last Message: {{ $activeLastMessageTime }}">Last Message: {{ $activeLastMessageTime }}</div>
                     </div>
                     </div>
                     <div class="mobile-nav">
@@ -1089,6 +1101,32 @@
             </div>
             <div class="section-body detail-list pt-0">
                 <div class="detail-row"><span class="detail-key">Kontak</span><span class="detail-value">{{ $conversation->contact_name ?? $conversation->contact_external_id ?? 'Internal' }}</span></div>
+                @if($conversation->channel === 'live_chat')
+                    <div class="detail-row">
+                        <span class="detail-key">Live Chat</span>
+                        <span class="detail-value">
+                            <span class="badge {{ $conversation->status === 'closed' ? 'text-bg-secondary' : 'text-bg-success' }}">
+                                {{ $conversation->status === 'closed' ? 'Closed' : 'Open' }}
+                            </span>
+                        </span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-key">Actions</span>
+                        <span class="detail-value">
+                            @if($conversation->status === 'closed')
+                                <form method="POST" action="{{ route('conversations.reopen', $conversation) }}" class="d-inline-block m-0">
+                                    @csrf
+                                    <button class="btn btn-sm btn-outline-primary" type="submit">Reopen</button>
+                                </form>
+                            @else
+                                <form method="POST" action="{{ route('conversations.close', $conversation) }}" class="d-inline-block m-0">
+                                    @csrf
+                                    <button class="btn btn-sm btn-outline-secondary" type="submit">Close</button>
+                                </form>
+                            @endif
+                        </span>
+                    </div>
+                @endif
                 @if($channelUi['show_contact_crm'] && !empty($conversation->contact_external_id))
                     <div class="detail-row">
                         <span class="detail-key">Contact CRM</span>
@@ -1150,7 +1188,7 @@
                         </div>
                     </div>
                 @endif
-                <div class="detail-row"><span class="detail-key">Owner</span><span class="detail-value">{{ $conversation->owner->name ?? 'Unassigned' }}</span></div>
+                <div class="detail-row"><span class="detail-key">Owner</span><span class="detail-value" id="detail-owner-name">{{ $conversation->owner->name ?? 'Unassigned' }}</span></div>
                 <div class="detail-row"><span class="detail-key">Status</span><span class="detail-value">{{ ucfirst($conversation->status) }}</span></div>
                 @if($channelUi['show_ai_bot'])
                     <div class="detail-row">
@@ -1175,6 +1213,63 @@
                 @endif
             </div>
         </div>
+        @if($conversation->channel === 'live_chat')
+            <div class="conv-surface mb-3">
+                <div class="section-head"><h3 class="conv-section-title">Assignment</h3></div>
+                <div class="section-body">
+                    <div class="detail-list pt-0">
+                        <div class="detail-row detail-row-stack">
+                            <span class="detail-key">Workflow</span>
+                            <div class="detail-value detail-value-detail">
+                                <div id="livechat-assignment-status" class="fw-semibold">
+                                    @if($isOwner)
+                                        Conversation ini sedang Anda tangani.
+                                    @elseif($lockExpired)
+                                        Conversation ini belum di-assign.
+                                    @else
+                                        Conversation ini sedang dipegang {{ $conversation->owner->name ?? 'agent lain' }}.
+                                    @endif
+                                </div>
+                                <div class="assignment-note mt-1" id="livechat-assignment-note">
+                                    @if($isOwner)
+                                        Anda bisa invite anggota lain bila perlu kolaborasi atau release jika ingin melepaskan ownership.
+                                    @elseif($lockExpired)
+                                        Claim conversation dulu agar ownership dan respon tetap rapi sebelum membalas visitor.
+                                    @else
+                                        Tunggu lock berakhir, minta owner release, atau kolaborasi sebagai participant jika sudah diundang.
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-key">Lock</span>
+                            <span class="detail-value" id="livechat-assignment-lock">
+                                @if($lockExpired)
+                                    Available to claim
+                                @else
+                                    {{ optional($conversation->locked_until)->diffForHumans() ?? 'Locked' }}
+                                @endif
+                            </span>
+                        </div>
+                    </div>
+                    <div class="d-grid gap-2 mt-3">
+                        @if($isOwner)
+                            <form method="POST" action="{{ route('conversations.release', $conversation) }}" class="m-0">
+                                @csrf
+                                <button class="btn btn-outline-secondary w-100" type="submit">Release Conversation</button>
+                            </form>
+                        @elseif($lockExpired)
+                            <form method="POST" action="{{ route('conversations.claim', $conversation) }}" class="m-0">
+                                @csrf
+                                <button class="btn btn-primary w-100" type="submit">Claim Conversation</button>
+                            </form>
+                        @else
+                            <div class="text-muted small">Conversation sedang terkunci pada owner aktif.</div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        @endif
         <div class="conv-surface">
             <div class="section-head"><h3 class="conv-section-title">Team</h3></div>
             <div class="section-body">
@@ -1278,6 +1373,10 @@
         'markReadEndpoint' => route('conversations.read', $conversation),
         'conversationUrl' => route('conversations.show', $conversation),
         'csrfToken' => csrf_token(),
+        'channel' => $conversation->channel,
+        'liveChatAgentTypingEndpoint' => $conversation->channel === 'live_chat' ? route('live-chat.conversations.typing', $conversation) : null,
+        'liveChatStatusEndpoint' => $conversation->channel === 'live_chat' ? route('live-chat.conversations.status', $conversation) : null,
+        'presenceHeartbeatEndpoint' => route('presence.heartbeat'),
         'oldestMessageId' => $oldestMessageId,
         'latestMessageId' => $latestMessageId,
         'hasMoreMessages' => $hasMoreMessages,

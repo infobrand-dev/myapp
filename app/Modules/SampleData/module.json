@@ -1,12 +1,20 @@
 {
-  "slug": "sample_data",
-  "name": "Sample Data",
-  "description": "Pusat generate data contoh untuk module yang aktif.",
-  "provider": "App\\Modules\\SampleData\\SampleDataServiceProvider",
-  "version": "1.0.0",
-  "category": "support",
-  "requires": [],
-  "navigation": [
-    { "label": "Sample Data", "route": "sample-data.index", "role": "Super-admin" }
-  ]
+    "slug":  "sample_data",
+    "name":  "Sample Data",
+    "description":  "Pusat generate data contoh untuk module yang aktif.",
+    "provider":  "App\\Modules\\SampleData\\SampleDataServiceProvider",
+    "version":  "1.0.0",
+    "category":  "support",
+    "requires":  [
+
+                 ],
+    "navigation":  [
+                       {
+                           "label":  "Sample Data",
+                           "route":  "sample-data.index",
+                           "role":  "Super-admin"
+                       }
+                   ],
+    "icon":  "resources/icons/icon.svg"
 }
+

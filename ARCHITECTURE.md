@@ -12,11 +12,21 @@
 - Module state is persisted in the `modules` table and controlled from the Modules page.
 - Sidebar navigation is partly core and partly generated from active module manifests.
 
+## Scale and tenancy expectations
+- This app is expected to handle large and growing data volume. New work must consider query cost, indexing strategy, pagination, filtering, and background processing instead of optimizing only for a small demo dataset.
+- Do not assume list pages, inboxes, reports, logs, webhook events, or synchronization tables will stay small. Prefer bounded queries, avoid loading unnecessary relations, and be careful with unindexed lookups, `count()` on hot paths, and repeated per-row queries.
+- Features should be designed so they can be partitioned or scoped cleanly as data grows. When adding tables, foreign keys, unique keys, or search filters, think ahead about operational load and maintenance windows.
+- Multi-tenant readiness is a standing requirement even where `tenant_id` is not fully rolled out yet. New schema, services, and module integrations should avoid assumptions that make tenant scoping difficult later.
+- When practical, keep room for `tenant_id` in table design, query composition, unique constraints, cache keys, webhook/account resolution, and ownership rules. Avoid building new flows that implicitly assume a single global tenant.
+- Until an explicit tenant resolver is introduced, tenant-aware writes should use `tenant_id = 1` instead of leaving the field `null`.
+- If a change is intentionally shipped before tenant scoping is completed, document the limitation clearly and keep the implementation easy to migrate to tenant-aware behavior.
+
 ## Boundaries
 - Keep root framework paths focused on app-shell concerns unless the feature is part of the non-optional base product.
 - Do not place optional business logic, routes, views, migrations, assets, or provider wiring in core files.
 - Each module should stay self-contained under its own folder, including routes, migrations, views, services, actions, and bootstrapping.
 - `module.json` is the source of truth for module metadata such as slug, name, provider, version, description, category, `requires`, and navigation items.
+- `module.json` is also the source of truth for each module's sidebar/icon metadata. Module SVG assets should live with the owning module, and shared UI should reuse those assets instead of redefining icons per page.
 
 ## Module registry rules
 - Install and activation are separate states.

@@ -24,6 +24,12 @@ Route::middleware(['web', 'auth'])
         Route::post('/{conversation}/release', [ConversationHubController::class, 'release'])
             ->middleware('throttle:30,1')
             ->name('release');
+        Route::post('/{conversation}/close', [ConversationHubController::class, 'close'])
+            ->middleware('throttle:20,1')
+            ->name('close');
+        Route::post('/{conversation}/reopen', [ConversationHubController::class, 'reopen'])
+            ->middleware('throttle:20,1')
+            ->name('reopen');
         Route::post('/{conversation}/invite', [ConversationHubController::class, 'invite'])
             ->middleware('throttle:20,1')
             ->name('invite');

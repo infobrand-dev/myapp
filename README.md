@@ -134,6 +134,7 @@ Default bridge URL lokal:
 ## Webhook examples
 - WhatsApp API: `POST /whatsapp-api/webhook`
 - Social Media: `POST /social-media/webhook`
+- Live Chat bootstrap: `POST /live-chat/api/{token}/bootstrap`
 
 Pastikan `APP_URL` dan reverse proxy sesuai jika webhook dipakai di environment publik.
 
@@ -143,6 +144,6 @@ Ringkasan modul tersedia di `MODULES.md`.
 Kategori saat ini:
 - commerce: `products`, `inventory`, `discounts`, `sales`, `payments`, `purchases`, `finance`, `point-of-sale`
 - reporting: `reports`
-- communication: `conversations`, `whatsapp_api`, `whatsapp_web`, `social_media`, `email_marketing`
+- communication: `conversations`, `live_chat`, `whatsapp_api`, `whatsapp_web`, `social_media`, `email_marketing`
 - automation: `chatbot`
 - support: `contacts`, `task_management`, `shortlink`, `sample_data`

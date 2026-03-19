@@ -1,12 +1,22 @@
 {
-  "slug": "purchases",
-  "name": "Purchases",
-  "description": "Sumber utama transaksi pembelian supplier dengan draft, finalize, receiving parsial, snapshot item, dan integrasi downstream ke inventory serta payments.",
-  "provider": "App\\Modules\\Purchases\\PurchasesServiceProvider",
-  "version": "1.0.0",
-  "category": "commerce",
-  "requires": ["products", "contacts", "inventory", "payments"],
-  "navigation": [
-    { "label": "Purchases", "route": "purchases.index" }
-  ]
+    "slug":  "purchases",
+    "name":  "Purchases",
+    "description":  "Sumber utama transaksi pembelian supplier dengan draft, finalize, receiving parsial, snapshot item, dan integrasi downstream ke inventory serta payments.",
+    "provider":  "App\\Modules\\Purchases\\PurchasesServiceProvider",
+    "version":  "1.0.0",
+    "category":  "commerce",
+    "requires":  [
+                     "products",
+                     "contacts",
+                     "inventory",
+                     "payments"
+                 ],
+    "navigation":  [
+                       {
+                           "label":  "Purchases",
+                           "route":  "purchases.index"
+                       }
+                   ],
+    "icon":  "resources/icons/icon.svg"
 }
+

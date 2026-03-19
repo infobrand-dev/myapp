@@ -1,18 +1,25 @@
 {
-  "slug": "contacts",
-  "name": "Contacts",
-  "description": "Manajemen data kontak.",
-  "provider": "App\\Modules\\Contacts\\ContactsServiceProvider",
-  "version": "1.0.0",
-  "category": "support",
-  "requires": [],
-  "sample_data": {
-    "description": "Membuat company dan PIC contoh.",
-    "seeders": [
-      "App\\Modules\\Contacts\\Database\\Seeders\\ContactSampleSeeder"
-    ]
-  },
-  "navigation": [
-    { "label": "Contacts", "route": "contacts.index" }
-  ]
+    "slug":  "contacts",
+    "name":  "Contacts",
+    "description":  "Manajemen data kontak.",
+    "provider":  "App\\Modules\\Contacts\\ContactsServiceProvider",
+    "version":  "1.0.0",
+    "category":  "support",
+    "requires":  [
+
+                 ],
+    "sample_data":  {
+                        "description":  "Membuat company dan PIC contoh.",
+                        "seeders":  [
+                                        "App\\Modules\\Contacts\\Database\\Seeders\\ContactSampleSeeder"
+                                    ]
+                    },
+    "navigation":  [
+                       {
+                           "label":  "Contacts",
+                           "route":  "contacts.index"
+                       }
+                   ],
+    "icon":  "resources/icons/icon.svg"
 }
+

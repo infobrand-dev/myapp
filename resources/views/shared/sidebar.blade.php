@@ -23,6 +23,8 @@
 
             return [
                 'slug' => $module['slug'],
+                'icon' => $module['icon'] ?? null,
+                '_dir' => $module['_dir'] ?? null,
                 'name' => $module['name'],
                 'items' => $items,
             ];

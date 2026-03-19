@@ -17,6 +17,7 @@ This file is a quick catalog. The authoritative metadata for each module lives i
 
 ## Communication
 - `conversations`: shared inbox domain, message ingestion contracts, activity log, and conversation UI.
+- `live_chat`: embeddable website live chat widget that routes visitor chat into `conversations`.
 - `whatsapp_api`: WhatsApp Cloud/API-oriented messaging, instances, templates, flows, blast, webhook ingestion. Requires `conversations`.
 - `whatsapp_web`: WhatsApp Web bridge with QR auth, chat sync, and Node bridge runtime. Requires `conversations`.
 - `social_media`: social account integrations and webhook-driven inbox flow. Requires `conversations`.
@@ -34,5 +35,6 @@ This file is a quick catalog. The authoritative metadata for each module lives i
 ## Working rules
 - Read `module.json` before integrating or refactoring a module.
 - Declare dependencies in `requires`; do not rely on hidden coupling.
+- Keep each module's SVG icon with the module itself and reference it from `module.json`.
 - Keep provider logic, routes, migrations, views, and assets inside the owning module.
 - If a module integrates with another module, keep the integration adapter in the dependent module.

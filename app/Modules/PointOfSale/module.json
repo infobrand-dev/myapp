@@ -1,13 +1,27 @@
 {
-  "slug": "point-of-sale",
-  "name": "PointOfSale",
-  "description": "Cashier interface ringan untuk checkout flow, barcode scan, cart, hold cart, dan integrasi ke Sales, Payments, Discounts, Products, dan Contacts.",
-  "provider": "App\\Modules\\PointOfSale\\PointOfSaleServiceProvider",
-  "version": "1.0.0",
-  "category": "commerce",
-  "requires": ["products", "contacts", "sales", "payments", "discounts"],
-  "navigation": [
-    { "label": "Point Of Sale", "route": "pos.index" },
-    { "label": "Cash Session", "route": "pos.shifts.index" }
-  ]
+    "slug":  "point-of-sale",
+    "name":  "PointOfSale",
+    "description":  "Cashier interface ringan untuk checkout flow, barcode scan, cart, hold cart, dan integrasi ke Sales, Payments, Discounts, Products, dan Contacts.",
+    "provider":  "App\\Modules\\PointOfSale\\PointOfSaleServiceProvider",
+    "version":  "1.0.0",
+    "category":  "commerce",
+    "requires":  [
+                     "products",
+                     "contacts",
+                     "sales",
+                     "payments",
+                     "discounts"
+                 ],
+    "navigation":  [
+                       {
+                           "label":  "Point Of Sale",
+                           "route":  "pos.index"
+                       },
+                       {
+                           "label":  "Cash Session",
+                           "route":  "pos.shifts.index"
+                       }
+                   ],
+    "icon":  "resources/icons/icon.svg"
 }
+

@@ -1,24 +1,55 @@
 {
-  "slug": "whatsapp_api",
-  "name": "WhatsApp API",
-  "description": "Integrasi WhatsApp Cloud API (instance, template, inbox, webhook).",
-  "provider": "App\\Modules\\WhatsAppApi\\WhatsAppApiServiceProvider",
-  "version": "1.0.0",
-  "category": "communication",
-  "requires": ["conversations"],
-  "sample_data": {
-    "description": "Membuat dummy WhatsApp instance, template, flow, blast, dan inbox demo.",
-    "seeders": [
-      "App\\Modules\\WhatsAppApi\\Database\\Seeders\\WhatsAppApiSampleSeeder"
-    ]
-  },
-  "navigation": [
-    { "label": "Inbox", "route": "whatsapp-api.inbox" },
-    { "label": "Instances", "route": "whatsapp-api.instances.index", "role": "Super-admin" },
-    { "label": "Templates", "route": "whatsapp-api.templates.index", "role": "Super-admin" },
-    { "label": "Flows", "route": "whatsapp-api.flows.index", "role": "Super-admin" },
-    { "label": "Blast Campaigns", "route": "whatsapp-api.blast-campaigns.index", "role": "Super-admin" },
-    { "label": "Logs", "route": "whatsapp-api.logs.index", "role": "Super-admin" },
-    { "label": "Webhook Events", "route": "whatsapp-api.webhook-events.index", "role": "Super-admin" }
-  ]
+    "slug":  "whatsapp_api",
+    "name":  "WhatsApp API",
+    "description":  "Integrasi WhatsApp Cloud API (instance, template, inbox, webhook).",
+    "provider":  "App\\Modules\\WhatsAppApi\\WhatsAppApiServiceProvider",
+    "version":  "1.0.0",
+    "category":  "communication",
+    "requires":  [
+                     "conversations"
+                 ],
+    "sample_data":  {
+                        "description":  "Membuat dummy WhatsApp instance, template, flow, blast, dan inbox demo.",
+                        "seeders":  [
+                                        "App\\Modules\\WhatsAppApi\\Database\\Seeders\\WhatsAppApiSampleSeeder"
+                                    ]
+                    },
+    "navigation":  [
+                       {
+                           "label":  "Inbox",
+                           "route":  "whatsapp-api.inbox"
+                       },
+                       {
+                           "label":  "Instances",
+                           "route":  "whatsapp-api.instances.index",
+                           "role":  "Super-admin"
+                       },
+                       {
+                           "label":  "Templates",
+                           "route":  "whatsapp-api.templates.index",
+                           "role":  "Super-admin"
+                       },
+                       {
+                           "label":  "Flows",
+                           "route":  "whatsapp-api.flows.index",
+                           "role":  "Super-admin"
+                       },
+                       {
+                           "label":  "Blast Campaigns",
+                           "route":  "whatsapp-api.blast-campaigns.index",
+                           "role":  "Super-admin"
+                       },
+                       {
+                           "label":  "Logs",
+                           "route":  "whatsapp-api.logs.index",
+                           "role":  "Super-admin"
+                       },
+                       {
+                           "label":  "Webhook Events",
+                           "route":  "whatsapp-api.webhook-events.index",
+                           "role":  "Super-admin"
+                       }
+                   ],
+    "icon":  "resources/icons/icon.svg"
 }
+

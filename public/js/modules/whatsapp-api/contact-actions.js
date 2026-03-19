@@ -57,6 +57,10 @@ document.addEventListener('DOMContentLoaded', function () {
       }[_char] || _char;
     });
   };
+  var formatWhatsAppText = function formatWhatsAppText(value) {
+    var escaped = esc(value || '');
+    return escaped.replace(/`([^`\n]+)`/g, '<code>$1</code>').replace(/\*([^\*\n]+)\*/g, '<strong>$1</strong>').replace(/_([^_\n]+)_/g, '<em>$1</em>').replace(/~([^~\n]+)~/g, '<s>$1</s>');
+  };
   var contactContext = function contactContext() {
     var _state$contact, _state$contact2, _state$contact3, _state$contact4, _state$contact5, _state$contact6, _state$contact7, _state$contact8, _state$contact9, _state$contact0, _state$contact1;
     return {
@@ -170,16 +174,16 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     var computedHeader = interpolate(headerText, values).trim();
     if (computedHeader !== '') {
-      previewHeader.textContent = computedHeader;
+      previewHeader.innerHTML = formatWhatsAppText(computedHeader);
       previewHeader.style.display = 'block';
     } else {
       previewHeader.style.display = 'none';
     }
     var computedBody = interpolate(template.body || '', values).trim();
-    previewBody.textContent = computedBody !== '' ? computedBody : '(isi body kosong)';
+    previewBody.innerHTML = computedBody !== '' ? formatWhatsAppText(computedBody) : '(isi body kosong)';
     var computedFooter = interpolate(footer && footer.text || '', values).trim();
     if (computedFooter !== '') {
-      previewFooter.textContent = computedFooter;
+      previewFooter.innerHTML = formatWhatsAppText(computedFooter);
       previewFooter.style.display = 'block';
     } else {
       previewFooter.style.display = 'none';
@@ -199,6 +203,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var _template$variable_ma, _template$variable_ma2;
       var mapping = (template === null || template === void 0 || (_template$variable_ma = template.variable_mappings) === null || _template$variable_ma === void 0 ? void 0 : _template$variable_ma[index]) || (template === null || template === void 0 || (_template$variable_ma2 = template.variable_mappings) === null || _template$variable_ma2 === void 0 ? void 0 : _template$variable_ma2[String(index)]) || {};
       var sourceType = String(mapping.source_type || 'text');
+      var readOnly = sourceType === 'contact_field' || sourceType === 'sender_field';
       var sourceLabel = 'Free text';
       if (sourceType === 'contact_field') {
         sourceLabel = "Field Contact: ".concat(state.contactFieldOptions[mapping.contact_field] || mapping.contact_field || 'name');
@@ -207,10 +212,12 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       var fallbackLabel = String(mapping.fallback_value || '').trim();
       var row = document.createElement('label');
-      row.className = 'form-label mb-0';
-      row.innerHTML = "\n                <div class=\"small text-muted mb-1\">Variable {{".concat(index, "}}</div>\n                <input type=\"text\" class=\"form-control\" name=\"variables[").concat(index, "]\" data-var-index=\"").concat(index, "\" value=\"").concat(esc(defaultVariableValue(index, template)), "\">\n                <div class=\"form-hint mt-1\">").concat(esc(sourceLabel)).concat(fallbackLabel ? " | Fallback: ".concat(esc(fallbackLabel)) : '', "</div>\n            ");
+      row.className = "form-label mb-0 wa-variable-row".concat(readOnly ? ' is-readonly' : '');
+      row.innerHTML = "\n                <div class=\"small text-muted mb-1\">Variable {{".concat(index, "}}</div>\n                <input type=\"text\" class=\"form-control\" name=\"variables[").concat(index, "]\" data-var-index=\"").concat(index, "\" value=\"").concat(esc(defaultVariableValue(index, template)), "\" ").concat(readOnly ? 'readonly' : '', ">\n                <div class=\"form-hint mt-1\">").concat(esc(sourceLabel)).concat(fallbackLabel ? " | Fallback: ".concat(esc(fallbackLabel)) : '').concat(readOnly ? ' | Auto dari mapping template' : ' | Bisa dioverride manual', "</div>\n            ");
       var input = row.querySelector('input');
-      input === null || input === void 0 || input.addEventListener('input', renderPreview);
+      if (!readOnly) {
+        input === null || input === void 0 || input.addEventListener('input', renderPreview);
+      }
       variablesWrap.appendChild(row);
     });
     renderPreview();

@@ -22,11 +22,13 @@ class ModuleManager
             $navigation = $this->normalizeNavigation((array) ($manifest['navigation'] ?? []));
             $modules[$slug] = [
                 'slug' => $slug,
+                '_dir' => $manifest['_dir'] ?? null,
                 'name' => $manifest['name'] ?? $slug,
                 'category' => $manifest['category'] ?? 'uncategorized',
                 'description' => $manifest['description'] ?? '',
                 'provider' => $manifest['provider'] ?? null,
                 'version' => $manifest['version'] ?? null,
+                'icon' => $manifest['icon'] ?? null,
                 'requires' => $requires,
                 'navigation' => $navigation,
                 'installed' => $state ? ($state->installed_at !== null) : false,

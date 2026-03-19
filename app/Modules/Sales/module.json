@@ -1,19 +1,31 @@
 {
-  "slug": "sales",
-  "name": "Sales",
-  "description": "Sumber utama transaksi penjualan untuk manual entry, POS, online, dan integrasi channel lain dengan snapshot transaksi yang immutable setelah final.",
-  "provider": "App\\Modules\\Sales\\SalesServiceProvider",
-  "version": "1.0.0",
-  "category": "commerce",
-  "requires": ["products", "contacts", "payments"],
-  "sample_data": {
-    "description": "Membuat satu transaksi penjualan finalized dengan item sample.",
-    "seeders": [
-      "App\\Modules\\Sales\\Database\\Seeders\\SaleSampleSeeder"
-    ]
-  },
-  "navigation": [
-    { "label": "Sales", "route": "sales.index" },
-    { "label": "Sales Returns", "route": "sales.returns.index" }
-  ]
+    "slug":  "sales",
+    "name":  "Sales",
+    "description":  "Sumber utama transaksi penjualan untuk manual entry, POS, online, dan integrasi channel lain dengan snapshot transaksi yang immutable setelah final.",
+    "provider":  "App\\Modules\\Sales\\SalesServiceProvider",
+    "version":  "1.0.0",
+    "category":  "commerce",
+    "requires":  [
+                     "products",
+                     "contacts",
+                     "payments"
+                 ],
+    "sample_data":  {
+                        "description":  "Membuat satu transaksi penjualan finalized dengan item sample.",
+                        "seeders":  [
+                                        "App\\Modules\\Sales\\Database\\Seeders\\SaleSampleSeeder"
+                                    ]
+                    },
+    "navigation":  [
+                       {
+                           "label":  "Sales",
+                           "route":  "sales.index"
+                       },
+                       {
+                           "label":  "Sales Returns",
+                           "route":  "sales.returns.index"
+                       }
+                   ],
+    "icon":  "resources/icons/icon.svg"
 }
+

@@ -1,18 +1,25 @@
 {
-  "slug": "shortlink",
-  "name": "Shortlink",
-  "description": "Pembuatan dan tracking short URL.",
-  "provider": "App\\Modules\\Shortlink\\ShortlinkServiceProvider",
-  "version": "1.0.0",
-  "category": "support",
-  "requires": [],
-  "sample_data": {
-    "description": "Membuat shortlink, code, dan satu click contoh.",
-    "seeders": [
-      "App\\Modules\\Shortlink\\Database\\Seeders\\ShortlinkSampleSeeder"
-    ]
-  },
-  "navigation": [
-    { "label": "Shortlink", "route": "shortlinks.index" }
-  ]
+    "slug":  "shortlink",
+    "name":  "Shortlink",
+    "description":  "Pembuatan dan tracking short URL.",
+    "provider":  "App\\Modules\\Shortlink\\ShortlinkServiceProvider",
+    "version":  "1.0.0",
+    "category":  "support",
+    "requires":  [
+
+                 ],
+    "sample_data":  {
+                        "description":  "Membuat shortlink, code, dan satu click contoh.",
+                        "seeders":  [
+                                        "App\\Modules\\Shortlink\\Database\\Seeders\\ShortlinkSampleSeeder"
+                                    ]
+                    },
+    "navigation":  [
+                       {
+                           "label":  "Shortlink",
+                           "route":  "shortlinks.index"
+                       }
+                   ],
+    "icon":  "resources/icons/icon.svg"
 }
+

@@ -1,18 +1,25 @@
 {
-  "slug": "products",
-  "name": "Products",
-  "description": "Master data produk POS dengan dukungan varian, harga bertingkat, media, barcode, SKU, dan konfigurasi produk stockable.",
-  "provider": "App\\Modules\\Products\\ProductsServiceProvider",
-  "version": "1.0.0",
-  "category": "commerce",
-  "requires": [],
-  "sample_data": {
-    "description": "Membuat kategori, brand, unit, produk, dan harga tier contoh.",
-    "seeders": [
-      "App\\Modules\\Products\\Database\\Seeders\\ProductSampleSeeder"
-    ]
-  },
-  "navigation": [
-    { "label": "Products", "route": "products.index" }
-  ]
+    "slug":  "products",
+    "name":  "Products",
+    "description":  "Master data produk POS dengan dukungan varian, harga bertingkat, media, barcode, SKU, dan konfigurasi produk stockable.",
+    "provider":  "App\\Modules\\Products\\ProductsServiceProvider",
+    "version":  "1.0.0",
+    "category":  "commerce",
+    "requires":  [
+
+                 ],
+    "sample_data":  {
+                        "description":  "Membuat kategori, brand, unit, produk, dan harga tier contoh.",
+                        "seeders":  [
+                                        "App\\Modules\\Products\\Database\\Seeders\\ProductSampleSeeder"
+                                    ]
+                    },
+    "navigation":  [
+                       {
+                           "label":  "Products",
+                           "route":  "products.index"
+                       }
+                   ],
+    "icon":  "resources/icons/icon.svg"
 }
+

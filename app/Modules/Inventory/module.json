@@ -1,25 +1,54 @@
 {
-  "slug": "inventory",
-  "name": "Inventory",
-  "description": "Sumber kebenaran stok, mutasi, opening stock, adjustment, transfer, stock card, dan low stock monitoring.",
-  "provider": "App\\Modules\\Inventory\\InventoryServiceProvider",
-  "version": "1.0.0",
-  "category": "commerce",
-  "requires": ["products"],
-  "sample_data": {
-    "description": "Membuat stok, mutasi, opening, adjustment, dan transfer sample.",
-    "seeders": [
-      "App\\Modules\\Inventory\\Database\\Seeders\\InventorySampleSeeder"
-    ]
-  },
-  "navigation": [
-    { "label": "Dashboard", "route": "inventory.dashboard" },
-    { "label": "Stock List", "route": "inventory.stocks.index" },
-    { "label": "Stock Movements", "route": "inventory.movements.index" },
-    { "label": "Opening Stock", "route": "inventory.openings.index" },
-    { "label": "Stock Adjustment", "route": "inventory.adjustments.index" },
-    { "label": "Stock Opname", "route": "inventory.opnames.index" },
-    { "label": "Stock Transfer", "route": "inventory.transfers.index" },
-    { "label": "Low Stock Report", "route": "inventory.reports.low-stock", "badge": "inventory-low-stock" }
-  ]
+    "slug":  "inventory",
+    "name":  "Inventory",
+    "description":  "Sumber kebenaran stok, mutasi, opening stock, adjustment, transfer, stock card, dan low stock monitoring.",
+    "provider":  "App\\Modules\\Inventory\\InventoryServiceProvider",
+    "version":  "1.0.0",
+    "category":  "commerce",
+    "requires":  [
+                     "products"
+                 ],
+    "sample_data":  {
+                        "description":  "Membuat stok, mutasi, opening, adjustment, dan transfer sample.",
+                        "seeders":  [
+                                        "App\\Modules\\Inventory\\Database\\Seeders\\InventorySampleSeeder"
+                                    ]
+                    },
+    "navigation":  [
+                       {
+                           "label":  "Dashboard",
+                           "route":  "inventory.dashboard"
+                       },
+                       {
+                           "label":  "Stock List",
+                           "route":  "inventory.stocks.index"
+                       },
+                       {
+                           "label":  "Stock Movements",
+                           "route":  "inventory.movements.index"
+                       },
+                       {
+                           "label":  "Opening Stock",
+                           "route":  "inventory.openings.index"
+                       },
+                       {
+                           "label":  "Stock Adjustment",
+                           "route":  "inventory.adjustments.index"
+                       },
+                       {
+                           "label":  "Stock Opname",
+                           "route":  "inventory.opnames.index"
+                       },
+                       {
+                           "label":  "Stock Transfer",
+                           "route":  "inventory.transfers.index"
+                       },
+                       {
+                           "label":  "Low Stock Report",
+                           "route":  "inventory.reports.low-stock",
+                           "badge":  "inventory-low-stock"
+                       }
+                   ],
+    "icon":  "resources/icons/icon.svg"
 }
+

@@ -93,10 +93,7 @@
         <li class="nav-item">
             <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ $isOpen ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route($item['route']) }}">
                 <span class="nav-link-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                        <path d="M6 6h12v12h-12z" />
-                    </svg>
+                    @include('shared.module-icon', ['module' => $menu, 'size' => 22])
                 </span>
                 <span class="nav-link-title">{{ $menu['name'] }}</span>
                 @if($badgeKey)
@@ -115,10 +112,7 @@
         <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ $isOpen ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="#" data-bs-toggle="dropdown" aria-expanded="{{ $isOpen ? 'true' : 'false' }}">
                 <span class="nav-link-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                        <path d="M6 6h12v12h-12z" />
-                    </svg>
+                    @include('shared.module-icon', ['module' => $menu, 'size' => 22])
                 </span>
                 <span class="nav-link-title">{{ $menu['name'] }}</span>
                 @if($moduleBadgeKey)

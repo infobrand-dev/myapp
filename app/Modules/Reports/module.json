@@ -1,12 +1,25 @@
 {
-  "slug": "reports",
-  "name": "Reports",
-  "description": "Layer reporting read-only untuk membaca data dari Sales, Payments, Inventory, Purchases, Finance, dan PointOfSale tanpa menjadi source of truth transaksi.",
-  "provider": "App\\Modules\\Reports\\ReportsServiceProvider",
-  "version": "1.0.0",
-  "category": "reporting",
-  "requires": ["sales", "payments", "inventory", "purchases", "finance", "point-of-sale", "products"],
-  "navigation": [
-    { "label": "Reports", "route": "reports.dashboard" }
-  ]
+    "slug":  "reports",
+    "name":  "Reports",
+    "description":  "Layer reporting read-only untuk membaca data dari Sales, Payments, Inventory, Purchases, Finance, dan PointOfSale tanpa menjadi source of truth transaksi.",
+    "provider":  "App\\Modules\\Reports\\ReportsServiceProvider",
+    "version":  "1.0.0",
+    "category":  "reporting",
+    "requires":  [
+                     "sales",
+                     "payments",
+                     "inventory",
+                     "purchases",
+                     "finance",
+                     "point-of-sale",
+                     "products"
+                 ],
+    "navigation":  [
+                       {
+                           "label":  "Reports",
+                           "route":  "reports.dashboard"
+                       }
+                   ],
+    "icon":  "resources/icons/icon.svg"
 }
+

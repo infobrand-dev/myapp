@@ -1,20 +1,33 @@
 {
-  "slug": "discounts",
-  "name": "Discounts",
-  "description": "Rule engine promo dan diskon reusable untuk Products, POS, Sales, Checkout, Pricing, Membership, dan Campaign Management.",
-  "provider": "App\\Modules\\Discounts\\DiscountsServiceProvider",
-  "version": "1.0.0",
-  "category": "commerce",
-  "requires": ["products"],
-  "sample_data": {
-    "description": "Membuat rule diskon, voucher, dan usage sample untuk produk demo.",
-    "seeders": [
-      "App\\Modules\\Discounts\\Database\\Seeders\\DiscountSampleSeeder"
-    ]
-  },
-  "navigation": [
-    { "label": "Discounts", "route": "discounts.index" },
-    { "label": "Vouchers", "route": "discounts.vouchers.index" },
-    { "label": "Discount Usage", "route": "discounts.usages.index" }
-  ]
+    "slug":  "discounts",
+    "name":  "Discounts",
+    "description":  "Rule engine promo dan diskon reusable untuk Products, POS, Sales, Checkout, Pricing, Membership, dan Campaign Management.",
+    "provider":  "App\\Modules\\Discounts\\DiscountsServiceProvider",
+    "version":  "1.0.0",
+    "category":  "commerce",
+    "requires":  [
+                     "products"
+                 ],
+    "sample_data":  {
+                        "description":  "Membuat rule diskon, voucher, dan usage sample untuk produk demo.",
+                        "seeders":  [
+                                        "App\\Modules\\Discounts\\Database\\Seeders\\DiscountSampleSeeder"
+                                    ]
+                    },
+    "navigation":  [
+                       {
+                           "label":  "Discounts",
+                           "route":  "discounts.index"
+                       },
+                       {
+                           "label":  "Vouchers",
+                           "route":  "discounts.vouchers.index"
+                       },
+                       {
+                           "label":  "Discount Usage",
+                           "route":  "discounts.usages.index"
+                       }
+                   ],
+    "icon":  "resources/icons/icon.svg"
 }
+

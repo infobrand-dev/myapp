@@ -1,19 +1,29 @@
 {
-  "slug": "email_marketing",
-  "name": "Email Marketing",
-  "description": "Campaign email, template attachment, dan tracking recipient.",
-  "provider": "App\\Modules\\EmailMarketing\\EmailMarketingServiceProvider",
-  "version": "1.0.0",
-  "category": "communication",
-  "requires": ["contacts"],
-  "sample_data": {
-    "description": "Membuat campaign, attachment template, dan recipient contoh.",
-    "seeders": [
-      "App\\Modules\\EmailMarketing\\Database\\Seeders\\EmailMarketingSampleSeeder"
-    ]
-  },
-  "navigation": [
-    { "label": "Campaign", "route": "email-marketing.index" },
-    { "label": "Attachment", "route": "email-marketing.templates.index" }
-  ]
+    "slug":  "email_marketing",
+    "name":  "Email Marketing",
+    "description":  "Campaign email, template attachment, dan tracking recipient.",
+    "provider":  "App\\Modules\\EmailMarketing\\EmailMarketingServiceProvider",
+    "version":  "1.0.0",
+    "category":  "communication",
+    "requires":  [
+                     "contacts"
+                 ],
+    "sample_data":  {
+                        "description":  "Membuat campaign, attachment template, dan recipient contoh.",
+                        "seeders":  [
+                                        "App\\Modules\\EmailMarketing\\Database\\Seeders\\EmailMarketingSampleSeeder"
+                                    ]
+                    },
+    "navigation":  [
+                       {
+                           "label":  "Campaign",
+                           "route":  "email-marketing.index"
+                       },
+                       {
+                           "label":  "Attachment",
+                           "route":  "email-marketing.templates.index"
+                       }
+                   ],
+    "icon":  "resources/icons/icon.svg"
 }
+

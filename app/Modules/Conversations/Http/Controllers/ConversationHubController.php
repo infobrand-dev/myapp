@@ -441,6 +441,50 @@ class ConversationHubController extends Controller
         return back()->with('status', 'Pengguna diundang.');
     }
 
+    public function close(Request $request, Conversation $conversation): RedirectResponse
+    {
+        $user = $request->user();
+        $this->authorizeParticipant($conversation, $user);
+
+        if ($conversation->channel !== 'live_chat') {
+            return back()->with('status', 'Close manual saat ini hanya tersedia untuk live chat.');
+        }
+
+        $conversation->update([
+            'status' => 'closed',
+            'metadata' => array_merge($conversation->metadata ?? [], [
+                'closed_at' => now()->toIso8601String(),
+                'closed_by' => $user->id,
+            ]),
+        ]);
+
+        $this->log($conversation, $user->id, 'close', 'Conversation live chat ditutup');
+
+        return back()->with('status', 'Conversation ditutup.');
+    }
+
+    public function reopen(Request $request, Conversation $conversation): RedirectResponse
+    {
+        $user = $request->user();
+        $this->authorizeParticipant($conversation, $user);
+
+        if ($conversation->channel !== 'live_chat') {
+            return back()->with('status', 'Reopen manual saat ini hanya tersedia untuk live chat.');
+        }
+
+        $metadata = $conversation->metadata ?? [];
+        unset($metadata['closed_at'], $metadata['closed_by']);
+
+        $conversation->update([
+            'status' => 'open',
+            'metadata' => $metadata ?: null,
+        ]);
+
+        $this->log($conversation, $user->id, 'reopen', 'Conversation live chat dibuka kembali');
+
+        return back()->with('status', 'Conversation dibuka kembali.');
+    }
+
     public function updateContactNote(Request $request, Conversation $conversation): RedirectResponse
     {
         $user = $request->user();
@@ -469,6 +513,15 @@ class ConversationHubController extends Controller
         $user = $request->user();
 
         $this->authorizeParticipant($conversation, $user);
+
+        if ($conversation->channel === 'live_chat' && $conversation->status === 'closed') {
+            $metadata = $conversation->metadata ?? [];
+            unset($metadata['closed_at'], $metadata['closed_by']);
+            $conversation->update([
+                'status' => 'open',
+                'metadata' => $metadata ?: null,
+            ]);
+        }
 
         $preflightError = app(ConversationChannelManager::class)->preflightSendError($conversation);
         if ($preflightError !== null) {

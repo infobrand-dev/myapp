@@ -1,19 +1,30 @@
 {
-  "slug": "social_media",
-  "name": "Social Media",
-  "description": "Integrasi Instagram/Facebook DM.",
-  "provider": "App\\Modules\\SocialMedia\\SocialMediaServiceProvider",
-  "version": "1.0.0",
-  "category": "communication",
-  "requires": ["conversations"],
-  "sample_data": {
-    "description": "Membuat satu akun Instagram business contoh.",
-    "seeders": [
-      "App\\Modules\\SocialMedia\\Database\\Seeders\\SocialMediaSampleSeeder"
-    ]
-  },
-  "navigation": [
-    { "label": "Instagram / Facebook DM", "route": "social-media.index" },
-    { "label": "Accounts", "route": "social-media.accounts.index", "role": "Super-admin" }
-  ]
+    "slug":  "social_media",
+    "name":  "Social Media",
+    "description":  "Integrasi Instagram/Facebook DM.",
+    "provider":  "App\\Modules\\SocialMedia\\SocialMediaServiceProvider",
+    "version":  "1.0.0",
+    "category":  "communication",
+    "requires":  [
+                     "conversations"
+                 ],
+    "sample_data":  {
+                        "description":  "Membuat satu akun Instagram business contoh.",
+                        "seeders":  [
+                                        "App\\Modules\\SocialMedia\\Database\\Seeders\\SocialMediaSampleSeeder"
+                                    ]
+                    },
+    "navigation":  [
+                       {
+                           "label":  "Instagram / Facebook DM",
+                           "route":  "social-media.index"
+                       },
+                       {
+                           "label":  "Accounts",
+                           "route":  "social-media.accounts.index",
+                           "role":  "Super-admin"
+                       }
+                   ],
+    "icon":  "resources/icons/icon.svg"
 }
+

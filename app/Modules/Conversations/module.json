@@ -1,18 +1,26 @@
 {
-  "slug": "conversations",
-  "name": "Conversations",
-  "description": "Unified inbox untuk aktivitas percakapan lintas channel.",
-  "provider": "App\\Modules\\Conversations\\ConversationsServiceProvider",
-  "version": "1.0.0",
-  "category": "communication",
-  "requires": [],
-  "sample_data": {
-    "description": "Membuat satu percakapan internal beserta participant dan pesan.",
-    "seeders": [
-      "App\\Modules\\Conversations\\Database\\Seeders\\ConversationSampleSeeder"
-    ]
-  },
-  "navigation": [
-    { "label": "Conversations", "route": "conversations.index", "badge": "conversation_unread_total" }
-  ]
+    "slug":  "conversations",
+    "name":  "Conversations",
+    "description":  "Unified inbox untuk aktivitas percakapan lintas channel.",
+    "provider":  "App\\Modules\\Conversations\\ConversationsServiceProvider",
+    "version":  "1.0.0",
+    "category":  "communication",
+    "requires":  [
+
+                 ],
+    "sample_data":  {
+                        "description":  "Membuat satu percakapan internal beserta participant dan pesan.",
+                        "seeders":  [
+                                        "App\\Modules\\Conversations\\Database\\Seeders\\ConversationSampleSeeder"
+                                    ]
+                    },
+    "navigation":  [
+                       {
+                           "label":  "Conversations",
+                           "route":  "conversations.index",
+                           "badge":  "conversation_unread_total"
+                       }
+                   ],
+    "icon":  "resources/icons/icon.svg"
 }
+

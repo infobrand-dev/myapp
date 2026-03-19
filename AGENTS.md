@@ -14,6 +14,7 @@
 ## General engineering rules
 - Prefer changes that are small, reversible, and easy to review.
 - Do not hardcode assumptions that belong in configuration, manifests, or database state.
+- For tenant-aware work during the current rollout, write `tenant_id` explicitly and default to `1` when no tenant resolver exists yet.
 - Keep documentation aligned with the current codebase; if behavior changes, update the relevant `.md` file in the same work.
 - Prefer extending existing patterns over inventing a parallel structure.
 

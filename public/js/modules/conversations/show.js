@@ -29,6 +29,10 @@ document.addEventListener('DOMContentLoaded', function () {
   var sidebarUnreadBadge = document.getElementById('sidebar-module-badge-conversation_unread_total');
   var chatLastMessageTime = document.getElementById('chat-last-message-time');
   var detailLastMessageTime = document.getElementById('detail-last-message-time');
+  var detailOwnerName = document.getElementById('detail-owner-name');
+  var liveChatAssignmentStatus = document.getElementById('livechat-assignment-status');
+  var liveChatAssignmentNote = document.getElementById('livechat-assignment-note');
+  var liveChatAssignmentLock = document.getElementById('livechat-assignment-lock');
   var activeInboxPreview = document.querySelector('.conv-item.active .conv-item-preview');
   var activeConversationBadge = document.querySelector('.conv-item.active .badge');
   var sendForm = document.getElementById('send-form');
@@ -68,6 +72,10 @@ document.addEventListener('DOMContentLoaded', function () {
   var conversationUrl = config.conversationUrl || window.location.href;
   var csrfToken = config.csrfToken || '';
   var startUserSearchEndpoint = config.startUserSearchEndpoint || '';
+  var channel = config.channel || '';
+  var liveChatAgentTypingEndpoint = config.liveChatAgentTypingEndpoint || '';
+  var liveChatStatusEndpoint = config.liveChatStatusEndpoint || '';
+  var presenceHeartbeatEndpoint = config.presenceHeartbeatEndpoint || '';
   var oldestMessageId = (_config$oldestMessage = config.oldestMessageId) !== null && _config$oldestMessage !== void 0 ? _config$oldestMessage : null;
   var latestMessageId = (_config$latestMessage = config.latestMessageId) !== null && _config$latestMessage !== void 0 ? _config$latestMessage : null;
   var hasMoreMessages = Boolean(config.hasMoreMessages);
@@ -84,8 +92,14 @@ document.addEventListener('DOMContentLoaded', function () {
   var pollingTimer = null;
   var olderMessagesObserver = null;
   var hasRealtimeChannel = false;
+  var typingTimer = null;
+  var typingLastSentAt = 0;
+  var presenceHeartbeatTimer = null;
+  var visitorTypingActive = false;
   var basePageTitle = document.title;
   var maxRenderedMessages = 120;
+  var defaultChatLastMessageText = (chatLastMessageTime === null || chatLastMessageTime === void 0 ? void 0 : chatLastMessageTime.dataset.defaultText) || (chatLastMessageTime === null || chatLastMessageTime === void 0 ? void 0 : chatLastMessageTime.textContent) || '';
+  var defaultActiveInboxPreview = (activeInboxPreview === null || activeInboxPreview === void 0 ? void 0 : activeInboxPreview.dataset.defaultPreview) || (activeInboxPreview === null || activeInboxPreview === void 0 ? void 0 : activeInboxPreview.textContent) || '';
   var renderedMessageIds = new Set(Array.from(document.querySelectorAll('.chat-row[data-message-id]')).map(function (el) {
     return Number(el.dataset.messageId);
   }).filter(function (id) {
@@ -120,6 +134,13 @@ document.addEventListener('DOMContentLoaded', function () {
   var isNearBottom = function isNearBottom() {
     return chatPane ? chatPane.scrollHeight - chatPane.scrollTop - chatPane.clientHeight < 80 : true;
   };
+  var lastRenderedRow = function lastRenderedRow() {
+    if (!chatPane) {
+      return null;
+    }
+    var rows = chatPane.querySelectorAll('.chat-row[data-message-id]');
+    return rows.length ? rows[rows.length - 1] : null;
+  };
   var scrollChatToBottom = function scrollChatToBottom() {
     var behavior = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'auto';
     if (!chatPane) {
@@ -132,6 +153,26 @@ document.addEventListener('DOMContentLoaded', function () {
           behavior: behavior
         });
       });
+    });
+  };
+  var ensureLatestMessageVisible = function ensureLatestMessageVisible() {
+    var behavior = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'auto';
+    if (!chatPane) {
+      return;
+    }
+    var sync = function sync() {
+      var lastRow = lastRenderedRow();
+      if (lastRow) {
+        lastRow.scrollIntoView({
+          block: 'end',
+          behavior: behavior
+        });
+      }
+      chatPane.scrollTop = chatPane.scrollHeight;
+    };
+    requestAnimationFrame(function () {
+      sync();
+      requestAnimationFrame(sync);
     });
   };
   var bindDeferredMediaScroll = function bindDeferredMediaScroll(scope) {
@@ -257,12 +298,58 @@ document.addEventListener('DOMContentLoaded', function () {
   var updateMessageRelatedUi = function updateMessageRelatedUi(msg) {
     if (chatLastMessageTime) {
       chatLastMessageTime.textContent = 'Last Message: just now';
+      chatLastMessageTime.dataset.defaultText = 'Last Message: just now';
+      chatLastMessageTime.classList.remove('is-typing');
     }
     if (detailLastMessageTime) {
       detailLastMessageTime.textContent = 'just now';
     }
     if (activeInboxPreview) {
       activeInboxPreview.textContent = ((msg === null || msg === void 0 ? void 0 : msg.body) || 'New message').toString();
+      activeInboxPreview.dataset.defaultPreview = ((msg === null || msg === void 0 ? void 0 : msg.body) || 'New message').toString();
+    }
+  };
+  var setVisitorTypingState = function setVisitorTypingState(isTyping) {
+    visitorTypingActive = Boolean(isTyping);
+    if (chatLastMessageTime) {
+      chatLastMessageTime.textContent = visitorTypingActive ? 'Visitor sedang mengetik...' : chatLastMessageTime.dataset.defaultText || defaultChatLastMessageText;
+      chatLastMessageTime.classList.toggle('is-typing', visitorTypingActive);
+    }
+    if (activeInboxPreview) {
+      activeInboxPreview.textContent = visitorTypingActive ? 'Visitor sedang mengetik...' : activeInboxPreview.dataset.defaultPreview || defaultActiveInboxPreview;
+    }
+  };
+  var updateAssignmentUi = function updateAssignmentUi(assignment) {
+    if (!assignment) {
+      return;
+    }
+    var ownerName = assignment.owner_name || 'Unassigned';
+    var claimable = Boolean(assignment.claimable);
+    var claimedByMe = Boolean(assignment.claimed_by_me);
+    if (detailOwnerName) {
+      detailOwnerName.textContent = ownerName;
+    }
+    var activeConversationItem = document.querySelector('.conv-item.active');
+    if (activeConversationItem) {
+      activeConversationItem.dataset.assignment = claimable ? 'unsigned' : 'assigned';
+    }
+    if (liveChatAssignmentStatus) {
+      liveChatAssignmentStatus.textContent = claimedByMe ? 'Conversation ini sedang Anda tangani.' : claimable ? 'Conversation ini belum di-assign.' : "Conversation ini sedang dipegang ".concat(ownerName, ".");
+    }
+    if (liveChatAssignmentNote) {
+      liveChatAssignmentNote.textContent = claimedByMe ? 'Anda bisa invite anggota lain bila perlu kolaborasi atau release jika ingin melepaskan ownership.' : claimable ? 'Claim conversation dulu agar ownership dan respon tetap rapi sebelum membalas visitor.' : 'Tunggu lock berakhir, minta owner release, atau kolaborasi sebagai participant jika sudah diundang.';
+    }
+    if (liveChatAssignmentLock) {
+      if (claimable) {
+        liveChatAssignmentLock.textContent = 'Available to claim';
+      } else if (assignment.locked_until) {
+        liveChatAssignmentLock.textContent = "Locked until ".concat(new Date(assignment.locked_until).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit'
+        }));
+      } else {
+        liveChatAssignmentLock.textContent = 'Locked';
+      }
     }
   };
   var notifyIncoming = function notifyIncoming(name, body) {
@@ -313,8 +400,11 @@ document.addEventListener('DOMContentLoaded', function () {
   var setMobileView = function setMobileView(view) {
     dashboardRoot.classList.remove('mobile-view-inbox', 'mobile-view-chat', 'mobile-view-detail');
     dashboardRoot.classList.add("mobile-view-".concat(view));
-    if (view === 'chat' && document.hasFocus()) {
-      clearUnread();
+    if (view === 'chat') {
+      ensureLatestMessageVisible();
+      if (document.hasFocus()) {
+        clearUnread();
+      }
     }
   };
   var initMobileView = function initMobileView() {
@@ -337,6 +427,10 @@ document.addEventListener('DOMContentLoaded', function () {
   };
   var escapeHtml = function escapeHtml(value) {
     return (value || '').toString().replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+  };
+  var formatMessageHtml = function formatMessageHtml(value) {
+    var escaped = escapeHtml(value);
+    return escaped.replace(/`([^`\n]+)`/g, '<code>$1</code>').replace(/\*([^\*\n]+)\*/g, '<strong>$1</strong>').replace(/_([^_\n]+)_/g, '<em>$1</em>').replace(/~([^~\n]+)~/g, '<s>$1</s>').replace(/\r\n|\r|\n/g, '<br>');
   };
   var initials = function initials(name) {
     var _parts$, _parts$2;
@@ -399,7 +493,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var avatar = avatarUrl((_msg$user$avatar = (_msg$user2 = msg.user) === null || _msg$user2 === void 0 ? void 0 : _msg$user2.avatar) !== null && _msg$user$avatar !== void 0 ? _msg$user$avatar : '');
     var avatarHtml = avatar ? "<img src=\"".concat(escapeHtml(avatar), "\" alt=\"").concat(escapeHtml(name), "\">") : "<span class=\"chat-avatar-fallback ".concat(avatarTone(name), "\">").concat(escapeHtml(initials(name)), "</span>");
     var mediaHtml = buildMediaHtml(msg);
-    var bodyHtml = msg.body ? "<div>".concat(escapeHtml(msg.body), "</div>") : '';
+    var bodyHtml = msg.body ? "<div class=\"chat-message-text\">".concat(formatMessageHtml(msg.body), "</div>") : '';
     var wrapper = document.createElement('div');
     wrapper.className = "chat-row chat-row-".concat(msg.direction === 'out' ? 'out' : 'in', " d-flex align-items-end gap-2");
     wrapper.dataset.messageId = (_msg$id = msg.id) !== null && _msg$id !== void 0 ? _msg$id : '';
@@ -619,19 +713,22 @@ document.addEventListener('DOMContentLoaded', function () {
             if (payload.latest_id) {
               latestMessageId = Math.max(Number(latestMessageId || 0), Number(payload.latest_id || 0));
             }
-            _context3.n = 7;
-            break;
+            _context3.n = 6;
+            return syncLiveChatStatus();
           case 6:
-            _context3.p = 6;
-            _t2 = _context3.v;
+            _context3.n = 8;
+            break;
           case 7:
             _context3.p = 7;
-            pollingInFlight = false;
-            return _context3.f(7);
+            _t2 = _context3.v;
           case 8:
+            _context3.p = 8;
+            pollingInFlight = false;
+            return _context3.f(8);
+          case 9:
             return _context3.a(2);
         }
-      }, _callee3, null, [[2, 6, 7, 8]]);
+      }, _callee3, null, [[2, 7, 8, 9]]);
     }));
     return function pollLatestMessages() {
       return _ref3.apply(this, arguments);
@@ -657,6 +754,143 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     startPolling();
   }
+  var pingPresenceHeartbeat = /*#__PURE__*/function () {
+    var _ref4 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4() {
+      var _t3;
+      return _regenerator().w(function (_context4) {
+        while (1) switch (_context4.p = _context4.n) {
+          case 0:
+            if (!(channel !== 'live_chat' || !presenceHeartbeatEndpoint || document.hidden)) {
+              _context4.n = 1;
+              break;
+            }
+            return _context4.a(2);
+          case 1:
+            _context4.p = 1;
+            _context4.n = 2;
+            return fetch(presenceHeartbeatEndpoint, {
+              method: 'POST',
+              headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken,
+                Accept: 'application/json'
+              }
+            });
+          case 2:
+            _context4.n = 4;
+            break;
+          case 3:
+            _context4.p = 3;
+            _t3 = _context4.v;
+          case 4:
+            return _context4.a(2);
+        }
+      }, _callee4, null, [[1, 3]]);
+    }));
+    return function pingPresenceHeartbeat() {
+      return _ref4.apply(this, arguments);
+    };
+  }();
+  var syncLiveChatStatus = /*#__PURE__*/function () {
+    var _ref5 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5() {
+      var _payload$typing, response, payload, _t4;
+      return _regenerator().w(function (_context5) {
+        while (1) switch (_context5.p = _context5.n) {
+          case 0:
+            if (!(channel !== 'live_chat' || !liveChatStatusEndpoint || document.hidden)) {
+              _context5.n = 1;
+              break;
+            }
+            return _context5.a(2);
+          case 1:
+            _context5.p = 1;
+            _context5.n = 2;
+            return fetch(liveChatStatusEndpoint, {
+              headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                Accept: 'application/json'
+              }
+            });
+          case 2:
+            response = _context5.v;
+            if (response.ok) {
+              _context5.n = 3;
+              break;
+            }
+            throw new Error('status failed');
+          case 3:
+            _context5.n = 4;
+            return response.json();
+          case 4:
+            payload = _context5.v;
+            setVisitorTypingState(Boolean(payload === null || payload === void 0 || (_payload$typing = payload.typing) === null || _payload$typing === void 0 ? void 0 : _payload$typing.visitor));
+            updateAssignmentUi((payload === null || payload === void 0 ? void 0 : payload.assignment) || null);
+            _context5.n = 6;
+            break;
+          case 5:
+            _context5.p = 5;
+            _t4 = _context5.v;
+          case 6:
+            return _context5.a(2);
+        }
+      }, _callee5, null, [[1, 5]]);
+    }));
+    return function syncLiveChatStatus() {
+      return _ref5.apply(this, arguments);
+    };
+  }();
+  var sendLiveChatTyping = /*#__PURE__*/function () {
+    var _ref6 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6() {
+      var text, nowMs, _t5;
+      return _regenerator().w(function (_context6) {
+        while (1) switch (_context6.p = _context6.n) {
+          case 0:
+            if (!(channel !== 'live_chat' || !liveChatAgentTypingEndpoint || !messageInput)) {
+              _context6.n = 1;
+              break;
+            }
+            return _context6.a(2);
+          case 1:
+            text = (messageInput.value || '').trim();
+            if (text) {
+              _context6.n = 2;
+              break;
+            }
+            return _context6.a(2);
+          case 2:
+            nowMs = Date.now();
+            if (!(nowMs - typingLastSentAt < 2500)) {
+              _context6.n = 3;
+              break;
+            }
+            return _context6.a(2);
+          case 3:
+            typingLastSentAt = nowMs;
+            _context6.p = 4;
+            _context6.n = 5;
+            return fetch(liveChatAgentTypingEndpoint, {
+              method: 'POST',
+              headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken,
+                Accept: 'application/json'
+              }
+            });
+          case 5:
+            _context6.n = 7;
+            break;
+          case 6:
+            _context6.p = 6;
+            _t5 = _context6.v;
+          case 7:
+            return _context6.a(2);
+        }
+      }, _callee6, null, [[4, 6]]);
+    }));
+    return function sendLiveChatTyping() {
+      return _ref6.apply(this, arguments);
+    };
+  }();
   var applyConversationFilters = function applyConversationFilters() {
     var query = normalize(conversationSearch === null || conversationSearch === void 0 ? void 0 : conversationSearch.value);
     var visibleCount = 0;
@@ -713,24 +947,24 @@ document.addEventListener('DOMContentLoaded', function () {
     startUserResults.classList.add('show');
   };
   var searchUsersRemote = /*#__PURE__*/function () {
-    var _ref4 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(query) {
-      var url, response, payload, _t3;
-      return _regenerator().w(function (_context4) {
-        while (1) switch (_context4.p = _context4.n) {
+    var _ref7 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee7(query) {
+      var url, response, payload, _t6;
+      return _regenerator().w(function (_context7) {
+        while (1) switch (_context7.p = _context7.n) {
           case 0:
             if (!(!startUserPicker || !startUserId || !startUserResults || !startUserSearchEndpoint)) {
-              _context4.n = 1;
+              _context7.n = 1;
               break;
             }
-            return _context4.a(2);
+            return _context7.a(2);
           case 1:
             startUserId.value = '';
             if (!(query.length < 2)) {
-              _context4.n = 2;
+              _context7.n = 2;
               break;
             }
             renderUserResults([], query);
-            return _context4.a(2);
+            return _context7.a(2);
           case 2:
             if (userSearchController) {
               userSearchController.abort();
@@ -738,9 +972,9 @@ document.addEventListener('DOMContentLoaded', function () {
             userSearchController = new AbortController();
             startUserResults.innerHTML = '<div class="user-search-note">Searching...</div>';
             startUserResults.classList.add('show');
-            _context4.p = 3;
+            _context7.p = 3;
             url = "".concat(startUserSearchEndpoint, "?q=").concat(encodeURIComponent(query), "&limit=15");
-            _context4.n = 4;
+            _context7.n = 4;
             return fetch(url, {
               headers: {
                 'X-Requested-With': 'XMLHttpRequest',
@@ -749,45 +983,45 @@ document.addEventListener('DOMContentLoaded', function () {
               signal: userSearchController.signal
             });
           case 4:
-            response = _context4.v;
+            response = _context7.v;
             if (response.ok) {
-              _context4.n = 5;
+              _context7.n = 5;
               break;
             }
             throw new Error('search failed');
           case 5:
-            _context4.n = 6;
+            _context7.n = 6;
             return response.json();
           case 6:
-            payload = _context4.v;
+            payload = _context7.v;
             renderUserResults(Array.isArray(payload.items) ? payload.items : [], query);
-            _context4.n = 8;
+            _context7.n = 8;
             break;
           case 7:
-            _context4.p = 7;
-            _t3 = _context4.v;
+            _context7.p = 7;
+            _t6 = _context7.v;
             startUserResults.innerHTML = '<div class="user-search-note">Failed to search users.</div>';
             startUserResults.classList.add('show');
           case 8:
-            return _context4.a(2);
+            return _context7.a(2);
         }
-      }, _callee4, null, [[3, 7]]);
+      }, _callee7, null, [[3, 7]]);
     }));
     return function searchUsersRemote(_x) {
-      return _ref4.apply(this, arguments);
+      return _ref7.apply(this, arguments);
     };
   }();
   var sendMessageForm = /*#__PURE__*/function () {
-    var _ref5 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5(formEl) {
-      var submitBtn, response, payload, _payload$errors, _payload$errors2, _payload$errors3, message, msg, _t4;
-      return _regenerator().w(function (_context5) {
-        while (1) switch (_context5.p = _context5.n) {
+    var _ref8 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee8(formEl) {
+      var submitBtn, response, payload, _payload$errors, _payload$errors2, _payload$errors3, message, msg, _t7;
+      return _regenerator().w(function (_context8) {
+        while (1) switch (_context8.p = _context8.n) {
           case 0:
             if (!(!formEl || sendInFlight)) {
-              _context5.n = 1;
+              _context8.n = 1;
               break;
             }
-            return _context5.a(2);
+            return _context8.a(2);
           case 1:
             sendInFlight = true;
             setSendFeedback('');
@@ -795,8 +1029,8 @@ document.addEventListener('DOMContentLoaded', function () {
             if (submitBtn) {
               submitBtn.disabled = true;
             }
-            _context5.p = 2;
-            _context5.n = 3;
+            _context8.p = 2;
+            _context8.n = 3;
             return fetch(formEl.action, {
               method: 'POST',
               headers: {
@@ -807,20 +1041,20 @@ document.addEventListener('DOMContentLoaded', function () {
               body: new FormData(formEl)
             });
           case 3:
-            response = _context5.v;
-            _context5.n = 4;
+            response = _context8.v;
+            _context8.n = 4;
             return response.json()["catch"](function () {
               return {};
             });
           case 4:
-            payload = _context5.v;
+            payload = _context8.v;
             if (response.ok) {
-              _context5.n = 5;
+              _context8.n = 5;
               break;
             }
             message = (payload === null || payload === void 0 ? void 0 : payload.message) || (payload === null || payload === void 0 || (_payload$errors = payload.errors) === null || _payload$errors === void 0 || (_payload$errors = _payload$errors.body) === null || _payload$errors === void 0 ? void 0 : _payload$errors[0]) || (payload === null || payload === void 0 || (_payload$errors2 = payload.errors) === null || _payload$errors2 === void 0 || (_payload$errors2 = _payload$errors2.template_id) === null || _payload$errors2 === void 0 ? void 0 : _payload$errors2[0]) || (payload === null || payload === void 0 || (_payload$errors3 = payload.errors) === null || _payload$errors3 === void 0 || (_payload$errors3 = _payload$errors3.media_file) === null || _payload$errors3 === void 0 ? void 0 : _payload$errors3[0]) || 'Failed to send message.';
             setSendFeedback(message, 'danger');
-            return _context5.a(2);
+            return _context8.a(2);
           case 5:
             msg = payload === null || payload === void 0 ? void 0 : payload.message;
             if (msg) {
@@ -836,26 +1070,26 @@ document.addEventListener('DOMContentLoaded', function () {
             if (formEl === mediaForm) {
               resetMediaComposer();
             }
-            _context5.n = 7;
+            _context8.n = 7;
             break;
           case 6:
-            _context5.p = 6;
-            _t4 = _context5.v;
+            _context8.p = 6;
+            _t7 = _context8.v;
             setSendFeedback('Network error while sending message.', 'danger');
           case 7:
-            _context5.p = 7;
+            _context8.p = 7;
             sendInFlight = false;
             if (submitBtn) {
               submitBtn.disabled = false;
             }
-            return _context5.f(7);
+            return _context8.f(7);
           case 8:
-            return _context5.a(2);
+            return _context8.a(2);
         }
-      }, _callee5, null, [[2, 6, 7, 8]]);
+      }, _callee8, null, [[2, 6, 7, 8]]);
     }));
     return function sendMessageForm(_x2) {
-      return _ref5.apply(this, arguments);
+      return _ref8.apply(this, arguments);
     };
   }();
   var initTemplateSelector = function initTemplateSelector() {
@@ -888,7 +1122,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var placeholders = _toConsumableArray(new Set([].concat(_toConsumableArray(extractPlaceholders(body)), _toConsumableArray(extractPlaceholders(header)))));
       tplVars.innerHTML = '';
       tplLang.value = (_opt$textContent$matc = (_opt$textContent$matc2 = opt.textContent.match(/\((.*?)\)/)) === null || _opt$textContent$matc2 === void 0 ? void 0 : _opt$textContent$matc2[1]) !== null && _opt$textContent$matc !== void 0 ? _opt$textContent$matc : '';
-      tplPreview.textContent = body ? "Preview body: ".concat(body) : '';
+      tplPreview.innerHTML = body ? "Preview body:<br>".concat(formatMessageHtml(body)) : '';
       placeholders.forEach(function (idx) {
         var col = document.createElement('div');
         col.className = 'col-md-6';
@@ -905,7 +1139,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   };
   bindDeferredMediaScroll(chatPane);
-  scrollChatToBottom();
+  ensureLatestMessageVisible();
+  setTimeout(function () {
+    return ensureLatestMessageVisible();
+  }, 80);
   initMobileView();
   initWebNotifButton();
   initTemplateSelector();
@@ -958,12 +1195,16 @@ document.addEventListener('DOMContentLoaded', function () {
   window.addEventListener('resize', function () {
     if (!isMobile()) {
       dashboardRoot.classList.remove('mobile-view-inbox', 'mobile-view-chat', 'mobile-view-detail');
+      ensureLatestMessageVisible();
       if (document.hasFocus()) {
         clearUnread();
       }
     } else if (!dashboardRoot.classList.contains('mobile-view-inbox') && !dashboardRoot.classList.contains('mobile-view-chat') && !dashboardRoot.classList.contains('mobile-view-detail')) {
       setMobileView('inbox');
     }
+  });
+  window.addEventListener('load', function () {
+    return ensureLatestMessageVisible();
   });
   startUserPicker === null || startUserPicker === void 0 || startUserPicker.addEventListener('input', function () {
     if (startUserInvalid) {
@@ -1041,6 +1282,14 @@ document.addEventListener('DOMContentLoaded', function () {
   mediaUploadChange === null || mediaUploadChange === void 0 || mediaUploadChange.addEventListener('click', function () {
     openMediaPicker(activeMediaPickerKind);
   });
+  messageInput === null || messageInput === void 0 || messageInput.addEventListener('input', function () {
+    if (typingTimer) {
+      clearTimeout(typingTimer);
+    }
+    typingTimer = setTimeout(function () {
+      sendLiveChatTyping();
+    }, 250);
+  });
   if (lockSpan && lockedUntil) {
     var lockTimer = null;
     var tick = function tick() {
@@ -1084,6 +1333,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
   refreshPollingState();
+  pingPresenceHeartbeat();
+  syncLiveChatStatus();
+  if (channel === 'live_chat' && presenceHeartbeatEndpoint) {
+    presenceHeartbeatTimer = setInterval(pingPresenceHeartbeat, 30000);
+  }
 });
 /******/ })()
 ;

@@ -124,12 +124,17 @@
                     @endphp
                     <tr>
                         <td>
-                            <div class="d-flex flex-column gap-1">
-                                <div class="fw-semibold">{{ $module['name'] }}</div>
-                                <div class="text-muted small">{{ $module['slug'] }}</div>
-                                @if($module['description'])
-                                    <div class="text-muted small">{{ $module['description'] }}</div>
-                                @endif
+                            <div class="d-flex align-items-start gap-3">
+                                <div class="mt-1">
+                                    @include('shared.module-icon', ['module' => $module, 'size' => 26])
+                                </div>
+                                <div class="d-flex flex-column gap-1">
+                                    <div class="fw-semibold">{{ $module['name'] }}</div>
+                                    <div class="text-muted small">{{ $module['slug'] }}</div>
+                                    @if($module['description'])
+                                        <div class="text-muted small">{{ $module['description'] }}</div>
+                                    @endif
+                                </div>
                             </div>
                         </td>
                         <td>

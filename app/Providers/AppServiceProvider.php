@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Support\HookManager;
 use App\Support\CorePermissions;
+use App\Modules\LiveChat\Support\LiveChatRealtimeState;
+use App\Support\ModuleIconRegistry;
 use App\Support\ModuleManager;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
@@ -20,7 +22,9 @@ class AppServiceProvider extends ServiceProvider
     public function register()
     {
         $this->app->singleton(ModuleManager::class, fn () => new ModuleManager());
+        $this->app->singleton(ModuleIconRegistry::class, fn () => new ModuleIconRegistry());
         $this->app->singleton(HookManager::class, fn () => new HookManager());
+        $this->app->singleton(LiveChatRealtimeState::class, fn () => new LiveChatRealtimeState());
     }
 
     /**

@@ -1,19 +1,29 @@
 {
-  "slug": "payments",
-  "name": "Payments",
-  "description": "Domain pembayaran reusable untuk mencatat, mengalokasikan, dan mengelola pembayaran transaksi lintas channel.",
-  "provider": "App\\Modules\\Payments\\PaymentsServiceProvider",
-  "version": "1.0.0",
-  "category": "commerce",
-  "requires": ["sales"],
-  "sample_data": {
-    "description": "Membuat satu payment posted menggunakan metode yang tersedia.",
-    "seeders": [
-      "App\\Modules\\Payments\\Database\\Seeders\\PaymentSampleSeeder"
-    ]
-  },
-  "navigation": [
-    { "label": "Payment List", "route": "payments.index" },
-    { "label": "Payment Methods", "route": "payments.methods.index" }
-  ]
+    "slug":  "payments",
+    "name":  "Payments",
+    "description":  "Domain pembayaran reusable untuk mencatat, mengalokasikan, dan mengelola pembayaran transaksi lintas channel.",
+    "provider":  "App\\Modules\\Payments\\PaymentsServiceProvider",
+    "version":  "1.0.0",
+    "category":  "commerce",
+    "requires":  [
+                     "sales"
+                 ],
+    "sample_data":  {
+                        "description":  "Membuat satu payment posted menggunakan metode yang tersedia.",
+                        "seeders":  [
+                                        "App\\Modules\\Payments\\Database\\Seeders\\PaymentSampleSeeder"
+                                    ]
+                    },
+    "navigation":  [
+                       {
+                           "label":  "Payment List",
+                           "route":  "payments.index"
+                       },
+                       {
+                           "label":  "Payment Methods",
+                           "route":  "payments.methods.index"
+                       }
+                   ],
+    "icon":  "resources/icons/icon.svg"
 }
+

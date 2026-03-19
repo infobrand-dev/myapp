@@ -1,18 +1,26 @@
 {
-  "slug": "chatbot",
-  "name": "Chatbot",
-  "description": "Akun AI chatbot untuk automasi balasan.",
-  "provider": "App\\Modules\\Chatbot\\ChatbotServiceProvider",
-  "version": "1.0.0",
-  "category": "automation",
-  "requires": ["conversations"],
-  "sample_data": {
-    "description": "Membuat akun bot, knowledge base, dan sesi percakapan chatbot.",
-    "seeders": [
-      "App\\Modules\\Chatbot\\Database\\Seeders\\ChatbotSampleSeeder"
-    ]
-  },
-  "navigation": [
-    { "label": "Chatbot", "route": "chatbot.playground.index", "role": "Super-admin" }
-  ]
+    "slug":  "chatbot",
+    "name":  "Chatbot",
+    "description":  "Akun AI chatbot untuk automasi balasan.",
+    "provider":  "App\\Modules\\Chatbot\\ChatbotServiceProvider",
+    "version":  "1.0.0",
+    "category":  "automation",
+    "requires":  [
+                     "conversations"
+                 ],
+    "sample_data":  {
+                        "description":  "Membuat akun bot, knowledge base, dan sesi percakapan chatbot.",
+                        "seeders":  [
+                                        "App\\Modules\\Chatbot\\Database\\Seeders\\ChatbotSampleSeeder"
+                                    ]
+                    },
+    "navigation":  [
+                       {
+                           "label":  "Chatbot",
+                           "route":  "chatbot.playground.index",
+                           "role":  "Super-admin"
+                       }
+                   ],
+    "icon":  "resources/icons/icon.svg"
 }
+

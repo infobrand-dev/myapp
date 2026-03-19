@@ -1,0 +1,20 @@
+{
+    "slug":  "live_chat",
+    "name":  "Live Chat",
+    "description":  "Widget live chat website yang terhubung ke shared inbox conversations.",
+    "provider":  "App\\Modules\\LiveChat\\LiveChatServiceProvider",
+    "version":  "1.0.0",
+    "category":  "communication",
+    "requires":  [
+                     "conversations"
+                 ],
+    "navigation":  [
+                       {
+                           "label":  "Live Chat",
+                           "route":  "live-chat.widgets.index",
+                           "role":  "Super-admin"
+                       }
+                   ],
+    "icon":  "resources/icons/icon.svg"
+}
+

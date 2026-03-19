@@ -10,11 +10,12 @@ return new class extends Migration
     {
         Schema::create('wa_flows', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('tenant_id')->default(1)->index();
             $table->foreignId('instance_id')->constrained('whatsapp_instances')->cascadeOnDelete();
             $table->string('name');
             $table->json('categories')->nullable();
             $table->string('endpoint_uri')->nullable();
-            $table->string('meta_flow_id')->nullable()->unique();
+            $table->string('meta_flow_id')->nullable();
             $table->string('status')->default('draft');
             $table->string('json_version')->nullable();
             $table->string('data_api_version')->nullable();
@@ -25,6 +26,7 @@ return new class extends Migration
             $table->timestamp('preview_expires_at')->nullable();
             $table->text('last_sync_error')->nullable();
             $table->timestamps();
+            $table->unique(['tenant_id', 'meta_flow_id']);
         });
     }
 

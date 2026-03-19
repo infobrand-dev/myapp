@@ -9,6 +9,8 @@ return new class extends Migration {
     {
         Schema::create('tasks', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('tenant_id')->default(1)->index();
+            $table->foreignId('memo_id')->nullable()->constrained('memos')->nullOnDelete();
             $table->string('title');
             $table->text('description')->nullable();
             $table->enum('status', ['pending', 'in_progress', 'done'])->default('pending');

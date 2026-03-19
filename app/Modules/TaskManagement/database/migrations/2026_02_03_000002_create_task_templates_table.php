@@ -9,8 +9,10 @@ return new class extends Migration {
     {
         Schema::create('task_templates', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('tenant_id')->default(1)->index();
             $table->string('title');
             $table->text('description')->nullable();
+            $table->json('meta')->nullable();
             $table->timestamps();
         });
     }

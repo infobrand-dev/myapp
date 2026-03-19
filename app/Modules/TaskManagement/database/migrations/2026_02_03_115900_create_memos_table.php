@@ -9,6 +9,7 @@ return new class extends Migration {
     {
         Schema::create('memos', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('tenant_id')->default(1)->index();
             $table->string('title');
             $table->string('company_name');
             $table->string('brand_name')->nullable();

@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('whatsapp_instance_user', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('tenant_id')->default(1)->index();
             $table->foreignId('instance_id')->constrained('whatsapp_instances')->cascadeOnDelete();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('role')->default('agent'); // agent|supervisor

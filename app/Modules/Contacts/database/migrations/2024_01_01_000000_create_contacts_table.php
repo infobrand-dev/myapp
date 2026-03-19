@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('contacts', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('tenant_id')->default(1)->index();
             $table->string('type');
             $table->foreignId('company_id')->nullable()->constrained('contacts')->nullOnDelete();
             $table->string('name');
@@ -30,6 +31,8 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
+
+            $table->index(['tenant_id', 'type', 'is_active']);
         });
     }
 

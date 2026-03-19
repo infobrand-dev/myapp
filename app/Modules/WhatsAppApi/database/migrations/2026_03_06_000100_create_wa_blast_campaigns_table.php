@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('wa_blast_campaigns', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('tenant_id')->default(1)->index();
             $table->string('name');
             $table->foreignId('instance_id')->constrained('whatsapp_instances')->cascadeOnDelete();
             $table->foreignId('template_id')->constrained('wa_templates')->restrictOnDelete();

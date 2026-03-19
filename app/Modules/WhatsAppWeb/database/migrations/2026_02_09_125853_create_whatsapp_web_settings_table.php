@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('whatsapp_web_settings', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('tenant_id')->default(1)->index();
             $table->string('provider')->default('whatsapp_web');
             $table->string('base_url')->nullable();
             $table->string('verify_token')->nullable();

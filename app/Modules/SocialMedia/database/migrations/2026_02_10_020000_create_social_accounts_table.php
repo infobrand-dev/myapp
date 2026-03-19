@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('social_accounts', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('tenant_id')->default(1)->index();
             $table->string('platform'); // instagram|facebook
             $table->string('page_id')->nullable();
             $table->string('ig_business_id')->nullable();

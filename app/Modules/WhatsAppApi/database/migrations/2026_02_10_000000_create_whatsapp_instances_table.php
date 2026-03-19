@@ -10,8 +10,12 @@ return new class extends Migration
     {
         Schema::create('whatsapp_instances', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('tenant_id')->default(1)->index();
             $table->string('name');
             $table->string('phone_number')->nullable();
+            $table->string('phone_number_id')->nullable();
+            $table->string('cloud_business_account_id')->nullable();
+            $table->text('cloud_token')->nullable();
             $table->string('provider')->default('wwebjs');
             $table->string('api_base_url')->nullable();
             $table->string('api_token')->nullable();

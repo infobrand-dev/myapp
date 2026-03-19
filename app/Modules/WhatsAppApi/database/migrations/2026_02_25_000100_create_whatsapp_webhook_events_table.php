@@ -10,9 +10,10 @@ return new class extends Migration
     {
         Schema::create('whatsapp_webhook_events', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('tenant_id')->default(1)->index();
             $table->foreignId('instance_id')->nullable()->constrained('whatsapp_instances')->nullOnDelete();
             $table->string('provider', 30)->default('cloud');
-            $table->string('event_key', 64)->unique();
+            $table->string('event_key', 64);
             $table->json('headers')->nullable();
             $table->json('payload')->nullable();
             $table->boolean('signature_valid')->nullable();
@@ -23,6 +24,7 @@ return new class extends Migration
             $table->timestamp('processed_at')->nullable();
             $table->timestamps();
 
+            $table->unique(['tenant_id', 'event_key']);
             $table->index(['provider', 'process_status']);
             $table->index(['instance_id', 'created_at']);
         });
@@ -33,4 +35,3 @@ return new class extends Migration
         Schema::dropIfExists('whatsapp_webhook_events');
     }
 };
-

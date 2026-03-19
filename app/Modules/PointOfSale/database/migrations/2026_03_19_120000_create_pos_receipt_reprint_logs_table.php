@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('pos_receipt_reprint_logs', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('tenant_id')->default(1)->index();
             $table->foreignId('sale_id')->constrained('sales')->cascadeOnDelete();
             $table->foreignId('pos_cash_session_id')->nullable()->constrained('pos_cash_sessions')->nullOnDelete();
             $table->unsignedBigInteger('outlet_id')->nullable();

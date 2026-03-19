@@ -20,6 +20,8 @@
 - When practical, keep room for `tenant_id` in table design, query composition, unique constraints, cache keys, webhook/account resolution, and ownership rules. Avoid building new flows that implicitly assume a single global tenant.
 - Until an explicit tenant resolver is introduced, tenant-aware writes should use `tenant_id = 1` instead of leaving the field `null`.
 - If a change is intentionally shipped before tenant scoping is completed, document the limitation clearly and keep the implementation easy to migrate to tenant-aware behavior.
+- Core tenant bootstrap now uses a dedicated `tenants` table. Default installation must always have tenant `id = 1` with the name `Default tenant`.
+- For the current rollout, business data and tenant-owned user data should be scoped by `tenant_id`, while framework/runtime tables such as migration bookkeeping, failed jobs, password resets, personal access tokens, roles, permissions, and module registry remain global unless there is a specific reason to tenant-scope them later.
 
 ## Boundaries
 - Keep root framework paths focused on app-shell concerns unless the feature is part of the non-optional base product.

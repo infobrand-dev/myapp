@@ -9,6 +9,7 @@ return new class extends Migration {
     {
         Schema::create('task_template_items', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('tenant_id')->default(1)->index();
             $table->foreignId('task_template_id')->constrained('task_templates')->cascadeOnDelete();
             $table->string('title');
             $table->unsignedInteger('position')->default(1);

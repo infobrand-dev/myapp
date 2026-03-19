@@ -10,7 +10,8 @@ return new class extends Migration
     {
         Schema::create('wa_contact_phone_statuses', function (Blueprint $table) {
             $table->id();
-            $table->string('phone_number', 30)->unique();
+            $table->unsignedBigInteger('tenant_id')->default(1)->index();
+            $table->string('phone_number', 30);
             $table->string('last_contact_name')->nullable();
             $table->string('status', 30)->default('active'); // active|blocked
             $table->unsignedInteger('failure_count')->default(0);
@@ -18,6 +19,7 @@ return new class extends Migration
             $table->timestamp('last_failed_at')->nullable();
             $table->timestamps();
 
+            $table->unique(['tenant_id', 'phone_number']);
             $table->index(['status', 'last_failed_at']);
         });
     }

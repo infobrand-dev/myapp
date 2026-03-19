@@ -14,6 +14,7 @@ return new class extends Migration
 
         Schema::create('whatsapp_instance_chatbot_integrations', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('tenant_id')->default(1)->index();
             $table->foreignId('instance_id')
                 ->constrained('whatsapp_instances')
                 ->cascadeOnDelete();
@@ -32,4 +33,3 @@ return new class extends Migration
         Schema::dropIfExists('whatsapp_instance_chatbot_integrations');
     }
 };
-

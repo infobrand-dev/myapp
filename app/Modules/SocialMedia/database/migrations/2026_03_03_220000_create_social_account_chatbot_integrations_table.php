@@ -14,6 +14,7 @@ return new class extends Migration
 
         Schema::create('social_account_chatbot_integrations', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('tenant_id')->default(1)->index();
             $table->unsignedBigInteger('social_account_id');
             $table->boolean('auto_reply')->default(false);
             $table->unsignedBigInteger('chatbot_account_id')->nullable();

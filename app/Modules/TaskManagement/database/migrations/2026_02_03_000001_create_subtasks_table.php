@@ -9,8 +9,11 @@ return new class extends Migration {
     {
         Schema::create('subtasks', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('tenant_id')->default(1)->index();
             $table->foreignId('task_id')->constrained('tasks')->cascadeOnDelete();
             $table->string('title');
+            $table->string('pic')->nullable();
+            $table->date('due_date')->nullable();
             $table->enum('status', ['pending', 'in_progress', 'done'])->default('pending');
             $table->timestamps();
         });

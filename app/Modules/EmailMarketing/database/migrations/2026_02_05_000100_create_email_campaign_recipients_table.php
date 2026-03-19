@@ -10,17 +10,19 @@ return new class extends Migration
     {
         Schema::create('email_campaign_recipients', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('tenant_id')->default(1)->index();
             $table->foreignId('campaign_id')->constrained('email_campaigns')->cascadeOnDelete();
             $table->foreignId('contact_id')->nullable()->constrained('contacts')->nullOnDelete();
             $table->string('recipient_name');
             $table->string('recipient_email');
             $table->string('tracking_token')->unique();
-            $table->enum('delivery_status', ['pending', 'delivered', 'bounced'])->default('pending');
+            $table->enum('delivery_status', ['pending', 'outgoing', 'delivered', 'bounced'])->default('pending');
             $table->timestamp('delivered_at')->nullable();
             $table->timestamp('opened_at')->nullable();
             $table->timestamp('clicked_at')->nullable();
             $table->timestamp('replied_at')->nullable();
             $table->timestamp('bounced_at')->nullable();
+            $table->timestamp('unsubscribed_at')->nullable();
             $table->timestamps();
 
             $table->index(['campaign_id', 'recipient_email']);

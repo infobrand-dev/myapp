@@ -10,17 +10,20 @@ return new class extends Migration
     {
         Schema::create('email_attachment_templates', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('tenant_id')->default(1)->index();
             $table->string('name');
             $table->string('description')->nullable();
             $table->string('filename')->default('attachment.pdf');
             $table->longText('html');
             $table->string('mime')->default('application/pdf');
+            $table->string('paper_size')->default('A4');
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
         });
 
         Schema::create('email_attachment_campaign', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('tenant_id')->default(1)->index();
             $table->foreignId('campaign_id')->constrained('email_campaigns')->cascadeOnDelete();
             $table->foreignId('template_id')->constrained('email_attachment_templates')->cascadeOnDelete();
             $table->timestamps();

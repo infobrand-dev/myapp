@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('wa_blast_recipients', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('tenant_id')->default(1)->index();
             $table->foreignId('campaign_id')->constrained('wa_blast_campaigns')->cascadeOnDelete();
             $table->string('phone_number', 30);
             $table->string('contact_name')->nullable();

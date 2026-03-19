@@ -32,6 +32,18 @@
 - When creating future industry-specific features such as restaurant or pharmacy, prefer new standalone modules that extend the reusable core instead of forcing industry logic into core modules.
 - When adding new modules, keep the source of truth for metadata in `module.json` and update the Modules management UI so filtering can use `category` now and `industry` later.
 
+## UI mode roadmap
+- The product may gradually support a user-facing UI mode toggle such as `simple` and `advanced`.
+- This UI mode is intended to change presentation, information density, and interaction depth, not the underlying source of truth or core transaction rules.
+- `simple` mode should focus on speed, minimal fields, reduced noise, and easier onboarding for cashier/staff/general operators.
+- `advanced` mode should expose additional filters, diagnostics, breakdowns, optional fields, audit context, and denser operational controls for experienced users or supervisors.
+- Prefer progressive disclosure inside the same page or module flow instead of maintaining two fully separate implementations when most of the business logic is shared.
+- The toggle should not silently change validation rules, workflow state machines, permission boundaries, accounting meaning, or transaction semantics. If business rules differ, treat that as a product/package rule, not only a UI mode rule.
+- For commercial modules such as `sales`, `payments`, `purchases`, `inventory`, `point-of-sale`, and `reports`, advanced mode is expected to affect UI/UX first, while the transactional core remains the same.
+- A future packaging strategy may reserve `advanced` mode or parts of it for the highest subscription tier or enterprise plan.
+- If advanced mode becomes package-gated, keep the gating explicit and centralized. Do not scatter plan checks randomly across core views and controllers.
+- Any future plan-based gating for advanced mode should be implemented in a way that still keeps optional or enterprise-only behavior modular and does not leak package-specific logic into unrelated core paths.
+
 ## How to run (generic)
 - Backend deps: `composer install` (PHP >= 8.2).
 - Frontend deps: `npm install`.

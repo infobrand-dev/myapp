@@ -17,7 +17,6 @@ Route::middleware(['web', 'auth'])
     ->name('pos.')
     ->group(function () {
         Route::get('/', [PosScreenController::class, 'index'])->middleware('permission:pos.use')->name('index');
-        Route::get('/architecture', [PosScreenController::class, 'architecture'])->middleware('permission:pos.use')->name('architecture');
         Route::get('/shifts', [CashSessionController::class, 'index'])->middleware('permission:pos.view-shift')->name('shifts.index');
         Route::get('/shifts/open', [CashSessionController::class, 'create'])->middleware('permission:pos.open-shift')->name('shifts.create');
         Route::post('/shifts', [CashSessionController::class, 'store'])->middleware('permission:pos.open-shift')->name('shifts.store');
@@ -41,4 +40,5 @@ Route::middleware(['web', 'auth'])
         Route::post('/checkout', [CheckoutController::class, 'store'])->middleware('permission:pos.checkout')->name('checkout.store');
         Route::get('/receipts/{sale}', [ReceiptController::class, 'show'])->middleware('permission:pos.print-receipt')->name('receipts.show');
         Route::get('/receipts/{sale}/print', [ReceiptController::class, 'print'])->middleware('permission:pos.print-receipt')->name('receipts.print');
+        Route::post('/receipts/{sale}/reprint', [ReceiptController::class, 'reprint'])->middleware('permission:pos.reprint-receipt')->name('receipts.reprint');
     });

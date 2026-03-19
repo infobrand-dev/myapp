@@ -17,6 +17,9 @@
         @if($sale->status === 'finalized')
             <a href="{{ route('sales.returns.create', ['sale_id' => $sale->id]) }}" class="btn btn-outline-warning">Create Return</a>
         @endif
+        @if($sale->source === 'pos' && $sale->status === 'finalized' && Route::has('pos.receipts.show') && auth()->user()->can('pos.print-receipt'))
+            <a href="{{ route('pos.receipts.show', $sale) }}" class="btn btn-outline-dark">POS Receipt</a>
+        @endif
         <a href="{{ route('sales.invoice', $sale) }}" class="btn btn-outline-primary">Print / Invoice</a>
         <a href="{{ route('sales.index') }}" class="btn btn-outline-secondary">Back</a>
     </div>
@@ -109,6 +112,35 @@
                 </table>
             </div>
         </div>
+
+        @php
+            $reprintHistories = $sale->statusHistories->filter(fn ($history) => $history->event === 'receipt_reprinted')->values();
+        @endphp
+        <div class="card mt-3">
+            <div class="card-header"><h3 class="card-title">Receipt Reprint Audit</h3></div>
+            <div class="card-body">
+                @if($sale->source !== 'pos')
+                    <div class="text-muted">Transaksi ini bukan transaksi POS.</div>
+                @elseif($reprintHistories->isNotEmpty())
+                    @foreach($reprintHistories as $history)
+                        <div class="border rounded p-2 mb-2">
+                            <div class="d-flex justify-content-between gap-2">
+                                <div class="fw-semibold">Reprint #{{ data_get($history->meta, 'reprint_sequence', '?') }}</div>
+                                <div class="text-muted small">{{ $history->created_at->format('d M Y H:i') }}</div>
+                            </div>
+                            <div class="small mt-1">Actor: {{ $history->actor ? $history->actor->name : '-' }}</div>
+                            <div class="small">Reason: {{ $history->reason ?: '-' }}</div>
+                            <div class="text-muted small">
+                                Outlet: {{ data_get($history->meta, 'outlet_id', '-') }}
+                                | Shift: {{ data_get($history->meta, 'pos_cash_session_id', '-') }}
+                            </div>
+                        </div>
+                    @endforeach
+                @else
+                    <div class="text-muted">Belum ada reprint receipt untuk transaksi ini.</div>
+                @endif
+            </div>
+        </div>
     </div>
 
     <div class="col-lg-4">
@@ -155,6 +187,16 @@
                         <label class="form-label">Void reason</label>
                         <textarea name="reason" class="form-control" rows="3" required placeholder="Alasan void wajib diisi"></textarea>
                         <button type="submit" class="btn btn-danger w-100 mt-2">Void Sale</button>
+                    </form>
+                @endif
+
+                @if($sale->source === 'pos' && $sale->status === 'finalized' && Route::has('pos.receipts.reprint') && auth()->user()->can('pos.reprint-receipt'))
+                    <form method="POST" action="{{ route('pos.receipts.reprint', $sale) }}" class="mt-3">
+                        @csrf
+                        <label class="form-label">Receipt reprint reason</label>
+                        <textarea name="reason" class="form-control" rows="3" required minlength="10" placeholder="Contoh: Customer kehilangan struk original dan meminta duplikat."></textarea>
+                        <button type="submit" class="btn btn-outline-danger w-100 mt-2">Reprint POS Receipt</button>
+                        <div class="form-text">Hanya user dengan permission reprint yang dapat melihat aksi ini.</div>
                     </form>
                 @endif
 

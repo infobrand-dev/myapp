@@ -29,8 +29,8 @@ Route::withoutMiddleware([
     \App\Http\Middleware\VerifyCsrfToken::class,
 ])->group(function () {
     Route::get('/install', [InstallController::class, 'index'])->name('install.index');
-    Route::post('/install/test-db', [InstallController::class, 'testDatabase'])->name('install.test-db');
-    Route::post('/install/run', [InstallController::class, 'run'])->name('install.run');
+    Route::post('/install/test-db', [InstallController::class, 'testDatabase'])->middleware('throttle:10,1')->name('install.test-db');
+    Route::post('/install/run', [InstallController::class, 'run'])->middleware('throttle:5,1')->name('install.run');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {

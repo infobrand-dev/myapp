@@ -9,7 +9,6 @@ use App\Modules\PointOfSale\Models\PosCart;
 use App\Modules\PointOfSale\Services\PosCashSessionService;
 use App\Modules\Products\Models\Product;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Facades\File;
 
 class PosScreenController extends Controller
 {
@@ -44,13 +43,6 @@ class PosScreenController extends Controller
                 ->where('status', PosCart::STATUS_HELD)
                 ->count(),
             'activeShift' => $activeShift,
-        ]);
-    }
-
-    public function architecture(): View
-    {
-        return view('pos::architecture', [
-            'blueprint' => File::get(__DIR__ . '/../../README.md'),
         ]);
     }
 }

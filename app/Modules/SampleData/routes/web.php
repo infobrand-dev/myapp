@@ -3,7 +3,7 @@
 use App\Modules\SampleData\Http\Controllers\SampleDataController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['web', 'auth', 'permission:sample-data.view'])
+Route::middleware(['web', 'auth', 'role:Super-admin', 'permission:sample-data.view'])
     ->prefix('sample-data')
     ->name('sample-data.')
     ->group(function () {

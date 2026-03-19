@@ -13,6 +13,6 @@
     ]
   },
   "navigation": [
-    { "label": "Chatbot", "route": "chatbot.playground.index" }
+    { "label": "Chatbot", "route": "chatbot.playground.index", "role": "Super-admin" }
   ]
 }

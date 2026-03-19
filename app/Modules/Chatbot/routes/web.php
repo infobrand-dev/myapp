@@ -18,15 +18,14 @@ Route::middleware(['web', 'auth'])
             Route::get('accounts/{account}/knowledge/{document}/edit', [ChatbotKnowledgeController::class, 'edit'])->name('knowledge.edit');
             Route::put('accounts/{account}/knowledge/{document}', [ChatbotKnowledgeController::class, 'update'])->name('knowledge.update');
             Route::delete('accounts/{account}/knowledge/{document}', [ChatbotKnowledgeController::class, 'destroy'])->name('knowledge.destroy');
+            Route::get('playground', [ChatbotPlaygroundController::class, 'index'])->name('playground.index');
+            Route::get('playground/{session}', [ChatbotPlaygroundController::class, 'show'])->name('playground.show');
+            Route::post('playground/send', [ChatbotPlaygroundController::class, 'send'])
+                ->middleware('throttle:20,1')
+                ->name('playground.send');
+            Route::post('conversations/{conversation}/pause-bot', [ConversationBotController::class, 'pause'])
+                ->name('conversations.pause-bot');
+            Route::post('conversations/{conversation}/resume-bot', [ConversationBotController::class, 'resume'])
+                ->name('conversations.resume-bot');
         });
-
-        Route::get('playground', [ChatbotPlaygroundController::class, 'index'])->name('playground.index');
-        Route::get('playground/{session}', [ChatbotPlaygroundController::class, 'show'])->name('playground.show');
-        Route::post('playground/send', [ChatbotPlaygroundController::class, 'send'])
-            ->middleware('throttle:20,1')
-            ->name('playground.send');
-        Route::post('conversations/{conversation}/pause-bot', [ConversationBotController::class, 'pause'])
-            ->name('conversations.pause-bot');
-        Route::post('conversations/{conversation}/resume-bot', [ConversationBotController::class, 'resume'])
-            ->name('conversations.resume-bot');
     });

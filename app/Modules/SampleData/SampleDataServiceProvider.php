@@ -18,7 +18,6 @@ class SampleDataServiceProvider extends ServiceProvider
 
     public const DEFAULT_ROLE_PERMISSIONS = [
         'Super-admin' => self::PERMISSIONS,
-        'Admin' => self::PERMISSIONS,
     ];
 
     public function register(): void

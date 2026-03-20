@@ -9,7 +9,9 @@ use App\Modules\Products\Models\ProductOptionGroup;
 use App\Modules\Products\Models\ProductOptionValue;
 use App\Modules\Products\Models\ProductPriceLevel;
 use App\Modules\Products\Models\ProductVariant;
+use App\Support\PlanLimit;
 use App\Support\TenantContext;
+use App\Support\TenantPlanManager;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -26,6 +28,8 @@ class ProductService
 
     public function create(array $data, ?User $actor = null): Product
     {
+        app(TenantPlanManager::class)->ensureWithinLimit(PlanLimit::PRODUCTS);
+
         return DB::transaction(function () use ($data, $actor) {
             $data = $this->lookupService->resolveLookupIds($data);
 

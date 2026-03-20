@@ -198,6 +198,7 @@ class WhatsAppWebConversationSyncService
     private function defaultOwnerId(): ?int
     {
         $owner = User::query()
+            ->where('tenant_id', TenantContext::currentId())
             ->whereHas('roles', fn ($query) => $query->whereIn('name', ['Super-admin', 'Admin']))
             ->orderBy('id')
             ->first();

@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\Tenant;
+use App\Support\TenantContext;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
@@ -44,12 +46,32 @@ class LoginRequest extends FormRequest
     public function authenticate()
     {
         $this->ensureIsNotRateLimited();
+        $tenantId = TenantContext::resolveIdFromRequest($this);
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        if (! Auth::attempt([
+            'email' => $this->string('email')->toString(),
+            'password' => $this->string('password')->toString(),
+            'tenant_id' => $tenantId,
+        ], $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),
+            ]);
+        }
+
+        $user = Auth::user();
+        $tenantIsActive = $user && Tenant::query()
+            ->whereKey($user->tenant_id)
+            ->where('is_active', true)
+            ->exists();
+
+        if (!$user || !$tenantIsActive) {
+            Auth::guard('web')->logout();
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => 'Tenant akun tidak aktif atau tidak valid.',
             ]);
         }
 
@@ -88,6 +110,6 @@ class LoginRequest extends FormRequest
      */
     public function throttleKey()
     {
-        return Str::lower($this->input('email')).'|'.$this->ip();
+        return Str::lower($this->input('email')).'|'.TenantContext::resolveIdFromRequest($this).'|'.$this->ip();
     }
 }

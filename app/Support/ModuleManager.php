@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Module;
+use App\Support\TenantRoleProvisioner;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
@@ -127,6 +128,12 @@ class ModuleManager
         $record = Module::query()->where('slug', $slug)->firstOrFail();
         $record->is_active = true;
         $record->saveOrFail();
+
+        if (!empty($all[$slug]['provider']) && class_exists($all[$slug]['provider'])) {
+            app()->register($all[$slug]['provider']);
+        }
+
+        app(TenantRoleProvisioner::class)->ensureForAllTenants();
     }
 
     public function deactivate(string $slug): void

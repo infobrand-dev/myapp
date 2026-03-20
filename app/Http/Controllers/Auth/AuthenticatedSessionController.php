@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Providers\RouteServiceProvider;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -31,6 +32,7 @@ class AuthenticatedSessionController extends Controller
         $request->authenticate();
 
         $request->session()->regenerate();
+        $this->syncTenantSession($request);
 
         return redirect()->intended(RouteServiceProvider::HOME);
     }
@@ -48,7 +50,18 @@ class AuthenticatedSessionController extends Controller
         $request->session()->invalidate();
 
         $request->session()->regenerateToken();
+        TenantContext::forget();
 
         return redirect('/');
+    }
+
+    private function syncTenantSession(Request $request): void
+    {
+        $tenantId = TenantContext::resolveIdFromUser($request->user()) ?? TenantContext::resolveIdFromRequest($request);
+
+        TenantContext::setCurrentId($tenantId);
+        $tenant = TenantContext::currentTenant();
+        $request->session()->put('tenant_id', $tenantId);
+        $request->session()->put('tenant_slug', $tenant?->slug);
     }
 }

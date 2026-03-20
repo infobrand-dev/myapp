@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Tenant;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 
@@ -75,6 +76,21 @@ class TenantContext
         }
 
         return self::tenantExists(1) ? 1 : (int) (Tenant::query()->where('is_active', true)->value('id') ?: 1);
+    }
+
+    public static function resolveIdFromUser(?User $user): ?int
+    {
+        if (!$user || !Schema::hasTable('tenants')) {
+            return null;
+        }
+
+        $tenantId = self::normalizeInteger($user->tenant_id ?? null);
+
+        if ($tenantId === null) {
+            return null;
+        }
+
+        return self::tenantExists($tenantId) ? $tenantId : null;
     }
 
     private static function tenantExists(int $tenantId): bool

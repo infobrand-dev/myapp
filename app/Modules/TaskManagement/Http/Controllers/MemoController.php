@@ -3,12 +3,14 @@
 namespace App\Modules\TaskManagement\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Modules\TaskManagement\Models\Memo;
 use App\Modules\TaskManagement\Models\Task;
 use App\Modules\TaskManagement\Models\Subtask;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class MemoController extends Controller
@@ -41,7 +43,11 @@ class MemoController extends Controller
 
     public function create(): View
     {
-        $users = \App\Models\User::select('id', 'name')->orderBy('name')->get();
+        $users = User::query()
+            ->where('tenant_id', $this->tenantId())
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get();
         return view('taskmgmt::memos.form', compact('users'));
     }
 
@@ -68,7 +74,11 @@ class MemoController extends Controller
     public function edit(Memo $memo): View
     {
         $memo->load('tasks.subtasks');
-        $users = \App\Models\User::select('id', 'name')->orderBy('name')->get();
+        $users = User::query()
+            ->where('tenant_id', $this->tenantId())
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get();
         return view('taskmgmt::memos.form', compact('memo', 'users'));
     }
 
@@ -114,7 +124,7 @@ class MemoController extends Controller
             'tasks.*.title' => ['required_with:tasks', 'string', 'max:255'],
             'tasks.*.description' => ['nullable', 'string'],
             'tasks.*.due_date' => ['nullable', 'date'],
-            'tasks.*.pic' => ['nullable', 'exists:users,id'],
+            'tasks.*.pic' => ['nullable', 'integer', Rule::exists('users', 'id')->where(fn ($query) => $query->where('tenant_id', $this->tenantId()))],
             'tasks.*.subtasks' => ['array'],
             'tasks.*.subtasks.*.title' => ['required_with:tasks.*.subtasks', 'string', 'max:255'],
             'tasks.*.subtasks.*.pic' => ['nullable', 'string', 'max:255'],

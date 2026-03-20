@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Support\TenantRoleProvisioner;
 use Database\Seeders\TenantSeeder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,7 +13,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
 use RuntimeException;
-use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Throwable;
@@ -106,25 +106,31 @@ class InstallController extends Controller
             $this->ensureDefaultTenantExists();
 
             DB::transaction(function () use ($data): void {
-                $role = Role::findOrCreate('Super-admin');
-                Role::findOrCreate('Admin');
+                app(TenantRoleProvisioner::class)->ensureForTenant(1);
+                app(PermissionRegistrar::class)->setPermissionsTeamId(1);
 
-                $allPermissionNames = Permission::query()->pluck('name')->all();
-                $role->syncPermissions($allPermissionNames);
-                app(PermissionRegistrar::class)->forgetCachedPermissions();
+                try {
+                    $role = Role::findOrCreate('Super-admin');
 
-                $user = User::query()->firstOrNew(['email' => $data['admin_email']]);
-                $user->forceFill([
-                    'name' => $data['admin_name'],
-                    'email' => $data['admin_email'],
-                    'password' => Hash::make($data['admin_password']),
-                    'email_verified_at' => now(),
-                ]);
-                $user->saveOrFail();
-                $user->syncRoles([$role->name]);
+                    $user = User::query()->firstOrNew([
+                        'tenant_id' => 1,
+                        'email' => $data['admin_email'],
+                    ]);
+                    $user->forceFill([
+                        'tenant_id' => 1,
+                        'name' => $data['admin_name'],
+                        'email' => $data['admin_email'],
+                        'password' => Hash::make($data['admin_password']),
+                        'email_verified_at' => now(),
+                    ]);
+                    $user->saveOrFail();
+                    $user->syncRoles([$role->name]);
 
-                if (!$user->fresh()->hasRole($role->name)) {
-                    throw new RuntimeException('Akun Super-admin gagal dipasangkan role.');
+                    if (!$user->fresh()->hasRole($role->name)) {
+                        throw new RuntimeException('Akun Super-admin gagal dipasangkan role.');
+                    }
+                } finally {
+                    app(PermissionRegistrar::class)->setPermissionsTeamId(null);
                 }
             });
 

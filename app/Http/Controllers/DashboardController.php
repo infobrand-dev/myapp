@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Support\ModuleManager;
+use App\Support\TenantContext;
 use Illuminate\Contracts\View\View;
 use Spatie\Permission\Models\Role;
 
@@ -33,13 +34,13 @@ class DashboardController extends Controller
                 ],
                 [
                     'label' => 'Users',
-                    'value' => User::query()->count(),
-                    'meta' => User::query()->whereDate('created_at', today())->count() . ' joined today',
+                    'value' => User::query()->where('tenant_id', TenantContext::currentId())->count(),
+                    'meta' => User::query()->where('tenant_id', TenantContext::currentId())->whereDate('created_at', today())->count() . ' joined today',
                     'tone' => 'green',
                 ],
                 [
                     'label' => 'Roles',
-                    'value' => Role::query()->count(),
+                    'value' => Role::query()->where('tenant_id', TenantContext::currentId())->where('guard_name', 'web')->count(),
                     'meta' => $user->getRoleNames()->join(', ') ?: 'No role',
                     'tone' => 'orange',
                 ],
@@ -73,6 +74,7 @@ class DashboardController extends Controller
 
         $recentUsers = $isPrivileged
             ? User::query()
+                ->where('tenant_id', TenantContext::currentId())
                 ->latest()
                 ->limit(6)
                 ->get(['id', 'name', 'email', 'created_at', 'avatar'])

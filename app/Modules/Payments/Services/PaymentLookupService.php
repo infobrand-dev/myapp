@@ -60,7 +60,10 @@ class PaymentLookupService
 
     public function receivers(): Collection
     {
-        return User::query()->orderBy('name')->get(['id', 'name']);
+        return User::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->orderBy('name')
+            ->get(['id', 'name']);
     }
 
     public function payableTypeOptions(): array

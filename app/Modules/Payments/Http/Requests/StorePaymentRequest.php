@@ -2,6 +2,7 @@
 
 namespace App\Modules\Payments\Http\Requests;
 
+use App\Support\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -14,7 +15,7 @@ class StorePaymentRequest extends FormRequest
 
     public function rules(): array
     {
-        $receivedByRules = ['nullable', 'integer', 'exists:users,id'];
+        $receivedByRules = ['nullable', 'integer', Rule::exists('users', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()))];
 
         if (!$this->user() || !$this->user()->can('payments.assign_receiver')) {
             $receivedByRules = ['prohibited'];

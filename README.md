@@ -6,6 +6,7 @@ Dokumen arsitektur terkait:
 - `ARCHITECTURE.md`
 - `MODULES.md`
 - `SAAS_TENANCY.md`
+- `SAAS_PRODUCT_MODEL.md`
 
 ## Quick start
 

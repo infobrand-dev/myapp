@@ -37,9 +37,13 @@ class ConversationHubController extends Controller
 
         $me = $request->user();
         $q = $request->input('query');
-        $other = User::where('id', $q)
-            ->orWhere('email', $q)
-            ->orWhere('name', $q)
+        $other = User::query()
+            ->where('tenant_id', $this->tenantId())
+            ->where(function ($query) use ($q) {
+                $query->where('id', $q)
+                    ->orWhere('email', $q)
+                    ->orWhere('name', $q);
+            })
             ->first();
 
         if (!$other || $other->id === $me->id) {
@@ -198,6 +202,7 @@ class ConversationHubController extends Controller
         }
 
         $users = User::query()
+            ->where('tenant_id', $this->tenantId())
             ->where('id', '!=', $user->id)
             ->where(function ($q) use ($query) {
                 $q->where('name', 'like', '%' . $query . '%')
@@ -426,9 +431,13 @@ class ConversationHubController extends Controller
             'role' => ['nullable', 'string', 'max:50'],
         ]);
 
-        $invitee = User::where('id', $data['query'])
-            ->orWhere('email', $data['query'])
-            ->orWhere('name', $data['query'])
+        $invitee = User::query()
+            ->where('tenant_id', $this->tenantId())
+            ->where(function ($query) use ($data) {
+                $query->where('id', $data['query'])
+                    ->orWhere('email', $data['query'])
+                    ->orWhere('name', $data['query']);
+            })
             ->first();
 
         if (!$invitee) {

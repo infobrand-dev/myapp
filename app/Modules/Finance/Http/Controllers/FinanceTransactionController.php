@@ -67,7 +67,7 @@ class FinanceTransactionController extends Controller
                 ->orderBy('transaction_type')
                 ->orderBy('name')
                 ->get(),
-            'users' => User::query()->orderBy('name')->get(),
+            'users' => User::query()->where('tenant_id', TenantContext::currentId())->orderBy('name')->get(),
             'summary' => [
                 'cash_in_total' => $cashInTotal,
                 'cash_out_total' => $cashOutTotal,

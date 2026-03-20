@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Support\TenantContext;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -55,5 +57,13 @@ class User extends Authenticatable
     public function presence(): HasOne
     {
         return $this->hasOne(UserPresence::class, 'user_id');
+    }
+
+    public function resolveRouteBinding($value, $field = null): ?Model
+    {
+        return $this->newQuery()
+            ->where($field ?? $this->getRouteKeyName(), $value)
+            ->where('tenant_id', TenantContext::currentId())
+            ->first();
     }
 }

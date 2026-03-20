@@ -6,7 +6,6 @@ use App\Modules\SampleData\Support\SampleDataRegistry;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 class SampleDataServiceProvider extends ServiceProvider
@@ -44,17 +43,6 @@ class SampleDataServiceProvider extends ServiceProvider
                 'name' => $permission,
                 'guard_name' => 'web',
             ]);
-        }
-
-        if (Schema::hasTable('roles')) {
-            foreach (self::DEFAULT_ROLE_PERMISSIONS as $roleName => $permissions) {
-                $role = Role::query()->firstOrCreate([
-                    'name' => $roleName,
-                    'guard_name' => 'web',
-                ]);
-
-                $role->givePermissionTo($permissions);
-            }
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();

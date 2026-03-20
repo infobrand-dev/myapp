@@ -130,7 +130,7 @@
 @include('taskmgmt::memos.partials.task-row-template')
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const picOptions = @json(($users ?? \App\Models\User::select('id','name')->orderBy('name')->get())->map(fn($u) => ['id'=>$u->id, 'name'=>$u->name]));
+    const picOptions = @json(($users ?? collect())->map(fn($u) => ['id'=>$u->id, 'name'=>$u->name]));
     const tasksWrapper = document.getElementById('tasks-wrapper');
     const addTaskBtn = document.getElementById('add-task');
     const templateList = document.getElementById('template-list');

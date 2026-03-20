@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Support\CorePermissions;
 use App\Support\ModuleManager;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -14,7 +15,7 @@ class RoleController extends Controller
 {
     public function index(ModuleManager $modules)
     {
-        $roles = Role::query()
+        $roles = $this->tenantRolesQuery()
             ->with(['users:id,name,email'])
             ->with('permissions:id,name')
             ->withCount('users')
@@ -35,19 +36,24 @@ class RoleController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255', 'unique:roles,name'],
+            'name' => ['required', 'string', 'max:255', Rule::unique('roles', 'name')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId())->where('guard_name', 'web'))],
             'permissions' => ['nullable', 'array'],
             'permissions.*' => ['string', Rule::exists('permissions', 'name')],
         ]);
 
-        $role = Role::create(['name' => $data['name']]);
+        $role = Role::create([
+            'name' => $data['name'],
+            'guard_name' => 'web',
+            'tenant_id' => TenantContext::currentId(),
+        ]);
         $role->syncPermissions($data['permissions'] ?? []);
 
         return redirect()->route('roles.index')->with('status', 'Role ditambahkan.');
     }
 
-    public function edit(Role $role, ModuleManager $modules)
+    public function edit(int $role, ModuleManager $modules)
     {
+        $role = $this->findTenantRole($role);
         $role->load([
             'users' => fn ($query) => $query->select('users.id', 'name', 'email')->orderBy('name'),
             'permissions:id,name',
@@ -64,10 +70,12 @@ class RoleController extends Controller
         return view('roles.edit', compact('role', 'permissionGroups', 'selectedPermissions', 'inactiveAssignedPermissions'));
     }
 
-    public function update(Request $request, Role $role, ModuleManager $modules): RedirectResponse
+    public function update(Request $request, int $role, ModuleManager $modules): RedirectResponse
     {
+        $role = $this->findTenantRole($role);
+
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255', Rule::unique('roles', 'name')->ignore($role->id)],
+            'name' => ['required', 'string', 'max:255', Rule::unique('roles', 'name')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId())->where('guard_name', 'web'))->ignore($role->id)],
             'permissions' => ['nullable', 'array'],
             'permissions.*' => ['string', Rule::exists('permissions', 'name')],
         ]);
@@ -89,8 +97,9 @@ class RoleController extends Controller
         return redirect()->route('roles.index')->with('status', 'Role diperbarui.');
     }
 
-    public function destroy(Role $role): RedirectResponse
+    public function destroy(int $role): RedirectResponse
     {
+        $role = $this->findTenantRole($role);
         $role->delete();
         return back()->with('status', 'Role dihapus.');
     }
@@ -155,5 +164,17 @@ class RoleController extends Controller
         }
 
         return ucfirst(str_replace('-', ' ', str_replace('_', ' ', implode(' ', $segments))));
+    }
+
+    private function tenantRolesQuery()
+    {
+        return Role::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('guard_name', 'web');
+    }
+
+    private function findTenantRole(int $roleId): Role
+    {
+        return $this->tenantRolesQuery()->findOrFail($roleId);
     }
 }

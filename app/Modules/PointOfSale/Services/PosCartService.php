@@ -20,6 +20,7 @@ class PosCartService
     {
         return DB::transaction(function () use ($user) {
             User::query()
+                ->where('tenant_id', TenantContext::currentId())
                 ->whereKey($user->id)
                 ->lockForUpdate()
                 ->first();

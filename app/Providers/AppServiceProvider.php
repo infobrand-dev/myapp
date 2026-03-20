@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Support\HookManager;
 use App\Support\CorePermissions;
+use App\Support\TenantContext;
+use App\Support\TenantPlanManager;
 use App\Modules\LiveChat\Support\LiveChatRealtimeState;
 use App\Support\ModuleIconRegistry;
 use App\Support\ModuleManager;
@@ -25,6 +27,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(ModuleIconRegistry::class, fn () => new ModuleIconRegistry());
         $this->app->singleton(HookManager::class, fn () => new HookManager());
         $this->app->singleton(LiveChatRealtimeState::class, fn () => new LiveChatRealtimeState());
+        $this->app->singleton(TenantPlanManager::class);
     }
 
     /**
@@ -34,6 +37,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        app(PermissionRegistrar::class)->setPermissionsTeamId(TenantContext::currentId());
+
         if (!Schema::hasTable('permissions')) {
             return;
         }

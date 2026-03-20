@@ -169,11 +169,13 @@ class ConversationController extends Controller
         }
 
         $data = $request->validate([
-            'user_id' => ['required', 'exists:users,id'],
+            'user_id' => ['required', 'integer', \Illuminate\Validation\Rule::exists('users', 'id')->where(fn ($query) => $query->where('tenant_id', $this->tenantId()))],
             'role' => ['nullable', 'string', 'max:50'],
         ]);
 
-        $invitee = User::findOrFail($data['user_id']);
+        $invitee = User::query()
+            ->where('tenant_id', $this->tenantId())
+            ->findOrFail($data['user_id']);
         $role = $data['role'] ?? 'collaborator';
 
         // Ensure invitee has access to the instance

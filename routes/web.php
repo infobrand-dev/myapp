@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InstallController;
@@ -38,6 +39,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
+
+    Route::get('/settings', [SettingsController::class, 'show'])->defaults('section', 'general')->name('settings.general');
+    Route::get('/settings/company', [SettingsController::class, 'show'])->defaults('section', 'company')->name('settings.company');
+    Route::get('/settings/branch', [SettingsController::class, 'show'])->defaults('section', 'branch')->name('settings.branch');
+    Route::get('/settings/documents', [SettingsController::class, 'show'])->defaults('section', 'documents')->name('settings.documents');
+    Route::get('/settings/subscription', [SettingsController::class, 'show'])->defaults('section', 'subscription')->name('settings.subscription');
+    Route::get('/settings/access', [SettingsController::class, 'show'])->defaults('section', 'access')->name('settings.access');
+    Route::get('/settings/modules', [SettingsController::class, 'show'])->defaults('section', 'modules')->name('settings.modules');
 });
 
 Route::middleware(['auth'])->prefix('presence')->name('presence.')->group(function () {

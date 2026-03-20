@@ -11,6 +11,7 @@
 - Shared module loading is handled by `App\Support\ModuleManager`.
 - Module state is persisted in the `modules` table and controlled from the Modules page.
 - Sidebar navigation is partly core and partly generated from active module manifests.
+- Core tenant-wide settings UI now lives under `/settings` as a shared shell entry point. Company, branch, documents, subscription, access, and module entitlement views should extend that area instead of adding scattered top-level admin pages.
 
 ## Scale and tenancy expectations
 - This app is expected to handle large and growing data volume. New work must consider query cost, indexing strategy, pagination, filtering, and background processing instead of optimizing only for a small demo dataset.

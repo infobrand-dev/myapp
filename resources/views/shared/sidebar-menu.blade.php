@@ -22,6 +22,18 @@
         <span class="nav-link-title">Profile</span>
     </a>
 </li>
+<li class="nav-item">
+    <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('settings.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('settings.general') }}">
+        <span class="nav-link-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                <path d="M12 15a3 3 0 1 0 0 -6a3 3 0 0 0 0 6z" />
+                <path d="M19.622 10.395a1.65 1.65 0 0 0 .33 1.82a2 2 0 0 1 0 2.828a2 2 0 0 1 -2.828 0a1.65 1.65 0 0 0 -1.82 -.33a1.65 1.65 0 0 0 -1 1.51a2 2 0 0 1 -2 2a2 2 0 0 1 -2 -2a1.65 1.65 0 0 0 -1 -1.51a1.65 1.65 0 0 0 -1.82 .33a2 2 0 0 1 -2.828 0a2 2 0 0 1 0 -2.828a1.65 1.65 0 0 0 .33 -1.82a1.65 1.65 0 0 0 -1.51 -1a2 2 0 0 1 -2 -2a2 2 0 0 1 2 -2a1.65 1.65 0 0 0 1.51 -1a1.65 1.65 0 0 0 -.33 -1.82a2 2 0 0 1 0 -2.828a2 2 0 0 1 2.828 0a1.65 1.65 0 0 0 1.82 .33h.09a1.65 1.65 0 0 0 .91 -1.51a2 2 0 0 1 2 -2a2 2 0 0 1 2 2a1.65 1.65 0 0 0 1 1.51a1.65 1.65 0 0 0 1.82 -.33a2 2 0 0 1 2.828 0a2 2 0 0 1 0 2.828a1.65 1.65 0 0 0 -.33 1.82v.09a1.65 1.65 0 0 0 1.51 .91a2 2 0 0 1 2 2a2 2 0 0 1 -2 2a1.65 1.65 0 0 0 -1.51 1z" />
+            </svg>
+        </span>
+        <span class="nav-link-title">Settings</span>
+    </a>
+</li>
 
 @can('users.view')
 <li class="nav-item">

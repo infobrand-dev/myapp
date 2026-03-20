@@ -1,0 +1,79 @@
+<div class="row g-3 mb-3">
+    <div class="col-md-6 col-xl-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-secondary text-uppercase small fw-bold">Users</div>
+                <div class="fs-1 fw-bold mt-2">{{ $users->count() }}</div>
+                <div class="text-muted small mt-2">Semua user pada tenant aktif.</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-secondary text-uppercase small fw-bold">Roles</div>
+                <div class="fs-1 fw-bold mt-2">{{ $roles->count() }}</div>
+                <div class="text-muted small mt-2">Role tenant-scoped dari Spatie teams.</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-secondary text-uppercase small fw-bold">Current Company</div>
+                <div class="fs-3 fw-bold mt-2">{{ optional($currentCompany)->code ?: '-' }}</div>
+                <div class="text-muted small mt-2">Membership company/branch belum dipisah di UI ini.</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-secondary text-uppercase small fw-bold">Current Branch</div>
+                <div class="fs-3 fw-bold mt-2">{{ optional($currentBranch)->code ?: '-' }}</div>
+                <div class="text-muted small mt-2">Branch tetap optional pada runtime scope.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Tenant Users</h3>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>Roles</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($users as $user)
+                    <tr>
+                        <td class="fw-semibold">{{ $user->name }}</td>
+                        <td>{{ $user->email }}</td>
+                        <td>
+                            @php $roleNames = $user->getRoleNames(); @endphp
+                            @if($roleNames->isEmpty())
+                                <span class="text-muted small">No role</span>
+                            @else
+                                <div class="d-flex flex-wrap gap-1">
+                                    @foreach($roleNames as $roleName)
+                                        <span class="badge bg-blue-lt text-blue">{{ $roleName }}</span>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="3" class="text-center text-muted py-5">Belum ada user pada tenant ini.</td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>

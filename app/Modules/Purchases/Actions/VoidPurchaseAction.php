@@ -5,18 +5,17 @@ namespace App\Modules\Purchases\Actions;
 use App\Models\User;
 use App\Modules\Purchases\Events\PurchaseVoided;
 use App\Modules\Purchases\Models\Purchase;
+use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class VoidPurchaseAction
 {
-    private const TENANT_ID = 1;
-
     public function execute(Purchase $purchase, array $data, ?User $actor = null): Purchase
     {
         $purchase = DB::transaction(function () use ($purchase, $data, $actor) {
             $purchase = Purchase::query()
-                ->where('tenant_id', self::TENANT_ID)
+                ->where('tenant_id', TenantContext::currentId())
                 ->with('items', 'receipts.items')
                 ->lockForUpdate()
                 ->findOrFail($purchase->id);
@@ -43,7 +42,7 @@ class VoidPurchaseAction
             ]);
 
             $purchase->voidLogs()->create([
-                'tenant_id' => self::TENANT_ID,
+                'tenant_id' => TenantContext::currentId(),
                 'status_before' => $fromStatus,
                 'reason' => $data['reason'],
                 'snapshot' => [
@@ -54,7 +53,7 @@ class VoidPurchaseAction
             ]);
 
             $purchase->statusHistories()->create([
-                'tenant_id' => self::TENANT_ID,
+                'tenant_id' => TenantContext::currentId(),
                 'from_status' => $fromStatus,
                 'to_status' => Purchase::STATUS_VOIDED,
                 'event' => 'voided',

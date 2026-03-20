@@ -7,6 +7,7 @@ use App\Modules\WhatsAppApi\Jobs\SubmitTemplateToMeta;
 use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use App\Modules\WhatsAppApi\Support\TemplateVariableResolver;
+use App\Support\TenantContext;
 use Illuminate\Support\Arr;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
@@ -931,6 +932,6 @@ class WATemplateController extends Controller
 
     private function tenantId(): int
     {
-        return 1;
+        return TenantContext::currentId();
     }
 }

@@ -5,14 +5,13 @@ namespace App\Modules\Inventory\Actions;
 use App\Models\User;
 use App\Modules\Inventory\Models\StockOpname;
 use App\Modules\Inventory\Repositories\StockRepository;
+use App\Support\TenantContext;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class CreateStockOpnameAction
 {
-    private const TENANT_ID = 1;
-
     private $stocks;
 
     public function __construct(StockRepository $stocks)
@@ -30,7 +29,7 @@ class CreateStockOpnameAction
             }
 
             $opname = StockOpname::query()->create([
-                'tenant_id' => self::TENANT_ID,
+                'tenant_id' => TenantContext::currentId(),
                 'code' => 'OPN-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4)),
                 'inventory_location_id' => $data['inventory_location_id'],
                 'opname_date' => $data['opname_date'],
@@ -44,7 +43,7 @@ class CreateStockOpnameAction
 
             foreach ($snapshotStocks as $stock) {
                 $opname->items()->create([
-                    'tenant_id' => self::TENANT_ID,
+                    'tenant_id' => TenantContext::currentId(),
                     'inventory_stock_id' => $stock->id,
                     'product_id' => $stock->product_id,
                     'product_variant_id' => $stock->product_variant_id,

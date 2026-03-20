@@ -7,16 +7,15 @@ use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
 use App\Modules\Sales\Models\Sale;
+use App\Support\TenantContext;
 use Illuminate\Support\Collection;
 
 class SaleLookupService
 {
-    private const TENANT_ID = 1;
-
     public function customers(): Collection
     {
         return Contact::query()
-            ->where('tenant_id', self::TENANT_ID)
+            ->where('tenant_id', TenantContext::currentId())
             ->where('is_active', true)
             ->orderBy('name')
             ->get();

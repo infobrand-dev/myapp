@@ -8,13 +8,12 @@ use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Services\SaleIdempotencyService;
 use App\Modules\Sales\Services\SaleNumberService;
 use App\Modules\Sales\Services\SaleSnapshotService;
+use App\Support\TenantContext;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
 class CreateDraftSaleAction
 {
-    private const TENANT_ID = 1;
-
     private $recalculateTotals;
     private $saleNumberService;
     private $idempotencyService;
@@ -40,7 +39,7 @@ class CreateDraftSaleAction
         return DB::transaction(function () use ($data, $actor) {
             if (!empty($data['external_reference'])) {
                 $existingSale = Sale::query()
-                    ->where('tenant_id', self::TENANT_ID)
+                    ->where('tenant_id', TenantContext::currentId())
                     ->where('source', $data['source'])
                     ->where('external_reference', $data['external_reference'])
                     ->first();
@@ -54,13 +53,13 @@ class CreateDraftSaleAction
 
             $totals = $this->recalculateTotals->execute($data);
             $contact = !empty($data['contact_id'])
-                ? Contact::query()->with('company')->where('tenant_id', self::TENANT_ID)->find($data['contact_id'])
+                ? Contact::query()->with('company')->where('tenant_id', TenantContext::currentId())->find($data['contact_id'])
                 : null;
             $customer = $this->snapshotService->customerSnapshot($contact);
 
             try {
                 $sale = Sale::query()->create([
-                    'tenant_id' => self::TENANT_ID,
+                    'tenant_id' => TenantContext::currentId(),
                     'sale_number' => $this->saleNumberService->generate(),
                     'external_reference' => $data['external_reference'] ?? null,
                     'idempotency_payload_hash' => $this->idempotencyService->hashFromPayload($data),
@@ -96,7 +95,7 @@ class CreateDraftSaleAction
                 }
 
                 $sale = Sale::query()
-                    ->where('tenant_id', self::TENANT_ID)
+                    ->where('tenant_id', TenantContext::currentId())
                     ->where('source', $data['source'])
                     ->where('external_reference', $data['external_reference'])
                     ->first();
@@ -113,7 +112,7 @@ class CreateDraftSaleAction
             $sale->items()->createMany($this->withTenantId($totals['items']));
             $sale = $this->syncPaymentSummary->execute($sale, $data['payment_status']);
             $sale->statusHistories()->create([
-                'tenant_id' => self::TENANT_ID,
+                'tenant_id' => TenantContext::currentId(),
                 'from_status' => null,
                 'to_status' => Sale::STATUS_DRAFT,
                 'event' => 'created',
@@ -130,7 +129,7 @@ class CreateDraftSaleAction
     private function withTenantId(array $rows): array
     {
         return array_map(function (array $row): array {
-            $row['tenant_id'] = self::TENANT_ID;
+            $row['tenant_id'] = TenantContext::currentId();
 
             return $row;
         }, $rows);

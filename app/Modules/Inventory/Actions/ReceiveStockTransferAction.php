@@ -5,13 +5,12 @@ namespace App\Modules\Inventory\Actions;
 use App\Models\User;
 use App\Modules\Inventory\Models\StockTransfer;
 use App\Modules\Inventory\Services\StockMutationService;
+use App\Support\TenantContext;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 
 class ReceiveStockTransferAction
 {
-    private const TENANT_ID = 1;
-
     public function __construct(private readonly StockMutationService $mutationService)
     {
     }
@@ -19,7 +18,7 @@ class ReceiveStockTransferAction
     public function execute(StockTransfer $transfer, ?User $actor = null): StockTransfer
     {
         $transfer = StockTransfer::query()
-            ->where('tenant_id', self::TENANT_ID)
+            ->where('tenant_id', TenantContext::currentId())
             ->findOrFail($transfer->id);
 
         if ($transfer->status !== 'sent') {
@@ -28,7 +27,7 @@ class ReceiveStockTransferAction
 
         return DB::transaction(function () use ($transfer, $actor) {
             $transfer = StockTransfer::query()
-                ->where('tenant_id', self::TENANT_ID)
+                ->where('tenant_id', TenantContext::currentId())
                 ->with('items')
                 ->lockForUpdate()
                 ->findOrFail($transfer->id);

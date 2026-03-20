@@ -5,6 +5,7 @@ namespace App\Modules\Sales\Http\Requests;
 use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Sales\Models\SaleItem;
 use App\Modules\Sales\Models\Sale;
+use App\Support\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Schema;
@@ -12,8 +13,6 @@ use Illuminate\Validation\Validator;
 
 class StoreSaleReturnRequest extends FormRequest
 {
-    private const TENANT_ID = 1;
-
     public function authorize(): bool
     {
         return $this->user() ? (bool) $this->user()->can('sales_return.create') : false;
@@ -24,11 +23,11 @@ class StoreSaleReturnRequest extends FormRequest
         $inventoryLocationRules = ['nullable', 'integer', 'min:1'];
 
         if (Schema::hasTable('inventory_locations')) {
-            $inventoryLocationRules[] = Rule::exists('inventory_locations', 'id')->where(fn ($query) => $query->where('tenant_id', self::TENANT_ID));
+            $inventoryLocationRules[] = Rule::exists('inventory_locations', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()));
         }
 
         return [
-            'sale_id' => ['required', 'integer', Rule::exists('sales', 'id')->where(fn ($query) => $query->where('tenant_id', self::TENANT_ID)->where('status', Sale::STATUS_FINALIZED))],
+            'sale_id' => ['required', 'integer', Rule::exists('sales', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId())->where('status', Sale::STATUS_FINALIZED))],
             'return_date' => ['nullable', 'date'],
             'reason' => ['required', 'string'],
             'notes' => ['nullable', 'string'],
@@ -36,7 +35,7 @@ class StoreSaleReturnRequest extends FormRequest
             'inventory_restock_required' => ['nullable', 'boolean'],
             'inventory_location_id' => $inventoryLocationRules,
             'items' => ['required', 'array', 'min:1'],
-            'items.*.sale_item_id' => ['required', 'integer', Rule::exists('sale_items', 'id')->where(fn ($query) => $query->where('tenant_id', self::TENANT_ID))],
+            'items.*.sale_item_id' => ['required', 'integer', Rule::exists('sale_items', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()))],
             'items.*.qty_returned' => ['nullable', 'numeric', 'gte:0'],
             'items.*.notes' => ['nullable', 'string'],
         ];
@@ -71,13 +70,13 @@ class StoreSaleReturnRequest extends FormRequest
     private function validateTenantRelations(Validator $validator): void
     {
         $locationId = $this->input('inventory_location_id');
-        if ($locationId && !InventoryLocation::query()->where('tenant_id', self::TENANT_ID)->find($locationId)) {
+        if ($locationId && !InventoryLocation::query()->where('tenant_id', TenantContext::currentId())->find($locationId)) {
             $validator->errors()->add('inventory_location_id', 'Lokasi inventory tidak tersedia untuk tenant aktif.');
         }
 
         foreach ((array) $this->input('items', []) as $index => $item) {
             $saleItemId = $item['sale_item_id'] ?? null;
-            if ($saleItemId && !SaleItem::query()->where('tenant_id', self::TENANT_ID)->find($saleItemId)) {
+            if ($saleItemId && !SaleItem::query()->where('tenant_id', TenantContext::currentId())->find($saleItemId)) {
                 $validator->errors()->add("items.$index.sale_item_id", 'Item sale tidak tersedia untuk tenant aktif.');
             }
         }

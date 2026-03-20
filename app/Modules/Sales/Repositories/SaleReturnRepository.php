@@ -3,6 +3,7 @@
 namespace App\Modules\Sales\Repositories;
 
 use App\Modules\Sales\Models\SaleReturn;
+use App\Support\TenantContext;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -83,6 +84,6 @@ class SaleReturnRepository
 
     private function tenantId(): int
     {
-        return 1;
+        return TenantContext::currentId();
     }
 }

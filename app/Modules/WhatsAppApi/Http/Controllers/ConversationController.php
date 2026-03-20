@@ -9,6 +9,7 @@ use App\Services\Presence\UserPresenceService;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationParticipant;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -224,7 +225,7 @@ class ConversationController extends Controller
 
     private function tenantId(): int
     {
-        return 1;
+        return TenantContext::currentId();
     }
 }
 

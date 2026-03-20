@@ -6,13 +6,12 @@ use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Purchases\Models\Purchase;
 use App\Modules\Purchases\Services\PurchaseSnapshotService;
+use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class UpdateDraftPurchaseAction
 {
-    private const TENANT_ID = 1;
-
     private $recalculateTotals;
     private $snapshotService;
     private $syncPaymentSummary;
@@ -36,9 +35,9 @@ class UpdateDraftPurchaseAction
         }
 
         return DB::transaction(function () use ($purchase, $data, $actor) {
-            $purchase = Purchase::query()->where('tenant_id', self::TENANT_ID)->lockForUpdate()->findOrFail($purchase->id);
+            $purchase = Purchase::query()->where('tenant_id', TenantContext::currentId())->lockForUpdate()->findOrFail($purchase->id);
             $totals = $this->recalculateTotals->execute($data);
-            $supplier = Contact::query()->with('company')->where('tenant_id', self::TENANT_ID)->find($data['contact_id']);
+            $supplier = Contact::query()->with('company')->where('tenant_id', TenantContext::currentId())->find($data['contact_id']);
             $snapshot = $this->snapshotService->supplierSnapshot($supplier);
 
             $purchase->update([
@@ -74,7 +73,7 @@ class UpdateDraftPurchaseAction
     private function withTenantId(array $rows): array
     {
         return array_map(function (array $row): array {
-            $row['tenant_id'] = self::TENANT_ID;
+            $row['tenant_id'] = TenantContext::currentId();
 
             return $row;
         }, $rows);

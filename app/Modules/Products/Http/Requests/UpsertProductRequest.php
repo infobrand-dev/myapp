@@ -8,6 +8,7 @@ use App\Modules\Products\Models\ProductMedia;
 use App\Modules\Products\Models\ProductPriceLevel;
 use App\Modules\Products\Models\ProductUnit;
 use App\Modules\Products\Models\ProductVariant;
+use App\Support\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -16,7 +17,6 @@ use Illuminate\Validation\Validator;
 
 class UpsertProductRequest extends FormRequest
 {
-    private const TENANT_ID = 1;
 
     public function authorize(): bool
     {
@@ -45,16 +45,16 @@ class UpsertProductRequest extends FormRequest
                 'max:255',
                 Rule::unique('products', 'slug')->ignore($productId)->where(
                     fn ($query) => $query
-                        ->where('tenant_id', self::TENANT_ID)
+                        ->where('tenant_id', TenantContext::currentId())
                         ->whereNull('deleted_at')
                 ),
             ],
             'sku' => ['required', 'string', 'max:100'],
             'barcode' => ['nullable', 'string', 'max:100'],
             'description' => ['nullable', 'string'],
-            'category_id' => ['nullable', 'integer', Rule::exists('product_categories', 'id')->where(fn ($query) => $query->where('tenant_id', self::TENANT_ID))],
-            'brand_id' => ['nullable', 'integer', Rule::exists('product_brands', 'id')->where(fn ($query) => $query->where('tenant_id', self::TENANT_ID))],
-            'unit_id' => ['nullable', 'integer', Rule::exists('product_units', 'id')->where(fn ($query) => $query->where('tenant_id', self::TENANT_ID))],
+            'category_id' => ['nullable', 'integer', Rule::exists('product_categories', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()))],
+            'brand_id' => ['nullable', 'integer', Rule::exists('product_brands', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()))],
+            'unit_id' => ['nullable', 'integer', Rule::exists('product_units', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()))],
             'new_category_name' => ['nullable', 'string', 'max:255'],
             'new_brand_name' => ['nullable', 'string', 'max:255'],
             'new_unit_name' => ['nullable', 'string', 'max:255'],
@@ -69,13 +69,13 @@ class UpsertProductRequest extends FormRequest
             'gallery_images' => ['nullable', 'array'],
             'gallery_images.*' => ['image', 'max:4096'],
             'remove_gallery_media_ids' => ['nullable', 'array'],
-            'remove_gallery_media_ids.*' => ['integer', Rule::exists('product_media', 'id')->where(fn ($query) => $query->where('tenant_id', self::TENANT_ID))],
+            'remove_gallery_media_ids.*' => ['integer', Rule::exists('product_media', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()))],
             'price_levels' => ['nullable', 'array'],
-            'price_levels.*.price_level_id' => ['nullable', 'integer', Rule::exists('product_price_levels', 'id')->where(fn ($query) => $query->where('tenant_id', self::TENANT_ID))],
+            'price_levels.*.price_level_id' => ['nullable', 'integer', Rule::exists('product_price_levels', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()))],
             'price_levels.*.price' => ['nullable', 'numeric', 'min:0'],
             'price_levels.*.minimum_qty' => ['nullable', 'numeric', 'min:1'],
             'variants' => ['nullable', 'array'],
-            'variants.*.id' => ['nullable', 'integer', Rule::exists('product_variants', 'id')->where(fn ($query) => $query->where('tenant_id', self::TENANT_ID))],
+            'variants.*.id' => ['nullable', 'integer', Rule::exists('product_variants', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()))],
             'variants.*.name' => ['nullable', 'string', 'max:255'],
             'variants.*.attribute_summary' => ['nullable', 'string', 'max:255'],
             'variants.*.sku' => ['nullable', 'string', 'max:100'],
@@ -232,21 +232,21 @@ class UpsertProductRequest extends FormRequest
         );
 
         foreach ((array) $this->input('remove_gallery_media_ids', []) as $index => $mediaId) {
-            if (!ProductMedia::query()->where('tenant_id', self::TENANT_ID)->find($mediaId)) {
+            if (!ProductMedia::query()->where('tenant_id', TenantContext::currentId())->find($mediaId)) {
                 $validator->errors()->add("remove_gallery_media_ids.$index", 'Media gallery tidak tersedia untuk tenant aktif.');
             }
         }
 
         foreach ((array) $this->input('price_levels', []) as $index => $priceLevel) {
             $priceLevelId = is_array($priceLevel) ? ($priceLevel['price_level_id'] ?? null) : null;
-            if ($priceLevelId && !ProductPriceLevel::query()->where('tenant_id', self::TENANT_ID)->find($priceLevelId)) {
+            if ($priceLevelId && !ProductPriceLevel::query()->where('tenant_id', TenantContext::currentId())->find($priceLevelId)) {
                 $validator->errors()->add("price_levels.$index.price_level_id", 'Level harga tidak tersedia untuk tenant aktif.');
             }
         }
 
         foreach ((array) $this->input('variants', []) as $index => $variant) {
             $variantId = is_array($variant) ? ($variant['id'] ?? null) : null;
-            if ($variantId && !ProductVariant::query()->where('tenant_id', self::TENANT_ID)->find($variantId)) {
+            if ($variantId && !ProductVariant::query()->where('tenant_id', TenantContext::currentId())->find($variantId)) {
                 $validator->errors()->add("variants.$index.id", 'Variant tidak tersedia untuk tenant aktif.');
             }
         }
@@ -263,7 +263,7 @@ class UpsertProductRequest extends FormRequest
             return;
         }
 
-        if (!$modelClass::query()->where('tenant_id', self::TENANT_ID)->find($value)) {
+        if (!$modelClass::query()->where('tenant_id', TenantContext::currentId())->find($value)) {
             $validator->errors()->add($field, $message);
         }
     }
@@ -280,14 +280,14 @@ class UpsertProductRequest extends FormRequest
     ): void {
         if ($sku !== '') {
             $productSkuExists = DB::table('products')
-                ->where('tenant_id', self::TENANT_ID)
+                ->where('tenant_id', TenantContext::currentId())
                 ->where('sku', $sku)
                 ->whereNull('deleted_at')
                 ->when($productId, fn ($query) => $query->where('id', '!=', $productId))
                 ->exists();
 
             $variantSkuExists = DB::table('product_variants')
-                ->where('tenant_id', self::TENANT_ID)
+                ->where('tenant_id', TenantContext::currentId())
                 ->where('sku', $sku)
                 ->whereNull('deleted_at')
                 ->when($variantId, fn ($query) => $query->where('id', '!=', $variantId))
@@ -300,14 +300,14 @@ class UpsertProductRequest extends FormRequest
 
         if ($barcode !== '') {
             $productBarcodeExists = DB::table('products')
-                ->where('tenant_id', self::TENANT_ID)
+                ->where('tenant_id', TenantContext::currentId())
                 ->where('barcode', $barcode)
                 ->whereNull('deleted_at')
                 ->when($productId, fn ($query) => $query->where('id', '!=', $productId))
                 ->exists();
 
             $variantBarcodeExists = DB::table('product_variants')
-                ->where('tenant_id', self::TENANT_ID)
+                ->where('tenant_id', TenantContext::currentId())
                 ->where('barcode', $barcode)
                 ->whereNull('deleted_at')
                 ->when($variantId, fn ($query) => $query->where('id', '!=', $variantId))

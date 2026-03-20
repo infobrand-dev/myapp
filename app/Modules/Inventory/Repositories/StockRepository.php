@@ -4,6 +4,7 @@ namespace App\Modules\Inventory\Repositories;
 
 use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Inventory\Models\StockBalance;
+use App\Support\TenantContext;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
@@ -80,6 +81,6 @@ class StockRepository
 
     private function tenantId(): int
     {
-        return 1;
+        return TenantContext::currentId();
     }
 }

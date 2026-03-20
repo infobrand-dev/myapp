@@ -2,6 +2,7 @@
 
 namespace App\Modules\WhatsAppApi\Models;
 
+use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -37,7 +38,7 @@ class WhatsAppWebhookEvent extends Model
     public function instance(): BelongsTo
     {
         return $this->belongsTo(WhatsAppInstance::class, 'instance_id')
-            ->where('tenant_id', 1);
+            ->where('tenant_id', TenantContext::currentId());
     }
 
     public function canReprocess(): bool
@@ -56,7 +57,7 @@ class WhatsAppWebhookEvent extends Model
     public function resolveRouteBinding($value, $field = null)
     {
         return $this->where($field ?? $this->getRouteKeyName(), $value)
-            ->where('tenant_id', 1)
+            ->where('tenant_id', TenantContext::currentId())
             ->firstOrFail();
     }
 }

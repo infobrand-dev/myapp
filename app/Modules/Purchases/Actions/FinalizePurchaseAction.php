@@ -7,13 +7,12 @@ use App\Modules\Contacts\Models\Contact;
 use App\Modules\Purchases\Events\PurchaseFinalized;
 use App\Modules\Purchases\Models\Purchase;
 use App\Modules\Purchases\Services\PurchaseSnapshotService;
+use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class FinalizePurchaseAction
 {
-    private const TENANT_ID = 1;
-
     private $syncPaymentSummary;
     private $snapshotService;
 
@@ -30,7 +29,7 @@ class FinalizePurchaseAction
     {
         $purchase = DB::transaction(function () use ($purchase, $data, $actor) {
             $purchase = Purchase::query()
-                ->where('tenant_id', self::TENANT_ID)
+                ->where('tenant_id', TenantContext::currentId())
                 ->with('items')
                 ->lockForUpdate()
                 ->findOrFail($purchase->id);
@@ -52,7 +51,7 @@ class FinalizePurchaseAction
             }
 
             $supplier = $purchase->contact_id
-                ? Contact::query()->with('company')->where('tenant_id', self::TENANT_ID)->find($purchase->contact_id)
+                ? Contact::query()->with('company')->where('tenant_id', TenantContext::currentId())->find($purchase->contact_id)
                 : null;
             $supplierSnapshot = $this->snapshotService->supplierSnapshot($supplier);
 
@@ -92,7 +91,7 @@ class FinalizePurchaseAction
             }
 
             $purchase->statusHistories()->create([
-                'tenant_id' => self::TENANT_ID,
+                'tenant_id' => TenantContext::currentId(),
                 'from_status' => $fromStatus,
                 'to_status' => Purchase::STATUS_CONFIRMED,
                 'event' => 'finalized',

@@ -3,18 +3,17 @@
 namespace App\Modules\Inventory\Actions;
 
 use App\Modules\Inventory\Models\StockOpname;
+use App\Support\TenantContext;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 
 class UpdateStockOpnameAction
 {
-    private const TENANT_ID = 1;
-
     public function execute(StockOpname $opname, array $data): StockOpname
     {
         return DB::transaction(function () use ($opname, $data) {
             $opname = StockOpname::query()
-                ->where('tenant_id', self::TENANT_ID)
+                ->where('tenant_id', TenantContext::currentId())
                 ->with('items')
                 ->lockForUpdate()
                 ->findOrFail($opname->id);

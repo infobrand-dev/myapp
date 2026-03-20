@@ -10,6 +10,7 @@ use App\Modules\Inventory\Http\Requests\StoreStockOpnameRequest;
 use App\Modules\Inventory\Http\Requests\UpdateStockOpnameRequest;
 use App\Modules\Inventory\Models\StockOpname;
 use App\Modules\Inventory\Repositories\StockRepository;
+use App\Support\TenantContext;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,7 +18,6 @@ use Illuminate\View\View;
 
 class StockOpnameController extends Controller
 {
-    private const TENANT_ID = 1;
 
     private $stocks;
 
@@ -30,7 +30,7 @@ class StockOpnameController extends Controller
     {
         return view('inventory::opnames.index', [
             'opnames' => StockOpname::query()
-                ->where('tenant_id', self::TENANT_ID)
+                ->where('tenant_id', TenantContext::currentId())
                 ->with(['location', 'creator', 'finalizer', 'adjustment'])
                 ->latest()
                 ->paginate(15),

@@ -7,6 +7,7 @@ use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\WhatsAppApi\Jobs\SendWhatsAppMessage;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -155,6 +156,6 @@ class MessageLogController extends Controller
 
     private function tenantId(): int
     {
-        return 1;
+        return TenantContext::currentId();
     }
 }

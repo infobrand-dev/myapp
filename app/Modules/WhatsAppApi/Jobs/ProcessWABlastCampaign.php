@@ -12,6 +12,7 @@ use App\Modules\WhatsAppApi\Models\WAContactPhoneStatus;
 use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use App\Modules\WhatsAppApi\Support\TemplateVariableResolver;
+use App\Support\TenantContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Http\Client\Response;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -26,8 +27,6 @@ class ProcessWABlastCampaign implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    private const TENANT_ID = 1;
-
     public int $tries = 1;
     public int $timeout = 1800;
 
@@ -38,7 +37,7 @@ class ProcessWABlastCampaign implements ShouldQueue
     public function handle(): void
     {
         $campaign = WABlastCampaign::query()
-            ->where('tenant_id', self::TENANT_ID)
+            ->where('tenant_id', TenantContext::currentId())
             ->with(['instance', 'template', 'creator'])
             ->find($this->campaignId);
         if (!$campaign) {
@@ -75,7 +74,7 @@ class ProcessWABlastCampaign implements ShouldQueue
 
         try {
             $recipients = WABlastRecipient::query()
-                ->where('tenant_id', self::TENANT_ID)
+                ->where('tenant_id', TenantContext::currentId())
                 ->where('campaign_id', $campaign->id)
                 ->where('status', 'pending')
                 ->orderBy('id')
@@ -93,7 +92,7 @@ class ProcessWABlastCampaign implements ShouldQueue
 
             $campaign->refresh();
             $pendingLeft = WABlastRecipient::query()
-                ->where('tenant_id', self::TENANT_ID)
+                ->where('tenant_id', TenantContext::currentId())
                 ->where('campaign_id', $campaign->id)
                 ->whereIn('status', ['pending', 'processing'])
                 ->exists();
@@ -260,14 +259,14 @@ class ProcessWABlastCampaign implements ShouldQueue
     {
         $counts = WABlastRecipient::query()
             ->selectRaw("status, COUNT(*) as aggregate")
-            ->where('tenant_id', self::TENANT_ID)
+            ->where('tenant_id', TenantContext::currentId())
             ->where('campaign_id', $campaign->id)
             ->groupBy('status')
             ->pluck('aggregate', 'status');
 
         $campaign->update([
             'total_count' => (int) WABlastRecipient::query()
-                ->where('tenant_id', self::TENANT_ID)
+                ->where('tenant_id', TenantContext::currentId())
                 ->where('campaign_id', $campaign->id)
                 ->count(),
             'queued_count' => (int) (($counts['queued'] ?? 0) + ($counts['processing'] ?? 0) + ($counts['pending'] ?? 0)),
@@ -341,7 +340,7 @@ class ProcessWABlastCampaign implements ShouldQueue
     private function blockRecipientPhone(string $phoneNumber, ?string $contactName, ?string $errorMessage): void
     {
         $status = WAContactPhoneStatus::query()->firstOrNew([
-            'tenant_id' => self::TENANT_ID,
+            'tenant_id' => TenantContext::currentId(),
             'phone_number' => $phoneNumber,
         ]);
         $status->last_contact_name = $contactName;
@@ -369,7 +368,7 @@ class ProcessWABlastCampaign implements ShouldQueue
 
         $conversation = Conversation::firstOrCreate(
             [
-                'tenant_id' => self::TENANT_ID,
+                'tenant_id' => TenantContext::currentId(),
                 'channel' => 'wa_api',
                 'instance_id' => $instanceKey,
                 'contact_external_id' => $recipient->phone_number,
@@ -386,7 +385,7 @@ class ProcessWABlastCampaign implements ShouldQueue
                 'metadata' => [
                     'source' => 'wa_blast',
                     'last_blast_campaign_id' => $campaign->id,
-                    'tenant_id' => self::TENANT_ID,
+                    'tenant_id' => TenantContext::currentId(),
                 ],
             ]
         );
@@ -412,14 +411,14 @@ class ProcessWABlastCampaign implements ShouldQueue
 
         if ($ownerId && class_exists(ConversationParticipant::class)) {
             ConversationParticipant::firstOrCreate(
-                ['tenant_id' => self::TENANT_ID, 'conversation_id' => $conversation->id, 'user_id' => $ownerId],
+                ['tenant_id' => TenantContext::currentId(), 'conversation_id' => $conversation->id, 'user_id' => $ownerId],
                 ['role' => 'owner', 'invited_by' => $ownerId, 'invited_at' => $now]
             );
         }
 
         if ($externalMessageId) {
             $message = ConversationMessage::query()
-                ->where('tenant_id', self::TENANT_ID)
+                ->where('tenant_id', TenantContext::currentId())
                 ->where('conversation_id', $conversation->id)
                 ->where('external_message_id', $externalMessageId)
                 ->first();
@@ -430,7 +429,7 @@ class ProcessWABlastCampaign implements ShouldQueue
         }
 
         $message = ConversationMessage::create([
-            'tenant_id' => self::TENANT_ID,
+            'tenant_id' => TenantContext::currentId(),
             'conversation_id' => $conversation->id,
             'user_id' => $ownerId,
             'direction' => 'out',

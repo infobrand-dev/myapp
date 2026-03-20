@@ -6,12 +6,11 @@ use App\Models\User;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\SaleReturn;
 use App\Modules\Sales\Services\SaleReturnNumberService;
+use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 
 class CreateSalesReturnAction
 {
-    private const TENANT_ID = 1;
-
     private $validateReturnableItems;
     private $calculateReturnTotals;
     private $numberService;
@@ -30,7 +29,7 @@ class CreateSalesReturnAction
     {
         return DB::transaction(function () use ($data, $actor) {
             $sale = Sale::query()
-                ->where('tenant_id', self::TENANT_ID)
+                ->where('tenant_id', TenantContext::currentId())
                 ->with('items')
                 ->lockForUpdate()
                 ->findOrFail($data['sale_id']);
@@ -39,7 +38,7 @@ class CreateSalesReturnAction
             $totals = $this->calculateReturnTotals->execute($sale, $data['items'] ?? [], $returnableMap);
 
             $saleReturn = SaleReturn::query()->create([
-                'tenant_id' => self::TENANT_ID,
+                'tenant_id' => TenantContext::currentId(),
                 'return_number' => $this->numberService->generate(),
                 'sale_id' => $sale->id,
                 'sale_number_snapshot' => $sale->sale_number,
@@ -80,7 +79,7 @@ class CreateSalesReturnAction
 
             $saleReturn->items()->createMany($this->withTenantId($totals['items']));
             $saleReturn->statusLogs()->create([
-                'tenant_id' => self::TENANT_ID,
+                'tenant_id' => TenantContext::currentId(),
                 'from_status' => null,
                 'to_status' => SaleReturn::STATUS_DRAFT,
                 'event' => 'created',
@@ -99,7 +98,7 @@ class CreateSalesReturnAction
     private function withTenantId(array $rows): array
     {
         return array_map(function (array $row): array {
-            $row['tenant_id'] = self::TENANT_ID;
+            $row['tenant_id'] = TenantContext::currentId();
 
             return $row;
         }, $rows);

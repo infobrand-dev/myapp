@@ -12,6 +12,7 @@ use App\Modules\WhatsAppApi\Models\WAContactPhoneStatus;
 use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use App\Modules\WhatsAppApi\Support\TemplateVariableResolver;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -24,7 +25,6 @@ use Illuminate\View\View;
 
 class BlastCampaignController extends Controller
 {
-    private const TENANT_ID = 1;
 
     public function index(Request $request): View
     {
@@ -584,7 +584,7 @@ class BlastCampaignController extends Controller
 
     private function tenantId(): int
     {
-        return self::TENANT_ID;
+        return TenantContext::currentId();
     }
 
 }

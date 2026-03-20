@@ -3,13 +3,13 @@
 namespace App\Modules\Products\Http\Requests;
 
 use App\Modules\Products\Models\Product;
+use App\Support\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class BulkProductActionRequest extends FormRequest
 {
-    private const TENANT_ID = 1;
 
     public function authorize(): bool
     {
@@ -32,7 +32,7 @@ class BulkProductActionRequest extends FormRequest
         return [
             'action' => ['required', Rule::in(['activate', 'deactivate', 'delete'])],
             'product_ids' => ['required', 'array', 'min:1'],
-            'product_ids.*' => ['integer', 'distinct', Rule::exists('products', 'id')->where(fn ($query) => $query->where('tenant_id', self::TENANT_ID))],
+            'product_ids.*' => ['integer', 'distinct', Rule::exists('products', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()))],
         ];
     }
 
@@ -41,7 +41,7 @@ class BulkProductActionRequest extends FormRequest
         return [
             function (Validator $validator) {
                 foreach ((array) $this->input('product_ids', []) as $index => $productId) {
-                    if (!Product::query()->where('tenant_id', self::TENANT_ID)->find($productId)) {
+                    if (!Product::query()->where('tenant_id', TenantContext::currentId())->find($productId)) {
                         $validator->errors()->add("product_ids.$index", 'Produk tidak tersedia untuk tenant aktif.');
                     }
                 }

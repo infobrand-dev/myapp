@@ -7,16 +7,15 @@ use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
 use App\Modules\Purchases\Models\Purchase;
+use App\Support\TenantContext;
 use Illuminate\Support\Collection;
 
 class PurchaseLookupService
 {
-    private const TENANT_ID = 1;
-
     public function suppliers(): Collection
     {
         return Contact::query()
-            ->where('tenant_id', self::TENANT_ID)
+            ->where('tenant_id', TenantContext::currentId())
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
@@ -69,7 +68,11 @@ class PurchaseLookupService
 
     public function inventoryLocations(): Collection
     {
-        return InventoryLocation::query()->where('is_active', true)->orderBy('name')->get();
+        return InventoryLocation::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
     }
 
     public function statusOptions(): array

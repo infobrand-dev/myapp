@@ -5,6 +5,7 @@ namespace App\Modules\Purchases\Models;
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Payments\Models\PaymentAllocation;
+use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -83,7 +84,8 @@ class Purchase extends Model
 
     public function supplier(): BelongsTo
     {
-        return $this->belongsTo(Contact::class, 'contact_id');
+        return $this->belongsTo(Contact::class, 'contact_id')
+            ->where('tenant_id', TenantContext::currentId());
     }
 
     public function items(): HasMany
@@ -153,7 +155,7 @@ class Purchase extends Model
     public function resolveRouteBinding($value, $field = null)
     {
         return $this->where($field ?? $this->getRouteKeyName(), $value)
-            ->where('tenant_id', 1)
+            ->where('tenant_id', TenantContext::currentId())
             ->firstOrFail();
     }
 }

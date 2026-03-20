@@ -10,6 +10,7 @@ use App\Modules\WhatsAppApi\Jobs\SendWhatsAppMessage;
 use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use App\Modules\WhatsAppApi\Support\TemplateVariableResolver;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +20,6 @@ use Illuminate\Validation\ValidationException;
 
 class ContactActionController extends Controller
 {
-    private const TENANT_ID = 1;
 
     public function sendTemplate(Request $request): RedirectResponse
     {
@@ -153,7 +153,7 @@ class ContactActionController extends Controller
         }
 
         $instanceQuery = WhatsAppInstance::query()
-            ->where('tenant_id', 1)
+            ->where('tenant_id', $this->tenantId())
             ->where('is_active', true)
             ->orderBy('name');
 
@@ -172,7 +172,7 @@ class ContactActionController extends Controller
             ->all();
 
         $templates = WATemplate::query()
-            ->where('tenant_id', 1)
+            ->where('tenant_id', $this->tenantId())
             ->where('status', 'approved')
             ->orderBy('name')
             ->get(['id', 'name', 'meta_name', 'language', 'namespace', 'body', 'components', 'variable_mappings'])
@@ -318,6 +318,6 @@ class ContactActionController extends Controller
 
     private function tenantId(): int
     {
-        return self::TENANT_ID;
+        return TenantContext::currentId();
     }
 }

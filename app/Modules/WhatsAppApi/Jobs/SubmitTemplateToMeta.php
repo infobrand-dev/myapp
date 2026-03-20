@@ -4,6 +4,7 @@ namespace App\Modules\WhatsAppApi\Jobs;
 
 use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
+use App\Support\TenantContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -19,8 +20,6 @@ class SubmitTemplateToMeta implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    private const TENANT_ID = 1;
-
     public int $templateId;
     public int $instanceId;
 
@@ -32,8 +31,8 @@ class SubmitTemplateToMeta implements ShouldQueue
 
     public function handle(): void
     {
-        $template = WATemplate::query()->where('tenant_id', self::TENANT_ID)->find($this->templateId);
-        $instance = WhatsAppInstance::query()->where('tenant_id', self::TENANT_ID)->find($this->instanceId);
+        $template = WATemplate::query()->where('tenant_id', TenantContext::currentId())->find($this->templateId);
+        $instance = WhatsAppInstance::query()->where('tenant_id', TenantContext::currentId())->find($this->instanceId);
 
         if (!$template || !$instance || strtolower($instance->provider) !== 'cloud') {
             return;

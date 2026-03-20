@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Finance\Http\Requests\StoreFinanceCategoryRequest;
 use App\Modules\Finance\Http\Requests\UpdateFinanceCategoryRequest;
 use App\Modules\Finance\Models\FinanceCategory;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -13,13 +14,11 @@ use Illuminate\View\View;
 
 class FinanceCategoryController extends Controller
 {
-    private const TENANT_ID = 1;
-
     public function index(): View
     {
         return view('finance::categories.index', [
             'categories' => FinanceCategory::query()
-                ->where('tenant_id', self::TENANT_ID)
+                ->where('tenant_id', TenantContext::currentId())
                 ->withCount('transactions')
                 ->orderBy('transaction_type')
                 ->orderBy('name')
@@ -32,7 +31,7 @@ class FinanceCategoryController extends Controller
     {
         DB::transaction(function () use ($request) {
             FinanceCategory::query()->create([
-                'tenant_id' => self::TENANT_ID,
+                'tenant_id' => TenantContext::currentId(),
                 'name' => $request->input('name'),
                 'slug' => Str::slug($request->input('name')) . '-' . Str::lower(Str::random(4)),
                 'transaction_type' => $request->input('transaction_type'),

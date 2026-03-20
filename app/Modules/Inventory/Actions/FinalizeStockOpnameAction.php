@@ -6,13 +6,12 @@ use App\Models\User;
 use App\Modules\Inventory\Models\StockBalance;
 use App\Modules\Inventory\Models\StockOpname;
 use App\Modules\Inventory\Services\StockMutationService;
+use App\Support\TenantContext;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 
 class FinalizeStockOpnameAction
 {
-    private const TENANT_ID = 1;
-
     private $createAdjustment;
 
     private $finalizeAdjustment;
@@ -33,7 +32,7 @@ class FinalizeStockOpnameAction
     {
         return DB::transaction(function () use ($opname, $actor) {
             $opname = StockOpname::query()
-                ->where('tenant_id', self::TENANT_ID)
+                ->where('tenant_id', TenantContext::currentId())
                 ->with(['items.product', 'items.variant'])
                 ->lockForUpdate()
                 ->findOrFail($opname->id);
@@ -60,7 +59,7 @@ class FinalizeStockOpnameAction
                 );
 
                 $stock = StockBalance::query()
-                    ->where('tenant_id', self::TENANT_ID)
+                    ->where('tenant_id', TenantContext::currentId())
                     ->where('stock_key', $stockKey)
                     ->lockForUpdate()
                     ->first();

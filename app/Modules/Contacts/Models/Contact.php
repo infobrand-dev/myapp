@@ -3,6 +3,7 @@
 namespace App\Modules\Contacts\Models;
 
 use App\Modules\Contacts\Support\ContactPhoneNormalizer;
+use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -39,13 +40,13 @@ class Contact extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Contact::class, 'company_id')
-            ->where('tenant_id', 1);
+            ->where('tenant_id', TenantContext::currentId());
     }
 
     public function employees(): HasMany
     {
         return $this->hasMany(Contact::class, 'company_id')
-            ->where('tenant_id', 1);
+            ->where('tenant_id', TenantContext::currentId());
     }
 
     public function setPhoneAttribute($value): void
@@ -66,7 +67,7 @@ class Contact extends Model
     public function resolveRouteBinding($value, $field = null)
     {
         return $this->where($field ?? $this->getRouteKeyName(), $value)
-            ->where('tenant_id', 1)
+            ->where('tenant_id', TenantContext::currentId())
             ->firstOrFail();
     }
 }

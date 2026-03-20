@@ -9,6 +9,7 @@ use App\Modules\Inventory\Http\Requests\StoreStockAdjustmentRequest;
 use App\Modules\Inventory\Models\StockAdjustment;
 use App\Modules\Inventory\Repositories\StockRepository;
 use App\Modules\Products\Models\Product;
+use App\Support\TenantContext;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
@@ -16,13 +17,12 @@ use Illuminate\View\View;
 
 class StockAdjustmentController extends Controller
 {
-    private const TENANT_ID = 1;
 
     public function index(): View
     {
         return view('inventory::adjustments.index', [
             'adjustments' => StockAdjustment::query()
-                ->where('tenant_id', self::TENANT_ID)
+                ->where('tenant_id', TenantContext::currentId())
                 ->with(['location', 'creator', 'finalizer'])
                 ->latest()
                 ->paginate(15),
@@ -32,9 +32,9 @@ class StockAdjustmentController extends Controller
     public function create(StockRepository $stocks): View
     {
         $products = Product::query()
-            ->where('tenant_id', self::TENANT_ID)
+            ->where('tenant_id', TenantContext::currentId())
             ->with(['variants' => fn ($query) => $query
-                ->where('tenant_id', self::TENANT_ID)
+                ->where('tenant_id', TenantContext::currentId())
                 ->where('track_stock', true)
                 ->orderBy('position')])
             ->where('track_stock', true)

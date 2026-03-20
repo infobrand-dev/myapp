@@ -3,11 +3,10 @@
 namespace App\Modules\Purchases\Http\Requests\Concerns;
 
 use App\Modules\Products\Models\ProductVariant;
+use App\Support\TenantContext;
 
 trait NormalizesPurchasePayload
 {
-    private const TENANT_ID = 1;
-
     protected function normalizePurchasePayload(): void
     {
         $items = collect($this->input('items', []))
@@ -47,7 +46,7 @@ trait NormalizesPurchasePayload
         foreach ($items as $index => $item) {
             if (!empty($item['product_variant_id']) && empty($item['product_id'])) {
                 $variant = ProductVariant::query()
-                    ->where('tenant_id', self::TENANT_ID)
+                    ->where('tenant_id', TenantContext::currentId())
                     ->find($item['product_variant_id']);
                 if ($variant) {
                     $items[$index]['product_id'] = (int) $variant->product_id;

@@ -4,17 +4,16 @@ namespace App\Modules\Sales\Actions;
 
 use App\Models\User;
 use App\Modules\Sales\Models\Sale;
+use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class CancelDraftSaleAction
 {
-    private const TENANT_ID = 1;
-
     public function execute(Sale $sale, array $data, ?User $actor = null): Sale
     {
         return DB::transaction(function () use ($sale, $data, $actor) {
-            $sale = Sale::query()->where('tenant_id', self::TENANT_ID)->lockForUpdate()->findOrFail($sale->id);
+            $sale = Sale::query()->where('tenant_id', TenantContext::currentId())->lockForUpdate()->findOrFail($sale->id);
 
             if (!$sale->isDraft()) {
                 throw ValidationException::withMessages([
@@ -36,7 +35,7 @@ class CancelDraftSaleAction
             ]);
 
             $sale->statusHistories()->create([
-                'tenant_id' => self::TENANT_ID,
+                'tenant_id' => TenantContext::currentId(),
                 'from_status' => $statusBefore,
                 'to_status' => Sale::STATUS_CANCELLED,
                 'event' => 'cancelled',

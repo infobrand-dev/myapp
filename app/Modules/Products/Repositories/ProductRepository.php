@@ -3,6 +3,7 @@
 namespace App\Modules\Products\Repositories;
 
 use App\Modules\Products\Models\Product;
+use App\Support\TenantContext;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -109,6 +110,6 @@ class ProductRepository
 
     private function tenantId(): int
     {
-        return 1;
+        return TenantContext::currentId();
     }
 }

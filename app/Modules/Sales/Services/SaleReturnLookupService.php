@@ -6,18 +6,17 @@ use App\Modules\Contacts\Models\Contact;
 use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\SaleReturn;
+use App\Support\TenantContext;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 
 class SaleReturnLookupService
 {
-    private const TENANT_ID = 1;
-
     public function saleOptions(): Collection
     {
         return Sale::query()
             ->with('items')
-            ->where('tenant_id', self::TENANT_ID)
+            ->where('tenant_id', TenantContext::currentId())
             ->where('status', Sale::STATUS_FINALIZED)
             ->orderByDesc('transaction_date')
             ->limit(100)
@@ -40,7 +39,7 @@ class SaleReturnLookupService
     public function customerOptions(): Collection
     {
         return Contact::query()
-            ->where('tenant_id', self::TENANT_ID)
+            ->where('tenant_id', TenantContext::currentId())
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name']);

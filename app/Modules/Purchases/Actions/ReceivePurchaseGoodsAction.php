@@ -6,13 +6,12 @@ use App\Models\User;
 use App\Modules\Inventory\Services\StockMutationService;
 use App\Modules\Purchases\Models\Purchase;
 use App\Modules\Purchases\Services\PurchaseNumberService;
+use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class ReceivePurchaseGoodsAction
 {
-    private const TENANT_ID = 1;
-
     private $numberService;
     private $syncPaymentSummary;
 
@@ -28,7 +27,7 @@ class ReceivePurchaseGoodsAction
     {
         return DB::transaction(function () use ($purchase, $data, $actor) {
             $purchase = Purchase::query()
-                ->where('tenant_id', self::TENANT_ID)
+                ->where('tenant_id', TenantContext::currentId())
                 ->with('items')
                 ->lockForUpdate()
                 ->findOrFail($purchase->id);
@@ -77,7 +76,7 @@ class ReceivePurchaseGoodsAction
             $stockMutation = app(StockMutationService::class);
 
             $receipt = $purchase->receipts()->create([
-                'tenant_id' => self::TENANT_ID,
+                'tenant_id' => TenantContext::currentId(),
                 'receipt_number' => $this->numberService->generateReceiptNumber(),
                 'inventory_location_id' => $data['inventory_location_id'],
                 'fingerprint' => $receiptFingerprint,
@@ -133,7 +132,7 @@ class ReceivePurchaseGoodsAction
                 ]);
 
                 $receipt->items()->create([
-                    'tenant_id' => self::TENANT_ID,
+                    'tenant_id' => TenantContext::currentId(),
                     'purchase_item_id' => $purchaseItem->id,
                     'product_id' => $purchaseItem->product_id,
                     'product_variant_id' => $purchaseItem->product_variant_id,
@@ -179,7 +178,7 @@ class ReceivePurchaseGoodsAction
             ]);
 
             $purchase->statusHistories()->create([
-                'tenant_id' => self::TENANT_ID,
+                'tenant_id' => TenantContext::currentId(),
                 'from_status' => $fromStatus,
                 'to_status' => $nextStatus,
                 'event' => 'received',

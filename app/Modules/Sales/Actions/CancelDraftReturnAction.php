@@ -4,18 +4,17 @@ namespace App\Modules\Sales\Actions;
 
 use App\Models\User;
 use App\Modules\Sales\Models\SaleReturn;
+use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class CancelDraftReturnAction
 {
-    private const TENANT_ID = 1;
-
     public function execute(SaleReturn $saleReturn, ?string $reason = null, ?User $actor = null): SaleReturn
     {
         return DB::transaction(function () use ($saleReturn, $reason, $actor) {
             $saleReturn = SaleReturn::query()
-                ->where('tenant_id', self::TENANT_ID)
+                ->where('tenant_id', TenantContext::currentId())
                 ->lockForUpdate()
                 ->findOrFail($saleReturn->id);
 
@@ -34,7 +33,7 @@ class CancelDraftReturnAction
             ]);
 
             $saleReturn->statusLogs()->create([
-                'tenant_id' => self::TENANT_ID,
+                'tenant_id' => TenantContext::currentId(),
                 'from_status' => $fromStatus,
                 'to_status' => SaleReturn::STATUS_CANCELLED,
                 'event' => 'cancelled',

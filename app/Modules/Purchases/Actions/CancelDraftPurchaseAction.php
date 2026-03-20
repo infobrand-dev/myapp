@@ -4,13 +4,12 @@ namespace App\Modules\Purchases\Actions;
 
 use App\Models\User;
 use App\Modules\Purchases\Models\Purchase;
+use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class CancelDraftPurchaseAction
 {
-    private const TENANT_ID = 1;
-
     public function execute(Purchase $purchase, array $data, ?User $actor = null): Purchase
     {
         if (!$purchase->isDraft()) {
@@ -20,7 +19,7 @@ class CancelDraftPurchaseAction
         }
 
         return DB::transaction(function () use ($purchase, $data, $actor) {
-            $purchase = Purchase::query()->where('tenant_id', self::TENANT_ID)->lockForUpdate()->findOrFail($purchase->id);
+            $purchase = Purchase::query()->where('tenant_id', TenantContext::currentId())->lockForUpdate()->findOrFail($purchase->id);
             $fromStatus = $purchase->status;
 
             $purchase->update([
@@ -31,7 +30,7 @@ class CancelDraftPurchaseAction
             ]);
 
             $purchase->statusHistories()->create([
-                'tenant_id' => self::TENANT_ID,
+                'tenant_id' => TenantContext::currentId(),
                 'from_status' => $fromStatus,
                 'to_status' => Purchase::STATUS_CANCELLED,
                 'event' => 'cancelled',

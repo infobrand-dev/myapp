@@ -7,13 +7,12 @@ use App\Modules\Contacts\Models\Contact;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Services\SaleIdempotencyService;
 use App\Modules\Sales\Services\SaleSnapshotService;
+use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class UpdateDraftSaleAction
 {
-    private const TENANT_ID = 1;
-
     private $recalculateTotals;
     private $idempotencyService;
     private $snapshotService;
@@ -40,10 +39,10 @@ class UpdateDraftSaleAction
         }
 
         return DB::transaction(function () use ($sale, $data, $actor) {
-            $sale = Sale::query()->where('tenant_id', self::TENANT_ID)->lockForUpdate()->findOrFail($sale->id);
+            $sale = Sale::query()->where('tenant_id', TenantContext::currentId())->lockForUpdate()->findOrFail($sale->id);
             $totals = $this->recalculateTotals->execute($data);
             $contact = !empty($data['contact_id'])
-                ? Contact::query()->with('company')->where('tenant_id', self::TENANT_ID)->find($data['contact_id'])
+                ? Contact::query()->with('company')->where('tenant_id', TenantContext::currentId())->find($data['contact_id'])
                 : null;
             $customer = $this->snapshotService->customerSnapshot($contact);
 
@@ -84,7 +83,7 @@ class UpdateDraftSaleAction
     private function withTenantId(array $rows): array
     {
         return array_map(function (array $row): array {
-            $row['tenant_id'] = self::TENANT_ID;
+            $row['tenant_id'] = TenantContext::currentId();
 
             return $row;
         }, $rows);

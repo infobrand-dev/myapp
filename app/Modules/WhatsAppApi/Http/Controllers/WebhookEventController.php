@@ -5,6 +5,7 @@ namespace App\Modules\WhatsAppApi\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use App\Modules\WhatsAppApi\Models\WhatsAppWebhookEvent;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -50,6 +51,6 @@ class WebhookEventController extends Controller
 
     private function tenantId(): int
     {
-        return 1;
+        return TenantContext::currentId();
     }
 }

@@ -2,6 +2,11 @@
 
 Laravel 11 + Breeze (Blade) + Tabler UI. Core app menyediakan shell dasar seperti installer, auth, dashboard, profile, users, roles, dan module registry. Fitur bisnis utama ditempatkan sebagai modul di `app/Modules`.
 
+Dokumen arsitektur terkait:
+- `ARCHITECTURE.md`
+- `MODULES.md`
+- `SAAS_TENANCY.md`
+
 ## Quick start
 
 ### Opsi A: Web installer

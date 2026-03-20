@@ -5,13 +5,12 @@ namespace App\Modules\Inventory\Actions;
 use App\Models\User;
 use App\Modules\Inventory\Models\StockAdjustment;
 use App\Modules\Inventory\Services\StockMutationService;
+use App\Support\TenantContext;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 
 class FinalizeStockAdjustmentAction
 {
-    private const TENANT_ID = 1;
-
     private $mutationService;
 
     public function __construct(StockMutationService $mutationService)
@@ -23,7 +22,7 @@ class FinalizeStockAdjustmentAction
     {
         return DB::transaction(function () use ($adjustment, $actor) {
             $adjustment = StockAdjustment::query()
-                ->where('tenant_id', self::TENANT_ID)
+                ->where('tenant_id', TenantContext::currentId())
                 ->with(['items.product', 'items.variant'])
                 ->lockForUpdate()
                 ->findOrFail($adjustment->id);

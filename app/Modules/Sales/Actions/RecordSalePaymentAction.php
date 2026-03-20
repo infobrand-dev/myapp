@@ -7,13 +7,12 @@ use App\Modules\Payments\Actions\CreatePaymentAction as CreateCentralPaymentActi
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\Sales\Models\Sale;
+use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class RecordSalePaymentAction
 {
-    private const TENANT_ID = 1;
-
     private $syncPaymentSummary;
 
     public function __construct(SyncSalePaymentSummaryAction $syncPaymentSummary)
@@ -24,7 +23,7 @@ class RecordSalePaymentAction
     public function execute(Sale $sale, array $data, ?User $actor = null): Payment
     {
         return DB::transaction(function () use ($sale, $data, $actor) {
-            $sale = Sale::query()->where('tenant_id', self::TENANT_ID)->lockForUpdate()->findOrFail($sale->id);
+            $sale = Sale::query()->where('tenant_id', TenantContext::currentId())->lockForUpdate()->findOrFail($sale->id);
 
             if (!$sale->isFinalized()) {
                 throw ValidationException::withMessages([

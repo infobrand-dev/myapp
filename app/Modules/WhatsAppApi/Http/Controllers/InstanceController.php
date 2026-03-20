@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstanceChatbotIntegration;
+use App\Support\TenantContext;
 use Illuminate\Support\Arr;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -858,6 +859,6 @@ class InstanceController extends Controller
 
     private function tenantId(): int
     {
-        return 1;
+        return TenantContext::currentId();
     }
 }

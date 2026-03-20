@@ -18,7 +18,9 @@
 - Features should be designed so they can be partitioned or scoped cleanly as data grows. When adding tables, foreign keys, unique keys, or search filters, think ahead about operational load and maintenance windows.
 - Multi-tenant readiness is a standing requirement even where `tenant_id` is not fully rolled out yet. New schema, services, and module integrations should avoid assumptions that make tenant scoping difficult later.
 - When practical, keep room for `tenant_id` in table design, query composition, unique constraints, cache keys, webhook/account resolution, and ownership rules. Avoid building new flows that implicitly assume a single global tenant.
-- Until an explicit tenant resolver is introduced, tenant-aware writes should use `tenant_id = 1` instead of leaving the field `null`.
+- Core runtime tenant resolution now flows through `App\Support\TenantContext` and `App\Http\Middleware\ResolveTenantContext`.
+- Current resolver order is: explicit request attribute/header/query, session, authenticated user `tenant_id`, then fallback to tenant `id = 1`.
+- Until tenant switching UI and tenant administration are completed, default/fallback tenant behavior must remain safe and deterministic, and tenant-aware writes must never leave `tenant_id` as `null`.
 - If a change is intentionally shipped before tenant scoping is completed, document the limitation clearly and keep the implementation easy to migrate to tenant-aware behavior.
 - Core tenant bootstrap now uses a dedicated `tenants` table. Default installation must always have tenant `id = 1` with the name `Default tenant`.
 - For the current rollout, business data and tenant-owned user data should be scoped by `tenant_id`, while framework/runtime tables such as migration bookkeeping, failed jobs, password resets, personal access tokens, roles, permissions, and module registry remain global unless there is a specific reason to tenant-scope them later.
@@ -68,3 +70,4 @@
 ## Related docs
 - `README.md`: setup, install, and runtime commands
 - `MODULES.md`: module catalog and high-level module notes
+- `SAAS_TENANCY.md`: target SaaS tenancy model, tenant lifecycle, plan gating, and multi-company direction

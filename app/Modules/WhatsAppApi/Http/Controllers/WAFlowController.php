@@ -5,6 +5,7 @@ namespace App\Modules\WhatsAppApi\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\WhatsAppApi\Models\WAFlow;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -414,6 +415,6 @@ class WAFlowController extends Controller
 
     private function tenantId(): int
     {
-        return 1;
+        return TenantContext::currentId();
     }
 }

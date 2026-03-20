@@ -5,13 +5,12 @@ namespace App\Modules\Purchases\Actions;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
 use App\Modules\Purchases\Services\PurchaseSnapshotService;
+use App\Support\TenantContext;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
 class RecalculatePurchaseTotalsAction
 {
-    private const TENANT_ID = 1;
-
     private $snapshotService;
 
     public function __construct(PurchaseSnapshotService $snapshotService)
@@ -34,7 +33,7 @@ class RecalculatePurchaseTotalsAction
         $items = $rows->map(function (array $item, int $index) {
             $product = Product::query()
                 ->with('unit')
-                ->where('tenant_id', self::TENANT_ID)
+                ->where('tenant_id', TenantContext::currentId())
                 ->find($item['product_id'] ?? null);
             if (!$product) {
                 throw ValidationException::withMessages([
@@ -45,7 +44,7 @@ class RecalculatePurchaseTotalsAction
             $variant = null;
             if (!empty($item['product_variant_id'])) {
                 $variant = ProductVariant::query()
-                    ->where('tenant_id', self::TENANT_ID)
+                    ->where('tenant_id', TenantContext::currentId())
                     ->find($item['product_variant_id']);
                 if (!$variant || (int) $variant->product_id !== (int) $product->id) {
                     throw ValidationException::withMessages([

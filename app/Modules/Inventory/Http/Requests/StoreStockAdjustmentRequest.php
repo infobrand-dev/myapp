@@ -4,14 +4,13 @@ namespace App\Modules\Inventory\Http\Requests;
 
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
+use App\Support\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 use Illuminate\Validation\Rule;
 
 class StoreStockAdjustmentRequest extends FormRequest
 {
-    private const TENANT_ID = 1;
-
     public function authorize(): bool
     {
         $user = $this->user();
@@ -22,14 +21,14 @@ class StoreStockAdjustmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'inventory_location_id' => ['required', 'integer', Rule::exists('inventory_locations', 'id')->where(fn ($query) => $query->where('tenant_id', self::TENANT_ID))],
+            'inventory_location_id' => ['required', 'integer', Rule::exists('inventory_locations', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()))],
             'adjustment_date' => ['required', 'date'],
             'reason_code' => ['required', 'string', 'max:100'],
             'reason_text' => ['required', 'string'],
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.product_id' => ['required', 'integer', Rule::exists('products', 'id')->where(fn ($query) => $query->where('tenant_id', self::TENANT_ID))],
-            'items.*.product_variant_id' => ['nullable', 'integer', Rule::exists('product_variants', 'id')->where(fn ($query) => $query->where('tenant_id', self::TENANT_ID))],
+            'items.*.product_id' => ['required', 'integer', Rule::exists('products', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()))],
+            'items.*.product_variant_id' => ['nullable', 'integer', Rule::exists('product_variants', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()))],
             'items.*.direction' => ['required', Rule::in(['in', 'out'])],
             'items.*.quantity' => ['required', 'numeric', 'gt:0'],
             'items.*.notes' => ['nullable', 'string'],
@@ -50,7 +49,7 @@ class StoreStockAdjustmentRequest extends FormRequest
                 }
 
                 $product = Product::query()
-                    ->where('tenant_id', self::TENANT_ID)
+                    ->where('tenant_id', TenantContext::currentId())
                     ->find($productId);
 
                 if (!$product || !$product->track_stock) {
@@ -63,7 +62,7 @@ class StoreStockAdjustmentRequest extends FormRequest
                 }
 
                 $variant = ProductVariant::query()
-                    ->where('tenant_id', self::TENANT_ID)
+                    ->where('tenant_id', TenantContext::currentId())
                     ->find($variantId);
 
                 if (!$variant || (int) $variant->product_id !== $productId) {
@@ -82,7 +81,7 @@ class StoreStockAdjustmentRequest extends FormRequest
             }
 
             $location = \App\Modules\Inventory\Models\InventoryLocation::query()
-                ->where('tenant_id', self::TENANT_ID)
+                ->where('tenant_id', TenantContext::currentId())
                 ->find($locationId);
 
             if (!$location) {

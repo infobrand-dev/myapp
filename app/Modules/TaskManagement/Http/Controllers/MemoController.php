@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\TaskManagement\Models\Memo;
 use App\Modules\TaskManagement\Models\Task;
 use App\Modules\TaskManagement\Models\Subtask;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -168,6 +169,6 @@ class MemoController extends Controller
 
     private function tenantId(): int
     {
-        return 1;
+        return TenantContext::currentId();
     }
 }

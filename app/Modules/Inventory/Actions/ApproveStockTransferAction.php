@@ -4,16 +4,15 @@ namespace App\Modules\Inventory\Actions;
 
 use App\Models\User;
 use App\Modules\Inventory\Models\StockTransfer;
+use App\Support\TenantContext;
 use DomainException;
 
 class ApproveStockTransferAction
 {
-    private const TENANT_ID = 1;
-
     public function execute(StockTransfer $transfer, ?User $actor = null): StockTransfer
     {
         $transfer = StockTransfer::query()
-            ->where('tenant_id', self::TENANT_ID)
+            ->where('tenant_id', TenantContext::currentId())
             ->findOrFail($transfer->id);
 
         if ($transfer->status !== 'draft') {

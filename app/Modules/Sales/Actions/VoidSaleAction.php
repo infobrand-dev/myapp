@@ -6,18 +6,17 @@ use App\Models\User;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Sales\Events\SaleVoided;
 use App\Modules\Sales\Models\Sale;
+use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class VoidSaleAction
 {
-    private const TENANT_ID = 1;
-
     public function execute(Sale $sale, array $data, ?User $actor = null): Sale
     {
         $sale = DB::transaction(function () use ($sale, $data, $actor) {
             $sale = Sale::query()
-                ->where('tenant_id', self::TENANT_ID)
+                ->where('tenant_id', TenantContext::currentId())
                 ->with('items')
                 ->lockForUpdate()
                 ->findOrFail($sale->id);
@@ -57,7 +56,7 @@ class VoidSaleAction
             $snapshot = $sale->load('items')->toArray();
 
             $sale->voidLogs()->create([
-                'tenant_id' => self::TENANT_ID,
+                'tenant_id' => TenantContext::currentId(),
                 'status_before' => $statusBefore,
                 'reason' => $reason,
                 'snapshot' => $snapshot,
@@ -65,7 +64,7 @@ class VoidSaleAction
             ]);
 
             $sale->statusHistories()->create([
-                'tenant_id' => self::TENANT_ID,
+                'tenant_id' => TenantContext::currentId(),
                 'from_status' => $statusBefore,
                 'to_status' => Sale::STATUS_VOIDED,
                 'event' => 'voided',

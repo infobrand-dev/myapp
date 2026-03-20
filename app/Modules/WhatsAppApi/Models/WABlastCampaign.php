@@ -3,6 +3,7 @@
 namespace App\Modules\WhatsAppApi\Models;
 
 use App\Models\User;
+use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -42,13 +43,13 @@ class WABlastCampaign extends Model
     public function instance(): BelongsTo
     {
         return $this->belongsTo(WhatsAppInstance::class, 'instance_id')
-            ->where('tenant_id', 1);
+            ->where('tenant_id', TenantContext::currentId());
     }
 
     public function template(): BelongsTo
     {
         return $this->belongsTo(WATemplate::class, 'template_id')
-            ->where('tenant_id', 1);
+            ->where('tenant_id', TenantContext::currentId());
     }
 
     public function creator(): BelongsTo
@@ -59,13 +60,13 @@ class WABlastCampaign extends Model
     public function recipients(): HasMany
     {
         return $this->hasMany(WABlastRecipient::class, 'campaign_id')
-            ->where('tenant_id', 1);
+            ->where('tenant_id', TenantContext::currentId());
     }
 
     public function resolveRouteBinding($value, $field = null)
     {
         return $this->where($field ?? $this->getRouteKeyName(), $value)
-            ->where('tenant_id', 1)
+            ->where('tenant_id', TenantContext::currentId())
             ->firstOrFail();
     }
 }

@@ -6,18 +6,17 @@ use App\Modules\Products\Models\ProductBrand;
 use App\Modules\Products\Models\ProductCategory;
 use App\Modules\Products\Models\ProductPriceLevel;
 use App\Modules\Products\Models\ProductUnit;
+use App\Support\TenantContext;
 use DomainException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 class ProductLookupService
 {
-    private const TENANT_ID = 1;
-
     public function categories(): Collection
     {
         return ProductCategory::query()
-            ->where('tenant_id', self::TENANT_ID)
+            ->where('tenant_id', TenantContext::currentId())
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
@@ -26,7 +25,7 @@ class ProductLookupService
     public function brands(): Collection
     {
         return ProductBrand::query()
-            ->where('tenant_id', self::TENANT_ID)
+            ->where('tenant_id', TenantContext::currentId())
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
@@ -35,7 +34,7 @@ class ProductLookupService
     public function units(): Collection
     {
         return ProductUnit::query()
-            ->where('tenant_id', self::TENANT_ID)
+            ->where('tenant_id', TenantContext::currentId())
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
@@ -44,7 +43,7 @@ class ProductLookupService
     public function priceLevels(): Collection
     {
         return ProductPriceLevel::query()
-            ->where('tenant_id', self::TENANT_ID)
+            ->where('tenant_id', TenantContext::currentId())
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -87,7 +86,7 @@ class ProductLookupService
     private function resolveCategoryId($categoryId, $newCategoryName): ?int
     {
         if ($categoryId) {
-            if (!ProductCategory::query()->where('tenant_id', self::TENANT_ID)->find($categoryId)) {
+            if (!ProductCategory::query()->where('tenant_id', TenantContext::currentId())->find($categoryId)) {
                 throw new DomainException('Kategori produk tidak tersedia untuk tenant aktif.');
             }
 
@@ -100,8 +99,8 @@ class ProductLookupService
         }
 
         $category = ProductCategory::query()->firstOrCreate(
-            ['tenant_id' => self::TENANT_ID, 'slug' => Str::slug($name)],
-            ['tenant_id' => self::TENANT_ID, 'name' => $name, 'is_active' => true]
+            ['tenant_id' => TenantContext::currentId(), 'slug' => Str::slug($name)],
+            ['tenant_id' => TenantContext::currentId(), 'name' => $name, 'is_active' => true]
         );
 
         return (int) $category->id;
@@ -110,7 +109,7 @@ class ProductLookupService
     private function resolveBrandId($brandId, $newBrandName): ?int
     {
         if ($brandId) {
-            if (!ProductBrand::query()->where('tenant_id', self::TENANT_ID)->find($brandId)) {
+            if (!ProductBrand::query()->where('tenant_id', TenantContext::currentId())->find($brandId)) {
                 throw new DomainException('Brand produk tidak tersedia untuk tenant aktif.');
             }
 
@@ -123,8 +122,8 @@ class ProductLookupService
         }
 
         $brand = ProductBrand::query()->firstOrCreate(
-            ['tenant_id' => self::TENANT_ID, 'slug' => Str::slug($name)],
-            ['tenant_id' => self::TENANT_ID, 'name' => $name, 'is_active' => true]
+            ['tenant_id' => TenantContext::currentId(), 'slug' => Str::slug($name)],
+            ['tenant_id' => TenantContext::currentId(), 'name' => $name, 'is_active' => true]
         );
 
         return (int) $brand->id;
@@ -133,7 +132,7 @@ class ProductLookupService
     private function resolveUnitId($unitId, $newUnitName, $newUnitCode): ?int
     {
         if ($unitId) {
-            if (!ProductUnit::query()->where('tenant_id', self::TENANT_ID)->find($unitId)) {
+            if (!ProductUnit::query()->where('tenant_id', TenantContext::currentId())->find($unitId)) {
                 throw new DomainException('Unit produk tidak tersedia untuk tenant aktif.');
             }
 
@@ -151,8 +150,8 @@ class ProductLookupService
         }
 
         $unit = ProductUnit::query()->firstOrCreate(
-            ['tenant_id' => self::TENANT_ID, 'code' => Str::upper($code)],
-            ['tenant_id' => self::TENANT_ID, 'name' => $name, 'is_active' => true]
+            ['tenant_id' => TenantContext::currentId(), 'code' => Str::upper($code)],
+            ['tenant_id' => TenantContext::currentId(), 'name' => $name, 'is_active' => true]
         );
 
         return (int) $unit->id;

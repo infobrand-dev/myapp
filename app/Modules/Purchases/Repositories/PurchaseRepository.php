@@ -3,6 +3,7 @@
 namespace App\Modules\Purchases\Repositories;
 
 use App\Modules\Purchases\Models\Purchase;
+use App\Support\TenantContext;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -69,6 +70,6 @@ class PurchaseRepository
 
     private function tenantId(): int
     {
-        return 1;
+        return TenantContext::currentId();
     }
 }

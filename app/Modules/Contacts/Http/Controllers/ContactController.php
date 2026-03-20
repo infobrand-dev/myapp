@@ -5,6 +5,7 @@ namespace App\Modules\Contacts\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Contacts\Support\ContactPhoneNormalizer;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -925,7 +926,7 @@ class ContactController extends Controller
 
     private function tenantId(): int
     {
-        return 1;
+        return TenantContext::currentId();
     }
 
     private function buildTemplateXlsx(array $rows): string

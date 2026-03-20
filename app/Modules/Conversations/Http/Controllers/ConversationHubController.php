@@ -29,8 +29,6 @@ use Throwable;
 
 class ConversationHubController extends Controller
 {
-    private const TENANT_ID = 1;
-
     public function start(Request $request): RedirectResponse
     {
         $request->validate([

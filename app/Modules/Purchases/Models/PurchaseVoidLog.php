@@ -10,6 +10,8 @@ class PurchaseVoidLog extends Model
 {
     protected $fillable = [
         'tenant_id',
+        'company_id',
+        'branch_id',
         'purchase_id',
         'status_before',
         'reason',

@@ -2,7 +2,11 @@
 
 namespace App\Modules\Inventory\Models;
 
+use App\Models\Branch;
+use App\Models\Company;
 use App\Models\User;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +18,8 @@ class StockTransfer extends Model
 
     protected $fillable = [
         'tenant_id',
+        'company_id',
+        'branch_id',
         'code',
         'source_location_id',
         'destination_location_id',
@@ -45,6 +51,16 @@ class StockTransfer extends Model
         return $this->belongsTo(InventoryLocation::class, 'source_location_id');
     }
 
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
     public function destinationLocation(): BelongsTo
     {
         return $this->belongsTo(InventoryLocation::class, 'destination_location_id');
@@ -62,8 +78,10 @@ class StockTransfer extends Model
 
     public function resolveRouteBinding($value, $field = null)
     {
-        return $this->where($field ?? $this->getRouteKeyName(), $value)
+        return BranchContext::applyScope(
+            $this->where($field ?? $this->getRouteKeyName(), $value)
             ->where('tenant_id', TenantContext::currentId())
-            ->firstOrFail();
+            ->where('company_id', CompanyContext::currentId())
+        )->firstOrFail();
     }
 }

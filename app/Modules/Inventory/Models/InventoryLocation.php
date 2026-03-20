@@ -2,6 +2,10 @@
 
 namespace App\Modules\Inventory\Models;
 
+use App\Models\Branch;
+use App\Models\Company;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,6 +15,8 @@ class InventoryLocation extends Model
 {
     protected $fillable = [
         'tenant_id',
+        'company_id',
+        'branch_id',
         'parent_id',
         'code',
         'name',
@@ -33,6 +39,16 @@ class InventoryLocation extends Model
         return $this->belongsTo(self::class, 'parent_id');
     }
 
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
     public function children(): HasMany
     {
         return $this->hasMany(self::class, 'parent_id');
@@ -45,8 +61,10 @@ class InventoryLocation extends Model
 
     public function resolveRouteBinding($value, $field = null)
     {
-        return $this->where($field ?? $this->getRouteKeyName(), $value)
+        return BranchContext::applyScope(
+            $this->where($field ?? $this->getRouteKeyName(), $value)
             ->where('tenant_id', TenantContext::currentId())
-            ->firstOrFail();
+            ->where('company_id', CompanyContext::currentId())
+        )->firstOrFail();
     }
 }

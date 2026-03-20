@@ -8,6 +8,8 @@ use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Services\SaleIdempotencyService;
 use App\Modules\Sales\Services\SaleNumberService;
 use App\Modules\Sales\Services\SaleSnapshotService;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -40,6 +42,7 @@ class CreateDraftSaleAction
             if (!empty($data['external_reference'])) {
                 $existingSale = Sale::query()
                     ->where('tenant_id', TenantContext::currentId())
+                    ->where('company_id', CompanyContext::currentId())
                     ->where('source', $data['source'])
                     ->where('external_reference', $data['external_reference'])
                     ->first();
@@ -60,6 +63,7 @@ class CreateDraftSaleAction
             try {
                 $sale = Sale::query()->create([
                     'tenant_id' => TenantContext::currentId(),
+                    'company_id' => CompanyContext::currentId(),
                     'sale_number' => $this->saleNumberService->generate(),
                     'external_reference' => $data['external_reference'] ?? null,
                     'idempotency_payload_hash' => $this->idempotencyService->hashFromPayload($data),
@@ -72,6 +76,7 @@ class CreateDraftSaleAction
                     'status' => Sale::STATUS_DRAFT,
                     'payment_status' => $data['payment_status'],
                     'source' => $data['source'],
+                    'branch_id' => $data['branch_id'] ?? BranchContext::currentId(),
                     'transaction_date' => $data['transaction_date'],
                     'subtotal' => $totals['subtotal'],
                     'discount_total' => $totals['discount_total'],
@@ -96,6 +101,7 @@ class CreateDraftSaleAction
 
                 $sale = Sale::query()
                     ->where('tenant_id', TenantContext::currentId())
+                    ->where('company_id', CompanyContext::currentId())
                     ->where('source', $data['source'])
                     ->where('external_reference', $data['external_reference'])
                     ->first();
@@ -130,6 +136,7 @@ class CreateDraftSaleAction
     {
         return array_map(function (array $row): array {
             $row['tenant_id'] = TenantContext::currentId();
+            $row['company_id'] = CompanyContext::currentId();
 
             return $row;
         }, $rows);

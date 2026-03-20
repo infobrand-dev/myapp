@@ -18,7 +18,7 @@
                 <div class="mb-2"><div class="text-muted small">Amount</div><div>Rp {{ number_format((float) $transaction->amount, 0, ',', '.') }}</div></div>
                 <div class="mb-2"><div class="text-muted small">Category</div><div>{{ $transaction->category ? $transaction->category->name : '-' }}</div></div>
                 <div class="mb-2"><div class="text-muted small">User</div><div>{{ $transaction->creator ? $transaction->creator->name : '-' }}</div></div>
-                <div class="mb-2"><div class="text-muted small">Outlet</div><div>{{ $transaction->outlet_id ?: '-' }}</div></div>
+                <div class="mb-2"><div class="text-muted small">Branch</div><div>{{ $transaction->branch_id ?: '-' }}</div></div>
                 @if($shiftEnabled)
                     <div class="mb-2"><div class="text-muted small">Shift</div><div>{{ $transaction->shift ? $transaction->shift->code : '-' }}</div></div>
                 @endif

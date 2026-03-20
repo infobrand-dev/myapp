@@ -7,6 +7,7 @@ use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
 use App\Modules\Sales\Http\Requests\Concerns\NormalizesSalePayload;
 use App\Modules\Sales\Models\Sale;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;

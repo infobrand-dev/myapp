@@ -5,6 +5,7 @@ namespace App\Modules\Sales\Actions;
 use App\Models\User;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\SaleReturn;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -30,6 +31,7 @@ class FinalizeSalesReturnAction
         $saleReturn = DB::transaction(function () use ($saleReturn, $actor) {
             $saleReturn = SaleReturn::query()
                 ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
                 ->with(['items', 'sale.items'])
                 ->lockForUpdate()
                 ->findOrFail($saleReturn->id);
@@ -65,6 +67,7 @@ class FinalizeSalesReturnAction
 
             $saleReturn->statusLogs()->create([
                 'tenant_id' => TenantContext::currentId(),
+                'company_id' => CompanyContext::currentId(),
                 'from_status' => $fromStatus,
                 'to_status' => SaleReturn::STATUS_FINALIZED,
                 'event' => 'finalized',

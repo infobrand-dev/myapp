@@ -10,6 +10,7 @@ class PaymentVoidLog extends Model
 {
     protected $fillable = [
         'tenant_id',
+        'company_id',
         'payment_id',
         'status_before',
         'reason',

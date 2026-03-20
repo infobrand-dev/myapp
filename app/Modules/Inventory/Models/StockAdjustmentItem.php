@@ -13,6 +13,8 @@ class StockAdjustmentItem extends Model
 
     protected $fillable = [
         'tenant_id',
+        'company_id',
+        'branch_id',
         'adjustment_id',
         'product_id',
         'product_variant_id',

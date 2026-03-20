@@ -18,13 +18,13 @@
 <div class="card">
     <div class="table-responsive">
         <table class="table table-vcenter">
-            <thead><tr><th>Kode</th><th>Cashier</th><th>Outlet</th><th>Opened</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Kode</th><th>Cashier</th><th>Branch</th><th>Opened</th><th>Status</th><th></th></tr></thead>
             <tbody>
                 @forelse($sessions as $session)
                     <tr>
                         <td>{{ $session->code }}</td>
                         <td>{{ $session->cashier ? $session->cashier->name : '-' }}</td>
-                        <td>{{ $session->outlet_id ?: '-' }}</td>
+                        <td>{{ $session->branch_id ?: '-' }}</td>
                         <td>{{ $session->opened_at ? $session->opened_at->format('d/m/Y H:i') : '-' }}</td>
                         <td><span class="badge {{ $session->isActive() ? 'bg-success-lt text-success' : 'bg-secondary-lt text-secondary' }}">{{ $session->status }}</span></td>
                         <td class="text-end"><a href="{{ route('pos.shifts.show', $session) }}" class="btn btn-outline-secondary btn-sm">Detail</a></td>

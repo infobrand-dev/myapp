@@ -11,9 +11,10 @@ return new class extends Migration
         Schema::create('pos_receipt_reprint_logs', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('tenant_id')->default(1)->index();
+            $table->unsignedBigInteger('company_id')->default(1)->index();
             $table->foreignId('sale_id')->constrained('sales')->cascadeOnDelete();
             $table->foreignId('pos_cash_session_id')->nullable()->constrained('pos_cash_sessions')->nullOnDelete();
-            $table->unsignedBigInteger('outlet_id')->nullable();
+            $table->unsignedBigInteger('branch_id')->nullable()->index();
             $table->unsignedInteger('reprint_sequence');
             $table->text('reason');
             $table->foreignId('requested_by')->nullable()->constrained('users')->nullOnDelete();
@@ -23,8 +24,9 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['sale_id', 'reprint_sequence'], 'pos_receipt_reprint_logs_sale_sequence_unique');
+            $table->index(['tenant_id', 'company_id', 'created_at']);
             $table->index(['requested_by', 'created_at']);
-            $table->index(['outlet_id', 'created_at']);
+            $table->index(['branch_id', 'created_at']);
         });
     }
 

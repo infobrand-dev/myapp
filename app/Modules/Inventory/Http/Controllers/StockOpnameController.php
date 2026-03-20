@@ -10,6 +10,8 @@ use App\Modules\Inventory\Http\Requests\StoreStockOpnameRequest;
 use App\Modules\Inventory\Http\Requests\UpdateStockOpnameRequest;
 use App\Modules\Inventory\Models\StockOpname;
 use App\Modules\Inventory\Repositories\StockRepository;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
@@ -31,7 +33,9 @@ class StockOpnameController extends Controller
         return view('inventory::opnames.index', [
             'opnames' => StockOpname::query()
                 ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
                 ->with(['location', 'creator', 'finalizer', 'adjustment'])
+                ->tap(fn ($query) => BranchContext::applyScope($query))
                 ->latest()
                 ->paginate(15),
         ]);

@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('sale_return_items', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('tenant_id')->default(1)->index();
+            $table->unsignedBigInteger('company_id')->default(1)->index();
             $table->foreignId('sale_return_id')->constrained('sale_returns')->cascadeOnDelete();
             $table->foreignId('sale_item_id')->nullable()->constrained('sale_items')->nullOnDelete();
             $table->unsignedInteger('line_no')->default(1);
@@ -35,7 +36,7 @@ return new class extends Migration
             $table->unsignedInteger('sort_order')->default(0);
             $table->timestamps();
 
-            $table->index(['sale_return_id', 'line_no']);
+            $table->index(['company_id', 'sale_return_id', 'line_no']);
             $table->index(['sale_item_id']);
             $table->index(['product_id', 'product_variant_id']);
         });

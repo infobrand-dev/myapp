@@ -4,6 +4,8 @@ namespace App\Modules\Inventory\Http\Requests;
 
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
@@ -21,7 +23,9 @@ class StoreStockAdjustmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'inventory_location_id' => ['required', 'integer', Rule::exists('inventory_locations', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()))],
+            'inventory_location_id' => ['required', 'integer', Rule::exists('inventory_locations', 'id')->where(fn ($query) => BranchContext::applyScope($query
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())))],
             'adjustment_date' => ['required', 'date'],
             'reason_code' => ['required', 'string', 'max:100'],
             'reason_text' => ['required', 'string'],
@@ -82,6 +86,8 @@ class StoreStockAdjustmentRequest extends FormRequest
 
             $location = \App\Modules\Inventory\Models\InventoryLocation::query()
                 ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
+                ->tap(fn ($query) => BranchContext::applyScope($query))
                 ->find($locationId);
 
             if (!$location) {

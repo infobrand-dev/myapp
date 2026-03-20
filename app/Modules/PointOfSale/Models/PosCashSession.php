@@ -2,9 +2,13 @@
 
 namespace App\Modules\PointOfSale\Models;
 
+use App\Models\Company;
+use App\Models\Branch;
 use App\Models\User;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Sales\Models\Sale;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,9 +23,10 @@ class PosCashSession extends Model
 
     protected $fillable = [
         'tenant_id',
+        'company_id',
+        'branch_id',
         'code',
         'cashier_user_id',
-        'outlet_id',
         'status',
         'opening_cash_amount',
         'opening_note',
@@ -48,6 +53,16 @@ class PosCashSession extends Model
     public function cashier(): BelongsTo
     {
         return $this->belongsTo(User::class, 'cashier_user_id');
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function closer(): BelongsTo
@@ -87,8 +102,10 @@ class PosCashSession extends Model
 
     public function resolveRouteBinding($value, $field = null)
     {
-        return $this->where($field ?? $this->getRouteKeyName(), $value)
+        return BranchContext::applyScope(
+            $this->where($field ?? $this->getRouteKeyName(), $value)
             ->where('tenant_id', TenantContext::currentId())
-            ->firstOrFail();
+            ->where('company_id', CompanyContext::currentId())
+        )->firstOrFail();
     }
 }

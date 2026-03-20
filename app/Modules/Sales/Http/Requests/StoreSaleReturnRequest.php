@@ -5,6 +5,8 @@ namespace App\Modules\Sales\Http\Requests;
 use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Sales\Models\SaleItem;
 use App\Modules\Sales\Models\Sale;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -23,11 +25,16 @@ class StoreSaleReturnRequest extends FormRequest
         $inventoryLocationRules = ['nullable', 'integer', 'min:1'];
 
         if (Schema::hasTable('inventory_locations')) {
-            $inventoryLocationRules[] = Rule::exists('inventory_locations', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()));
+            $inventoryLocationRules[] = Rule::exists('inventory_locations', 'id')->where(fn ($query) => BranchContext::applyScope($query
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())));
         }
 
         return [
-            'sale_id' => ['required', 'integer', Rule::exists('sales', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId())->where('status', Sale::STATUS_FINALIZED))],
+            'sale_id' => ['required', 'integer', Rule::exists('sales', 'id')->where(fn ($query) => $query
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
+                ->where('status', Sale::STATUS_FINALIZED))],
             'return_date' => ['nullable', 'date'],
             'reason' => ['required', 'string'],
             'notes' => ['nullable', 'string'],
@@ -70,7 +77,7 @@ class StoreSaleReturnRequest extends FormRequest
     private function validateTenantRelations(Validator $validator): void
     {
         $locationId = $this->input('inventory_location_id');
-        if ($locationId && !InventoryLocation::query()->where('tenant_id', TenantContext::currentId())->find($locationId)) {
+        if ($locationId && !InventoryLocation::query()->where('tenant_id', TenantContext::currentId())->where('company_id', CompanyContext::currentId())->tap(fn ($query) => BranchContext::applyScope($query))->find($locationId)) {
             $validator->errors()->add('inventory_location_id', 'Lokasi inventory tidak tersedia untuk tenant aktif.');
         }
 

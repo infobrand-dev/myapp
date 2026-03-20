@@ -7,6 +7,8 @@ use App\Modules\Payments\Actions\CreatePaymentAction as CreateCentralPaymentActi
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\Sales\Models\Sale;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -23,7 +25,12 @@ class RecordSalePaymentAction
     public function execute(Sale $sale, array $data, ?User $actor = null): Payment
     {
         return DB::transaction(function () use ($sale, $data, $actor) {
-            $sale = Sale::query()->where('tenant_id', TenantContext::currentId())->lockForUpdate()->findOrFail($sale->id);
+            $sale = Sale::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
+                ->tap(fn ($query) => BranchContext::applyScope($query))
+                ->lockForUpdate()
+                ->findOrFail($sale->id);
 
             if (!$sale->isFinalized()) {
                 throw ValidationException::withMessages([
@@ -43,7 +50,11 @@ class RecordSalePaymentAction
     {
         $code = PaymentMethod::fromSalesInput($legacyMethod);
 
-        $methodId = DB::table('payment_methods')->where('code', $code)->value('id');
+        $methodId = DB::table('payment_methods')
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
+            ->where('code', $code)
+            ->value('id');
 
         return $methodId ? (int) $methodId : null;
     }
@@ -68,6 +79,7 @@ class RecordSalePaymentAction
             'paid_at' => $data['payment_date'] ?? now(),
             'source' => Payment::SOURCE_MANUAL,
             'reference_number' => $data['reference_number'] ?? null,
+            'branch_id' => $sale->branch_id,
             'notes' => $data['notes'] ?? null,
             'received_by' => $actor ? $actor->id : null,
             'allocations' => [[

@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\Payments\Services\PaymentNumberService;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -36,6 +38,7 @@ class CreatePaymentAction
 
             $method = PaymentMethod::query()
                 ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
                 ->whereKey($data['payment_method_id'])
                 ->where('is_active', true)
                 ->first();
@@ -79,6 +82,7 @@ class CreatePaymentAction
 
             $payment = Payment::query()->create([
                 'tenant_id' => TenantContext::currentId(),
+                'company_id' => CompanyContext::currentId(),
                 'payment_number' => $this->numberService->nextNumber($paidAt),
                 'payment_method_id' => $method->id,
                 'amount' => $paymentAmount,
@@ -89,7 +93,7 @@ class CreatePaymentAction
                 'channel' => $data['channel'] ?? null,
                 'reference_number' => $data['reference_number'] ?? null,
                 'external_reference' => $data['external_reference'] ?? null,
-                'outlet_id' => $data['outlet_id'] ?? null,
+                'branch_id' => $data['branch_id'] ?? BranchContext::currentId(),
                 'notes' => $data['notes'] ?? null,
                 'meta' => $data['meta'] ?? null,
                 'received_by' => $data['received_by'] ?? ($actor ? $actor->id : null),
@@ -105,6 +109,7 @@ class CreatePaymentAction
 
                 $payment->allocations()->create([
                     'tenant_id' => TenantContext::currentId(),
+                    'company_id' => CompanyContext::currentId(),
                     'payable_type' => $payable->getMorphClass(),
                     'payable_id' => $payable->getKey(),
                     'allocation_order' => $index + 1,
@@ -117,6 +122,7 @@ class CreatePaymentAction
 
             $payment->statusLogs()->create([
                 'tenant_id' => TenantContext::currentId(),
+                'company_id' => CompanyContext::currentId(),
                 'from_status' => null,
                 'to_status' => Payment::STATUS_POSTED,
                 'event' => 'created',

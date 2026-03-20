@@ -2,9 +2,13 @@
 
 namespace App\Modules\Purchases\Models;
 
+use App\Models\Branch;
+use App\Models\Company;
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Payments\Models\PaymentAllocation;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -27,6 +31,8 @@ class Purchase extends Model
 
     protected $fillable = [
         'tenant_id',
+        'company_id',
+        'branch_id',
         'purchase_number',
         'contact_id',
         'supplier_name_snapshot',
@@ -86,6 +92,16 @@ class Purchase extends Model
     {
         return $this->belongsTo(Contact::class, 'contact_id')
             ->where('tenant_id', TenantContext::currentId());
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function items(): HasMany
@@ -154,8 +170,10 @@ class Purchase extends Model
 
     public function resolveRouteBinding($value, $field = null)
     {
-        return $this->where($field ?? $this->getRouteKeyName(), $value)
+        return BranchContext::applyScope(
+            $this->where($field ?? $this->getRouteKeyName(), $value)
             ->where('tenant_id', TenantContext::currentId())
-            ->firstOrFail();
+            ->where('company_id', CompanyContext::currentId())
+        )->firstOrFail();
     }
 }

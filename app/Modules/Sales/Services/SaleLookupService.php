@@ -7,6 +7,8 @@ use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
 use App\Modules\Sales\Models\Sale;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Support\Collection;
 
@@ -111,6 +113,20 @@ class SaleLookupService
             Sale::SOURCE_ONLINE => 'Online',
             Sale::SOURCE_API => 'API',
         ];
+    }
+
+    public function saleOptions(): Collection
+    {
+        $query = Sale::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
+            ->where('status', Sale::STATUS_FINALIZED)
+            ->orderByDesc('transaction_date')
+            ->limit(100);
+
+        BranchContext::applyScope($query);
+
+        return $query->get();
     }
 
     public function dependencyMap(): array

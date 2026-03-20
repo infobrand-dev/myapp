@@ -13,6 +13,8 @@ class StockOpnameItem extends Model
 
     protected $fillable = [
         'tenant_id',
+        'company_id',
+        'branch_id',
         'opname_id',
         'inventory_stock_id',
         'product_id',

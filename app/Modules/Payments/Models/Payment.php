@@ -2,8 +2,12 @@
 
 namespace App\Modules\Payments\Models;
 
+use App\Models\Company;
+use App\Models\Branch;
 use App\Models\User;
 use App\Modules\PointOfSale\Models\PosCashSession;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -25,6 +29,7 @@ class Payment extends Model
 
     protected $fillable = [
         'tenant_id',
+        'company_id',
         'payment_number',
         'payment_method_id',
         'amount',
@@ -35,7 +40,7 @@ class Payment extends Model
         'channel',
         'reference_number',
         'external_reference',
-        'outlet_id',
+        'branch_id',
         'pos_cash_session_id',
         'notes',
         'meta',
@@ -57,6 +62,16 @@ class Payment extends Model
     public function method(): BelongsTo
     {
         return $this->belongsTo(PaymentMethod::class, 'payment_method_id');
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function allocations(): HasMany
@@ -106,8 +121,10 @@ class Payment extends Model
 
     public function resolveRouteBinding($value, $field = null)
     {
-        return $this->where($field ?? $this->getRouteKeyName(), $value)
+        return BranchContext::applyScope(
+            $this->where($field ?? $this->getRouteKeyName(), $value)
             ->where('tenant_id', TenantContext::currentId())
-            ->firstOrFail();
+            ->where('company_id', CompanyContext::currentId())
+        )->firstOrFail();
     }
 }

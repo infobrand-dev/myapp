@@ -8,6 +8,7 @@ use App\Modules\PointOfSale\Http\Requests\OpenCashSessionRequest;
 use App\Modules\PointOfSale\Http\Requests\StoreCashSessionMovementRequest;
 use App\Modules\PointOfSale\Models\PosCashSession;
 use App\Modules\PointOfSale\Services\PosCashSessionService;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -27,8 +28,10 @@ class CashSessionController extends Controller
     {
         return view('pos::cash-sessions.index', [
             'activeSession' => $this->service->activeSessionFor(request()->user()),
+            'company' => CompanyContext::currentCompany(),
             'sessions' => PosCashSession::query()
                 ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
                 ->with(['cashier', 'closer'])
                 ->latest('opened_at')
                 ->paginate(15),
@@ -39,6 +42,7 @@ class CashSessionController extends Controller
     {
         return view('pos::cash-sessions.create', [
             'activeSession' => $this->service->activeSessionFor(request()->user()),
+            'company' => CompanyContext::currentCompany(),
         ]);
     }
 
@@ -61,6 +65,7 @@ class CashSessionController extends Controller
 
         return view('pos::cash-sessions.show', [
             'shift' => $shift,
+            'company' => CompanyContext::currentCompany(),
             'expectedCash' => $this->service->expectedCashAmount($shift),
             'saleCount' => $shift->sales->count(),
             'salesTotal' => (float) $shift->sales->sum('grand_total'),

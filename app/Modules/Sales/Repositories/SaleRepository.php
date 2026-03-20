@@ -3,6 +3,8 @@
 namespace App\Modules\Sales\Repositories;
 
 use App\Modules\Sales\Models\Sale;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -13,8 +15,11 @@ class SaleRepository
     {
         $query = Sale::query()
             ->where('tenant_id', $this->tenantId())
+            ->where('company_id', $this->companyId())
             ->with(['contact', 'creator'])
             ->withCount('items');
+
+        BranchContext::applyScope($query);
 
         $this->applyFilters($query, $filters);
 
@@ -68,6 +73,7 @@ class SaleRepository
                         ->where('name', 'like', "%{$search}%"))
                     ->orWhereHas('items', function (Builder $item) use ($search) {
                         $item->where('tenant_id', $this->tenantId())
+                            ->where('company_id', $this->companyId())
                             ->where(function (Builder $nested) use ($search) {
                                 $nested->where('product_name_snapshot', 'like', "%{$search}%")
                                     ->orWhere('variant_name_snapshot', 'like', "%{$search}%")
@@ -100,4 +106,10 @@ class SaleRepository
     {
         return TenantContext::currentId();
     }
+
+    private function companyId(): int
+    {
+        return (int) CompanyContext::currentId();
+    }
+
 }

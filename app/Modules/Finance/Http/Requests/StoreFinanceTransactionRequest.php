@@ -5,6 +5,8 @@ namespace App\Modules\Finance\Http\Requests;
 use App\Modules\Finance\Models\FinanceCategory;
 use App\Modules\Finance\Models\FinanceTransaction;
 use App\Modules\PointOfSale\Models\PosCashSession;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Schema;
@@ -26,7 +28,9 @@ class StoreFinanceTransactionRequest extends FormRequest
         $shiftRules = ['nullable', 'integer', 'min:1'];
 
         if (Schema::hasTable('pos_cash_sessions')) {
-            $shiftRules[] = Rule::exists('pos_cash_sessions', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()));
+            $shiftRules[] = Rule::exists('pos_cash_sessions', 'id')->where(fn ($query) => $query
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId()));
         }
 
         return [
@@ -37,11 +41,22 @@ class StoreFinanceTransactionRequest extends FormRequest
             ])],
             'transaction_date' => ['required', 'date'],
             'amount' => ['required', 'numeric', 'gt:0'],
-            'finance_category_id' => ['required', 'integer', Rule::exists('finance_categories', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()))],
+            'finance_category_id' => ['required', 'integer', Rule::exists('finance_categories', 'id')->where(fn ($query) => $query
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId()))],
             'notes' => ['nullable', 'string'],
-            'outlet_id' => ['nullable', 'integer', 'min:1'],
+            'branch_id' => ['nullable', 'integer', 'min:1', Rule::exists('branches', 'id')->where(fn ($query) => $query
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId()))],
             'pos_cash_session_id' => $shiftRules,
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'branch_id' => $this->input('branch_id', $this->input('outlet_id', BranchContext::currentId())),
+        ]);
     }
 
     public function withValidator(Validator $validator): void
@@ -49,6 +64,7 @@ class StoreFinanceTransactionRequest extends FormRequest
         $validator->after(function (Validator $validator) {
             $category = FinanceCategory::query()
                 ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
                 ->find($this->input('finance_category_id'));
 
             if (!$category || !$category->is_active) {
@@ -67,6 +83,7 @@ class StoreFinanceTransactionRequest extends FormRequest
 
             $session = PosCashSession::query()
                 ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
                 ->find($sessionId);
 
             if (!$session) {

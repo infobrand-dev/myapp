@@ -2,6 +2,7 @@
 
 namespace App\Modules\Payments\Http\Requests;
 
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -22,7 +23,9 @@ class StorePaymentRequest extends FormRequest
         }
 
         return [
-            'payment_method_id' => ['required', 'integer', 'exists:payment_methods,id'],
+            'payment_method_id' => ['required', 'integer', Rule::exists('payment_methods', 'id')->where(fn ($query) => $query
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId()))],
             'amount' => ['required', 'numeric', 'gt:0'],
             'currency_code' => ['nullable', 'string', 'max:10'],
             'paid_at' => ['nullable', 'date'],
@@ -32,7 +35,9 @@ class StorePaymentRequest extends FormRequest
             'external_reference' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string'],
             'received_by' => $receivedByRules,
-            'outlet_id' => ['nullable', 'integer', 'min:1'],
+            'branch_id' => ['nullable', 'integer', 'min:1', Rule::exists('branches', 'id')->where(fn ($query) => $query
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId()))],
             'allocations' => ['required', 'array', 'min:1'],
             'allocations.*.payable_type' => ['required', Rule::in(['sale', 'sale_return', 'purchase'])],
             'allocations.*.payable_id' => ['required', 'integer', 'min:1'],
@@ -73,6 +78,7 @@ class StorePaymentRequest extends FormRequest
         $this->merge([
             'currency_code' => strtoupper((string) ($this->input('currency_code') ?: 'IDR')),
             'source' => strtolower((string) ($this->input('source') ?: 'backoffice')),
+            'branch_id' => $this->input('branch_id', $this->input('outlet_id')),
             'allocations' => $allocations,
         ]);
     }

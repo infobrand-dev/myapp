@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('payment_allocations', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('tenant_id')->default(1)->index();
+            $table->unsignedBigInteger('company_id')->default(1)->index();
             $table->foreignId('payment_id')->constrained('payments')->cascadeOnDelete();
             $table->morphs('payable');
             $table->unsignedInteger('allocation_order')->default(1);
@@ -18,7 +19,7 @@ return new class extends Migration
             $table->json('meta')->nullable();
             $table->timestamps();
 
-            $table->index(['payment_id', 'allocation_order']);
+            $table->index(['company_id', 'payment_id', 'allocation_order']);
         });
     }
 

@@ -2,7 +2,9 @@
 
 namespace App\Modules\Finance\Models;
 
+use App\Models\Company;
 use App\Models\User;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,6 +20,7 @@ class FinanceCategory extends Model
 
     protected $fillable = [
         'tenant_id',
+        'company_id',
         'name',
         'slug',
         'transaction_type',
@@ -36,6 +39,11 @@ class FinanceCategory extends Model
         return $this->hasMany(FinanceTransaction::class, 'finance_category_id');
     }
 
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -50,6 +58,7 @@ class FinanceCategory extends Model
     {
         return $this->where($field ?? $this->getRouteKeyName(), $value)
             ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
             ->firstOrFail();
     }
 }

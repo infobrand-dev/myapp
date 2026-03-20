@@ -9,6 +9,8 @@ use App\Modules\PointOfSale\Models\PosCart;
 use App\Modules\PointOfSale\Services\PosCashSessionService;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -33,13 +35,14 @@ class PosWorkspaceController extends Controller
             'active_shift' => $activeShift ? [
                 'id' => $activeShift->id,
                 'code' => $activeShift->code,
-                'outlet_id' => $activeShift->outlet_id,
+                'branch_id' => $activeShift->branch_id,
                 'opened_at' => $activeShift->opened_at ? $activeShift->opened_at->toDateTimeString() : null,
             ] : null,
             'held_count' => PosCart::query()
                 ->where('tenant_id', TenantContext::currentId())
                 ->where('cashier_user_id', $request->user()->id)
                 ->where('status', PosCart::STATUS_HELD)
+                ->tap(fn ($query) => BranchContext::applyScope($query))
                 ->count(),
         ]);
     }
@@ -163,6 +166,7 @@ class PosWorkspaceController extends Controller
     {
         return PaymentMethod::query()
             ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->get()

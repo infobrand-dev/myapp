@@ -11,6 +11,8 @@ return new class extends Migration
         Schema::create('inventory_stock_movements', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('tenant_id')->default(1)->index();
+            $table->unsignedBigInteger('company_id')->default(1)->index();
+            $table->unsignedBigInteger('branch_id')->nullable()->index();
             $table->string('stock_key')->index();
             $table->foreignId('inventory_stock_id')->nullable()->constrained('inventory_stocks')->nullOnDelete();
             $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();

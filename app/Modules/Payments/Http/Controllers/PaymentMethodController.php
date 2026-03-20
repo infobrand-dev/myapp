@@ -7,6 +7,7 @@ use App\Modules\Payments\Http\Requests\StorePaymentMethodRequest;
 use App\Modules\Payments\Http\Requests\UpdatePaymentMethodRequest;
 use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\Payments\Services\PaymentLookupService;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -25,6 +26,7 @@ class PaymentMethodController extends Controller
         return view('payments::methods.index', [
             'methods' => PaymentMethod::query()
                 ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
                 ->orderBy('sort_order')
                 ->orderBy('name')
                 ->get(),
@@ -37,11 +39,12 @@ class PaymentMethodController extends Controller
         PaymentMethod::query()->create(array_merge(
             $request->validated(),
             [
-            'tenant_id' => TenantContext::currentId(),
-            'requires_reference' => $request->boolean('requires_reference'),
-            'is_active' => $request->boolean('is_active', true),
-            'created_by' => $request->user() ? $request->user()->id : null,
-            'updated_by' => $request->user() ? $request->user()->id : null,
+                'tenant_id' => TenantContext::currentId(),
+                'company_id' => CompanyContext::currentId(),
+                'requires_reference' => $request->boolean('requires_reference'),
+                'is_active' => $request->boolean('is_active', true),
+                'created_by' => $request->user() ? $request->user()->id : null,
+                'updated_by' => $request->user() ? $request->user()->id : null,
             ]
         ));
 

@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Modules\Inventory\Services\StockMutationService;
 use App\Modules\Purchases\Models\Purchase;
 use App\Modules\Purchases\Services\PurchaseNumberService;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -28,7 +30,9 @@ class ReceivePurchaseGoodsAction
         return DB::transaction(function () use ($purchase, $data, $actor) {
             $purchase = Purchase::query()
                 ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
                 ->with('items')
+                ->tap(fn ($query) => BranchContext::applyScope($query))
                 ->lockForUpdate()
                 ->findOrFail($purchase->id);
 
@@ -77,6 +81,8 @@ class ReceivePurchaseGoodsAction
 
             $receipt = $purchase->receipts()->create([
                 'tenant_id' => TenantContext::currentId(),
+                'company_id' => CompanyContext::currentId(),
+                'branch_id' => BranchContext::currentId(),
                 'receipt_number' => $this->numberService->generateReceiptNumber(),
                 'inventory_location_id' => $data['inventory_location_id'],
                 'fingerprint' => $receiptFingerprint,
@@ -133,6 +139,8 @@ class ReceivePurchaseGoodsAction
 
                 $receipt->items()->create([
                     'tenant_id' => TenantContext::currentId(),
+                    'company_id' => CompanyContext::currentId(),
+                    'branch_id' => BranchContext::currentId(),
                     'purchase_item_id' => $purchaseItem->id,
                     'product_id' => $purchaseItem->product_id,
                     'product_variant_id' => $purchaseItem->product_variant_id,
@@ -179,6 +187,8 @@ class ReceivePurchaseGoodsAction
 
             $purchase->statusHistories()->create([
                 'tenant_id' => TenantContext::currentId(),
+                'company_id' => CompanyContext::currentId(),
+                'branch_id' => BranchContext::currentId(),
                 'from_status' => $fromStatus,
                 'to_status' => $nextStatus,
                 'event' => 'received',

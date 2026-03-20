@@ -11,6 +11,8 @@ return new class extends Migration
         Schema::create('purchase_receipt_items', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('tenant_id')->default(1)->index();
+            $table->unsignedBigInteger('company_id')->default(1)->index();
+            $table->unsignedBigInteger('branch_id')->nullable()->index();
             $table->foreignId('purchase_receipt_id')->constrained('purchase_receipts')->cascadeOnDelete();
             $table->foreignId('purchase_item_id')->constrained('purchase_items')->cascadeOnDelete();
             $table->foreignId('product_id')->nullable()->constrained('products')->nullOnDelete();

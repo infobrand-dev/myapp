@@ -9,9 +9,10 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('companies', function (Blueprint $table) {
+        Schema::create('branches', function (Blueprint $table) {
             $table->id();
             $table->foreignId('tenant_id')->constrained('tenants')->cascadeOnDelete();
+            $table->foreignId('company_id')->constrained('companies')->cascadeOnDelete();
             $table->string('name');
             $table->string('slug');
             $table->string('code')->nullable();
@@ -19,17 +20,18 @@ return new class extends Migration
             $table->json('meta')->nullable();
             $table->timestamps();
 
-            $table->unique(['tenant_id', 'slug']);
-            $table->unique(['tenant_id', 'code']);
-            $table->index(['tenant_id', 'is_active', 'name']);
+            $table->unique(['tenant_id', 'company_id', 'slug']);
+            $table->unique(['tenant_id', 'company_id', 'code']);
+            $table->index(['tenant_id', 'company_id', 'is_active', 'name']);
         });
 
-        DB::table('companies')->insert([
+        DB::table('branches')->insert([
             'id' => 1,
             'tenant_id' => 1,
-            'name' => 'Default Company',
-            'slug' => 'default-company',
-            'code' => 'DEFAULT',
+            'company_id' => 1,
+            'name' => 'Main Branch',
+            'slug' => 'main-branch',
+            'code' => 'MAIN',
             'is_active' => true,
             'meta' => json_encode(['bootstrap' => true]),
             'created_at' => now(),
@@ -39,6 +41,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('companies');
+        Schema::dropIfExists('branches');
     }
 };

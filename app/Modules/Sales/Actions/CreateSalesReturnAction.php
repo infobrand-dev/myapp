@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\SaleReturn;
 use App\Modules\Sales\Services\SaleReturnNumberService;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 
@@ -30,6 +31,7 @@ class CreateSalesReturnAction
         return DB::transaction(function () use ($data, $actor) {
             $sale = Sale::query()
                 ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
                 ->with('items')
                 ->lockForUpdate()
                 ->findOrFail($data['sale_id']);
@@ -39,6 +41,7 @@ class CreateSalesReturnAction
 
             $saleReturn = SaleReturn::query()->create([
                 'tenant_id' => TenantContext::currentId(),
+                'company_id' => CompanyContext::currentId(),
                 'return_number' => $this->numberService->generate(),
                 'sale_id' => $sale->id,
                 'sale_number_snapshot' => $sale->sale_number,
@@ -80,6 +83,7 @@ class CreateSalesReturnAction
             $saleReturn->items()->createMany($this->withTenantId($totals['items']));
             $saleReturn->statusLogs()->create([
                 'tenant_id' => TenantContext::currentId(),
+                'company_id' => CompanyContext::currentId(),
                 'from_status' => null,
                 'to_status' => SaleReturn::STATUS_DRAFT,
                 'event' => 'created',
@@ -99,6 +103,7 @@ class CreateSalesReturnAction
     {
         return array_map(function (array $row): array {
             $row['tenant_id'] = TenantContext::currentId();
+            $row['company_id'] = CompanyContext::currentId();
 
             return $row;
         }, $rows);

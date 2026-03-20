@@ -3,6 +3,8 @@
 namespace App\Modules\Inventory\Actions;
 
 use App\Modules\Inventory\Models\StockOpname;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use DomainException;
 use Illuminate\Support\Facades\DB;
@@ -14,7 +16,9 @@ class UpdateStockOpnameAction
         return DB::transaction(function () use ($opname, $data) {
             $opname = StockOpname::query()
                 ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
                 ->with('items')
+                ->tap(fn ($query) => BranchContext::applyScope($query))
                 ->lockForUpdate()
                 ->findOrFail($opname->id);
 

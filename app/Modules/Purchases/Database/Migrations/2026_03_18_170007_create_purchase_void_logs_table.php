@@ -11,6 +11,8 @@ return new class extends Migration
         Schema::create('purchase_void_logs', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('tenant_id')->default(1)->index();
+            $table->unsignedBigInteger('company_id')->default(1)->index();
+            $table->unsignedBigInteger('branch_id')->nullable()->index();
             $table->foreignId('purchase_id')->constrained('purchases')->cascadeOnDelete();
             $table->string('status_before', 30)->nullable();
             $table->text('reason');

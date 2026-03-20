@@ -4,6 +4,8 @@ namespace App\Modules\Inventory\Repositories;
 
 use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Inventory\Models\StockBalance;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -14,6 +16,7 @@ class StockRepository
     {
         $query = StockBalance::query()
             ->where('tenant_id', $this->tenantId())
+            ->where('company_id', $this->companyId())
             ->with(['product', 'variant', 'location'])
             ->when(!empty($filters['location_id']), fn ($builder) => $builder->where('inventory_location_id', $filters['location_id']))
             ->when(!empty($filters['product_id']), fn ($builder) => $builder->where('product_id', $filters['product_id']))
@@ -47,6 +50,8 @@ class StockRepository
                 });
             });
 
+        BranchContext::applyScope($query);
+
         return $query->orderByDesc('updated_at')->paginate($perPage)->withQueryString();
     }
 
@@ -54,7 +59,9 @@ class StockRepository
     {
         return StockBalance::query()
             ->where('tenant_id', $this->tenantId())
+            ->where('company_id', $this->companyId())
             ->with(['product', 'variant', 'location', 'movements.performer'])
+            ->tap(fn ($query) => BranchContext::applyScope($query))
             ->findOrFail($id);
     }
 
@@ -62,7 +69,9 @@ class StockRepository
     {
         return InventoryLocation::query()
             ->where('tenant_id', $this->tenantId())
+            ->where('company_id', $this->companyId())
             ->where('is_active', true)
+            ->tap(fn ($query) => BranchContext::applyScope($query))
             ->orderByDesc('is_default')
             ->orderBy('name')
             ->get();
@@ -72,8 +81,10 @@ class StockRepository
     {
         return StockBalance::query()
             ->where('tenant_id', $this->tenantId())
+            ->where('company_id', $this->companyId())
             ->with(['product', 'variant', 'location'])
             ->where('inventory_location_id', $locationId)
+            ->tap(fn ($query) => BranchContext::applyScope($query))
             ->orderBy('product_id')
             ->orderBy('product_variant_id')
             ->get();
@@ -82,5 +93,10 @@ class StockRepository
     private function tenantId(): int
     {
         return TenantContext::currentId();
+    }
+
+    private function companyId(): int
+    {
+        return (int) CompanyContext::currentId();
     }
 }

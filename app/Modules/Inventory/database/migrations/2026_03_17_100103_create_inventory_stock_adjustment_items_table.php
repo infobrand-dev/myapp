@@ -11,6 +11,8 @@ return new class extends Migration
         Schema::create('inventory_stock_adjustment_items', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('tenant_id')->default(1)->index();
+            $table->unsignedBigInteger('company_id')->default(1)->index();
+            $table->unsignedBigInteger('branch_id')->nullable()->index();
             $table->foreignId('adjustment_id')->constrained('inventory_stock_adjustments')->cascadeOnDelete();
             $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
             $table->foreignId('product_variant_id')->nullable()->constrained('product_variants')->nullOnDelete();

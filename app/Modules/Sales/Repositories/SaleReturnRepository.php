@@ -3,6 +3,7 @@
 namespace App\Modules\Sales\Repositories;
 
 use App\Modules\Sales\Models\SaleReturn;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -13,6 +14,7 @@ class SaleReturnRepository
     {
         $query = SaleReturn::query()
             ->where('tenant_id', $this->tenantId())
+            ->where('company_id', $this->companyId())
             ->with(['sale', 'contact', 'creator'])
             ->withCount('items');
 
@@ -86,4 +88,10 @@ class SaleReturnRepository
     {
         return TenantContext::currentId();
     }
+
+    private function companyId(): int
+    {
+        return (int) CompanyContext::currentId();
+    }
+
 }

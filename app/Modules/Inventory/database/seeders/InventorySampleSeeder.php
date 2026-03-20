@@ -19,6 +19,8 @@ use Illuminate\Database\Seeder;
 class InventorySampleSeeder extends Seeder
 {
     private const TENANT_ID = 1;
+    private const COMPANY_ID = 1;
+    private const BRANCH_ID = 1;
 
     public function run(): void
     {
@@ -37,12 +39,16 @@ class InventorySampleSeeder extends Seeder
 
         $main = InventoryLocation::query()
             ->where('tenant_id', self::TENANT_ID)
+            ->where('company_id', self::COMPANY_ID)
+            ->where('branch_id', self::BRANCH_ID)
             ->where('code', 'MAIN')
             ->first();
         $store = InventoryLocation::query()->updateOrCreate(
-            ['tenant_id' => self::TENANT_ID, 'code' => 'STORE-01'],
+            ['tenant_id' => self::TENANT_ID, 'company_id' => self::COMPANY_ID, 'branch_id' => self::BRANCH_ID, 'code' => 'STORE-01'],
             [
                 'tenant_id' => self::TENANT_ID,
+                'company_id' => self::COMPANY_ID,
+                'branch_id' => self::BRANCH_ID,
                 'name' => 'Demo Store',
                 'type' => 'store',
                 'is_default' => false,
@@ -53,9 +59,11 @@ class InventorySampleSeeder extends Seeder
 
         if (!$main) {
             $main = InventoryLocation::query()->updateOrCreate(
-                ['tenant_id' => self::TENANT_ID, 'code' => 'MAIN'],
+                ['tenant_id' => self::TENANT_ID, 'company_id' => self::COMPANY_ID, 'branch_id' => self::BRANCH_ID, 'code' => 'MAIN'],
                 [
                     'tenant_id' => self::TENANT_ID,
+                    'company_id' => self::COMPANY_ID,
+                    'branch_id' => self::BRANCH_ID,
                     'name' => 'Main Warehouse',
                     'type' => 'warehouse',
                     'is_default' => true,

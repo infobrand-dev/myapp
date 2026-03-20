@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('payment_status_logs', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('tenant_id')->default(1)->index();
+            $table->unsignedBigInteger('company_id')->default(1)->index();
             $table->foreignId('payment_id')->constrained('payments')->cascadeOnDelete();
             $table->string('from_status', 30)->nullable();
             $table->string('to_status', 30);
@@ -20,7 +21,7 @@ return new class extends Migration
             $table->foreignId('actor_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
-            $table->index(['payment_id', 'created_at']);
+            $table->index(['company_id', 'payment_id', 'created_at']);
         });
     }
 

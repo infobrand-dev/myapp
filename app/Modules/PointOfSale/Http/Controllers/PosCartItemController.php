@@ -9,6 +9,7 @@ use App\Modules\PointOfSale\Models\PosCartItem;
 use App\Modules\PointOfSale\Services\PosCartService;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 

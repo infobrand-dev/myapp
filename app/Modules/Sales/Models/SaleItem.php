@@ -11,6 +11,7 @@ class SaleItem extends Model
 {
     protected $fillable = [
         'tenant_id',
+        'company_id',
         'sale_id',
         'line_no',
         'product_id',

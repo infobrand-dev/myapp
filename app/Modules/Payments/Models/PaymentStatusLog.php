@@ -10,6 +10,7 @@ class PaymentStatusLog extends Model
 {
     protected $fillable = [
         'tenant_id',
+        'company_id',
         'payment_id',
         'from_status',
         'to_status',

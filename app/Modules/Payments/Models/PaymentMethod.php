@@ -2,7 +2,9 @@
 
 namespace App\Modules\Payments\Models;
 
+use App\Models\Company;
 use App\Models\User;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -28,6 +30,7 @@ class PaymentMethod extends Model
 
     protected $fillable = [
         'tenant_id',
+        'company_id',
         'code',
         'name',
         'type',
@@ -54,6 +57,11 @@ class PaymentMethod extends Model
         return $this->hasMany(Payment::class);
     }
 
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -68,6 +76,7 @@ class PaymentMethod extends Model
     {
         return $this->where($field ?? $this->getRouteKeyName(), $value)
             ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
             ->firstOrFail();
     }
 

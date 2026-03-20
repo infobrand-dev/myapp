@@ -10,6 +10,7 @@ class SaleVoidLog extends Model
 {
     protected $fillable = [
         'tenant_id',
+        'company_id',
         'sale_id',
         'status_before',
         'reason',

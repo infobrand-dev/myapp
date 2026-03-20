@@ -30,6 +30,11 @@ class Tenant extends Model
         return $this->hasMany(Company::class);
     }
 
+    public function branches(): HasMany
+    {
+        return $this->hasMany(Branch::class);
+    }
+
     public function subscriptions(): HasMany
     {
         return $this->hasMany(TenantSubscription::class);

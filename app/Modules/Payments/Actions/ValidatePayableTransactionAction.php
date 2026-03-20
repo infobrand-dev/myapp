@@ -3,8 +3,10 @@
 namespace App\Modules\Payments\Actions;
 
 use App\Modules\Purchases\Models\Purchase;
-use App\Modules\Sales\Models\SaleReturn;
 use App\Modules\Sales\Models\Sale;
+use App\Modules\Sales\Models\SaleReturn;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
@@ -19,6 +21,7 @@ class ValidatePayableTransactionAction
         if ($normalizedType === 'sale_return') {
             $saleReturn = SaleReturn::query()
                 ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
                 ->find($payableId);
             if (!$saleReturn) {
                 throw ValidationException::withMessages([
@@ -44,6 +47,8 @@ class ValidatePayableTransactionAction
         if ($normalizedType === 'purchase') {
             $purchase = Purchase::query()
                 ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
+                ->tap(fn ($query) => BranchContext::applyScope($query))
                 ->find($payableId);
             if (!$purchase) {
                 throw ValidationException::withMessages([
@@ -74,6 +79,8 @@ class ValidatePayableTransactionAction
 
         $sale = Sale::query()
             ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
+            ->tap(fn ($query) => BranchContext::applyScope($query))
             ->find($payableId);
         if (!$sale) {
             throw ValidationException::withMessages([

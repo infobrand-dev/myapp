@@ -11,11 +11,11 @@ return new class extends Migration
         Schema::create('pos_carts', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('tenant_id')->default(1)->index();
+            $table->unsignedBigInteger('branch_id')->nullable()->index();
             $table->uuid('uuid')->unique();
             $table->string('status', 30)->default('active');
             $table->foreignId('cashier_user_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('pos_cash_session_id')->nullable()->constrained('pos_cash_sessions')->nullOnDelete();
-            $table->unsignedBigInteger('outlet_id')->nullable();
             $table->unsignedBigInteger('register_id')->nullable();
             $table->foreignId('contact_id')->nullable()->constrained('contacts')->nullOnDelete();
             $table->string('customer_label')->nullable();
@@ -37,7 +37,7 @@ return new class extends Migration
             $table->index(['cashier_user_id', 'status']);
             $table->index(['pos_cash_session_id', 'status']);
             $table->index(['register_id', 'status']);
-            $table->index(['outlet_id', 'status']);
+            $table->index(['branch_id', 'status']);
         });
     }
 

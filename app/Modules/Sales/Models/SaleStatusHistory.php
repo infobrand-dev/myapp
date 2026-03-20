@@ -10,6 +10,7 @@ class SaleStatusHistory extends Model
 {
     protected $fillable = [
         'tenant_id',
+        'company_id',
         'sale_id',
         'from_status',
         'to_status',

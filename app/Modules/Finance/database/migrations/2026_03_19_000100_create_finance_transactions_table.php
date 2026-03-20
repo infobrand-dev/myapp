@@ -11,26 +11,27 @@ return new class extends Migration
         Schema::create('finance_transactions', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('tenant_id')->default(1)->index();
+            $table->unsignedBigInteger('company_id')->default(1)->index();
             $table->string('transaction_number', 50);
             $table->string('transaction_type', 20);
             $table->dateTime('transaction_date');
             $table->decimal('amount', 18, 2);
             $table->foreignId('finance_category_id')->constrained('finance_categories')->restrictOnDelete();
             $table->text('notes')->nullable();
-            $table->unsignedBigInteger('outlet_id')->nullable();
+            $table->unsignedBigInteger('branch_id')->nullable()->index();
             $table->foreignId('pos_cash_session_id')->nullable()->constrained('pos_cash_sessions')->nullOnDelete();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
             $table->json('meta')->nullable();
             $table->timestamps();
 
-            $table->unique(['tenant_id', 'transaction_number']);
-            $table->index(['tenant_id', 'transaction_date']);
-            $table->index(['tenant_id', 'transaction_type', 'transaction_date']);
-            $table->index(['tenant_id', 'finance_category_id', 'transaction_date']);
-            $table->index(['tenant_id', 'created_by', 'transaction_date']);
-            $table->index(['tenant_id', 'outlet_id', 'transaction_date']);
-            $table->index(['tenant_id', 'pos_cash_session_id', 'transaction_date']);
+            $table->unique(['tenant_id', 'company_id', 'transaction_number']);
+            $table->index(['tenant_id', 'company_id', 'transaction_date']);
+            $table->index(['tenant_id', 'company_id', 'transaction_type', 'transaction_date']);
+            $table->index(['tenant_id', 'company_id', 'finance_category_id', 'transaction_date']);
+            $table->index(['tenant_id', 'company_id', 'created_by', 'transaction_date']);
+            $table->index(['tenant_id', 'company_id', 'branch_id', 'transaction_date']);
+            $table->index(['tenant_id', 'company_id', 'pos_cash_session_id', 'transaction_date']);
         });
     }
 

@@ -8,6 +8,8 @@ use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\PointOfSale\Models\PosCart;
 use App\Modules\PointOfSale\Services\PosCashSessionService;
 use App\Modules\Products\Models\Product;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Contracts\View\View;
 
@@ -38,6 +40,7 @@ class PosScreenController extends Controller
                 ->get(['id', 'name', 'phone', 'mobile', 'email']),
             'paymentMethods' => PaymentMethod::query()
                 ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
                 ->where('is_active', true)
                 ->orderBy('sort_order')
                 ->get(['id', 'code', 'name', 'type', 'requires_reference']),
@@ -45,6 +48,7 @@ class PosScreenController extends Controller
                 ->where('tenant_id', TenantContext::currentId())
                 ->where('cashier_user_id', auth()->id())
                 ->where('status', PosCart::STATUS_HELD)
+                ->tap(fn ($query) => BranchContext::applyScope($query))
                 ->count(),
             'activeShift' => $activeShift,
         ]);

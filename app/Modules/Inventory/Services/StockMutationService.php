@@ -8,6 +8,8 @@ use App\Modules\Inventory\Models\StockBalance;
 use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use DomainException;
 use Illuminate\Support\Facades\DB;
@@ -38,6 +40,8 @@ class StockMutationService
 
             return StockMovement::query()->create([
                 'tenant_id' => TenantContext::currentId(),
+                'company_id' => CompanyContext::currentId(),
+                'branch_id' => BranchContext::currentId(),
                 'stock_key' => $stock->stock_key,
                 'inventory_stock_id' => $stock->id,
                 'product_id' => $product->id,
@@ -242,6 +246,8 @@ class StockMutationService
         $variant = $this->resolveVariant($product, $payload['product_variant_id'] ?? null);
         $location = InventoryLocation::query()
             ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
+            ->tap(fn ($query) => BranchContext::applyScope($query))
             ->findOrFail($payload['inventory_location_id']);
 
         if (!$product->track_stock) {
@@ -255,6 +261,8 @@ class StockMutationService
         $stockKey = $this->stockKey($product->id, $variant?->id, $location->id);
         $stock = StockBalance::query()
             ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
+            ->tap(fn ($query) => BranchContext::applyScope($query))
             ->where('stock_key', $stockKey)
             ->lockForUpdate()
             ->first();
@@ -262,6 +270,8 @@ class StockMutationService
         if (!$stock) {
             $stock = StockBalance::query()->create([
                 'tenant_id' => TenantContext::currentId(),
+                'company_id' => CompanyContext::currentId(),
+                'branch_id' => BranchContext::currentId(),
                 'stock_key' => $stockKey,
                 'product_id' => $product->id,
                 'product_variant_id' => $variant?->id,
@@ -275,6 +285,8 @@ class StockMutationService
 
             $stock = StockBalance::query()
                 ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
+                ->tap(fn ($query) => BranchContext::applyScope($query))
                 ->whereKey($stock->id)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -292,6 +304,8 @@ class StockMutationService
     ): StockMovement {
         return StockMovement::query()->create([
             'tenant_id' => TenantContext::currentId(),
+            'company_id' => CompanyContext::currentId(),
+            'branch_id' => BranchContext::currentId(),
             'stock_key' => $stock->stock_key,
             'inventory_stock_id' => $stock->id,
             'product_id' => $product->id,

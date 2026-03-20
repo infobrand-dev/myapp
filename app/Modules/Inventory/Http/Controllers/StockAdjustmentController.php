@@ -9,6 +9,8 @@ use App\Modules\Inventory\Http\Requests\StoreStockAdjustmentRequest;
 use App\Modules\Inventory\Models\StockAdjustment;
 use App\Modules\Inventory\Repositories\StockRepository;
 use App\Modules\Products\Models\Product;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
@@ -23,7 +25,9 @@ class StockAdjustmentController extends Controller
         return view('inventory::adjustments.index', [
             'adjustments' => StockAdjustment::query()
                 ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
                 ->with(['location', 'creator', 'finalizer'])
+                ->tap(fn ($query) => BranchContext::applyScope($query))
                 ->latest()
                 ->paginate(15),
         ]);

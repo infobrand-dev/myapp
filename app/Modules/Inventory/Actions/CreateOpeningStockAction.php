@@ -7,6 +7,8 @@ use App\Modules\Inventory\Models\StockBalance;
 use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Inventory\Models\StockOpening;
 use App\Modules\Inventory\Services\StockMutationService;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use DomainException;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +26,8 @@ class CreateOpeningStockAction
         return DB::transaction(function () use ($data, $actor) {
             $opening = StockOpening::query()->create([
                 'tenant_id' => TenantContext::currentId(),
+                'company_id' => CompanyContext::currentId(),
+                'branch_id' => BranchContext::currentId(),
                 'code' => 'OPN-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4)),
                 'inventory_location_id' => $data['inventory_location_id'],
                 'opening_date' => $data['opening_date'],
@@ -43,6 +47,8 @@ class CreateOpeningStockAction
 
                 $stock = StockBalance::query()
                     ->where('tenant_id', TenantContext::currentId())
+                    ->where('company_id', CompanyContext::currentId())
+                    ->tap(fn ($query) => BranchContext::applyScope($query))
                     ->where('stock_key', $stockKey)
                     ->lockForUpdate()
                     ->first();
@@ -51,6 +57,8 @@ class CreateOpeningStockAction
                     try {
                         $stock = StockBalance::query()->create([
                             'tenant_id' => TenantContext::currentId(),
+                            'company_id' => CompanyContext::currentId(),
+                            'branch_id' => BranchContext::currentId(),
                             'stock_key' => $stockKey,
                             'product_id' => $item['product_id'],
                             'product_variant_id' => $item['product_variant_id'] ?? null,
@@ -67,6 +75,8 @@ class CreateOpeningStockAction
 
                     $stock = StockBalance::query()
                         ->where('tenant_id', TenantContext::currentId())
+                        ->where('company_id', CompanyContext::currentId())
+                        ->tap(fn ($query) => BranchContext::applyScope($query))
                         ->where('stock_key', $stockKey)
                         ->lockForUpdate()
                         ->firstOrFail();
@@ -74,6 +84,8 @@ class CreateOpeningStockAction
 
                 $existingMovement = StockMovement::query()
                     ->where('tenant_id', TenantContext::currentId())
+                    ->where('company_id', CompanyContext::currentId())
+                    ->tap(fn ($query) => BranchContext::applyScope($query))
                     ->where('stock_key', $stockKey)
                     ->lockForUpdate()
                     ->exists();
@@ -98,8 +110,10 @@ class CreateOpeningStockAction
                     'performed_by' => $actor,
                 ]);
 
-                $opening->items()->create([
+                $opening->items()->create([ 
                     'tenant_id' => TenantContext::currentId(),
+                    'company_id' => CompanyContext::currentId(),
+                    'branch_id' => BranchContext::currentId(),
                     'product_id' => $item['product_id'],
                     'product_variant_id' => $item['product_variant_id'] ?? null,
                     'quantity' => $item['quantity'],

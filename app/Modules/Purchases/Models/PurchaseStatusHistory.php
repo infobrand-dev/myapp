@@ -10,6 +10,8 @@ class PurchaseStatusHistory extends Model
 {
     protected $fillable = [
         'tenant_id',
+        'company_id',
+        'branch_id',
         'purchase_id',
         'from_status',
         'to_status',

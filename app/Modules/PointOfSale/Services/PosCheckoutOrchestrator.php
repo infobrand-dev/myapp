@@ -12,6 +12,8 @@ use App\Modules\Sales\Actions\CreateDraftSaleAction;
 use App\Modules\Sales\Actions\FinalizeSaleAction;
 use App\Modules\Sales\Actions\UpdateDraftSaleAction;
 use App\Modules\Sales\Models\Sale;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -46,6 +48,7 @@ class PosCheckoutOrchestrator
             return PosCart::query()
                 ->where('tenant_id', TenantContext::currentId())
                 ->with(['items', 'contact'])
+                ->tap(fn ($query) => BranchContext::applyScope($query))
                 ->lockForUpdate()
                 ->findOrFail($cart->id);
         });
@@ -119,6 +122,7 @@ class PosCheckoutOrchestrator
     {
         $existing = Sale::query()
             ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
             ->where('source', Sale::SOURCE_POS)
             ->where('external_reference', $payload['external_reference'])
             ->first();
@@ -145,6 +149,7 @@ class PosCheckoutOrchestrator
 
             $existing = Payment::query()
                 ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
                 ->with('method')
                 ->where('source', Payment::SOURCE_POS)
                 ->where('external_reference', $externalReference)
@@ -164,7 +169,7 @@ class PosCheckoutOrchestrator
                 'channel' => 'pos',
                 'reference_number' => $paymentRow['reference_number'] ?? null,
                 'external_reference' => $externalReference,
-                'outlet_id' => $cashSession->outlet_id,
+                'branch_id' => $cashSession->branch_id,
                 'pos_cash_session_id' => $cashSession->id,
                 'notes' => $paymentRow['notes'] ?? null,
                 'received_by' => $user->id,
@@ -192,7 +197,7 @@ class PosCheckoutOrchestrator
             'contact_id' => $cart->contact_id,
             'payment_status' => Sale::PAYMENT_UNPAID,
             'source' => Sale::SOURCE_POS,
-            'outlet_id' => $cashSession->outlet_id,
+            'branch_id' => $cashSession->branch_id,
             'pos_cash_session_id' => $cashSession->id,
             'transaction_date' => now(),
             'currency_code' => $cart->currency_code ?: 'IDR',
@@ -238,6 +243,7 @@ class PosCheckoutOrchestrator
 
         $method = PaymentMethod::query()
             ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
             ->where('code', $code)
             ->where('is_active', true)
             ->first();
@@ -275,8 +281,10 @@ class PosCheckoutOrchestrator
     {
         $shift = PosCashSession::query()
             ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
             ->where('cashier_user_id', $user->id)
             ->where('status', PosCashSession::STATUS_ACTIVE)
+            ->tap(fn ($query) => BranchContext::applyScope($query))
             ->latest('opened_at')
             ->first();
 
@@ -300,7 +308,7 @@ class PosCheckoutOrchestrator
 
         $cart->forceFill([
             'pos_cash_session_id' => $shift->id,
-            'outlet_id' => $shift->outlet_id,
+            'branch_id' => $shift->branch_id,
         ])->save();
 
         return $shift;

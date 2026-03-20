@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">{{ $shift->code }}</h2>
-        <div class="text-muted small">{{ $shift->cashier ? $shift->cashier->name : '-' }} | Outlet {{ $shift->outlet_id ?: '-' }}</div>
+        <div class="text-muted small">{{ $shift->cashier ? $shift->cashier->name : '-' }} | Branch {{ $shift->branch_id ?: '-' }}</div>
     </div>
     <a href="{{ route('pos.shifts.index') }}" class="btn btn-outline-secondary">Kembali</a>
 </div>

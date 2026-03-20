@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Finance\Http\Requests\StoreFinanceCategoryRequest;
 use App\Modules\Finance\Http\Requests\UpdateFinanceCategoryRequest;
 use App\Modules\Finance\Models\FinanceCategory;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +20,7 @@ class FinanceCategoryController extends Controller
         return view('finance::categories.index', [
             'categories' => FinanceCategory::query()
                 ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
                 ->withCount('transactions')
                 ->orderBy('transaction_type')
                 ->orderBy('name')
@@ -32,6 +34,7 @@ class FinanceCategoryController extends Controller
         DB::transaction(function () use ($request) {
             FinanceCategory::query()->create([
                 'tenant_id' => TenantContext::currentId(),
+                'company_id' => CompanyContext::currentId(),
                 'name' => $request->input('name'),
                 'slug' => Str::slug($request->input('name')) . '-' . Str::lower(Str::random(4)),
                 'transaction_type' => $request->input('transaction_type'),

@@ -11,9 +11,10 @@ class PosReceiptReprintLog extends Model
 {
     protected $fillable = [
         'tenant_id',
+        'company_id',
+        'branch_id',
         'sale_id',
         'pos_cash_session_id',
-        'outlet_id',
         'reprint_sequence',
         'reason',
         'requested_by',

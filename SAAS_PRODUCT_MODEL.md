@@ -19,6 +19,7 @@
 - `branch`
   - an outlet, store, warehouse group, office, or operational location under a company
   - restaurant outlets are a branch-level concept
+  - optional for tenants that do not operate outlet-level segmentation
 
 ## What is not a company
 - `Contacts.company` is an external business/contact relationship.
@@ -59,6 +60,7 @@ In that model:
 - every tenant-owned record should have `tenant_id`
 - records that belong to an internal business entity should also have `company_id`
 - records that belong to an outlet or location should also have `branch_id`
+- `branch_id` should usually be nullable unless the workflow is explicitly outlet-bound
 
 ## Typical module scope
 - `finance`
@@ -164,22 +166,35 @@ In that model:
 
 ## Current foundation already in code
 - tenant runtime context exists
+- company runtime context exists
+- branch runtime context exists
+- branch runtime context is optional and must not auto-select the first branch
 - tenant auth and tenant-scoped permission teams exist
 - plan tables exist:
   - `subscription_plans`
   - `tenant_subscriptions`
 - internal company table exists:
   - `companies`
+- internal branch table exists:
+  - `branches`
 - central plan service exists:
   - `App\Support\TenantPlanManager`
 - initial quota enforcement already exists for:
   - user creation
   - product creation
+- company-aware rollout has started in:
+  - `finance`
+  - `pos cash sessions`
+- branch-aware rollout has started in:
+  - `pos cash sessions`
+  - `finance transactions`
+  - `sales`
+  - `payments`
+- branch-aware rollout is still partial and many modules should remain company-level until a branch boundary is operationally justified
 
 ## What is not finished yet
-- `companies` is not yet the active operational scope across modules
-- `branches` does not exist yet
-- most business tables are not yet `company_id` aware
+- `companies` is not yet the active operational scope across most modules
+- most business tables are not yet fully `company_id + branch_id` aware
 - industry profile and module bundle logic are not yet wired
 - billing/provider sync is not yet wired
 - plan UI and tenant admin UI are not yet built
@@ -206,8 +221,9 @@ In that model:
    - payments
    - inventory
    - pos
-5. Add branch model
+5. Expand branch model only where needed
    - especially for outlet-heavy industries like restaurant and retail
+   - keep branch nullable for company-level flows
 6. Add industry preset and module bundle logic
 7. Add plan management UI and billing integration
 

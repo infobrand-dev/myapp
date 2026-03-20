@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('sales', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('tenant_id')->default(1)->index();
+            $table->unsignedBigInteger('company_id')->default(1)->index();
             $table->string('sale_number', 50);
             $table->string('external_reference', 100)->nullable();
             $table->string('idempotency_payload_hash', 64)->nullable();
@@ -23,7 +24,7 @@ return new class extends Migration
             $table->string('status', 30)->default('draft');
             $table->string('payment_status', 30)->default('unpaid');
             $table->string('source', 30)->default('manual');
-            $table->unsignedBigInteger('outlet_id')->nullable();
+            $table->unsignedBigInteger('branch_id')->nullable()->index();
             $table->foreignId('pos_cash_session_id')->nullable()->constrained('pos_cash_sessions')->nullOnDelete();
             $table->dateTime('transaction_date')->nullable();
             $table->dateTime('finalized_at')->nullable();
@@ -48,15 +49,15 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['tenant_id', 'sale_number']);
-            $table->index(['tenant_id', 'status', 'transaction_date']);
-            $table->index(['tenant_id', 'source', 'created_at']);
-            $table->index(['tenant_id', 'payment_status', 'transaction_date']);
-            $table->index(['tenant_id', 'contact_id', 'transaction_date']);
-            $table->index(['tenant_id', 'created_by', 'transaction_date']);
+            $table->index(['tenant_id', 'company_id', 'status', 'transaction_date']);
+            $table->index(['tenant_id', 'company_id', 'source', 'created_at']);
+            $table->index(['tenant_id', 'company_id', 'payment_status', 'transaction_date']);
+            $table->index(['tenant_id', 'company_id', 'contact_id', 'transaction_date']);
+            $table->index(['tenant_id', 'company_id', 'created_by', 'transaction_date']);
             $table->index('idempotency_payload_hash');
             $table->index(['pos_cash_session_id', 'status']);
-            $table->index(['tenant_id', 'outlet_id', 'transaction_date']);
-            $table->unique(['tenant_id', 'source', 'external_reference'], 'sales_source_external_reference_unique');
+            $table->index(['tenant_id', 'company_id', 'branch_id', 'transaction_date']);
+            $table->unique(['tenant_id', 'company_id', 'source', 'external_reference'], 'sales_source_external_reference_unique');
             $table->fullText(['customer_name_snapshot', 'notes', 'void_reason'], 'sales_search_fulltext');
         });
     }

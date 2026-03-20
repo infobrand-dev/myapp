@@ -6,6 +6,8 @@ use App\Modules\Contacts\Models\Contact;
 use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\SaleReturn;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
@@ -14,13 +16,17 @@ class SaleReturnLookupService
 {
     public function saleOptions(): Collection
     {
-        return Sale::query()
+        $query = Sale::query()
             ->with('items')
             ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
             ->where('status', Sale::STATUS_FINALIZED)
             ->orderByDesc('transaction_date')
-            ->limit(100)
-            ->get();
+            ->limit(100);
+
+        BranchContext::applyScope($query);
+
+        return $query->get();
     }
 
     public function inventoryLocations(): Collection
@@ -30,7 +36,10 @@ class SaleReturnLookupService
         }
 
         return InventoryLocation::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
             ->where('is_active', true)
+            ->tap(fn ($query) => BranchContext::applyScope($query))
             ->orderByDesc('is_default')
             ->orderBy('name')
             ->get(['id', 'name', 'code', 'is_default']);

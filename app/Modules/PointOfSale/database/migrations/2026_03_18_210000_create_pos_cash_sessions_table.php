@@ -11,9 +11,10 @@ return new class extends Migration
         Schema::create('pos_cash_sessions', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('tenant_id')->default(1)->index();
+            $table->unsignedBigInteger('company_id')->default(1)->index();
             $table->string('code', 50);
             $table->foreignId('cashier_user_id')->constrained('users')->cascadeOnDelete();
-            $table->unsignedBigInteger('outlet_id')->nullable();
+            $table->unsignedBigInteger('branch_id')->nullable()->index();
             $table->string('status', 20)->default('active');
             $table->decimal('opening_cash_amount', 18, 2)->default(0);
             $table->text('opening_note')->nullable();
@@ -27,9 +28,9 @@ return new class extends Migration
             $table->json('meta')->nullable();
             $table->timestamps();
 
-            $table->unique(['tenant_id', 'code']);
-            $table->index(['cashier_user_id', 'status']);
-            $table->index(['outlet_id', 'status']);
+            $table->unique(['tenant_id', 'company_id', 'code']);
+            $table->index(['tenant_id', 'company_id', 'cashier_user_id', 'status']);
+            $table->index(['tenant_id', 'company_id', 'branch_id', 'status']);
         });
     }
 

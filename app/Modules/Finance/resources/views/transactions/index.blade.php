@@ -5,6 +5,7 @@
     <div>
         <h2 class="mb-0">Finance Transactions</h2>
         <div class="text-muted small">Cash in, cash out, dan expense operasional non-sales.</div>
+        <div class="text-muted small">Company aktif: {{ $company?->name ?? 'No active company' }}</div>
     </div>
     <a href="{{ route('finance.transactions.create') }}" class="btn btn-primary">Create Transaction</a>
 </div>
@@ -75,8 +76,8 @@
                 </select>
             </div>
             <div class="col-md-2">
-                <label class="form-label">Outlet</label>
-                <input type="number" min="1" name="outlet_id" class="form-control" value="{{ $filters['outlet_id'] ?? '' }}" placeholder="Optional">
+                <label class="form-label">Branch</label>
+                <input type="number" min="1" name="branch_id" class="form-control" value="{{ $filters['branch_id'] ?? '' }}" placeholder="Optional">
             </div>
             <div class="col-12 d-flex gap-2">
                 <button class="btn btn-outline-primary">Filter</button>
@@ -89,7 +90,7 @@
 <div class="card">
     <div class="table-responsive">
         <table class="table table-vcenter">
-            <thead><tr><th>Number</th><th>Date</th><th>Type</th><th>Category</th><th>Amount</th><th>User</th><th>Outlet</th>@if($shiftEnabled)<th>Shift</th>@endif<th></th></tr></thead>
+            <thead><tr><th>Number</th><th>Date</th><th>Type</th><th>Category</th><th>Amount</th><th>User</th><th>Branch</th>@if($shiftEnabled)<th>Shift</th>@endif<th></th></tr></thead>
             <tbody>
                 @forelse($transactions as $transaction)
                     <tr>
@@ -99,7 +100,7 @@
                         <td>{{ $transaction->category ? $transaction->category->name : '-' }}</td>
                         <td>Rp {{ number_format((float) $transaction->amount, 0, ',', '.') }}</td>
                         <td>{{ $transaction->creator ? $transaction->creator->name : '-' }}</td>
-                        <td>{{ $transaction->outlet_id ?: '-' }}</td>
+                        <td>{{ $transaction->branch_id ?: '-' }}</td>
                         @if($shiftEnabled)
                             <td>{{ $transaction->shift ? $transaction->shift->code : '-' }}</td>
                         @endif

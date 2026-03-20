@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Sales\Events\SaleVoided;
 use App\Modules\Sales\Models\Sale;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -17,7 +19,9 @@ class VoidSaleAction
         $sale = DB::transaction(function () use ($sale, $data, $actor) {
             $sale = Sale::query()
                 ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
                 ->with('items')
+                ->tap(fn ($query) => BranchContext::applyScope($query))
                 ->lockForUpdate()
                 ->findOrFail($sale->id);
 
@@ -57,6 +61,7 @@ class VoidSaleAction
 
             $sale->voidLogs()->create([
                 'tenant_id' => TenantContext::currentId(),
+                'company_id' => CompanyContext::currentId(),
                 'status_before' => $statusBefore,
                 'reason' => $reason,
                 'snapshot' => $snapshot,
@@ -65,6 +70,7 @@ class VoidSaleAction
 
             $sale->statusHistories()->create([
                 'tenant_id' => TenantContext::currentId(),
+                'company_id' => CompanyContext::currentId(),
                 'from_status' => $statusBefore,
                 'to_status' => Sale::STATUS_VOIDED,
                 'event' => 'voided',

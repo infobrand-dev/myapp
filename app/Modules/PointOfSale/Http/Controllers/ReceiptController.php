@@ -8,6 +8,7 @@ use App\Modules\PointOfSale\Http\Requests\StoreReceiptReprintRequest;
 use App\Modules\PointOfSale\Models\PosReceiptReprintLog;
 use App\Modules\PointOfSale\Services\PosCashSessionService;
 use App\Modules\Sales\Models\Sale;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Contracts\View\View;
@@ -46,6 +47,7 @@ class ReceiptController extends Controller
         $reprintLog = DB::transaction(function () use ($request, $sale, $user) {
             $sale = Sale::query()
                 ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
                 ->with('cashSession')
                 ->lockForUpdate()
                 ->findOrFail($sale->id);
@@ -59,9 +61,10 @@ class ReceiptController extends Controller
 
             $log = PosReceiptReprintLog::query()->create([
                 'tenant_id' => TenantContext::currentId(),
+                'company_id' => CompanyContext::currentId(),
+                'branch_id' => $sale->branch_id,
                 'sale_id' => $sale->id,
                 'pos_cash_session_id' => $sale->pos_cash_session_id,
-                'outlet_id' => $sale->outlet_id,
                 'reprint_sequence' => $reprintSequence,
                 'reason' => $request->validated('reason'),
                 'requested_by' => $user ? $user->id : null,
@@ -83,7 +86,7 @@ class ReceiptController extends Controller
                 'meta' => [
                     'reprint_log_id' => $log->id,
                     'reprint_sequence' => $reprintSequence,
-                    'outlet_id' => $sale->outlet_id,
+                    'branch_id' => $sale->branch_id,
                     'pos_cash_session_id' => $sale->pos_cash_session_id,
                 ],
             ]);
@@ -153,8 +156,8 @@ class ReceiptController extends Controller
         }
 
         $activeSession = $this->cashSessionService->activeSessionFor($user);
-        if (!$activeSession || (int) ($sale->outlet_id ?? 0) !== (int) ($activeSession->outlet_id ?? 0)) {
-            throw new HttpException(403, 'Receipt hanya dapat diakses dari shift aktif outlet yang sama.');
+        if (!$activeSession || (int) ($sale->branch_id ?? 0) !== (int) ($activeSession->branch_id ?? 0)) {
+            throw new HttpException(403, 'Receipt hanya dapat diakses dari shift aktif branch yang sama.');
         }
 
         if ($isReprint && !$user->can('pos.reprint-receipt')) {

@@ -11,6 +11,8 @@ return new class extends Migration
         Schema::create('purchases', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('tenant_id')->default(1)->index();
+            $table->unsignedBigInteger('company_id')->default(1)->index();
+            $table->unsignedBigInteger('branch_id')->nullable()->index();
             $table->string('purchase_number', 50);
             $table->foreignId('contact_id')->nullable()->constrained('contacts')->nullOnDelete();
             $table->string('supplier_name_snapshot')->nullable();
@@ -49,12 +51,12 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['tenant_id', 'purchase_number']);
-            $table->index(['tenant_id', 'status', 'purchase_date']);
-            $table->index(['tenant_id', 'payment_status', 'purchase_date']);
-            $table->index(['tenant_id', 'contact_id', 'purchase_date']);
-            $table->index(['tenant_id', 'created_by', 'purchase_date']);
-            $table->index(['tenant_id', 'supplier_invoice_number']);
-            $table->index(['tenant_id', 'supplier_reference']);
+            $table->index(['tenant_id', 'company_id', 'branch_id', 'status', 'purchase_date']);
+            $table->index(['tenant_id', 'company_id', 'branch_id', 'payment_status', 'purchase_date']);
+            $table->index(['tenant_id', 'company_id', 'branch_id', 'contact_id', 'purchase_date']);
+            $table->index(['tenant_id', 'company_id', 'branch_id', 'created_by', 'purchase_date']);
+            $table->index(['tenant_id', 'company_id', 'branch_id', 'supplier_invoice_number']);
+            $table->index(['tenant_id', 'company_id', 'branch_id', 'supplier_reference']);
             $table->fullText(
                 ['supplier_name_snapshot', 'supplier_notes', 'notes', 'internal_notes'],
                 'purchases_search_fulltext'

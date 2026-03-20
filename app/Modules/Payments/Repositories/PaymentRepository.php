@@ -5,6 +5,8 @@ namespace App\Modules\Payments\Repositories;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\SaleReturn;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,8 +17,11 @@ class PaymentRepository
     {
         $query = Payment::query()
             ->where('tenant_id', $this->tenantId())
+            ->where('company_id', $this->companyId())
             ->with(['method', 'receiver', 'allocations'])
             ->withCount('allocations');
+
+        BranchContext::applyScope($query);
 
         $this->applyFilters($query, $filters);
 
@@ -35,6 +40,7 @@ class PaymentRepository
     {
         return Payment::query()
             ->where('tenant_id', $this->tenantId())
+            ->where('company_id', $this->companyId())
             ->with([
                 'method',
                 'receiver',
@@ -45,6 +51,7 @@ class PaymentRepository
                 'statusLogs.actor',
                 'voidLogs.actor',
             ])
+            ->tap(fn ($query) => BranchContext::applyScope($query))
             ->findOrFail($payment->id);
     }
 
@@ -59,12 +66,19 @@ class PaymentRepository
                     ->orWhereHas('allocations', function (Builder $allocation) use ($search) {
                         $allocation->where(function (Builder $morphQuery) use ($search) {
                             $morphQuery->whereHasMorph('payable', [Sale::class], function (Builder $payable) use ($search) {
-                                $payable->where('sale_number', 'like', "%{$search}%")
-                                    ->orWhere('customer_name_snapshot', 'like', "%{$search}%");
+                                $payable->where('company_id', $this->companyId())
+                                    ->where(function (Builder $nested) use ($search) {
+                                        $nested->where('sale_number', 'like', "%{$search}%")
+                                            ->orWhere('customer_name_snapshot', 'like', "%{$search}%");
+                                    });
+                                BranchContext::applyScope($payable);
                             })->orWhereHasMorph('payable', [SaleReturn::class], function (Builder $payable) use ($search) {
-                                $payable->where('return_number', 'like', "%{$search}%")
-                                    ->orWhere('sale_number_snapshot', 'like', "%{$search}%")
-                                    ->orWhere('customer_name_snapshot', 'like', "%{$search}%");
+                                $payable->where('company_id', $this->companyId())
+                                    ->where(function (Builder $nested) use ($search) {
+                                        $nested->where('return_number', 'like', "%{$search}%")
+                                            ->orWhere('sale_number_snapshot', 'like', "%{$search}%")
+                                            ->orWhere('customer_name_snapshot', 'like', "%{$search}%");
+                                    });
                             });
                         });
                     });
@@ -90,4 +104,10 @@ class PaymentRepository
     {
         return TenantContext::currentId();
     }
+
+    private function companyId(): int
+    {
+        return (int) CompanyContext::currentId();
+    }
+
 }

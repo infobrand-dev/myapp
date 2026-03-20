@@ -7,6 +7,8 @@ use App\Modules\Contacts\Models\Contact;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Services\SaleIdempotencyService;
 use App\Modules\Sales\Services\SaleSnapshotService;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -39,7 +41,12 @@ class UpdateDraftSaleAction
         }
 
         return DB::transaction(function () use ($sale, $data, $actor) {
-            $sale = Sale::query()->where('tenant_id', TenantContext::currentId())->lockForUpdate()->findOrFail($sale->id);
+            $sale = Sale::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
+                ->tap(fn ($query) => BranchContext::applyScope($query))
+                ->lockForUpdate()
+                ->findOrFail($sale->id);
             $totals = $this->recalculateTotals->execute($data);
             $contact = !empty($data['contact_id'])
                 ? Contact::query()->with('company')->where('tenant_id', TenantContext::currentId())->find($data['contact_id'])
@@ -57,6 +64,7 @@ class UpdateDraftSaleAction
                 'customer_snapshot' => $customer['payload'],
                 'payment_status' => $data['payment_status'],
                 'source' => $data['source'],
+                'branch_id' => $data['branch_id'] ?? $sale->branch_id ?? BranchContext::currentId(),
                 'transaction_date' => $data['transaction_date'],
                 'subtotal' => $totals['subtotal'],
                 'discount_total' => $totals['discount_total'],
@@ -84,6 +92,7 @@ class UpdateDraftSaleAction
     {
         return array_map(function (array $row): array {
             $row['tenant_id'] = TenantContext::currentId();
+            $row['company_id'] = CompanyContext::currentId();
 
             return $row;
         }, $rows);

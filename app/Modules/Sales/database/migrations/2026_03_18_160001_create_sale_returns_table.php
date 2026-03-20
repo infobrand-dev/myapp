@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('sale_returns', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('tenant_id')->default(1)->index();
+            $table->unsignedBigInteger('company_id')->default(1)->index();
             $table->string('return_number', 50);
             $table->foreignId('sale_id')->constrained('sales')->restrictOnDelete();
             $table->string('sale_number_snapshot', 50);
@@ -48,13 +49,13 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['tenant_id', 'return_number']);
-            $table->index(['tenant_id', 'sale_id', 'status']);
-            $table->index(['tenant_id', 'status', 'return_date']);
-            $table->index(['tenant_id', 'refund_status', 'created_at']);
-            $table->index(['tenant_id', 'inventory_status', 'created_at']);
-            $table->index(['tenant_id', 'contact_id', 'return_date']);
-            $table->index(['tenant_id', 'created_by', 'return_date']);
-            $table->index(['tenant_id', 'inventory_location_id']);
+            $table->index(['tenant_id', 'company_id', 'sale_id', 'status']);
+            $table->index(['tenant_id', 'company_id', 'status', 'return_date']);
+            $table->index(['tenant_id', 'company_id', 'refund_status', 'created_at']);
+            $table->index(['tenant_id', 'company_id', 'inventory_status', 'created_at']);
+            $table->index(['tenant_id', 'company_id', 'contact_id', 'return_date']);
+            $table->index(['tenant_id', 'company_id', 'created_by', 'return_date']);
+            $table->index(['tenant_id', 'company_id', 'inventory_location_id']);
             $table->fullText(['customer_name_snapshot', 'reason', 'notes'], 'sale_returns_search_fulltext');
         });
     }

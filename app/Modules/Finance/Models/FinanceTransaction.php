@@ -2,8 +2,12 @@
 
 namespace App\Modules\Finance\Models;
 
+use App\Models\Company;
 use App\Models\User;
+use App\Models\Branch;
 use App\Modules\PointOfSale\Models\PosCashSession;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,13 +22,14 @@ class FinanceTransaction extends Model
 
     protected $fillable = [
         'tenant_id',
+        'company_id',
         'transaction_number',
         'transaction_type',
         'transaction_date',
         'amount',
         'finance_category_id',
         'notes',
-        'outlet_id',
+        'branch_id',
         'pos_cash_session_id',
         'created_by',
         'updated_by',
@@ -40,6 +45,16 @@ class FinanceTransaction extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(FinanceCategory::class, 'finance_category_id');
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function creator(): BelongsTo
@@ -64,8 +79,10 @@ class FinanceTransaction extends Model
 
     public function resolveRouteBinding($value, $field = null)
     {
-        return $this->where($field ?? $this->getRouteKeyName(), $value)
+        return BranchContext::applyScope(
+            $this->where($field ?? $this->getRouteKeyName(), $value)
             ->where('tenant_id', TenantContext::currentId())
-            ->firstOrFail();
+            ->where('company_id', CompanyContext::currentId())
+        )->firstOrFail();
     }
 }

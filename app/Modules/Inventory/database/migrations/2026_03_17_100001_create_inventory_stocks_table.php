@@ -11,6 +11,8 @@ return new class extends Migration
         Schema::create('inventory_stocks', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('tenant_id')->default(1)->index();
+            $table->unsignedBigInteger('company_id')->default(1)->index();
+            $table->unsignedBigInteger('branch_id')->nullable()->index();
             $table->string('stock_key');
             $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
             $table->foreignId('product_variant_id')->nullable()->constrained('product_variants')->nullOnDelete();
@@ -24,7 +26,7 @@ return new class extends Migration
             $table->json('meta')->nullable();
             $table->timestamps();
 
-            $table->unique(['tenant_id', 'stock_key']);
+            $table->unique(['tenant_id', 'company_id', 'branch_id', 'stock_key']);
             $table->index(['product_id', 'product_variant_id']);
             $table->index(['inventory_location_id', 'current_quantity']);
         });

@@ -11,6 +11,8 @@ use App\Modules\Inventory\Http\Requests\StoreStockTransferRequest;
 use App\Modules\Inventory\Models\StockTransfer;
 use App\Modules\Inventory\Repositories\StockRepository;
 use App\Modules\Products\Models\Product;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -23,7 +25,9 @@ class StockTransferController extends Controller
         return view('inventory::transfers.index', [
             'transfers' => StockTransfer::query()
                 ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
                 ->with(['sourceLocation', 'destinationLocation', 'creator'])
+                ->tap(fn ($query) => BranchContext::applyScope($query))
                 ->latest()
                 ->paginate(15),
         ]);

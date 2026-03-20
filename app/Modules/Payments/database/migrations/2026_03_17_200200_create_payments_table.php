@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('tenant_id')->default(1)->index();
+            $table->unsignedBigInteger('company_id')->default(1)->index();
             $table->string('payment_number', 50);
             $table->foreignId('payment_method_id')->constrained('payment_methods')->restrictOnDelete();
             $table->decimal('amount', 18, 2);
@@ -21,7 +22,7 @@ return new class extends Migration
             $table->string('channel', 50)->nullable();
             $table->string('reference_number', 100)->nullable();
             $table->string('external_reference', 100)->nullable();
-            $table->unsignedBigInteger('outlet_id')->nullable();
+            $table->unsignedBigInteger('branch_id')->nullable()->index();
             $table->foreignId('pos_cash_session_id')->nullable()->constrained('pos_cash_sessions')->nullOnDelete();
             $table->text('notes')->nullable();
             $table->json('meta')->nullable();
@@ -34,11 +35,11 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['tenant_id', 'payment_number']);
-            $table->index(['status', 'paid_at']);
-            $table->index(['payment_method_id', 'paid_at']);
-            $table->index(['source', 'created_at']);
-            $table->index(['received_by', 'paid_at']);
-            $table->index(['pos_cash_session_id', 'paid_at']);
+            $table->index(['tenant_id', 'company_id', 'status', 'paid_at']);
+            $table->index(['tenant_id', 'company_id', 'payment_method_id', 'paid_at']);
+            $table->index(['tenant_id', 'company_id', 'source', 'created_at']);
+            $table->index(['tenant_id', 'company_id', 'received_by', 'paid_at']);
+            $table->index(['tenant_id', 'company_id', 'pos_cash_session_id', 'paid_at']);
         });
     }
 

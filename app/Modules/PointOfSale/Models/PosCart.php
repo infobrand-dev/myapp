@@ -18,11 +18,11 @@ class PosCart extends Model
 
     protected $fillable = [
         'tenant_id',
+        'branch_id',
         'uuid',
         'status',
         'cashier_user_id',
         'pos_cash_session_id',
-        'outlet_id',
         'register_id',
         'contact_id',
         'customer_label',

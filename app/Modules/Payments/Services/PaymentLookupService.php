@@ -8,6 +8,8 @@ use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\Purchases\Models\Purchase;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\SaleReturn;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Support\Collection;
 
@@ -52,6 +54,7 @@ class PaymentLookupService
     {
         return PaymentMethod::query()
             ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
             ->when($activeOnly, fn ($query) => $query->where('is_active', true))
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -79,6 +82,8 @@ class PaymentLookupService
     {
         return Sale::query()
             ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
+            ->tap(fn ($query) => BranchContext::applyScope($query))
             ->where('status', Sale::STATUS_FINALIZED)
             ->whereNotIn('payment_status', [Sale::PAYMENT_PAID, Sale::PAYMENT_OVERPAID])
             ->orderByDesc('transaction_date')
@@ -90,6 +95,7 @@ class PaymentLookupService
     {
         return SaleReturn::query()
             ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
             ->where('status', SaleReturn::STATUS_FINALIZED)
             ->where('refund_required', true)
             ->whereNotIn('refund_status', [SaleReturn::REFUND_REFUNDED, SaleReturn::REFUND_SKIPPED])
@@ -102,6 +108,8 @@ class PaymentLookupService
     {
         return Purchase::query()
             ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
+            ->tap(fn ($query) => BranchContext::applyScope($query))
             ->whereIn('status', [Purchase::STATUS_CONFIRMED, Purchase::STATUS_PARTIAL_RECEIVED, Purchase::STATUS_RECEIVED])
             ->whereNotIn('payment_status', [Purchase::PAYMENT_PAID, Purchase::PAYMENT_OVERPAID])
             ->orderByDesc('purchase_date')

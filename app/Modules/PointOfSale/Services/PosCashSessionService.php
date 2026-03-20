@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\PointOfSale\Models\PosCashSession;
 use App\Modules\PointOfSale\Models\PosCashSessionMovement;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -17,8 +19,10 @@ class PosCashSessionService
     {
         return PosCashSession::query()
             ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
             ->where('cashier_user_id', $user->id)
             ->where('status', PosCashSession::STATUS_ACTIVE)
+            ->tap(fn ($query) => BranchContext::applyScope($query))
             ->latest('opened_at')
             ->first();
     }
@@ -28,8 +32,10 @@ class PosCashSessionService
         return DB::transaction(function () use ($user, $data) {
             $active = PosCashSession::query()
                 ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
                 ->where('cashier_user_id', $user->id)
                 ->where('status', PosCashSession::STATUS_ACTIVE)
+                ->tap(fn ($query) => BranchContext::applyScope($query))
                 ->lockForUpdate()
                 ->first();
 
@@ -41,9 +47,10 @@ class PosCashSessionService
 
             return PosCashSession::query()->create([
                 'tenant_id' => TenantContext::currentId(),
+                'company_id' => CompanyContext::currentId(),
+                'branch_id' => $data['branch_id'] ?? BranchContext::currentId(),
                 'code' => 'SHIFT-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4)),
                 'cashier_user_id' => $user->id,
-                'outlet_id' => $data['outlet_id'] ?? null,
                 'status' => PosCashSession::STATUS_ACTIVE,
                 'opening_cash_amount' => round((float) $data['opening_cash_amount'], 2),
                 'opening_note' => $data['opening_note'] ?? null,
@@ -60,7 +67,9 @@ class PosCashSessionService
         return DB::transaction(function () use ($session, $user, $data) {
             $session = PosCashSession::query()
                 ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
                 ->with(['payments.method', 'cashMovements', 'sales'])
+                ->tap(fn ($query) => BranchContext::applyScope($query))
                 ->lockForUpdate()
                 ->findOrFail($session->id);
 
@@ -104,6 +113,8 @@ class PosCashSessionService
         return DB::transaction(function () use ($session, $user, $data) {
             $session = PosCashSession::query()
                 ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
+                ->tap(fn ($query) => BranchContext::applyScope($query))
                 ->lockForUpdate()
                 ->findOrFail($session->id);
 
@@ -121,6 +132,7 @@ class PosCashSessionService
 
             return $session->cashMovements()->create([
                 'tenant_id' => TenantContext::currentId(),
+                'company_id' => CompanyContext::currentId(),
                 'movement_type' => $data['movement_type'],
                 'amount' => round((float) $data['amount'], 2),
                 'notes' => $data['notes'] ?? null,

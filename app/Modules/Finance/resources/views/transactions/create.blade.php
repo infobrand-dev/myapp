@@ -4,6 +4,7 @@
 <div class="mb-3">
     <h2 class="mb-0">Create Finance Transaction</h2>
     <div class="text-muted small">Pencatatan cash flow operasional ringan, bukan pembukuan debit/credit.</div>
+    <div class="text-muted small">Company aktif: {{ $company?->name ?? 'No active company' }}</div>
 </div>
 
 @if($errors->any())
@@ -46,8 +47,8 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="form-label">Outlet</label>
-                <input type="number" min="1" name="outlet_id" class="form-control" value="{{ old('outlet_id') }}" placeholder="Optional">
+                <label class="form-label">Branch</label>
+                <input type="number" min="1" name="branch_id" class="form-control" value="{{ old('branch_id', old('outlet_id')) }}" placeholder="Optional">
             </div>
             <div class="col-md-3">
                 <label class="form-label">Shift Reference</label>

@@ -13,6 +13,8 @@ class StockTransferItem extends Model
 
     protected $fillable = [
         'tenant_id',
+        'company_id',
+        'branch_id',
         'transfer_id',
         'product_id',
         'product_variant_id',

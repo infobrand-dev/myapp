@@ -21,6 +21,39 @@ class TenantSeeder extends Seeder
             ]
         );
 
+        if (DB::getSchemaBuilder()->hasTable('companies')) {
+            DB::table('companies')->updateOrInsert(
+                ['id' => 1],
+                [
+                    'tenant_id' => 1,
+                    'name' => 'Default Company',
+                    'slug' => 'default-company',
+                    'code' => 'DEFAULT',
+                    'is_active' => true,
+                    'meta' => json_encode(['bootstrap' => true]),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]
+            );
+        }
+
+        if (DB::getSchemaBuilder()->hasTable('branches')) {
+            DB::table('branches')->updateOrInsert(
+                ['id' => 1],
+                [
+                    'tenant_id' => 1,
+                    'company_id' => 1,
+                    'name' => 'Main Branch',
+                    'slug' => 'main-branch',
+                    'code' => 'MAIN',
+                    'is_active' => true,
+                    'meta' => json_encode(['bootstrap' => true]),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]
+            );
+        }
+
         if (DB::getSchemaBuilder()->hasTable('subscription_plans') && DB::getSchemaBuilder()->hasTable('tenant_subscriptions')) {
             $bootstrapPlanId = DB::table('subscription_plans')
                 ->where('code', 'internal-unlimited')

@@ -12,6 +12,8 @@ return new class extends Migration
         Schema::create('inventory_locations', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('tenant_id')->default(1)->index();
+            $table->unsignedBigInteger('company_id')->default(1)->index();
+            $table->unsignedBigInteger('branch_id')->nullable()->index();
             $table->foreignId('parent_id')->nullable()->constrained('inventory_locations')->nullOnDelete();
             $table->string('code');
             $table->string('name');
@@ -23,13 +25,15 @@ return new class extends Migration
             $table->json('meta')->nullable();
             $table->timestamps();
 
-            $table->unique(['tenant_id', 'code']);
-            $table->index(['type', 'is_active']);
+            $table->unique(['tenant_id', 'company_id', 'branch_id', 'code']);
+            $table->index(['tenant_id', 'company_id', 'branch_id', 'type', 'is_active']);
             $table->index(['reference_type', 'reference_id']);
         });
 
         DB::table('inventory_locations')->insert([
             'tenant_id' => 1,
+            'company_id' => 1,
+            'branch_id' => null,
             'code' => 'MAIN',
             'name' => 'Main Warehouse',
             'type' => 'warehouse',

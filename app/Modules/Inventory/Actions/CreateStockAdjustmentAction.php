@@ -4,6 +4,8 @@ namespace App\Modules\Inventory\Actions;
 
 use App\Models\User;
 use App\Modules\Inventory\Models\StockAdjustment;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -15,6 +17,8 @@ class CreateStockAdjustmentAction
         return DB::transaction(function () use ($data, $actor) {
             $adjustment = StockAdjustment::query()->create([
                 'tenant_id' => TenantContext::currentId(),
+                'company_id' => CompanyContext::currentId(),
+                'branch_id' => BranchContext::currentId(),
                 'code' => 'ADJ-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4)),
                 'inventory_location_id' => $data['inventory_location_id'],
                 'adjustment_date' => $data['adjustment_date'],
@@ -31,6 +35,8 @@ class CreateStockAdjustmentAction
             foreach ($data['items'] as $item) {
                 $adjustment->items()->create([
                     'tenant_id' => TenantContext::currentId(),
+                    'company_id' => CompanyContext::currentId(),
+                    'branch_id' => BranchContext::currentId(),
                     'product_id' => $item['product_id'],
                     'product_variant_id' => $item['product_variant_id'] ?? null,
                     'direction' => $item['direction'],

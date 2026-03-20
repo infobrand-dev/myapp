@@ -12,6 +12,8 @@ class PurchaseItem extends Model
 {
     protected $fillable = [
         'tenant_id',
+        'company_id',
+        'branch_id',
         'purchase_id',
         'line_no',
         'product_id',

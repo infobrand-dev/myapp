@@ -3,7 +3,7 @@
 @section('content')
 <div class="mb-3">
     <h2 class="mb-0">Open Shift</h2>
-    <div class="text-muted small">Buka sesi kasir baru dengan opening cash dan outlet yang digunakan.</div>
+    <div class="text-muted small">Buka sesi kasir baru dengan opening cash dan branch yang digunakan.</div>
 </div>
 
 @if($activeSession)
@@ -32,8 +32,8 @@
                 <input type="number" step="0.01" min="0" name="opening_cash_amount" class="form-control" value="{{ old('opening_cash_amount', '0') }}" required>
             </div>
             <div class="col-md-4">
-                <label class="form-label">Outlet</label>
-                <input type="number" min="1" name="outlet_id" class="form-control" value="{{ old('outlet_id') }}" placeholder="Opsional">
+                <label class="form-label">Branch</label>
+                <input type="number" min="1" name="branch_id" class="form-control" value="{{ old('branch_id', old('outlet_id')) }}" placeholder="Opsional">
             </div>
             <div class="col-12">
                 <label class="form-label">Opening Note</label>

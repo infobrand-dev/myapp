@@ -3,6 +3,8 @@
 namespace App\Modules\Purchases\Repositories;
 
 use App\Modules\Purchases\Models\Purchase;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -11,8 +13,9 @@ class PurchaseRepository
 {
     public function paginateForIndex(array $filters = []): LengthAwarePaginator
     {
-        return Purchase::query()
+        $query = Purchase::query()
             ->where('tenant_id', $this->tenantId())
+            ->where('company_id', $this->companyId())
             ->with('supplier')
             ->withCount('items')
             ->when(($filters['scope'] ?? 'own') !== 'all', fn ($query) => $query->where('created_by', $filters['user_id'] ?? 0))
@@ -34,15 +37,18 @@ class PurchaseRepository
             ->when(!empty($filters['date_from']), fn ($query) => $query->whereDate('purchase_date', '>=', $filters['date_from']))
             ->when(!empty($filters['date_to']), fn ($query) => $query->whereDate('purchase_date', '<=', $filters['date_to']))
             ->latest('purchase_date')
-            ->latest('id')
-            ->paginate(15)
-            ->withQueryString();
+            ->latest('id');
+
+        BranchContext::applyScope($query);
+
+        return $query->paginate(15)->withQueryString();
     }
 
     public function findForDetail(Purchase $purchase): Purchase
     {
         $query = Purchase::query()
             ->where('tenant_id', $this->tenantId())
+            ->where('company_id', $this->companyId())
             ->with([
                 'supplier.company',
                 'items',
@@ -57,19 +63,29 @@ class PurchaseRepository
                 'canceller',
             ]);
 
+        BranchContext::applyScope($query);
+
         return $query->findOrFail($purchase->id);
     }
 
     public function findForEdit(Purchase $purchase): Purchase
     {
-        return Purchase::query()
+        $query = Purchase::query()
             ->where('tenant_id', $this->tenantId())
+            ->where('company_id', $this->companyId())
             ->with('items')
-            ->findOrFail($purchase->id);
+            ->tap(fn ($builder) => BranchContext::applyScope($builder));
+
+        return $query->findOrFail($purchase->id);
     }
 
     private function tenantId(): int
     {
         return TenantContext::currentId();
+    }
+
+    private function companyId(): int
+    {
+        return (int) CompanyContext::currentId();
     }
 }

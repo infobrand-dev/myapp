@@ -35,6 +35,8 @@ class Kernel extends HttpKernel
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
             \Illuminate\Session\Middleware\StartSession::class,
             \App\Http\Middleware\ResolveTenantContext::class,
+            \App\Http\Middleware\ResolveCompanyContext::class,
+            \App\Http\Middleware\ResolveBranchContext::class,
             // \Illuminate\Session\Middleware\AuthenticateSession::class,
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
@@ -45,6 +47,8 @@ class Kernel extends HttpKernel
             // \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             'throttle:api',
             \App\Http\Middleware\ResolveTenantContext::class,
+            \App\Http\Middleware\ResolveCompanyContext::class,
+            \App\Http\Middleware\ResolveBranchContext::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
     ];

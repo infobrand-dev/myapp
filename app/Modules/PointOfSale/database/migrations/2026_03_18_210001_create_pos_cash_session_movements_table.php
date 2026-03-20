@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('pos_cash_session_movements', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('tenant_id')->default(1)->index();
+            $table->unsignedBigInteger('company_id')->default(1)->index();
             $table->foreignId('cash_session_id')->constrained('pos_cash_sessions')->cascadeOnDelete();
             $table->string('movement_type', 20);
             $table->decimal('amount', 18, 2);
@@ -20,6 +21,7 @@ return new class extends Migration
             $table->json('meta')->nullable();
             $table->timestamps();
 
+            $table->index(['tenant_id', 'company_id', 'occurred_at']);
             $table->index(['cash_session_id', 'occurred_at']);
         });
     }

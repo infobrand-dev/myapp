@@ -2,10 +2,12 @@
 
 namespace App\Modules\Sales\Models;
 
+use App\Models\Company;
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Payments\Models\PaymentAllocation;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -31,6 +33,7 @@ class SaleReturn extends Model
 
     protected $fillable = [
         'tenant_id',
+        'company_id',
         'return_number',
         'sale_id',
         'sale_number_snapshot',
@@ -88,6 +91,11 @@ class SaleReturn extends Model
     public function sale(): BelongsTo
     {
         return $this->belongsTo(Sale::class);
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
     }
 
     public function contact(): BelongsTo
@@ -149,6 +157,7 @@ class SaleReturn extends Model
     {
         return $this->where($field ?? $this->getRouteKeyName(), $value)
             ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
             ->firstOrFail();
     }
 }

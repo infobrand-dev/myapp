@@ -7,6 +7,8 @@ use App\Modules\Contacts\Models\Contact;
 use App\Modules\Sales\Events\SaleFinalized;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Services\SaleSnapshotService;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -35,7 +37,9 @@ class FinalizeSaleAction
         $sale = DB::transaction(function () use ($sale, $data, $actor) {
             $sale = Sale::query()
                 ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
                 ->with('items')
+                ->tap(fn ($query) => BranchContext::applyScope($query))
                 ->lockForUpdate()
                 ->findOrFail($sale->id);
 
@@ -90,6 +94,7 @@ class FinalizeSaleAction
 
             $sale->statusHistories()->create([
                 'tenant_id' => TenantContext::currentId(),
+                'company_id' => CompanyContext::currentId(),
                 'from_status' => $fromStatus,
                 'to_status' => Sale::STATUS_FINALIZED,
                 'event' => 'finalized',
@@ -106,7 +111,11 @@ class FinalizeSaleAction
                     $this->recordSalePayment->execute($sale, $paymentRow, $actor);
                 }
 
-                $sale = Sale::query()->where('tenant_id', TenantContext::currentId())->findOrFail($sale->id);
+                $sale = Sale::query()
+                    ->where('tenant_id', TenantContext::currentId())
+                    ->where('company_id', CompanyContext::currentId())
+                    ->tap(fn ($query) => BranchContext::applyScope($query))
+                    ->findOrFail($sale->id);
             } else {
                 $sale = $this->syncPaymentSummary->execute($sale, $data['payment_status'] ?? $sale->payment_status);
             }
@@ -123,6 +132,7 @@ class FinalizeSaleAction
     {
         return array_map(function (array $row): array {
             $row['tenant_id'] = TenantContext::currentId();
+            $row['company_id'] = CompanyContext::currentId();
 
             return $row;
         }, $rows);

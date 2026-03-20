@@ -20,7 +20,13 @@
 - When practical, keep room for `tenant_id` in table design, query composition, unique constraints, cache keys, webhook/account resolution, and ownership rules. Avoid building new flows that implicitly assume a single global tenant.
 - Core runtime tenant resolution now flows through `App\Support\TenantContext` and `App\Http\Middleware\ResolveTenantContext`.
 - Current resolver order is: explicit request attribute/header/query, session, authenticated user `tenant_id`, then fallback to tenant `id = 1`.
+- Core runtime company resolution now flows through `App\Support\CompanyContext` and `App\Http\Middleware\ResolveCompanyContext`.
+- Current company resolver order is: explicit request attribute/header/query, session, then first active company under the active tenant.
+- Core runtime branch resolution now flows through `App\Support\BranchContext` and `App\Http\Middleware\ResolveBranchContext`.
+- Current branch resolver order is: explicit request attribute/header/query, then session.
+- Branch is optional under a company. When no active branch is selected, branch-aware runtime scope should target `branch_id IS NULL`, not silently fan out across all branches and not silently pick the first branch.
 - Until tenant switching UI and tenant administration are completed, default/fallback tenant behavior must remain safe and deterministic, and tenant-aware writes must never leave `tenant_id` as `null`.
+- Until company administration is completed, default/fallback company behavior must remain safe and deterministic, and company-aware writes must never leave `company_id` as `null` where company scoping is active.
 - If a change is intentionally shipped before tenant scoping is completed, document the limitation clearly and keep the implementation easy to migrate to tenant-aware behavior.
 - Core tenant bootstrap now uses a dedicated `tenants` table. Default installation must always have tenant `id = 1` with the name `Default tenant`.
 - Spatie Permission now runs in `teams` mode with `tenant_id` as the scope key. Roles and role assignments are tenant-scoped, while permissions and module registry remain global.
@@ -52,6 +58,8 @@
 - Role seeding also pulls default permission maps from some modules via their service providers.
 - Tenant subscription and plan enforcement foundation now lives in `subscription_plans`, `tenant_subscriptions`, `companies`, and `App\Support\TenantPlanManager`.
 - New quota or premium-feature work should prefer adding keys to the centralized plan feature/limit layer instead of hardcoding rules inside modules.
+- Company-aware rollout has started with `finance` and `point-of-sale` cash session boundaries. New work in accounting, cashier shift, and related reporting should follow the active `tenant + company` scope.
+- Branch-aware rollout has started with `point-of-sale`, `finance transactions`, `sales`, and `payments`, but branch must remain optional where the flow is company-level rather than outlet-level.
 
 ## Frontend
 - Stack: Blade + Tabler + Laravel Mix.

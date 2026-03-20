@@ -3,6 +3,7 @@
 namespace App\Modules\Purchases\Services;
 
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
@@ -15,7 +16,7 @@ class PurchaseLookupService
     public function suppliers(): Collection
     {
         return Contact::query()
-            ->where('tenant_id', TenantContext::currentId())
+            ->tap(fn ($query) => ContactScope::applyVisibilityScope($query))
             ->where('is_active', true)
             ->orderBy('name')
             ->get();

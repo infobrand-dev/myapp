@@ -4,6 +4,7 @@ namespace App\Modules\Purchases\Actions;
 
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Purchases\Events\PurchaseFinalized;
 use App\Modules\Purchases\Models\Purchase;
 use App\Modules\Purchases\Services\PurchaseSnapshotService;
@@ -51,7 +52,7 @@ class FinalizePurchaseAction
             }
 
             $supplier = $purchase->contact_id
-                ? Contact::query()->with('company')->where('tenant_id', TenantContext::currentId())->find($purchase->contact_id)
+                ? ContactScope::applyVisibilityScope(Contact::query()->with('parentContact'))->find($purchase->contact_id)
                 : null;
             $supplierSnapshot = $this->snapshotService->supplierSnapshot($supplier);
 

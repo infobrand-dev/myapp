@@ -15,6 +15,8 @@ class ContactSampleSeeder extends Seeder
             ['tenant_id' => self::TENANT_ID, 'type' => 'company', 'name' => 'PT Demo Nusantara'],
             [
                 'tenant_id' => self::TENANT_ID,
+                'company_id' => 1,
+                'branch_id' => null,
                 'email' => 'hello@demo-nusantara.test',
                 'phone' => '0215550001',
                 'mobile' => '628111000100',
@@ -29,10 +31,12 @@ class ContactSampleSeeder extends Seeder
         );
 
         Contact::query()->updateOrCreate(
-            ['tenant_id' => self::TENANT_ID, 'type' => 'person', 'email' => 'procurement@demo-nusantara.test'],
+            ['tenant_id' => self::TENANT_ID, 'type' => 'individual', 'email' => 'procurement@demo-nusantara.test'],
             [
                 'tenant_id' => self::TENANT_ID,
-                'company_id' => $company->id,
+                'company_id' => 1,
+                'branch_id' => null,
+                'parent_contact_id' => $company->id,
                 'name' => 'Rina Procurement',
                 'job_title' => 'Procurement Lead',
                 'phone' => '0215550002',

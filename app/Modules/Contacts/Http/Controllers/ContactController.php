@@ -5,6 +5,9 @@ namespace App\Modules\Contacts\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Contacts\Support\ContactPhoneNormalizer;
+use App\Modules\Contacts\Support\ContactScope;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,9 +24,8 @@ class ContactController extends Controller
 {
     public function index(): View
     {
-        $contacts = Contact::query()
-            ->where('tenant_id', $this->tenantId())
-            ->with('company')
+        $contacts = ContactScope::applyVisibilityScope(Contact::query())
+            ->with(['parentContact', 'company', 'branch'])
             ->orderByDesc('created_at')
             ->paginate(15);
 
@@ -126,8 +128,10 @@ class ContactController extends Controller
 
                     Contact::create([
                         'tenant_id' => $this->tenantId(),
+                        'company_id' => $normalized['company_id'],
+                        'branch_id' => $normalized['branch_id'],
                         'type' => $normalized['type'],
-                        'company_id' => $companyId,
+                        'parent_contact_id' => $companyId,
                         'name' => $normalized['name'],
                         'job_title' => $normalized['job_title'],
                         'email' => $normalized['email'],
@@ -171,6 +175,7 @@ class ContactController extends Controller
     {
         $prefill = new Contact([
             'type' => request()->input('type', 'individual'),
+            'scope' => request()->input('scope', ContactScope::LEVEL_COMPANY),
             'name' => request()->input('name', ''),
             'phone' => request()->input('phone', ''),
             'mobile' => request()->input('mobile', ''),
@@ -182,6 +187,8 @@ class ContactController extends Controller
         $companies = Contact::query()
             ->where('tenant_id', $this->tenantId())
             ->where('type', 'company')
+            ->whereNull('parent_contact_id')
+            ->tap(fn ($query) => ContactScope::applyVisibilityScope($query))
             ->orderBy('name')
             ->get();
 
@@ -196,9 +203,11 @@ class ContactController extends Controller
         $data = $this->validatedData($request);
         $data['is_active'] = $request->boolean('is_active');
         if ($data['type'] === 'company') {
-            $data['company_id'] = null;
+            $data['parent_contact_id'] = null;
         }
+        $data = ContactScope::applyWriteScope($data, $data['scope'] ?? null);
         $data['tenant_id'] = $this->tenantId();
+        unset($data['scope']);
 
         Contact::create($data);
 
@@ -207,7 +216,7 @@ class ContactController extends Controller
 
     public function show(Contact $contact): View
     {
-        $contact->load('company', 'employees');
+        $contact->load(['parentContact', 'employees', 'company', 'branch']);
 
         return view('contacts::show', compact('contact'));
     }
@@ -217,7 +226,9 @@ class ContactController extends Controller
         $companies = Contact::query()
             ->where('tenant_id', $this->tenantId())
             ->where('type', 'company')
+            ->whereNull('parent_contact_id')
             ->where('id', '!=', $contact->id)
+            ->tap(fn ($query) => ContactScope::applyVisibilityScope($query))
             ->orderBy('name')
             ->get();
 
@@ -229,8 +240,10 @@ class ContactController extends Controller
         $data = $this->validatedData($request);
         $data['is_active'] = $request->boolean('is_active');
         if ($data['type'] === 'company') {
-            $data['company_id'] = null;
+            $data['parent_contact_id'] = null;
         }
+        $data = ContactScope::applyWriteScope($data, $data['scope'] ?? null);
+        unset($data['scope']);
 
         $contact->update($data);
 
@@ -256,14 +269,14 @@ class ContactController extends Controller
             'duplicate_ids.*' => ['integer', 'distinct', Rule::exists('contacts', 'id')->where(fn ($query) => $query->where('tenant_id', $this->tenantId()))],
         ]);
 
-        if (!Contact::query()->where('tenant_id', $this->tenantId())->find($data['primary_id'])) {
+        if (!ContactScope::applyVisibilityScope(Contact::query())->find($data['primary_id'])) {
             throw ValidationException::withMessages([
                 'primary_id' => 'Contact utama tidak tersedia untuk tenant aktif.',
             ]);
         }
 
         foreach ((array) $data['duplicate_ids'] as $index => $duplicateId) {
-            if (!Contact::query()->where('tenant_id', $this->tenantId())->find($duplicateId)) {
+            if (!ContactScope::applyVisibilityScope(Contact::query())->find($duplicateId)) {
                 throw ValidationException::withMessages([
                     "duplicate_ids.$index" => 'Contact duplikat tidak tersedia untuk tenant aktif.',
                 ]);
@@ -287,8 +300,7 @@ class ContactController extends Controller
             ->unique()
             ->values();
 
-        $contacts = Contact::query()
-            ->where('tenant_id', $this->tenantId())
+        $contacts = ContactScope::applyVisibilityScope(Contact::query())
             ->whereIn('id', $allIds->all())
             ->get()
             ->keyBy('id');
@@ -330,7 +342,8 @@ class ContactController extends Controller
     {
         $data = $request->validate([
             'type' => ['required', Rule::in(['company', 'individual'])],
-            'company_id' => ['nullable', 'integer', Rule::exists('contacts', 'id')->where(fn ($query) => $query->where('tenant_id', $this->tenantId()))],
+            'scope' => ['required', Rule::in(ContactScope::visibleLevels())],
+            'parent_contact_id' => ['nullable', 'integer', Rule::exists('contacts', 'id')->where(fn ($query) => $query->where('tenant_id', $this->tenantId()))],
             'name' => ['required', 'string', 'max:255'],
             'job_title' => ['nullable', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],
@@ -352,10 +365,10 @@ class ContactController extends Controller
 
         $data = $this->normalizeValidatedContactData($data);
 
-        if (!empty($data['company_id'])) {
-            Contact::query()
-                ->where('tenant_id', $this->tenantId())
-                ->findOrFail((int) $data['company_id']);
+        if (!empty($data['parent_contact_id'])) {
+            ContactScope::applyVisibilityScope(
+                Contact::query()->where('type', 'company')
+            )->findOrFail((int) $data['parent_contact_id']);
         }
 
         return $data;
@@ -365,6 +378,7 @@ class ContactController extends Controller
     {
         return [
             'type',
+            'scope',
             'name',
             'company_name',
             'job_title',
@@ -390,6 +404,7 @@ class ContactController extends Controller
     {
         return [
             'individual',
+            'company',
             'Budi Santoso',
             'PT Contoh Sukses',
             'Event Coordinator',
@@ -594,6 +609,9 @@ class ContactController extends Controller
             'type' => 'type',
             'jenis' => 'type',
             'contacttype' => 'type',
+            'scope' => 'scope',
+            'cakupan' => 'scope',
+            'scopelevel' => 'scope',
             'name' => 'name',
             'nama' => 'name',
             'fullname' => 'name',
@@ -671,6 +689,7 @@ class ContactController extends Controller
 
         return $this->normalizeValidatedContactData([
             'type' => $type,
+            'scope' => strtolower(trim((string) ($payload['scope'] ?? ContactScope::LEVEL_COMPANY))),
             'name' => trim((string) ($payload['name'] ?? '')),
             'company_name' => trim((string) ($payload['company_name'] ?? '')),
             'job_title' => $this->nullableString($payload['job_title'] ?? null),
@@ -702,6 +721,8 @@ class ContactController extends Controller
         $company = Contact::query()
             ->where('tenant_id', $this->tenantId())
             ->where('type', 'company')
+            ->whereNull('parent_contact_id')
+            ->tap(fn ($query) => ContactScope::applyVisibilityScope($query))
             ->whereRaw('LOWER(name) = ?', [mb_strtolower($companyName)])
             ->first();
 
@@ -711,8 +732,10 @@ class ContactController extends Controller
 
         $company = Contact::create([
             'tenant_id' => $this->tenantId(),
+            'company_id' => $normalized['company_id'] ?? CompanyContext::currentId(),
+            'branch_id' => $normalized['branch_id'] ?? BranchContext::currentId(),
             'type' => 'company',
-            'company_id' => null,
+            'parent_contact_id' => null,
             'name' => $companyName,
             'is_active' => true,
         ]);
@@ -741,6 +764,8 @@ class ContactController extends Controller
 
     private function normalizeValidatedContactData(array $data, bool $strict = true): array
     {
+        $data = ContactScope::applyWriteScope($data, $data['scope'] ?? null);
+
         foreach (['phone', 'mobile'] as $field) {
             $original = $this->nullableString($data[$field] ?? null);
             $normalized = ContactPhoneNormalizer::normalize($original);
@@ -759,9 +784,8 @@ class ContactController extends Controller
 
     private function buildMergeCandidateGroups(): array
     {
-        $contacts = Contact::query()
-            ->where('tenant_id', $this->tenantId())
-            ->with('company')
+        $contacts = ContactScope::applyVisibilityScope(Contact::query())
+            ->with('parentContact')
             ->orderBy('name')
             ->get();
 
@@ -851,7 +875,7 @@ class ContactController extends Controller
         }
 
         $fillableFields = [
-            'company_id',
+            'parent_contact_id',
             'job_title',
             'email',
             'phone',
@@ -879,7 +903,7 @@ class ContactController extends Controller
                 }
 
                 $value = $duplicate->{$field};
-                if ($field === 'company_id' && (int) $value === (int) $primary->id) {
+                if ($field === 'parent_contact_id' && (int) $value === (int) $primary->id) {
                     continue;
                 }
 
@@ -902,12 +926,12 @@ class ContactController extends Controller
 
         Contact::query()
             ->where('tenant_id', $this->tenantId())
-            ->whereIn('company_id', $duplicateIds)
+            ->whereIn('parent_contact_id', $duplicateIds)
             ->where('id', '!=', $primary->id)
-            ->update(['company_id' => $primary->id]);
+            ->update(['parent_contact_id' => $primary->id]);
 
-        if ((int) ($primary->company_id ?? 0) !== 0 && in_array((int) $primary->company_id, $duplicateIds, true)) {
-            $primary->company_id = null;
+        if ((int) ($primary->parent_contact_id ?? 0) !== 0 && in_array((int) $primary->parent_contact_id, $duplicateIds, true)) {
+            $primary->parent_contact_id = null;
         }
 
         if (Schema::hasTable('email_campaign_recipients')) {

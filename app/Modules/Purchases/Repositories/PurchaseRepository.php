@@ -50,7 +50,7 @@ class PurchaseRepository
             ->where('tenant_id', $this->tenantId())
             ->where('company_id', $this->companyId())
             ->with([
-                'supplier.company',
+                'supplier.parentContact',
                 'items',
                 'receipts.items.purchaseItem',
                 'receipts.inventoryLocation',

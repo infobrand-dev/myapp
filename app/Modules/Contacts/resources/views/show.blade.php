@@ -7,9 +7,10 @@
         <h2 class="mb-0">{{ $contact->name }}</h2>
         <div class="text-muted small">
             {{ $contact->type === 'company' ? 'Company' : 'Individual' }}
-            @if($contact->company)
-                · Bekerja di {{ $contact->company->name }}
+            @if($contact->parentContact)
+                · Bekerja di {{ $contact->parentContact->name }}
             @endif
+            · Scope {{ ucfirst(\App\Modules\Contacts\Support\ContactScope::detectLevel($contact)) }}
         </div>
     </div>
     <div class="d-flex gap-2">
@@ -49,6 +50,15 @@
                     <dd class="col-sm-8">{{ $contact->vat ?? '-' }}</dd>
                     <dt class="col-sm-4">Company Registry</dt>
                     <dd class="col-sm-8">{{ $contact->company_registry ?? '-' }}</dd>
+                    <dt class="col-sm-4">Scope Internal</dt>
+                    <dd class="col-sm-8">
+                        {{ $contact->company?->name ?? 'Tenant-wide' }}
+                        @if($contact->branch)
+                            · {{ $contact->branch->name }}
+                        @endif
+                    </dd>
+                    <dt class="col-sm-4">Company Contact</dt>
+                    <dd class="col-sm-8">{{ $contact->parentContact?->name ?? '-' }}</dd>
                 </dl>
             </div>
         </div>

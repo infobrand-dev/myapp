@@ -25,6 +25,7 @@
 - `Contacts.company` is an external business/contact relationship.
 - It may represent a customer company, supplier company, or employer of a person.
 - It must not be used as the internal multi-company boundary of the tenant.
+- Contacts runtime scope should use `contacts.company_id` / `contacts.branch_id` for the internal tenant company/branch boundary, while external organization linkage should stay on a separate self-reference such as `parent_contact_id`.
 
 ## Recommended operating model
 - `tenant`
@@ -61,6 +62,10 @@ In that model:
 - records that belong to an internal business entity should also have `company_id`
 - records that belong to an outlet or location should also have `branch_id`
 - `branch_id` should usually be nullable unless the workflow is explicitly outlet-bound
+- contacts remain an external/business master, but should still support:
+  - tenant-wide shared contacts: `company_id = null`, `branch_id = null`
+  - company-scoped contacts: `company_id = <active company>`, `branch_id = null`
+  - branch-scoped contacts: `company_id = <active company>`, `branch_id = <active branch>`
 
 ## Typical module scope
 - `finance`

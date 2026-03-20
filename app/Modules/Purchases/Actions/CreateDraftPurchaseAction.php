@@ -4,6 +4,7 @@ namespace App\Modules\Purchases\Actions;
 
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Purchases\Models\Purchase;
 use App\Modules\Purchases\Services\PurchaseNumberService;
 use App\Modules\Purchases\Services\PurchaseSnapshotService;
@@ -33,7 +34,7 @@ class CreateDraftPurchaseAction
     {
         return DB::transaction(function () use ($data, $actor) {
             $totals = $this->recalculateTotals->execute($data);
-            $supplier = Contact::query()->with('company')->where('tenant_id', TenantContext::currentId())->find($data['contact_id']);
+            $supplier = ContactScope::applyVisibilityScope(Contact::query()->with('parentContact'))->find($data['contact_id']);
             $snapshot = $this->snapshotService->supplierSnapshot($supplier);
 
             $purchase = Purchase::query()->create([

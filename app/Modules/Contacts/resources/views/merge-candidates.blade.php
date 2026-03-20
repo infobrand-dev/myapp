@@ -88,7 +88,7 @@
                                     <td>{{ $contact->email ?? '-' }}</td>
                                     <td>{{ $contact->phone ?? '-' }}</td>
                                     <td>{{ $contact->mobile ?? '-' }}</td>
-                                    <td>{{ $contact->company?->name ?? '-' }}</td>
+                                    <td>{{ $contact->parentContact?->name ?? '-' }}</td>
                                 </tr>
                             @endforeach
                         </tbody>

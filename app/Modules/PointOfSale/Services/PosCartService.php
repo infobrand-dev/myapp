@@ -4,6 +4,7 @@ namespace App\Modules\PointOfSale\Services;
 
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\PointOfSale\Models\PosCashSession;
 use App\Modules\PointOfSale\Models\PosCart;
 use App\Modules\PointOfSale\Models\PosCartItem;
@@ -345,9 +346,7 @@ class PosCartService
     public function assignCustomer(User $user, ?int $contactId, ?string $label = null): PosCart
     {
         if ($contactId) {
-            Contact::query()
-                ->where('tenant_id', TenantContext::currentId())
-                ->findOrFail($contactId);
+            ContactScope::applyVisibilityScope(Contact::query())->findOrFail($contactId);
         }
 
         $cart = $this->activeCartFor($user);

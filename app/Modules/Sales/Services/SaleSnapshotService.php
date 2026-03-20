@@ -41,8 +41,10 @@ class SaleSnapshotService
                 'email' => $contact->email,
                 'phone' => $contact->phone,
                 'mobile' => $contact->mobile,
-                'company_id' => $contact->company_id,
-                'company_name' => $contact->company ? $contact->company->name : null,
+                'parent_contact_id' => $contact->parent_contact_id,
+                'parent_contact_name' => $contact->parentContact ? $contact->parentContact->name : null,
+                'scope_company_id' => $contact->company_id,
+                'scope_branch_id' => $contact->branch_id,
                 'address' => [
                     'street' => $contact->street,
                     'street2' => $contact->street2,

@@ -5,7 +5,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Contacts</h2>
-        <div class="text-muted small">Database perusahaan dan individu.</div>
+        <div class="text-muted small">Directory external/business contact dengan scope tenant, company aktif, atau branch aktif.</div>
     </div>
     <div class="btn-list">
         <a href="{{ route('contacts.merge-candidates') }}" class="btn btn-outline-warning">Merge Contacts ({{ $mergeCandidateCount ?? 0 }})</a>
@@ -25,7 +25,8 @@
                 <tr>
                     <th>Nama</th>
                     <th>Tipe</th>
-                    <th>Company</th>
+                    <th>Company Contact</th>
+                    <th>Scope</th>
                     <th>Email</th>
                     <th>Telepon</th>
                     <th class="w-1"></th>
@@ -44,7 +45,11 @@
                             {{ $contact->type === 'company' ? 'Company' : 'Individual' }}
                         </span>
                     </td>
-                    <td>{{ $contact->company?->name ?? '-' }}</td>
+                    <td>{{ $contact->parentContact?->name ?? '-' }}</td>
+                    <td>
+                        @php($scope = \App\Modules\Contacts\Support\ContactScope::detectLevel($contact))
+                        <span class="badge bg-secondary-lt text-secondary">{{ ucfirst($scope) }}</span>
+                    </td>
                     <td>{{ $contact->email ?? '-' }}</td>
                     <td>{{ $contact->phone ?? $contact->mobile ?? '-' }}</td>
                     <td class="text-end align-middle">
@@ -77,7 +82,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="6" class="text-center text-muted">Belum ada contact.</td></tr>
+                <tr><td colspan="7" class="text-center text-muted">Belum ada contact.</td></tr>
                 @endforelse
             </tbody>
         </table>

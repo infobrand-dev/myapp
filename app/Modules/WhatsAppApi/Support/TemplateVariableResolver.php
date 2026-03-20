@@ -137,10 +137,10 @@ class TemplateVariableResolver
     {
         $companyName = null;
 
-        if ($contact->relationLoaded('company')) {
-            $companyName = $contact->company?->name;
-        } elseif ($contact->company_id) {
-            $companyName = optional($contact->company()->first(['name']))->name;
+        if ($contact->relationLoaded('parentContact')) {
+            $companyName = $contact->parentContact?->name;
+        } elseif ($contact->parent_contact_id) {
+            $companyName = optional($contact->parentContact()->first(['name']))->name;
         }
 
         return self::contextFromArray([

@@ -3,6 +3,7 @@
 namespace App\Modules\Sales\Http\Requests;
 
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
 use App\Modules\Sales\Http\Requests\Concerns\NormalizesSalePayload;
@@ -26,7 +27,7 @@ class StoreDraftSaleRequest extends FormRequest
     {
         return [
             'external_reference' => ['nullable', 'string', 'max:100'],
-            'contact_id' => ['nullable', 'integer', Rule::exists('contacts', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()))],
+            'contact_id' => ['nullable', 'integer', Rule::exists('contacts', 'id')->where(fn ($query) => ContactScope::applyVisibilityScope($query))],
             'payment_status' => ['required', Rule::in([
                 Sale::PAYMENT_UNPAID,
                 Sale::PAYMENT_PARTIAL,
@@ -86,7 +87,7 @@ class StoreDraftSaleRequest extends FormRequest
     protected function validateTenantRelations(Validator $validator): void
     {
         $contactId = $this->input('contact_id');
-        if ($contactId && !Contact::query()->where('tenant_id', TenantContext::currentId())->find($contactId)) {
+        if ($contactId && !ContactScope::applyVisibilityScope(Contact::query())->find($contactId)) {
             $validator->errors()->add('contact_id', 'Contact tidak tersedia untuk tenant aktif.');
         }
 

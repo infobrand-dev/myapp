@@ -4,6 +4,7 @@ namespace App\Modules\Purchases\Actions;
 
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Purchases\Models\Purchase;
 use App\Modules\Purchases\Services\PurchaseSnapshotService;
 use App\Support\TenantContext;
@@ -37,7 +38,7 @@ class UpdateDraftPurchaseAction
         return DB::transaction(function () use ($purchase, $data, $actor) {
             $purchase = Purchase::query()->where('tenant_id', TenantContext::currentId())->lockForUpdate()->findOrFail($purchase->id);
             $totals = $this->recalculateTotals->execute($data);
-            $supplier = Contact::query()->with('company')->where('tenant_id', TenantContext::currentId())->find($data['contact_id']);
+            $supplier = ContactScope::applyVisibilityScope(Contact::query()->with('parentContact'))->find($data['contact_id']);
             $snapshot = $this->snapshotService->supplierSnapshot($supplier);
 
             $purchase->update([

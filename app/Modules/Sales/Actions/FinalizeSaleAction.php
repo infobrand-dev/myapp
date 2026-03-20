@@ -4,6 +4,7 @@ namespace App\Modules\Sales\Actions;
 
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Sales\Events\SaleFinalized;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Services\SaleSnapshotService;
@@ -62,7 +63,7 @@ class FinalizeSaleAction
             ];
             $totals = $this->recalculateTotals->execute($payload);
             $contact = $sale->contact_id
-                ? Contact::query()->with('company')->where('tenant_id', TenantContext::currentId())->find($sale->contact_id)
+                ? ContactScope::applyVisibilityScope(Contact::query()->with('parentContact'))->find($sale->contact_id)
                 : null;
             $customer = $this->snapshotService->customerSnapshot($contact);
 

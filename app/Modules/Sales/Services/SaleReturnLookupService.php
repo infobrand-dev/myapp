@@ -3,6 +3,7 @@
 namespace App\Modules\Sales\Services;
 
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\SaleReturn;
@@ -48,7 +49,7 @@ class SaleReturnLookupService
     public function customerOptions(): Collection
     {
         return Contact::query()
-            ->where('tenant_id', TenantContext::currentId())
+            ->tap(fn ($query) => ContactScope::applyVisibilityScope($query))
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name']);

@@ -3,6 +3,7 @@
 namespace App\Modules\Purchases\Http\Requests;
 
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
 use App\Modules\Purchases\Http\Requests\Concerns\NormalizesPurchasePayload;
@@ -28,7 +29,7 @@ class StoreDraftPurchaseRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'contact_id' => ['required', 'integer', Rule::exists('contacts', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()))],
+            'contact_id' => ['required', 'integer', Rule::exists('contacts', 'id')->where(fn ($query) => ContactScope::applyVisibilityScope($query))],
             'purchase_date' => ['required', 'date'],
             'supplier_reference' => ['nullable', 'string', 'max:100'],
             'supplier_invoice_number' => ['nullable', 'string', 'max:100'],
@@ -57,7 +58,7 @@ class StoreDraftPurchaseRequest extends FormRequest
     private function validateTenantRelations(Validator $validator): void
     {
         $contactId = $this->input('contact_id');
-        if ($contactId && !Contact::query()->where('tenant_id', TenantContext::currentId())->find($contactId)) {
+        if ($contactId && !ContactScope::applyVisibilityScope(Contact::query())->find($contactId)) {
             $validator->errors()->add('contact_id', 'Supplier tidak tersedia untuk tenant aktif.');
         }
 

@@ -8,7 +8,7 @@
     data-contact-name="{{ $contact->name }}"
     data-contact-phone="{{ $contact->mobile ?: $contact->phone }}"
     data-contact-email="{{ $contact->email }}"
-    data-contact-company="{{ $contact->company?->name }}"
+    data-contact-company="{{ $contact->parentContact?->name }}"
     data-contact-job-title="{{ $contact->job_title }}"
     data-contact-website="{{ $contact->website }}"
     data-contact-industry="{{ $contact->industry }}"

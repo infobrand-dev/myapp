@@ -4,6 +4,7 @@ namespace App\Modules\PointOfSale\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\PointOfSale\Models\PosCart;
 use App\Modules\PointOfSale\Services\PosCashSessionService;
@@ -33,7 +34,7 @@ class PosScreenController extends Controller
                 ->limit(18)
                 ->get(['id', 'name', 'sku', 'barcode', 'sell_price']),
             'initialCustomers' => Contact::query()
-                ->where('tenant_id', TenantContext::currentId())
+                ->tap(fn ($query) => ContactScope::applyVisibilityScope($query))
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->limit(12)

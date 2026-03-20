@@ -2,6 +2,9 @@
 
 namespace App\Modules\Contacts\Models;
 
+use App\Models\Branch;
+use App\Models\Company;
+use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Contacts\Support\ContactPhoneNormalizer;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
@@ -12,8 +15,10 @@ class Contact extends Model
 {
     protected $fillable = [
         'tenant_id',
-        'type',
         'company_id',
+        'branch_id',
+        'type',
+        'parent_contact_id',
         'name',
         'job_title',
         'email',
@@ -39,13 +44,25 @@ class Contact extends Model
 
     public function company(): BelongsTo
     {
-        return $this->belongsTo(Contact::class, 'company_id')
+        return $this->belongsTo(Company::class, 'company_id')
+            ->where('tenant_id', TenantContext::currentId());
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class, 'branch_id')
+            ->where('tenant_id', TenantContext::currentId());
+    }
+
+    public function parentContact(): BelongsTo
+    {
+        return $this->belongsTo(Contact::class, 'parent_contact_id')
             ->where('tenant_id', TenantContext::currentId());
     }
 
     public function employees(): HasMany
     {
-        return $this->hasMany(Contact::class, 'company_id')
+        return $this->hasMany(Contact::class, 'parent_contact_id')
             ->where('tenant_id', TenantContext::currentId());
     }
 
@@ -66,8 +83,9 @@ class Contact extends Model
 
     public function resolveRouteBinding($value, $field = null)
     {
-        return $this->where($field ?? $this->getRouteKeyName(), $value)
-            ->where('tenant_id', TenantContext::currentId())
+        return ContactScope::applyVisibilityScope(
+            $this->where($field ?? $this->getRouteKeyName(), $value)
+        )
             ->firstOrFail();
     }
 }

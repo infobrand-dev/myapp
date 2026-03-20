@@ -4,6 +4,7 @@ namespace App\Modules\PointOfSale\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\PointOfSale\Models\PosCart;
 use App\Modules\PointOfSale\Services\PosCashSessionService;
@@ -102,7 +103,7 @@ class PosWorkspaceController extends Controller
         $q = trim((string) $request->query('q', ''));
 
         $query = Contact::query()
-            ->where('tenant_id', TenantContext::currentId())
+            ->tap(fn ($builder) => ContactScope::applyVisibilityScope($builder))
             ->where('is_active', true)
             ->orderBy('name');
 
@@ -145,7 +146,7 @@ class PosWorkspaceController extends Controller
     private function customerOptions(): array
     {
         return Contact::query()
-            ->where('tenant_id', TenantContext::currentId())
+            ->tap(fn ($query) => ContactScope::applyVisibilityScope($query))
             ->where('is_active', true)
             ->orderBy('name')
             ->limit(12)

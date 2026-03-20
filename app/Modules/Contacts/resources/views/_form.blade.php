@@ -1,5 +1,6 @@
 @php
     $selectedType = old('type', $contact->type ?? 'company');
+    $selectedScope = old('scope', $contact->scope ?? \App\Modules\Contacts\Support\ContactScope::detectLevel($contact));
 @endphp
 
 <div class="row g-3">
@@ -15,11 +16,22 @@
         <input type="text" name="name" class="form-control" value="{{ old('name', $contact->name ?? '') }}" required>
     </div>
     <div class="col-md-6">
-        <label class="form-label">Bekerja di (Company)</label>
-        <select name="company_id" id="company-id" class="form-select">
+        <label class="form-label">Scope Data</label>
+        <select name="scope" id="contact-scope" class="form-select" required>
+            <option value="tenant" {{ $selectedScope === 'tenant' ? 'selected' : '' }}>Tenant-wide</option>
+            <option value="company" {{ $selectedScope === 'company' ? 'selected' : '' }}>Company aktif</option>
+            @if(\App\Support\BranchContext::currentId() !== null)
+                <option value="branch" {{ $selectedScope === 'branch' ? 'selected' : '' }}>Branch aktif</option>
+            @endif
+        </select>
+        <div class="text-muted small">Tenant-wide bisa dipakai seluruh tenant. Company aktif hanya untuk company aktif. Branch aktif hanya untuk branch yang sedang dipilih.</div>
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">Relasi Company Contact</label>
+        <select name="parent_contact_id" id="parent-contact-id" class="form-select">
             <option value="">-</option>
             @foreach($companies as $company)
-                <option value="{{ $company->id }}" {{ (string) old('company_id', $contact->company_id ?? '') === (string) $company->id ? 'selected' : '' }}>
+                <option value="{{ $company->id }}" {{ (string) old('parent_contact_id', $contact->parent_contact_id ?? '') === (string) $company->id ? 'selected' : '' }}>
                     {{ $company->name }}
                 </option>
             @endforeach
@@ -101,17 +113,17 @@
 @push('scripts')
 <script>
     const contactType = document.getElementById('contact-type');
-    const companySelect = document.getElementById('company-id');
+    const parentContactSelect = document.getElementById('parent-contact-id');
 
     function toggleCompany() {
         const isIndividual = contactType.value === 'individual';
-        companySelect.disabled = !isIndividual;
+        parentContactSelect.disabled = !isIndividual;
         if (!isIndividual) {
-            companySelect.value = '';
+            parentContactSelect.value = '';
         }
     }
 
-    if (contactType && companySelect) {
+    if (contactType && parentContactSelect) {
         contactType.addEventListener('change', toggleCompany);
         toggleCompany();
     }

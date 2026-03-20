@@ -4,6 +4,7 @@ namespace App\Modules\Sales\Actions;
 
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Services\SaleIdempotencyService;
 use App\Modules\Sales\Services\SaleSnapshotService;
@@ -49,7 +50,7 @@ class UpdateDraftSaleAction
                 ->findOrFail($sale->id);
             $totals = $this->recalculateTotals->execute($data);
             $contact = !empty($data['contact_id'])
-                ? Contact::query()->with('company')->where('tenant_id', TenantContext::currentId())->find($data['contact_id'])
+                ? ContactScope::applyVisibilityScope(Contact::query()->with('parentContact'))->find($data['contact_id'])
                 : null;
             $customer = $this->snapshotService->customerSnapshot($contact);
 

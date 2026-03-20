@@ -60,6 +60,7 @@
 - New quota or premium-feature work should prefer adding keys to the centralized plan feature/limit layer instead of hardcoding rules inside modules.
 - Company-aware rollout has started with `finance` and `point-of-sale` cash session boundaries. New work in accounting, cashier shift, and related reporting should follow the active `tenant + company` scope.
 - Branch-aware rollout has started with `point-of-sale`, `finance transactions`, `sales`, and `payments`, but branch must remain optional where the flow is company-level rather than outlet-level.
+- Contacts is an external/business master domain, not the internal company/branch tree. During the current rollout, contact visibility should honor `tenant + optional company + optional branch`, while external organization/employer linkage must stay separate from internal `companies` / `branches`.
 
 ## Frontend
 - Stack: Blade + Tabler + Laravel Mix.

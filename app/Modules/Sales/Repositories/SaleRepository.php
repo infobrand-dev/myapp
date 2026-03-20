@@ -33,7 +33,7 @@ class SaleRepository
     public function findForDetail(Sale $sale): Sale
     {
         return $sale->load([
-            'contact.company',
+            'contact.parentContact',
             'items.product',
             'items.variant',
             'paymentAllocations.payment.method',

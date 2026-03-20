@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Modules\Conversations\Contracts\ConversationAccessRegistry;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationActivityLog;
+use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -17,6 +18,7 @@ class ActivityController extends Controller
         $this->authorizeView($conversation, $request->user());
 
         $logs = ConversationActivityLog::with('user')
+            ->where('tenant_id', TenantContext::currentId())
             ->where('conversation_id', $conversation->id)
             ->latest()
             ->limit(50)

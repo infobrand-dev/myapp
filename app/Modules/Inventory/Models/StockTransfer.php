@@ -12,6 +12,7 @@ class StockTransfer extends Model
     protected $table = 'inventory_stock_transfers';
 
     protected $fillable = [
+        'tenant_id',
         'code',
         'source_location_id',
         'destination_location_id',
@@ -56,5 +57,12 @@ class StockTransfer extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where($field ?? $this->getRouteKeyName(), $value)
+            ->where('tenant_id', 1)
+            ->firstOrFail();
     }
 }

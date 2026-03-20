@@ -9,6 +9,8 @@ use Illuminate\Validation\ValidationException;
 
 class CancelDraftPurchaseAction
 {
+    private const TENANT_ID = 1;
+
     public function execute(Purchase $purchase, array $data, ?User $actor = null): Purchase
     {
         if (!$purchase->isDraft()) {
@@ -18,7 +20,7 @@ class CancelDraftPurchaseAction
         }
 
         return DB::transaction(function () use ($purchase, $data, $actor) {
-            $purchase = Purchase::query()->lockForUpdate()->findOrFail($purchase->id);
+            $purchase = Purchase::query()->where('tenant_id', self::TENANT_ID)->lockForUpdate()->findOrFail($purchase->id);
             $fromStatus = $purchase->status;
 
             $purchase->update([
@@ -29,6 +31,7 @@ class CancelDraftPurchaseAction
             ]);
 
             $purchase->statusHistories()->create([
+                'tenant_id' => self::TENANT_ID,
                 'from_status' => $fromStatus,
                 'to_status' => Purchase::STATUS_CANCELLED,
                 'event' => 'cancelled',

@@ -13,10 +13,17 @@ use Illuminate\View\View;
 
 class FinanceCategoryController extends Controller
 {
+    private const TENANT_ID = 1;
+
     public function index(): View
     {
         return view('finance::categories.index', [
-            'categories' => FinanceCategory::query()->withCount('transactions')->orderBy('transaction_type')->orderBy('name')->get(),
+            'categories' => FinanceCategory::query()
+                ->where('tenant_id', self::TENANT_ID)
+                ->withCount('transactions')
+                ->orderBy('transaction_type')
+                ->orderBy('name')
+                ->get(),
             'typeOptions' => $this->typeOptions(),
         ]);
     }
@@ -25,6 +32,7 @@ class FinanceCategoryController extends Controller
     {
         DB::transaction(function () use ($request) {
             FinanceCategory::query()->create([
+                'tenant_id' => self::TENANT_ID,
                 'name' => $request->input('name'),
                 'slug' => Str::slug($request->input('name')) . '-' . Str::lower(Str::random(4)),
                 'transaction_type' => $request->input('transaction_type'),

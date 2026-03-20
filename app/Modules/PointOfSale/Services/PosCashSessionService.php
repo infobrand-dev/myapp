@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\PointOfSale\Models\PosCashSession;
 use App\Modules\PointOfSale\Models\PosCashSessionMovement;
+use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -15,6 +16,7 @@ class PosCashSessionService
     public function activeSessionFor(User $user): ?PosCashSession
     {
         return PosCashSession::query()
+            ->where('tenant_id', TenantContext::currentId())
             ->where('cashier_user_id', $user->id)
             ->where('status', PosCashSession::STATUS_ACTIVE)
             ->latest('opened_at')
@@ -25,6 +27,7 @@ class PosCashSessionService
     {
         return DB::transaction(function () use ($user, $data) {
             $active = PosCashSession::query()
+                ->where('tenant_id', TenantContext::currentId())
                 ->where('cashier_user_id', $user->id)
                 ->where('status', PosCashSession::STATUS_ACTIVE)
                 ->lockForUpdate()
@@ -37,6 +40,7 @@ class PosCashSessionService
             }
 
             return PosCashSession::query()->create([
+                'tenant_id' => TenantContext::currentId(),
                 'code' => 'SHIFT-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4)),
                 'cashier_user_id' => $user->id,
                 'outlet_id' => $data['outlet_id'] ?? null,
@@ -55,6 +59,7 @@ class PosCashSessionService
     {
         return DB::transaction(function () use ($session, $user, $data) {
             $session = PosCashSession::query()
+                ->where('tenant_id', TenantContext::currentId())
                 ->with(['payments.method', 'cashMovements', 'sales'])
                 ->lockForUpdate()
                 ->findOrFail($session->id);
@@ -97,7 +102,10 @@ class PosCashSessionService
     public function recordMovement(PosCashSession $session, User $user, array $data): PosCashSessionMovement
     {
         return DB::transaction(function () use ($session, $user, $data) {
-            $session = PosCashSession::query()->lockForUpdate()->findOrFail($session->id);
+            $session = PosCashSession::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->lockForUpdate()
+                ->findOrFail($session->id);
 
             if (!$session->isActive()) {
                 throw ValidationException::withMessages([
@@ -112,6 +120,7 @@ class PosCashSessionService
             }
 
             return $session->cashMovements()->create([
+                'tenant_id' => TenantContext::currentId(),
                 'movement_type' => $data['movement_type'],
                 'amount' => round((float) $data['amount'], 2),
                 'notes' => $data['notes'] ?? null,

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class PaymentVoidLog extends Model
 {
     protected $fillable = [
+        'tenant_id',
         'payment_id',
         'status_before',
         'reason',

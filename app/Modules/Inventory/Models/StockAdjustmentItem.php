@@ -12,6 +12,7 @@ class StockAdjustmentItem extends Model
     protected $table = 'inventory_stock_adjustment_items';
 
     protected $fillable = [
+        'tenant_id',
         'adjustment_id',
         'product_id',
         'product_variant_id',

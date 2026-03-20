@@ -4,6 +4,7 @@ namespace App\Modules\WhatsAppApi\Jobs;
 
 use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
+use App\Support\TenantContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -32,7 +33,10 @@ class SendWhatsAppMessage implements ShouldQueue
 
     public function handle(): void
     {
-        $message = ConversationMessage::with('conversation')->find($this->messageId);
+        $message = ConversationMessage::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->with('conversation')
+            ->find($this->messageId);
         if (!$message || !$message->conversation || $message->conversation->channel !== 'wa_api') {
             return;
         }
@@ -42,7 +46,9 @@ class SendWhatsAppMessage implements ShouldQueue
         }
 
         $conversation = $message->conversation;
-        $instance = WhatsAppInstance::find($conversation->instance_id);
+        $instance = WhatsAppInstance::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->find($conversation->instance_id);
         if (!$instance) {
             $message->update(['status' => 'error_permanent', 'error_message' => 'Instance not found']);
             return;
@@ -103,7 +109,9 @@ class SendWhatsAppMessage implements ShouldQueue
 
     public function failed(Throwable $e): void
     {
-        $message = ConversationMessage::find($this->messageId);
+        $message = ConversationMessage::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->find($this->messageId);
         if (!$message || in_array((string) $message->status, ['sent', 'delivered', 'read'], true)) {
             return;
         }

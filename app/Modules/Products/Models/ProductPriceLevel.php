@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class ProductPriceLevel extends Model
 {
     protected $fillable = [
+        'tenant_id',
         'code',
         'name',
         'description',

@@ -28,6 +28,8 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['conversation_id', 'direction']);
+            $table->index(['tenant_id', 'created_at']);
+            $table->fullText('body', 'conversation_messages_body_fulltext');
         });
     }
 

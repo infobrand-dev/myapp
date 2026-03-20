@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class PosCartItem extends Model
 {
     protected $fillable = [
+        'tenant_id',
         'uuid',
         'pos_cart_id',
         'line_no',

@@ -5,17 +5,21 @@ namespace App\Modules\Payments\Actions;
 use App\Modules\Purchases\Models\Purchase;
 use App\Modules\Sales\Models\SaleReturn;
 use App\Modules\Sales\Models\Sale;
+use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 
 class ValidatePayableTransactionAction
 {
+
     public function execute(string $payableType, int $payableId): Model
     {
         $normalizedType = strtolower(trim($payableType));
 
         if ($normalizedType === 'sale_return') {
-            $saleReturn = SaleReturn::query()->find($payableId);
+            $saleReturn = SaleReturn::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->find($payableId);
             if (!$saleReturn) {
                 throw ValidationException::withMessages([
                     'allocations' => 'Transaksi sales return tidak ditemukan.',
@@ -38,7 +42,9 @@ class ValidatePayableTransactionAction
         }
 
         if ($normalizedType === 'purchase') {
-            $purchase = Purchase::query()->find($payableId);
+            $purchase = Purchase::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->find($payableId);
             if (!$purchase) {
                 throw ValidationException::withMessages([
                     'allocations' => 'Transaksi purchase tidak ditemukan.',
@@ -66,7 +72,9 @@ class ValidatePayableTransactionAction
             ]);
         }
 
-        $sale = Sale::query()->find($payableId);
+        $sale = Sale::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->find($payableId);
         if (!$sale) {
             throw ValidationException::withMessages([
                 'allocations' => 'Transaksi sale tidak ditemukan.',

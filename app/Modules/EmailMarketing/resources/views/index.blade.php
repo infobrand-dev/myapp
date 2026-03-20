@@ -63,4 +63,9 @@
         </table>
     </div>
 </div>
+@if($campaigns->hasPages())
+    <div class="mt-3">
+        {{ $campaigns->links() }}
+    </div>
+@endif
 @endsection

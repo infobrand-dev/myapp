@@ -66,6 +66,7 @@ class LiveChatPublicController extends Controller
         [$visitorKey, $session] = $this->resolveOrIssueVisitorSession($request, $widget, $data);
 
         $conversation = Conversation::query()
+            ->where('tenant_id', $tenantId)
             ->where('channel', 'live_chat')
             ->where('instance_id', $widget->id)
             ->where('contact_external_id', $visitorKey)
@@ -73,6 +74,7 @@ class LiveChatPublicController extends Controller
 
         if (!$conversation) {
             $conversation = Conversation::query()->create([
+                'tenant_id' => $tenantId,
                 'channel' => 'live_chat',
                 'instance_id' => $widget->id,
                 'contact_external_id' => $visitorKey,
@@ -269,6 +271,7 @@ class LiveChatPublicController extends Controller
     private function resolveConversation(LiveChatWidget $widget, string $visitorKey): ?Conversation
     {
         return Conversation::query()
+            ->where('tenant_id', $this->resolvedTenantId($widget))
             ->where('channel', 'live_chat')
             ->where('instance_id', $widget->id)
             ->where('contact_external_id', $visitorKey)
@@ -318,6 +321,7 @@ class LiveChatPublicController extends Controller
         }
 
         $messages = ConversationMessage::query()
+            ->where('tenant_id', (int) (($conversation->metadata['tenant_id'] ?? null) ?: LiveChatWidget::DEFAULT_TENANT_ID))
             ->where('conversation_id', $conversation->id)
             ->when($afterId > 0, fn ($query) => $query->where('id', '>', $afterId))
             ->orderBy('id')

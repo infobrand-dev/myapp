@@ -33,6 +33,11 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['tenant_id', 'type', 'is_active']);
+            $table->index(['tenant_id', 'is_active', 'created_at']);
+            $table->index(['tenant_id', 'email']);
+            $table->index(['tenant_id', 'phone']);
+            $table->index(['tenant_id', 'mobile']);
+            $table->fullText(['name', 'notes'], 'contacts_search_fulltext');
         });
     }
 

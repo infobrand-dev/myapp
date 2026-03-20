@@ -10,18 +10,28 @@ use Illuminate\Support\Facades\DB;
 
 class ReceiveStockTransferAction
 {
+    private const TENANT_ID = 1;
+
     public function __construct(private readonly StockMutationService $mutationService)
     {
     }
 
     public function execute(StockTransfer $transfer, ?User $actor = null): StockTransfer
     {
+        $transfer = StockTransfer::query()
+            ->where('tenant_id', self::TENANT_ID)
+            ->findOrFail($transfer->id);
+
         if ($transfer->status !== 'sent') {
             throw new DomainException('Transfer harus berstatus sent sebelum diterima.');
         }
 
         return DB::transaction(function () use ($transfer, $actor) {
-            $transfer->loadMissing('items');
+            $transfer = StockTransfer::query()
+                ->where('tenant_id', self::TENANT_ID)
+                ->with('items')
+                ->lockForUpdate()
+                ->findOrFail($transfer->id);
 
             foreach ($transfer->items as $item) {
                 $received = $item->sent_quantity > 0 ? $item->sent_quantity : $item->requested_quantity;

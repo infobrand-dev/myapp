@@ -12,6 +12,7 @@ class WAContactPhoneStatus extends Model
     protected $table = 'wa_contact_phone_statuses';
 
     protected $fillable = [
+        'tenant_id',
         'phone_number',
         'last_contact_name',
         'status',

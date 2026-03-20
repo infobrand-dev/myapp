@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ProductPrice extends Model
 {
     protected $fillable = [
+        'tenant_id',
         'product_id',
         'product_variant_id',
         'product_price_level_id',

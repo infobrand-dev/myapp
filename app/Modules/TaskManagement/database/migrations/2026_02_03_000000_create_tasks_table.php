@@ -17,6 +17,10 @@ return new class extends Migration {
             $table->date('due_date')->nullable();
             $table->foreignId('assigned_to')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
+
+            $table->index(['tenant_id', 'status', 'due_date']);
+            $table->index(['tenant_id', 'assigned_to', 'status']);
+            $table->fullText(['title', 'description'], 'tasks_search_fulltext');
         });
     }
 

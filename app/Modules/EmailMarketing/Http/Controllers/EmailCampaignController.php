@@ -9,9 +9,11 @@ use App\Modules\EmailMarketing\Models\EmailCampaignRecipient;
 use App\Modules\EmailMarketing\Models\EmailAttachment;
 use App\Modules\EmailMarketing\Models\EmailAttachmentTemplate;
 use App\Modules\EmailMarketing\Jobs\SendCampaignEmailRecipient;
+use App\Support\TenantContext;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
@@ -92,29 +94,38 @@ HTML;
 
     public function index(Request $request): View
     {
+        $search = trim((string) $request->query('search', ''));
+        $status = trim((string) $request->query('status', ''));
+
         $campaigns = EmailCampaign::query()
+            ->where('tenant_id', $this->tenantId())
             ->withCount('recipients')
-            ->latest()
-            ->get()
-            ->map(function ($campaign) use ($request) {
-                [$filters, $contacts] = $this->filteredContacts($request, $campaign->filter_json ?? []);
-                $campaign->planned_count = $contacts->count();
-                return $campaign;
-            });
+            ->when($status !== '', fn ($query) => $query->where('status', $status))
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($inner) use ($search) {
+                    $inner->whereFullText(['name', 'subject'], $search)
+                        ->orWhere('subject', 'like', "%{$search}%");
+                });
+            })
+            ->orderByDesc('created_at')
+            ->paginate(20)
+            ->withQueryString();
+
+        $this->attachPlannedCounts($campaigns);
 
         return view('emailmarketing::index', compact('campaigns'));
     }
 
     public function matches(Request $request, EmailCampaign $campaign)
     {
-        [, $contacts] = $this->filteredContacts($request, $request->input('filters', []));
-        return response()->json(['count' => $contacts->count()]);
+        [$filters] = $this->normalizedFilters($request->input('filters', []));
+        return response()->json(['count' => $this->filteredContactsCount($filters)]);
     }
 
     public function matchesNew(Request $request)
     {
-        [, $contacts] = $this->filteredContacts($request, $request->input('filters', []));
-        return response()->json(['count' => $contacts->count()]);
+        [$filters] = $this->normalizedFilters($request->input('filters', []));
+        return response()->json(['count' => $this->filteredContactsCount($filters)]);
     }
 
     /**
@@ -128,13 +139,13 @@ HTML;
             'filter_json' => [],
         ]);
 
-        [$filters, $contacts] = $this->filteredContacts(request(), []);
+        [$filters] = $this->normalizedFilters([]);
 
         return view('emailmarketing::show', [
             'campaign' => $campaign,
-            'contacts' => $contacts,
             'filters' => $filters,
-            'matchCount' => $contacts->count(),
+            'matchCount' => $this->filteredContactsCount($filters),
+            'attachmentTemplates' => $this->attachmentTemplates(),
             'isNew' => true,
         ]);
     }
@@ -152,15 +163,15 @@ HTML;
             'filters',
             $request->old('filters', $campaign->filter_json ?? [])
         );
-        [$filters, $contacts] = $this->filteredContacts($request, $requestFilters);
+        [$filters] = $this->normalizedFilters($requestFilters);
 
         $showReport = in_array($campaign->status, ['running', 'done']);
 
         return view('emailmarketing::show', [
             'campaign' => $campaign,
-            'contacts' => $contacts,
             'filters'  => $filters,
-            'matchCount' => $contacts->count(),
+            'matchCount' => $this->filteredContactsCount($filters),
+            'attachmentTemplates' => $this->attachmentTemplates(),
             'showReport' => $showReport,
         ]);
     }
@@ -189,6 +200,7 @@ HTML;
         $subjectValue = $data['subject'] ?: 'Draft';
 
         $campaign = EmailCampaign::create([
+            'tenant_id' => $this->tenantId(),
             'name' => $subjectValue,
             'subject' => $subjectValue,
             'status' => 'draft',
@@ -325,7 +337,10 @@ HTML;
 
     protected function syncRecipients(EmailCampaign $campaign, $contactIds, bool $sendNow = false, bool $markPending = false)
     {
-        $contacts = Contact::whereIn('id', $contactIds)->get(['id', 'name', 'email']);
+        $contacts = Contact::query()
+            ->where('tenant_id', $this->tenantId())
+            ->whereIn('id', $contactIds)
+            ->get(['id', 'name', 'email']);
 
         // reset recipients
         $campaign->recipients()->delete();
@@ -335,6 +350,7 @@ HTML;
             $status = $markPending ? 'pending' : 'outgoing';
 
             $items[] = $campaign->recipients()->create([
+                'tenant_id' => $this->tenantId(),
                 'contact_id' => $contact->id,
                 'recipient_name' => $contact->name,
                 'recipient_email' => $contact->email,
@@ -349,15 +365,33 @@ HTML;
 
     protected function filteredContacts(Request $request, $filtersInput = []): array
     {
-        if (is_string($filtersInput)) {
-            $filtersInput = json_decode($filtersInput, true) ?? [];
-        }
+        [$filters, $query] = $this->filteredContactsQuery($filtersInput);
 
-        $filters = collect($filtersInput)
-            ->filter(fn ($row) => !empty($row['value']))
-            ->values();
+        $contacts = $query
+            ->orderBy('contacts.name')
+            ->get([
+                'contacts.id',
+                'contacts.name',
+                'contacts.email',
+                'company.name as company_name',
+            ]);
+
+        return [$filters->toArray(), $contacts];
+    }
+
+    protected function filteredContactsCount($filtersInput = []): int
+    {
+        [, $query] = $this->filteredContactsQuery($filtersInput);
+
+        return (clone $query)->count('contacts.id');
+    }
+
+    protected function filteredContactsQuery($filtersInput = []): array
+    {
+        [$filters] = $this->normalizedFilters($filtersInput);
 
         $query = Contact::query()
+            ->where('contacts.tenant_id', $this->tenantId())
             ->leftJoin('contacts as company', 'company.id', '=', 'contacts.company_id')
             ->whereNotNull('contacts.email')
             ->where('contacts.email', '!=', '')
@@ -382,7 +416,7 @@ HTML;
                         case 'starts_with':
                             $q->where($column, 'like', $val . '%');
                             break;
-                        default: // contains
+                        default:
                             $q->where($column, 'like', '%' . $val . '%');
                             break;
                     }
@@ -390,16 +424,20 @@ HTML;
             });
         }
 
-        $contacts = $query
-            ->orderBy('contacts.name')
-            ->get([
-                'contacts.id',
-                'contacts.name',
-                'contacts.email',
-                'company.name as company_name',
-            ]);
+        return [$filters, $query];
+    }
 
-        return [$filters->toArray(), $contacts];
+    protected function normalizedFilters($filtersInput = []): array
+    {
+        if (is_string($filtersInput)) {
+            $filtersInput = json_decode($filtersInput, true) ?? [];
+        }
+
+        $filters = collect($filtersInput)
+            ->filter(fn ($row) => !empty($row['value']))
+            ->values();
+
+        return [$filters, $filters->toArray()];
     }
 
     protected function syncAttachments(EmailCampaign $campaign, Request $request): void
@@ -421,6 +459,7 @@ HTML;
             foreach ($request->file('attachments') as $file) {
                 $path = $file->store('email_attachments/'.$campaign->id);
                 $campaign->attachments()->create([
+                    'tenant_id' => $this->tenantId(),
                     'type' => 'static',
                     'filename' => $file->getClientOriginalName(),
                     'path' => $path,
@@ -436,8 +475,15 @@ HTML;
 
     protected function syncDynamicTemplates(EmailCampaign $campaign, Request $request): void
     {
-        $ids = collect($request->input('dynamic_template_ids', []))->filter()->map(fn($v)=> (int)$v)->all();
-        $campaign->dynamicTemplates()->sync($ids);
+        $ids = EmailAttachmentTemplate::query()
+            ->where('tenant_id', $this->tenantId())
+            ->whereIn('id', collect($request->input('dynamic_template_ids', []))->filter()->map(fn ($value) => (int) $value)->all())
+            ->pluck('id')
+            ->all();
+
+        $campaign->dynamicTemplates()->syncWithPivotValues($ids, [
+            'tenant_id' => $this->tenantId(),
+        ]);
     }
 
     public function markReply(EmailCampaignRecipient $recipient): RedirectResponse
@@ -484,5 +530,46 @@ HTML;
 
         $target = request()->query('u', 'https://example.com');
         return redirect()->away($target);
+    }
+
+    private function tenantId(): int
+    {
+        return TenantContext::currentId();
+    }
+
+    private function attachPlannedCounts(LengthAwarePaginator $campaigns): void
+    {
+        $items = $campaigns->getCollection();
+        $countCache = [];
+
+        $campaigns->setCollection($items->transform(function ($campaign) use (&$countCache) {
+            if ($campaign->status === 'running') {
+                return $campaign;
+            }
+
+            [$filters] = $this->normalizedFilters($campaign->filter_json ?? []);
+            $key = json_encode($filters->toArray());
+
+            if (!array_key_exists($key, $countCache)) {
+                $countCache[$key] = $this->filteredContactsCount($filters->toArray());
+            }
+
+            $campaign->planned_count = $countCache[$key];
+
+            return $campaign;
+        }));
+    }
+
+    private function attachmentTemplates()
+    {
+        return EmailAttachmentTemplate::query()
+            ->where('tenant_id', $this->tenantId())
+            ->orderBy('name')
+            ->get([
+                'id',
+                'name',
+                'filename',
+                'description',
+            ]);
     }
 }

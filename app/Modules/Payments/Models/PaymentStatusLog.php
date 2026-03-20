@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class PaymentStatusLog extends Model
 {
     protected $fillable = [
+        'tenant_id',
         'payment_id',
         'from_status',
         'to_status',

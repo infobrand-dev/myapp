@@ -14,6 +14,8 @@ use Illuminate\Support\Str;
 
 class CreateOpeningStockAction
 {
+    private const TENANT_ID = 1;
+
     public function __construct(private readonly StockMutationService $mutationService)
     {
     }
@@ -22,6 +24,7 @@ class CreateOpeningStockAction
     {
         return DB::transaction(function () use ($data, $actor) {
             $opening = StockOpening::query()->create([
+                'tenant_id' => self::TENANT_ID,
                 'code' => 'OPN-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4)),
                 'inventory_location_id' => $data['inventory_location_id'],
                 'opening_date' => $data['opening_date'],
@@ -40,6 +43,7 @@ class CreateOpeningStockAction
                 );
 
                 $stock = StockBalance::query()
+                    ->where('tenant_id', self::TENANT_ID)
                     ->where('stock_key', $stockKey)
                     ->lockForUpdate()
                     ->first();
@@ -47,6 +51,7 @@ class CreateOpeningStockAction
                 if (!$stock) {
                     try {
                         $stock = StockBalance::query()->create([
+                            'tenant_id' => self::TENANT_ID,
                             'stock_key' => $stockKey,
                             'product_id' => $item['product_id'],
                             'product_variant_id' => $item['product_variant_id'] ?? null,
@@ -62,12 +67,14 @@ class CreateOpeningStockAction
                     }
 
                     $stock = StockBalance::query()
+                        ->where('tenant_id', self::TENANT_ID)
                         ->where('stock_key', $stockKey)
                         ->lockForUpdate()
                         ->firstOrFail();
                 }
 
                 $existingMovement = StockMovement::query()
+                    ->where('tenant_id', self::TENANT_ID)
                     ->where('stock_key', $stockKey)
                     ->lockForUpdate()
                     ->exists();
@@ -93,6 +100,7 @@ class CreateOpeningStockAction
                 ]);
 
                 $opening->items()->create([
+                    'tenant_id' => self::TENANT_ID,
                     'product_id' => $item['product_id'],
                     'product_variant_id' => $item['product_variant_id'] ?? null,
                     'quantity' => $item['quantity'],

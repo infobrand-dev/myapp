@@ -7,11 +7,14 @@ use Illuminate\Database\Seeder;
 
 class ContactSampleSeeder extends Seeder
 {
+    private const TENANT_ID = 1;
+
     public function run(): void
     {
         $company = Contact::query()->updateOrCreate(
-            ['type' => 'company', 'name' => 'PT Demo Nusantara'],
+            ['tenant_id' => self::TENANT_ID, 'type' => 'company', 'name' => 'PT Demo Nusantara'],
             [
+                'tenant_id' => self::TENANT_ID,
                 'email' => 'hello@demo-nusantara.test',
                 'phone' => '0215550001',
                 'mobile' => '628111000100',
@@ -26,8 +29,9 @@ class ContactSampleSeeder extends Seeder
         );
 
         Contact::query()->updateOrCreate(
-            ['type' => 'person', 'email' => 'procurement@demo-nusantara.test'],
+            ['tenant_id' => self::TENANT_ID, 'type' => 'person', 'email' => 'procurement@demo-nusantara.test'],
             [
+                'tenant_id' => self::TENANT_ID,
                 'company_id' => $company->id,
                 'name' => 'Rina Procurement',
                 'job_title' => 'Procurement Lead',

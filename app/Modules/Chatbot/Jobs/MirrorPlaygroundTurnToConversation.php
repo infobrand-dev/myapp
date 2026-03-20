@@ -3,6 +3,7 @@
 namespace App\Modules\Chatbot\Jobs;
 
 use App\Modules\Chatbot\Models\ChatbotMessage;
+use App\Support\TenantContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -43,11 +44,13 @@ class MirrorPlaygroundTurnToConversation implements ShouldQueue
 
         $conversation = $conversationClass::query()->firstOrCreate(
             [
+                'tenant_id' => $this->tenantId(),
                 'channel' => 'chatbot_playground',
                 'instance_id' => $this->chatbotAccountId,
                 'contact_external_id' => 'user:' . $this->userId,
             ],
             [
+                'tenant_id' => $this->tenantId(),
                 'contact_name' => 'User ' . $this->userId,
                 'status' => 'open',
                 'last_message_at' => now(),
@@ -66,6 +69,7 @@ class MirrorPlaygroundTurnToConversation implements ShouldQueue
 
             $externalId = 'chatbot_playground:' . $chatbotMessageId;
             $exists = $messageClass::query()
+                ->where('tenant_id', $this->tenantId())
                 ->where('conversation_id', $conversation->id)
                 ->where('external_message_id', $externalId)
                 ->exists();
@@ -77,6 +81,7 @@ class MirrorPlaygroundTurnToConversation implements ShouldQueue
             $isIncoming = $chatbotMessage->role !== 'assistant';
 
             $messageClass::query()->create([
+                'tenant_id' => $this->tenantId(),
                 'conversation_id' => $conversation->id,
                 'user_id' => $isIncoming ? $this->userId : null,
                 'direction' => $isIncoming ? 'in' : 'out',
@@ -106,5 +111,9 @@ class MirrorPlaygroundTurnToConversation implements ShouldQueue
             $conversation->refresh();
         }
     }
-}
 
+    private function tenantId(): int
+    {
+        return TenantContext::currentId();
+    }
+}

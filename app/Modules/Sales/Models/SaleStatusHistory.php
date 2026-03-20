@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class SaleStatusHistory extends Model
 {
     protected $fillable = [
+        'tenant_id',
         'sale_id',
         'from_status',
         'to_status',

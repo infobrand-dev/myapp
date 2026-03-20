@@ -20,6 +20,10 @@ return new class extends Migration
             $table->timestamp('scheduled_at')->nullable();
             $table->timestamp('finished_at')->nullable();
             $table->timestamps();
+
+            $table->index(['tenant_id', 'status', 'scheduled_at']);
+            $table->index(['tenant_id', 'status', 'created_at']);
+            $table->fullText(['name', 'subject'], 'email_campaigns_search_fulltext');
         });
     }
 

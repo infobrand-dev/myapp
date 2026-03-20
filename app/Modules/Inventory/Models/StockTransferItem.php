@@ -12,6 +12,7 @@ class StockTransferItem extends Model
     protected $table = 'inventory_stock_transfer_items';
 
     protected $fillable = [
+        'tenant_id',
         'transfer_id',
         'product_id',
         'product_variant_id',

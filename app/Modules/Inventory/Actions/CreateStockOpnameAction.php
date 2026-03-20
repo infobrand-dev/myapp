@@ -11,6 +11,8 @@ use Illuminate\Support\Str;
 
 class CreateStockOpnameAction
 {
+    private const TENANT_ID = 1;
+
     private $stocks;
 
     public function __construct(StockRepository $stocks)
@@ -28,6 +30,7 @@ class CreateStockOpnameAction
             }
 
             $opname = StockOpname::query()->create([
+                'tenant_id' => self::TENANT_ID,
                 'code' => 'OPN-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4)),
                 'inventory_location_id' => $data['inventory_location_id'],
                 'opname_date' => $data['opname_date'],
@@ -41,6 +44,7 @@ class CreateStockOpnameAction
 
             foreach ($snapshotStocks as $stock) {
                 $opname->items()->create([
+                    'tenant_id' => self::TENANT_ID,
                     'inventory_stock_id' => $stock->id,
                     'product_id' => $stock->product_id,
                     'product_variant_id' => $stock->product_variant_id,

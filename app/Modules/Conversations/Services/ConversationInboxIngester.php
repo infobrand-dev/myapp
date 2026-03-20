@@ -10,12 +10,18 @@ use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationActivityLog;
 use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\Conversations\Models\ConversationParticipant;
+use App\Support\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class ConversationInboxIngester implements InboxMessageIngester
 {
+    private function tenantId(): int
+    {
+        return TenantContext::currentId();
+    }
+
     public function ingest(InboxMessageEnvelope $envelope): ConversationIngestionResult
     {
         $occurredAt = $envelope->occurredAtOrNow();
@@ -23,17 +29,12 @@ class ConversationInboxIngester implements InboxMessageIngester
         $type = $this->normalizeType($envelope->type);
 
         $conversation = Conversation::query()
+            ->where('tenant_id', $this->tenantId())
             ->where('channel', $envelope->channel)
             ->where('contact_external_id', $envelope->contactExternalId)
             ->where(function ($query) use ($envelope): void {
                 if ($envelope->instanceId === null) {
                     $query->whereNull('instance_id');
-                    return;
-                }
-
-                if ($envelope->instanceId === 0) {
-                    $query->whereNull('instance_id')
-                        ->orWhere('instance_id', 0);
                     return;
                 }
 
@@ -43,6 +44,7 @@ class ConversationInboxIngester implements InboxMessageIngester
 
         if ($conversation && $envelope->externalMessageId) {
             $existingMessage = ConversationMessage::query()
+                ->where('tenant_id', $this->tenantId())
                 ->where('conversation_id', $conversation->id)
                 ->where('external_message_id', $envelope->externalMessageId)
                 ->first();
@@ -64,6 +66,7 @@ class ConversationInboxIngester implements InboxMessageIngester
         if (!$conversation) {
             $conversationWasCreated = true;
             $conversation = Conversation::query()->create([
+                'tenant_id' => $this->tenantId(),
                 'channel' => $envelope->channel,
                 'instance_id' => $envelope->instanceId,
                 'external_id' => $envelope->conversationExternalId,
@@ -84,7 +87,7 @@ class ConversationInboxIngester implements InboxMessageIngester
 
             if ($envelope->ownerUserId) {
                 ConversationParticipant::query()->updateOrCreate(
-                    ['conversation_id' => $conversation->id, 'user_id' => $envelope->ownerUserId],
+                    ['tenant_id' => $this->tenantId(), 'conversation_id' => $conversation->id, 'user_id' => $envelope->ownerUserId],
                     [
                         'role' => 'owner',
                         'invited_at' => $occurredAt,
@@ -113,6 +116,7 @@ class ConversationInboxIngester implements InboxMessageIngester
         }
 
         $message = new ConversationMessage([
+            'tenant_id' => $this->tenantId(),
             'conversation_id' => $conversation->id,
             'user_id' => $direction === 'out' ? $envelope->actorUserId : null,
             'direction' => $direction,
@@ -133,6 +137,7 @@ class ConversationInboxIngester implements InboxMessageIngester
 
         if ($envelope->writeActivityLog && $envelope->activityLogAction) {
             ConversationActivityLog::query()->create([
+                'tenant_id' => $this->tenantId(),
                 'conversation_id' => $conversation->id,
                 'user_id' => $envelope->actorUserId,
                 'action' => $envelope->activityLogAction,

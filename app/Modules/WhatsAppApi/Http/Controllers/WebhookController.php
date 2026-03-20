@@ -16,6 +16,7 @@ use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstanceChatbotIntegration;
 use App\Modules\WhatsAppApi\Models\WhatsAppWebhookEvent;
 use App\Modules\WhatsAppApi\Support\ConversationAutoAssigner;
+use App\Support\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -28,6 +29,11 @@ use Illuminate\Http\RedirectResponse;
 
 class WebhookController extends Controller
 {
+    private function tenantId(): int
+    {
+        return TenantContext::currentId();
+    }
+
     public function __construct(
         private readonly ConversationAutoAssigner $autoAssigner,
         private readonly InboxMessageIngester $ingester,
@@ -46,6 +52,7 @@ class WebhookController extends Controller
         }
 
         $hasMatch = WhatsAppInstance::query()
+            ->where('tenant_id', $this->tenantId())
             ->where('provider', 'cloud')
             ->where('is_active', true)
             ->get()
@@ -158,7 +165,9 @@ class WebhookController extends Controller
             'instance_key' => ['nullable', 'string'],
         ])->validate();
 
-        $instance = WhatsAppInstance::where('api_token', $data['token'])
+        $instance = WhatsAppInstance::query()
+            ->where('tenant_id', $this->tenantId())
+            ->where('api_token', $data['token'])
             ->when($data['instance_key'] ?? null, fn ($q) => $q->where('id', $data['instance_key']))
             ->first();
 
@@ -229,9 +238,13 @@ class WebhookController extends Controller
         $signature = (string) $request->header('X-Hub-Signature-256', '');
         $eventKey = hash('sha256', $rawPayload . '|' . $signature);
 
-        $event = WhatsAppWebhookEvent::query()->where('event_key', $eventKey)->first();
+        $event = WhatsAppWebhookEvent::query()
+            ->where('tenant_id', $this->tenantId())
+            ->where('event_key', $eventKey)
+            ->first();
         if (!$event) {
             return WhatsAppWebhookEvent::create([
+                'tenant_id' => $this->tenantId(),
                 'provider' => $this->looksLikeCloudPayload($payload) ? 'cloud' : 'gateway',
                 'event_key' => $eventKey,
                 'headers' => $request->headers->all(),
@@ -391,6 +404,7 @@ class WebhookController extends Controller
             }
 
             $instance = WhatsAppInstance::where('provider', 'cloud')
+                ->where('tenant_id', $this->tenantId())
                 ->where('cloud_business_account_id', $businessId)
                 ->first();
 
@@ -398,6 +412,7 @@ class WebhookController extends Controller
         }
 
         $instance = WhatsAppInstance::where('provider', 'cloud')
+            ->where('tenant_id', $this->tenantId())
             ->where('phone_number_id', $phoneNumberId)
             ->first();
 
@@ -412,6 +427,7 @@ class WebhookController extends Controller
         }
 
         $matches = WhatsAppInstance::query()
+            ->where('tenant_id', $this->tenantId())
             ->where('provider', 'cloud')
             ->where('is_active', true)
             ->get()
@@ -627,10 +643,13 @@ class WebhookController extends Controller
             return;
         }
 
-        $instance = $conversation->instance_id ? WhatsAppInstance::query()->find($conversation->instance_id) : null;
+        $instance = $conversation->instance_id
+            ? WhatsAppInstance::query()->where('tenant_id', $this->tenantId())->find($conversation->instance_id)
+            : null;
         $body = $this->humanHandoffAcknowledgementMessage($instance);
 
         $message = ConversationMessage::create([
+            'tenant_id' => $this->tenantId(),
             'conversation_id' => $conversation->id,
             'user_id' => null,
             'direction' => 'out',
@@ -676,6 +695,7 @@ class WebhookController extends Controller
             }
 
             $message = ConversationMessage::where('external_message_id', $waMessageId)
+                ->where('tenant_id', $this->tenantId())
                 ->where('direction', 'out')
                 ->latest('id')
                 ->first();
@@ -707,9 +727,12 @@ class WebhookController extends Controller
             $message->update($updates);
 
             if ($message->conversation_id) {
-                Conversation::whereKey($message->conversation_id)->update([
+                Conversation::query()
+                    ->where('tenant_id', $this->tenantId())
+                    ->whereKey($message->conversation_id)
+                    ->update([
                     'last_outgoing_at' => $timestamp ?? now(),
-                ]);
+                    ]);
             }
         }
     }
@@ -782,6 +805,7 @@ class WebhookController extends Controller
         ));
         if ($metaTemplateId !== '') {
             return WATemplate::query()
+                ->where('tenant_id', $this->tenantId())
                 ->where('meta_template_id', $metaTemplateId)
                 ->first();
         }
@@ -802,6 +826,7 @@ class WebhookController extends Controller
         }
 
         return WATemplate::query()
+            ->where('tenant_id', $this->tenantId())
             ->where('namespace', $instance->cloud_business_account_id)
             ->when($language !== '', fn ($query) => $query->where('language', $language))
             ->where(function ($query) use ($templateName) {

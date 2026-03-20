@@ -27,7 +27,10 @@ return new class extends Migration
             $table->json('settings')->nullable();
             $table->timestamps();
 
-            $table->index(['status', 'scheduled_at']);
+            $table->index(['tenant_id', 'status', 'scheduled_at']);
+            $table->index(['tenant_id', 'instance_id', 'status', 'created_at']);
+            $table->index(['tenant_id', 'template_id', 'status', 'created_at']);
+            $table->fullText(['name'], 'wa_blast_campaigns_search_fulltext');
         });
     }
 

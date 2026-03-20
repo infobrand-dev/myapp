@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 
 class CreateSalesReturnAction
 {
+    private const TENANT_ID = 1;
+
     private $validateReturnableItems;
     private $calculateReturnTotals;
     private $numberService;
@@ -28,6 +30,7 @@ class CreateSalesReturnAction
     {
         return DB::transaction(function () use ($data, $actor) {
             $sale = Sale::query()
+                ->where('tenant_id', self::TENANT_ID)
                 ->with('items')
                 ->lockForUpdate()
                 ->findOrFail($data['sale_id']);
@@ -36,6 +39,7 @@ class CreateSalesReturnAction
             $totals = $this->calculateReturnTotals->execute($sale, $data['items'] ?? [], $returnableMap);
 
             $saleReturn = SaleReturn::query()->create([
+                'tenant_id' => self::TENANT_ID,
                 'return_number' => $this->numberService->generate(),
                 'sale_id' => $sale->id,
                 'sale_number_snapshot' => $sale->sale_number,
@@ -74,8 +78,9 @@ class CreateSalesReturnAction
                 'updated_by' => $actor ? $actor->id : null,
             ]);
 
-            $saleReturn->items()->createMany($totals['items']);
+            $saleReturn->items()->createMany($this->withTenantId($totals['items']));
             $saleReturn->statusLogs()->create([
+                'tenant_id' => self::TENANT_ID,
                 'from_status' => null,
                 'to_status' => SaleReturn::STATUS_DRAFT,
                 'event' => 'created',
@@ -89,5 +94,14 @@ class CreateSalesReturnAction
 
             return $saleReturn->load(['sale', 'items.saleItem']);
         });
+    }
+
+    private function withTenantId(array $rows): array
+    {
+        return array_map(function (array $row): array {
+            $row['tenant_id'] = self::TENANT_ID;
+
+            return $row;
+        }, $rows);
     }
 }

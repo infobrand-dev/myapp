@@ -4,6 +4,7 @@ namespace App\Modules\WhatsAppWeb\Jobs;
 
 use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\WhatsAppWeb\Services\WhatsAppWebBridgeClient;
+use App\Support\TenantContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -22,6 +23,7 @@ class SendWhatsAppWebMessage implements ShouldQueue
     public function handle(WhatsAppWebBridgeClient $bridge): void
     {
         $message = ConversationMessage::query()
+            ->where('tenant_id', TenantContext::currentId())
             ->with('conversation')
             ->find($this->messageId);
 

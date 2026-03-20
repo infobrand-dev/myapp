@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class ProductOptionValue extends Model
 {
     protected $fillable = [
+        'tenant_id',
         'product_option_group_id',
         'value',
         'sort_order',

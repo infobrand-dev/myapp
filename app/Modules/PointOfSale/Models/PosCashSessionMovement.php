@@ -14,6 +14,7 @@ class PosCashSessionMovement extends Model
     protected $table = 'pos_cash_session_movements';
 
     protected $fillable = [
+        'tenant_id',
         'cash_session_id',
         'movement_type',
         'amount',

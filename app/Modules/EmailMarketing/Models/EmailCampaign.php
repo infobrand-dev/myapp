@@ -2,6 +2,7 @@
 
 namespace App\Modules\EmailMarketing\Models;
 
+use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,6 +14,7 @@ class EmailCampaign extends Model
     use HasFactory;
 
     protected $fillable = [
+        'tenant_id',
         'name',
         'subject',
         'status',
@@ -32,17 +34,21 @@ class EmailCampaign extends Model
 
     public function recipients(): HasMany
     {
-        return $this->hasMany(EmailCampaignRecipient::class, 'campaign_id');
+        return $this->hasMany(EmailCampaignRecipient::class, 'campaign_id')
+            ->where('tenant_id', TenantContext::currentId());
     }
 
     public function attachments(): HasMany
     {
-        return $this->hasMany(EmailAttachment::class, 'campaign_id');
+        return $this->hasMany(EmailAttachment::class, 'campaign_id')
+            ->where('tenant_id', TenantContext::currentId());
     }
 
     public function dynamicTemplates(): BelongsToMany
     {
-        return $this->belongsToMany(EmailAttachmentTemplate::class, 'email_attachment_campaign', 'campaign_id', 'template_id');
+        return $this->belongsToMany(EmailAttachmentTemplate::class, 'email_attachment_campaign', 'campaign_id', 'template_id')
+            ->where('email_attachment_templates.tenant_id', TenantContext::currentId())
+            ->wherePivot('tenant_id', TenantContext::currentId());
     }
 
     public function getRecipientCountAttribute(): int
@@ -68,5 +74,12 @@ class EmailCampaign extends Model
                 'percent' => round(($count / $total) * 100, 2),
             ])
             ->all();
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where($field ?? $this->getRouteKeyName(), $value)
+            ->where('tenant_id', TenantContext::currentId())
+            ->firstOrFail();
     }
 }

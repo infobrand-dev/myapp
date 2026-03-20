@@ -12,6 +12,8 @@ use Illuminate\Validation\ValidationException;
 
 class UpdateDraftSaleAction
 {
+    private const TENANT_ID = 1;
+
     private $recalculateTotals;
     private $idempotencyService;
     private $snapshotService;
@@ -38,10 +40,10 @@ class UpdateDraftSaleAction
         }
 
         return DB::transaction(function () use ($sale, $data, $actor) {
-            $sale = Sale::query()->lockForUpdate()->findOrFail($sale->id);
+            $sale = Sale::query()->where('tenant_id', self::TENANT_ID)->lockForUpdate()->findOrFail($sale->id);
             $totals = $this->recalculateTotals->execute($data);
             $contact = !empty($data['contact_id'])
-                ? Contact::query()->with('company')->find($data['contact_id'])
+                ? Contact::query()->with('company')->where('tenant_id', self::TENANT_ID)->find($data['contact_id'])
                 : null;
             $customer = $this->snapshotService->customerSnapshot($contact);
 
@@ -72,10 +74,19 @@ class UpdateDraftSaleAction
             ]);
 
             $sale->items()->delete();
-            $sale->items()->createMany($totals['items']);
+            $sale->items()->createMany($this->withTenantId($totals['items']));
             $sale = $this->syncPaymentSummary->execute($sale, $data['payment_status']);
 
             return $sale->load('items');
         });
+    }
+
+    private function withTenantId(array $rows): array
+    {
+        return array_map(function (array $row): array {
+            $row['tenant_id'] = self::TENANT_ID;
+
+            return $row;
+        }, $rows);
     }
 }

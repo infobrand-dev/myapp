@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 class CreateDraftPurchaseAction
 {
+    private const TENANT_ID = 1;
+
     private $recalculateTotals;
     private $numberService;
     private $snapshotService;
@@ -32,10 +34,11 @@ class CreateDraftPurchaseAction
     {
         return DB::transaction(function () use ($data, $actor) {
             $totals = $this->recalculateTotals->execute($data);
-            $supplier = Contact::query()->with('company')->find($data['contact_id']);
+            $supplier = Contact::query()->with('company')->where('tenant_id', self::TENANT_ID)->find($data['contact_id']);
             $snapshot = $this->snapshotService->supplierSnapshot($supplier);
 
             $purchase = Purchase::query()->create([
+                'tenant_id' => self::TENANT_ID,
                 'purchase_number' => $this->numberService->generate(),
                 'contact_id' => $supplier ? $supplier->id : null,
                 'supplier_name_snapshot' => $snapshot['name'],
@@ -65,10 +68,11 @@ class CreateDraftPurchaseAction
                 'updated_by' => $actor ? $actor->id : null,
             ]);
 
-            $purchase->items()->createMany($totals['items']);
+            $purchase->items()->createMany($this->withTenantId($totals['items']));
             $purchase = $this->syncPaymentSummary->execute($purchase, Purchase::PAYMENT_UNPAID);
 
             $purchase->statusHistories()->create([
+                'tenant_id' => self::TENANT_ID,
                 'from_status' => null,
                 'to_status' => Purchase::STATUS_DRAFT,
                 'event' => 'created',
@@ -78,5 +82,14 @@ class CreateDraftPurchaseAction
 
             return $purchase->load('items');
         });
+    }
+
+    private function withTenantId(array $rows): array
+    {
+        return array_map(function (array $row): array {
+            $row['tenant_id'] = self::TENANT_ID;
+
+            return $row;
+        }, $rows);
     }
 }

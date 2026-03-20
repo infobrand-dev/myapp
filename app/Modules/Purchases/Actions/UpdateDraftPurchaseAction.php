@@ -11,6 +11,8 @@ use Illuminate\Validation\ValidationException;
 
 class UpdateDraftPurchaseAction
 {
+    private const TENANT_ID = 1;
+
     private $recalculateTotals;
     private $snapshotService;
     private $syncPaymentSummary;
@@ -34,9 +36,9 @@ class UpdateDraftPurchaseAction
         }
 
         return DB::transaction(function () use ($purchase, $data, $actor) {
-            $purchase = Purchase::query()->lockForUpdate()->findOrFail($purchase->id);
+            $purchase = Purchase::query()->where('tenant_id', self::TENANT_ID)->lockForUpdate()->findOrFail($purchase->id);
             $totals = $this->recalculateTotals->execute($data);
-            $supplier = Contact::query()->with('company')->find($data['contact_id']);
+            $supplier = Contact::query()->with('company')->where('tenant_id', self::TENANT_ID)->find($data['contact_id']);
             $snapshot = $this->snapshotService->supplierSnapshot($supplier);
 
             $purchase->update([
@@ -63,9 +65,18 @@ class UpdateDraftPurchaseAction
             ]);
 
             $purchase->items()->delete();
-            $purchase->items()->createMany($totals['items']);
+            $purchase->items()->createMany($this->withTenantId($totals['items']));
 
             return $this->syncPaymentSummary->execute($purchase);
         });
+    }
+
+    private function withTenantId(array $rows): array
+    {
+        return array_map(function (array $row): array {
+            $row['tenant_id'] = self::TENANT_ID;
+
+            return $row;
+        }, $rows);
     }
 }

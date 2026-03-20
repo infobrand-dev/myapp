@@ -23,7 +23,21 @@ class WATemplateController extends Controller
             return $redirect;
         }
 
-        $templates = WATemplate::orderBy('name')->paginate(20);
+        $search = trim((string) $request->query('search', ''));
+        $status = trim((string) $request->query('status', ''));
+
+        $templates = WATemplate::query()
+            ->where('tenant_id', $this->tenantId())
+            ->when($status !== '', fn ($query) => $query->where('status', $status))
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($inner) use ($search) {
+                    $inner->whereFullText(['name', 'meta_name', 'body'], $search)
+                        ->orWhere('meta_name', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('name')
+            ->paginate(20)
+            ->withQueryString();
         return view('whatsappapi::templates.index', compact('templates'));
     }
 
@@ -34,7 +48,11 @@ class WATemplateController extends Controller
         }
 
         $template = new WATemplate(['language' => 'en', 'status' => 'draft', 'category' => 'utility']);
-        $namespaces = WATemplate::whereNotNull('namespace')->distinct()->pluck('namespace');
+        $namespaces = WATemplate::query()
+            ->where('tenant_id', $this->tenantId())
+            ->whereNotNull('namespace')
+            ->distinct()
+            ->pluck('namespace');
         $instances = $this->connectedCloudInstances();
         $contactFieldOptions = TemplateVariableResolver::contactFieldOptions();
         $senderFieldOptions = TemplateVariableResolver::senderFieldOptions();
@@ -53,7 +71,10 @@ class WATemplateController extends Controller
         $data['namespace'] = $instance->cloud_business_account_id;
         $action = $request->input('action');
         $data['components'] = $this->buildComponents($request);
-        $template = WATemplate::create($data);
+        $template = WATemplate::create([
+            ...$data,
+            'tenant_id' => $this->tenantId(),
+        ]);
 
         if ($action === 'submit') {
             SubmitTemplateToMeta::dispatch($template->id, $instance->id);
@@ -70,7 +91,11 @@ class WATemplateController extends Controller
             return $redirect;
         }
 
-        $namespaces = WATemplate::whereNotNull('namespace')->distinct()->pluck('namespace');
+        $namespaces = WATemplate::query()
+            ->where('tenant_id', $this->tenantId())
+            ->whereNotNull('namespace')
+            ->distinct()
+            ->pluck('namespace');
         $instances = $this->connectedCloudInstances();
         $contactFieldOptions = TemplateVariableResolver::contactFieldOptions();
         $senderFieldOptions = TemplateVariableResolver::senderFieldOptions();
@@ -667,7 +692,9 @@ class WATemplateController extends Controller
 
     private function connectedCloudInstances()
     {
-        return WhatsAppInstance::where('provider', 'cloud')
+        return WhatsAppInstance::query()
+            ->where('tenant_id', $this->tenantId())
+            ->where('provider', 'cloud')
             ->whereNotNull('cloud_business_account_id')
             ->where('cloud_business_account_id', '!=', '')
             ->whereNotNull('phone_number_id')
@@ -757,9 +784,13 @@ class WATemplateController extends Controller
                     };
 
                     if ($metaId !== '') {
-                        $model = WATemplate::firstOrNew(['meta_template_id' => $metaId]);
+                        $model = WATemplate::firstOrNew([
+                            'tenant_id' => $this->tenantId(),
+                            'meta_template_id' => $metaId,
+                        ]);
                     } else {
                         $model = WATemplate::query()
+                            ->where('tenant_id', $this->tenantId())
                             ->where('language', $language)
                             ->where('namespace', $businessId)
                             ->where(function ($query) use ($name) {
@@ -770,6 +801,7 @@ class WATemplateController extends Controller
                                     });
                             })
                             ->first() ?? new WATemplate([
+                                'tenant_id' => $this->tenantId(),
                                 'language' => $language,
                                 'namespace' => $businessId,
                             ]);
@@ -824,7 +856,9 @@ class WATemplateController extends Controller
         if (!$namespace) {
             return null;
         }
-        return WhatsAppInstance::where('provider', 'cloud')
+        return WhatsAppInstance::query()
+            ->where('tenant_id', $this->tenantId())
+            ->where('provider', 'cloud')
             ->whereNotNull('cloud_business_account_id')
             ->where('cloud_business_account_id', '!=', '')
             ->where('cloud_business_account_id', $namespace)
@@ -863,7 +897,9 @@ class WATemplateController extends Controller
 
     private function requireInstance(Request $request): WhatsAppInstance
     {
-        $instance = WhatsAppInstance::where('id', $request->integer('instance_id'))
+        $instance = WhatsAppInstance::query()
+            ->where('tenant_id', $this->tenantId())
+            ->where('id', $request->integer('instance_id'))
             ->where('provider', 'cloud')
             ->whereNotNull('cloud_business_account_id')
             ->where('cloud_business_account_id', '!=', '')
@@ -884,12 +920,17 @@ class WATemplateController extends Controller
 
     private function ensureAnyInstanceExists(Request $request): ?RedirectResponse
     {
-        if (WhatsAppInstance::query()->exists()) {
+        if (WhatsAppInstance::query()->where('tenant_id', $this->tenantId())->exists()) {
             return null;
         }
 
         return redirect()
             ->route('whatsapp-api.instances.create')
             ->with('status', 'Buat WA Instance terlebih dahulu sebelum mengakses WA Templates.');
+    }
+
+    private function tenantId(): int
+    {
+        return 1;
     }
 }

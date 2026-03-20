@@ -16,10 +16,16 @@ use Illuminate\View\View;
 
 class StockTransferController extends Controller
 {
+    private const TENANT_ID = 1;
+
     public function index(): View
     {
         return view('inventory::transfers.index', [
-            'transfers' => StockTransfer::query()->with(['sourceLocation', 'destinationLocation', 'creator'])->latest()->paginate(15),
+            'transfers' => StockTransfer::query()
+                ->where('tenant_id', self::TENANT_ID)
+                ->with(['sourceLocation', 'destinationLocation', 'creator'])
+                ->latest()
+                ->paginate(15),
         ]);
     }
 
@@ -27,7 +33,11 @@ class StockTransferController extends Controller
     {
         return view('inventory::transfers.create', [
             'locations' => $stocks->locations(),
-            'products' => Product::query()->where('track_stock', true)->orderBy('name')->get(),
+            'products' => Product::query()
+                ->where('tenant_id', self::TENANT_ID)
+                ->where('track_stock', true)
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 

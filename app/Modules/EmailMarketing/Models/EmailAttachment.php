@@ -11,6 +11,7 @@ class EmailAttachment extends Model
     use HasFactory;
 
     protected $fillable = [
+        'tenant_id',
         'campaign_id',
         'type',
         'filename',

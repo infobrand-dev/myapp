@@ -7,6 +7,7 @@ use App\Modules\Payments\Http\Requests\StorePaymentMethodRequest;
 use App\Modules\Payments\Http\Requests\UpdatePaymentMethodRequest;
 use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\Payments\Services\PaymentLookupService;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -22,7 +23,11 @@ class PaymentMethodController extends Controller
     public function index(): View
     {
         return view('payments::methods.index', [
-            'methods' => PaymentMethod::query()->orderBy('sort_order')->orderBy('name')->get(),
+            'methods' => PaymentMethod::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->get(),
             'typeOptions' => $this->lookupService->paymentMethodTypeOptions(),
         ]);
     }
@@ -32,6 +37,7 @@ class PaymentMethodController extends Controller
         PaymentMethod::query()->create(array_merge(
             $request->validated(),
             [
+            'tenant_id' => TenantContext::currentId(),
             'requires_reference' => $request->boolean('requires_reference'),
             'is_active' => $request->boolean('is_active', true),
             'created_by' => $request->user() ? $request->user()->id : null,

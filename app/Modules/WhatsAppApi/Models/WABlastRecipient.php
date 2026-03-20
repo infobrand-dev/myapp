@@ -14,6 +14,7 @@ class WABlastRecipient extends Model
     protected $table = 'wa_blast_recipients';
 
     protected $fillable = [
+        'tenant_id',
         'campaign_id',
         'phone_number',
         'contact_name',
@@ -34,14 +35,16 @@ class WABlastRecipient extends Model
 
     public function campaign(): BelongsTo
     {
-        return $this->belongsTo(WABlastCampaign::class, 'campaign_id');
+        return $this->belongsTo(WABlastCampaign::class, 'campaign_id')
+            ->where('tenant_id', 1);
     }
 
     public function conversation(): BelongsTo
     {
         $conversationClass = \App\Modules\Conversations\Models\Conversation::class;
         if (class_exists($conversationClass)) {
-            return $this->belongsTo($conversationClass, 'conversation_id');
+            return $this->belongsTo($conversationClass, 'conversation_id')
+                ->where('tenant_id', 1);
         }
 
         return $this->belongsTo(User::class, 'conversation_id')->whereRaw('1 = 0');
@@ -51,7 +54,8 @@ class WABlastRecipient extends Model
     {
         $messageClass = \App\Modules\Conversations\Models\ConversationMessage::class;
         if (class_exists($messageClass)) {
-            return $this->belongsTo($messageClass, 'message_id');
+            return $this->belongsTo($messageClass, 'message_id')
+                ->where('tenant_id', 1);
         }
 
         return $this->belongsTo(User::class, 'message_id')->whereRaw('1 = 0');

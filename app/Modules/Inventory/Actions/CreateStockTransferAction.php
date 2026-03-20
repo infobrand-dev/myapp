@@ -9,10 +9,13 @@ use Illuminate\Support\Str;
 
 class CreateStockTransferAction
 {
+    private const TENANT_ID = 1;
+
     public function execute(array $data, ?User $actor = null): StockTransfer
     {
         return DB::transaction(function () use ($data, $actor) {
             $transfer = StockTransfer::query()->create([
+                'tenant_id' => self::TENANT_ID,
                 'code' => 'TRF-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4)),
                 'source_location_id' => $data['source_location_id'],
                 'destination_location_id' => $data['destination_location_id'],
@@ -26,6 +29,7 @@ class CreateStockTransferAction
 
             foreach ($data['items'] as $item) {
                 $transfer->items()->create([
+                    'tenant_id' => self::TENANT_ID,
                     'product_id' => $item['product_id'],
                     'product_variant_id' => $item['product_variant_id'] ?? null,
                     'requested_quantity' => $item['requested_quantity'],

@@ -10,10 +10,16 @@ use Illuminate\Validation\ValidationException;
 
 class VoidPurchaseAction
 {
+    private const TENANT_ID = 1;
+
     public function execute(Purchase $purchase, array $data, ?User $actor = null): Purchase
     {
         $purchase = DB::transaction(function () use ($purchase, $data, $actor) {
-            $purchase = Purchase::query()->with('items', 'receipts.items')->lockForUpdate()->findOrFail($purchase->id);
+            $purchase = Purchase::query()
+                ->where('tenant_id', self::TENANT_ID)
+                ->with('items', 'receipts.items')
+                ->lockForUpdate()
+                ->findOrFail($purchase->id);
 
             if (!in_array($purchase->status, [Purchase::STATUS_CONFIRMED, Purchase::STATUS_PARTIAL_RECEIVED, Purchase::STATUS_RECEIVED], true)) {
                 throw ValidationException::withMessages([
@@ -37,6 +43,7 @@ class VoidPurchaseAction
             ]);
 
             $purchase->voidLogs()->create([
+                'tenant_id' => self::TENANT_ID,
                 'status_before' => $fromStatus,
                 'reason' => $data['reason'],
                 'snapshot' => [
@@ -47,6 +54,7 @@ class VoidPurchaseAction
             ]);
 
             $purchase->statusHistories()->create([
+                'tenant_id' => self::TENANT_ID,
                 'from_status' => $fromStatus,
                 'to_status' => Purchase::STATUS_VOIDED,
                 'event' => 'voided',

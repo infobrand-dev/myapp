@@ -48,13 +48,16 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['tenant_id', 'sale_number']);
-            $table->index(['status', 'transaction_date']);
-            $table->index(['source', 'created_at']);
-            $table->index(['payment_status', 'created_at']);
+            $table->index(['tenant_id', 'status', 'transaction_date']);
+            $table->index(['tenant_id', 'source', 'created_at']);
+            $table->index(['tenant_id', 'payment_status', 'transaction_date']);
+            $table->index(['tenant_id', 'contact_id', 'transaction_date']);
+            $table->index(['tenant_id', 'created_by', 'transaction_date']);
             $table->index('idempotency_payload_hash');
             $table->index(['pos_cash_session_id', 'status']);
-            $table->index(['outlet_id', 'transaction_date']);
+            $table->index(['tenant_id', 'outlet_id', 'transaction_date']);
             $table->unique(['tenant_id', 'source', 'external_reference'], 'sales_source_external_reference_unique');
+            $table->fullText(['customer_name_snapshot', 'notes', 'void_reason'], 'sales_search_fulltext');
         });
     }
 

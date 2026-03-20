@@ -12,6 +12,8 @@ use Illuminate\Validation\ValidationException;
 
 class FinalizeSaleAction
 {
+    private const TENANT_ID = 1;
+
     private $recalculateTotals;
     private $snapshotService;
     private $recordSalePayment;
@@ -32,7 +34,11 @@ class FinalizeSaleAction
     public function execute(Sale $sale, array $data, ?User $actor = null): Sale
     {
         $sale = DB::transaction(function () use ($sale, $data, $actor) {
-            $sale = Sale::query()->with('items')->lockForUpdate()->findOrFail($sale->id);
+            $sale = Sale::query()
+                ->where('tenant_id', self::TENANT_ID)
+                ->with('items')
+                ->lockForUpdate()
+                ->findOrFail($sale->id);
 
             if (!$sale->isDraft()) {
                 throw ValidationException::withMessages([
@@ -53,12 +59,12 @@ class FinalizeSaleAction
             ];
             $totals = $this->recalculateTotals->execute($payload);
             $contact = $sale->contact_id
-                ? Contact::query()->with('company')->find($sale->contact_id)
+                ? Contact::query()->with('company')->where('tenant_id', self::TENANT_ID)->find($sale->contact_id)
                 : null;
             $customer = $this->snapshotService->customerSnapshot($contact);
 
             $sale->items()->delete();
-            $sale->items()->createMany($totals['items']);
+            $sale->items()->createMany($this->withTenantId($totals['items']));
 
             $fromStatus = $sale->status;
             $sale->update([
@@ -84,6 +90,7 @@ class FinalizeSaleAction
             ]);
 
             $sale->statusHistories()->create([
+                'tenant_id' => self::TENANT_ID,
                 'from_status' => $fromStatus,
                 'to_status' => Sale::STATUS_FINALIZED,
                 'event' => 'finalized',
@@ -100,7 +107,7 @@ class FinalizeSaleAction
                     $this->recordSalePayment->execute($sale, $paymentRow, $actor);
                 }
 
-                $sale = Sale::query()->findOrFail($sale->id);
+                $sale = Sale::query()->where('tenant_id', self::TENANT_ID)->findOrFail($sale->id);
             } else {
                 $sale = $this->syncPaymentSummary->execute($sale, $data['payment_status'] ?? $sale->payment_status);
             }
@@ -111,5 +118,14 @@ class FinalizeSaleAction
         event(new SaleFinalized($sale));
 
         return $sale;
+    }
+
+    private function withTenantId(array $rows): array
+    {
+        return array_map(function (array $row): array {
+            $row['tenant_id'] = self::TENANT_ID;
+
+            return $row;
+        }, $rows);
     }
 }

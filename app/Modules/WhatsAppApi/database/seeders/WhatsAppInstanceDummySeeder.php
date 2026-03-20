@@ -9,13 +9,16 @@ use Illuminate\Support\Facades\Schema;
 
 class WhatsAppInstanceDummySeeder extends Seeder
 {
+    private const TENANT_ID = 1;
+
     public function run(): void
     {
         $user = SampleDataUserResolver::resolve();
 
-        $cloud = WhatsAppInstance::firstOrCreate(
-            ['name' => 'Dummy WA Cloud - Sales'],
+        $cloud = WhatsAppInstance::query()->firstOrCreate(
+            ['tenant_id' => self::TENANT_ID, 'name' => 'Dummy WA Cloud - Sales'],
             [
+                'tenant_id' => self::TENANT_ID,
                 'phone_number' => '6281110000001',
                 'provider' => 'cloud',
                 'status' => 'connected',
@@ -32,9 +35,10 @@ class WhatsAppInstanceDummySeeder extends Seeder
             ]
         );
 
-        $gateway = WhatsAppInstance::firstOrCreate(
-            ['name' => 'Dummy WA Gateway - Support'],
+        $gateway = WhatsAppInstance::query()->firstOrCreate(
+            ['tenant_id' => self::TENANT_ID, 'name' => 'Dummy WA Gateway - Support'],
             [
+                'tenant_id' => self::TENANT_ID,
                 'phone_number' => '6281110000002',
                 'provider' => 'third_party',
                 'api_base_url' => 'https://wa-gateway.example.test',
@@ -48,10 +52,10 @@ class WhatsAppInstanceDummySeeder extends Seeder
 
         if ($user && Schema::hasTable('whatsapp_instance_user')) {
             $cloud->users()->syncWithoutDetaching([
-                $user->id => ['role' => 'owner'],
+                $user->id => ['tenant_id' => self::TENANT_ID, 'role' => 'owner'],
             ]);
             $gateway->users()->syncWithoutDetaching([
-                $user->id => ['role' => 'owner'],
+                $user->id => ['tenant_id' => self::TENANT_ID, 'role' => 'owner'],
             ]);
         }
 

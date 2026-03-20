@@ -4,11 +4,13 @@ namespace App\Modules\Payments\Actions;
 
 use App\Models\User;
 use App\Modules\Payments\Models\Payment;
+use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class VoidPaymentAction
 {
+
     private $recalculatePaymentSummary;
 
     public function __construct(RecalculatePaymentSummaryAction $recalculatePaymentSummary)
@@ -20,6 +22,7 @@ class VoidPaymentAction
     {
         return DB::transaction(function () use ($payment, $data, $actor) {
             $payment = Payment::query()
+                ->where('tenant_id', TenantContext::currentId())
                 ->with('allocations.payable')
                 ->lockForUpdate()
                 ->findOrFail($payment->id);
@@ -48,6 +51,7 @@ class VoidPaymentAction
             ]);
 
             $payment->statusLogs()->create([
+                'tenant_id' => TenantContext::currentId(),
                 'from_status' => $previousStatus,
                 'to_status' => Payment::STATUS_VOIDED,
                 'event' => 'voided',
@@ -57,6 +61,7 @@ class VoidPaymentAction
             ]);
 
             $payment->voidLogs()->create([
+                'tenant_id' => TenantContext::currentId(),
                 'status_before' => $previousStatus,
                 'reason' => $reason,
                 'snapshot' => [

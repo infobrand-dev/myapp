@@ -10,6 +10,8 @@ use Illuminate\Validation\ValidationException;
 
 class FinalizeSalesReturnAction
 {
+    private const TENANT_ID = 1;
+
     private $validateReturnableItems;
     private $integrateReturnToInventory;
     private $syncRefundSummary;
@@ -28,6 +30,7 @@ class FinalizeSalesReturnAction
     {
         $saleReturn = DB::transaction(function () use ($saleReturn, $actor) {
             $saleReturn = SaleReturn::query()
+                ->where('tenant_id', self::TENANT_ID)
                 ->with(['items', 'sale.items'])
                 ->lockForUpdate()
                 ->findOrFail($saleReturn->id);
@@ -62,6 +65,7 @@ class FinalizeSalesReturnAction
             ]);
 
             $saleReturn->statusLogs()->create([
+                'tenant_id' => self::TENANT_ID,
                 'from_status' => $fromStatus,
                 'to_status' => SaleReturn::STATUS_FINALIZED,
                 'event' => 'finalized',

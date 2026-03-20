@@ -16,6 +16,7 @@ class FinanceTransaction extends Model
     protected $table = 'finance_transactions';
 
     protected $fillable = [
+        'tenant_id',
         'transaction_number',
         'transaction_type',
         'transaction_date',
@@ -58,5 +59,12 @@ class FinanceTransaction extends Model
     public function isCashOut(): bool
     {
         return in_array($this->transaction_type, [self::TYPE_CASH_OUT, self::TYPE_EXPENSE], true);
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where($field ?? $this->getRouteKeyName(), $value)
+            ->where('tenant_id', 1)
+            ->firstOrFail();
     }
 }

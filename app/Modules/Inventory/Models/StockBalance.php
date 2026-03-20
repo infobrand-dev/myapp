@@ -13,6 +13,7 @@ class StockBalance extends Model
     protected $table = 'inventory_stocks';
 
     protected $fillable = [
+        'tenant_id',
         'stock_key',
         'product_id',
         'product_variant_id',

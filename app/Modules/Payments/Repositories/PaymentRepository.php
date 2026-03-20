@@ -5,6 +5,7 @@ namespace App\Modules\Payments\Repositories;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\SaleReturn;
+use App\Support\TenantContext;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -13,6 +14,7 @@ class PaymentRepository
     public function paginateForIndex(array $filters, int $perPage = 15): LengthAwarePaginator
     {
         $query = Payment::query()
+            ->where('tenant_id', $this->tenantId())
             ->with(['method', 'receiver', 'allocations'])
             ->withCount('allocations');
 
@@ -31,16 +33,19 @@ class PaymentRepository
 
     public function findForDetail(Payment $payment): Payment
     {
-        return $payment->load([
-            'method',
-            'receiver',
-            'creator',
+        return Payment::query()
+            ->where('tenant_id', $this->tenantId())
+            ->with([
+                'method',
+                'receiver',
+                'creator',
             'updater',
             'voider',
-            'allocations.payable',
-            'statusLogs.actor',
-            'voidLogs.actor',
-        ]);
+                'allocations.payable',
+                'statusLogs.actor',
+                'voidLogs.actor',
+            ])
+            ->findOrFail($payment->id);
     }
 
     private function applyFilters(Builder $query, array $filters): void
@@ -79,5 +84,10 @@ class PaymentRepository
         if (!empty($filters['date_to'])) {
             $query->whereDate('paid_at', '<=', $filters['date_to']);
         }
+    }
+
+    private function tenantId(): int
+    {
+        return TenantContext::currentId();
     }
 }

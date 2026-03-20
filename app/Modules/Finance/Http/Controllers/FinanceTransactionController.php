@@ -16,12 +16,15 @@ use Illuminate\View\View;
 
 class FinanceTransactionController extends Controller
 {
+    private const TENANT_ID = 1;
+
     public function index(): View
     {
         $filters = request()->only(['date_from', 'date_to', 'finance_category_id', 'created_by', 'outlet_id', 'transaction_type']);
         $shiftEnabled = $this->shiftEnabled();
 
         $query = FinanceTransaction::query()
+            ->where('tenant_id', self::TENANT_ID)
             ->with(array_filter(['category', 'creator', $shiftEnabled ? 'shift' : null]))
             ->when(!empty($filters['date_from']), function ($query) use ($filters) {
                 $query->whereDate('transaction_date', '>=', $filters['date_from']);
@@ -60,7 +63,11 @@ class FinanceTransactionController extends Controller
         return view('finance::transactions.index', [
             'transactions' => $transactions,
             'filters' => $filters,
-            'categories' => FinanceCategory::query()->orderBy('transaction_type')->orderBy('name')->get(),
+            'categories' => FinanceCategory::query()
+                ->where('tenant_id', self::TENANT_ID)
+                ->orderBy('transaction_type')
+                ->orderBy('name')
+                ->get(),
             'users' => User::query()->orderBy('name')->get(),
             'summary' => [
                 'cash_in_total' => $cashInTotal,
@@ -76,8 +83,15 @@ class FinanceTransactionController extends Controller
         $shiftEnabled = $this->shiftEnabled();
 
         return view('finance::transactions.create', [
-            'categories' => FinanceCategory::query()->where('is_active', true)->orderBy('transaction_type')->orderBy('name')->get(),
-            'shifts' => $shiftEnabled ? PosCashSession::query()->latest('opened_at')->limit(30)->get() : collect(),
+            'categories' => FinanceCategory::query()
+                ->where('tenant_id', self::TENANT_ID)
+                ->where('is_active', true)
+                ->orderBy('transaction_type')
+                ->orderBy('name')
+                ->get(),
+            'shifts' => $shiftEnabled
+                ? PosCashSession::query()->where('tenant_id', self::TENANT_ID)->latest('opened_at')->limit(30)->get()
+                : collect(),
             'transactionTypeOptions' => [
                 FinanceTransaction::TYPE_CASH_IN => 'Cash In',
                 FinanceTransaction::TYPE_CASH_OUT => 'Cash Out',
@@ -91,6 +105,7 @@ class FinanceTransactionController extends Controller
     {
         $transaction = DB::transaction(function () use ($request) {
             return FinanceTransaction::query()->create([
+                'tenant_id' => self::TENANT_ID,
                 'transaction_number' => 'FIN-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4)),
                 'transaction_type' => $request->input('transaction_type'),
                 'transaction_date' => $request->input('transaction_date'),

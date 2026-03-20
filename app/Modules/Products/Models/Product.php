@@ -13,6 +13,7 @@ class Product extends Model
     use SoftDeletes;
 
     protected $fillable = [
+        'tenant_id',
         'type',
         'category_id',
         'brand_id',
@@ -116,5 +117,12 @@ class Product extends Model
             : $this->prices()->with('priceLevel')->get();
 
         return $relation instanceof Collection ? $relation : collect($relation);
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where($field ?? $this->getRouteKeyName(), $value)
+            ->where('tenant_id', 1)
+            ->firstOrFail();
     }
 }

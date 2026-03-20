@@ -3,11 +3,13 @@
 namespace App\Modules\PointOfSale\Services;
 
 use App\Models\User;
+use App\Modules\Contacts\Models\Contact;
 use App\Modules\PointOfSale\Models\PosCashSession;
 use App\Modules\PointOfSale\Models\PosCart;
 use App\Modules\PointOfSale\Models\PosCartItem;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
+use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -24,6 +26,7 @@ class PosCartService
 
             $activeCarts = PosCart::query()
                 ->with(['items', 'contact'])
+                ->where('tenant_id', TenantContext::currentId())
                 ->where('cashier_user_id', $user->id)
                 ->where('status', PosCart::STATUS_ACTIVE)
                 ->lockForUpdate()
@@ -37,6 +40,7 @@ class PosCartService
                     $duplicateIds = $activeCarts->slice(1)->pluck('id')->all();
 
                     PosCart::query()
+                        ->where('tenant_id', TenantContext::currentId())
                         ->whereIn('id', $duplicateIds)
                         ->update([
                             'status' => PosCart::STATUS_CANCELLED,
@@ -60,6 +64,7 @@ class PosCartService
             }
 
             return PosCart::query()->create([
+                'tenant_id' => TenantContext::currentId(),
                 'uuid' => (string) Str::uuid(),
                 'status' => PosCart::STATUS_ACTIVE,
                 'cashier_user_id' => $user->id,
@@ -101,7 +106,7 @@ class PosCartService
 
         return DB::transaction(function () use ($user, $product, $variant, $qty, $barcodeScanned) {
             $cart = $this->activeCartFor($user);
-            $cart = PosCart::query()->with('items')->lockForUpdate()->findOrFail($cart->id);
+            $cart = PosCart::query()->where('tenant_id', TenantContext::currentId())->with('items')->lockForUpdate()->findOrFail($cart->id);
 
             $existing = $cart->items
                 ->first(function (PosCartItem $item) use ($product, $variant) {
@@ -124,6 +129,7 @@ class PosCartService
                 $price = round((float) ($variant ? $variant->sell_price : $product->sell_price), 2);
 
                 $cart->items()->create([
+                    'tenant_id' => TenantContext::currentId(),
                     'uuid' => (string) Str::uuid(),
                     'line_no' => ((int) $cart->items()->max('line_no')) + 1,
                     'product_id' => $product->id,
@@ -152,7 +158,7 @@ class PosCartService
     public function updateItem(User $user, PosCartItem $item, array $data): PosCart
     {
         return DB::transaction(function () use ($user, $item, $data) {
-            $item = PosCartItem::query()->with('cart')->lockForUpdate()->findOrFail($item->id);
+            $item = PosCartItem::query()->where('tenant_id', TenantContext::currentId())->with('cart')->lockForUpdate()->findOrFail($item->id);
             $this->assertOwnedBy($item->cart, $user);
 
             $qty = array_key_exists('qty', $data) ? round((float) $data['qty'], 4) : (float) $item->qty;
@@ -188,7 +194,7 @@ class PosCartService
     public function removeItem(User $user, PosCartItem $item): PosCart
     {
         return DB::transaction(function () use ($user, $item) {
-            $item = PosCartItem::query()->with('cart')->lockForUpdate()->findOrFail($item->id);
+            $item = PosCartItem::query()->where('tenant_id', TenantContext::currentId())->with('cart')->lockForUpdate()->findOrFail($item->id);
             $this->assertOwnedBy($item->cart, $user);
 
             $cart = $item->cart;
@@ -204,7 +210,7 @@ class PosCartService
     {
         return DB::transaction(function () use ($user) {
             $cart = $this->activeCartFor($user);
-            $cart = PosCart::query()->with('items')->lockForUpdate()->findOrFail($cart->id);
+            $cart = PosCart::query()->where('tenant_id', TenantContext::currentId())->with('items')->lockForUpdate()->findOrFail($cart->id);
             $cart->items()->delete();
             $cart->update([
                 'contact_id' => null,
@@ -227,7 +233,7 @@ class PosCartService
     {
         return DB::transaction(function () use ($user, $label) {
             $cart = $this->activeCartFor($user);
-            $cart = PosCart::query()->with('items')->lockForUpdate()->findOrFail($cart->id);
+            $cart = PosCart::query()->where('tenant_id', TenantContext::currentId())->with('items')->lockForUpdate()->findOrFail($cart->id);
 
             if (!$cart->items()->exists()) {
                 throw ValidationException::withMessages([
@@ -242,6 +248,7 @@ class PosCartService
             ]);
 
             $active = PosCart::query()->create([
+                'tenant_id' => TenantContext::currentId(),
                 'uuid' => (string) Str::uuid(),
                 'status' => PosCart::STATUS_ACTIVE,
                 'cashier_user_id' => $user->id,
@@ -262,6 +269,7 @@ class PosCartService
     {
         return PosCart::query()
             ->with(['items', 'contact'])
+            ->where('tenant_id', TenantContext::currentId())
             ->where('cashier_user_id', $user->id)
             ->where('status', PosCart::STATUS_HELD)
             ->latest('held_at')
@@ -271,7 +279,7 @@ class PosCartService
     public function resume(User $user, PosCart $heldCart): PosCart
     {
         return DB::transaction(function () use ($user, $heldCart) {
-            $heldCart = PosCart::query()->with(['items', 'contact'])->lockForUpdate()->findOrFail($heldCart->id);
+            $heldCart = PosCart::query()->where('tenant_id', TenantContext::currentId())->with(['items', 'contact'])->lockForUpdate()->findOrFail($heldCart->id);
             $this->assertOwnedBy($heldCart, $user);
 
             if ($heldCart->status !== PosCart::STATUS_HELD) {
@@ -282,6 +290,7 @@ class PosCartService
 
             $activeCart = PosCart::query()
                 ->with('items')
+                ->where('tenant_id', TenantContext::currentId())
                 ->where('cashier_user_id', $user->id)
                 ->where('status', PosCart::STATUS_ACTIVE)
                 ->lockForUpdate()
@@ -308,6 +317,12 @@ class PosCartService
 
     public function assignCustomer(User $user, ?int $contactId, ?string $label = null): PosCart
     {
+        if ($contactId) {
+            Contact::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->findOrFail($contactId);
+        }
+
         $cart = $this->activeCartFor($user);
         $cart->update([
             'contact_id' => $contactId,
@@ -323,7 +338,7 @@ class PosCartService
     {
         return DB::transaction(function () use ($user, $evaluation) {
             $cart = $this->activeCartFor($user);
-            $cart = PosCart::query()->with(['items', 'contact'])->lockForUpdate()->findOrFail($cart->id);
+            $cart = PosCart::query()->where('tenant_id', TenantContext::currentId())->with(['items', 'contact'])->lockForUpdate()->findOrFail($cart->id);
 
             $lineTotals = collect($evaluation['line_totals'] ?? [])
                 ->filter(function ($row) {
@@ -396,7 +411,7 @@ class PosCartService
 
     public function refreshTotals(PosCart $cart): PosCart
     {
-        $cart = PosCart::query()->with(['items', 'contact'])->findOrFail($cart->id);
+        $cart = PosCart::query()->where('tenant_id', TenantContext::currentId())->with(['items', 'contact'])->findOrFail($cart->id);
         $itemCount = (int) $cart->items->count();
         $subtotal = round((float) $cart->items->sum(fn (PosCartItem $item) => (float) $item->qty * (float) $item->unit_price), 2);
         $itemDiscountTotal = round((float) $cart->items->sum(fn (PosCartItem $item) => (float) $item->discount_total), 2);
@@ -425,7 +440,7 @@ class PosCartService
 
     private function resetDiscountState(PosCart $cart): void
     {
-        $cart = PosCart::query()->with('items')->findOrFail($cart->id);
+        $cart = PosCart::query()->where('tenant_id', TenantContext::currentId())->with('items')->findOrFail($cart->id);
 
         foreach ($cart->items as $item) {
             if ((float) $item->discount_total !== 0.0) {
@@ -454,6 +469,7 @@ class PosCartService
     private function activeSession(User $user): ?PosCashSession
     {
         return PosCashSession::query()
+            ->where('tenant_id', TenantContext::currentId())
             ->where('cashier_user_id', $user->id)
             ->where('status', PosCashSession::STATUS_ACTIVE)
             ->latest('opened_at')

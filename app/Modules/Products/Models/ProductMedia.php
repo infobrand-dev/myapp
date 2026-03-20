@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Storage;
 class ProductMedia extends Model
 {
     protected $fillable = [
+        'tenant_id',
         'product_id',
         'product_variant_id',
         'disk',

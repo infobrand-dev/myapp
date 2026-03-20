@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class SaleVoidLog extends Model
 {
     protected $fillable = [
+        'tenant_id',
         'sale_id',
         'status_before',
         'reason',

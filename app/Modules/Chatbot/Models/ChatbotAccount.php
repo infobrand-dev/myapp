@@ -44,12 +44,7 @@ class ChatbotAccount extends Model
             return $value;
         }
 
-        try {
-            return Crypt::decryptString($value);
-        } catch (\Throwable $e) {
-            // Backward compatibility for old plaintext data.
-            return $value;
-        }
+        return Crypt::decryptString($value);
     }
 
     public function setApiKeyAttribute($value): void

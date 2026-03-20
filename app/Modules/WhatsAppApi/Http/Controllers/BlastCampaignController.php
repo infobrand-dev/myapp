@@ -16,17 +16,28 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class BlastCampaignController extends Controller
 {
-    public function index(): View
+    private const TENANT_ID = 1;
+
+    public function index(Request $request): View
     {
+        $search = trim((string) $request->query('search', ''));
+        $status = trim((string) $request->query('status', ''));
+
         $campaigns = WABlastCampaign::with(['instance:id,name', 'template:id,name,language'])
+            ->where('tenant_id', $this->tenantId())
+            ->when($status !== '', fn ($query) => $query->where('status', $status))
+            ->when($search !== '', fn ($query) => $query->whereFullText(['name'], $search))
             ->orderByDesc('id')
-            ->paginate(20);
+            ->paginate(20)
+            ->withQueryString();
 
         return view('whatsappapi::blast.index', compact('campaigns'));
     }
@@ -34,23 +45,25 @@ class BlastCampaignController extends Controller
     public function create(): View
     {
         $instances = WhatsAppInstance::query()
+            ->where('tenant_id', $this->tenantId())
             ->where('provider', 'cloud')
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name', 'cloud_business_account_id', 'status']);
 
         $templates = WATemplate::query()
+            ->where('tenant_id', $this->tenantId())
             ->where('status', 'approved')
             ->orderBy('name')
             ->get(['id', 'name', 'language', 'namespace', 'body', 'components', 'variable_mappings']);
-        [$filters, $contacts] = $this->filteredContacts(request(), []);
+        [$filters] = $this->normalizedFilters([]);
 
         return view('whatsappapi::blast.form', [
             'campaign' => new WABlastCampaign(),
             'instances' => $instances,
             'templates' => $templates,
             'filters' => $filters,
-            'matchCount' => $contacts->count(),
+            'matchCount' => $this->filteredContactsCount($filters),
             'contactsEnabled' => $this->isContactsModuleReady(),
             'contactFieldOptions' => TemplateVariableResolver::contactFieldOptions(),
         ]);
@@ -58,17 +71,17 @@ class BlastCampaignController extends Controller
 
     public function matches(Request $request)
     {
-        [, $contacts] = $this->filteredContacts($request, $request->input('filters', []));
+        [$filters] = $this->normalizedFilters($request->input('filters', []));
 
-        return response()->json(['count' => $contacts->count()]);
+        return response()->json(['count' => $this->filteredContactsCount($filters)]);
     }
 
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:150'],
-            'instance_id' => ['required', 'exists:whatsapp_instances,id'],
-            'template_id' => ['required', 'exists:wa_templates,id'],
+            'instance_id' => ['required', Rule::exists('whatsapp_instances', 'id')->where(fn ($query) => $query->where('tenant_id', $this->tenantId()))],
+            'template_id' => ['required', Rule::exists('wa_templates', 'id')->where(fn ($query) => $query->where('tenant_id', $this->tenantId()))],
             'recipient_source' => ['required', 'in:manual,csv,contacts'],
             'recipients_text' => ['nullable', 'string'],
             'recipients_file' => ['nullable', 'file', 'max:5120', 'mimes:csv,txt'],
@@ -77,10 +90,22 @@ class BlastCampaignController extends Controller
             'delay_ms' => ['nullable', 'integer', 'min:0', 'max:5000'],
             'action' => ['nullable', 'in:draft,send_now,schedule'],
         ]);
-        $normalizedFilters = [];
 
-        $instance = WhatsAppInstance::query()->findOrFail((int) $data['instance_id']);
-        $template = WATemplate::query()->findOrFail((int) $data['template_id']);
+        if (!WATemplate::query()->where('tenant_id', $this->tenantId())->find((int) $data['template_id'])) {
+            throw ValidationException::withMessages([
+                'template_id' => 'Template tidak tersedia untuk tenant aktif.',
+            ]);
+        }
+        $normalizedFilters = [];
+        $rows = [];
+        $invalidRows = [];
+
+        $instance = WhatsAppInstance::query()
+            ->where('tenant_id', $this->tenantId())
+            ->findOrFail((int) $data['instance_id']);
+        $template = WATemplate::query()
+            ->where('tenant_id', $this->tenantId())
+            ->findOrFail((int) $data['template_id']);
 
         if (strtolower((string) $instance->provider) !== 'cloud') {
             throw ValidationException::withMessages([
@@ -101,14 +126,14 @@ class BlastCampaignController extends Controller
         }
 
         if (($data['recipient_source'] ?? null) === 'contacts') {
-            [$normalizedFilters] = $this->filteredContacts($request, $data['filters'] ?? []);
-        }
-
-        [$rows, $invalidRows] = $this->resolveRecipientRows($request, $data, $template);
-        if (empty($rows)) {
-            throw ValidationException::withMessages([
-                'recipients_text' => 'Tidak ada recipient valid dari sumber yang dipilih.',
-            ]);
+            [, $normalizedFilters] = $this->normalizedFilters($data['filters'] ?? []);
+        } else {
+            [$rows, $invalidRows] = $this->resolveRecipientRows($request, $data, $template);
+            if (empty($rows)) {
+                throw ValidationException::withMessages([
+                    'recipients_text' => 'Tidak ada recipient valid dari sumber yang dipilih.',
+                ]);
+            }
         }
 
         $action = (string) ($data['action'] ?? 'draft');
@@ -122,14 +147,15 @@ class BlastCampaignController extends Controller
         }
 
         $campaign = null;
-        DB::transaction(function () use ($data, $rows, $request, $status, $scheduledAt, $normalizedFilters, &$campaign) {
+        DB::transaction(function () use ($data, $rows, $request, $status, $scheduledAt, $normalizedFilters, $template, &$campaign) {
             $campaign = WABlastCampaign::create([
+                'tenant_id' => $this->tenantId(),
                 'name' => $data['name'],
                 'instance_id' => (int) $data['instance_id'],
                 'template_id' => (int) $data['template_id'],
                 'created_by' => $request->user()?->id,
                 'status' => $status,
-                'total_count' => count($rows),
+                'total_count' => 0,
                 'settings' => [
                     'delay_ms' => (int) ($data['delay_ms'] ?? 300),
                     'recipient_source' => (string) ($data['recipient_source'] ?? 'manual'),
@@ -138,20 +164,23 @@ class BlastCampaignController extends Controller
                 'scheduled_at' => $scheduledAt,
             ]);
 
-            $items = [];
-            $now = now();
-            foreach ($rows as $row) {
-                $items[] = [
-                    'campaign_id' => $campaign->id,
-                    'phone_number' => $row['phone_number'],
-                    'contact_name' => $row['contact_name'],
-                    'variables' => $row['variables'],
-                    'status' => 'pending',
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ];
+            $totalCount = 0;
+
+            if (($data['recipient_source'] ?? null) === 'contacts') {
+                $totalCount = $this->insertContactRecipients($campaign, $template, $normalizedFilters);
+
+                if ($totalCount < 1) {
+                    throw ValidationException::withMessages([
+                        'filters' => 'Tidak ada contact yang match dengan rule filter.',
+                    ]);
+                }
+            } else {
+                $totalCount = $this->insertBlastRecipients($campaign, $rows);
             }
-            WABlastRecipient::insert($items);
+
+            $campaign->update([
+                'total_count' => $totalCount,
+            ]);
         });
 
         if (($action === 'send_now') || ($action === 'schedule' && $scheduledAt && $scheduledAt->lessThanOrEqualTo(now()))) {
@@ -187,6 +216,7 @@ class BlastCampaignController extends Controller
     public function retryFailed(WABlastCampaign $blastCampaign): RedirectResponse
     {
         $updated = WABlastRecipient::query()
+            ->where('tenant_id', $this->tenantId())
             ->where('campaign_id', $blastCampaign->id)
             ->where('status', 'failed')
             ->update([
@@ -283,20 +313,6 @@ class BlastCampaignController extends Controller
             return [$this->applyTemplateVariablesToRows($rows, $template), $invalid];
         }
 
-        if ($source === 'contacts') {
-            [$filters, $contacts] = $this->filteredContacts($request, $data['filters'] ?? []);
-
-            if ($contacts->isEmpty()) {
-                throw ValidationException::withMessages([
-                    'filters' => 'Tidak ada contact yang match dengan rule filter.',
-                ]);
-            }
-
-            $data['filters'] = $filters;
-
-            return [$this->contactsToRecipientRows($contacts, $template), []];
-        }
-
         $raw = trim((string) ($data['recipients_text'] ?? ''));
         if ($raw === '') {
             throw ValidationException::withMessages([
@@ -308,43 +324,35 @@ class BlastCampaignController extends Controller
         return [$this->applyTemplateVariablesToRows($rows, $template), $invalid];
     }
 
-    private function contactsToRecipientRows($contacts, WATemplate $template): array
+    private function contactToRecipientRow($contact, WATemplate $template): ?array
     {
-        $rows = [];
-        $seen = [];
-
-        foreach ($contacts as $contact) {
-            $phone = $contact->whatsappPhoneNumber();
-            if ($phone === null || isset($seen[$phone])) {
-                continue;
-            }
-
-            $seen[$phone] = true;
-            $rows[] = [
-                'phone_number' => $phone,
-                'contact_name' => trim((string) $contact->name) !== '' ? (string) $contact->name : null,
-                'variables' => TemplateVariableResolver::resolve(
-                    $template,
-                    TemplateVariableResolver::contextFromArray([
-                        'name' => $contact->name,
-                        'mobile' => $contact->mobile,
-                        'phone' => $contact->phone,
-                        'email' => $contact->email,
-                        'company_name' => $contact->company_name,
-                        'job_title' => $contact->job_title,
-                        'website' => $contact->website,
-                        'industry' => $contact->industry,
-                        'city' => $contact->city,
-                        'state' => $contact->state,
-                        'country' => $contact->country,
-                        'phone_number' => $phone,
-                    ]),
-                    TemplateVariableResolver::contextFromSender(auth()->user())
-                ),
-            ];
+        $phone = $contact->whatsappPhoneNumber();
+        if ($phone === null) {
+            return null;
         }
 
-        return $rows;
+        return [
+            'phone_number' => $phone,
+            'contact_name' => trim((string) $contact->name) !== '' ? (string) $contact->name : null,
+            'variables' => TemplateVariableResolver::resolve(
+                $template,
+                TemplateVariableResolver::contextFromArray([
+                    'name' => $contact->name,
+                    'mobile' => $contact->mobile,
+                    'phone' => $contact->phone,
+                    'email' => $contact->email,
+                    'company_name' => $contact->company_name,
+                    'job_title' => $contact->job_title,
+                    'website' => $contact->website,
+                    'industry' => $contact->industry,
+                    'city' => $contact->city,
+                    'state' => $contact->state,
+                    'country' => $contact->country,
+                    'phone_number' => $phone,
+                ]),
+                TemplateVariableResolver::contextFromSender(auth()->user())
+            ),
+        ];
     }
 
     private function applyTemplateVariablesToRows(array $rows, WATemplate $template): array
@@ -372,21 +380,52 @@ class BlastCampaignController extends Controller
             return [[], collect()];
         }
 
-        if (is_string($filtersInput)) {
-            $filtersInput = json_decode($filtersInput, true) ?? [];
+        [$filters, $query] = $this->filteredContactsQuery($filtersInput);
+
+        $contacts = $query
+            ->orderBy('contacts.name')
+            ->get([
+                'contacts.id',
+                'contacts.name',
+                'contacts.mobile',
+                'contacts.phone',
+                'contacts.email',
+                'contacts.job_title',
+                'contacts.website',
+                'contacts.industry',
+                'contacts.city',
+                'contacts.state',
+                'contacts.country',
+                'company.name as company_name',
+            ]);
+
+        return [$filters->toArray(), $contacts];
+    }
+
+    private function filteredContactsCount($filtersInput = []): int
+    {
+        if (!$this->isContactsModuleReady()) {
+            return 0;
         }
 
-        $filters = collect($filtersInput)
-            ->filter(fn ($row) => !empty($row['value']))
-            ->values();
+        [, $query] = $this->filteredContactsQuery($filtersInput);
+
+        return (clone $query)
+            ->distinct()
+            ->count(DB::raw($this->recipientPhoneExpression()));
+    }
+
+    private function filteredContactsQuery($filtersInput = []): array
+    {
+        [$filters] = $this->normalizedFilters($filtersInput);
 
         $query = Contact::query()
+            ->where('contacts.tenant_id', $this->tenantId())
             ->leftJoin('contacts as company', 'company.id', '=', 'contacts.company_id')
             ->where('contacts.is_active', true)
-            ->where(function ($query) {
-                $query->whereNotNull('contacts.mobile')->where('contacts.mobile', '!=', '')
-                    ->orWhereNotNull('contacts.phone')->where('contacts.phone', '!=', '');
-            });
+            ->whereRaw($this->recipientPhoneExpression() . ' IS NOT NULL');
+
+        $this->applyBlockedPhoneScope($query);
 
         if ($filters->isNotEmpty()) {
             $filters->each(function ($row) use ($query) {
@@ -420,9 +459,77 @@ class BlastCampaignController extends Controller
             });
         }
 
-        $contacts = $query
-            ->orderBy('contacts.name')
-            ->get([
+        return [$filters, $query];
+    }
+
+    private function normalizedFilters($filtersInput = []): array
+    {
+        if (is_string($filtersInput)) {
+            $filtersInput = json_decode($filtersInput, true) ?? [];
+        }
+
+        $filters = collect($filtersInput)
+            ->filter(fn ($row) => !empty($row['value']))
+            ->values();
+
+        return [$filters, $filters->toArray()];
+    }
+
+    private function isContactsModuleReady(): bool
+    {
+        return class_exists(Contact::class);
+    }
+
+    private function applyBlockedPhoneScope($query): void
+    {
+        $query->whereNotExists(function ($subQuery) {
+            $subQuery->select(DB::raw(1))
+                ->from('wa_contact_phone_statuses as blocked_phones')
+                ->where('blocked_phones.tenant_id', $this->tenantId())
+                ->where('blocked_phones.status', 'blocked')
+                ->whereRaw('blocked_phones.phone_number = ' . $this->recipientPhoneExpression());
+        });
+    }
+
+    private function insertBlastRecipients(WABlastCampaign $campaign, array $rows): int
+    {
+        if (empty($rows)) {
+            return 0;
+        }
+
+        $now = now();
+        $items = [];
+
+        foreach ($rows as $row) {
+            $items[] = [
+                'tenant_id' => $this->tenantId(),
+                'campaign_id' => $campaign->id,
+                'phone_number' => $row['phone_number'],
+                'contact_name' => $row['contact_name'],
+                'variables' => $row['variables'],
+                'status' => 'pending',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+
+        WABlastRecipient::insert($items);
+
+        return count($items);
+    }
+
+    private function insertContactRecipients(WABlastCampaign $campaign, WATemplate $template, array $filters): int
+    {
+        [, $query] = $this->filteredContactsQuery($filters);
+
+        $totalCount = 0;
+        $seenPhones = [];
+        $buffer = [];
+        $bufferSize = 500;
+
+        (clone $query)
+            ->orderBy('contacts.id')
+            ->select([
                 'contacts.id',
                 'contacts.name',
                 'contacts.mobile',
@@ -435,28 +542,49 @@ class BlastCampaignController extends Controller
                 'contacts.state',
                 'contacts.country',
                 'company.name as company_name',
-            ]);
+            ])
+            ->chunkById(500, function (Collection $contacts) use ($campaign, $template, &$totalCount, &$seenPhones, &$buffer, $bufferSize) {
+                foreach ($contacts as $contact) {
+                    $row = $this->contactToRecipientRow($contact, $template);
+                    if (!$row || isset($seenPhones[$row['phone_number']])) {
+                        continue;
+                    }
 
-        $blockedPhones = WAContactPhoneStatus::query()
-            ->where('status', 'blocked')
-            ->pluck('phone_number')
-            ->filter()
-            ->all();
+                    $seenPhones[$row['phone_number']] = true;
+                    $buffer[] = [
+                        'tenant_id' => $this->tenantId(),
+                        'campaign_id' => $campaign->id,
+                        'phone_number' => $row['phone_number'],
+                        'contact_name' => $row['contact_name'],
+                        'variables' => $row['variables'],
+                        'status' => 'pending',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                    $totalCount++;
 
-        if (!empty($blockedPhones)) {
-            $blockedLookup = array_fill_keys($blockedPhones, true);
-            $contacts = $contacts->filter(function ($contact) use ($blockedLookup) {
-                $phone = $contact->whatsappPhoneNumber();
-                return !$phone || !isset($blockedLookup[$phone]);
-            })->values();
+                    if (count($buffer) >= $bufferSize) {
+                        WABlastRecipient::insert($buffer);
+                        $buffer = [];
+                    }
+                }
+            }, 'contacts.id');
+
+        if (!empty($buffer)) {
+            WABlastRecipient::insert($buffer);
         }
 
-        return [$filters->toArray(), $contacts];
+        return $totalCount;
     }
 
-    private function isContactsModuleReady(): bool
+    private function recipientPhoneExpression(): string
     {
-        return class_exists(Contact::class);
+        return "COALESCE(NULLIF(contacts.mobile, ''), NULLIF(contacts.phone, ''))";
+    }
+
+    private function tenantId(): int
+    {
+        return self::TENANT_ID;
     }
 
 }

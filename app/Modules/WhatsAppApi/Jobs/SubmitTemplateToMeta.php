@@ -19,6 +19,8 @@ class SubmitTemplateToMeta implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    private const TENANT_ID = 1;
+
     public int $templateId;
     public int $instanceId;
 
@@ -30,8 +32,8 @@ class SubmitTemplateToMeta implements ShouldQueue
 
     public function handle(): void
     {
-        $template = WATemplate::find($this->templateId);
-        $instance = WhatsAppInstance::find($this->instanceId);
+        $template = WATemplate::query()->where('tenant_id', self::TENANT_ID)->find($this->templateId);
+        $instance = WhatsAppInstance::query()->where('tenant_id', self::TENANT_ID)->find($this->instanceId);
 
         if (!$template || !$instance || strtolower($instance->provider) !== 'cloud') {
             return;

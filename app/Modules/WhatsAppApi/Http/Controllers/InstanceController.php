@@ -20,8 +20,11 @@ class InstanceController extends Controller
 {
     public function index(): View
     {
-        $instances = WhatsAppInstance::orderByDesc('created_at')->paginate(15);
-        $summary = InstanceHealthViewModel::summary();
+        $instances = WhatsAppInstance::query()
+            ->where('tenant_id', $this->tenantId())
+            ->orderByDesc('created_at')
+            ->paginate(15);
+        $summary = InstanceHealthViewModel::summary($this->tenantId());
 
         return view('whatsappapi::instances.index', compact('instances', 'summary'));
     }
@@ -47,6 +50,7 @@ class InstanceController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validated($request, null);
+        $data['tenant_id'] = $this->tenantId();
         $data['is_active'] = $request->boolean('is_active');
         $data['created_by'] = $request->user() ? $request->user()->id : null;
         $data['updated_by'] = $request->user() ? $request->user()->id : null;
@@ -801,7 +805,9 @@ class InstanceController extends Controller
         $editingInstance = null;
         $instanceId = (int) $request->input('instance_id', 0);
         if ($instanceId > 0) {
-            $editingInstance = WhatsAppInstance::find($instanceId);
+            $editingInstance = WhatsAppInstance::query()
+                ->where('tenant_id', $this->tenantId())
+                ->find($instanceId);
         }
 
         $provider = strtolower((string) $request->input('provider', 'cloud'));
@@ -848,5 +854,10 @@ class InstanceController extends Controller
     private function generateVerifyToken(): string
     {
         return 'wa_verify_' . bin2hex(random_bytes(12));
+    }
+
+    private function tenantId(): int
+    {
+        return 1;
     }
 }

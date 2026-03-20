@@ -9,16 +9,19 @@ use Illuminate\Database\Seeder;
 
 class PaymentSampleSeeder extends Seeder
 {
+    private const TENANT_ID = 1;
+
     public function run(): void
     {
         $user = SampleDataUserResolver::resolve();
         $userId = optional($user)->id;
 
-        $method = PaymentMethod::query()->where('code', PaymentMethod::CODE_QRIS)->first()
-            ?? PaymentMethod::query()->where('code', PaymentMethod::CODE_CASH)->first();
+        $method = PaymentMethod::query()->where('tenant_id', self::TENANT_ID)->where('code', PaymentMethod::CODE_QRIS)->first()
+            ?? PaymentMethod::query()->where('tenant_id', self::TENANT_ID)->where('code', PaymentMethod::CODE_CASH)->first();
 
         if (!$method) {
             $method = PaymentMethod::query()->create([
+                'tenant_id' => self::TENANT_ID,
                 'code' => PaymentMethod::CODE_MANUAL,
                 'name' => 'Manual Demo',
                 'type' => PaymentMethod::TYPE_MANUAL,
@@ -32,8 +35,9 @@ class PaymentSampleSeeder extends Seeder
         }
 
         Payment::query()->updateOrCreate(
-            ['payment_number' => 'PAY-DEMO-001'],
+            ['tenant_id' => self::TENANT_ID, 'payment_number' => 'PAY-DEMO-001'],
             [
+                'tenant_id' => self::TENANT_ID,
                 'payment_method_id' => $method->id,
                 'amount' => 125000,
                 'currency_code' => 'IDR',

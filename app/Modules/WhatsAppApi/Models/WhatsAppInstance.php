@@ -18,6 +18,7 @@ class WhatsAppInstance extends Model
     protected $table = 'whatsapp_instances';
 
     protected $fillable = [
+        'tenant_id',
         'name',
         'phone_number',
         'provider',
@@ -68,5 +69,12 @@ class WhatsAppInstance extends Model
     public function chatbotIntegration(): HasOne
     {
         return $this->hasOne(WhatsAppInstanceChatbotIntegration::class, 'instance_id');
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where($field ?? $this->getRouteKeyName(), $value)
+            ->where('tenant_id', 1)
+            ->firstOrFail();
     }
 }

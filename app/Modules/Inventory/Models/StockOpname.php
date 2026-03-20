@@ -16,6 +16,7 @@ class StockOpname extends Model
     protected $table = 'inventory_stock_opnames';
 
     protected $fillable = [
+        'tenant_id',
         'code',
         'inventory_location_id',
         'opname_date',
@@ -67,5 +68,12 @@ class StockOpname extends Model
     public function isFinalized(): bool
     {
         return $this->status === self::STATUS_FINALIZED;
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where($field ?? $this->getRouteKeyName(), $value)
+            ->where('tenant_id', 1)
+            ->firstOrFail();
     }
 }

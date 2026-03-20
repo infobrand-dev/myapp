@@ -3,6 +3,7 @@
 namespace App\Modules\EmailMarketing\Models;
 
 use App\Modules\Contacts\Models\Contact;
+use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,6 +13,7 @@ class EmailCampaignRecipient extends Model
     use HasFactory;
 
     protected $fillable = [
+        'tenant_id',
         'campaign_id',
         'contact_id',
         'recipient_name',
@@ -35,11 +37,19 @@ class EmailCampaignRecipient extends Model
 
     public function campaign(): BelongsTo
     {
-        return $this->belongsTo(EmailCampaign::class, 'campaign_id');
+        return $this->belongsTo(EmailCampaign::class, 'campaign_id')
+            ->where('tenant_id', TenantContext::currentId());
     }
 
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class, 'contact_id');
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where($field ?? $this->getRouteKeyName(), $value)
+            ->where('tenant_id', TenantContext::currentId())
+            ->firstOrFail();
     }
 }

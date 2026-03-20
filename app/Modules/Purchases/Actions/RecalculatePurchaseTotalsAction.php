@@ -10,6 +10,8 @@ use Illuminate\Validation\ValidationException;
 
 class RecalculatePurchaseTotalsAction
 {
+    private const TENANT_ID = 1;
+
     private $snapshotService;
 
     public function __construct(PurchaseSnapshotService $snapshotService)
@@ -30,7 +32,10 @@ class RecalculatePurchaseTotalsAction
         }
 
         $items = $rows->map(function (array $item, int $index) {
-            $product = Product::query()->with('unit')->find($item['product_id'] ?? null);
+            $product = Product::query()
+                ->with('unit')
+                ->where('tenant_id', self::TENANT_ID)
+                ->find($item['product_id'] ?? null);
             if (!$product) {
                 throw ValidationException::withMessages([
                     "items.{$index}.product_id" => 'Produk tidak valid.',
@@ -39,7 +44,9 @@ class RecalculatePurchaseTotalsAction
 
             $variant = null;
             if (!empty($item['product_variant_id'])) {
-                $variant = ProductVariant::query()->find($item['product_variant_id']);
+                $variant = ProductVariant::query()
+                    ->where('tenant_id', self::TENANT_ID)
+                    ->find($item['product_variant_id']);
                 if (!$variant || (int) $variant->product_id !== (int) $product->id) {
                     throw ValidationException::withMessages([
                         "items.{$index}.product_variant_id" => 'Variant tidak valid untuk produk ini.',

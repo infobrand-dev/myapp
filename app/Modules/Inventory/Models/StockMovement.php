@@ -13,6 +13,7 @@ class StockMovement extends Model
     protected $table = 'inventory_stock_movements';
 
     protected $fillable = [
+        'tenant_id',
         'stock_key',
         'inventory_stock_id',
         'product_id',

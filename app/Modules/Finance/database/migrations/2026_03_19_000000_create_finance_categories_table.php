@@ -22,7 +22,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['tenant_id', 'slug']);
-            $table->index(['transaction_type', 'is_active']);
+            $table->index(['tenant_id', 'transaction_type', 'is_active', 'name']);
         });
 
         DB::table('finance_categories')->insert([

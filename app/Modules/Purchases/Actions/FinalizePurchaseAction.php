@@ -12,6 +12,8 @@ use Illuminate\Validation\ValidationException;
 
 class FinalizePurchaseAction
 {
+    private const TENANT_ID = 1;
+
     private $syncPaymentSummary;
     private $snapshotService;
 
@@ -27,7 +29,11 @@ class FinalizePurchaseAction
     public function execute(Purchase $purchase, array $data, ?User $actor = null): Purchase
     {
         $purchase = DB::transaction(function () use ($purchase, $data, $actor) {
-            $purchase = Purchase::query()->with('items')->lockForUpdate()->findOrFail($purchase->id);
+            $purchase = Purchase::query()
+                ->where('tenant_id', self::TENANT_ID)
+                ->with('items')
+                ->lockForUpdate()
+                ->findOrFail($purchase->id);
 
             if ($purchase->confirmed_at) {
                 return $this->syncPaymentSummary->execute($purchase)->load('items');
@@ -46,7 +52,7 @@ class FinalizePurchaseAction
             }
 
             $supplier = $purchase->contact_id
-                ? Contact::query()->with('company')->find($purchase->contact_id)
+                ? Contact::query()->with('company')->where('tenant_id', self::TENANT_ID)->find($purchase->contact_id)
                 : null;
             $supplierSnapshot = $this->snapshotService->supplierSnapshot($supplier);
 
@@ -86,6 +92,7 @@ class FinalizePurchaseAction
             }
 
             $purchase->statusHistories()->create([
+                'tenant_id' => self::TENANT_ID,
                 'from_status' => $fromStatus,
                 'to_status' => Purchase::STATUS_CONFIRMED,
                 'event' => 'finalized',

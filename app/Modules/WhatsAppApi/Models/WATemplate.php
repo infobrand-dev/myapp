@@ -12,6 +12,7 @@ class WATemplate extends Model
     protected $table = 'wa_templates';
 
     protected $fillable = [
+        'tenant_id',
         'name',
         'meta_name',
         'language',
@@ -35,5 +36,12 @@ class WATemplate extends Model
     public function metaTemplateName(): string
     {
         return (string) ($this->meta_name ?: $this->name);
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where($field ?? $this->getRouteKeyName(), $value)
+            ->where('tenant_id', 1)
+            ->firstOrFail();
     }
 }

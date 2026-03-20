@@ -11,6 +11,7 @@ class SaleRepository
     public function paginateForIndex(array $filters, int $perPage = 15): LengthAwarePaginator
     {
         $query = Sale::query()
+            ->where('tenant_id', $this->tenantId())
             ->with(['contact', 'creator'])
             ->withCount('items');
 
@@ -60,12 +61,17 @@ class SaleRepository
             $query->where(function (Builder $builder) use ($search) {
                 $builder->where('sale_number', 'like', "%{$search}%")
                     ->orWhere('external_reference', 'like', "%{$search}%")
-                    ->orWhere('customer_name_snapshot', 'like', "%{$search}%")
-                    ->orWhereHas('contact', fn (Builder $contact) => $contact->where('name', 'like', "%{$search}%"))
+                    ->orWhereFullText(['customer_name_snapshot', 'notes', 'void_reason'], $search)
+                    ->orWhereHas('contact', fn (Builder $contact) => $contact
+                        ->where('tenant_id', $this->tenantId())
+                        ->where('name', 'like', "%{$search}%"))
                     ->orWhereHas('items', function (Builder $item) use ($search) {
-                        $item->where('product_name_snapshot', 'like', "%{$search}%")
-                            ->orWhere('variant_name_snapshot', 'like', "%{$search}%")
-                            ->orWhere('sku_snapshot', 'like', "%{$search}%");
+                        $item->where('tenant_id', $this->tenantId())
+                            ->where(function (Builder $nested) use ($search) {
+                                $nested->where('product_name_snapshot', 'like', "%{$search}%")
+                                    ->orWhere('variant_name_snapshot', 'like', "%{$search}%")
+                                    ->orWhere('sku_snapshot', 'like', "%{$search}%");
+                            });
                     });
             });
         }
@@ -87,5 +93,10 @@ class SaleRepository
         if (!empty($filters['date_to'])) {
             $query->whereDate('transaction_date', '<=', $filters['date_to']);
         }
+    }
+
+    private function tenantId(): int
+    {
+        return 1;
     }
 }

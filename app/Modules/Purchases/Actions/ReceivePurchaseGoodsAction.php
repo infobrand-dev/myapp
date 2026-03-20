@@ -11,6 +11,8 @@ use Illuminate\Validation\ValidationException;
 
 class ReceivePurchaseGoodsAction
 {
+    private const TENANT_ID = 1;
+
     private $numberService;
     private $syncPaymentSummary;
 
@@ -25,7 +27,11 @@ class ReceivePurchaseGoodsAction
     public function execute(Purchase $purchase, array $data, ?User $actor = null): Purchase
     {
         return DB::transaction(function () use ($purchase, $data, $actor) {
-            $purchase = Purchase::query()->with('items')->lockForUpdate()->findOrFail($purchase->id);
+            $purchase = Purchase::query()
+                ->where('tenant_id', self::TENANT_ID)
+                ->with('items')
+                ->lockForUpdate()
+                ->findOrFail($purchase->id);
 
             if (!$purchase->isConfirmedLike()) {
                 throw ValidationException::withMessages([
@@ -71,6 +77,7 @@ class ReceivePurchaseGoodsAction
             $stockMutation = app(StockMutationService::class);
 
             $receipt = $purchase->receipts()->create([
+                'tenant_id' => self::TENANT_ID,
                 'receipt_number' => $this->numberService->generateReceiptNumber(),
                 'inventory_location_id' => $data['inventory_location_id'],
                 'fingerprint' => $receiptFingerprint,
@@ -126,6 +133,7 @@ class ReceivePurchaseGoodsAction
                 ]);
 
                 $receipt->items()->create([
+                    'tenant_id' => self::TENANT_ID,
                     'purchase_item_id' => $purchaseItem->id,
                     'product_id' => $purchaseItem->product_id,
                     'product_variant_id' => $purchaseItem->product_variant_id,
@@ -171,6 +179,7 @@ class ReceivePurchaseGoodsAction
             ]);
 
             $purchase->statusHistories()->create([
+                'tenant_id' => self::TENANT_ID,
                 'from_status' => $fromStatus,
                 'to_status' => $nextStatus,
                 'event' => 'received',

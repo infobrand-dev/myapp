@@ -12,6 +12,7 @@ class StockOpeningItem extends Model
     protected $table = 'inventory_stock_opening_items';
 
     protected $fillable = [
+        'tenant_id',
         'opening_id',
         'product_id',
         'product_variant_id',

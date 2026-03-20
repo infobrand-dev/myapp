@@ -6,6 +6,8 @@ use App\Modules\Products\Models\ProductVariant;
 
 trait NormalizesSalePayload
 {
+    private const TENANT_ID = 1;
+
     protected function normalizeSalePayload(): void
     {
         $items = collect($this->input('items', []))
@@ -44,7 +46,9 @@ trait NormalizesSalePayload
 
         foreach ($items as $index => $item) {
             if (!empty($item['product_variant_id']) && empty($item['product_id'])) {
-                $variantModel = ProductVariant::query()->find($item['product_variant_id']);
+                $variantModel = ProductVariant::query()
+                    ->where('tenant_id', self::TENANT_ID)
+                    ->find($item['product_variant_id']);
                 if ($variantModel) {
                     $items[$index]['product_id'] = (int) $variantModel->product_id;
                 }

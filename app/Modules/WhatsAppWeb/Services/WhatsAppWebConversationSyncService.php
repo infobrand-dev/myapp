@@ -9,10 +9,16 @@ use App\Modules\Conversations\Models\ConversationActivityLog;
 use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\Conversations\Models\ConversationParticipant;
 use App\Models\User;
+use App\Support\TenantContext;
 use Illuminate\Support\Carbon;
 
 class WhatsAppWebConversationSyncService
 {
+    private function tenantId(): int
+    {
+        return TenantContext::currentId();
+    }
+
     public function __construct(private readonly InboxMessageIngester $ingester)
     {
     }
@@ -102,14 +108,13 @@ class WhatsAppWebConversationSyncService
 
         foreach ($messages as $message) {
             $existing = ConversationMessage::query()
+                ->where('tenant_id', $this->tenantId())
                 ->where('external_message_id', (string) $message['id'])
                 ->whereHas('conversation', function ($query) use ($chatId): void {
-                    $query->whereIn('channel', ['wa_web', 'wa_bro'])
+                    $query->where('tenant_id', $this->tenantId())
+                        ->whereIn('channel', ['wa_web', 'wa_bro'])
                         ->where('contact_external_id', $chatId)
-                        ->where(function ($subQuery): void {
-                            $subQuery->whereNull('instance_id')
-                                ->orWhere('instance_id', 0);
-                        });
+                        ->where('instance_id', 0);
                 })
                 ->exists();
 
@@ -138,16 +143,15 @@ class WhatsAppWebConversationSyncService
         }
 
         $conversation = Conversation::query()
+            ->where('tenant_id', $this->tenantId())
             ->where('channel', 'wa_web')
             ->where('contact_external_id', $chatId)
-            ->where(function ($query): void {
-                $query->whereNull('instance_id')
-                    ->orWhere('instance_id', 0);
-            })
+            ->where('instance_id', 0)
             ->first();
 
         if ($conversation) {
             $aggregate = ConversationMessage::query()
+                ->where('tenant_id', $this->tenantId())
                 ->where('conversation_id', $conversation->id)
                 ->selectRaw('
                     MAX(created_at) as last_message_at,
@@ -171,6 +175,7 @@ class WhatsAppWebConversationSyncService
             ]);
 
             ConversationActivityLog::query()->create([
+                'tenant_id' => $this->tenantId(),
                 'conversation_id' => $conversation->id,
                 'user_id' => $actorUserId,
                 'action' => 'wa_web_history_sync',

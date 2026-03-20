@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class PosReceiptReprintLog extends Model
 {
     protected $fillable = [
+        'tenant_id',
         'sale_id',
         'pos_cash_session_id',
         'outlet_id',

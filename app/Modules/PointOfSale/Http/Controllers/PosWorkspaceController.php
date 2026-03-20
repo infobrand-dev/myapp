@@ -9,6 +9,7 @@ use App\Modules\PointOfSale\Models\PosCart;
 use App\Modules\PointOfSale\Services\PosCashSessionService;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
+use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -36,6 +37,7 @@ class PosWorkspaceController extends Controller
                 'opened_at' => $activeShift->opened_at ? $activeShift->opened_at->toDateTimeString() : null,
             ] : null,
             'held_count' => PosCart::query()
+                ->where('tenant_id', TenantContext::currentId())
                 ->where('cashier_user_id', $request->user()->id)
                 ->where('status', PosCart::STATUS_HELD)
                 ->count(),
@@ -97,6 +99,7 @@ class PosWorkspaceController extends Controller
         $q = trim((string) $request->query('q', ''));
 
         $query = Contact::query()
+            ->where('tenant_id', TenantContext::currentId())
             ->where('is_active', true)
             ->orderBy('name');
 
@@ -139,6 +142,7 @@ class PosWorkspaceController extends Controller
     private function customerOptions(): array
     {
         return Contact::query()
+            ->where('tenant_id', TenantContext::currentId())
             ->where('is_active', true)
             ->orderBy('name')
             ->limit(12)
@@ -158,6 +162,7 @@ class PosWorkspaceController extends Controller
     private function paymentMethodOptions(): array
     {
         return PaymentMethod::query()
+            ->where('tenant_id', TenantContext::currentId())
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->get()

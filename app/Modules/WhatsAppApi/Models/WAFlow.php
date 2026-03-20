@@ -10,6 +10,7 @@ class WAFlow extends Model
     protected $table = 'wa_flows';
 
     protected $fillable = [
+        'tenant_id',
         'instance_id',
         'name',
         'categories',
@@ -35,6 +36,14 @@ class WAFlow extends Model
 
     public function instance(): BelongsTo
     {
-        return $this->belongsTo(WhatsAppInstance::class, 'instance_id');
+        return $this->belongsTo(WhatsAppInstance::class, 'instance_id')
+            ->where('tenant_id', 1);
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where($field ?? $this->getRouteKeyName(), $value)
+            ->where('tenant_id', 1)
+            ->firstOrFail();
     }
 }

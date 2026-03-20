@@ -11,10 +11,13 @@ class ProductRepository
     public function paginateForIndex(array $filters, int $perPage = 15): LengthAwarePaginator
     {
         $query = Product::query()
+            ->where('products.tenant_id', $this->tenantId())
             ->select('products.*')
             ->with(['category', 'brand', 'unit'])
             ->withCount([
-                'variants as variant_count' => fn (Builder $query) => $query->whereNull('deleted_at'),
+                'variants as variant_count' => fn (Builder $query) => $query
+                    ->where('tenant_id', $this->tenantId())
+                    ->whereNull('deleted_at'),
             ]);
 
         $this->applyFilters($query, $filters);
@@ -27,7 +30,9 @@ class ProductRepository
 
     public function findForDetail(Product $product): Product
     {
-        return $product->load([
+        return Product::query()
+            ->where('tenant_id', $this->tenantId())
+            ->with([
             'category.parent',
             'brand',
             'unit',
@@ -35,22 +40,28 @@ class ProductRepository
             'prices.priceLevel',
             'media',
             'variants' => fn ($query) => $query
+                ->where('tenant_id', $this->tenantId())
                 ->whereNull('deleted_at')
                 ->with(['optionValues.group', 'prices.priceLevel', 'media'])
                 ->orderBy('position'),
-        ]);
+            ])
+            ->findOrFail($product->id);
     }
 
     public function findForEdit(Product $product): Product
     {
-        return $product->load([
+        return Product::query()
+            ->where('tenant_id', $this->tenantId())
+            ->with([
             'prices.priceLevel',
             'gallery',
             'variants' => fn ($query) => $query
+                ->where('tenant_id', $this->tenantId())
                 ->whereNull('deleted_at')
                 ->with(['optionValues.group'])
                 ->orderBy('position'),
-        ]);
+            ])
+            ->findOrFail($product->id);
     }
 
     private function applyFilters(Builder $query, array $filters): Builder
@@ -62,7 +73,8 @@ class ProductRepository
                     ->orWhere('products.sku', 'like', "%{$search}%")
                     ->orWhere('products.barcode', 'like', "%{$search}%")
                     ->orWhereHas('variants', function (Builder $variantQuery) use ($search) {
-                        $variantQuery->whereNull('deleted_at')
+                        $variantQuery->where('tenant_id', $this->tenantId())
+                            ->whereNull('deleted_at')
                             ->where(function (Builder $nested) use ($search) {
                                 $nested->where('name', 'like', "%{$search}%")
                                     ->orWhere('sku', 'like', "%{$search}%")
@@ -93,5 +105,10 @@ class ProductRepository
         }
 
         return $query;
+    }
+
+    private function tenantId(): int
+    {
+        return 1;
     }
 }

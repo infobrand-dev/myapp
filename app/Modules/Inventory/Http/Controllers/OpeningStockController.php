@@ -13,10 +13,16 @@ use Illuminate\View\View;
 
 class OpeningStockController extends Controller
 {
+    private const TENANT_ID = 1;
+
     public function index(): View
     {
         return view('inventory::openings.index', [
-            'openings' => StockOpening::query()->with(['location', 'creator'])->latest()->paginate(15),
+            'openings' => StockOpening::query()
+                ->where('tenant_id', self::TENANT_ID)
+                ->with(['location', 'creator'])
+                ->latest()
+                ->paginate(15),
         ]);
     }
 
@@ -24,7 +30,11 @@ class OpeningStockController extends Controller
     {
         return view('inventory::openings.create', [
             'locations' => $stocks->locations(),
-            'products' => Product::query()->where('track_stock', true)->orderBy('name')->get(),
+            'products' => Product::query()
+                ->where('tenant_id', self::TENANT_ID)
+                ->where('track_stock', true)
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 

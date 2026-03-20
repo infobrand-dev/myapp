@@ -11,6 +11,7 @@ class SaleReturnRepository
     public function paginateForIndex(array $filters, int $perPage = 15): LengthAwarePaginator
     {
         $query = SaleReturn::query()
+            ->where('tenant_id', $this->tenantId())
             ->with(['sale', 'contact', 'creator'])
             ->withCount('items');
 
@@ -53,8 +54,7 @@ class SaleReturnRepository
             $query->where(function (Builder $builder) use ($search) {
                 $builder->where('return_number', 'like', "%{$search}%")
                     ->orWhere('sale_number_snapshot', 'like', "%{$search}%")
-                    ->orWhere('customer_name_snapshot', 'like', "%{$search}%")
-                    ->orWhere('reason', 'like', "%{$search}%");
+                    ->orWhereFullText(['customer_name_snapshot', 'reason', 'notes'], $search);
             });
         }
 
@@ -79,5 +79,10 @@ class SaleReturnRepository
         if (!empty($filters['date_to'])) {
             $query->whereDate('return_date', '<=', $filters['date_to']);
         }
+    }
+
+    private function tenantId(): int
+    {
+        return 1;
     }
 }

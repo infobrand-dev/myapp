@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 
 class FinalizeStockAdjustmentAction
 {
+    private const TENANT_ID = 1;
+
     private $mutationService;
 
     public function __construct(StockMutationService $mutationService)
@@ -21,6 +23,7 @@ class FinalizeStockAdjustmentAction
     {
         return DB::transaction(function () use ($adjustment, $actor) {
             $adjustment = StockAdjustment::query()
+                ->where('tenant_id', self::TENANT_ID)
                 ->with(['items.product', 'items.variant'])
                 ->lockForUpdate()
                 ->findOrFail($adjustment->id);

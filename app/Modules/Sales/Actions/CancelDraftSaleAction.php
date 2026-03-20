@@ -9,10 +9,12 @@ use Illuminate\Validation\ValidationException;
 
 class CancelDraftSaleAction
 {
+    private const TENANT_ID = 1;
+
     public function execute(Sale $sale, array $data, ?User $actor = null): Sale
     {
         return DB::transaction(function () use ($sale, $data, $actor) {
-            $sale = Sale::query()->lockForUpdate()->findOrFail($sale->id);
+            $sale = Sale::query()->where('tenant_id', self::TENANT_ID)->lockForUpdate()->findOrFail($sale->id);
 
             if (!$sale->isDraft()) {
                 throw ValidationException::withMessages([
@@ -34,6 +36,7 @@ class CancelDraftSaleAction
             ]);
 
             $sale->statusHistories()->create([
+                'tenant_id' => self::TENANT_ID,
                 'from_status' => $statusBefore,
                 'to_status' => Sale::STATUS_CANCELLED,
                 'event' => 'cancelled',

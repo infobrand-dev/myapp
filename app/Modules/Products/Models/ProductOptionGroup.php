@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class ProductOptionGroup extends Model
 {
     protected $fillable = [
+        'tenant_id',
         'product_id',
         'name',
         'sort_order',

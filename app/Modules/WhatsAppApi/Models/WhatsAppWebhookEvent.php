@@ -36,7 +36,8 @@ class WhatsAppWebhookEvent extends Model
 
     public function instance(): BelongsTo
     {
-        return $this->belongsTo(WhatsAppInstance::class, 'instance_id');
+        return $this->belongsTo(WhatsAppInstance::class, 'instance_id')
+            ->where('tenant_id', 1);
     }
 
     public function canReprocess(): bool
@@ -50,5 +51,12 @@ class WhatsAppWebhookEvent extends Model
         }
 
         return $this->provider === 'cloud' && $this->signature_valid === true;
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where($field ?? $this->getRouteKeyName(), $value)
+            ->where('tenant_id', 1)
+            ->firstOrFail();
     }
 }

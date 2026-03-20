@@ -3,6 +3,7 @@
 namespace App\Modules\Payments\Models;
 
 use App\Models\User;
+use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -26,6 +27,7 @@ class PaymentMethod extends Model
     public const TYPE_MANUAL = 'manual';
 
     protected $fillable = [
+        'tenant_id',
         'code',
         'name',
         'type',
@@ -60,6 +62,13 @@ class PaymentMethod extends Model
     public function updater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where($field ?? $this->getRouteKeyName(), $value)
+            ->where('tenant_id', TenantContext::currentId())
+            ->firstOrFail();
     }
 
     public static function salesInputOptions(): array

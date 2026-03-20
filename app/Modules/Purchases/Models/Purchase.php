@@ -25,6 +25,7 @@ class Purchase extends Model
     public const PAYMENT_OVERPAID = 'overpaid';
 
     protected $fillable = [
+        'tenant_id',
         'purchase_number',
         'contact_id',
         'supplier_name_snapshot',
@@ -147,5 +148,12 @@ class Purchase extends Model
             self::STATUS_PARTIAL_RECEIVED,
             self::STATUS_RECEIVED,
         ], true);
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where($field ?? $this->getRouteKeyName(), $value)
+            ->where('tenant_id', 1)
+            ->firstOrFail();
     }
 }

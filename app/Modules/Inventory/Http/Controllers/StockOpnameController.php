@@ -17,6 +17,8 @@ use Illuminate\View\View;
 
 class StockOpnameController extends Controller
 {
+    private const TENANT_ID = 1;
+
     private $stocks;
 
     public function __construct(StockRepository $stocks)
@@ -28,6 +30,7 @@ class StockOpnameController extends Controller
     {
         return view('inventory::opnames.index', [
             'opnames' => StockOpname::query()
+                ->where('tenant_id', self::TENANT_ID)
                 ->with(['location', 'creator', 'finalizer', 'adjustment'])
                 ->latest()
                 ->paginate(15),

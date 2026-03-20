@@ -3,6 +3,7 @@
 namespace App\Modules\SocialMedia\Jobs;
 
 use App\Modules\Conversations\Models\ConversationMessage;
+use App\Support\TenantContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -25,7 +26,10 @@ class SendSocialMessage implements ShouldQueue
 
     public function handle(): void
     {
-        $message = ConversationMessage::with('conversation')->find($this->messageId);
+        $message = ConversationMessage::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->with('conversation')
+            ->find($this->messageId);
         if (!$message || !$message->conversation || $message->conversation->channel !== 'social_dm') {
             return;
         }

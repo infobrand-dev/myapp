@@ -5,6 +5,7 @@ namespace App\Modules\PointOfSale\Models;
 use App\Models\User;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Sales\Models\Sale;
+use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -17,6 +18,7 @@ class PosCashSession extends Model
     protected $table = 'pos_cash_sessions';
 
     protected $fillable = [
+        'tenant_id',
         'code',
         'cashier_user_id',
         'outlet_id',
@@ -81,5 +83,12 @@ class PosCashSession extends Model
     public function isClosed(): bool
     {
         return $this->status === self::STATUS_CLOSED;
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where($field ?? $this->getRouteKeyName(), $value)
+            ->where('tenant_id', TenantContext::currentId())
+            ->firstOrFail();
     }
 }

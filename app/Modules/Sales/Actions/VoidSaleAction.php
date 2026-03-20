@@ -11,10 +11,16 @@ use Illuminate\Validation\ValidationException;
 
 class VoidSaleAction
 {
+    private const TENANT_ID = 1;
+
     public function execute(Sale $sale, array $data, ?User $actor = null): Sale
     {
         $sale = DB::transaction(function () use ($sale, $data, $actor) {
-            $sale = Sale::query()->with('items')->lockForUpdate()->findOrFail($sale->id);
+            $sale = Sale::query()
+                ->where('tenant_id', self::TENANT_ID)
+                ->with('items')
+                ->lockForUpdate()
+                ->findOrFail($sale->id);
 
             if (!$sale->isFinalized()) {
                 throw ValidationException::withMessages([
@@ -51,6 +57,7 @@ class VoidSaleAction
             $snapshot = $sale->load('items')->toArray();
 
             $sale->voidLogs()->create([
+                'tenant_id' => self::TENANT_ID,
                 'status_before' => $statusBefore,
                 'reason' => $reason,
                 'snapshot' => $snapshot,
@@ -58,6 +65,7 @@ class VoidSaleAction
             ]);
 
             $sale->statusHistories()->create([
+                'tenant_id' => self::TENANT_ID,
                 'from_status' => $statusBefore,
                 'to_status' => Sale::STATUS_VOIDED,
                 'event' => 'voided',

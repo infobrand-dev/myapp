@@ -13,14 +13,17 @@ use Illuminate\Support\Facades\DB;
 
 class ProductSampleSeeder extends Seeder
 {
+    private const TENANT_ID = 1;
+
     public function run(): void
     {
         $user = SampleDataUserResolver::resolve();
         $userId = optional($user)->id;
 
         $category = ProductCategory::query()->updateOrCreate(
-            ['slug' => 'minuman-demo'],
+            ['tenant_id' => self::TENANT_ID, 'slug' => 'minuman-demo'],
             [
+                'tenant_id' => self::TENANT_ID,
                 'name' => 'Minuman Demo',
                 'description' => 'Kategori sample data.',
                 'is_active' => true,
@@ -29,8 +32,9 @@ class ProductSampleSeeder extends Seeder
         );
 
         $brand = ProductBrand::query()->updateOrCreate(
-            ['slug' => 'demo-brand'],
+            ['tenant_id' => self::TENANT_ID, 'slug' => 'demo-brand'],
             [
+                'tenant_id' => self::TENANT_ID,
                 'name' => 'Demo Brand',
                 'description' => 'Brand sample data.',
                 'is_active' => true,
@@ -38,8 +42,9 @@ class ProductSampleSeeder extends Seeder
         );
 
         $unit = ProductUnit::query()->updateOrCreate(
-            ['code' => 'PCS'],
+            ['tenant_id' => self::TENANT_ID, 'code' => 'PCS'],
             [
+                'tenant_id' => self::TENANT_ID,
                 'name' => 'Pieces',
                 'description' => 'Unit default sample.',
                 'precision' => 0,
@@ -48,8 +53,9 @@ class ProductSampleSeeder extends Seeder
         );
 
         $product = Product::query()->updateOrCreate(
-            ['sku' => 'DEMO-COFFEE-250'],
+            ['tenant_id' => self::TENANT_ID, 'sku' => 'DEMO-COFFEE-250'],
             [
+                'tenant_id' => self::TENANT_ID,
                 'type' => 'simple',
                 'category_id' => $category->id,
                 'brand_id' => $brand->id,
@@ -69,6 +75,7 @@ class ProductSampleSeeder extends Seeder
         );
 
         $priceLevels = DB::table('product_price_levels')
+            ->where('tenant_id', self::TENANT_ID)
             ->whereIn('code', ['wholesale', 'member'])
             ->pluck('id', 'code');
 
@@ -80,12 +87,14 @@ class ProductSampleSeeder extends Seeder
 
             ProductPrice::query()->updateOrCreate(
                 [
+                    'tenant_id' => self::TENANT_ID,
                     'product_id' => $product->id,
                     'product_variant_id' => null,
                     'product_price_level_id' => $levelId,
                     'minimum_qty' => 1,
                 ],
                 [
+                    'tenant_id' => self::TENANT_ID,
                     'currency_code' => 'IDR',
                     'price' => $price,
                     'is_active' => true,

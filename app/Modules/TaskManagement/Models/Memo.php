@@ -10,6 +10,7 @@ class Memo extends Model
     use HasFactory;
 
     protected $fillable = [
+        'tenant_id',
         'title',
         'company_name',
         'brand_name',

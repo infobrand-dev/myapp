@@ -12,6 +12,7 @@ class StockRepository
     public function paginate(array $filters, int $perPage = 15): LengthAwarePaginator
     {
         $query = StockBalance::query()
+            ->where('tenant_id', $this->tenantId())
             ->with(['product', 'variant', 'location'])
             ->when(!empty($filters['location_id']), fn ($builder) => $builder->where('inventory_location_id', $filters['location_id']))
             ->when(!empty($filters['product_id']), fn ($builder) => $builder->where('product_id', $filters['product_id']))
@@ -51,22 +52,34 @@ class StockRepository
     public function findOrFail(int $id): StockBalance
     {
         return StockBalance::query()
+            ->where('tenant_id', $this->tenantId())
             ->with(['product', 'variant', 'location', 'movements.performer'])
             ->findOrFail($id);
     }
 
     public function locations(): Collection
     {
-        return InventoryLocation::query()->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->get();
+        return InventoryLocation::query()
+            ->where('tenant_id', $this->tenantId())
+            ->where('is_active', true)
+            ->orderByDesc('is_default')
+            ->orderBy('name')
+            ->get();
     }
 
     public function snapshotByLocation(int $locationId): Collection
     {
         return StockBalance::query()
+            ->where('tenant_id', $this->tenantId())
             ->with(['product', 'variant', 'location'])
             ->where('inventory_location_id', $locationId)
             ->orderBy('product_id')
             ->orderBy('product_variant_id')
             ->get();
+    }
+
+    private function tenantId(): int
+    {
+        return 1;
     }
 }

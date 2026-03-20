@@ -10,6 +10,8 @@ use Illuminate\Validation\Rule;
 
 class StoreStockAdjustmentRequest extends FormRequest
 {
+    private const TENANT_ID = 1;
+
     public function authorize(): bool
     {
         $user = $this->user();
@@ -20,14 +22,14 @@ class StoreStockAdjustmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'inventory_location_id' => ['required', 'integer', 'exists:inventory_locations,id'],
+            'inventory_location_id' => ['required', 'integer', Rule::exists('inventory_locations', 'id')->where(fn ($query) => $query->where('tenant_id', self::TENANT_ID))],
             'adjustment_date' => ['required', 'date'],
             'reason_code' => ['required', 'string', 'max:100'],
             'reason_text' => ['required', 'string'],
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
-            'items.*.product_variant_id' => ['nullable', 'integer', 'exists:product_variants,id'],
+            'items.*.product_id' => ['required', 'integer', Rule::exists('products', 'id')->where(fn ($query) => $query->where('tenant_id', self::TENANT_ID))],
+            'items.*.product_variant_id' => ['nullable', 'integer', Rule::exists('product_variants', 'id')->where(fn ($query) => $query->where('tenant_id', self::TENANT_ID))],
             'items.*.direction' => ['required', Rule::in(['in', 'out'])],
             'items.*.quantity' => ['required', 'numeric', 'gt:0'],
             'items.*.notes' => ['nullable', 'string'],
@@ -47,7 +49,9 @@ class StoreStockAdjustmentRequest extends FormRequest
                     continue;
                 }
 
-                $product = Product::query()->find($productId);
+                $product = Product::query()
+                    ->where('tenant_id', self::TENANT_ID)
+                    ->find($productId);
 
                 if (!$product || !$product->track_stock) {
                     $validator->errors()->add("items.$index.product_id", 'Produk non-stockable tidak bisa di-adjust.');
@@ -58,7 +62,9 @@ class StoreStockAdjustmentRequest extends FormRequest
                     continue;
                 }
 
-                $variant = ProductVariant::query()->find($variantId);
+                $variant = ProductVariant::query()
+                    ->where('tenant_id', self::TENANT_ID)
+                    ->find($variantId);
 
                 if (!$variant || (int) $variant->product_id !== $productId) {
                     $validator->errors()->add("items.$index.product_variant_id", 'Variant tidak cocok dengan produk yang dipilih.');
@@ -68,6 +74,19 @@ class StoreStockAdjustmentRequest extends FormRequest
                 if (!$variant->track_stock) {
                     $validator->errors()->add("items.$index.product_variant_id", 'Variant non-stockable tidak bisa di-adjust.');
                 }
+            }
+
+            $locationId = $this->input('inventory_location_id');
+            if (!$locationId) {
+                return;
+            }
+
+            $location = \App\Modules\Inventory\Models\InventoryLocation::query()
+                ->where('tenant_id', self::TENANT_ID)
+                ->find($locationId);
+
+            if (!$location) {
+                $validator->errors()->add('inventory_location_id', 'Lokasi inventory tidak tersedia untuk tenant aktif.');
             }
         });
     }

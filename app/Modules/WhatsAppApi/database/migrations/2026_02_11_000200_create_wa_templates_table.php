@@ -24,6 +24,10 @@ return new class extends Migration
             $table->timestamp('last_submitted_at')->nullable();
             $table->text('last_submit_error')->nullable();
             $table->timestamps();
+
+            $table->index(['tenant_id', 'status', 'name']);
+            $table->index(['tenant_id', 'namespace', 'status']);
+            $table->fullText(['name', 'meta_name', 'body'], 'wa_templates_search_fulltext');
         });
     }
 

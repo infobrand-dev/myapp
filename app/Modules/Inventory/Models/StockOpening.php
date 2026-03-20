@@ -12,6 +12,7 @@ class StockOpening extends Model
     protected $table = 'inventory_stock_openings';
 
     protected $fillable = [
+        'tenant_id',
         'code',
         'inventory_location_id',
         'opening_date',
@@ -42,5 +43,12 @@ class StockOpening extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where($field ?? $this->getRouteKeyName(), $value)
+            ->where('tenant_id', 1)
+            ->firstOrFail();
     }
 }

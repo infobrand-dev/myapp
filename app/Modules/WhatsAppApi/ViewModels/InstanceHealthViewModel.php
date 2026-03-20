@@ -6,9 +6,13 @@ use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 
 class InstanceHealthViewModel
 {
-    public static function summary(): array
+    public static function summary(int $tenantId = 1): array
     {
-        $instances = WhatsAppInstance::orderBy('name')->get();
+        $instances = WhatsAppInstance::query()
+            ->where('tenant_id', $tenantId)
+            ->orderBy('name')
+            ->get();
+
         return [
             'total' => $instances->count(),
             'connected' => $instances->where('status', 'connected')->count(),

@@ -10,18 +10,28 @@ use Illuminate\Support\Facades\DB;
 
 class SendStockTransferAction
 {
+    private const TENANT_ID = 1;
+
     public function __construct(private readonly StockMutationService $mutationService)
     {
     }
 
     public function execute(StockTransfer $transfer, ?User $actor = null): StockTransfer
     {
+        $transfer = StockTransfer::query()
+            ->where('tenant_id', self::TENANT_ID)
+            ->findOrFail($transfer->id);
+
         if (!in_array($transfer->status, ['approved', 'draft'], true)) {
             throw new DomainException('Transfer hanya bisa dikirim dari status draft atau approved.');
         }
 
         return DB::transaction(function () use ($transfer, $actor) {
-            $transfer->loadMissing('items');
+            $transfer = StockTransfer::query()
+                ->where('tenant_id', self::TENANT_ID)
+                ->with('items')
+                ->lockForUpdate()
+                ->findOrFail($transfer->id);
 
             foreach ($transfer->items as $item) {
                 $movement = $this->mutationService->record([

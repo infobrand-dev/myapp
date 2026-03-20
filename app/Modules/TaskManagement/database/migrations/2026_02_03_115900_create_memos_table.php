@@ -22,6 +22,12 @@ return new class extends Migration {
             $table->string('account_executive')->nullable();
             $table->text('note')->nullable();
             $table->timestamps();
+
+            $table->index(['tenant_id', 'deadline', 'created_at']);
+            $table->fullText(
+                ['title', 'company_name', 'brand_name', 'contact_name', 'job_title', 'account_executive', 'note'],
+                'memos_search_fulltext'
+            );
         });
     }
 

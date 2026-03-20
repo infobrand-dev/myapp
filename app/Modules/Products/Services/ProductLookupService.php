@@ -6,29 +6,49 @@ use App\Modules\Products\Models\ProductBrand;
 use App\Modules\Products\Models\ProductCategory;
 use App\Modules\Products\Models\ProductPriceLevel;
 use App\Modules\Products\Models\ProductUnit;
+use DomainException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 class ProductLookupService
 {
+    private const TENANT_ID = 1;
+
     public function categories(): Collection
     {
-        return ProductCategory::query()->where('is_active', true)->orderBy('name')->get();
+        return ProductCategory::query()
+            ->where('tenant_id', self::TENANT_ID)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
     }
 
     public function brands(): Collection
     {
-        return ProductBrand::query()->where('is_active', true)->orderBy('name')->get();
+        return ProductBrand::query()
+            ->where('tenant_id', self::TENANT_ID)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
     }
 
     public function units(): Collection
     {
-        return ProductUnit::query()->where('is_active', true)->orderBy('name')->get();
+        return ProductUnit::query()
+            ->where('tenant_id', self::TENANT_ID)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
     }
 
     public function priceLevels(): Collection
     {
-        return ProductPriceLevel::query()->where('is_active', true)->orderBy('sort_order')->orderBy('name')->get();
+        return ProductPriceLevel::query()
+            ->where('tenant_id', self::TENANT_ID)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
     }
 
     public function resolveLookupIds(array $data): array
@@ -67,6 +87,10 @@ class ProductLookupService
     private function resolveCategoryId($categoryId, $newCategoryName): ?int
     {
         if ($categoryId) {
+            if (!ProductCategory::query()->where('tenant_id', self::TENANT_ID)->find($categoryId)) {
+                throw new DomainException('Kategori produk tidak tersedia untuk tenant aktif.');
+            }
+
             return (int) $categoryId;
         }
 
@@ -76,8 +100,8 @@ class ProductLookupService
         }
 
         $category = ProductCategory::query()->firstOrCreate(
-            ['slug' => Str::slug($name)],
-            ['name' => $name, 'is_active' => true]
+            ['tenant_id' => self::TENANT_ID, 'slug' => Str::slug($name)],
+            ['tenant_id' => self::TENANT_ID, 'name' => $name, 'is_active' => true]
         );
 
         return (int) $category->id;
@@ -86,6 +110,10 @@ class ProductLookupService
     private function resolveBrandId($brandId, $newBrandName): ?int
     {
         if ($brandId) {
+            if (!ProductBrand::query()->where('tenant_id', self::TENANT_ID)->find($brandId)) {
+                throw new DomainException('Brand produk tidak tersedia untuk tenant aktif.');
+            }
+
             return (int) $brandId;
         }
 
@@ -95,8 +123,8 @@ class ProductLookupService
         }
 
         $brand = ProductBrand::query()->firstOrCreate(
-            ['slug' => Str::slug($name)],
-            ['name' => $name, 'is_active' => true]
+            ['tenant_id' => self::TENANT_ID, 'slug' => Str::slug($name)],
+            ['tenant_id' => self::TENANT_ID, 'name' => $name, 'is_active' => true]
         );
 
         return (int) $brand->id;
@@ -105,6 +133,10 @@ class ProductLookupService
     private function resolveUnitId($unitId, $newUnitName, $newUnitCode): ?int
     {
         if ($unitId) {
+            if (!ProductUnit::query()->where('tenant_id', self::TENANT_ID)->find($unitId)) {
+                throw new DomainException('Unit produk tidak tersedia untuk tenant aktif.');
+            }
+
             return (int) $unitId;
         }
 
@@ -119,8 +151,8 @@ class ProductLookupService
         }
 
         $unit = ProductUnit::query()->firstOrCreate(
-            ['code' => Str::upper($code)],
-            ['name' => $name, 'is_active' => true]
+            ['tenant_id' => self::TENANT_ID, 'code' => Str::upper($code)],
+            ['tenant_id' => self::TENANT_ID, 'name' => $name, 'is_active' => true]
         );
 
         return (int) $unit->id;

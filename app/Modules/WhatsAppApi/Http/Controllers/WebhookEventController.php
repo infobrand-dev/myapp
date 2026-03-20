@@ -20,10 +20,12 @@ class WebhookEventController extends Controller
         ];
 
         $instances = WhatsAppInstance::query()
+            ->where('tenant_id', $this->tenantId())
             ->orderBy('name')
             ->get(['id', 'name']);
 
         $events = WhatsAppWebhookEvent::query()
+            ->where('tenant_id', $this->tenantId())
             ->with('instance:id,name')
             ->when($filters['instance_id'], fn ($q, $instanceId) => $q->where('instance_id', $instanceId))
             ->when($filters['provider'], fn ($q, $provider) => $q->where('provider', $provider))
@@ -37,12 +39,17 @@ class WebhookEventController extends Controller
             ->withQueryString();
 
         $summary = [
-            'failed' => WhatsAppWebhookEvent::query()->where('process_status', 'failed')->count(),
-            'ignored' => WhatsAppWebhookEvent::query()->where('process_status', 'ignored')->count(),
-            'pending' => WhatsAppWebhookEvent::query()->where('process_status', 'pending')->count(),
-            'invalid_signature' => WhatsAppWebhookEvent::query()->where('signature_valid', false)->count(),
+            'failed' => WhatsAppWebhookEvent::query()->where('tenant_id', $this->tenantId())->where('process_status', 'failed')->count(),
+            'ignored' => WhatsAppWebhookEvent::query()->where('tenant_id', $this->tenantId())->where('process_status', 'ignored')->count(),
+            'pending' => WhatsAppWebhookEvent::query()->where('tenant_id', $this->tenantId())->where('process_status', 'pending')->count(),
+            'invalid_signature' => WhatsAppWebhookEvent::query()->where('tenant_id', $this->tenantId())->where('signature_valid', false)->count(),
         ];
 
         return view('whatsappapi::webhook-events.index', compact('events', 'instances', 'filters', 'summary'));
+    }
+
+    private function tenantId(): int
+    {
+        return 1;
     }
 }

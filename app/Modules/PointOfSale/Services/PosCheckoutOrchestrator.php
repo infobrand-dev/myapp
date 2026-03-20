@@ -12,6 +12,7 @@ use App\Modules\Sales\Actions\CreateDraftSaleAction;
 use App\Modules\Sales\Actions\FinalizeSaleAction;
 use App\Modules\Sales\Actions\UpdateDraftSaleAction;
 use App\Modules\Sales\Models\Sale;
+use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -42,7 +43,11 @@ class PosCheckoutOrchestrator
         $cart = DB::transaction(function () use ($user) {
             $cart = $this->cartService->activeCartFor($user);
 
-            return PosCart::query()->with(['items', 'contact'])->lockForUpdate()->findOrFail($cart->id);
+            return PosCart::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->with(['items', 'contact'])
+                ->lockForUpdate()
+                ->findOrFail($cart->id);
         });
 
         if ($cart->items->isEmpty()) {
@@ -113,6 +118,7 @@ class PosCheckoutOrchestrator
     private function createOrUpdateDraftSale(array $payload, User $user): Sale
     {
         $existing = Sale::query()
+            ->where('tenant_id', TenantContext::currentId())
             ->where('source', Sale::SOURCE_POS)
             ->where('external_reference', $payload['external_reference'])
             ->first();
@@ -138,6 +144,7 @@ class PosCheckoutOrchestrator
             $externalReference = $sale->sale_number . '-POS-' . ($index + 1);
 
             $existing = Payment::query()
+                ->where('tenant_id', TenantContext::currentId())
                 ->with('method')
                 ->where('source', Payment::SOURCE_POS)
                 ->where('external_reference', $externalReference)
@@ -230,6 +237,7 @@ class PosCheckoutOrchestrator
             : PaymentMethod::fromSalesInput($normalized);
 
         $method = PaymentMethod::query()
+            ->where('tenant_id', TenantContext::currentId())
             ->where('code', $code)
             ->where('is_active', true)
             ->first();
@@ -266,6 +274,7 @@ class PosCheckoutOrchestrator
     private function resolveActiveShift(User $user, PosCart $cart): PosCashSession
     {
         $shift = PosCashSession::query()
+            ->where('tenant_id', TenantContext::currentId())
             ->where('cashier_user_id', $user->id)
             ->where('status', PosCashSession::STATUS_ACTIVE)
             ->latest('opened_at')

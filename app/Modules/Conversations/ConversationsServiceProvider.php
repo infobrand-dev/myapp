@@ -13,6 +13,7 @@ use App\Modules\Conversations\Services\ConversationAccessManager;
 use App\Modules\Conversations\Services\ConversationChannelRegistry;
 use App\Modules\Conversations\Services\ConversationOutboundRegistry;
 use App\Support\HookManager;
+use App\Support\TenantContext;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\DB;
@@ -47,6 +48,7 @@ class ConversationsServiceProvider extends ServiceProvider
         Broadcast::channel('conversations.{conversationId}', function ($user, $conversationId) {
             $conversation = Conversation::query()
                 ->select(['id', 'owner_id', 'channel', 'instance_id'])
+                ->where('tenant_id', TenantContext::currentId())
                 ->find((int) $conversationId);
 
             if (!$conversation) {
@@ -62,6 +64,7 @@ class ConversationsServiceProvider extends ServiceProvider
             }
 
             $isParticipant = DB::table('conversation_participants')
+                ->where('tenant_id', TenantContext::currentId())
                 ->where('conversation_id', (int) $conversation->id)
                 ->where('user_id', (int) $user->id)
                 ->exists();
@@ -95,7 +98,7 @@ class ConversationsServiceProvider extends ServiceProvider
                 return '';
             }
 
-            $baseQuery = Conversation::query();
+            $baseQuery = Conversation::query()->where('tenant_id', TenantContext::currentId());
 
             if (!$user->hasAnyRole(['Super-admin', 'Admin'])) {
                 $baseQuery->where(function ($query) use ($user): void {
@@ -138,7 +141,9 @@ class ConversationsServiceProvider extends ServiceProvider
             return 0;
         }
 
-        $query = Conversation::query()->where('unread_count', '>', 0);
+        $query = Conversation::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('unread_count', '>', 0);
         $authUser = auth()->user();
 
         if (!$authUser->hasRole('Super-admin')) {

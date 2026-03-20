@@ -13,6 +13,7 @@ class PurchaseReceipt extends Model
     public const STATUS_POSTED = 'posted';
 
     protected $fillable = [
+        'tenant_id',
         'purchase_id',
         'receipt_number',
         'inventory_location_id',

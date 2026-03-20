@@ -14,6 +14,7 @@ use App\Modules\Conversations\Models\ConversationActivityLog;
 use App\Modules\Conversations\Events\ConversationMessageCreated;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Contacts\Support\ContactPhoneNormalizer;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,11 +23,14 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Throwable;
 
 class ConversationHubController extends Controller
 {
+    private const TENANT_ID = 1;
+
     public function start(Request $request): RedirectResponse
     {
         $request->validate([
@@ -51,18 +55,16 @@ class ConversationHubController extends Controller
         $pair = collect([$me->id, $otherId])->sort()->implode('-');
         $contactKey = 'internal-' . $pair;
 
-        // Backward compatible lookup for historical rows that may still use NULL instance_id.
         $conversation = Conversation::query()
+            ->where('tenant_id', $this->tenantId())
             ->where('channel', 'internal')
             ->where('contact_external_id', $contactKey)
-            ->where(function ($q) {
-                $q->whereNull('instance_id')
-                    ->orWhere('instance_id', 0);
-            })
+            ->where('instance_id', 0)
             ->first();
 
         if (!$conversation) {
             $conversation = Conversation::create([
+                'tenant_id' => $this->tenantId(),
                 'channel' => 'internal',
                 'instance_id' => 0,
                 'contact_external_id' => $contactKey,
@@ -73,11 +75,11 @@ class ConversationHubController extends Controller
         }
 
         ConversationParticipant::firstOrCreate(
-            ['conversation_id' => $conversation->id, 'user_id' => $me->id],
+            ['tenant_id' => $this->tenantId(), 'conversation_id' => $conversation->id, 'user_id' => $me->id],
             ['role' => 'owner', 'invited_at' => now(), 'invited_by' => $me->id]
         );
         ConversationParticipant::firstOrCreate(
-            ['conversation_id' => $conversation->id, 'user_id' => $otherId],
+            ['tenant_id' => $this->tenantId(), 'conversation_id' => $conversation->id, 'user_id' => $otherId],
             ['role' => 'collaborator', 'invited_at' => now(), 'invited_by' => $me->id]
         );
 
@@ -130,6 +132,7 @@ class ConversationHubController extends Controller
         $conversation->load(['owner', 'participants.user']);
 
         $initialMessages = ConversationMessage::query()
+            ->where('tenant_id', $this->tenantId())
             ->with('user:id,name,avatar')
             ->where('conversation_id', $conversation->id)
             ->orderByDesc('created_at')
@@ -237,11 +240,13 @@ class ConversationHubController extends Controller
         $limit = max(10, min(50, $limit));
 
         $query = ConversationMessage::query()
+            ->where('tenant_id', $this->tenantId())
             ->with('user:id,name,avatar')
             ->where('conversation_id', $conversation->id);
 
         if ($beforeId > 0) {
             $anchor = ConversationMessage::query()
+                ->where('tenant_id', $this->tenantId())
                 ->where('conversation_id', $conversation->id)
                 ->find($beforeId);
 
@@ -301,11 +306,13 @@ class ConversationHubController extends Controller
         $limit = max(5, min(50, $limit));
 
         $query = ConversationMessage::query()
+            ->where('tenant_id', $this->tenantId())
             ->with('user:id,name,avatar')
             ->where('conversation_id', $conversation->id);
 
         if ($afterId > 0) {
             $anchor = ConversationMessage::query()
+                ->where('tenant_id', $this->tenantId())
                 ->where('conversation_id', $conversation->id)
                 ->find($afterId);
 
@@ -348,6 +355,7 @@ class ConversationHubController extends Controller
 
         DB::transaction(function () use ($conversation, $user, $lockMinutes, $now, &$lockedByOther) {
             $current = Conversation::query()
+                ->where('tenant_id', $this->tenantId())
                 ->whereKey($conversation->id)
                 ->lockForUpdate()
                 ->first();
@@ -374,7 +382,7 @@ class ConversationHubController extends Controller
             ]);
 
             ConversationParticipant::updateOrCreate(
-                ['conversation_id' => $current->id, 'user_id' => $user->id],
+                ['tenant_id' => $this->tenantId(), 'conversation_id' => $current->id, 'user_id' => $user->id],
                 ['role' => 'owner', 'invited_at' => $now, 'invited_by' => $user->id]
             );
 
@@ -432,7 +440,7 @@ class ConversationHubController extends Controller
         $role = $data['role'] ?? 'collaborator';
 
         ConversationParticipant::updateOrCreate(
-            ['conversation_id' => $conversation->id, 'user_id' => $invitee->id],
+            ['tenant_id' => $this->tenantId(), 'conversation_id' => $conversation->id, 'user_id' => $invitee->id],
             ['role' => $role, 'invited_at' => now(), 'invited_by' => $user->id, 'left_at' => null]
         );
 
@@ -536,12 +544,18 @@ class ConversationHubController extends Controller
             }
 
             $data = $request->validate([
-                'template_id' => ['required', 'exists:wa_templates,id'],
+                'template_id' => ['required', Rule::exists('wa_templates', 'id')->where(fn ($query) => $query->where('tenant_id', $this->tenantId()))],
                 'template_params' => ['array'],
                 'template_params.*' => ['nullable', 'string', 'max:250'],
             ]);
 
-            $template = $this->waTemplateModelClass()::find($data['template_id']);
+            if (!$this->waTemplateModelClass()::query()->where('tenant_id', $this->tenantId())->find($data['template_id'])) {
+                return $this->sendErrorResponse($request, 'Template tidak ditemukan untuk tenant aktif.');
+            }
+
+            $template = $this->waTemplateModelClass()::query()
+                ->where('tenant_id', $this->tenantId())
+                ->find($data['template_id']);
             if (!$template) {
                 return $this->sendErrorResponse($request, 'Template tidak ditemukan.');
             }
@@ -555,6 +569,7 @@ class ConversationHubController extends Controller
             }
 
             $message = ConversationMessage::create([
+                'tenant_id' => $this->tenantId(),
                 'conversation_id' => $conversation->id,
                 'user_id' => $user->id,
                 'direction' => 'out',
@@ -597,6 +612,7 @@ class ConversationHubController extends Controller
 
             $outboundDefaults = app(ConversationChannelManager::class)->outboundPersistenceDefaults($conversation);
             $message = ConversationMessage::create([
+                'tenant_id' => $this->tenantId(),
                 'conversation_id' => $conversation->id,
                 'user_id' => $user->id,
                 'direction' => 'out',
@@ -623,6 +639,7 @@ class ConversationHubController extends Controller
 
             $outboundDefaults = app(ConversationChannelManager::class)->outboundPersistenceDefaults($conversation);
             $message = ConversationMessage::create([
+                'tenant_id' => $this->tenantId(),
                 'conversation_id' => $conversation->id,
                 'user_id' => $user->id,
                 'direction' => 'out',
@@ -711,6 +728,7 @@ class ConversationHubController extends Controller
     private function hasOlderMessages(Conversation $conversation, int $oldestMessageId): bool
     {
         $anchor = ConversationMessage::query()
+            ->where('tenant_id', $this->tenantId())
             ->where('conversation_id', $conversation->id)
             ->find($oldestMessageId);
 
@@ -719,6 +737,7 @@ class ConversationHubController extends Controller
         }
 
         return ConversationMessage::query()
+            ->where('tenant_id', $this->tenantId())
             ->where('conversation_id', $conversation->id)
             ->where(function ($query) use ($anchor): void {
                 $query->where('created_at', '<', $anchor->created_at)
@@ -777,6 +796,7 @@ class ConversationHubController extends Controller
         }
 
         return $query
+            ->where('tenant_id', $this->tenantId())
             ->when(!$user->hasRole('Super-admin'), function ($query) use ($user) {
                 $query->where(function ($q) use ($user) {
                 $q->where('owner_id', $user->id)
@@ -789,6 +809,7 @@ class ConversationHubController extends Controller
     private function log(Conversation $conversation, ?int $userId, string $action, ?string $detail = null): void
     {
         ConversationActivityLog::create([
+            'tenant_id' => $this->tenantId(),
             'conversation_id' => $conversation->id,
             'user_id' => $userId,
             'action' => $action,
@@ -894,6 +915,7 @@ class ConversationHubController extends Controller
         }
 
         return Contact::query()
+            ->where('tenant_id', $this->tenantId())
             ->where(function ($query) use ($phone) {
                 $query->where('mobile', $phone)
                     ->orWhere('phone', $phone);
@@ -958,6 +980,11 @@ class ConversationHubController extends Controller
                 'broadcast_driver' => (string) config('broadcasting.default'),
             ]);
         }
+    }
+
+    private function tenantId(): int
+    {
+        return TenantContext::currentId();
     }
 }
 

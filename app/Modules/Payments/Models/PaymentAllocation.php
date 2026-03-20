@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 class PaymentAllocation extends Model
 {
     protected $fillable = [
+        'tenant_id',
         'payment_id',
         'payable_type',
         'payable_id',

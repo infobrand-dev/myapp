@@ -16,6 +16,7 @@ class FinanceCategory extends Model
     protected $table = 'finance_categories';
 
     protected $fillable = [
+        'tenant_id',
         'name',
         'slug',
         'transaction_type',
@@ -42,5 +43,12 @@ class FinanceCategory extends Model
     public function updater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where($field ?? $this->getRouteKeyName(), $value)
+            ->where('tenant_id', 1)
+            ->firstOrFail();
     }
 }

@@ -8,8 +8,14 @@ use DomainException;
 
 class ApproveStockTransferAction
 {
+    private const TENANT_ID = 1;
+
     public function execute(StockTransfer $transfer, ?User $actor = null): StockTransfer
     {
+        $transfer = StockTransfer::query()
+            ->where('tenant_id', self::TENANT_ID)
+            ->findOrFail($transfer->id);
+
         if ($transfer->status !== 'draft') {
             throw new DomainException('Hanya transfer draft yang bisa di-approve.');
         }

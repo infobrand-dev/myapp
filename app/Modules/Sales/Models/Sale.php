@@ -30,6 +30,7 @@ class Sale extends Model
     public const SOURCE_API = 'api';
 
     protected $fillable = [
+        'tenant_id',
         'sale_number',
         'external_reference',
         'idempotency_payload_hash',
@@ -150,5 +151,12 @@ class Sale extends Model
     public function isFinalized(): bool
     {
         return $this->status === self::STATUS_FINALIZED;
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where($field ?? $this->getRouteKeyName(), $value)
+            ->where('tenant_id', 1)
+            ->firstOrFail();
     }
 }

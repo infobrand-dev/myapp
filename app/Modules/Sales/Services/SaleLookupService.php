@@ -11,9 +11,12 @@ use Illuminate\Support\Collection;
 
 class SaleLookupService
 {
+    private const TENANT_ID = 1;
+
     public function customers(): Collection
     {
         return Contact::query()
+            ->where('tenant_id', self::TENANT_ID)
             ->where('is_active', true)
             ->orderBy('name')
             ->get();

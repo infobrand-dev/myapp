@@ -12,11 +12,28 @@ use Illuminate\View\View;
 
 class MemoController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $memos = Memo::withCount(['tasks as done_tasks_count' => function ($q) {
-            $q->where('status', 'done');
-        }, 'tasks'])->latest()->paginate(10);
+        $search = trim((string) $request->query('search', ''));
+
+        $memos = Memo::query()
+            ->where('tenant_id', $this->tenantId())
+            ->withCount(['tasks as done_tasks_count' => function ($q) {
+                $q->where('status', 'done');
+            }, 'tasks'])
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($inner) use ($search) {
+                    $inner->whereFullText(
+                        ['title', 'company_name', 'brand_name', 'contact_name', 'job_title', 'account_executive', 'note'],
+                        $search
+                    )->orWhere('phone', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('deadline')
+            ->orderByDesc('created_at')
+            ->paginate(10)
+            ->withQueryString();
 
         return view('taskmgmt::memos.index', compact('memos'));
     }
@@ -32,7 +49,10 @@ class MemoController extends Controller
         $data = $this->validated($request);
         $tasksData = $this->tasksFromRequest($request);
 
-        $memo = Memo::create($data);
+        $memo = Memo::create([
+            ...$data,
+            'tenant_id' => $this->tenantId(),
+        ]);
         $this->syncTasks($memo, $tasksData, $request->user()->id);
 
         return redirect()->route('memos.index')->with('status', 'Memo created');
@@ -105,6 +125,7 @@ class MemoController extends Controller
     {
         foreach ($tasksData as $t) {
             $task = $memo->tasks()->create([
+                'tenant_id' => $this->tenantId(),
                 'title' => $t['title'],
                 'description' => $t['description'] ?? null,
                 'due_date' => $t['due_date'] ?? null,
@@ -113,6 +134,7 @@ class MemoController extends Controller
             ]);
             foreach ($t['subtasks'] ?? [] as $sub) {
                 $task->subtasks()->create([
+                    'tenant_id' => $this->tenantId(),
                     'title' => $sub['title'],
                     'pic' => $sub['pic'] ?? null,
                     'due_date' => $sub['due_date'] ?? null,
@@ -142,5 +164,10 @@ class MemoController extends Controller
         ]);
         $subtask->update($data);
         return back()->with('status', 'Subtask updated');
+    }
+
+    private function tenantId(): int
+    {
+        return 1;
     }
 }

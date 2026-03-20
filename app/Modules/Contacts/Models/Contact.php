@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Contact extends Model
 {
     protected $fillable = [
+        'tenant_id',
         'type',
         'company_id',
         'name',
@@ -37,12 +38,14 @@ class Contact extends Model
 
     public function company(): BelongsTo
     {
-        return $this->belongsTo(Contact::class, 'company_id');
+        return $this->belongsTo(Contact::class, 'company_id')
+            ->where('tenant_id', 1);
     }
 
     public function employees(): HasMany
     {
-        return $this->hasMany(Contact::class, 'company_id');
+        return $this->hasMany(Contact::class, 'company_id')
+            ->where('tenant_id', 1);
     }
 
     public function setPhoneAttribute($value): void
@@ -58,5 +61,12 @@ class Contact extends Model
     public function whatsappPhoneNumber(): ?string
     {
         return ContactPhoneNormalizer::normalize($this->mobile ?: $this->phone);
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where($field ?? $this->getRouteKeyName(), $value)
+            ->where('tenant_id', 1)
+            ->firstOrFail();
     }
 }

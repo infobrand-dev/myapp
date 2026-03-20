@@ -49,10 +49,16 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['tenant_id', 'purchase_number']);
-            $table->index(['status', 'purchase_date']);
-            $table->index(['payment_status', 'purchase_date']);
-            $table->index(['contact_id', 'purchase_date']);
-            $table->index(['supplier_invoice_number']);
+            $table->index(['tenant_id', 'status', 'purchase_date']);
+            $table->index(['tenant_id', 'payment_status', 'purchase_date']);
+            $table->index(['tenant_id', 'contact_id', 'purchase_date']);
+            $table->index(['tenant_id', 'created_by', 'purchase_date']);
+            $table->index(['tenant_id', 'supplier_invoice_number']);
+            $table->index(['tenant_id', 'supplier_reference']);
+            $table->fullText(
+                ['supplier_name_snapshot', 'supplier_notes', 'notes', 'internal_notes'],
+                'purchases_search_fulltext'
+            );
         });
     }
 

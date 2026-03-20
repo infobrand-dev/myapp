@@ -37,6 +37,8 @@ return new class extends Migration
             $table->unique(['tenant_id', 'barcode']);
             $table->index(['type', 'is_active']);
             $table->index(['category_id', 'brand_id']);
+            $table->index(['tenant_id', 'is_active', 'created_at']);
+            $table->fullText(['name', 'description'], 'products_search_fulltext');
         });
     }
 

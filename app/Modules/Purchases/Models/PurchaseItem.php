@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class PurchaseItem extends Model
 {
     protected $fillable = [
+        'tenant_id',
         'purchase_id',
         'line_no',
         'product_id',

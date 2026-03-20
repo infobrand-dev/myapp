@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\Payments\Services\PaymentNumberService;
+use App\Support\TenantContext;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -13,6 +14,7 @@ use Illuminate\Validation\ValidationException;
 
 class CreatePaymentAction
 {
+
     private $numberService;
     private $validatePayableTransaction;
     private $recalculatePaymentSummary;
@@ -33,6 +35,7 @@ class CreatePaymentAction
             $paidAt = !empty($data['paid_at']) ? Carbon::parse($data['paid_at']) : now();
 
             $method = PaymentMethod::query()
+                ->where('tenant_id', TenantContext::currentId())
                 ->whereKey($data['payment_method_id'])
                 ->where('is_active', true)
                 ->first();
@@ -75,6 +78,7 @@ class CreatePaymentAction
             }
 
             $payment = Payment::query()->create([
+                'tenant_id' => TenantContext::currentId(),
                 'payment_number' => $this->numberService->nextNumber($paidAt),
                 'payment_method_id' => $method->id,
                 'amount' => $paymentAmount,
@@ -100,6 +104,7 @@ class CreatePaymentAction
                 );
 
                 $payment->allocations()->create([
+                    'tenant_id' => TenantContext::currentId(),
                     'payable_type' => $payable->getMorphClass(),
                     'payable_id' => $payable->getKey(),
                     'allocation_order' => $index + 1,
@@ -111,6 +116,7 @@ class CreatePaymentAction
             });
 
             $payment->statusLogs()->create([
+                'tenant_id' => TenantContext::currentId(),
                 'from_status' => null,
                 'to_status' => Payment::STATUS_POSTED,
                 'event' => 'created',

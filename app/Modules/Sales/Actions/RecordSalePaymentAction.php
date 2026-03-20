@@ -12,6 +12,8 @@ use Illuminate\Validation\ValidationException;
 
 class RecordSalePaymentAction
 {
+    private const TENANT_ID = 1;
+
     private $syncPaymentSummary;
 
     public function __construct(SyncSalePaymentSummaryAction $syncPaymentSummary)
@@ -22,7 +24,7 @@ class RecordSalePaymentAction
     public function execute(Sale $sale, array $data, ?User $actor = null): Payment
     {
         return DB::transaction(function () use ($sale, $data, $actor) {
-            $sale = Sale::query()->lockForUpdate()->findOrFail($sale->id);
+            $sale = Sale::query()->where('tenant_id', self::TENANT_ID)->lockForUpdate()->findOrFail($sale->id);
 
             if (!$sale->isFinalized()) {
                 throw ValidationException::withMessages([

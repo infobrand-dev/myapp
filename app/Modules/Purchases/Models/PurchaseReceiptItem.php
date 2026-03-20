@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class PurchaseReceiptItem extends Model
 {
     protected $fillable = [
+        'tenant_id',
         'purchase_receipt_id',
         'purchase_item_id',
         'product_id',

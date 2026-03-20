@@ -24,6 +24,7 @@ class MessageLogController extends Controller
         ];
 
         $instances = WhatsAppInstance::query()
+            ->where('tenant_id', $this->tenantId())
             ->orderBy('name')
             ->get(['id', 'name']);
 
@@ -38,8 +39,9 @@ class MessageLogController extends Controller
         ];
 
         $messages = ConversationMessage::query()
+            ->where('tenant_id', $this->tenantId())
             ->with(['conversation.instance', 'user'])
-            ->whereHas('conversation', fn ($q) => $q->where('channel', 'wa_api'))
+            ->whereHas('conversation', fn ($q) => $q->where('tenant_id', $this->tenantId())->where('channel', 'wa_api'))
             ->when($filters['instance_id'], fn ($q, $instanceId) => $q->whereHas('conversation', fn ($cq) => $cq->where('instance_id', $instanceId)))
             ->when($filters['status'], fn ($q, $status) => $q->where('status', $status))
             ->when($filters['direction'], fn ($q, $direction) => $q->where('direction', $direction))
@@ -51,19 +53,23 @@ class MessageLogController extends Controller
 
         $summary = [
             'queued' => ConversationMessage::query()
-                ->whereHas('conversation', fn ($q) => $q->where('channel', 'wa_api'))
+                ->where('tenant_id', $this->tenantId())
+                ->whereHas('conversation', fn ($q) => $q->where('tenant_id', $this->tenantId())->where('channel', 'wa_api'))
                 ->where('status', 'queued')
                 ->count(),
             'retryable' => ConversationMessage::query()
-                ->whereHas('conversation', fn ($q) => $q->where('channel', 'wa_api'))
+                ->where('tenant_id', $this->tenantId())
+                ->whereHas('conversation', fn ($q) => $q->where('tenant_id', $this->tenantId())->where('channel', 'wa_api'))
                 ->whereIn('status', ['error', 'error_retryable'])
                 ->count(),
             'permanent' => ConversationMessage::query()
-                ->whereHas('conversation', fn ($q) => $q->where('channel', 'wa_api'))
+                ->where('tenant_id', $this->tenantId())
+                ->whereHas('conversation', fn ($q) => $q->where('tenant_id', $this->tenantId())->where('channel', 'wa_api'))
                 ->where('status', 'error_permanent')
                 ->count(),
             'delivered' => ConversationMessage::query()
-                ->whereHas('conversation', fn ($q) => $q->where('channel', 'wa_api'))
+                ->where('tenant_id', $this->tenantId())
+                ->whereHas('conversation', fn ($q) => $q->where('tenant_id', $this->tenantId())->where('channel', 'wa_api'))
                 ->whereIn('status', ['delivered', 'read'])
                 ->count(),
         ];
@@ -80,9 +86,10 @@ class MessageLogController extends Controller
         ]);
 
         $query = ConversationMessage::query()
+            ->where('tenant_id', $this->tenantId())
             ->where('direction', 'out')
             ->whereIn('status', ['error', 'error_retryable'])
-            ->whereHas('conversation', fn ($q) => $q->where('channel', 'wa_api'));
+            ->whereHas('conversation', fn ($q) => $q->where('tenant_id', $this->tenantId())->where('channel', 'wa_api'));
 
         if (!empty($data['instance_id'])) {
             $instanceId = (int) $data['instance_id'];
@@ -120,6 +127,7 @@ class MessageLogController extends Controller
     public function requeue(ConversationMessage $message): RedirectResponse
     {
         $conversation = Conversation::query()
+            ->where('tenant_id', $this->tenantId())
             ->whereKey($message->conversation_id)
             ->where('channel', 'wa_api')
             ->first();
@@ -143,5 +151,10 @@ class MessageLogController extends Controller
         SendWhatsAppMessage::dispatch($message->id);
 
         return back()->with('status', 'Pesan berhasil di-requeue.');
+    }
+
+    private function tenantId(): int
+    {
+        return 1;
     }
 }

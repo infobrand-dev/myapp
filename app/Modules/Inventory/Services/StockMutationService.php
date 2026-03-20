@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\DB;
 
 class StockMutationService
 {
+    private const TENANT_ID = 1;
+
     public function record(array $payload): StockMovement
     {
         return DB::transaction(function () use ($payload) {
@@ -36,6 +38,7 @@ class StockMutationService
             $stock->save();
 
             return StockMovement::query()->create([
+                'tenant_id' => self::TENANT_ID,
                 'stock_key' => $stock->stock_key,
                 'inventory_stock_id' => $stock->id,
                 'product_id' => $product->id,
@@ -213,7 +216,9 @@ class StockMutationService
             return null;
         }
 
-        $variant = ProductVariant::query()->findOrFail($variantId);
+        $variant = ProductVariant::query()
+            ->where('tenant_id', self::TENANT_ID)
+            ->findOrFail($variantId);
         if ((int) $variant->product_id !== (int) $product->id) {
             throw new DomainException('Variant tidak cocok dengan produk.');
         }
@@ -232,9 +237,13 @@ class StockMutationService
 
     private function lockStock(array $payload): array
     {
-        $product = Product::query()->findOrFail($payload['product_id']);
+        $product = Product::query()
+            ->where('tenant_id', self::TENANT_ID)
+            ->findOrFail($payload['product_id']);
         $variant = $this->resolveVariant($product, $payload['product_variant_id'] ?? null);
-        $location = InventoryLocation::query()->findOrFail($payload['inventory_location_id']);
+        $location = InventoryLocation::query()
+            ->where('tenant_id', self::TENANT_ID)
+            ->findOrFail($payload['inventory_location_id']);
 
         if (!$product->track_stock) {
             throw new DomainException('Produk non-stockable tidak dapat diproses oleh Inventory.');
@@ -245,10 +254,15 @@ class StockMutationService
         }
 
         $stockKey = $this->stockKey($product->id, $variant?->id, $location->id);
-        $stock = StockBalance::query()->where('stock_key', $stockKey)->lockForUpdate()->first();
+        $stock = StockBalance::query()
+            ->where('tenant_id', self::TENANT_ID)
+            ->where('stock_key', $stockKey)
+            ->lockForUpdate()
+            ->first();
 
         if (!$stock) {
             $stock = StockBalance::query()->create([
+                'tenant_id' => self::TENANT_ID,
                 'stock_key' => $stockKey,
                 'product_id' => $product->id,
                 'product_variant_id' => $variant?->id,
@@ -260,7 +274,11 @@ class StockMutationService
                 'allow_negative_stock' => (bool) ($payload['allow_negative_stock'] ?? false),
             ]);
 
-            $stock = StockBalance::query()->whereKey($stock->id)->lockForUpdate()->firstOrFail();
+            $stock = StockBalance::query()
+                ->where('tenant_id', self::TENANT_ID)
+                ->whereKey($stock->id)
+                ->lockForUpdate()
+                ->firstOrFail();
         }
 
         return [$product, $variant, $location, $stock];
@@ -274,6 +292,7 @@ class StockMutationService
         array $payload
     ): StockMovement {
         return StockMovement::query()->create([
+            'tenant_id' => self::TENANT_ID,
             'stock_key' => $stock->stock_key,
             'inventory_stock_id' => $stock->id,
             'product_id' => $product->id,

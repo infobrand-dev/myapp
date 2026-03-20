@@ -8,6 +8,7 @@ use App\Modules\PointOfSale\Http\Requests\StoreReceiptReprintRequest;
 use App\Modules\PointOfSale\Models\PosReceiptReprintLog;
 use App\Modules\PointOfSale\Services\PosCashSessionService;
 use App\Modules\Sales\Models\Sale;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,7 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class ReceiptController extends Controller
 {
+
     private $cashSessionService;
 
     public function __construct(PosCashSessionService $cashSessionService)
@@ -43,6 +45,7 @@ class ReceiptController extends Controller
 
         $reprintLog = DB::transaction(function () use ($request, $sale, $user) {
             $sale = Sale::query()
+                ->where('tenant_id', TenantContext::currentId())
                 ->with('cashSession')
                 ->lockForUpdate()
                 ->findOrFail($sale->id);
@@ -55,6 +58,7 @@ class ReceiptController extends Controller
                 ->count() + 1;
 
             $log = PosReceiptReprintLog::query()->create([
+                'tenant_id' => TenantContext::currentId(),
                 'sale_id' => $sale->id,
                 'pos_cash_session_id' => $sale->pos_cash_session_id,
                 'outlet_id' => $sale->outlet_id,
@@ -70,6 +74,7 @@ class ReceiptController extends Controller
             ]);
 
             $sale->statusHistories()->create([
+                'tenant_id' => TenantContext::currentId(),
                 'from_status' => $sale->status,
                 'to_status' => $sale->status,
                 'event' => 'receipt_reprinted',

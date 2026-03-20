@@ -22,6 +22,9 @@ return new class extends Migration
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
+
+            $table->index(['tenant_id', 'is_active', 'created_at']);
+            $table->fullText('title', 'shortlinks_title_fulltext');
         });
     }
 

@@ -29,6 +29,7 @@ class SaleReturn extends Model
     public const REFUND_SKIPPED = 'skipped';
 
     protected $fillable = [
+        'tenant_id',
         'return_number',
         'sale_id',
         'sale_number_snapshot',
@@ -141,5 +142,12 @@ class SaleReturn extends Model
     public function isFinalized(): bool
     {
         return $this->status === self::STATUS_FINALIZED;
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where($field ?? $this->getRouteKeyName(), $value)
+            ->where('tenant_id', 1)
+            ->firstOrFail();
     }
 }

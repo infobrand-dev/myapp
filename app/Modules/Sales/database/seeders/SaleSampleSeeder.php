@@ -13,6 +13,8 @@ use Illuminate\Database\Seeder;
 
 class SaleSampleSeeder extends Seeder
 {
+    private const TENANT_ID = 1;
+
     public function run(): void
     {
         (new ProductSampleSeeder())->run();
@@ -20,7 +22,7 @@ class SaleSampleSeeder extends Seeder
 
         $user = SampleDataUserResolver::resolve();
         $userId = optional($user)->id;
-        $contact = Contact::query()->where('email', 'procurement@demo-nusantara.test')->first();
+        $contact = Contact::query()->where('tenant_id', self::TENANT_ID)->where('email', 'procurement@demo-nusantara.test')->first();
         $product = Product::query()->where('sku', 'DEMO-COFFEE-250')->first();
         $contactId = optional($contact)->id;
         $contactName = optional($contact)->name;
@@ -31,8 +33,9 @@ class SaleSampleSeeder extends Seeder
         $contactCountry = optional($contact)->country;
 
         $sale = Sale::query()->updateOrCreate(
-            ['sale_number' => 'SAL-DEMO-001'],
+            ['tenant_id' => self::TENANT_ID, 'sale_number' => 'SAL-DEMO-001'],
             [
+                'tenant_id' => self::TENANT_ID,
                 'external_reference' => 'WEB-DEMO-001',
                 'contact_id' => $contactId,
                 'customer_name_snapshot' => $contactName,
@@ -63,8 +66,9 @@ class SaleSampleSeeder extends Seeder
 
         if ($product) {
             SaleItem::query()->updateOrCreate(
-                ['sale_id' => $sale->id, 'line_no' => 1],
+                ['tenant_id' => self::TENANT_ID, 'sale_id' => $sale->id, 'line_no' => 1],
                 [
+                    'tenant_id' => self::TENANT_ID,
                     'product_id' => $product->id,
                     'product_variant_id' => null,
                     'product_name_snapshot' => $product->name,

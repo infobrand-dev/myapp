@@ -2,6 +2,9 @@
 
 namespace App\Modules\Sales\Http\Requests;
 
+use App\Modules\Contacts\Models\Contact;
+use App\Modules\Products\Models\Product;
+use App\Modules\Products\Models\ProductVariant;
 use App\Modules\Sales\Http\Requests\Concerns\NormalizesSalePayload;
 use App\Modules\Sales\Models\Sale;
 use Illuminate\Foundation\Http\FormRequest;
@@ -12,6 +15,8 @@ class StoreDraftSaleRequest extends FormRequest
 {
     use NormalizesSalePayload;
 
+    private const TENANT_ID = 1;
+
     public function authorize(): bool
     {
         return $this->user() ? (bool) $this->user()->can('sales.create') : false;
@@ -21,7 +26,7 @@ class StoreDraftSaleRequest extends FormRequest
     {
         return [
             'external_reference' => ['nullable', 'string', 'max:100'],
-            'contact_id' => ['nullable', 'integer', 'exists:contacts,id'],
+            'contact_id' => ['nullable', 'integer', Rule::exists('contacts', 'id')->where(fn ($query) => $query->where('tenant_id', self::TENANT_ID))],
             'payment_status' => ['required', Rule::in([
                 Sale::PAYMENT_UNPAID,
                 Sale::PAYMENT_PARTIAL,
@@ -39,8 +44,8 @@ class StoreDraftSaleRequest extends FormRequest
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.sellable_key' => ['required', 'string', 'max:50'],
-            'items.*.product_id' => ['nullable', 'integer', 'exists:products,id'],
-            'items.*.product_variant_id' => ['nullable', 'integer', 'exists:product_variants,id'],
+            'items.*.product_id' => ['nullable', 'integer', Rule::exists('products', 'id')->where(fn ($query) => $query->where('tenant_id', self::TENANT_ID))],
+            'items.*.product_variant_id' => ['nullable', 'integer', Rule::exists('product_variants', 'id')->where(fn ($query) => $query->where('tenant_id', self::TENANT_ID))],
             'items.*.qty' => ['required', 'numeric', 'gt:0'],
             'items.*.unit_price' => ['required', 'numeric', 'min:0'],
             'items.*.discount_total' => ['nullable', 'numeric', 'min:0'],
@@ -52,6 +57,7 @@ class StoreDraftSaleRequest extends FormRequest
     public function after(): array
     {
         return [
+            fn (Validator $validator) => $this->validateTenantRelations($validator),
             fn (Validator $validator) => $this->validateBusinessRules($validator),
         ];
     }
@@ -73,6 +79,26 @@ class StoreDraftSaleRequest extends FormRequest
         foreach ($this->input('items', []) as $index => $item) {
             if (empty($item['product_id'])) {
                 $validator->errors()->add("items.{$index}.sellable_key", 'Produk wajib valid.');
+            }
+        }
+    }
+
+    protected function validateTenantRelations(Validator $validator): void
+    {
+        $contactId = $this->input('contact_id');
+        if ($contactId && !Contact::query()->where('tenant_id', self::TENANT_ID)->find($contactId)) {
+            $validator->errors()->add('contact_id', 'Contact tidak tersedia untuk tenant aktif.');
+        }
+
+        foreach ((array) $this->input('items', []) as $index => $item) {
+            $productId = $item['product_id'] ?? null;
+            if ($productId && !Product::query()->where('tenant_id', self::TENANT_ID)->find($productId)) {
+                $validator->errors()->add("items.$index.product_id", 'Produk tidak tersedia untuk tenant aktif.');
+            }
+
+            $variantId = $item['product_variant_id'] ?? null;
+            if ($variantId && !ProductVariant::query()->where('tenant_id', self::TENANT_ID)->find($variantId)) {
+                $validator->errors()->add("items.$index.product_variant_id", 'Varian produk tidak tersedia untuk tenant aktif.');
             }
         }
     }

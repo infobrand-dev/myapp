@@ -38,13 +38,16 @@ class ConversationController extends Controller
             UserPresence::STATUS_BUSY,
         ]);
 
-        $instancesQuery = WhatsAppInstance::query()->where('is_active', true);
+        $instancesQuery = WhatsAppInstance::query()
+            ->where('tenant_id', $this->tenantId())
+            ->where('is_active', true);
         if (!$user->hasRole('Super-admin')) {
             $instancesQuery->whereHas('users', fn ($q) => $q->where('users.id', $user->id));
         }
         $instances = $instancesQuery->orderBy('name')->get();
 
         $conversations = Conversation::with(['instance.users:id,name', 'owner'])
+            ->where('tenant_id', $this->tenantId())
             ->where('channel', 'wa_api')
             ->when(!$user->hasRole('Super-admin'), function ($query) use ($user) {
                 $query->whereHas('instance.users', fn ($q) => $q->where('users.id', $user->id));
@@ -204,7 +207,7 @@ class ConversationController extends Controller
 
     private function ensureAnyInstanceExists(Request $request): ?RedirectResponse
     {
-        if (WhatsAppInstance::query()->exists()) {
+        if (WhatsAppInstance::query()->where('tenant_id', $this->tenantId())->exists()) {
             return null;
         }
 
@@ -217,6 +220,11 @@ class ConversationController extends Controller
         return redirect()
             ->route('dashboard')
             ->with('status', 'WhatsApp API belum siap. Minta Super-admin membuat WA Instance terlebih dahulu.');
+    }
+
+    private function tenantId(): int
+    {
+        return 1;
     }
 }
 

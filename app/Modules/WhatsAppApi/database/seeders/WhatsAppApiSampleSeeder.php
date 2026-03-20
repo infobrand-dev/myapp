@@ -13,6 +13,8 @@ use Illuminate\Database\Seeder;
 
 class WhatsAppApiSampleSeeder extends Seeder
 {
+    private const TENANT_ID = 1;
+
     public function run(): void
     {
         (new WhatsAppInstanceDummySeeder())->run();
@@ -20,15 +22,16 @@ class WhatsAppApiSampleSeeder extends Seeder
 
         $user = SampleDataUserResolver::resolve();
         $userId = optional($user)->id;
-        $instance = WhatsAppInstance::query()->orderBy('id')->first();
+        $instance = WhatsAppInstance::query()->where('tenant_id', self::TENANT_ID)->orderBy('id')->first();
 
         if (!$instance) {
             return;
         }
 
         $template = WATemplate::query()->updateOrCreate(
-            ['name' => 'promo_demo_launch'],
+            ['tenant_id' => self::TENANT_ID, 'name' => 'promo_demo_launch'],
             [
+                'tenant_id' => self::TENANT_ID,
                 'meta_name' => 'promo_demo_launch',
                 'language' => 'id',
                 'category' => 'marketing',
@@ -42,8 +45,9 @@ class WhatsAppApiSampleSeeder extends Seeder
         );
 
         WAFlow::query()->updateOrCreate(
-            ['instance_id' => $instance->id, 'name' => 'Demo Lead Qualification'],
+            ['tenant_id' => self::TENANT_ID, 'instance_id' => $instance->id, 'name' => 'Demo Lead Qualification'],
             [
+                'tenant_id' => self::TENANT_ID,
                 'categories' => ['support'],
                 'endpoint_uri' => 'https://example.com/webhooks/wa-flow-demo',
                 'meta_flow_id' => 'flow_demo_001',
@@ -59,8 +63,9 @@ class WhatsAppApiSampleSeeder extends Seeder
         );
 
         $campaign = WABlastCampaign::query()->updateOrCreate(
-            ['instance_id' => $instance->id, 'name' => 'Blast Demo Launch'],
+            ['tenant_id' => self::TENANT_ID, 'instance_id' => $instance->id, 'name' => 'Blast Demo Launch'],
             [
+                'tenant_id' => self::TENANT_ID,
                 'template_id' => $template->id,
                 'created_by' => $userId,
                 'status' => 'scheduled',
@@ -74,8 +79,9 @@ class WhatsAppApiSampleSeeder extends Seeder
         );
 
         WABlastRecipient::query()->updateOrCreate(
-            ['campaign_id' => $campaign->id, 'phone_number' => '628123456789'],
+            ['tenant_id' => self::TENANT_ID, 'campaign_id' => $campaign->id, 'phone_number' => '628123456789'],
             [
+                'tenant_id' => self::TENANT_ID,
                 'contact_name' => 'Demo Contact',
                 'variables' => ['1' => 'Demo Contact'],
                 'status' => 'queued',

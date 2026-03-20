@@ -8,12 +8,14 @@ use App\Modules\PointOfSale\Http\Requests\OpenCashSessionRequest;
 use App\Modules\PointOfSale\Http\Requests\StoreCashSessionMovementRequest;
 use App\Modules\PointOfSale\Models\PosCashSession;
 use App\Modules\PointOfSale\Services\PosCashSessionService;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 use Illuminate\Validation\ValidationException;
 
 class CashSessionController extends Controller
 {
+
     private $service;
 
     public function __construct(PosCashSessionService $service)
@@ -26,6 +28,7 @@ class CashSessionController extends Controller
         return view('pos::cash-sessions.index', [
             'activeSession' => $this->service->activeSessionFor(request()->user()),
             'sessions' => PosCashSession::query()
+                ->where('tenant_id', TenantContext::currentId())
                 ->with(['cashier', 'closer'])
                 ->latest('opened_at')
                 ->paginate(15),

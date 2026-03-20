@@ -4,6 +4,7 @@ namespace App\Modules\EmailMarketing\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\EmailMarketing\Models\EmailAttachmentTemplate;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Contracts\View\View;
@@ -12,7 +13,11 @@ class EmailAttachmentTemplateController extends Controller
 {
     public function index(): View
     {
-        $templates = EmailAttachmentTemplate::orderBy('name')->get();
+        $templates = EmailAttachmentTemplate::query()
+            ->where('tenant_id', $this->tenantId())
+            ->orderBy('name')
+            ->get();
+
         return view('emailmarketing::templates.index', compact('templates'));
     }
 
@@ -33,9 +38,10 @@ class EmailAttachmentTemplateController extends Controller
             'paper_size' => ['required', 'in:A4,A4-landscape,Letter,Letter-landscape'],
         ]);
         $data['created_by'] = $request->user()?->id;
+        $data['tenant_id'] = $this->tenantId();
         EmailAttachmentTemplate::create($data);
 
-        return redirect()->route('email-attachment-templates.index')->with('status', 'Template dibuat.');
+        return redirect()->route('email-marketing.templates.index')->with('status', 'Template dibuat.');
     }
 
     public function edit(EmailAttachmentTemplate $emailAttachmentTemplate): View
@@ -70,12 +76,17 @@ class EmailAttachmentTemplateController extends Controller
         ]);
         $emailAttachmentTemplate->update($data);
 
-        return redirect()->route('email-attachment-templates.index')->with('status', 'Template diperbarui.');
+        return redirect()->route('email-marketing.templates.index')->with('status', 'Template diperbarui.');
     }
 
     public function destroy(EmailAttachmentTemplate $emailAttachmentTemplate): RedirectResponse
     {
         $emailAttachmentTemplate->delete();
         return back()->with('status', 'Template dihapus.');
+    }
+
+    private function tenantId(): int
+    {
+        return TenantContext::currentId();
     }
 }

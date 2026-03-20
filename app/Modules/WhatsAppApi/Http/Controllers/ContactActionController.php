@@ -14,24 +14,37 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class ContactActionController extends Controller
 {
+    private const TENANT_ID = 1;
+
     public function sendTemplate(Request $request): RedirectResponse
     {
         $data = $request->validate([
             'contact_id' => ['required', 'integer'],
             'instance_id' => ['required', 'integer'],
-            'template_id' => ['required', 'integer', 'exists:wa_templates,id'],
+            'template_id' => ['required', 'integer', Rule::exists('wa_templates', 'id')->where(fn ($query) => $query->where('tenant_id', $this->tenantId()))],
             'variables' => ['nullable', 'array'],
             'variables.*' => ['nullable', 'string', 'max:500'],
             'return_to' => ['nullable', 'url'],
         ]);
 
-        $contact = Contact::query()->findOrFail((int) $data['contact_id']);
+        if (!WATemplate::query()->where('tenant_id', $this->tenantId())->find((int) $data['template_id'])) {
+            throw ValidationException::withMessages([
+                'template_id' => 'Template tidak tersedia untuk tenant aktif.',
+            ]);
+        }
+
+        $contact = Contact::query()
+            ->where('tenant_id', $this->tenantId())
+            ->findOrFail((int) $data['contact_id']);
         $instance = $this->resolveInstance((int) $data['instance_id'], $request->user());
-        $template = WATemplate::query()->findOrFail((int) $data['template_id']);
+        $template = WATemplate::query()
+            ->where('tenant_id', $this->tenantId())
+            ->findOrFail((int) $data['template_id']);
 
         if ((string) $template->status !== 'approved') {
             throw ValidationException::withMessages([
@@ -72,6 +85,7 @@ class ContactActionController extends Controller
         DB::transaction(function () use ($contact, $instance, $template, $phone, $payload, $messageBody, $request): void {
             $conversation = Conversation::query()->firstOrCreate(
                 [
+                    'tenant_id' => $this->tenantId(),
                     'channel' => 'wa_api',
                     'instance_id' => $instance->id,
                     'contact_external_id' => $phone,
@@ -99,6 +113,7 @@ class ContactActionController extends Controller
             ])->save();
 
             $message = ConversationMessage::query()->create([
+                'tenant_id' => $this->tenantId(),
                 'conversation_id' => $conversation->id,
                 'user_id' => $request->user()->id,
                 'direction' => 'out',
@@ -138,6 +153,7 @@ class ContactActionController extends Controller
         }
 
         $instanceQuery = WhatsAppInstance::query()
+            ->where('tenant_id', 1)
             ->where('is_active', true)
             ->orderBy('name');
 
@@ -156,6 +172,7 @@ class ContactActionController extends Controller
             ->all();
 
         $templates = WATemplate::query()
+            ->where('tenant_id', 1)
             ->where('status', 'approved')
             ->orderBy('name')
             ->get(['id', 'name', 'meta_name', 'language', 'namespace', 'body', 'components', 'variable_mappings'])
@@ -183,6 +200,7 @@ class ContactActionController extends Controller
     private function resolveInstance(int $instanceId, $user): WhatsAppInstance
     {
         $query = WhatsAppInstance::query()
+            ->where('tenant_id', $this->tenantId())
             ->where('id', $instanceId)
             ->where('is_active', true);
 
@@ -296,5 +314,10 @@ class ContactActionController extends Controller
 
         preg_match_all('/\{\{(\d+)\}\}/', $text, $matches);
         return array_map('intval', $matches[1] ?? []);
+    }
+
+    private function tenantId(): int
+    {
+        return self::TENANT_ID;
     }
 }

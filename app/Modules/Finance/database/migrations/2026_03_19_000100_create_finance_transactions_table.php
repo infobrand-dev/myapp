@@ -25,11 +25,12 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['tenant_id', 'transaction_number']);
-            $table->index(['transaction_type', 'transaction_date']);
-            $table->index(['finance_category_id', 'transaction_date']);
-            $table->index(['created_by', 'transaction_date']);
-            $table->index(['outlet_id', 'transaction_date']);
-            $table->index(['pos_cash_session_id', 'transaction_date']);
+            $table->index(['tenant_id', 'transaction_date']);
+            $table->index(['tenant_id', 'transaction_type', 'transaction_date']);
+            $table->index(['tenant_id', 'finance_category_id', 'transaction_date']);
+            $table->index(['tenant_id', 'created_by', 'transaction_date']);
+            $table->index(['tenant_id', 'outlet_id', 'transaction_date']);
+            $table->index(['tenant_id', 'pos_cash_session_id', 'transaction_date']);
         });
     }
 

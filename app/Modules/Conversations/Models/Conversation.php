@@ -3,6 +3,7 @@
 namespace App\Modules\Conversations\Models;
 
 use App\Models\User;
+use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +15,7 @@ class Conversation extends Model
     use HasFactory;
 
     protected $fillable = [
+        'tenant_id',
         'instance_id',
         'channel',
         'external_id',
@@ -48,7 +50,8 @@ class Conversation extends Model
     {
         $waInstanceClass = \App\Modules\WhatsAppApi\Models\WhatsAppInstance::class;
         if (class_exists($waInstanceClass)) {
-            return $this->belongsTo($waInstanceClass, 'instance_id');
+            return $this->belongsTo($waInstanceClass, 'instance_id')
+                ->where('tenant_id', TenantContext::currentId());
         }
 
         // Fallback dummy relation to keep conversations module bootable without WhatsAppApi module.
@@ -62,7 +65,8 @@ class Conversation extends Model
 
     public function messages(): HasMany
     {
-        return $this->hasMany(ConversationMessage::class);
+        return $this->hasMany(ConversationMessage::class)
+            ->where('tenant_id', TenantContext::currentId());
     }
 
     public function latestMessage(): HasOne
@@ -71,8 +75,16 @@ class Conversation extends Model
             'created_at' => 'max',
             'id' => 'max',
         ], function ($query) {
-            $query->whereNotNull('created_at');
+            $query->where('tenant_id', TenantContext::currentId())
+                ->whereNotNull('created_at');
         });
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where($field ?? $this->getRouteKeyName(), $value)
+            ->where('tenant_id', TenantContext::currentId())
+            ->firstOrFail();
     }
 }
 

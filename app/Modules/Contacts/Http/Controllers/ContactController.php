@@ -20,7 +20,9 @@ class ContactController extends Controller
 {
     public function index(): View
     {
-        $contacts = Contact::with('company')
+        $contacts = Contact::query()
+            ->where('tenant_id', $this->tenantId())
+            ->with('company')
             ->orderByDesc('created_at')
             ->paginate(15);
 
@@ -122,6 +124,7 @@ class ContactController extends Controller
                     }
 
                     Contact::create([
+                        'tenant_id' => $this->tenantId(),
                         'type' => $normalized['type'],
                         'company_id' => $companyId,
                         'name' => $normalized['name'],
@@ -176,6 +179,7 @@ class ContactController extends Controller
         ]);
 
         $companies = Contact::query()
+            ->where('tenant_id', $this->tenantId())
             ->where('type', 'company')
             ->orderBy('name')
             ->get();
@@ -193,6 +197,7 @@ class ContactController extends Controller
         if ($data['type'] === 'company') {
             $data['company_id'] = null;
         }
+        $data['tenant_id'] = $this->tenantId();
 
         Contact::create($data);
 
@@ -209,6 +214,7 @@ class ContactController extends Controller
     public function edit(Contact $contact): View
     {
         $companies = Contact::query()
+            ->where('tenant_id', $this->tenantId())
             ->where('type', 'company')
             ->where('id', '!=', $contact->id)
             ->orderBy('name')
@@ -244,10 +250,24 @@ class ContactController extends Controller
     public function merge(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'primary_id' => ['required', 'integer', 'exists:contacts,id'],
+            'primary_id' => ['required', 'integer', Rule::exists('contacts', 'id')->where(fn ($query) => $query->where('tenant_id', $this->tenantId()))],
             'duplicate_ids' => ['required', 'array', 'min:1'],
-            'duplicate_ids.*' => ['integer', 'distinct', 'exists:contacts,id'],
+            'duplicate_ids.*' => ['integer', 'distinct', Rule::exists('contacts', 'id')->where(fn ($query) => $query->where('tenant_id', $this->tenantId()))],
         ]);
+
+        if (!Contact::query()->where('tenant_id', $this->tenantId())->find($data['primary_id'])) {
+            throw ValidationException::withMessages([
+                'primary_id' => 'Contact utama tidak tersedia untuk tenant aktif.',
+            ]);
+        }
+
+        foreach ((array) $data['duplicate_ids'] as $index => $duplicateId) {
+            if (!Contact::query()->where('tenant_id', $this->tenantId())->find($duplicateId)) {
+                throw ValidationException::withMessages([
+                    "duplicate_ids.$index" => 'Contact duplikat tidak tersedia untuk tenant aktif.',
+                ]);
+            }
+        }
 
         $primaryId = (int) $data['primary_id'];
         $duplicateIds = collect($data['duplicate_ids'])
@@ -267,6 +287,7 @@ class ContactController extends Controller
             ->values();
 
         $contacts = Contact::query()
+            ->where('tenant_id', $this->tenantId())
             ->whereIn('id', $allIds->all())
             ->get()
             ->keyBy('id');
@@ -308,7 +329,7 @@ class ContactController extends Controller
     {
         $data = $request->validate([
             'type' => ['required', Rule::in(['company', 'individual'])],
-            'company_id' => ['nullable', 'integer', 'exists:contacts,id'],
+            'company_id' => ['nullable', 'integer', Rule::exists('contacts', 'id')->where(fn ($query) => $query->where('tenant_id', $this->tenantId()))],
             'name' => ['required', 'string', 'max:255'],
             'job_title' => ['nullable', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],
@@ -328,7 +349,15 @@ class ContactController extends Controller
             'is_active' => ['nullable', 'boolean'],
         ]);
 
-        return $this->normalizeValidatedContactData($data);
+        $data = $this->normalizeValidatedContactData($data);
+
+        if (!empty($data['company_id'])) {
+            Contact::query()
+                ->where('tenant_id', $this->tenantId())
+                ->findOrFail((int) $data['company_id']);
+        }
+
+        return $data;
     }
 
     private function importHeaders(): array
@@ -670,6 +699,7 @@ class ContactController extends Controller
         }
 
         $company = Contact::query()
+            ->where('tenant_id', $this->tenantId())
             ->where('type', 'company')
             ->whereRaw('LOWER(name) = ?', [mb_strtolower($companyName)])
             ->first();
@@ -679,6 +709,7 @@ class ContactController extends Controller
         }
 
         $company = Contact::create([
+            'tenant_id' => $this->tenantId(),
             'type' => 'company',
             'company_id' => null,
             'name' => $companyName,
@@ -728,6 +759,7 @@ class ContactController extends Controller
     private function buildMergeCandidateGroups(): array
     {
         $contacts = Contact::query()
+            ->where('tenant_id', $this->tenantId())
             ->with('company')
             ->orderBy('name')
             ->get();
@@ -868,6 +900,7 @@ class ContactController extends Controller
         $duplicateIds = $duplicates->pluck('id')->map(fn ($id) => (int) $id)->all();
 
         Contact::query()
+            ->where('tenant_id', $this->tenantId())
             ->whereIn('company_id', $duplicateIds)
             ->where('id', '!=', $primary->id)
             ->update(['company_id' => $primary->id]);
@@ -885,8 +918,14 @@ class ContactController extends Controller
         $primary->save();
 
         Contact::query()
+            ->where('tenant_id', $this->tenantId())
             ->whereIn('id', $duplicateIds)
             ->delete();
+    }
+
+    private function tenantId(): int
+    {
+        return 1;
     }
 
     private function buildTemplateXlsx(array $rows): string

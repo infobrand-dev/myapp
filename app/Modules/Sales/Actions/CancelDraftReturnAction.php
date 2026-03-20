@@ -9,10 +9,15 @@ use Illuminate\Validation\ValidationException;
 
 class CancelDraftReturnAction
 {
+    private const TENANT_ID = 1;
+
     public function execute(SaleReturn $saleReturn, ?string $reason = null, ?User $actor = null): SaleReturn
     {
         return DB::transaction(function () use ($saleReturn, $reason, $actor) {
-            $saleReturn = SaleReturn::query()->lockForUpdate()->findOrFail($saleReturn->id);
+            $saleReturn = SaleReturn::query()
+                ->where('tenant_id', self::TENANT_ID)
+                ->lockForUpdate()
+                ->findOrFail($saleReturn->id);
 
             if (!$saleReturn->isDraft()) {
                 throw ValidationException::withMessages([
@@ -29,6 +34,7 @@ class CancelDraftReturnAction
             ]);
 
             $saleReturn->statusLogs()->create([
+                'tenant_id' => self::TENANT_ID,
                 'from_status' => $fromStatus,
                 'to_status' => SaleReturn::STATUS_CANCELLED,
                 'event' => 'cancelled',

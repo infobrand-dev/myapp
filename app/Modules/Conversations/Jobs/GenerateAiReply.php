@@ -5,6 +5,7 @@ namespace App\Modules\Conversations\Jobs;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
+use App\Support\TenantContext;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Bus\Queueable;
@@ -37,8 +38,12 @@ class GenerateAiReply implements ShouldQueue
 
     public function handle(): void
     {
-        $conversation = Conversation::find($this->conversationId);
-        $incoming = ConversationMessage::find($this->messageId);
+        $conversation = Conversation::query()
+            ->where('tenant_id', $this->tenantId())
+            ->find($this->conversationId);
+        $incoming = ConversationMessage::query()
+            ->where('tenant_id', $this->tenantId())
+            ->find($this->messageId);
         if (!$conversation || !$incoming || $incoming->direction !== 'in') return;
 
         if (!$this->acquireRequestLock()) {
@@ -118,6 +123,7 @@ class GenerateAiReply implements ShouldQueue
         $outgoing = $this->buildOutgoingReply((string) $reply, $conversation);
 
         $replyMessage = ConversationMessage::create([
+            'tenant_id' => $this->tenantId(),
             'conversation_id' => $conversation->id,
             'user_id' => null,
             'direction' => 'out',
@@ -289,7 +295,9 @@ class GenerateAiReply implements ShouldQueue
             return false;
         }
 
-        $instance = WhatsAppInstance::query()->find($conversation->instance_id);
+        $instance = WhatsAppInstance::query()
+            ->where('tenant_id', $this->tenantId())
+            ->find($conversation->instance_id);
         if (!$instance) {
             return false;
         }
@@ -311,6 +319,7 @@ class GenerateAiReply implements ShouldQueue
     private function buildPromptHistory(Conversation $conversation): array
     {
         $history = ConversationMessage::query()
+            ->where('tenant_id', $this->tenantId())
             ->where('conversation_id', $conversation->id)
             ->orderByDesc('id')
             ->limit(self::HISTORY_LIMIT)
@@ -326,6 +335,7 @@ class GenerateAiReply implements ShouldQueue
             ->all();
 
         $total = ConversationMessage::query()
+            ->where('tenant_id', $this->tenantId())
             ->where('conversation_id', $conversation->id)
             ->count();
 
@@ -334,6 +344,7 @@ class GenerateAiReply implements ShouldQueue
 
         if ($total > self::HISTORY_LIMIT) {
             $olderLines = ConversationMessage::query()
+                ->where('tenant_id', $this->tenantId())
                 ->where('conversation_id', $conversation->id)
                 ->orderByDesc('id')
                 ->skip(self::HISTORY_LIMIT)
@@ -369,5 +380,10 @@ class GenerateAiReply implements ShouldQueue
     private function responseCacheKey(int $accountId, array $payload): string
     {
         return 'ai_reply_cache:' . $accountId . ':' . sha1(json_encode($payload));
+    }
+
+    private function tenantId(): int
+    {
+        return TenantContext::currentId();
     }
 }

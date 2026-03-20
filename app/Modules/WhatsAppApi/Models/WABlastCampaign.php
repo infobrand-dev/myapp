@@ -15,6 +15,7 @@ class WABlastCampaign extends Model
     protected $table = 'wa_blast_campaigns';
 
     protected $fillable = [
+        'tenant_id',
         'name',
         'instance_id',
         'template_id',
@@ -40,12 +41,14 @@ class WABlastCampaign extends Model
 
     public function instance(): BelongsTo
     {
-        return $this->belongsTo(WhatsAppInstance::class, 'instance_id');
+        return $this->belongsTo(WhatsAppInstance::class, 'instance_id')
+            ->where('tenant_id', 1);
     }
 
     public function template(): BelongsTo
     {
-        return $this->belongsTo(WATemplate::class, 'template_id');
+        return $this->belongsTo(WATemplate::class, 'template_id')
+            ->where('tenant_id', 1);
     }
 
     public function creator(): BelongsTo
@@ -55,6 +58,14 @@ class WABlastCampaign extends Model
 
     public function recipients(): HasMany
     {
-        return $this->hasMany(WABlastRecipient::class, 'campaign_id');
+        return $this->hasMany(WABlastRecipient::class, 'campaign_id')
+            ->where('tenant_id', 1);
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where($field ?? $this->getRouteKeyName(), $value)
+            ->where('tenant_id', 1)
+            ->firstOrFail();
     }
 }

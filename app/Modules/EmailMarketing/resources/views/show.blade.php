@@ -222,7 +222,7 @@
                 <div class="card card-sm">
                     <div class="card-body">
                         @php $selectedTpl = old('dynamic_template_ids', $campaign->dynamicTemplates->pluck('id')->all()); @endphp
-                        @forelse(\App\Modules\EmailMarketing\Models\EmailAttachmentTemplate::orderBy('name')->get() as $tpl)
+                        @forelse($attachmentTemplates as $tpl)
                             <label class="form-check d-block mb-1">
                                 <input type="checkbox" class="form-check-input" name="dynamic_template_ids[]" value="{{ $tpl->id }}" {{ in_array($tpl->id, $selectedTpl) ? 'checked' : '' }}>
                                 <span class="form-check-label">{{ $tpl->name }}</span>

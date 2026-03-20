@@ -17,6 +17,7 @@ class PosCart extends Model
     public const STATUS_CANCELLED = 'cancelled';
 
     protected $fillable = [
+        'tenant_id',
         'uuid',
         'status',
         'cashier_user_id',

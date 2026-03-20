@@ -18,22 +18,31 @@ use Illuminate\Database\Seeder;
 
 class InventorySampleSeeder extends Seeder
 {
+    private const TENANT_ID = 1;
+
     public function run(): void
     {
         (new ProductSampleSeeder())->run();
 
         $user = SampleDataUserResolver::resolve();
         $userId = optional($user)->id;
-        $product = Product::query()->where('sku', 'DEMO-COFFEE-250')->first();
+        $product = Product::query()
+            ->where('tenant_id', self::TENANT_ID)
+            ->where('sku', 'DEMO-COFFEE-250')
+            ->first();
 
         if (!$product) {
             return;
         }
 
-        $main = InventoryLocation::query()->where('code', 'MAIN')->first();
+        $main = InventoryLocation::query()
+            ->where('tenant_id', self::TENANT_ID)
+            ->where('code', 'MAIN')
+            ->first();
         $store = InventoryLocation::query()->updateOrCreate(
-            ['code' => 'STORE-01'],
+            ['tenant_id' => self::TENANT_ID, 'code' => 'STORE-01'],
             [
+                'tenant_id' => self::TENANT_ID,
                 'name' => 'Demo Store',
                 'type' => 'store',
                 'is_default' => false,
@@ -44,8 +53,9 @@ class InventorySampleSeeder extends Seeder
 
         if (!$main) {
             $main = InventoryLocation::query()->updateOrCreate(
-                ['code' => 'MAIN'],
+                ['tenant_id' => self::TENANT_ID, 'code' => 'MAIN'],
                 [
+                    'tenant_id' => self::TENANT_ID,
                     'name' => 'Main Warehouse',
                     'type' => 'warehouse',
                     'is_default' => true,
@@ -56,8 +66,9 @@ class InventorySampleSeeder extends Seeder
         }
 
         $stock = StockBalance::query()->updateOrCreate(
-            ['stock_key' => 'DEMO-COFFEE-250@MAIN'],
+            ['tenant_id' => self::TENANT_ID, 'stock_key' => 'DEMO-COFFEE-250@MAIN'],
             [
+                'tenant_id' => self::TENANT_ID,
                 'product_id' => $product->id,
                 'product_variant_id' => null,
                 'inventory_location_id' => $main->id,
@@ -73,12 +84,14 @@ class InventorySampleSeeder extends Seeder
 
         $movement = StockMovement::query()->updateOrCreate(
             [
+                'tenant_id' => self::TENANT_ID,
                 'stock_key' => $stock->stock_key,
                 'movement_type' => 'opening',
                 'reference_type' => 'sample_data',
                 'reference_id' => 1,
             ],
             [
+                'tenant_id' => self::TENANT_ID,
                 'inventory_stock_id' => $stock->id,
                 'product_id' => $product->id,
                 'product_variant_id' => null,
@@ -97,8 +110,9 @@ class InventorySampleSeeder extends Seeder
         );
 
         $opening = StockOpening::query()->updateOrCreate(
-            ['code' => 'OPEN-DEMO-001'],
+            ['tenant_id' => self::TENANT_ID, 'code' => 'OPEN-DEMO-001'],
             [
+                'tenant_id' => self::TENANT_ID,
                 'inventory_location_id' => $main->id,
                 'opening_date' => now()->subDays(7)->toDateString(),
                 'status' => 'posted',
@@ -111,8 +125,9 @@ class InventorySampleSeeder extends Seeder
         );
 
         StockOpeningItem::query()->updateOrCreate(
-            ['opening_id' => $opening->id, 'product_id' => $product->id],
+            ['tenant_id' => self::TENANT_ID, 'opening_id' => $opening->id, 'product_id' => $product->id],
             [
+                'tenant_id' => self::TENANT_ID,
                 'product_variant_id' => null,
                 'quantity' => 20,
                 'minimum_quantity' => 5,
@@ -123,8 +138,9 @@ class InventorySampleSeeder extends Seeder
         );
 
         $adjustment = StockAdjustment::query()->updateOrCreate(
-            ['code' => 'ADJ-DEMO-001'],
+            ['tenant_id' => self::TENANT_ID, 'code' => 'ADJ-DEMO-001'],
             [
+                'tenant_id' => self::TENANT_ID,
                 'inventory_location_id' => $main->id,
                 'adjustment_date' => now()->subDays(2)->toDateString(),
                 'status' => StockAdjustment::STATUS_FINALIZED,
@@ -139,8 +155,9 @@ class InventorySampleSeeder extends Seeder
         );
 
         StockAdjustmentItem::query()->updateOrCreate(
-            ['adjustment_id' => $adjustment->id, 'product_id' => $product->id],
+            ['tenant_id' => self::TENANT_ID, 'adjustment_id' => $adjustment->id, 'product_id' => $product->id],
             [
+                'tenant_id' => self::TENANT_ID,
                 'product_variant_id' => null,
                 'direction' => 'in',
                 'quantity' => 4,
@@ -149,8 +166,9 @@ class InventorySampleSeeder extends Seeder
         );
 
         $transfer = StockTransfer::query()->updateOrCreate(
-            ['code' => 'TRF-DEMO-001'],
+            ['tenant_id' => self::TENANT_ID, 'code' => 'TRF-DEMO-001'],
             [
+                'tenant_id' => self::TENANT_ID,
                 'source_location_id' => $main->id,
                 'destination_location_id' => $store->id,
                 'transfer_date' => now()->subDay()->toDateString(),
@@ -166,8 +184,9 @@ class InventorySampleSeeder extends Seeder
         );
 
         StockTransferItem::query()->updateOrCreate(
-            ['transfer_id' => $transfer->id, 'product_id' => $product->id],
+            ['tenant_id' => self::TENANT_ID, 'transfer_id' => $transfer->id, 'product_id' => $product->id],
             [
+                'tenant_id' => self::TENANT_ID,
                 'product_variant_id' => null,
                 'requested_quantity' => 6,
                 'sent_quantity' => 6,

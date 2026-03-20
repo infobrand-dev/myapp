@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class InventoryLocation extends Model
 {
     protected $fillable = [
+        'tenant_id',
         'parent_id',
         'code',
         'name',
@@ -39,5 +40,12 @@ class InventoryLocation extends Model
     public function stocks(): HasMany
     {
         return $this->hasMany(StockBalance::class, 'inventory_location_id');
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where($field ?? $this->getRouteKeyName(), $value)
+            ->where('tenant_id', 1)
+            ->firstOrFail();
     }
 }

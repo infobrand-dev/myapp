@@ -16,17 +16,27 @@ use Illuminate\View\View;
 
 class StockAdjustmentController extends Controller
 {
+    private const TENANT_ID = 1;
+
     public function index(): View
     {
         return view('inventory::adjustments.index', [
-            'adjustments' => StockAdjustment::query()->with(['location', 'creator', 'finalizer'])->latest()->paginate(15),
+            'adjustments' => StockAdjustment::query()
+                ->where('tenant_id', self::TENANT_ID)
+                ->with(['location', 'creator', 'finalizer'])
+                ->latest()
+                ->paginate(15),
         ]);
     }
 
     public function create(StockRepository $stocks): View
     {
         $products = Product::query()
-            ->with(['variants' => fn ($query) => $query->where('track_stock', true)->orderBy('position')])
+            ->where('tenant_id', self::TENANT_ID)
+            ->with(['variants' => fn ($query) => $query
+                ->where('tenant_id', self::TENANT_ID)
+                ->where('track_stock', true)
+                ->orderBy('position')])
             ->where('track_stock', true)
             ->orderBy('name')
             ->get();

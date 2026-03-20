@@ -16,6 +16,8 @@ use Illuminate\Support\Str;
 
 class ProductService
 {
+    private const TENANT_ID = 1;
+
     private ProductLookupService $lookupService;
 
     public function __construct(ProductLookupService $lookupService)
@@ -29,7 +31,7 @@ class ProductService
             $data = $this->lookupService->resolveLookupIds($data);
 
             $product = Product::query()->create($this->productPayload($data, $actor, true));
-        $this->syncProductGraph($product, $data);
+            $this->syncProductGraph($product, $data);
 
             return $product->fresh();
         });
@@ -66,7 +68,7 @@ class ProductService
 
     public function bulkAction(array $productIds, string $action, ?User $actor = null): void
     {
-        foreach (Product::query()->whereIn('id', $productIds)->get() as $product) {
+        foreach (Product::query()->where('tenant_id', self::TENANT_ID)->whereIn('id', $productIds)->get() as $product) {
             if ($action === 'activate') {
                 $this->toggleStatus($product, true);
             }
@@ -105,6 +107,7 @@ class ProductService
         }
 
         $payload = [
+            'tenant_id' => self::TENANT_ID,
             'type' => $data['type'],
             'category_id' => $data['category_id'] ?? null,
             'brand_id' => $data['brand_id'] ?? null,
@@ -144,6 +147,7 @@ class ProductService
             }
 
             $product->prices()->create([
+                'tenant_id' => self::TENANT_ID,
                 'product_price_level_id' => $levelId,
                 'currency_code' => 'IDR',
                 'price' => $price,
@@ -157,6 +161,7 @@ class ProductService
     {
         if (!empty($data['remove_gallery_media_ids'])) {
             $mediaItems = ProductMedia::query()
+                ->where('tenant_id', self::TENANT_ID)
                 ->where('product_id', $product->id)
                 ->whereIn('id', $data['remove_gallery_media_ids'])
                 ->get();
@@ -177,6 +182,7 @@ class ProductService
 
             $product->media()->where('collection_name', 'primary')->delete();
             $product->media()->create([
+                'tenant_id' => self::TENANT_ID,
                 'disk' => 'public',
                 'path' => $path,
                 'collection_name' => 'primary',
@@ -192,6 +198,7 @@ class ProductService
 
             $path = $image->store('products/gallery', 'public');
             $product->media()->create([
+                'tenant_id' => self::TENANT_ID,
                 'disk' => 'public',
                 'path' => $path,
                 'collection_name' => 'gallery',
@@ -222,9 +229,11 @@ class ProductService
             $variant = ProductVariant::query()->updateOrCreate(
                 [
                     'id' => $variantData['id'] ?? null,
+                    'tenant_id' => self::TENANT_ID,
                     'product_id' => $product->id,
                 ],
                 [
+                    'tenant_id' => self::TENANT_ID,
                     'name' => trim((string) $variantData['name']),
                     'attribute_summary' => $this->nullableString($variantData['attribute_summary'] ?? null),
                     'sku' => trim((string) $variantData['sku']),
@@ -252,7 +261,7 @@ class ProductService
 
         $toDeleteIds = array_diff($existingIds, $keptIds);
         if (!empty($toDeleteIds)) {
-            ProductVariant::query()->whereIn('id', $toDeleteIds)->get()->each(function (ProductVariant $variant) {
+            ProductVariant::query()->where('tenant_id', self::TENANT_ID)->whereIn('id', $toDeleteIds)->get()->each(function (ProductVariant $variant) {
                 $variant->optionValues()->detach();
                 $variant->delete();
             });
@@ -275,7 +284,11 @@ class ProductService
 
         foreach ($groupNames as $groupIndex => $groupName) {
             $group = $existingGroups->get($groupName)
-                ?? $product->optionGroups()->create(['name' => $groupName, 'sort_order' => $groupIndex]);
+                ?? $product->optionGroups()->create([
+                    'tenant_id' => self::TENANT_ID,
+                    'name' => $groupName,
+                    'sort_order' => $groupIndex,
+                ]);
 
             $group->sort_order = $groupIndex;
             $group->save();
@@ -290,7 +303,11 @@ class ProductService
 
             foreach ($values as $valueIndex => $valueName) {
                 $value = $existingValues->get($valueName)
-                    ?? $group->values()->create(['value' => $valueName, 'sort_order' => $valueIndex]);
+                    ?? $group->values()->create([
+                        'tenant_id' => self::TENANT_ID,
+                        'value' => $valueName,
+                        'sort_order' => $valueIndex,
+                    ]);
 
                 $value->sort_order = $valueIndex;
                 $value->save();
@@ -306,7 +323,9 @@ class ProductService
             ->delete();
 
         foreach ($attributeMatrix as $variantId => $attributes) {
-            $variant = ProductVariant::query()->find($variantId);
+            $variant = ProductVariant::query()
+                ->where('tenant_id', self::TENANT_ID)
+                ->find($variantId);
             if (!$variant) {
                 continue;
             }
@@ -314,6 +333,7 @@ class ProductService
             $optionValueIds = [];
             foreach ($attributes as $groupName => $valueName) {
                 $group = ProductOptionGroup::query()
+                    ->where('tenant_id', self::TENANT_ID)
                     ->where('product_id', $product->id)
                     ->where('name', $groupName)
                     ->first();
@@ -323,6 +343,7 @@ class ProductService
                 }
 
                 $value = ProductOptionValue::query()
+                    ->where('tenant_id', self::TENANT_ID)
                     ->where('product_option_group_id', $group->id)
                     ->where('value', $valueName)
                     ->first();
@@ -348,6 +369,7 @@ class ProductService
             }
 
             $variant->prices()->create([
+                'tenant_id' => self::TENANT_ID,
                 'product_id' => $variant->product_id,
                 'product_price_level_id' => $levelId,
                 'currency_code' => 'IDR',
@@ -391,6 +413,7 @@ class ProductService
     private function normalizePriceLevels(array $prices, array $baseTierPrices = []): array
     {
         $levelsByCode = ProductPriceLevel::query()
+            ->where('tenant_id', self::TENANT_ID)
             ->whereIn('code', array_keys($baseTierPrices))
             ->get()
             ->keyBy('code');

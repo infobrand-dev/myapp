@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -28,6 +29,7 @@ class WAFlowController extends Controller
     public function index(): View
     {
         $flows = WAFlow::query()
+            ->where('tenant_id', $this->tenantId())
             ->with('instance:id,name,provider')
             ->orderByDesc('updated_at')
             ->paginate(15);
@@ -54,6 +56,7 @@ class WAFlowController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validated($request);
+        $data['tenant_id'] = $this->tenantId();
 
         $flow = WAFlow::create($data);
 
@@ -274,7 +277,7 @@ class WAFlowController extends Controller
     private function validated(Request $request): array
     {
         $data = $request->validate([
-            'instance_id' => ['required', 'exists:whatsapp_instances,id'],
+            'instance_id' => ['required', Rule::exists('whatsapp_instances', 'id')->where(fn ($query) => $query->where('tenant_id', $this->tenantId()))],
             'name' => ['required', 'string', 'max:255'],
             'categories' => ['required', 'array', 'min:1'],
             'categories.*' => ['required', 'string'],
@@ -305,6 +308,11 @@ class WAFlowController extends Controller
 
         $data['flow_json'] = $json;
         $data['endpoint_uri'] = $data['endpoint_uri'] ?: null;
+        $data['instance_id'] = WhatsAppInstance::query()
+            ->where('tenant_id', $this->tenantId())
+            ->where('provider', 'cloud')
+            ->findOrFail((int) $data['instance_id'])
+            ->id;
 
         return $data;
     }
@@ -312,6 +320,7 @@ class WAFlowController extends Controller
     private function cloudInstances()
     {
         return WhatsAppInstance::query()
+            ->where('tenant_id', $this->tenantId())
             ->where('provider', 'cloud')
             ->where('is_active', true)
             ->orderBy('name')
@@ -401,5 +410,10 @@ class WAFlowController extends Controller
                 ],
             ],
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    }
+
+    private function tenantId(): int
+    {
+        return 1;
     }
 }

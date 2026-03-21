@@ -22,6 +22,16 @@
         @include('settings.partials.nav')
     </div>
     <div class="col-xl-9">
+        @if($errors->any())
+            <div class="alert alert-danger mb-3">
+                <div class="fw-semibold mb-2">Periksa input berikut:</div>
+                <ul class="mb-0 ps-3">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
         @include('settings.partials.overview')
         @includeIf('settings.partials.sections.' . $currentSection)
     </div>

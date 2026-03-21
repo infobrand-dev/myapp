@@ -233,7 +233,10 @@
             <header class="navbar desktop-topbar d-none d-lg-flex">
                 <div class="container-fluid">
                     <div class="d-flex align-items-center justify-content-between w-100 gap-3">
-                        <div class="desktop-topbar-title">MyApp</div>
+                        <div class="d-flex align-items-center gap-3 flex-wrap">
+                            <div class="desktop-topbar-title">MyApp</div>
+                            @include('shared.topbar-context-switcher', ['selectorId' => 'desktop-topbar'])
+                        </div>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button class="btn btn-sm btn-outline-primary" type="submit">Logout</button>
@@ -255,6 +258,9 @@
                             <i class="ti ti-menu-2" aria-hidden="true"></i>
                         </button>
                         <a href="{{ route('dashboard') }}" class="mobile-topbar-brand">MyApp</a>
+                        <div class="d-none d-sm-flex">
+                            @include('shared.topbar-context-switcher', ['selectorId' => 'mobile-topbar'])
+                        </div>
                         <div class="ms-auto">
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf

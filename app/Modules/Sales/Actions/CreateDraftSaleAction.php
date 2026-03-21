@@ -65,7 +65,11 @@ class CreateDraftSaleAction
                 $sale = Sale::query()->create([
                     'tenant_id' => TenantContext::currentId(),
                     'company_id' => CompanyContext::currentId(),
-                    'sale_number' => $this->saleNumberService->generate(),
+                    'sale_number' => $this->saleNumberService->generate(
+                        !empty($data['transaction_date']) ? new \DateTimeImmutable((string) $data['transaction_date']) : null,
+                        CompanyContext::currentId(),
+                        $data['branch_id'] ?? BranchContext::currentId()
+                    ),
                     'external_reference' => $data['external_reference'] ?? null,
                     'idempotency_payload_hash' => $this->idempotencyService->hashFromPayload($data),
                     'contact_id' => $contact ? $contact->id : null,

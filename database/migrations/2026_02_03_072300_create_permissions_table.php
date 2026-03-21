@@ -10,6 +10,10 @@ return new class extends Migration
     {
         $tableNames = config('permission.table_names');
 
+        if (Schema::hasTable($tableNames['permissions'])) {
+            return;
+        }
+
         Schema::create($tableNames['permissions'], function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->string('name');

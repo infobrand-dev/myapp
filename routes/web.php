@@ -40,13 +40,31 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
 
-    Route::get('/settings', [SettingsController::class, 'show'])->defaults('section', 'general')->name('settings.general');
-    Route::get('/settings/company', [SettingsController::class, 'show'])->defaults('section', 'company')->name('settings.company');
-    Route::get('/settings/branch', [SettingsController::class, 'show'])->defaults('section', 'branch')->name('settings.branch');
-    Route::get('/settings/documents', [SettingsController::class, 'show'])->defaults('section', 'documents')->name('settings.documents');
-    Route::get('/settings/subscription', [SettingsController::class, 'show'])->defaults('section', 'subscription')->name('settings.subscription');
-    Route::get('/settings/access', [SettingsController::class, 'show'])->defaults('section', 'access')->name('settings.access');
-    Route::get('/settings/modules', [SettingsController::class, 'show'])->defaults('section', 'modules')->name('settings.modules');
+    Route::middleware('permission:settings.view')->group(function () {
+        Route::get('/settings', [SettingsController::class, 'show'])->defaults('section', 'general')->name('settings.general');
+        Route::get('/settings/company', [SettingsController::class, 'show'])->defaults('section', 'company')->name('settings.company');
+        Route::get('/settings/branch', [SettingsController::class, 'show'])->defaults('section', 'branch')->name('settings.branch');
+        Route::get('/settings/documents', [SettingsController::class, 'show'])->defaults('section', 'documents')->name('settings.documents');
+        Route::get('/settings/subscription', [SettingsController::class, 'show'])->defaults('section', 'subscription')->name('settings.subscription');
+        Route::get('/settings/access', [SettingsController::class, 'show'])->defaults('section', 'access')->name('settings.access');
+        Route::get('/settings/modules', [SettingsController::class, 'show'])->defaults('section', 'modules')->name('settings.modules');
+
+        Route::post('/settings/company/switch/{company}', [SettingsController::class, 'switchCompany'])->name('settings.company.switch');
+        Route::post('/settings/branch/switch/{branch}', [SettingsController::class, 'switchBranch'])->name('settings.branch.switch');
+        Route::post('/settings/branch/clear', [SettingsController::class, 'clearBranch'])->name('settings.branch.clear');
+    });
+
+    Route::middleware('permission:settings.manage')->group(function () {
+        Route::post('/settings/company', [SettingsController::class, 'storeCompany'])->name('settings.company.store');
+        Route::put('/settings/company/{company}', [SettingsController::class, 'updateCompany'])->name('settings.company.update');
+        Route::post('/settings/company/{company}/activate', [SettingsController::class, 'activateCompany'])->name('settings.company.activate');
+
+        Route::post('/settings/branch', [SettingsController::class, 'storeBranch'])->name('settings.branch.store');
+        Route::put('/settings/branch/{branch}', [SettingsController::class, 'updateBranch'])->name('settings.branch.update');
+        Route::post('/settings/branch/{branch}/activate', [SettingsController::class, 'activateBranch'])->name('settings.branch.activate');
+
+        Route::put('/settings/documents', [SettingsController::class, 'saveDocuments'])->name('settings.documents.save');
+    });
 });
 
 Route::middleware(['auth'])->prefix('presence')->name('presence.')->group(function () {

@@ -12,6 +12,10 @@ return new class extends Migration
         $columnNames = config('permission.column_names');
         $teams = config('permission.teams');
 
+        if (Schema::hasTable($tableNames['roles'])) {
+            return;
+        }
+
         Schema::create($tableNames['roles'], function (Blueprint $table) use ($teams, $columnNames) {
             $table->bigIncrements('id');
 

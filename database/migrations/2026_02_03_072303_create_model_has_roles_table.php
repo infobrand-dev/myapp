@@ -13,6 +13,10 @@ return new class extends Migration
         $teams = config('permission.teams');
         $pivotRole = $columnNames['role_pivot_key'] ?? 'role_id';
 
+        if (Schema::hasTable($tableNames['model_has_roles'])) {
+            return;
+        }
+
         Schema::create($tableNames['model_has_roles'], function (Blueprint $table) use ($tableNames, $columnNames, $teams, $pivotRole) {
             $table->unsignedBigInteger($pivotRole);
             $table->string('model_type');

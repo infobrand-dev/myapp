@@ -5,6 +5,8 @@ namespace App\Support;
 class CorePermissions
 {
     public const PERMISSIONS = [
+        'settings.view',
+        'settings.manage',
         'users.view',
         'users.create',
         'users.update',

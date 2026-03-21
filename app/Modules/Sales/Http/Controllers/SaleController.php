@@ -16,6 +16,7 @@ use App\Modules\Sales\Http\Requests\VoidSaleRequest;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Repositories\SaleRepository;
 use App\Modules\Sales\Services\SaleLookupService;
+use App\Support\DocumentSettingsResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -29,6 +30,7 @@ class SaleController extends Controller
     private $finalizeSale;
     private $voidSale;
     private $cancelDraftSale;
+    private $documentSettings;
 
     public function __construct(
         SaleRepository $repository,
@@ -37,7 +39,8 @@ class SaleController extends Controller
         UpdateDraftSaleAction $updateDraftSale,
         FinalizeSaleAction $finalizeSale,
         VoidSaleAction $voidSale,
-        CancelDraftSaleAction $cancelDraftSale
+        CancelDraftSaleAction $cancelDraftSale,
+        DocumentSettingsResolver $documentSettings
     ) {
         $this->repository = $repository;
         $this->lookupService = $lookupService;
@@ -46,6 +49,7 @@ class SaleController extends Controller
         $this->finalizeSale = $finalizeSale;
         $this->voidSale = $voidSale;
         $this->cancelDraftSale = $cancelDraftSale;
+        $this->documentSettings = $documentSettings;
     }
 
     public function index(Request $request): View
@@ -127,8 +131,11 @@ class SaleController extends Controller
 
     public function invoice(Sale $sale): View
     {
+        $sale = $this->repository->findForDetail($sale);
+
         return view('sales::invoice', [
-            'sale' => $this->repository->findForDetail($sale),
+            'sale' => $sale,
+            'documentSettings' => $this->documentSettings->forScope($sale->tenant_id, $sale->company_id, $sale->branch_id),
         ]);
     }
 

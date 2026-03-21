@@ -33,6 +33,9 @@
             <div class="strong" style="font-size:1.1rem;">MYAPP STORE</div>
             <div class="small">Point Of Sale Receipt</div>
             <div class="small">Invoice {{ $sale->sale_number }}</div>
+            @if(!empty($documentSettings['document_header']))
+                <div class="small" style="margin-top:.5rem;">{!! nl2br(e($documentSettings['document_header'])) !!}</div>
+            @endif
             @if($isReprint && $reprintLog)
                 <div class="reprint-banner">REPRINT / DUPLIKAT</div>
                 <div class="reprint-meta small">
@@ -83,7 +86,11 @@
 
             <div style="border-top:1px dashed #9ca3af; margin: .9rem 0;"></div>
             <div class="small" style="text-align:center;">Thank you for shopping</div>
-            <div class="small" style="text-align:center;">Please keep this receipt for return or reprint</div>
+            @if(!empty($documentSettings['receipt_footer']))
+                <div class="small" style="text-align:center;">{!! nl2br(e($documentSettings['receipt_footer'])) !!}</div>
+            @else
+                <div class="small" style="text-align:center;">Please keep this receipt for return or reprint</div>
+            @endif
             @if($isReprint && $reprintLog)
                 <div class="small strong" style="text-align:center; margin-top:.5rem; color:#991b1b;">Reprint reason: {{ $reprintLog->reason }}</div>
             @endif

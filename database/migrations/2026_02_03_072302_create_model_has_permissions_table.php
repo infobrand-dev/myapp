@@ -13,6 +13,10 @@ return new class extends Migration
         $teams = config('permission.teams');
         $pivotPermission = $columnNames['permission_pivot_key'] ?? 'permission_id';
 
+        if (Schema::hasTable($tableNames['model_has_permissions'])) {
+            return;
+        }
+
         Schema::create($tableNames['model_has_permissions'], function (Blueprint $table) use ($tableNames, $columnNames, $teams, $pivotPermission) {
             $table->unsignedBigInteger($pivotPermission);
             $table->string('model_type');

@@ -9,6 +9,7 @@ use App\Modules\PointOfSale\Models\PosReceiptReprintLog;
 use App\Modules\PointOfSale\Services\PosCashSessionService;
 use App\Modules\Sales\Models\Sale;
 use App\Support\CompanyContext;
+use App\Support\DocumentSettingsResolver;
 use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Contracts\View\View;
@@ -19,10 +20,12 @@ class ReceiptController extends Controller
 {
 
     private $cashSessionService;
+    private $documentSettings;
 
-    public function __construct(PosCashSessionService $cashSessionService)
+    public function __construct(PosCashSessionService $cashSessionService, DocumentSettingsResolver $documentSettings)
     {
         $this->cashSessionService = $cashSessionService;
+        $this->documentSettings = $documentSettings;
     }
 
     public function show(Request $request, Sale $sale): View
@@ -131,6 +134,7 @@ class ReceiptController extends Controller
             'isReprint' => $isReprint,
             'reprintLog' => $reprintLog,
             'changeAmount' => $changeAmount,
+            'documentSettings' => $this->documentSettings->forScope($sale->tenant_id, $sale->company_id, $sale->branch_id),
         ]);
     }
 

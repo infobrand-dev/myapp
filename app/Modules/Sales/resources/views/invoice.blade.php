@@ -18,6 +18,9 @@
             <div class="col-md-6">
                 <div class="fw-bold">MyApp</div>
                 <div class="text-muted small">Sales invoice backoffice</div>
+                @if(!empty($documentSettings['document_header']))
+                    <div class="text-muted small mt-2">{!! nl2br(e($documentSettings['document_header'])) !!}</div>
+                @endif
             </div>
             <div class="col-md-6 text-md-end">
                 <div class="fw-semibold">{{ $sale->sale_number }}</div>
@@ -76,6 +79,10 @@
                 </tfoot>
             </table>
         </div>
+
+        @if(!empty($documentSettings['document_footer']))
+            <div class="mt-4 text-muted small">{!! nl2br(e($documentSettings['document_footer'])) !!}</div>
+        @endif
     </div>
 </div>
 @endsection

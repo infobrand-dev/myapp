@@ -79,6 +79,7 @@ class PaymentRepository
                                             ->orWhere('sale_number_snapshot', 'like', "%{$search}%")
                                             ->orWhere('customer_name_snapshot', 'like', "%{$search}%");
                                     });
+                                BranchContext::applyScope($payable);
                             });
                         });
                     });

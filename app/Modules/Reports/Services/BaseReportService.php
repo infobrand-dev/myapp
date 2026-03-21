@@ -2,6 +2,9 @@
 
 namespace App\Modules\Reports\Services;
 
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
+use App\Support\TenantContext;
 use Illuminate\Database\Query\Builder;
 
 abstract class BaseReportService
@@ -11,7 +14,6 @@ abstract class BaseReportService
         return [
             'date_from' => $this->normalizeDate($filters['date_from'] ?? null) ?? now()->startOfMonth()->toDateString(),
             'date_to' => $this->normalizeDate($filters['date_to'] ?? null) ?? now()->toDateString(),
-            'outlet_id' => $this->normalizeInt($filters['outlet_id'] ?? null),
         ];
     }
 
@@ -55,10 +57,16 @@ abstract class BaseReportService
             });
     }
 
-    protected function applyOutlet(Builder $query, array $filters, string $column = 'outlet_id'): Builder
+    protected function applyTenantCompanyBranchScope(Builder $query, string $table, string $branchColumn = 'branch_id'): Builder
     {
-        return $query->when(!empty($filters['outlet_id']), function (Builder $query) use ($column, $filters) {
-            $query->where($column, $filters['outlet_id']);
-        });
+        $query
+            ->where($table . '.tenant_id', TenantContext::currentId())
+            ->where($table . '.company_id', CompanyContext::currentId());
+
+        if (BranchContext::currentId() === null) {
+            return $query->whereNull($table . '.' . $branchColumn);
+        }
+
+        return $query->where($table . '.' . $branchColumn, BranchContext::currentId());
     }
 }

@@ -12,11 +12,11 @@
 
 <div class="card mb-3">
     <div class="card-body">
+        <div class="alert alert-info mb-3">Semua card mengikuti active company/branch context dari topbar switcher. Saat branch tidak dipilih, report branch-aware hanya membaca data company-level dengan <code>branch_id = null</code>.</div>
         <form method="GET" class="row g-3">
-            <div class="col-md-3"><label class="form-label">Date From</label><input type="date" name="date_from" class="form-control" value="{{ $filters['date_from'] }}"></div>
-            <div class="col-md-3"><label class="form-label">Date To</label><input type="date" name="date_to" class="form-control" value="{{ $filters['date_to'] }}"></div>
-            <div class="col-md-3"><label class="form-label">Outlet ID</label><input type="number" name="outlet_id" min="1" class="form-control" value="{{ $filters['outlet_id'] }}" placeholder="Optional"></div>
-            <div class="col-md-3 d-flex align-items-end gap-2"><button class="btn btn-primary w-100">Apply</button><a href="{{ route('reports.dashboard') }}" class="btn btn-outline-secondary">Reset</a></div>
+            <div class="col-md-4"><label class="form-label">Date From</label><input type="date" name="date_from" class="form-control" value="{{ $filters['date_from'] }}"></div>
+            <div class="col-md-4"><label class="form-label">Date To</label><input type="date" name="date_to" class="form-control" value="{{ $filters['date_to'] }}"></div>
+            <div class="col-md-4 d-flex align-items-end gap-2"><button class="btn btn-primary w-100">Apply</button><a href="{{ route('reports.dashboard') }}" class="btn btn-outline-secondary">Reset</a></div>
         </form>
     </div>
 </div>

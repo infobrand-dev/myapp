@@ -76,8 +76,8 @@ class FinanceReportService extends BaseReportService
     {
         $query = DB::table('finance_transactions');
 
+        $this->applyTenantCompanyBranchScope($query, 'finance_transactions');
         $this->applyDateRange($query, 'finance_transactions.transaction_date', $filters);
-        $this->applyOutlet($query, $filters, 'finance_transactions.outlet_id');
 
         return $query
             ->when(!empty($filters['finance_category_id']), fn ($builder) => $builder->where('finance_transactions.finance_category_id', $filters['finance_category_id']))

@@ -87,8 +87,10 @@ class SaleController extends Controller
 
     public function show(Sale $sale): View
     {
+        $sale = $this->repository->findForDetail($sale);
+
         return view('sales::show', [
-            'sale' => $this->repository->findForDetail($sale),
+            'sale' => $sale,
             'statusOptions' => $this->lookupService->statusOptions(),
             'paymentStatusOptions' => $this->lookupService->paymentStatusOptions(),
         ]);
@@ -96,9 +98,11 @@ class SaleController extends Controller
 
     public function edit(Sale $sale): View
     {
+        $sale = $this->repository->findForEdit($sale);
+
         abort_unless($sale->isDraft(), 404);
 
-        return view('sales::edit', $this->formViewData($this->repository->findForEdit($sale)));
+        return view('sales::edit', $this->formViewData($sale));
     }
 
     public function update(UpdateDraftSaleRequest $request, Sale $sale): RedirectResponse

@@ -66,6 +66,7 @@ class PurchaseReportService extends BaseReportService
                 Purchase::STATUS_VOIDED,
             ]);
 
+        $this->applyTenantCompanyBranchScope($query, 'purchases');
         $this->applyDateRange($query, 'purchases.purchase_date', $filters);
 
         return $query
@@ -88,6 +89,7 @@ class PurchaseReportService extends BaseReportService
     {
         $query = DB::table('purchases')->whereNotIn('purchases.status', [Purchase::STATUS_DRAFT, Purchase::STATUS_CANCELLED, Purchase::STATUS_VOIDED]);
 
+        $this->applyTenantCompanyBranchScope($query, 'purchases');
         $this->applyDateRange($query, 'purchases.purchase_date', $filters);
 
         return $query

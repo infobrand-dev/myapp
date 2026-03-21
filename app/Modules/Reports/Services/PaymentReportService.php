@@ -81,8 +81,8 @@ class PaymentReportService extends BaseReportService
             ->leftJoin('payment_methods', 'payment_methods.id', '=', 'payments.payment_method_id')
             ->where('payments.status', Payment::STATUS_POSTED);
 
+        $this->applyTenantCompanyBranchScope($query, 'payments');
         $this->applyDateRange($query, 'payments.paid_at', $filters);
-        $this->applyOutlet($query, $filters, 'payments.outlet_id');
 
         return $query
             ->when(!empty($filters['payment_method_id']), fn ($builder) => $builder->where('payments.payment_method_id', $filters['payment_method_id']))

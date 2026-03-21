@@ -10,10 +10,10 @@
 
 <div class="card mb-3">
     <div class="card-body">
+        <div class="alert alert-info mb-3">POS report mengikuti active company/branch context dari topbar switcher, bukan filter outlet manual.</div>
         <form method="GET" class="row g-3">
-            <div class="col-md-3"><label class="form-label">Date From</label><input type="date" name="date_from" class="form-control" value="{{ $filters['date_from'] }}"></div>
-            <div class="col-md-3"><label class="form-label">Date To</label><input type="date" name="date_to" class="form-control" value="{{ $filters['date_to'] }}"></div>
-            <div class="col-md-2"><label class="form-label">Outlet ID</label><input type="number" min="1" name="outlet_id" class="form-control" value="{{ $filters['outlet_id'] }}"></div>
+            <div class="col-md-4"><label class="form-label">Date From</label><input type="date" name="date_from" class="form-control" value="{{ $filters['date_from'] }}"></div>
+            <div class="col-md-4"><label class="form-label">Date To</label><input type="date" name="date_to" class="form-control" value="{{ $filters['date_to'] }}"></div>
             <div class="col-md-2"><label class="form-label">Cashier ID</label><input type="number" min="1" name="cashier_user_id" class="form-control" value="{{ $filters['cashier_user_id'] }}"></div>
             <div class="col-md-2"><label class="form-label">Status</label><input type="text" name="status" class="form-control" value="{{ $filters['status'] }}" placeholder="active, closed"></div>
             <div class="col-12 d-flex gap-2"><button class="btn btn-primary">Filter</button><a href="{{ route('reports.pos') }}" class="btn btn-outline-secondary">Reset</a></div>

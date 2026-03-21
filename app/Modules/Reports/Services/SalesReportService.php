@@ -39,8 +39,8 @@ class SalesReportService extends BaseReportService
             ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
             ->where('sales.status', Sale::STATUS_FINALIZED);
 
+        $this->applyTenantCompanyBranchScope($itemQuery, 'sales');
         $this->applyDateRange($itemQuery, 'sales.transaction_date', $filters);
-        $this->applyOutlet($itemQuery, $filters, 'sales.outlet_id');
 
         $itemQuery
             ->when(!empty($filters['source']), fn ($query) => $query->where('sales.source', $filters['source']))
@@ -84,8 +84,8 @@ class SalesReportService extends BaseReportService
             ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
             ->where('sales.status', Sale::STATUS_FINALIZED);
 
+        $this->applyTenantCompanyBranchScope($query, 'sales');
         $this->applyDateRange($query, 'sales.transaction_date', $filters);
-        $this->applyOutlet($query, $filters, 'sales.outlet_id');
 
         return $query
             ->when(!empty($filters['source']), fn ($builder) => $builder->where('sales.source', $filters['source']))
@@ -146,8 +146,8 @@ class SalesReportService extends BaseReportService
     {
         $query = DB::table('sales')->where('sales.status', Sale::STATUS_FINALIZED);
 
+        $this->applyTenantCompanyBranchScope($query, 'sales');
         $this->applyDateRange($query, 'sales.transaction_date', $filters);
-        $this->applyOutlet($query, $filters, 'sales.outlet_id');
 
         return $query
             ->when(!empty($filters['source']), fn ($builder) => $builder->where('sales.source', $filters['source']))

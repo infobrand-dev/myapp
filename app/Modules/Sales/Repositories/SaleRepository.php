@@ -30,9 +30,12 @@ class SaleRepository
             ->withQueryString();
     }
 
-    public function findForDetail(Sale $sale): Sale
+    public function findForDetail(Sale|int $sale): Sale
     {
-        return $sale->load([
+        $saleId = $sale instanceof Sale ? $sale->id : $sale;
+
+        return $this->scopedQuery()
+            ->with([
             'contact.parentContact',
             'items.product',
             'items.variant',
@@ -47,17 +50,22 @@ class SaleRepository
             'finalizer',
             'voider',
             'canceller',
-        ]);
+        ])
+            ->findOrFail($saleId);
     }
 
-    public function findForEdit(Sale $sale): Sale
+    public function findForEdit(Sale|int $sale): Sale
     {
-        return $sale->load([
+        $saleId = $sale instanceof Sale ? $sale->id : $sale;
+
+        return $this->scopedQuery()
+            ->with([
             'contact',
             'items.product',
             'items.variant',
             'paymentAllocations.payment',
-        ]);
+        ])
+            ->findOrFail($saleId);
     }
 
     private function applyFilters(Builder $query, array $filters): void
@@ -100,6 +108,18 @@ class SaleRepository
         if (!empty($filters['date_to'])) {
             $query->whereDate('transaction_date', '<=', $filters['date_to']);
         }
+    }
+
+
+    private function scopedQuery()
+    {
+        $query = Sale::query()
+            ->where('tenant_id', $this->tenantId())
+            ->where('company_id', $this->companyId());
+
+        BranchContext::applyScope($query);
+
+        return $query;
     }
 
     private function tenantId(): int

@@ -3,17 +3,19 @@
 @section('content')
 <div class="mb-3">
     <h2 class="mb-0">Sales Reports</h2>
-    <div class="text-muted small">Summary penjualan finalized berdasarkan tanggal, produk, customer, dan cashier.</div>
+    <div class="text-muted small">Summary penjualan finalized berdasarkan tanggal, produk, customer, dan cashier pada company/branch context aktif.</div>
 </div>
 
 @include('reports::partials.nav')
 
 <div class="card mb-3">
     <div class="card-body">
+        <div class="alert alert-info mb-3">
+            Filter report mengikuti context aktif dari topbar switcher. Jika branch tidak dipilih, report hanya menampilkan data company-level dengan <code>branch_id = null</code>.
+        </div>
         <form method="GET" class="row g-3">
             <div class="col-md-2"><label class="form-label">Date From</label><input type="date" name="date_from" class="form-control" value="{{ $filters['date_from'] }}"></div>
             <div class="col-md-2"><label class="form-label">Date To</label><input type="date" name="date_to" class="form-control" value="{{ $filters['date_to'] }}"></div>
-            <div class="col-md-2"><label class="form-label">Outlet ID</label><input type="number" min="1" name="outlet_id" class="form-control" value="{{ $filters['outlet_id'] }}"></div>
             <div class="col-md-2"><label class="form-label">Source</label><select name="source" class="form-select"><option value="">All</option>@foreach($sourceOptions as $value => $label)<option value="{{ $value }}" @selected($filters['source'] === $value)>{{ $label }}</option>@endforeach</select></div>
             <div class="col-md-2"><label class="form-label">Customer</label><input type="text" name="customer" class="form-control" value="{{ $filters['customer'] }}" placeholder="Name snapshot"></div>
             <div class="col-md-2"><label class="form-label">Cashier ID</label><input type="number" min="1" name="cashier_user_id" class="form-control" value="{{ $filters['cashier_user_id'] }}"></div>

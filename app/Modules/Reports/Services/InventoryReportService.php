@@ -82,6 +82,7 @@ class InventoryReportService extends BaseReportService
             ->leftJoin('inventory_locations', 'inventory_locations.id', '=', 'inventory_stock_adjustments.inventory_location_id')
             ->leftJoin('inventory_stock_adjustment_items', 'inventory_stock_adjustment_items.adjustment_id', '=', 'inventory_stock_adjustments.id');
 
+        $this->applyTenantCompanyBranchScope($query, 'inventory_stock_adjustments');
         $this->applyDateRange($query, 'inventory_stock_adjustments.adjustment_date', $filters);
 
         return $query
@@ -103,6 +104,7 @@ class InventoryReportService extends BaseReportService
             ->leftJoin('inventory_locations', 'inventory_locations.id', '=', 'inventory_stock_opnames.inventory_location_id')
             ->leftJoin('inventory_stock_opname_items', 'inventory_stock_opname_items.opname_id', '=', 'inventory_stock_opnames.id');
 
+        $this->applyTenantCompanyBranchScope($query, 'inventory_stock_opnames');
         $this->applyDateRange($query, 'inventory_stock_opnames.opname_date', $filters);
 
         return $query
@@ -126,10 +128,14 @@ class InventoryReportService extends BaseReportService
 
     private function stockBaseQuery(array $filters)
     {
-        return DB::table('inventory_stocks')
+        $query = DB::table('inventory_stocks')
             ->leftJoin('products', 'products.id', '=', 'inventory_stocks.product_id')
             ->leftJoin('product_variants', 'product_variants.id', '=', 'inventory_stocks.product_variant_id')
-            ->leftJoin('inventory_locations', 'inventory_locations.id', '=', 'inventory_stocks.inventory_location_id')
+            ->leftJoin('inventory_locations', 'inventory_locations.id', '=', 'inventory_stocks.inventory_location_id');
+
+        $this->applyTenantCompanyBranchScope($query, 'inventory_stocks');
+
+        return $query
             ->when(!empty($filters['location_id']), fn ($builder) => $builder->where('inventory_stocks.inventory_location_id', $filters['location_id']))
             ->when(!empty($filters['product']), function ($builder) use ($filters) {
                 $builder->where(function ($nested) use ($filters) {
@@ -146,6 +152,7 @@ class InventoryReportService extends BaseReportService
             ->leftJoin('products', 'products.id', '=', 'inventory_stock_movements.product_id')
             ->leftJoin('product_variants', 'product_variants.id', '=', 'inventory_stock_movements.product_variant_id');
 
+        $this->applyTenantCompanyBranchScope($query, 'inventory_stock_movements');
         $this->applyDateRange($query, 'inventory_stock_movements.occurred_at', $filters);
 
         return $query

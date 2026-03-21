@@ -10,10 +10,10 @@
 
 <div class="card mb-3">
     <div class="card-body">
+        <div class="alert alert-info mb-3">Finance report mengikuti active company/branch context dari topbar switcher, bukan filter outlet manual.</div>
         <form method="GET" class="row g-3">
-            <div class="col-md-2"><label class="form-label">Date From</label><input type="date" name="date_from" class="form-control" value="{{ $filters['date_from'] }}"></div>
-            <div class="col-md-2"><label class="form-label">Date To</label><input type="date" name="date_to" class="form-control" value="{{ $filters['date_to'] }}"></div>
-            <div class="col-md-2"><label class="form-label">Outlet ID</label><input type="number" min="1" name="outlet_id" class="form-control" value="{{ $filters['outlet_id'] }}"></div>
+            <div class="col-md-3"><label class="form-label">Date From</label><input type="date" name="date_from" class="form-control" value="{{ $filters['date_from'] }}"></div>
+            <div class="col-md-3"><label class="form-label">Date To</label><input type="date" name="date_to" class="form-control" value="{{ $filters['date_to'] }}"></div>
             <div class="col-md-3"><label class="form-label">Category</label><select name="finance_category_id" class="form-select"><option value="">All</option>@foreach($categories as $category)<option value="{{ $category->id }}" @selected((string) $filters['finance_category_id'] === (string) $category->id)>{{ $category->name }}</option>@endforeach</select></div>
             <div class="col-md-3"><label class="form-label">Type</label><input type="text" name="transaction_type" class="form-control" value="{{ $filters['transaction_type'] }}" placeholder="cash_in, cash_out, expense"></div>
             <div class="col-12 d-flex gap-2"><button class="btn btn-primary">Filter</button><a href="{{ route('reports.finance') }}" class="btn btn-outline-secondary">Reset</a></div>

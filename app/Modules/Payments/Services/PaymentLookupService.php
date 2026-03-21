@@ -96,6 +96,7 @@ class PaymentLookupService
         return SaleReturn::query()
             ->where('tenant_id', TenantContext::currentId())
             ->where('company_id', CompanyContext::currentId())
+            ->tap(fn ($query) => BranchContext::applyScope($query))
             ->where('status', SaleReturn::STATUS_FINALIZED)
             ->where('refund_required', true)
             ->whereNotIn('refund_status', [SaleReturn::REFUND_REFUNDED, SaleReturn::REFUND_SKIPPED])

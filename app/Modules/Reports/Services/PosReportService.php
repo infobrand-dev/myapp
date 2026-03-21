@@ -102,8 +102,8 @@ class PosReportService extends BaseReportService
                 $join->on('payment_summary.pos_cash_session_id', '=', 'pos_cash_sessions.id');
             });
 
+        $this->applyTenantCompanyBranchScope($query, 'pos_cash_sessions');
         $this->applyDateRange($query, 'pos_cash_sessions.opened_at', $filters);
-        $this->applyOutlet($query, $filters, 'pos_cash_sessions.outlet_id');
 
         return $query
             ->when(!empty($filters['cashier_user_id']), fn ($builder) => $builder->where('pos_cash_sessions.cashier_user_id', $filters['cashier_user_id']))

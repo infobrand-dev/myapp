@@ -3,7 +3,10 @@
 @section('content')
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title mb-0">Edit User</h2>
+        <div>
+            <h2 class="card-title mb-0">Edit User</h2>
+            <div class="text-muted small mt-1">Perubahan role dan access scope tetap disimpan dari form user yang sama.</div>
+        </div>
     </div>
     <div class="card-body">
         <form method="POST" action="{{ route('users.update', $user) }}">

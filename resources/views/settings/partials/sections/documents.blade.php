@@ -1,16 +1,84 @@
-<div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center gap-3">
-        <div>
-            <h3 class="card-title mb-0">Document Settings</h3>
-            <div class="text-muted small mt-1">Invoice numbering dan template dokumen sekarang sudah punya persistence per company, dengan optional override per branch aktif.</div>
+<div class="row g-3">
+    <div class="col-xl-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h3 class="card-title mb-0">Preview</h3>
+            </div>
+            <div class="card-body d-flex flex-column gap-3">
+                <div class="border rounded-3 p-3">
+                    <div class="text-secondary text-uppercase small fw-bold">Company Sale Number</div>
+                    <div class="fs-3 fw-bold mt-1">{{ $documentPreview['company_sale_number'] }}</div>
+                    <div class="text-muted small mt-1">Nomor ini dipakai saat branch tidak mengaktifkan override sendiri.</div>
+                </div>
+                <div class="border rounded-3 p-3">
+                    <div class="d-flex justify-content-between align-items-center gap-3">
+                        <div class="text-secondary text-uppercase small fw-bold">Branch Override</div>
+                        @if($documentPreview['has_branch_override'])
+                            <span class="badge bg-yellow-lt text-yellow">Configured</span>
+                        @elseif($documentPreview['branch_selected'])
+                            <span class="badge bg-secondary-lt text-secondary">Following company</span>
+                        @else
+                            <span class="badge bg-secondary-lt text-secondary">No branch selected</span>
+                        @endif
+                    </div>
+                    <div class="fs-3 fw-bold mt-1">{{ $documentPreview['branch_sale_number'] ?: 'Follow company default' }}</div>
+                    <div class="text-muted small mt-1">
+                        @if($documentPreview['branch_selected'])
+                            Override hanya berlaku untuk branch aktif yang sedang dipilih.
+                        @else
+                            Pilih branch aktif jika ingin menyiapkan numbering khusus outlet tertentu.
+                        @endif
+                    </div>
+                </div>
+                <div class="border rounded-3 p-3">
+                    <div class="d-flex justify-content-between align-items-center gap-3">
+                        <div class="text-secondary text-uppercase small fw-bold">Effective Sale Number</div>
+                        <span class="badge bg-azure-lt text-azure">{{ $documentPreview['effective_source'] }}</span>
+                    </div>
+                    <div class="fs-3 fw-bold mt-1">{{ $documentPreview['effective_sale_number'] }}</div>
+                    <div class="text-muted small mt-1">{{ $documentPreview['effective_applies_to'] }} sekarang sudah memakai setting ini.</div>
+                </div>
+                <div class="border rounded-3 p-3">
+                    <div class="text-secondary text-uppercase small fw-bold">Reset Period</div>
+                    <div class="fw-semibold mt-1">{{ \Illuminate\Support\Str::headline((string) $documentPreview['effective_reset_period']) }}</div>
+                    <div class="text-muted small mt-1">Counter preview mengikuti sumber setting efektif di atas.</div>
+                </div>
+                <div class="border rounded-3 p-3">
+                    <div class="text-secondary text-uppercase small fw-bold">Effective Output</div>
+                    <div class="small mt-2">
+                        <div class="fw-semibold mb-1">Header</div>
+                        <div class="text-muted">{!! nl2br(e($documentPreview['effective_header'] ?: 'Belum diisi.')) !!}</div>
+                    </div>
+                    <div class="small mt-3">
+                        <div class="fw-semibold mb-1">Invoice Footer</div>
+                        <div class="text-muted">{!! nl2br(e($documentPreview['effective_footer'] ?: 'Belum diisi.')) !!}</div>
+                    </div>
+                    <div class="small mt-3">
+                        <div class="fw-semibold mb-1">Receipt Footer</div>
+                        <div class="text-muted">{!! nl2br(e($documentPreview['effective_receipt_footer'] ?: 'Belum diisi.')) !!}</div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <span class="badge bg-blue-lt text-blue">{{ optional($currentCompany)->name ?? 'No company selected' }}</span>
     </div>
-    <div class="card-body">
-        @if(!$currentCompany)
-            <div class="alert alert-warning mb-0">Pilih company aktif terlebih dahulu untuk mengatur document settings.</div>
-        @else
-            <form method="POST" action="{{ route('settings.documents.save') }}" class="row g-4">
+    <div class="col-xl-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center gap-3">
+                <div>
+                    <h3 class="card-title mb-0">Document Settings</h3>
+                    <div class="text-muted small mt-1">Invoice numbering dan template dokumen sekarang sudah punya persistence per company, dengan optional override per branch aktif.</div>
+                </div>
+                <span class="badge bg-blue-lt text-blue">{{ optional($currentCompany)->name ?? 'No company selected' }}</span>
+            </div>
+            <div class="card-body">
+                @if(!$currentCompany)
+                    <div class="alert alert-warning mb-0">Pilih company aktif terlebih dahulu untuk mengatur document settings.</div>
+                @else
+                    <div class="alert alert-info">
+                        <div class="fw-semibold">Current rollout</div>
+                        <div class="small mt-1">{{ $documentPreview['effective_applies_to'] }} sudah membaca setting ini. {{ $documentPreview['pending_applies_to'] }}.</div>
+                    </div>
+                    <form method="POST" action="{{ route('settings.documents.save') }}" class="row g-4">
                 @csrf
                 @method('PUT')
 
@@ -120,12 +188,14 @@
                     </div>
                 </div>
 
-                @can('settings.manage')
-                    <div class="col-12">
-                        <button class="btn btn-primary" type="submit">Save Document Settings</button>
-                    </div>
-                @endcan
-            </form>
-        @endif
+                    @can('settings.manage')
+                        <div class="col-12">
+                            <button class="btn btn-primary" type="submit">Save Document Settings</button>
+                        </div>
+                    @endcan
+                </form>
+                @endif
+            </div>
+        </div>
     </div>
 </div>

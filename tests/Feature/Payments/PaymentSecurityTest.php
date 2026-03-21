@@ -3,6 +3,8 @@
 namespace Tests\Feature\Payments;
 
 use App\Models\User;
+use App\Models\Branch;
+use App\Models\Company;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Payments\Actions\CreatePaymentAction;
 use App\Modules\Payments\Models\PaymentMethod;
@@ -12,6 +14,9 @@ use App\Modules\Sales\Actions\CreateDraftSaleAction;
 use App\Modules\Sales\Actions\FinalizeSaleAction;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\SalesServiceProvider;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
+use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
@@ -44,9 +49,28 @@ class PaymentSecurityTest extends TestCase
         ])->run();
 
         $this->artisan('migrate', [
+            '--path' => 'app/Modules/PointOfSale/database/migrations',
+            '--realpath' => false,
+        ])->run();
+
+        $this->artisan('migrate', [
             '--path' => 'app/Modules/Sales/database/migrations',
             '--realpath' => false,
         ])->run();
+
+        Company::query()->firstOrCreate([
+            'tenant_id' => 1,
+            'slug' => 'default-company',
+        ], [
+            'name' => 'Default Company',
+            'code' => 'DEF',
+            'is_active' => true,
+            'meta' => [],
+        ]);
+
+        TenantContext::setCurrentId(1);
+        CompanyContext::setCurrentId((int) Company::query()->where('tenant_id', 1)->value('id'));
+        BranchContext::setCurrentId(null);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
@@ -95,6 +119,76 @@ class PaymentSecurityTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors('received_by');
+        $this->assertDatabaseCount('payments', 0);
+    }
+
+    public function test_user_cannot_create_payment_for_branch_outside_membership(): void
+    {
+        $company = Company::query()->create([
+            'tenant_id' => 1,
+            'name' => 'PT Payments',
+            'slug' => 'pt-payments',
+            'code' => 'PAY',
+            'is_active' => true,
+        ]);
+
+        $allowedBranch = Branch::query()->create([
+            'tenant_id' => 1,
+            'company_id' => $company->id,
+            'name' => 'Allowed Branch',
+            'slug' => 'allowed-branch',
+            'code' => 'ALW',
+            'is_active' => true,
+        ]);
+
+        $blockedBranch = Branch::query()->create([
+            'tenant_id' => 1,
+            'company_id' => $company->id,
+            'name' => 'Blocked Branch',
+            'slug' => 'blocked-branch',
+            'code' => 'BLK',
+            'is_active' => true,
+        ]);
+
+        $creator = $this->userWithPermissions(['sales.create', 'sales.finalize', 'payments.create']);
+        $sale = $this->finalizedSale($creator);
+
+        \DB::table('user_companies')->insert([
+            'tenant_id' => 1,
+            'user_id' => $creator->id,
+            'company_id' => $company->id,
+            'is_default' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        \DB::table('user_branches')->insert([
+            'tenant_id' => 1,
+            'user_id' => $creator->id,
+            'company_id' => $company->id,
+            'branch_id' => $allowedBranch->id,
+            'is_default' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($creator)
+            ->withSession([
+                'company_id' => $company->id,
+                'company_slug' => $company->slug,
+            ])
+            ->post('/payments', [
+                'payment_method_id' => PaymentMethod::query()->where('code', 'cash')->value('id'),
+                'amount' => 10000,
+                'branch_id' => $blockedBranch->id,
+                'allocations' => [[
+                    'payable_type' => 'sale',
+                    'payable_id' => $sale->id,
+                    'amount' => 10000,
+                ]],
+            ]);
+
+        $response->assertSessionHasErrors('branch_id');
         $this->assertDatabaseCount('payments', 0);
     }
 

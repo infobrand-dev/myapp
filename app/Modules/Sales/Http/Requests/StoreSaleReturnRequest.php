@@ -31,10 +31,10 @@ class StoreSaleReturnRequest extends FormRequest
         }
 
         return [
-            'sale_id' => ['required', 'integer', Rule::exists('sales', 'id')->where(fn ($query) => $query
+            'sale_id' => ['required', 'integer', Rule::exists('sales', 'id')->where(fn ($query) => BranchContext::applyScope($query
                 ->where('tenant_id', TenantContext::currentId())
                 ->where('company_id', CompanyContext::currentId())
-                ->where('status', Sale::STATUS_FINALIZED))],
+                ->where('status', Sale::STATUS_FINALIZED)))],
             'return_date' => ['nullable', 'date'],
             'reason' => ['required', 'string'],
             'notes' => ['nullable', 'string'],
@@ -76,6 +76,17 @@ class StoreSaleReturnRequest extends FormRequest
 
     private function validateTenantRelations(Validator $validator): void
     {
+        $saleId = $this->input('sale_id');
+        if ($saleId && !Sale::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
+            ->where('status', Sale::STATUS_FINALIZED)
+            ->tap(fn ($query) => BranchContext::applyScope($query))
+            ->find($saleId)
+        ) {
+            $validator->errors()->add('sale_id', 'Sale tidak tersedia untuk scope branch aktif.');
+        }
+
         $locationId = $this->input('inventory_location_id');
         if ($locationId && !InventoryLocation::query()->where('tenant_id', TenantContext::currentId())->where('company_id', CompanyContext::currentId())->tap(fn ($query) => BranchContext::applyScope($query))->find($locationId)) {
             $validator->errors()->add('inventory_location_id', 'Lokasi inventory tidak tersedia untuk tenant aktif.');

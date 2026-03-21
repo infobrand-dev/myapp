@@ -3,7 +3,10 @@
 @section('content')
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title mb-0">Tambah User</h2>
+        <div>
+            <h2 class="card-title mb-0">Tambah User</h2>
+            <div class="text-muted small mt-1">Akun, role, company access, dan branch access diatur dalam satu form.</div>
+        </div>
     </div>
     <div class="card-body">
         <form method="POST" action="{{ route('users.store') }}">

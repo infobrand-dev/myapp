@@ -22,7 +22,7 @@
             <div class="card-body">
                 <div class="text-secondary text-uppercase small fw-bold">Current Company</div>
                 <div class="fs-3 fw-bold mt-2">{{ optional($currentCompany)->code ?: '-' }}</div>
-                <div class="text-muted small mt-2">Membership company/branch belum dipisah di UI ini.</div>
+                <div class="text-muted small mt-2">Access company dan branch sekarang dikelola dari halaman Users.</div>
             </div>
         </div>
     </div>
@@ -38,8 +38,14 @@
 </div>
 
 <div class="card">
-    <div class="card-header">
-        <h3 class="card-title mb-0">Tenant Users</h3>
+    <div class="card-header d-flex justify-content-between align-items-center gap-3">
+        <div>
+            <h3 class="card-title mb-0">Tenant Users</h3>
+            <div class="text-muted small mt-1">Role menentukan aksi. Company dan branch access menentukan scope operasional user.</div>
+        </div>
+        @can('users.view')
+            <a href="{{ route('users.index') }}" class="btn btn-outline-primary btn-sm">Open Users</a>
+        @endcan
     </div>
     <div class="table-responsive">
         <table class="table table-vcenter card-table">

@@ -52,10 +52,15 @@ class AppServiceProvider extends ServiceProvider
             $currentBranch = BranchContext::currentBranch();
             $companies = collect();
             $branches = collect();
+            $user = Auth::user();
+            $userAccessManager = app(\App\Support\UserAccessManager::class);
+            $allowedCompanyIds = $userAccessManager->companyIdsFor($user);
+            $allowedBranchIds = $userAccessManager->branchIdsFor($user, optional($currentCompany)->id);
 
             if (Auth::check() && Schema::hasTable('companies')) {
                 $companies = Company::query()
                     ->where('tenant_id', TenantContext::currentId())
+                    ->when($allowedCompanyIds, fn ($query) => $query->whereIn('id', $allowedCompanyIds->all()))
                     ->where('is_active', true)
                     ->orderBy('name')
                     ->get(['id', 'name', 'slug', 'code']);
@@ -65,6 +70,7 @@ class AppServiceProvider extends ServiceProvider
                 $branches = Branch::query()
                     ->where('tenant_id', TenantContext::currentId())
                     ->where('company_id', $currentCompany->id)
+                    ->when($allowedBranchIds, fn ($query) => $query->whereIn('id', $allowedBranchIds->all()))
                     ->where('is_active', true)
                     ->orderBy('name')
                     ->get(['id', 'company_id', 'name', 'slug', 'code']);

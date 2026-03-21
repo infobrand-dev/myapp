@@ -164,7 +164,7 @@
                                         <form
                                             method="POST"
                                             action="{{ route('modules.install', $module['slug']) }}"
-                                            onsubmit="if (!confirm('Install module ' + {{ @js($module['name']) }} + '? Migration dan seeder module akan dijalankan bila tersedia.')) { return false; } const button = this.querySelector('button[type=submit]'); if (button) { button.disabled = true; button.textContent = 'Installing...'; }"
+                                            onsubmit='if (!confirm("Install module " + @json($module["name"]) + "? Migration dan seeder module akan dijalankan bila tersedia.")) { return false; } const button = this.querySelector("button[type=submit]"); if (button) { button.disabled = true; button.textContent = "Installing..."; }'
                                         >
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-primary">Install</button>
@@ -177,7 +177,7 @@
                                         <form
                                             method="POST"
                                             action="{{ route('modules.activate', $module['slug']) }}"
-                                            onsubmit="if (!confirm('Activate module ' + {{ @js($module['name']) }} + '? Pastikan semua dependency sudah aktif.')) { return false; } const button = this.querySelector('button[type=submit]'); if (button) { button.disabled = true; button.textContent = 'Activating...'; }"
+                                            onsubmit='if (!confirm("Activate module " + @json($module["name"]) + "? Pastikan semua dependency sudah aktif.")) { return false; } const button = this.querySelector("button[type=submit]"); if (button) { button.disabled = true; button.textContent = "Activating..."; }'
                                         >
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-success">Activate</button>
@@ -190,7 +190,7 @@
                                         <form
                                             method="POST"
                                             action="{{ route('modules.deactivate', $module['slug']) }}"
-                                            onsubmit="if (!confirm('Deactivate module ' + {{ @js($module['name']) }} + '? Module dependent yang masih aktif akan memblokir proses ini.')) { return false; } const button = this.querySelector('button[type=submit]'); if (button) { button.disabled = true; button.textContent = 'Deactivating...'; }"
+                                            onsubmit='if (!confirm("Deactivate module " + @json($module["name"]) + "? Module dependent yang masih aktif akan memblokir proses ini.")) { return false; } const button = this.querySelector("button[type=submit]"); if (button) { button.disabled = true; button.textContent = "Deactivating..."; }'
                                         >
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-outline-danger">Deactivate</button>

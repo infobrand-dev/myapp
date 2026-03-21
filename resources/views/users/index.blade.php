@@ -19,6 +19,7 @@
                     <th>Nama</th>
                     <th>Email</th>
                     <th>Role</th>
+                    <th>Access Scope</th>
                     <th class="w-1"></th>
                 </tr>
             </thead>
@@ -28,6 +29,12 @@
                     <td>{{ $user->name }}</td>
                     <td>{{ $user->email }}</td>
                     <td>{{ $user->roles->pluck('name')->join(', ') ?: '-' }}</td>
+                    <td>
+                        <div class="small">
+                            <div><span class="text-muted">Companies:</span> {{ $user->companies->pluck('name')->join(', ') ?: 'All active companies' }}</div>
+                            <div><span class="text-muted">Branches:</span> {{ $user->branches->pluck('name')->join(', ') ?: 'Company-level access' }}</div>
+                        </div>
+                    </td>
                     <td class="text-end align-middle">
                         <div class="table-actions">
                             @can('users.update')
@@ -59,7 +66,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="4" class="text-center text-muted">Belum ada user.</td></tr>
+                <tr><td colspan="5" class="text-center text-muted">Belum ada user.</td></tr>
                 @endforelse
             </tbody>
         </table>

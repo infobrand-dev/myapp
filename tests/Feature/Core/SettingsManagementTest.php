@@ -150,6 +150,54 @@ class SettingsManagementTest extends TestCase
         $this->assertSame(2, DocumentSetting::query()->count());
     }
 
+    public function test_documents_page_shows_company_branch_and_effective_preview(): void
+    {
+        $user = $this->settingsUser(['settings.view']);
+
+        DocumentSetting::query()->create([
+            'tenant_id' => 1,
+            'company_id' => 1,
+            'branch_id' => null,
+            'invoice_prefix' => 'INV',
+            'invoice_padding' => 4,
+            'invoice_next_number' => 12,
+            'invoice_reset_period' => 'monthly',
+            'document_header' => "Header company\nLine 2",
+            'document_footer' => 'Footer company',
+            'receipt_footer' => 'Receipt company',
+        ]);
+
+        DocumentSetting::query()->create([
+            'tenant_id' => 1,
+            'company_id' => 1,
+            'branch_id' => 1,
+            'invoice_prefix' => 'BR',
+            'invoice_padding' => 3,
+            'invoice_next_number' => 5,
+            'invoice_reset_period' => 'yearly',
+            'document_header' => 'Header branch',
+            'document_footer' => 'Footer branch',
+            'receipt_footer' => 'Receipt branch',
+        ]);
+
+        $this->actingAs($user)
+            ->withSession([
+                'company_id' => 1,
+                'company_slug' => 'default-company',
+                'branch_id' => 1,
+                'branch_slug' => 'main-branch',
+            ])
+            ->get(route('settings.documents'))
+            ->assertOk()
+            ->assertSee('INV-0012')
+            ->assertSee('BR-005')
+            ->assertSee('Branch override')
+            ->assertSee('Sales invoice dan POS receipt')
+            ->assertSee('Payment numbering dan dokumen lain masih memakai generator masing-masing')
+            ->assertSee('Header branch')
+            ->assertSee('Receipt branch');
+    }
+
     private function settingsUser(array $permissions): User
     {
         foreach ($permissions as $permission) {

@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -57,10 +58,13 @@ return new class extends Migration
             $table->index(['tenant_id', 'company_id', 'branch_id', 'created_by', 'purchase_date']);
             $table->index(['tenant_id', 'company_id', 'branch_id', 'supplier_invoice_number']);
             $table->index(['tenant_id', 'company_id', 'branch_id', 'supplier_reference']);
-            $table->fullText(
-                ['supplier_name_snapshot', 'supplier_notes', 'notes', 'internal_notes'],
-                'purchases_search_fulltext'
-            );
+
+            if (in_array(DB::getDriverName(), ['mysql', 'pgsql'], true)) {
+                $table->fullText(
+                    ['supplier_name_snapshot', 'supplier_notes', 'notes', 'internal_notes'],
+                    'purchases_search_fulltext'
+                );
+            }
         });
     }
 

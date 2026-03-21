@@ -8,10 +8,12 @@ use App\Models\DocumentSetting;
 use App\Models\User;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
+use App\Support\DocumentSettingsResolver;
 use App\Support\ModuleManager;
 use App\Support\PlanLimit;
 use App\Support\TenantContext;
 use App\Support\TenantPlanManager;
+use App\Support\UserAccessManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -23,7 +25,13 @@ use Spatie\Permission\Models\Role;
 
 class SettingsController extends Controller
 {
-    public function show(Request $request, ModuleManager $modules, TenantPlanManager $planManager, string $section = 'general'): View
+    public function show(
+        Request $request,
+        ModuleManager $modules,
+        TenantPlanManager $planManager,
+        DocumentSettingsResolver $documentSettingsResolver,
+        string $section = 'general'
+    ): View
     {
         $tenantId = TenantContext::currentId();
         $tenant = TenantContext::currentTenant();
@@ -32,8 +40,13 @@ class SettingsController extends Controller
         $currentCompanyId = $currentCompany ? $currentCompany->id : null;
         $currentBranchId = $currentBranch ? $currentBranch->id : null;
 
+        $userAccessManager = app(UserAccessManager::class);
+        $allowedCompanyIds = $userAccessManager->companyIdsFor($request->user());
+        $allowedBranchIds = $userAccessManager->branchIdsFor($request->user(), $currentCompanyId);
+
         $companies = Company::query()
             ->where('tenant_id', $tenantId)
+            ->when($allowedCompanyIds, fn ($query) => $query->whereIn('id', $allowedCompanyIds->all()))
             ->withCount([
                 'branches',
                 'branches as active_branches_count' => fn ($query) => $query->where('is_active', true),
@@ -46,6 +59,7 @@ class SettingsController extends Controller
             ->where('tenant_id', $tenantId)
             ->with('company:id,name')
             ->when($currentCompanyId, fn ($query) => $query->where('company_id', $currentCompanyId))
+            ->when($allowedBranchIds, fn ($query) => $query->whereIn('id', $allowedBranchIds->all()))
             ->orderByDesc('is_active')
             ->orderBy('name')
             ->get();
@@ -127,6 +141,12 @@ class SettingsController extends Controller
                 ->first();
         }
 
+        $documentPreview = $documentSettingsResolver->previewForSettingsPage(
+            $tenantId,
+            $currentCompanyId,
+            $currentBranchId
+        );
+
         return view('settings.index', [
             'currentSection' => $section,
             'sections' => $this->sections(),
@@ -148,6 +168,7 @@ class SettingsController extends Controller
             'editingBranch' => $editingBranch,
             'companyDocumentSetting' => $companyDocumentSetting,
             'branchDocumentSetting' => $branchDocumentSetting,
+            'documentPreview' => $documentPreview,
             'settingsStats' => $this->stats($companies, $branches, $users, $activeModules, $currentCompanyId, $currentBranchId),
         ]);
     }
@@ -199,6 +220,8 @@ class SettingsController extends Controller
 
     public function switchCompany(Request $request, Company $company): RedirectResponse
     {
+        abort_unless($this->userCanAccessCompany($request->user(), $company->id), 403);
+
         $request->session()->put('company_id', $company->id);
         $request->session()->put('company_slug', $company->slug);
         $request->session()->forget(['branch_id', 'branch_slug']);
@@ -255,6 +278,7 @@ class SettingsController extends Controller
     {
         $company = $this->requireCurrentCompany();
         abort_unless($branch->company_id === $company->id, 404);
+        abort_unless($this->userCanAccessBranch($request->user(), $branch->id, $company->id), 403);
 
         $request->session()->put('branch_id', $branch->id);
         $request->session()->put('branch_slug', $branch->slug);
@@ -423,6 +447,20 @@ class SettingsController extends Controller
             ->where('tenant_id', TenantContext::currentId())
             ->where('is_active', true)
             ->count();
+    }
+
+    private function userCanAccessCompany(?User $user, int $companyId): bool
+    {
+        $allowedCompanyIds = app(UserAccessManager::class)->companyIdsFor($user);
+
+        return $allowedCompanyIds === null || $allowedCompanyIds->contains($companyId);
+    }
+
+    private function userCanAccessBranch(?User $user, int $branchId, int $companyId): bool
+    {
+        $allowedBranchIds = app(UserAccessManager::class)->branchIdsFor($user, $companyId);
+
+        return $allowedBranchIds === null || $allowedBranchIds->contains($branchId);
     }
 
     private function sections(): array

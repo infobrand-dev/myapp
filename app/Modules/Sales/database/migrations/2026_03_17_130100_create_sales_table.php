@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -58,7 +59,10 @@ return new class extends Migration
             $table->index(['pos_cash_session_id', 'status']);
             $table->index(['tenant_id', 'company_id', 'branch_id', 'transaction_date']);
             $table->unique(['tenant_id', 'company_id', 'source', 'external_reference'], 'sales_source_external_reference_unique');
-            $table->fullText(['customer_name_snapshot', 'notes', 'void_reason'], 'sales_search_fulltext');
+
+            if (in_array(DB::getDriverName(), ['mysql', 'pgsql'], true)) {
+                $table->fullText(['customer_name_snapshot', 'notes', 'void_reason'], 'sales_search_fulltext');
+            }
         });
     }
 

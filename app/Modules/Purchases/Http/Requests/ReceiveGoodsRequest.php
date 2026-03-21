@@ -4,6 +4,8 @@ namespace App\Modules\Purchases\Http\Requests;
 
 use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Purchases\Models\PurchaseItem;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -37,7 +39,9 @@ class ReceiveGoodsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'inventory_location_id' => ['required', 'integer', Rule::exists('inventory_locations', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()))],
+            'inventory_location_id' => ['required', 'integer', Rule::exists('inventory_locations', 'id')->where(fn ($query) => BranchContext::applyScope($query
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())))],
             'receipt_date' => ['nullable', 'date'],
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
@@ -56,7 +60,12 @@ class ReceiveGoodsRequest extends FormRequest
     private function validateTenantRelations(Validator $validator): void
     {
         $locationId = $this->input('inventory_location_id');
-        if ($locationId && !InventoryLocation::query()->where('tenant_id', TenantContext::currentId())->find($locationId)) {
+        if ($locationId && !InventoryLocation::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
+            ->tap(fn ($query) => BranchContext::applyScope($query))
+            ->find($locationId)
+        ) {
             $validator->errors()->add('inventory_location_id', 'Lokasi inventory tidak tersedia untuk tenant aktif.');
         }
 

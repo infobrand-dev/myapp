@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Company;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 
 class CompanyContext
@@ -44,15 +45,17 @@ class CompanyContext
         }
 
         $tenantId = TenantContext::currentId();
+        $allowedCompanyIds = self::allowedCompanyIds();
+        $session = $request->hasSession() ? $request->session() : null;
         $candidates = array_filter([
             self::normalizeInteger($request->attributes->get('company_id')),
             self::normalizeInteger($request->header('X-Company-Id')),
             self::normalizeInteger($request->query('company_id')),
-            self::normalizeInteger($request->session()?->get('company_id')),
+            self::normalizeInteger($session ? $session->get('company_id') : null),
         ]);
 
         foreach ($candidates as $candidate) {
-            if (self::companyExists($candidate, $tenantId)) {
+            if (self::companyExists($candidate, $tenantId, $allowedCompanyIds)) {
                 return $candidate;
             }
         }
@@ -61,12 +64,13 @@ class CompanyContext
             self::normalizeSlug($request->attributes->get('company')),
             self::normalizeSlug($request->header('X-Company-Slug')),
             self::normalizeSlug($request->query('company')),
-            self::normalizeSlug($request->session()?->get('company_slug')),
+            self::normalizeSlug($session ? $session->get('company_slug') : null),
         ]);
 
         foreach ($slugCandidates as $slug) {
             $companyId = Company::query()
                 ->where('tenant_id', $tenantId)
+                ->when($allowedCompanyIds, fn ($query) => $query->whereIn('id', $allowedCompanyIds->all()))
                 ->where('slug', $slug)
                 ->where('is_active', true)
                 ->value('id');
@@ -76,20 +80,33 @@ class CompanyContext
             }
         }
 
+        $defaultCompanyId = app(UserAccessManager::class)->defaultCompanyIdFor(auth()->user());
+
+        if ($defaultCompanyId && self::companyExists($defaultCompanyId, $tenantId, $allowedCompanyIds)) {
+            return $defaultCompanyId;
+        }
+
         return (int) (Company::query()
             ->where('tenant_id', $tenantId)
+            ->when($allowedCompanyIds, fn ($query) => $query->whereIn('id', $allowedCompanyIds->all()))
             ->where('is_active', true)
             ->orderBy('id')
             ->value('id') ?: 0) ?: null;
     }
 
-    private static function companyExists(int $companyId, int $tenantId): bool
+    private static function companyExists(int $companyId, int $tenantId, ?Collection $allowedCompanyIds = null): bool
     {
         return Company::query()
             ->whereKey($companyId)
             ->where('tenant_id', $tenantId)
+            ->when($allowedCompanyIds, fn ($query) => $query->whereIn('id', $allowedCompanyIds->all()))
             ->where('is_active', true)
             ->exists();
+    }
+
+    private static function allowedCompanyIds(): ?Collection
+    {
+        return app(UserAccessManager::class)->companyIdsFor(auth()->user());
     }
 
     private static function normalizeInteger(mixed $value): ?int

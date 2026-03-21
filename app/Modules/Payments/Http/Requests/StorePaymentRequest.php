@@ -4,8 +4,10 @@ namespace App\Modules\Payments\Http\Requests;
 
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
+use App\Support\UserAccessManager;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class StorePaymentRequest extends FormRequest
 {
@@ -45,6 +47,13 @@ class StorePaymentRequest extends FormRequest
         ];
     }
 
+    public function after(): array
+    {
+        return [
+            fn (Validator $validator) => $this->validateAccessScope($validator),
+        ];
+    }
+
     protected function prepareForValidation(): void
     {
         $allocations = collect($this->input('allocations', []))
@@ -81,5 +90,26 @@ class StorePaymentRequest extends FormRequest
             'branch_id' => $this->input('branch_id', $this->input('outlet_id')),
             'allocations' => $allocations,
         ]);
+    }
+
+    private function validateAccessScope(Validator $validator): void
+    {
+        $user = $this->user();
+        $companyId = CompanyContext::currentId();
+        $branchId = $this->input('branch_id');
+        $accessManager = app(UserAccessManager::class);
+
+        $allowedCompanyIds = $accessManager->companyIdsFor($user);
+        if ($companyId && $allowedCompanyIds !== null && !$allowedCompanyIds->contains((int) $companyId)) {
+            $validator->errors()->add('company_id', 'User tidak memiliki akses ke company aktif.');
+        }
+
+        if ($branchId) {
+            $allowedBranchIds = $accessManager->branchIdsFor($user, $companyId);
+
+            if ($allowedBranchIds !== null && !$allowedBranchIds->contains((int) $branchId)) {
+                $validator->errors()->add('branch_id', 'User tidak memiliki akses ke branch yang dipilih.');
+            }
+        }
     }
 }

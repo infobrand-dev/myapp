@@ -23,7 +23,7 @@ return new class extends Migration
             $table->string('reference_number', 100)->nullable();
             $table->string('external_reference', 100)->nullable();
             $table->unsignedBigInteger('branch_id')->nullable()->index();
-            $table->foreignId('pos_cash_session_id')->nullable()->constrained('pos_cash_sessions')->nullOnDelete();
+            $table->unsignedBigInteger('pos_cash_session_id')->nullable()->index();
             $table->text('notes')->nullable();
             $table->json('meta')->nullable();
             $table->foreignId('received_by')->nullable()->constrained('users')->nullOnDelete();

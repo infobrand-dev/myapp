@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -24,7 +25,10 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['tenant_id', 'is_active', 'created_at']);
-            $table->fullText('title', 'shortlinks_title_fulltext');
+
+            if (in_array(DB::getDriverName(), ['mysql', 'pgsql'], true)) {
+                $table->fullText('title', 'shortlinks_title_fulltext');
+            }
         });
     }
 

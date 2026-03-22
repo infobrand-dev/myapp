@@ -2,6 +2,10 @@
 
 namespace Tests\Feature\Inventory;
 
+use App\Models\Company;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
+use App\Support\TenantContext;
 use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Inventory\Services\StockMutationService;
 use App\Modules\Products\Models\Product;
@@ -28,6 +32,21 @@ class StockReservationTest extends TestCase
             '--path' => 'app/Modules/Inventory/database/migrations',
             '--realpath' => false,
         ])->run();
+
+        Company::query()->firstOrCreate(
+            ['id' => 1],
+            [
+                'tenant_id' => 1,
+                'name' => 'Default Company',
+                'slug' => 'default-company',
+                'code' => 'DEF',
+                'is_active' => true,
+            ]
+        );
+
+        TenantContext::setCurrentId(1);
+        CompanyContext::setCurrentId(1);
+        BranchContext::setCurrentId(null);
     }
 
     public function test_reserve_release_and_consume_reserved_stock_updates_balances_safely(): void

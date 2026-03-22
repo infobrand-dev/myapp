@@ -128,9 +128,9 @@ class SalesReadScopeTest extends TestCase
             'branch_slug' => $this->allowedBranch->slug,
         ];
 
-        $this->actingAs($this->user)->withSession($session)->get(route('sales.show', $sale))->assertNotFound();
-        $this->actingAs($this->user)->withSession($session)->get(route('sales.edit', $sale))->assertNotFound();
-        $this->actingAs($this->user)->withSession($session)->get(route('sales.invoice', $sale))->assertNotFound();
+        $this->actingAs($this->user)->withSession($session)->get('/sales/' . $sale->id)->assertNotFound();
+        $this->actingAs($this->user)->withSession($session)->get('/sales/' . $sale->id . '/edit')->assertNotFound();
+        $this->actingAs($this->user)->withSession($session)->get('/sales/' . $sale->id . '/invoice')->assertNotFound();
     }
 
     public function test_show_edit_and_invoice_allow_sale_inside_active_branch_scope(): void
@@ -144,9 +144,9 @@ class SalesReadScopeTest extends TestCase
             'branch_slug' => $this->allowedBranch->slug,
         ];
 
-        $this->actingAs($this->user)->withSession($session)->get(route('sales.show', $sale))->assertOk();
-        $this->actingAs($this->user)->withSession($session)->get(route('sales.edit', $sale))->assertOk();
-        $this->actingAs($this->user)->withSession($session)->get(route('sales.invoice', $sale))->assertOk();
+        $this->actingAs($this->user)->withSession($session)->get('/sales/' . $sale->id)->assertOk();
+        $this->actingAs($this->user)->withSession($session)->get('/sales/' . $sale->id . '/edit')->assertOk();
+        $this->actingAs($this->user)->withSession($session)->get('/sales/' . $sale->id . '/invoice')->assertOk();
     }
 
     private function draftSaleInBranch(int $branchId)

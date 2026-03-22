@@ -43,11 +43,13 @@ class TenantContext
             return 1;
         }
 
+        $session = $request->hasSession() ? $request->session() : null;
+
         $candidates = array_filter([
             self::normalizeInteger($request->attributes->get('tenant_id')),
             self::normalizeInteger($request->header('X-Tenant-Id')),
             self::normalizeInteger($request->query('tenant_id')),
-            self::normalizeInteger($request->session()?->get('tenant_id')),
+            self::normalizeInteger($session ? $session->get('tenant_id') : null),
             self::normalizeInteger(optional($request->user())->tenant_id ?? null),
         ]);
 
@@ -61,7 +63,7 @@ class TenantContext
             self::normalizeSlug($request->attributes->get('tenant')),
             self::normalizeSlug($request->header('X-Tenant-Slug')),
             self::normalizeSlug($request->query('tenant')),
-            self::normalizeSlug($request->session()?->get('tenant_slug')),
+            self::normalizeSlug($session ? $session->get('tenant_slug') : null),
         ]);
 
         foreach ($slugCandidates as $slug) {

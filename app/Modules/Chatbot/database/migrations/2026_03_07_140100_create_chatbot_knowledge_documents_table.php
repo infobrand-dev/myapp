@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -19,7 +20,10 @@ return new class extends Migration
 
             $table->index(['chatbot_account_id', 'created_at'], 'cb_kdocs_acc_created_idx');
             $table->index(['tenant_id', 'created_at'], 'cb_kdocs_tenant_created_idx');
-            $table->fullText(['title', 'content'], 'cb_kdocs_search_fulltext');
+
+            if (in_array(DB::getDriverName(), ['mysql', 'pgsql'], true)) {
+                $table->fullText(['title', 'content'], 'cb_kdocs_search_fulltext');
+            }
         });
     }
 

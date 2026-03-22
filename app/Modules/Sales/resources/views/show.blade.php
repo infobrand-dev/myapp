@@ -8,8 +8,8 @@
     </div>
     <div class="btn-list">
         @if($sale->status === 'draft')
-            <a href="{{ route('sales.edit', $sale) }}" class="btn btn-outline-secondary">Edit Draft</a>
-            <form method="POST" action="{{ route('sales.finalize', $sale) }}">
+            <a href="{{ url('/sales/' . $sale->id . '/edit') }}" class="btn btn-outline-secondary">Edit Draft</a>
+            <form method="POST" action="{{ url('/sales/' . $sale->id . '/finalize') }}">
                 @csrf
                 <button type="submit" class="btn btn-primary">Finalize</button>
             </form>
@@ -20,8 +20,8 @@
         @if($sale->source === 'pos' && $sale->status === 'finalized' && Route::has('pos.receipts.show') && auth()->user()->can('pos.print-receipt'))
             <a href="{{ route('pos.receipts.show', $sale) }}" class="btn btn-outline-dark">POS Receipt</a>
         @endif
-        <a href="{{ route('sales.invoice', $sale) }}" class="btn btn-outline-primary">Print / Invoice</a>
-        <a href="{{ route('sales.index') }}" class="btn btn-outline-secondary">Back</a>
+        <a href="{{ url('/sales/' . $sale->id . '/invoice') }}" class="btn btn-outline-primary">Print / Invoice</a>
+        <a href="{{ url('/sales') }}" class="btn btn-outline-secondary">Back</a>
     </div>
 </div>
 
@@ -173,7 +173,7 @@
                 </div>
 
                 @if($sale->status === 'draft')
-                    <form method="POST" action="{{ route('sales.cancel', $sale) }}" class="mb-3">
+                    <form method="POST" action="{{ url('/sales/' . $sale->id . '/cancel') }}" class="mb-3">
                         @csrf
                         <label class="form-label">Cancel reason</label>
                         <textarea name="reason" class="form-control" rows="2" placeholder="Opsional"></textarea>
@@ -182,7 +182,7 @@
                 @endif
 
                 @if($sale->status === 'finalized')
-                    <form method="POST" action="{{ route('sales.void', $sale) }}">
+                    <form method="POST" action="{{ url('/sales/' . $sale->id . '/void') }}">
                         @csrf
                         <label class="form-label">Void reason</label>
                         <textarea name="reason" class="form-control" rows="3" required placeholder="Alasan void wajib diisi"></textarea>

@@ -2,12 +2,16 @@
 
 namespace Tests\Feature\Sales;
 
+use App\Models\Company;
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Payments\PaymentsServiceProvider;
 use App\Modules\Products\Models\Product;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\SalesServiceProvider;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
+use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Permission;
@@ -44,6 +48,21 @@ class SalesApiChannelTest extends TestCase
             '--path' => 'app/Modules/Sales/database/migrations',
             '--realpath' => false,
         ])->run();
+
+        Company::query()->firstOrCreate(
+            ['id' => 1],
+            [
+                'tenant_id' => 1,
+                'name' => 'Default Company',
+                'slug' => 'default-company',
+                'code' => 'DEF',
+                'is_active' => true,
+            ]
+        );
+
+        TenantContext::setCurrentId(1);
+        CompanyContext::setCurrentId(1);
+        BranchContext::setCurrentId(null);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }

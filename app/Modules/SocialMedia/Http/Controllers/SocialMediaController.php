@@ -20,7 +20,14 @@ class SocialMediaController extends Controller
         abort_unless($conversation->channel === 'social_dm', 404);
         $this->authorizeBotControl($conversation);
 
-        SocialWebhookController::resumeBotForConversation($conversation);
+        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
+        $metadata['needs_human'] = false;
+        $metadata['auto_reply_paused'] = false;
+        unset($metadata['handoff_reason'], $metadata['handoff_at']);
+
+        $conversation->update([
+            'metadata' => $metadata,
+        ]);
 
         return back()->with('status', 'Bot dilanjutkan untuk conversation social ini.');
     }
@@ -30,7 +37,15 @@ class SocialMediaController extends Controller
         abort_unless($conversation->channel === 'social_dm', 404);
         $this->authorizeBotControl($conversation);
 
-        SocialWebhookController::pauseBotForConversation($conversation, 'manual_pause');
+        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
+        $metadata['needs_human'] = true;
+        $metadata['auto_reply_paused'] = true;
+        $metadata['handoff_reason'] = 'manual_pause';
+        $metadata['handoff_at'] = now()->toDateTimeString();
+
+        $conversation->update([
+            'metadata' => $metadata,
+        ]);
 
         return back()->with('status', 'Bot dipause untuk conversation social ini.');
     }

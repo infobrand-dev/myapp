@@ -2,8 +2,11 @@
 
 namespace Tests\Feature\Contacts;
 
+use App\Models\Company;
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
+use App\Support\CompanyContext;
+use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -67,12 +70,16 @@ class ContactMergeTest extends TestCase
     {
         $user = $this->adminUser();
 
-        $company = Contact::query()->create([
-            'type' => 'company',
+        $company = Company::query()->create([
+            'tenant_id' => 1,
             'name' => 'PT Utama',
-            'email' => 'halo@utama.test',
+            'slug' => 'pt-utama',
+            'code' => 'UTM',
             'is_active' => true,
         ]);
+
+        TenantContext::setCurrentId(1);
+        CompanyContext::setCurrentId($company->id);
 
         $primary = Contact::query()->create([
             'type' => 'individual',
@@ -120,7 +127,10 @@ class ContactMergeTest extends TestCase
             ]);
         }
 
-        $response = $this->actingAs($user)->post(route('contacts.merge'), [
+        $response = $this->withSession([
+            'company_id' => $company->id,
+            'company_slug' => $company->slug,
+        ])->actingAs($user)->post(route('contacts.merge'), [
             'primary_id' => $primary->id,
             'duplicate_ids' => [$duplicate->id],
         ]);
@@ -169,7 +179,7 @@ class ContactMergeTest extends TestCase
 
         $employee = Contact::query()->create([
             'type' => 'individual',
-            'company_id' => $duplicate->id,
+            'parent_contact_id' => $duplicate->id,
             'name' => 'Karyawan',
             'email' => 'karyawan@alpha.test',
             'is_active' => true,
@@ -183,7 +193,7 @@ class ContactMergeTest extends TestCase
         $this->assertDatabaseMissing('contacts', ['id' => $duplicate->id]);
         $this->assertDatabaseHas('contacts', [
             'id' => $employee->id,
-            'company_id' => $primary->id,
+            'parent_contact_id' => $primary->id,
         ]);
     }
 

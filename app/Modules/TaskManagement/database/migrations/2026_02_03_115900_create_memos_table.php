@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
@@ -24,10 +25,13 @@ return new class extends Migration {
             $table->timestamps();
 
             $table->index(['tenant_id', 'deadline', 'created_at']);
-            $table->fullText(
-                ['title', 'company_name', 'brand_name', 'contact_name', 'job_title', 'account_executive', 'note'],
-                'memos_search_fulltext'
-            );
+
+            if (in_array(DB::getDriverName(), ['mysql', 'pgsql'], true)) {
+                $table->fullText(
+                    ['title', 'company_name', 'brand_name', 'contact_name', 'job_title', 'account_executive', 'note'],
+                    'memos_search_fulltext'
+                );
+            }
         });
     }
 

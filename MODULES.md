@@ -6,7 +6,7 @@ This file is a quick catalog. The authoritative metadata for each module lives i
 - `products`: product master data, variants, options, units, media, pricing structure.
 - `inventory`: stock balances, movements, opening stock, adjustments, transfers, opname. Requires `products`.
 - `discounts`: discount engine and voucher rules. Requires `products`.
-- `sales`: sales workflow and returns. Requires `products`, `contacts`, `payments`.
+- `sales`: sales workflow and returns. Requires `products`, `contacts`.
 - `payments`: payment records, methods, allocations, void flow. Requires `sales`.
 - `purchases`: draft/finalized purchase flow and goods receiving. Requires `products`, `contacts`, `inventory`, `payments`.
 - `finance`: finance-related services and permissions used by the commerce stack.

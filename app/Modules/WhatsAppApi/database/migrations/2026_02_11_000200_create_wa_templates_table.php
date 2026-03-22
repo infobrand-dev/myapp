@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -27,7 +28,10 @@ return new class extends Migration
 
             $table->index(['tenant_id', 'status', 'name']);
             $table->index(['tenant_id', 'namespace', 'status']);
-            $table->fullText(['name', 'meta_name', 'body'], 'wa_templates_search_fulltext');
+
+            if (in_array(DB::getDriverName(), ['mysql', 'pgsql'], true)) {
+                $table->fullText(['name', 'meta_name', 'body'], 'wa_templates_search_fulltext');
+            }
         });
     }
 

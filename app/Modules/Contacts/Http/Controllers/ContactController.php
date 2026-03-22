@@ -875,6 +875,8 @@ class ContactController extends Controller
         }
 
         $fillableFields = [
+            'company_id',
+            'branch_id',
             'parent_contact_id',
             'job_title',
             'email',

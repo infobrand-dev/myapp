@@ -5,7 +5,6 @@ namespace App\Modules\Contacts\Support;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
 
 class ContactScope
@@ -14,7 +13,7 @@ class ContactScope
     public const LEVEL_COMPANY = 'company';
     public const LEVEL_BRANCH = 'branch';
 
-    public static function applyVisibilityScope(Builder $query, ?int $tenantId = null, ?int $companyId = null, ?int $branchId = null): Builder
+    public static function applyVisibilityScope($query, ?int $tenantId = null, ?int $companyId = null, ?int $branchId = null)
     {
         $tenantId ??= TenantContext::currentId();
         $companyId ??= CompanyContext::currentId();
@@ -22,21 +21,21 @@ class ContactScope
 
         return $query
             ->where('tenant_id', $tenantId)
-            ->where(function (Builder $builder) use ($companyId, $branchId): void {
-                $builder->where(function (Builder $tenantWide): void {
+            ->where(function ($builder) use ($companyId, $branchId): void {
+                $builder->where(function ($tenantWide): void {
                     $tenantWide->whereNull('company_id')
                         ->whereNull('branch_id');
                 });
 
                 if ($companyId !== null) {
-                    $builder->orWhere(function (Builder $companyWide) use ($companyId): void {
+                    $builder->orWhere(function ($companyWide) use ($companyId): void {
                         $companyWide->where('company_id', $companyId)
                             ->whereNull('branch_id');
                     });
                 }
 
                 if ($companyId !== null && $branchId !== null) {
-                    $builder->orWhere(function (Builder $branchScoped) use ($companyId, $branchId): void {
+                    $builder->orWhere(function ($branchScoped) use ($companyId, $branchId): void {
                         $branchScoped->where('company_id', $companyId)
                             ->where('branch_id', $branchId);
                     });

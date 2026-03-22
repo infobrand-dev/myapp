@@ -7,7 +7,7 @@
 </div>
 
 @include('sales::partials.form', [
-    'submitRoute' => route('sales.update', $sale),
+    'submitRoute' => url('/sales/' . $sale->id),
     'method' => 'PUT',
 ])
 @endsection

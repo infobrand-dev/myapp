@@ -11,6 +11,7 @@ use App\Modules\Chatbot\Models\ChatbotSession;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class ChatbotPlaygroundTest extends TestCase
@@ -46,7 +47,7 @@ class ChatbotPlaygroundTest extends TestCase
             ], 200),
         ]);
 
-        $user = User::factory()->create();
+        $user = $this->superAdminUser();
         $account = ChatbotAccount::create([
             'name' => 'Main Bot',
             'provider' => 'openai',
@@ -96,7 +97,7 @@ class ChatbotPlaygroundTest extends TestCase
             ], 429),
         ]);
 
-        $user = User::factory()->create();
+        $user = $this->superAdminUser();
         $account = ChatbotAccount::create([
             'name' => 'Fallback Bot',
             'provider' => 'openai',
@@ -127,8 +128,8 @@ class ChatbotPlaygroundTest extends TestCase
     {
         Queue::fake();
 
-        $owner = User::factory()->create();
-        $other = User::factory()->create();
+        $owner = $this->superAdminUser();
+        $other = $this->superAdminUser();
         $account = ChatbotAccount::create([
             'name' => 'Private Bot',
             'provider' => 'openai',
@@ -178,7 +179,7 @@ class ChatbotPlaygroundTest extends TestCase
             ], 200),
         ]);
 
-        $user = User::factory()->create();
+        $user = $this->superAdminUser();
         $account = ChatbotAccount::create([
             'name' => 'Mirror Bot',
             'provider' => 'openai',
@@ -198,5 +199,14 @@ class ChatbotPlaygroundTest extends TestCase
                 && (int) $job->userId === (int) $user->id
                 && count($job->chatbotMessageIds) === 2;
         });
+    }
+
+    private function superAdminUser(): User
+    {
+        $user = User::factory()->create();
+        Role::findOrCreate('Super-admin');
+        $user->assignRole('Super-admin');
+
+        return $user;
     }
 }

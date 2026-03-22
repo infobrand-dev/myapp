@@ -187,6 +187,6 @@ class SalesReportScopeTest extends TestCase
             ]],
         ], $this->user);
 
-        app(FinalizeSaleAction::class)->execute($sale, $this->user);
+        app(FinalizeSaleAction::class)->execute($sale, [], $this->user);
     }
 }

@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -29,7 +30,10 @@ return new class extends Migration
 
             $table->index(['conversation_id', 'direction']);
             $table->index(['tenant_id', 'created_at']);
-            $table->fullText('body', 'conversation_messages_body_fulltext');
+
+            if (in_array(DB::getDriverName(), ['mysql', 'pgsql'], true)) {
+                $table->fullText('body', 'conversation_messages_body_fulltext');
+            }
         });
     }
 

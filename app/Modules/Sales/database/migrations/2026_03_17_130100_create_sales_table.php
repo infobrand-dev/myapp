@@ -26,7 +26,7 @@ return new class extends Migration
             $table->string('payment_status', 30)->default('unpaid');
             $table->string('source', 30)->default('manual');
             $table->unsignedBigInteger('branch_id')->nullable()->index();
-            $table->foreignId('pos_cash_session_id')->nullable()->constrained('pos_cash_sessions')->nullOnDelete();
+            $table->unsignedBigInteger('pos_cash_session_id')->nullable()->index();
             $table->dateTime('transaction_date')->nullable();
             $table->dateTime('finalized_at')->nullable();
             $table->dateTime('voided_at')->nullable();

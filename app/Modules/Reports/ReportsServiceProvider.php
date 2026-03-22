@@ -9,6 +9,7 @@ use App\Modules\Reports\Services\PaymentReportService;
 use App\Modules\Reports\Services\PosReportService;
 use App\Modules\Reports\Services\PurchaseReportService;
 use App\Modules\Reports\Services\SalesReportService;
+use App\Support\RegistersModuleRoutes;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\Models\Permission;
@@ -16,6 +17,8 @@ use Spatie\Permission\PermissionRegistrar;
 
 class ReportsServiceProvider extends ServiceProvider
 {
+    use RegistersModuleRoutes;
+
     public const PERMISSIONS = [
         'reports.view',
         'reports.sales',
@@ -44,7 +47,7 @@ class ReportsServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->loadRoutesFrom(__DIR__ . '/routes/web.php');
+        $this->registerModuleRoutes([__DIR__ . '/routes/web.php']);
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'reports');
 
         $this->ensurePermissions();

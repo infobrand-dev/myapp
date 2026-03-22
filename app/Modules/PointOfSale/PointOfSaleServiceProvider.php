@@ -6,6 +6,7 @@ use App\Modules\PointOfSale\Actions\ResolveBarcodeToSellableAction;
 use App\Modules\PointOfSale\Services\PosCartService;
 use App\Modules\PointOfSale\Services\PosCashSessionService;
 use App\Modules\PointOfSale\Services\PosCheckoutOrchestrator;
+use App\Support\RegistersModuleRoutes;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\Models\Permission;
@@ -13,6 +14,8 @@ use Spatie\Permission\PermissionRegistrar;
 
 class PointOfSaleServiceProvider extends ServiceProvider
 {
+    use RegistersModuleRoutes;
+
     public const PERMISSIONS = [
         'pos.use',
         'pos.hold-cart',
@@ -55,7 +58,7 @@ class PointOfSaleServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->loadRoutesFrom(__DIR__ . '/routes/web.php');
+        $this->registerModuleRoutes([__DIR__ . '/routes/web.php']);
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'pos');
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
 

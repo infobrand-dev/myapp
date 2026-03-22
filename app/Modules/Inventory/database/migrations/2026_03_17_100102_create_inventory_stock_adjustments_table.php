@@ -29,7 +29,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['tenant_id', 'company_id', 'code']);
-            $table->index(['tenant_id', 'company_id', 'branch_id', 'status', 'adjustment_date']);
+            $table->index(['tenant_id', 'company_id', 'branch_id', 'status', 'adjustment_date'], 'inventory_adjustments_scope_idx');
         });
     }
 

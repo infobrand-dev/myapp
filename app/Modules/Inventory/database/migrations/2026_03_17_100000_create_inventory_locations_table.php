@@ -26,7 +26,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['tenant_id', 'company_id', 'branch_id', 'code']);
-            $table->index(['tenant_id', 'company_id', 'branch_id', 'type', 'is_active']);
+            $table->index(['tenant_id', 'company_id', 'branch_id', 'type', 'is_active'], 'inventory_locations_scope_type_idx');
             $table->index(['reference_type', 'reference_id']);
         });
 

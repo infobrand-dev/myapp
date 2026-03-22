@@ -16,53 +16,31 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Concerns\BootstrapsModuleContext;
 use Tests\TestCase;
 
 class SalesApiChannelTest extends TestCase
 {
+    use BootstrapsModuleContext;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->app->register(PaymentsServiceProvider::class);
-        $this->app->register(SalesServiceProvider::class);
+        $this->registerModuleProviders([
+            PaymentsServiceProvider::class,
+            SalesServiceProvider::class,
+        ]);
 
-        $this->artisan('migrate', [
-            '--path' => 'app/Modules/Contacts/database/migrations',
-            '--realpath' => false,
-        ])->run();
+        $this->migrateModulePaths([
+            'app/Modules/Contacts/database/migrations',
+            'app/Modules/Products/database/migrations',
+            'app/Modules/Payments/database/migrations',
+            'app/Modules/Sales/database/migrations',
+        ]);
 
-        $this->artisan('migrate', [
-            '--path' => 'app/Modules/Products/database/migrations',
-            '--realpath' => false,
-        ])->run();
-
-        $this->artisan('migrate', [
-            '--path' => 'app/Modules/Payments/database/migrations',
-            '--realpath' => false,
-        ])->run();
-
-        $this->artisan('migrate', [
-            '--path' => 'app/Modules/Sales/database/migrations',
-            '--realpath' => false,
-        ])->run();
-
-        Company::query()->firstOrCreate(
-            ['id' => 1],
-            [
-                'tenant_id' => 1,
-                'name' => 'Default Company',
-                'slug' => 'default-company',
-                'code' => 'DEF',
-                'is_active' => true,
-            ]
-        );
-
-        TenantContext::setCurrentId(1);
-        CompanyContext::setCurrentId(1);
-        BranchContext::setCurrentId(null);
+        $this->bootstrapDefaultOperationalContext();
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }

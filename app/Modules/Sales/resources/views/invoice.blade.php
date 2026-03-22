@@ -8,7 +8,7 @@
     </div>
     <div class="btn-list">
         <button type="button" class="btn btn-primary" onclick="window.print()">Print</button>
-        <a href="{{ url('/sales/' . $sale->id) }}" class="btn btn-outline-secondary">Back</a>
+        <a href="{{ route('sales.show', $sale) }}" class="btn btn-outline-secondary">Back</a>
     </div>
 </div>
 

@@ -8,6 +8,7 @@ use App\Modules\Conversations\Contracts\ConversationChannelManager;
 use App\Modules\Conversations\Contracts\ConversationOutboundDispatcher;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
+use App\Support\RegistersModuleRoutes;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -15,6 +16,8 @@ use Illuminate\Support\ServiceProvider;
 
 class LiveChatServiceProvider extends ServiceProvider
 {
+    use RegistersModuleRoutes;
+
     public function register(): void
     {
         $this->app->afterResolving(ConversationChannelManager::class, function (ConversationChannelManager $channels): void {
@@ -64,7 +67,7 @@ class LiveChatServiceProvider extends ServiceProvider
             ];
         });
 
-        $this->loadRoutesFrom(__DIR__ . '/routes/web.php');
+        $this->registerModuleRoutes([__DIR__ . '/routes/web.php']);
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'livechat');
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
     }

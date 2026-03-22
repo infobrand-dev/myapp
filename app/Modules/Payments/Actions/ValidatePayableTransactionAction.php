@@ -22,6 +22,7 @@ class ValidatePayableTransactionAction
             $saleReturn = SaleReturn::query()
                 ->where('tenant_id', TenantContext::currentId())
                 ->where('company_id', CompanyContext::currentId())
+                ->tap(fn ($query) => BranchContext::applyScope($query))
                 ->find($payableId);
             if (!$saleReturn) {
                 throw ValidationException::withMessages([

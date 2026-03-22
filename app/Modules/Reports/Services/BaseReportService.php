@@ -48,12 +48,15 @@ abstract class BaseReportService
 
     protected function applyDateRange(Builder $query, string $column, array $filters): Builder
     {
+        $dateFrom = !empty($filters['date_from']) ? $filters['date_from'] . ' 00:00:00' : null;
+        $dateTo = !empty($filters['date_to']) ? $filters['date_to'] . ' 23:59:59' : null;
+
         return $query
-            ->when(!empty($filters['date_from']), function (Builder $query) use ($column, $filters) {
-                $query->whereDate($column, '>=', $filters['date_from']);
+            ->when($dateFrom !== null, function (Builder $query) use ($column, $dateFrom) {
+                $query->where($column, '>=', $dateFrom);
             })
-            ->when(!empty($filters['date_to']), function (Builder $query) use ($column, $filters) {
-                $query->whereDate($column, '<=', $filters['date_to']);
+            ->when($dateTo !== null, function (Builder $query) use ($column, $dateTo) {
+                $query->where($column, '<=', $dateTo);
             });
     }
 

@@ -6,15 +6,19 @@
         <h2 class="mb-0">Inventory Dashboard</h2>
         <div class="text-muted small">Summary stok, mutasi, low stock, dan audit ringkas.</div>
     </div>
-    <form method="GET" class="d-flex gap-2">
-        <select name="location_id" class="form-select">
-            <option value="">Semua lokasi</option>
-            @foreach($locations as $location)
-                <option value="{{ $location->id }}" @selected((string) $locationId === (string) $location->id)>{{ $location->name }}</option>
-            @endforeach
-        </select>
-        <button class="btn btn-outline-primary">Filter</button>
-    </form>
+    <div class="d-flex gap-2">
+        <form method="GET" class="d-flex gap-2">
+            <select name="location_id" class="form-select">
+                <option value="">Semua lokasi</option>
+                @foreach($locations as $location)
+                    <option value="{{ $location->id }}" @selected((string) $locationId === (string) $location->id)>{{ $location->name }}</option>
+                @endforeach
+            </select>
+            <button class="btn btn-outline-primary">Filter</button>
+        </form>
+        <a href="{{ route('inventory.stocks.index', ['location_id' => $locationId]) }}" class="btn btn-outline-secondary">Stock List</a>
+        <a href="{{ route('inventory.reports.low-stock', ['location_id' => $locationId]) }}" class="btn btn-outline-warning">Low Stock</a>
+    </div>
 </div>
 
 <div class="row g-3 mb-3">
@@ -22,6 +26,67 @@
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Total Qty</div><div class="h2 mb-0">{{ number_format($summary['total_quantity'], 2, ',', '.') }}</div></div></div></div>
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Low Stock</div><div class="h2 mb-0 text-warning">{{ $summary['low_stock_count'] }}</div></div></div></div>
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Movement Hari Ini</div><div class="h2 mb-0">{{ $summary['movement_today_count'] }}</div></div></div></div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Action Queue</h3>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="border rounded p-3 h-100">
+                            <div class="text-muted small">Out of Stock</div>
+                            <div class="h2 mb-2 text-danger">{{ $summary['out_of_stock_count'] }}</div>
+                            <a href="{{ route('inventory.stocks.index', ['location_id' => $locationId, 'status' => 'out_of_stock']) }}" class="btn btn-sm btn-outline-danger">Review</a>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border rounded p-3 h-100">
+                            <div class="text-muted small">Adjustment</div>
+                            <div class="small mb-2">Perbaiki mismatch stok atau koreksi saldo fisik.</div>
+                            @can('inventory.manage-stock-adjustment')
+                                <a href="{{ route('inventory.adjustments.create') }}" class="btn btn-sm btn-outline-primary">New Adjustment</a>
+                            @else
+                                <span class="text-muted small">Akses adjustment tidak tersedia.</span>
+                            @endcan
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border rounded p-3 h-100">
+                            <div class="text-muted small">Transfer</div>
+                            <div class="small mb-2">Pindahkan stok antar lokasi untuk cegah stockout.</div>
+                            @can('inventory.manage-stock-transfer')
+                                <a href="{{ route('inventory.transfers.create') }}" class="btn btn-sm btn-outline-primary">New Transfer</a>
+                            @else
+                                <span class="text-muted small">Akses transfer tidak tersedia.</span>
+                            @endcan
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-header"><h3 class="card-title">Movement Breakdown</h3></div>
+            <div class="list-group list-group-flush">
+                @forelse($movementBreakdown as $row)
+                    <div class="list-group-item d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="fw-semibold">{{ \Illuminate\Support\Str::headline((string) $row->movement_type) }}</div>
+                            <div class="text-muted small">{{ strtoupper((string) $row->direction) }} | Qty {{ number_format((float) $row->total_quantity, 2, ',', '.') }}</div>
+                        </div>
+                        <span class="badge bg-blue-lt text-blue">{{ $row->total }}</span>
+                    </div>
+                @empty
+                    <div class="list-group-item text-muted">Belum ada data movement untuk breakdown.</div>
+                @endforelse
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="row g-3">
@@ -51,23 +116,31 @@
     </div>
     <div class="col-lg-5">
         <div class="card">
-            <div class="card-header"><h3 class="card-title">Low Stock Snapshot</h3></div>
+            <div class="card-header"><h3 class="card-title">Critical Stock Snapshot</h3></div>
             <div class="table-responsive">
                 <table class="table table-sm table-vcenter">
-                    <thead><tr><th>Produk</th><th>Lokasi</th><th>Qty</th><th>Min</th></tr></thead>
+                    <thead><tr><th>Produk</th><th>Lokasi</th><th>Qty</th><th>Min</th><th>Status</th></tr></thead>
                     <tbody>
-                        @forelse($lowStocks as $stock)
+                        @forelse($criticalStocks as $stock)
+                            @php
+                                $status = $stock->stockStatus();
+                                $statusClass = $status === 'out_of_stock' ? 'danger' : 'warning';
+                            @endphp
                             <tr>
                                 <td><a href="{{ route('inventory.stocks.show', $stock) }}">{{ $stock->product?->name }}</a></td>
                                 <td>{{ $stock->location?->name }}</td>
                                 <td>{{ number_format((float) $stock->current_quantity, 2, ',', '.') }}</td>
                                 <td>{{ number_format((float) $stock->minimum_quantity, 2, ',', '.') }}</td>
+                                <td><span class="badge bg-{{ $statusClass }}-lt text-{{ $statusClass }}">{{ \Illuminate\Support\Str::headline($status) }}</span></td>
                             </tr>
                         @empty
-                            <tr><td colspan="4" class="text-center text-muted">Tidak ada low stock.</td></tr>
+                            <tr><td colspan="5" class="text-center text-muted">Tidak ada stok kritis.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
+            </div>
+            <div class="card-footer">
+                <a href="{{ route('inventory.reports.low-stock', ['location_id' => $locationId]) }}" class="btn btn-outline-warning btn-sm">Open Low Stock Report</a>
             </div>
         </div>
     </div>

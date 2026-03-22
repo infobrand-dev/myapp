@@ -33,6 +33,7 @@ use App\Modules\Sales\Services\SaleReturnCalculationService;
 use App\Modules\Sales\Services\SaleReturnLookupService;
 use App\Modules\Sales\Services\SaleReturnNumberService;
 use App\Modules\Sales\Services\SaleSnapshotService;
+use App\Support\RegistersModuleRoutes;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
@@ -41,6 +42,8 @@ use Spatie\Permission\PermissionRegistrar;
 
 class SalesServiceProvider extends ServiceProvider
 {
+    use RegistersModuleRoutes;
+
     public const PERMISSIONS = [
         'sales.view',
         'sales.create',
@@ -111,8 +114,7 @@ class SalesServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->loadRoutesFrom(__DIR__ . '/routes/web.php');
-        $this->loadRoutesFrom(__DIR__ . '/routes/api.php');
+        $this->registerRoutes();
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'sales');
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
 
@@ -120,6 +122,14 @@ class SalesServiceProvider extends ServiceProvider
         Event::listen(SaleVoided::class, DispatchVoidedSaleHooks::class);
 
         $this->ensurePermissions();
+    }
+
+    private function registerRoutes(): void
+    {
+        $this->registerModuleRoutes([
+            __DIR__ . '/routes/web.php',
+            __DIR__ . '/routes/api.php',
+        ]);
     }
 
     private function ensurePermissions(): void

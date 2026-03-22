@@ -33,10 +33,10 @@ return new class extends Migration
             $table->json('meta')->nullable();
             $table->timestamps();
 
-            $table->index(['product_id', 'product_variant_id', 'occurred_at']);
-            $table->index(['inventory_location_id', 'occurred_at']);
-            $table->index(['movement_type', 'occurred_at']);
-            $table->index(['reference_type', 'reference_id']);
+            $table->index(['product_id', 'product_variant_id', 'occurred_at'], 'inventory_movements_product_idx');
+            $table->index(['inventory_location_id', 'occurred_at'], 'inventory_movements_location_idx');
+            $table->index(['movement_type', 'occurred_at'], 'inventory_movements_type_idx');
+            $table->index(['reference_type', 'reference_id'], 'inventory_movements_reference_idx');
         });
     }
 

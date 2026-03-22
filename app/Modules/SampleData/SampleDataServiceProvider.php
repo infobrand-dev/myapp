@@ -3,6 +3,7 @@
 namespace App\Modules\SampleData;
 
 use App\Modules\SampleData\Support\SampleDataRegistry;
+use App\Support\RegistersModuleRoutes;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\Models\Permission;
@@ -10,6 +11,8 @@ use Spatie\Permission\PermissionRegistrar;
 
 class SampleDataServiceProvider extends ServiceProvider
 {
+    use RegistersModuleRoutes;
+
     public const PERMISSIONS = [
         'sample-data.view',
         'sample-data.run',
@@ -26,7 +29,7 @@ class SampleDataServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->loadRoutesFrom(__DIR__ . '/routes/web.php');
+        $this->registerModuleRoutes([__DIR__ . '/routes/web.php']);
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'sample-data');
 
         $this->ensurePermissions();

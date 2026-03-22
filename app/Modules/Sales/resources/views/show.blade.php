@@ -8,8 +8,8 @@
     </div>
     <div class="btn-list">
         @if($sale->status === 'draft')
-            <a href="{{ url('/sales/' . $sale->id . '/edit') }}" class="btn btn-outline-secondary">Edit Draft</a>
-            <form method="POST" action="{{ url('/sales/' . $sale->id . '/finalize') }}">
+            <a href="{{ route('sales.edit', $sale) }}" class="btn btn-outline-secondary">Edit Draft</a>
+            <form method="POST" action="{{ route('sales.finalize', $sale) }}">
                 @csrf
                 <button type="submit" class="btn btn-primary">Finalize</button>
             </form>
@@ -17,11 +17,14 @@
         @if($sale->status === 'finalized')
             <a href="{{ route('sales.returns.create', ['sale_id' => $sale->id]) }}" class="btn btn-outline-warning">Create Return</a>
         @endif
+        @if($sale->status === 'finalized' && (float) $sale->balance_due > 0 && Route::has('payments.create'))
+            <a href="{{ route('payments.create', ['sale_id' => $sale->id]) }}" class="btn btn-primary">Record Payment</a>
+        @endif
         @if($sale->source === 'pos' && $sale->status === 'finalized' && Route::has('pos.receipts.show') && auth()->user()->can('pos.print-receipt'))
             <a href="{{ route('pos.receipts.show', $sale) }}" class="btn btn-outline-dark">POS Receipt</a>
         @endif
-        <a href="{{ url('/sales/' . $sale->id . '/invoice') }}" class="btn btn-outline-primary">Print / Invoice</a>
-        <a href="{{ url('/sales') }}" class="btn btn-outline-secondary">Back</a>
+        <a href="{{ route('sales.invoice', $sale) }}" class="btn btn-outline-primary">Print / Invoice</a>
+        <a href="{{ route('sales.index') }}" class="btn btn-outline-secondary">Back</a>
     </div>
 </div>
 
@@ -173,7 +176,7 @@
                 </div>
 
                 @if($sale->status === 'draft')
-                    <form method="POST" action="{{ url('/sales/' . $sale->id . '/cancel') }}" class="mb-3">
+                    <form method="POST" action="{{ route('sales.cancel', $sale) }}" class="mb-3">
                         @csrf
                         <label class="form-label">Cancel reason</label>
                         <textarea name="reason" class="form-control" rows="2" placeholder="Opsional"></textarea>
@@ -182,7 +185,7 @@
                 @endif
 
                 @if($sale->status === 'finalized')
-                    <form method="POST" action="{{ url('/sales/' . $sale->id . '/void') }}">
+                    <form method="POST" action="{{ route('sales.void', $sale) }}">
                         @csrf
                         <label class="form-label">Void reason</label>
                         <textarea name="reason" class="form-control" rows="3" required placeholder="Alasan void wajib diisi"></textarea>
@@ -216,7 +219,24 @@
                     $paymentAllocations = $sale->relationLoaded('paymentAllocations')
                         ? $sale->paymentAllocations->sortByDesc(fn ($allocation) => optional(optional($allocation->payment)->paid_at)->timestamp ?? 0)->values()
                         : collect();
+                    $paymentProgress = (float) $sale->grand_total > 0 ? min(100, max(0, ((float) $sale->paid_total / (float) $sale->grand_total) * 100)) : 0;
                 @endphp
+
+                <div class="border rounded p-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small">Payment Progress</div>
+                            <div class="fw-semibold">{{ number_format($paymentProgress, 0) }}%</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="text-muted small">Balance Due</div>
+                            <div class="fw-semibold {{ (float) $sale->balance_due > 0 ? 'text-warning' : 'text-success' }}">Rp {{ number_format((float) $sale->balance_due, 0, ',', '.') }}</div>
+                        </div>
+                    </div>
+                    <div class="progress progress-sm mt-2">
+                        <div class="progress-bar bg-primary" style="width: {{ $paymentProgress }}%" role="progressbar" aria-valuenow="{{ $paymentProgress }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
 
                 @if($paymentAllocations->isNotEmpty())
                     <div class="table-responsive mb-3">
@@ -255,7 +275,12 @@
                 @endif
 
                 @if($sale->status === 'finalized' && Route::has('payments.create'))
-                    <a href="{{ route('payments.create', ['sale_id' => $sale->id]) }}" class="btn btn-outline-primary w-100">Add Payment via Payments Module</a>
+                    <div class="d-grid gap-2">
+                        <a href="{{ route('payments.create', ['sale_id' => $sale->id]) }}" class="btn btn-outline-primary">Add Payment via Payments Module</a>
+                        @if((float) $sale->balance_due > 0)
+                            <div class="text-muted small">Gunakan tombol ini untuk mencatat pelunasan atau partial payment atas outstanding sale ini.</div>
+                        @endif
+                    </div>
                 @endif
             </div>
         </div>

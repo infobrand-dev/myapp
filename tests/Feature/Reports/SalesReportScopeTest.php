@@ -18,10 +18,12 @@ use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Concerns\BootstrapsModuleContext;
 use Tests\TestCase;
 
 class SalesReportScopeTest extends TestCase
 {
+    use BootstrapsModuleContext;
     use RefreshDatabase;
 
     private Company $companyA;
@@ -34,34 +36,19 @@ class SalesReportScopeTest extends TestCase
     {
         parent::setUp();
 
-        $this->app->register(ProductsServiceProvider::class);
-        $this->app->register(PaymentsServiceProvider::class);
-        $this->app->register(SalesServiceProvider::class);
+        $this->registerModuleProviders([
+            ProductsServiceProvider::class,
+            PaymentsServiceProvider::class,
+            SalesServiceProvider::class,
+        ]);
 
-        $this->artisan('migrate', [
-            '--path' => 'app/Modules/Contacts/database/migrations',
-            '--realpath' => false,
-        ])->run();
-
-        $this->artisan('migrate', [
-            '--path' => 'app/Modules/Products/database/migrations',
-            '--realpath' => false,
-        ])->run();
-
-        $this->artisan('migrate', [
-            '--path' => 'app/Modules/Payments/database/migrations',
-            '--realpath' => false,
-        ])->run();
-
-        $this->artisan('migrate', [
-            '--path' => 'app/Modules/PointOfSale/database/migrations',
-            '--realpath' => false,
-        ])->run();
-
-        $this->artisan('migrate', [
-            '--path' => 'app/Modules/Sales/database/migrations',
-            '--realpath' => false,
-        ])->run();
+        $this->migrateModulePaths([
+            'app/Modules/Contacts/database/migrations',
+            'app/Modules/Products/database/migrations',
+            'app/Modules/Payments/database/migrations',
+            'app/Modules/PointOfSale/database/migrations',
+            'app/Modules/Sales/database/migrations',
+        ]);
 
         app(PermissionRegistrar::class)->setPermissionsTeamId(1);
         app(PermissionRegistrar::class)->forgetCachedPermissions();

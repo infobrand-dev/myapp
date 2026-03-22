@@ -20,57 +20,34 @@ use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Concerns\BootstrapsModuleContext;
 use Tests\TestCase;
 
 class PaymentSecurityTest extends TestCase
 {
+    use BootstrapsModuleContext;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->app->register(PaymentsServiceProvider::class);
-        $this->app->register(SalesServiceProvider::class);
-
-        $this->artisan('migrate', [
-            '--path' => 'app/Modules/Contacts/database/migrations',
-            '--realpath' => false,
-        ])->run();
-
-        $this->artisan('migrate', [
-            '--path' => 'app/Modules/Products/database/migrations',
-            '--realpath' => false,
-        ])->run();
-
-        $this->artisan('migrate', [
-            '--path' => 'app/Modules/Payments/database/migrations',
-            '--realpath' => false,
-        ])->run();
-
-        $this->artisan('migrate', [
-            '--path' => 'app/Modules/PointOfSale/database/migrations',
-            '--realpath' => false,
-        ])->run();
-
-        $this->artisan('migrate', [
-            '--path' => 'app/Modules/Sales/database/migrations',
-            '--realpath' => false,
-        ])->run();
-
-        Company::query()->firstOrCreate([
-            'tenant_id' => 1,
-            'slug' => 'default-company',
-        ], [
-            'name' => 'Default Company',
-            'code' => 'DEF',
-            'is_active' => true,
-            'meta' => [],
+        $this->registerModuleProviders([
+            PaymentsServiceProvider::class,
+            SalesServiceProvider::class,
         ]);
 
-        TenantContext::setCurrentId(1);
-        CompanyContext::setCurrentId((int) Company::query()->where('tenant_id', 1)->value('id'));
-        BranchContext::setCurrentId(null);
+        $this->migrateModulePaths([
+            'app/Modules/Contacts/database/migrations',
+            'app/Modules/Products/database/migrations',
+            'app/Modules/Payments/database/migrations',
+            'app/Modules/PointOfSale/database/migrations',
+            'app/Modules/Sales/database/migrations',
+        ]);
+
+        $this->bootstrapDefaultOperationalContext(companyAttributes: [
+            'meta' => [],
+        ]);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }

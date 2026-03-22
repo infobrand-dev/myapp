@@ -5,6 +5,7 @@ namespace App\Modules\Products;
 use App\Modules\Products\Repositories\ProductRepository;
 use App\Modules\Products\Services\ProductLookupService;
 use App\Modules\Products\Services\ProductService;
+use App\Support\RegistersModuleRoutes;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\Models\Permission;
@@ -12,6 +13,8 @@ use Spatie\Permission\PermissionRegistrar;
 
 class ProductsServiceProvider extends ServiceProvider
 {
+    use RegistersModuleRoutes;
+
     public const PERMISSIONS = [
         'products.view',
         'products.create',
@@ -39,7 +42,7 @@ class ProductsServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->loadRoutesFrom(__DIR__ . '/routes/web.php');
+        $this->registerModuleRoutes([__DIR__ . '/routes/web.php']);
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'products');
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
 

@@ -11,10 +11,12 @@ use App\Modules\Inventory\Services\StockMutationService;
 use App\Modules\Products\Models\Product;
 use DomainException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\BootstrapsModuleContext;
 use Tests\TestCase;
 
 class StockReservationTest extends TestCase
 {
+    use BootstrapsModuleContext;
     use RefreshDatabase;
 
     private static int $locationSequence = 0;
@@ -23,30 +25,12 @@ class StockReservationTest extends TestCase
     {
         parent::setUp();
 
-        $this->artisan('migrate', [
-            '--path' => 'app/Modules/Products/database/migrations',
-            '--realpath' => false,
-        ])->run();
+        $this->migrateModulePaths([
+            'app/Modules/Products/database/migrations',
+            'app/Modules/Inventory/database/migrations',
+        ]);
 
-        $this->artisan('migrate', [
-            '--path' => 'app/Modules/Inventory/database/migrations',
-            '--realpath' => false,
-        ])->run();
-
-        Company::query()->firstOrCreate(
-            ['id' => 1],
-            [
-                'tenant_id' => 1,
-                'name' => 'Default Company',
-                'slug' => 'default-company',
-                'code' => 'DEF',
-                'is_active' => true,
-            ]
-        );
-
-        TenantContext::setCurrentId(1);
-        CompanyContext::setCurrentId(1);
-        BranchContext::setCurrentId(null);
+        $this->bootstrapDefaultOperationalContext();
     }
 
     public function test_reserve_release_and_consume_reserved_stock_updates_balances_safely(): void

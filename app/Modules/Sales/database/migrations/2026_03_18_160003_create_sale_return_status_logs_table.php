@@ -21,7 +21,7 @@ return new class extends Migration
             $table->foreignId('actor_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
-            $table->index(['company_id', 'sale_return_id', 'created_at']);
+            $table->index(['company_id', 'sale_return_id', 'created_at'], 'sale_return_status_logs_idx');
         });
     }
 

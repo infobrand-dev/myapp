@@ -19,6 +19,7 @@ class StockController extends Controller
 
         return view('inventory::stocks.index', [
             'stocks' => $this->stocks->paginate($filters),
+            'summary' => $this->stocks->summary($filters),
             'locations' => $this->stocks->locations(),
             'filters' => $filters,
         ]);

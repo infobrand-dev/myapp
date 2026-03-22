@@ -12,6 +12,7 @@ use App\Modules\Conversations\Services\ConversationInboxIngester;
 use App\Modules\Conversations\Services\ConversationAccessManager;
 use App\Modules\Conversations\Services\ConversationChannelRegistry;
 use App\Modules\Conversations\Services\ConversationOutboundRegistry;
+use App\Support\RegistersModuleRoutes;
 use App\Support\HookManager;
 use App\Support\TenantContext;
 use Illuminate\Console\Scheduling\Schedule;
@@ -23,6 +24,8 @@ use Illuminate\Support\Facades\View;
 
 class ConversationsServiceProvider extends ServiceProvider
 {
+    use RegistersModuleRoutes;
+
     public function register(): void
     {
         $this->app->singleton(ConversationAccessRegistry::class, ConversationAccessManager::class);
@@ -33,7 +36,7 @@ class ConversationsServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->loadRoutesFrom(__DIR__ . '/routes/web.php');
+        $this->registerModuleRoutes([__DIR__ . '/routes/web.php']);
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'conversations');
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
 

@@ -2,10 +2,13 @@
 
 namespace App\Modules\TaskManagement;
 
+use App\Support\RegistersModuleRoutes;
 use Illuminate\Support\ServiceProvider;
 
 class TaskServiceProvider extends ServiceProvider
 {
+    use RegistersModuleRoutes;
+
     public function register(): void
     {
         //
@@ -13,7 +16,7 @@ class TaskServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->loadRoutesFrom(__DIR__ . '/routes/web.php');
+        $this->registerModuleRoutes([__DIR__ . '/routes/web.php']);
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'taskmgmt');
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
     }

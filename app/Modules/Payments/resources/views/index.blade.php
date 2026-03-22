@@ -4,13 +4,20 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Payments</h2>
-        <div class="text-muted small">Pusat pencatatan pembayaran lintas transaksi.</div>
+        <div class="text-muted small">Workspace pembayaran lintas transaksi, receiver, dan source.</div>
     </div>
     <div class="btn-list">
         @can('payments.create')
             <a href="{{ route('payments.create') }}" class="btn btn-primary">Create Payment</a>
         @endcan
     </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Payments</div><div class="h2 mb-0">{{ $summary['total_count'] ?? 0 }}</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Posted Amount</div><div class="h2 mb-0">Rp {{ number_format((float) ($summary['posted_amount'] ?? 0), 0, ',', '.') }}</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Voided</div><div class="h2 mb-0 text-danger">{{ $summary['voided_count'] ?? 0 }}</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Manual Source</div><div class="h2 mb-0">{{ $summary['manual_count'] ?? 0 }}</div></div></div></div>
 </div>
 
 <div class="card mb-3">
@@ -73,6 +80,12 @@
 </div>
 
 <div class="card">
+    <div class="card-header">
+        <div>
+            <h3 class="card-title mb-0">Payment Queue</h3>
+            <div class="text-muted small">Total nominal terfilter: Rp {{ number_format((float) ($summary['total_amount'] ?? 0), 0, ',', '.') }}</div>
+        </div>
+    </div>
     <div class="table-responsive">
         <table class="table table-vcenter">
             <thead>
@@ -84,6 +97,7 @@
                     <th>Amount</th>
                     <th>Status</th>
                     <th>Receiver</th>
+                    <th class="w-1"></th>
                 </tr>
             </thead>
             <tbody>
@@ -100,6 +114,8 @@
                                 <div class="small">
                                     @if($allocation->payable instanceof \App\Modules\Sales\Models\Sale)
                                         {{ $allocation->payable->sale_number }} | {{ $allocation->payable->customer_name_snapshot ?: 'Guest' }}
+                                    @elseif($allocation->payable instanceof \App\Modules\Sales\Models\SaleReturn)
+                                        {{ $allocation->payable->return_number }} | {{ $allocation->payable->customer_name_snapshot ?: 'Guest' }}
                                     @else
                                         {{ class_basename($allocation->payable_type) }} #{{ $allocation->payable_id }}
                                     @endif
@@ -110,10 +126,11 @@
                         <td>Rp {{ number_format((float) $payment->amount, 0, ',', '.') }}</td>
                         <td><span class="badge bg-{{ $payment->status === 'voided' ? 'red' : 'azure' }}-lt">{{ ucfirst($payment->status) }}</span></td>
                         <td>{{ optional($payment->receiver)->name ?: '-' }}</td>
+                        <td class="text-end"><a href="{{ route('payments.show', $payment) }}" class="btn btn-sm btn-outline-secondary">Open</a></td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="text-center text-muted">Belum ada payment.</td>
+                        <td colspan="8" class="text-center text-muted">Belum ada payment.</td>
                     </tr>
                 @endforelse
             </tbody>

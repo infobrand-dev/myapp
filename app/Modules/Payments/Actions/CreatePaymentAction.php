@@ -80,6 +80,8 @@ class CreatePaymentAction
                 ]);
             }
 
+            $resolvedBranchId = $this->resolveBranchId($data, $allocations);
+
             $payment = Payment::query()->create([
                 'tenant_id' => TenantContext::currentId(),
                 'company_id' => CompanyContext::currentId(),
@@ -93,7 +95,7 @@ class CreatePaymentAction
                 'channel' => $data['channel'] ?? null,
                 'reference_number' => $data['reference_number'] ?? null,
                 'external_reference' => $data['external_reference'] ?? null,
-                'branch_id' => $data['branch_id'] ?? BranchContext::currentId(),
+                'branch_id' => $resolvedBranchId,
                 'notes' => $data['notes'] ?? null,
                 'meta' => $data['meta'] ?? null,
                 'received_by' => $data['received_by'] ?? ($actor ? $actor->id : null),
@@ -142,5 +144,29 @@ class CreatePaymentAction
         $payables
             ->unique(fn ($payable) => get_class($payable) . ':' . $payable->getKey())
             ->each(fn ($payable) => $this->recalculatePaymentSummary->execute($payable));
+    }
+
+    private function resolveBranchId(array $data, Collection $allocations): ?int
+    {
+        if (array_key_exists('branch_id', $data)) {
+            return $data['branch_id'] ? (int) $data['branch_id'] : null;
+        }
+
+        if (BranchContext::currentId() !== null) {
+            return BranchContext::currentId();
+        }
+
+        $branchIds = $allocations
+            ->pluck('branch_id')
+            ->filter(fn ($branchId) => $branchId !== null && $branchId !== '')
+            ->map(fn ($branchId) => (int) $branchId)
+            ->unique()
+            ->values();
+
+        if ($branchIds->count() === 1) {
+            return $branchIds->first();
+        }
+
+        return null;
     }
 }

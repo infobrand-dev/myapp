@@ -102,23 +102,31 @@ class ConversationHubController extends Controller
         $user = $request->user();
         $lockMinutes = (int) config('conversations.lock_minutes', 30);
         $waModuleReady = $this->isWhatsAppApiReady();
+        $filters = [
+            'search' => trim((string) $request->string('search')->toString()),
+            'channel' => $request->string('channel')->toString() ?: null,
+            'status' => $request->string('status')->toString() ?: null,
+            'assignment' => $request->string('assignment')->toString() ?: null,
+            'unread_only' => $request->boolean('unread_only'),
+        ];
 
-        $query = $this->baseQuery($user);
-
-        $first = (clone $query)
-            ->orderByDesc('last_message_at')
-            ->orderByDesc('updated_at')
-            ->first();
-
-        if ($first) {
-            return redirect()->route('conversations.show', $first);
-        }
+        $query = $this->filteredQuery($user, $filters);
 
         $conversations = $query->orderByDesc('last_message_at')
             ->orderByDesc('updated_at')
-            ->paginate(20);
+            ->paginate(20)
+            ->withQueryString();
 
-        return view('conversations::index', compact('conversations', 'lockMinutes', 'waModuleReady'));
+        $summaryBase = $this->baseQuery($user);
+        $summary = [
+            'total' => (clone $summaryBase)->count(),
+            'unread' => (clone $summaryBase)->where('unread_count', '>', 0)->count(),
+            'unassigned' => (clone $summaryBase)->whereNull('owner_id')->count(),
+            'mine' => (clone $summaryBase)->where('owner_id', $user->id)->count(),
+            'locked' => (clone $summaryBase)->whereNotNull('locked_until')->where('locked_until', '>', now())->count(),
+        ];
+
+        return view('conversations::index', compact('conversations', 'lockMinutes', 'waModuleReady', 'filters', 'summary'));
     }
 
     public function show(Request $request, Conversation $conversation): View
@@ -806,10 +814,39 @@ class ConversationHubController extends Controller
             ->where('tenant_id', $this->tenantId())
             ->when(!$user->hasRole('Super-admin'), function ($query) use ($user) {
                 $query->where(function ($q) use ($user) {
-                $q->where('owner_id', $user->id)
+                    $q->where('owner_id', $user->id)
                         ->orWhereHas('participants', fn ($p) => $p->where('user_id', $user->id));
                     app(ConversationAccessRegistry::class)->applyVisibilityScope($q, $user);
                 });
+            });
+    }
+
+    private function filteredQuery(User $user, array $filters)
+    {
+        return $this->baseQuery($user)
+            ->when($filters['search'] !== '', function ($query) use ($filters) {
+                $search = $filters['search'];
+                $query->where(function ($nested) use ($search) {
+                    $nested->where('contact_name', 'like', '%' . $search . '%')
+                        ->orWhere('contact_external_id', 'like', '%' . $search . '%')
+                        ->orWhereHas('latestMessage', fn ($message) => $message->where('body', 'like', '%' . $search . '%'));
+                });
+            })
+            ->when($filters['channel'], fn ($query, $channel) => $query->where('channel', $channel))
+            ->when($filters['status'], fn ($query, $status) => $query->where('status', $status))
+            ->when($filters['unread_only'], fn ($query) => $query->where('unread_count', '>', 0))
+            ->when($filters['assignment'], function ($query, $assignment) use ($user) {
+                if ($assignment === 'mine') {
+                    $query->where('owner_id', $user->id);
+                }
+
+                if ($assignment === 'unassigned') {
+                    $query->whereNull('owner_id');
+                }
+
+                if ($assignment === 'others') {
+                    $query->whereNotNull('owner_id')->where('owner_id', '!=', $user->id);
+                }
             });
     }
 

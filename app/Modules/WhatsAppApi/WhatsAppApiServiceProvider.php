@@ -11,6 +11,7 @@ use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\WhatsAppApi\Http\Controllers\ContactActionController;
 use App\Modules\WhatsAppApi\Jobs\SendWhatsAppMessage;
 use App\Support\HookManager;
+use App\Support\RegistersModuleRoutes;
 use App\Modules\WhatsAppApi\Console\Commands\CheckWhatsAppInstances;
 use App\Modules\WhatsAppApi\Console\Commands\DispatchScheduledWABlasts;
 use Illuminate\Console\Scheduling\Schedule;
@@ -18,6 +19,8 @@ use Illuminate\Support\ServiceProvider;
 
 class WhatsAppApiServiceProvider extends ServiceProvider
 {
+    use RegistersModuleRoutes;
+
     public function register(): void
     {
         $this->app->afterResolving(ConversationChannelManager::class, function (ConversationChannelManager $channels): void {
@@ -153,7 +156,7 @@ class WhatsAppApiServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->loadRoutesFrom(__DIR__ . '/routes/web.php');
+        $this->registerModuleRoutes([__DIR__ . '/routes/web.php']);
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'whatsappapi');
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
         $this->registerContactHooks();

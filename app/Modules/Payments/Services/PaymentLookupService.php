@@ -15,6 +15,8 @@ use Illuminate\Support\Collection;
 
 class PaymentLookupService
 {
+    private const MAX_LOOKUP_ROWS = 100;
+
     public function paymentStatusOptions(): array
     {
         return [
@@ -65,8 +67,10 @@ class PaymentLookupService
     {
         return User::query()
             ->where('tenant_id', TenantContext::currentId())
+            ->select(['id', 'name'])
             ->orderBy('name')
-            ->get(['id', 'name']);
+            ->limit(self::MAX_LOOKUP_ROWS)
+            ->get();
     }
 
     public function payableTypeOptions(): array
@@ -87,7 +91,7 @@ class PaymentLookupService
             ->where('status', Sale::STATUS_FINALIZED)
             ->whereNotIn('payment_status', [Sale::PAYMENT_PAID, Sale::PAYMENT_OVERPAID])
             ->orderByDesc('transaction_date')
-            ->limit(100)
+            ->limit(self::MAX_LOOKUP_ROWS)
             ->get(['id', 'sale_number', 'customer_name_snapshot', 'grand_total', 'paid_total', 'balance_due']);
     }
 
@@ -101,7 +105,7 @@ class PaymentLookupService
             ->where('refund_required', true)
             ->whereNotIn('refund_status', [SaleReturn::REFUND_REFUNDED, SaleReturn::REFUND_SKIPPED])
             ->orderByDesc('return_date')
-            ->limit(100)
+            ->limit(self::MAX_LOOKUP_ROWS)
             ->get(['id', 'return_number', 'sale_number_snapshot', 'customer_name_snapshot', 'grand_total', 'refunded_total', 'refund_balance']);
     }
 
@@ -114,7 +118,7 @@ class PaymentLookupService
             ->whereIn('status', [Purchase::STATUS_CONFIRMED, Purchase::STATUS_PARTIAL_RECEIVED, Purchase::STATUS_RECEIVED])
             ->whereNotIn('payment_status', [Purchase::PAYMENT_PAID, Purchase::PAYMENT_OVERPAID])
             ->orderByDesc('purchase_date')
-            ->limit(100)
+            ->limit(self::MAX_LOOKUP_ROWS)
             ->get(['id', 'purchase_number', 'supplier_name_snapshot', 'grand_total', 'paid_total', 'balance_due']);
     }
 }

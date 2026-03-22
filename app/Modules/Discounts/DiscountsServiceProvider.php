@@ -8,6 +8,7 @@ use App\Modules\Discounts\Actions\UpsertDiscountAction;
 use App\Modules\Discounts\Repositories\DiscountRepository;
 use App\Modules\Discounts\Services\DiscountEngine;
 use App\Modules\Discounts\Services\DiscountReferenceService;
+use App\Support\RegistersModuleRoutes;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\Models\Permission;
@@ -15,6 +16,8 @@ use Spatie\Permission\PermissionRegistrar;
 
 class DiscountsServiceProvider extends ServiceProvider
 {
+    use RegistersModuleRoutes;
+
     public const PERMISSIONS = [
         'discounts.view',
         'discounts.create',
@@ -54,7 +57,7 @@ class DiscountsServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->loadRoutesFrom(__DIR__ . '/routes/web.php');
+        $this->registerModuleRoutes([__DIR__ . '/routes/web.php']);
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'discounts');
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
 

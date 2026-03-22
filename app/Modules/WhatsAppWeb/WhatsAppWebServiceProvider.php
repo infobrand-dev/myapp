@@ -11,10 +11,13 @@ use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\WhatsAppWeb\Jobs\SendWhatsAppWebMessage;
 use App\Modules\WhatsAppWeb\Services\WhatsAppWebBridgeClient;
 use App\Modules\WhatsAppWeb\Services\WhatsAppWebConversationSyncService;
+use App\Support\RegistersModuleRoutes;
 use Illuminate\Support\ServiceProvider;
 
 class WhatsAppWebServiceProvider extends ServiceProvider
 {
+    use RegistersModuleRoutes;
+
     public function register(): void
     {
         $this->app->singleton(WhatsAppWebBridgeClient::class);
@@ -58,7 +61,7 @@ class WhatsAppWebServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->loadRoutesFrom(__DIR__ . '/routes/web.php');
+        $this->registerModuleRoutes([__DIR__ . '/routes/web.php']);
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'whatsappweb');
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
     }

@@ -19,6 +19,7 @@ use App\Modules\Purchases\Services\PurchaseIntegrationPayloadBuilder;
 use App\Modules\Purchases\Services\PurchaseLookupService;
 use App\Modules\Purchases\Services\PurchaseNumberService;
 use App\Modules\Purchases\Services\PurchaseSnapshotService;
+use App\Support\RegistersModuleRoutes;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
@@ -27,6 +28,8 @@ use Spatie\Permission\PermissionRegistrar;
 
 class PurchasesServiceProvider extends ServiceProvider
 {
+    use RegistersModuleRoutes;
+
     public const PERMISSIONS = [
         'purchases.view',
         'purchases.create',
@@ -73,7 +76,7 @@ class PurchasesServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->loadRoutesFrom(__DIR__ . '/routes/web.php');
+        $this->registerModuleRoutes([__DIR__ . '/routes/web.php']);
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'purchases');
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
 

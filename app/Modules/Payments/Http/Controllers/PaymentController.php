@@ -54,6 +54,7 @@ class PaymentController extends Controller
 
         return view('payments::index', [
             'payments' => $this->repository->paginateForIndex($filters),
+            'summary' => $this->repository->summary($filters),
             'filters' => $filters,
             'paymentMethods' => $this->lookupService->paymentMethods(),
             'paymentStatusOptions' => $this->lookupService->paymentStatusOptions(),

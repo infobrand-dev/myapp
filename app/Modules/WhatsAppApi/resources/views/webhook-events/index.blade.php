@@ -25,6 +25,9 @@
     <div class="col-md-3">
         <div class="card"><div class="card-body"><div class="text-muted small">Invalid Signature</div><div class="h2 mb-0">{{ $summary['invalid_signature'] }}</div></div></div>
     </div>
+    <div class="col-md-3">
+        <div class="card"><div class="card-body"><div class="text-muted small">Retryable Queue</div><div class="h2 mb-0 text-warning">{{ $summary['retryable'] }}</div></div></div>
+    </div>
 </div>
 
 <div class="card mb-3">
@@ -65,9 +68,21 @@
                     <option value="0" {{ ($filters['signature_valid'] ?? '') === '0' ? 'selected' : '' }}>Invalid</option>
                 </select>
             </div>
-            <div class="col-lg-3 col-md-12 d-flex gap-2">
+            <div class="col-lg-2 col-md-6">
+                <label class="form-label">From</label>
+                <input type="date" name="date_from" class="form-control" value="{{ $filters['date_from'] ?? '' }}">
+            </div>
+            <div class="col-lg-2 col-md-6">
+                <label class="form-label">To</label>
+                <input type="date" name="date_to" class="form-control" value="{{ $filters['date_to'] ?? '' }}">
+            </div>
+            <div class="col-lg-1 col-md-12 d-flex gap-2">
                 <button class="btn btn-primary" type="submit">Filter</button>
+            </div>
+            <div class="col-lg-12 d-flex gap-2">
                 <a href="{{ route('whatsapp-api.webhook-events.index') }}" class="btn btn-outline-secondary">Reset</a>
+                <a href="{{ route('whatsapp-api.webhook-events.index', ['process_status' => 'failed']) }}" class="btn btn-outline-danger">Failed Only</a>
+                <a href="{{ route('whatsapp-api.webhook-events.index', ['signature_valid' => '0']) }}" class="btn btn-outline-warning">Invalid Signature</a>
             </div>
         </form>
     </div>

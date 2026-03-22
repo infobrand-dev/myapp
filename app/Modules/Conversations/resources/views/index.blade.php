@@ -4,7 +4,62 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Conversations</h2>
-        <div class="text-muted small">Inbox gabungan (internal, WhatsApp API/Bro, sosial). Claim eksklusif, auto-timeout {{ $lockMinutes }} menit.</div>
+        <div class="text-muted small">Inbox kerja operator lintas channel. Claim eksklusif, release, dan queue prioritas.</div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Open Queue</div><div class="h2 mb-0">{{ $summary['total'] ?? 0 }}</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Unread</div><div class="h2 mb-0 text-warning">{{ $summary['unread'] ?? 0 }}</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Unassigned</div><div class="h2 mb-0">{{ $summary['unassigned'] ?? 0 }}</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Owned By Me</div><div class="h2 mb-0 text-primary">{{ $summary['mine'] ?? 0 }}</div></div></div></div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Search</label>
+                <input type="text" name="search" class="form-control" value="{{ $filters['search'] ?? '' }}" placeholder="Kontak, nomor, pesan terakhir">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Channel</label>
+                <select name="channel" class="form-select">
+                    <option value="">Semua</option>
+                    @foreach(['internal' => 'Internal', 'wa_api' => 'WhatsApp API', 'wa_web' => 'WhatsApp Web', 'live_chat' => 'Live Chat', 'social' => 'Social'] as $value => $label)
+                        <option value="{{ $value }}" @selected(($filters['channel'] ?? '') === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">Semua</option>
+                    <option value="open" @selected(($filters['status'] ?? '') === 'open')>Open</option>
+                    <option value="closed" @selected(($filters['status'] ?? '') === 'closed')>Closed</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Assignment</label>
+                <select name="assignment" class="form-select">
+                    <option value="">Semua</option>
+                    <option value="mine" @selected(($filters['assignment'] ?? '') === 'mine')>Milik saya</option>
+                    <option value="unassigned" @selected(($filters['assignment'] ?? '') === 'unassigned')>Belum di-claim</option>
+                    <option value="others" @selected(($filters['assignment'] ?? '') === 'others')>Milik orang lain</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Unread Only</label>
+                <div class="form-check form-switch pt-2">
+                    <input class="form-check-input" type="checkbox" name="unread_only" value="1" @checked($filters['unread_only'] ?? false)>
+                    <label class="form-check-label">Tampilkan unread saja</label>
+                </div>
+            </div>
+            <div class="col-12 d-flex gap-2">
+                <button class="btn btn-primary" type="submit">Filter</button>
+                <a href="{{ route('conversations.index') }}" class="btn btn-outline-secondary">Reset</a>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -15,6 +70,7 @@
                 <tr>
                     <th>Kontak/Channel</th>
                     <th>Status</th>
+                    <th>Unread</th>
                     <th>Owner</th>
                     <th>Lock</th>
                     <th>Instance</th>
@@ -28,8 +84,18 @@
                         <td>
                             <a href="{{ route('conversations.show', $conv) }}" class="fw-bold text-decoration-none">{{ $conv->contact_name ?? $conv->contact_external_id ?? 'Internal Chat' }}</a>
                             <div class="text-muted small">{{ strtoupper($conv->channel ?? 'internal') }}</div>
+                            @if($conv->latestMessage)
+                                <div class="text-muted small">{{ \Illuminate\Support\Str::limit((string) $conv->latestMessage->body, 60) }}</div>
+                            @endif
                         </td>
                         <td><span class="badge {{ $conv->status === 'closed' ? 'text-bg-secondary' : 'text-bg-primary' }}">{{ ucfirst($conv->status) }}</span></td>
+                        <td>
+                            @if((int) ($conv->unread_count ?? 0) > 0)
+                                <span class="badge bg-warning-lt text-warning">{{ (int) $conv->unread_count }}</span>
+                            @else
+                                <span class="text-muted small">0</span>
+                            @endif
+                        </td>
                         <td>{{ $conv->owner->name ?? 'Unassigned' }}</td>
                         <td>
                             @if($conv->locked_until && $conv->locked_until->isFuture())
@@ -51,6 +117,7 @@
                         <td>{{ optional($conv->last_message_at)->diffForHumans() ?? '-' }}</td>
                         <td class="text-end align-middle">
                             <div class="table-actions">
+                                <a href="{{ route('conversations.show', $conv) }}" class="btn btn-outline-secondary btn-sm">Open</a>
                                 @if($conv->owner_id === auth()->id())
                                     <form class="d-inline-block m-0" method="POST" action="{{ route('conversations.release', $conv) }}">
                                         @csrf
@@ -68,7 +135,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="text-muted">Belum ada percakapan.</td></tr>
+                    <tr><td colspan="8" class="text-muted">Belum ada percakapan.</td></tr>
                 @endforelse
             </tbody>
         </table>

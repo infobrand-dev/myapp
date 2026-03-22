@@ -17,6 +17,7 @@ use App\Modules\Inventory\Repositories\StockMovementRepository;
 use App\Modules\Inventory\Repositories\StockRepository;
 use App\Modules\Inventory\Services\InventoryDashboardService;
 use App\Modules\Inventory\Services\StockMutationService;
+use App\Support\RegistersModuleRoutes;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\Models\Permission;
@@ -24,6 +25,8 @@ use Spatie\Permission\PermissionRegistrar;
 
 class InventoryServiceProvider extends ServiceProvider
 {
+    use RegistersModuleRoutes;
+
     public const PERMISSIONS = [
         'inventory.view-stock',
         'inventory.view-movement',
@@ -72,7 +75,7 @@ class InventoryServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->loadRoutesFrom(__DIR__ . '/routes/web.php');
+        $this->registerModuleRoutes([__DIR__ . '/routes/web.php']);
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'inventory');
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
 

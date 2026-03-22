@@ -15,25 +15,27 @@ class PaymentRepository
 {
     public function paginateForIndex(array $filters, int $perPage = 15): LengthAwarePaginator
     {
-        $query = Payment::query()
-            ->where('tenant_id', $this->tenantId())
-            ->where('company_id', $this->companyId())
-            ->with(['method', 'receiver', 'allocations'])
-            ->withCount('allocations');
-
-        BranchContext::applyScope($query);
-
-        $this->applyFilters($query, $filters);
-
-        if (($filters['scope'] ?? null) === 'own' && !empty($filters['user_id'])) {
-            $query->where('received_by', (int) $filters['user_id']);
-        }
+        $query = $this->buildIndexQuery($filters);
 
         return $query
             ->orderByDesc('paid_at')
             ->orderByDesc('created_at')
             ->paginate($perPage)
             ->withQueryString();
+    }
+
+    public function summary(array $filters): array
+    {
+        $query = $this->buildIndexQuery($filters);
+
+        return [
+            'total_count' => (clone $query)->count(),
+            'posted_count' => (clone $query)->where('status', Payment::STATUS_POSTED)->count(),
+            'voided_count' => (clone $query)->where('status', Payment::STATUS_VOIDED)->count(),
+            'total_amount' => (float) ((clone $query)->sum('amount') ?: 0),
+            'posted_amount' => (float) ((clone $query)->where('status', Payment::STATUS_POSTED)->sum('amount') ?: 0),
+            'manual_count' => (clone $query)->where('source', Payment::SOURCE_MANUAL)->count(),
+        ];
     }
 
     public function findForDetail(Payment $payment): Payment
@@ -66,14 +68,16 @@ class PaymentRepository
                     ->orWhereHas('allocations', function (Builder $allocation) use ($search) {
                         $allocation->where(function (Builder $morphQuery) use ($search) {
                             $morphQuery->whereHasMorph('payable', [Sale::class], function (Builder $payable) use ($search) {
-                                $payable->where('company_id', $this->companyId())
+                                $payable->where('tenant_id', $this->tenantId())
+                                    ->where('company_id', $this->companyId())
                                     ->where(function (Builder $nested) use ($search) {
                                         $nested->where('sale_number', 'like', "%{$search}%")
                                             ->orWhere('customer_name_snapshot', 'like', "%{$search}%");
                                     });
                                 BranchContext::applyScope($payable);
                             })->orWhereHasMorph('payable', [SaleReturn::class], function (Builder $payable) use ($search) {
-                                $payable->where('company_id', $this->companyId())
+                                $payable->where('tenant_id', $this->tenantId())
+                                    ->where('company_id', $this->companyId())
                                     ->where(function (Builder $nested) use ($search) {
                                         $nested->where('return_number', 'like', "%{$search}%")
                                             ->orWhere('sale_number_snapshot', 'like', "%{$search}%")
@@ -93,12 +97,30 @@ class PaymentRepository
         }
 
         if (!empty($filters['date_from'])) {
-            $query->whereDate('paid_at', '>=', $filters['date_from']);
+            $query->where('paid_at', '>=', $filters['date_from'] . ' 00:00:00');
         }
 
         if (!empty($filters['date_to'])) {
-            $query->whereDate('paid_at', '<=', $filters['date_to']);
+            $query->where('paid_at', '<=', $filters['date_to'] . ' 23:59:59');
         }
+    }
+
+    private function buildIndexQuery(array $filters): Builder
+    {
+        $query = Payment::query()
+            ->where('tenant_id', $this->tenantId())
+            ->where('company_id', $this->companyId())
+            ->with(['method', 'receiver', 'allocations'])
+            ->withCount('allocations');
+
+        BranchContext::applyScope($query);
+        $this->applyFilters($query, $filters);
+
+        if (($filters['scope'] ?? null) === 'own' && !empty($filters['user_id'])) {
+            $query->where('received_by', (int) $filters['user_id']);
+        }
+
+        return $query;
     }
 
     private function tenantId(): int
@@ -110,5 +132,4 @@ class PaymentRepository
     {
         return (int) CompanyContext::currentId();
     }
-
 }

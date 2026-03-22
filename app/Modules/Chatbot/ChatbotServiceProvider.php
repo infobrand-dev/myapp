@@ -3,10 +3,13 @@
 namespace App\Modules\Chatbot;
 
 use App\Support\HookManager;
+use App\Support\RegistersModuleRoutes;
 use Illuminate\Support\ServiceProvider;
 
 class ChatbotServiceProvider extends ServiceProvider
 {
+    use RegistersModuleRoutes;
+
     public function register(): void
     {
         //
@@ -14,7 +17,7 @@ class ChatbotServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->loadRoutesFrom(__DIR__ . '/routes/web.php');
+        $this->registerModuleRoutes([__DIR__ . '/routes/web.php']);
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'chatbot');
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
 

@@ -41,7 +41,7 @@ class StockMutationService
             return StockMovement::query()->create([
                 'tenant_id' => TenantContext::currentId(),
                 'company_id' => CompanyContext::currentId(),
-                'branch_id' => BranchContext::currentId(),
+                'branch_id' => $location->branch_id,
                 'stock_key' => $stock->stock_key,
                 'inventory_stock_id' => $stock->id,
                 'product_id' => $product->id,
@@ -271,7 +271,7 @@ class StockMutationService
             $stock = StockBalance::query()->create([
                 'tenant_id' => TenantContext::currentId(),
                 'company_id' => CompanyContext::currentId(),
-                'branch_id' => BranchContext::currentId(),
+                'branch_id' => $location->branch_id,
                 'stock_key' => $stockKey,
                 'product_id' => $product->id,
                 'product_variant_id' => $variant?->id,
@@ -305,7 +305,7 @@ class StockMutationService
         return StockMovement::query()->create([
             'tenant_id' => TenantContext::currentId(),
             'company_id' => CompanyContext::currentId(),
-            'branch_id' => BranchContext::currentId(),
+            'branch_id' => $location->branch_id,
             'stock_key' => $stock->stock_key,
             'inventory_stock_id' => $stock->id,
             'product_id' => $product->id,

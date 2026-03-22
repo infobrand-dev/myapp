@@ -10,6 +10,7 @@ use App\Modules\Payments\Repositories\PaymentRepository;
 use App\Modules\Payments\Services\PaymentLookupService;
 use App\Modules\Payments\Services\PaymentNumberService;
 use App\Modules\Payments\Services\PaymentSummaryService;
+use App\Support\RegistersModuleRoutes;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\Models\Permission;
@@ -17,6 +18,8 @@ use Spatie\Permission\PermissionRegistrar;
 
 class PaymentsServiceProvider extends ServiceProvider
 {
+    use RegistersModuleRoutes;
+
     public const PERMISSIONS = [
         'payments.view',
         'payments.view_all',
@@ -54,7 +57,7 @@ class PaymentsServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->loadRoutesFrom(__DIR__ . '/routes/web.php');
+        $this->registerModuleRoutes([__DIR__ . '/routes/web.php']);
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'payments');
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
 

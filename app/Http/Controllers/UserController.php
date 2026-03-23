@@ -127,9 +127,23 @@ class UserController extends Controller
     public function destroy(User $user): RedirectResponse
     {
         if (auth()->id() === $user->id) {
-            return back()->with('status', 'Tidak bisa menghapus akun sendiri.');
+            return back()->with('error', 'Tidak bisa menghapus akun sendiri.');
         }
+
+        // Prevent deleting the last Super-admin in the tenant.
+        if ($user->hasRole('Super-admin')) {
+            $superAdminCount = User::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->whereHas('roles', fn ($q) => $q->where('name', 'Super-admin'))
+                ->count();
+
+            if ($superAdminCount <= 1) {
+                return back()->with('error', 'Tidak dapat menghapus satu-satunya Super-admin. Tetapkan Super-admin lain terlebih dahulu.');
+            }
+        }
+
         $user->delete();
+
         return back()->with('status', 'User dihapus.');
     }
 

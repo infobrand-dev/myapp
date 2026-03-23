@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(php artisan:*)",
+      "Bash(php -l app/Models/User.php)",
+      "Bash(php -l app/Http/Controllers/ProfileController.php)",
+      "Bash(php -l app/Http/Controllers/UserController.php)",
+      "Bash(php -l app/Support/TenantContext.php)",
+      "Bash(D:/xampp8/php/php.exe -l app/Models/User.php)",
+      "Bash(D:/xampp8/php/php.exe -l app/Http/Controllers/ProfileController.php)",
+      "Bash(D:/xampp8/php/php.exe -l app/Http/Controllers/UserController.php)",
+      "Bash(D:/xampp8/php/php.exe -l app/Support/TenantContext.php)",
+      "Bash(D:/xampp8/php/php.exe -l app/Exceptions/Handler.php)"
+    ]
+  }
+}

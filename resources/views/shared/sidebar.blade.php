@@ -33,12 +33,17 @@
         ->values();
 @endphp
 
-<aside class="navbar navbar-vertical navbar-expand-lg border-end">
+<aside class="navbar navbar-vertical navbar-expand-lg border-end" role="navigation" aria-label="Main navigation">
     <div class="container-fluid">
         <div class="sidebar-brand-wrap d-none d-lg-flex align-items-center justify-content-between w-100 px-1 py-3 border-bottom">
-            <a href="{{ route('dashboard') }}" class="navbar-brand sidebar-brand mb-0 text-decoration-none">MyApp</a>
+            <a href="{{ route('dashboard') }}" class="navbar-brand sidebar-brand mb-0 text-decoration-none">{{ config('app.name') }}</a>
         </div>
-        <div class="navbar-collapse d-block" id="sidebar-menu">
+        {{--
+            Use "collapse navbar-collapse" (NOT "d-block") so Bootstrap Collapse
+            can properly hide/show on mobile. On desktop (≥992px) theme.css forces
+            display:block regardless of Bootstrap collapse state.
+        --}}
+        <div class="collapse navbar-collapse" id="sidebar-menu">
             <ul class="navbar-nav pt-lg-3">
                 @php $moduleBadgeRendered = false; @endphp
                 @include('shared.sidebar-menu')

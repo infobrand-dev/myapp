@@ -8,10 +8,11 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="MyApp">
-    <title>MyApp</title>
+    <meta name="apple-mobile-web-app-title" content="{{ config('app.name') }}">
+    <title>@yield('title', config('app.name'))</title>
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="apple-touch-icon" href="/pwa-icon-192.svg">
+    <link id="dynamic-favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='30' fill='%2314b8a6'/></svg>">
     <script>
         // Early apply saved theme to avoid FOUC
         (function() {
@@ -26,263 +27,185 @@
             }
         })();
     </script>
-    <link id="dynamic-favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='30' fill='%2314b8a6'/></svg>">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.1/dist/tabler-icons.min.css">
     <link rel="stylesheet" href="{{ mix('css/app.css') }}">
-    <style>
-        .table-actions {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.25rem;
-            white-space: nowrap;
-        }
-        .table-actions form {
-            display: inline-block;
-            margin: 0;
-        }
-        .table-actions .btn.btn-icon {
-            width: 2rem;
-            height: 2rem;
-            padding: 0;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .table-actions .btn.btn-icon .icon,
-        .table-actions .btn.btn-icon .ti {
-            width: 1rem;
-            height: 1rem;
-            line-height: 1;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-        }
-        .sidebar-brand {
-            font-size: 1.1rem;
-            font-weight: 700;
-            letter-spacing: .01em;
-            color: var(--tblr-body-color, #1f2d3d);
-        }
-        .sidebar-brand-wrap {
-            margin-bottom: .35rem;
-        }
-        .module-svg-icon {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            flex: 0 0 auto;
-        }
-        .module-svg-icon svg {
-            width: 100%;
-            height: 100%;
-            display: block;
-        }
-        .mobile-nav-toggle {
-            width: 2.5rem;
-            height: 2.5rem;
-            padding: 0;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .mobile-topbar {
-            backdrop-filter: blur(14px);
-            background: color-mix(in srgb, var(--tblr-bg-surface, #fff) 88%, transparent);
-        }
-        .desktop-topbar {
-            min-height: 3.7rem;
-            border-bottom: 1px solid rgba(74, 96, 126, 0.12);
-            background: var(--tblr-bg-surface, #fff);
-        }
-        .mobile-topbar-brand {
-            font-size: .95rem;
-            font-weight: 700;
-            letter-spacing: .01em;
-            color: inherit;
-            text-decoration: none;
-        }
-        .desktop-topbar-title {
-            font-size: 1rem;
-            font-weight: 700;
-            letter-spacing: .01em;
-            color: var(--tblr-body-color, #1f2d3d);
-        }
-        .app-shell {
-            min-height: 100vh;
-        }
-        .page-body {
-            margin-top: .9rem;
-            margin-bottom: 1rem;
-            padding-top: 0;
-            padding-bottom: 0;
-        }
-        .page-body > .container-xl {
-            padding-left: 1rem;
-            padding-right: 1rem;
-        }
-        .page > .navbar-vertical {
-            box-shadow: none;
-        }
-        @media (min-width: 992px) {
-            .page > .navbar-vertical #sidebar-menu.collapse:not(.show) {
-                display: block !important;
-            }
-        }
-        @media (max-width: 991.98px) {
-            .desktop-topbar {
-                display: none;
-            }
-            .mobile-topbar {
-                position: sticky;
-                top: 0;
-                z-index: 1030;
-                border-bottom: 1px solid rgba(74, 96, 126, 0.14);
-                min-height: 3.5rem;
-            }
-            .page-body {
-                margin-top: .65rem;
-            }
-            .page-body > .container-xl {
-                padding-left: .75rem;
-                padding-right: .75rem;
-            }
-            .page > .navbar-vertical {
-                position: static;
-                width: 100%;
-                min-height: auto;
-                border-right: 0 !important;
-                border-bottom: 1px solid rgba(74, 96, 126, 0.12);
-            }
-            .page > .navbar-vertical .container-fluid {
-                padding-left: .7rem;
-                padding-right: .7rem;
-            }
-            .page > .navbar-vertical .navbar-collapse {
-                padding-bottom: .75rem;
-            }
-            #sidebar-menu .navbar-nav {
-                padding-top: .15rem !important;
-            }
-            #sidebar-menu .nav-item {
-                margin-top: .15rem;
-            }
-            #sidebar-menu .nav-link {
-                padding-left: .7rem !important;
-                padding-right: .7rem !important;
-                min-height: 2.45rem;
-                gap: .55rem !important;
-                align-items: center !important;
-                border-radius: .55rem !important;
-                white-space: normal;
-                line-height: 1.2;
-            }
-            #sidebar-menu .nav-link .nav-link-icon,
-            #sidebar-menu .nav-link .icon {
-                width: 1.1rem;
-                min-width: 1.1rem;
-                margin-top: 0;
-            }
-            #sidebar-menu .nav-link .nav-link-title {
-                display: block;
-                overflow-wrap: anywhere;
-                word-break: break-word;
-            }
-            #sidebar-menu .badge {
-                margin-left: auto !important;
-                font-size: .68rem;
-                line-height: 1.1;
-            }
-            #sidebar-menu .dropdown-menu {
-                margin-left: 0 !important;
-                padding: .15rem 0 .2rem .45rem !important;
-            }
-            #sidebar-menu .dropdown-item {
-                border-radius: .45rem;
-                white-space: normal;
-                overflow-wrap: anywhere;
-                word-break: break-word;
-                padding-top: .36rem;
-                padding-bottom: .36rem;
-            }
-            #sidebar-menu .text-uppercase {
-                font-size: .68rem !important;
-                letter-spacing: .05em;
-            }
-            .mobile-topbar .btn-outline-secondary {
-                --tblr-btn-bg: transparent;
-                --tblr-btn-border-color: rgba(74, 96, 126, 0.2);
-                --tblr-btn-hover-bg: rgba(var(--tblr-primary-rgb), 0.08);
-            }
-        }
-        @media (min-width: 992px) {
-            .mobile-topbar {
-                display: none;
-            }
-            .desktop-topbar {
-                display: flex;
-            }
-        }
-    </style>
+    @stack('styles')
 </head>
 <body class="bg-body">
+    <a class="skip-link" href="#main-content">Skip to content</a>
+
     <div class="page app-shell">
         @include('shared.sidebar')
 
         <div class="page-wrapper">
-            <header class="navbar desktop-topbar d-none d-lg-flex">
+            {{-- Desktop topbar --}}
+            <header class="navbar desktop-topbar d-none d-lg-flex" role="banner">
                 <div class="container-fluid">
                     <div class="d-flex align-items-center justify-content-between w-100 gap-3">
                         <div class="d-flex align-items-center gap-3 flex-wrap">
-                            <div class="desktop-topbar-title">MyApp</div>
+                            <span class="desktop-topbar-title">{{ config('app.name') }}</span>
                             @include('shared.topbar-context-switcher', ['selectorId' => 'desktop-topbar'])
                         </div>
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-                            <button class="btn btn-sm btn-outline-primary" type="submit">Logout</button>
-                        </form>
+
+                        {{-- User dropdown --}}
+                        <div class="dropdown">
+                            <button
+                                type="button"
+                                class="topbar-user-toggle"
+                                data-bs-toggle="dropdown"
+                                aria-expanded="false"
+                                aria-label="User menu"
+                            >
+                                <span class="topbar-user-avatar">
+                                    {{ strtoupper(substr(auth()->user()->name ?? '?', 0, 2)) }}
+                                </span>
+                                <span class="topbar-user-name d-none d-xl-block">{{ auth()->user()->name ?? '' }}</span>
+                                <i class="ti ti-chevron-down" style="font-size: 0.75rem; opacity: 0.6;" aria-hidden="true"></i>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end shadow-sm" style="min-width: 12rem;">
+                                <div class="dropdown-header px-3 py-2">
+                                    <div class="fw-semibold text-truncate" style="max-width: 11rem;">{{ auth()->user()->name ?? '' }}</div>
+                                    <div class="small text-secondary text-truncate" style="max-width: 11rem;">{{ auth()->user()->email ?? '' }}</div>
+                                </div>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="{{ route('profile.edit') }}">
+                                    <i class="ti ti-user me-2 opacity-60" aria-hidden="true"></i>Profile
+                                </a>
+                                @can('settings.view')
+                                <a class="dropdown-item" href="{{ route('settings.general') }}">
+                                    <i class="ti ti-settings me-2 opacity-60" aria-hidden="true"></i>Settings
+                                </a>
+                                @endcan
+                                <div class="dropdown-divider"></div>
+                                <form method="POST" action="{{ route('logout') }}">
+                                    @csrf
+                                    <button type="submit" class="dropdown-item text-danger">
+                                        <i class="ti ti-logout me-2 opacity-70" aria-hidden="true"></i>Logout
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </header>
-            <header class="navbar navbar-expand-md mobile-topbar d-lg-none">
+
+            {{-- Mobile topbar --}}
+            <header class="navbar navbar-expand-md mobile-topbar d-lg-none" role="banner">
                 <div class="container-fluid">
-                    <div class="d-flex align-items-center gap-3 w-100">
+                    <div class="d-flex align-items-center gap-2 w-100">
                         <button
                             type="button"
                             class="btn btn-outline-secondary mobile-nav-toggle"
                             data-bs-toggle="collapse"
                             data-bs-target="#sidebar-menu"
                             aria-controls="sidebar-menu"
-                            aria-label="Open menu"
+                            aria-label="Toggle menu"
+                            aria-expanded="false"
                         >
                             <i class="ti ti-menu-2" aria-hidden="true"></i>
                         </button>
-                        <a href="{{ route('dashboard') }}" class="mobile-topbar-brand">MyApp</a>
+
+                        <a href="{{ route('dashboard') }}" class="mobile-topbar-brand">
+                            {{ config('app.name') }}
+                        </a>
+
                         <div class="d-none d-sm-flex">
                             @include('shared.topbar-context-switcher', ['selectorId' => 'mobile-topbar'])
                         </div>
+
                         <div class="ms-auto">
-                            <form method="POST" action="{{ route('logout') }}">
-                                @csrf
-                                <button class="btn btn-sm btn-outline-primary" type="submit">Logout</button>
-                            </form>
+                            <div class="dropdown">
+                                <button
+                                    type="button"
+                                    class="topbar-user-toggle"
+                                    data-bs-toggle="dropdown"
+                                    aria-expanded="false"
+                                    aria-label="User menu"
+                                >
+                                    <span class="topbar-user-avatar">
+                                        {{ strtoupper(substr(auth()->user()->name ?? '?', 0, 2)) }}
+                                    </span>
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end shadow-sm" style="min-width: 12rem;">
+                                    <div class="dropdown-header px-3 py-2">
+                                        <div class="fw-semibold text-truncate" style="max-width: 11rem;">{{ auth()->user()->name ?? '' }}</div>
+                                        <div class="small text-secondary text-truncate" style="max-width: 11rem;">{{ auth()->user()->email ?? '' }}</div>
+                                    </div>
+                                    <div class="dropdown-divider"></div>
+                                    <a class="dropdown-item" href="{{ route('profile.edit') }}">
+                                        <i class="ti ti-user me-2 opacity-60" aria-hidden="true"></i>Profile
+                                    </a>
+                                    @can('settings.view')
+                                    <a class="dropdown-item" href="{{ route('settings.general') }}">
+                                        <i class="ti ti-settings me-2 opacity-60" aria-hidden="true"></i>Settings
+                                    </a>
+                                    @endcan
+                                    <div class="dropdown-divider"></div>
+                                    <form method="POST" action="{{ route('logout') }}">
+                                        @csrf
+                                        <button type="submit" class="dropdown-item text-danger">
+                                            <i class="ti ti-logout me-2 opacity-70" aria-hidden="true"></i>Logout
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </header>
 
-            <main class="page-body">
+            <main class="page-body" id="main-content" tabindex="-1">
                 <div class="container-xl">
-                    @if (session('status'))
-                        <div class="alert alert-success">{{ session('status') }}</div>
+                    {{-- Flash messages --}}
+                    @if(session('status') || session('success'))
+                        <div class="alert alert-success alert-dismissible mb-3" role="alert">
+                            <i class="ti ti-circle-check me-2" aria-hidden="true"></i>
+                            {{ session('status') ?? session('success') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
                     @endif
+                    @if(session('error'))
+                        <div class="alert alert-danger alert-dismissible mb-3" role="alert">
+                            <i class="ti ti-alert-circle me-2" aria-hidden="true"></i>
+                            {{ session('error') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    @endif
+                    @if(session('warning'))
+                        <div class="alert alert-warning alert-dismissible mb-3" role="alert">
+                            <i class="ti ti-alert-triangle me-2" aria-hidden="true"></i>
+                            {{ session('warning') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    @endif
+                    @if(session('info'))
+                        <div class="alert alert-info alert-dismissible mb-3" role="alert">
+                            <i class="ti ti-info-circle me-2" aria-hidden="true"></i>
+                            {{ session('info') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    @endif
+                    @if($errors->any())
+                        <div class="alert alert-danger alert-dismissible mb-3" role="alert">
+                            <i class="ti ti-alert-circle me-2" aria-hidden="true"></i>
+                            <ul class="mb-0 ps-3">
+                                @foreach($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    @endif
+
                     @yield('content')
                 </div>
             </main>
         </div>
     </div>
+
     <script src="{{ mix('js/app.js') }}" defer></script>
     <script>
+        // ── MyApp Push Notifications ─────────────────────────────
         window.MyAppNotifier = (() => {
             let swRegistrationPromise = null;
 
@@ -318,7 +241,7 @@
                 const granted = await ensurePermission(false);
                 if (!granted) return false;
 
-                const notificationOptions = {
+                const opts = {
                     body: (body || '').toString().slice(0, 180),
                     tag,
                     data: { url: url || window.location.href },
@@ -328,16 +251,12 @@
 
                 const reg = await registerServiceWorker();
                 if (reg && typeof reg.showNotification === 'function') {
-                    reg.showNotification((title || 'MyApp').toString(), notificationOptions);
+                    reg.showNotification((title || '{{ config('app.name') }}').toString(), opts);
                     return true;
                 }
-
                 try {
-                    const fallback = new Notification((title || 'MyApp').toString(), notificationOptions);
-                    fallback.onclick = () => {
-                        window.focus();
-                        if (url) window.location.href = url;
-                    };
+                    const fallback = new Notification((title || '{{ config('app.name') }}').toString(), opts);
+                    fallback.onclick = () => { window.focus(); if (url) window.location.href = url; };
                     return true;
                 } catch (_) {
                     return false;
@@ -345,30 +264,20 @@
             };
 
             registerServiceWorker();
-
-            return {
-                registerServiceWorker,
-                supportsNotifications,
-                supportsServiceWorker,
-                permission,
-                ensurePermission,
-                show,
-            };
+            return { registerServiceWorker, supportsNotifications, supportsServiceWorker, permission, ensurePermission, show };
         })();
 
-        // Dynamic favicon: green by default, turns red if tab hidden for 30 minutes.
+        // ── Dynamic favicon: green → red after 30 min idle ───────
         const faviconEl = document.getElementById('dynamic-favicon');
         const faviconGreen = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='30' fill='%2314b8a6'/></svg>";
-        const faviconRed = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='30' fill='%23ef4444'/></svg>";
+        const faviconRed   = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='30' fill='%23ef4444'/></svg>";
         let hideTimer = null;
-        const THRESHOLD = 30 * 60 * 1000; // 30 minutes
+        const IDLE_THRESHOLD = 30 * 60 * 1000;
 
-        function setFavicon(uri) {
-            if (faviconEl) faviconEl.setAttribute('href', uri);
-        }
+        function setFavicon(uri) { if (faviconEl) faviconEl.setAttribute('href', uri); }
         function handleVisibility() {
             if (document.hidden) {
-                hideTimer = setTimeout(() => setFavicon(faviconRed), THRESHOLD);
+                hideTimer = setTimeout(() => setFavicon(faviconRed), IDLE_THRESHOLD);
             } else {
                 if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
                 setFavicon(faviconGreen);
@@ -377,15 +286,19 @@
         document.addEventListener('visibilitychange', handleVisibility);
         handleVisibility();
 
+        // ── Auto-close mobile sidebar on nav click ────────────────
+        // Uses getOrCreateInstance (not getInstance) so it works even if
+        // the user has not yet clicked the hamburger on this page load.
         const sidebarEl = document.getElementById('sidebar-menu');
-        sidebarEl?.querySelectorAll('a.nav-link, a.dropdown-item').forEach((a) => {
+        sidebarEl?.querySelectorAll('a.nav-link, a.dropdown-item').forEach(a => {
             a.addEventListener('click', () => {
-                if (!window.matchMedia('(max-width: 991.98px)').matches) {
-                    return;
+                if (!window.matchMedia('(max-width: 991.98px)').matches) return;
+                if (window.bootstrap?.Collapse) {
+                    window.bootstrap.Collapse.getOrCreateInstance(sidebarEl).hide();
+                } else {
+                    // Fallback: manually remove Bootstrap show class
+                    sidebarEl.classList.remove('show');
                 }
-
-                const sidebarInstance = window.bootstrap?.Collapse.getInstance(sidebarEl);
-                sidebarInstance?.hide();
             });
         });
     </script>

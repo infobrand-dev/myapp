@@ -67,7 +67,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 });
 
-Route::middleware(['auth'])->prefix('presence')->name('presence.')->group(function () {
+Route::middleware(['auth', 'verified'])->prefix('presence')->name('presence.')->group(function () {
     Route::post('/heartbeat', [UserPresenceController::class, 'heartbeat'])->name('heartbeat');
     Route::post('/status', [UserPresenceController::class, 'setStatus'])->name('status');
 });

@@ -13,7 +13,18 @@ class TenantContext
 
     public static function currentId(): int
     {
-        return self::$currentTenantId ?? 1;
+        if (self::$currentTenantId === null) {
+            // Warn when the context was never set — most likely a queued job, artisan
+            // command, or scheduled task that forgot to call setCurrentId().
+            // All DB queries will fall back to tenant 1 which may cause cross-tenant leaks.
+            if (app()->runningInConsole()) {
+                logger()->warning('TenantContext::currentId() called without a resolved context (console/job). Defaulting to tenant 1. Call TenantContext::setCurrentId() before executing tenant-scoped queries.');
+            }
+
+            return 1;
+        }
+
+        return self::$currentTenantId;
     }
 
     public static function currentTenant(): ?Tenant

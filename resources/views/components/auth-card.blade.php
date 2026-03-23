@@ -1,9 +1,19 @@
-<div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
-    <div>
+<div class="auth-card-wrapper">
+    {{-- Brand header --}}
+    <div class="auth-brand">
         {{ $logo }}
+        <div class="auth-brand-name">{{ config('app.name') }}</div>
     </div>
 
-    <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg">
-        {{ $slot }}
+    {{-- Auth card --}}
+    <div class="card auth-card">
+        <div class="card-body">
+            {{ $slot }}
+        </div>
     </div>
+
+    {{-- Footer --}}
+    <p class="text-center text-secondary small mt-3 mb-0">
+        &copy; {{ date('Y') }} {{ config('app.name') }}. All rights reserved.
+    </p>
 </div>

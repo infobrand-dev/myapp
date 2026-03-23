@@ -3,21 +3,13 @@
 namespace App\Exceptions;
 
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Http\Request;
 use Throwable;
 
 class Handler extends ExceptionHandler
 {
     /**
-     * A list of the exception types that are not reported.
-     *
-     * @var array<int, class-string<Throwable>>
-     */
-    protected $dontReport = [
-        //
-    ];
-
-    /**
-     * A list of the inputs that are never flashed for validation exceptions.
+     * Inputs that are never flashed to the session on validation exceptions.
      *
      * @var array<int, string>
      */
@@ -29,13 +21,59 @@ class Handler extends ExceptionHandler
 
     /**
      * Register the exception handling callbacks for the application.
-     *
-     * @return void
      */
-    public function register()
+    public function register(): void
     {
         $this->reportable(function (Throwable $e) {
-            //
+            // Add a third-party error reporting service here when ready for production.
+            // Example: \Sentry\Laravel\Integration::captureUnhandledException($e);
         });
+    }
+
+    /**
+     * Render an exception into an HTTP response.
+     * Provides user-friendly error pages and hides stack traces in production.
+     */
+    public function render($request, Throwable $e)
+    {
+        // Return JSON for API / AJAX requests
+        if ($request->expectsJson()) {
+            return $this->renderJsonException($request, $e);
+        }
+
+        return parent::render($request, $e);
+    }
+
+    /**
+     * Structured JSON error response — never leaks stack traces.
+     */
+    protected function renderJsonException(Request $request, Throwable $e): \Illuminate\Http\JsonResponse
+    {
+        $status = $this->isHttpException($e) ? $e->getStatusCode() : 500;
+
+        $payload = [
+            'message' => $this->isHttpException($e)
+                ? $e->getMessage()
+                : 'An unexpected error occurred. Please try again.',
+        ];
+
+        // Include validation errors when present
+        if ($e instanceof \Illuminate\Validation\ValidationException) {
+            $payload['message'] = 'The given data was invalid.';
+            $payload['errors']  = $e->errors();
+            $status = 422;
+        }
+
+        // In local/testing environments, include debug info for developers
+        if (config('app.debug')) {
+            $payload['debug'] = [
+                'exception' => get_class($e),
+                'message'   => $e->getMessage(),
+                'file'      => $e->getFile(),
+                'line'      => $e->getLine(),
+            ];
+        }
+
+        return response()->json($payload, $status);
     }
 }

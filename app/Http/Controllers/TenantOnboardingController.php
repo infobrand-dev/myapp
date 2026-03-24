@@ -99,16 +99,25 @@ class TenantOnboardingController extends Controller
             . $tenant->slug . '.' . config('multitenancy.saas_domain')
             . '/login?registered=1';
 
-        // Send welcome email (queued — won't block the redirect)
-        Mail::to($data['email'])->queue(
-            new TenantWelcomeMail(
-                adminName:  $data['name'],
-                adminEmail: $data['email'],
-                tenantName: $tenant->name,
-                tenantSlug: $tenant->slug,
-                loginUrl:   $loginUrl,
-            )
-        );
+        // Send welcome email (queued — won't block the redirect).
+        // Wrapped in try-catch so a mail/queue misconfiguration never breaks onboarding.
+        try {
+            Mail::to($data['email'])->queue(
+                new TenantWelcomeMail(
+                    adminName:  $data['name'],
+                    adminEmail: $data['email'],
+                    tenantName: $tenant->name,
+                    tenantSlug: $tenant->slug,
+                    loginUrl:   $loginUrl,
+                )
+            );
+        } catch (\Throwable $e) {
+            logger()->error('TenantOnboarding: failed to queue welcome email', [
+                'tenant' => $tenant->slug,
+                'email'  => $data['email'],
+                'error'  => $e->getMessage(),
+            ]);
+        }
 
         return redirect()->away($loginUrl);
     }

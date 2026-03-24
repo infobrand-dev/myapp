@@ -79,7 +79,7 @@ Route::withoutMiddleware([
     Route::post('/install/run', [InstallController::class, 'run'])->middleware('throttle:5,1')->name('install.run');
 });
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', '2fa'])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
     Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
@@ -112,12 +112,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 });
 
-Route::middleware(['auth', 'verified'])->prefix('presence')->name('presence.')->group(function () {
+Route::middleware(['auth', 'verified', '2fa'])->prefix('presence')->name('presence.')->group(function () {
     Route::post('/heartbeat', [UserPresenceController::class, 'heartbeat'])->name('heartbeat');
     Route::post('/status', [UserPresenceController::class, 'setStatus'])->name('status');
 });
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', '2fa'])->group(function () {
     Route::get('/users', [UserController::class, 'index'])->middleware('permission:users.view')->name('users.index');
     Route::get('/users/create', [UserController::class, 'create'])->middleware('permission:users.create')->name('users.create');
     Route::post('/users', [UserController::class, 'store'])->middleware('permission:users.create')->name('users.store');

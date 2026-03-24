@@ -81,6 +81,10 @@ class TwoFactorController extends Controller
         $request->session()->forget('two_factor_pending_user_id');
         $request->session()->regenerate();
 
+        // Mark 2FA as confirmed for this session so EnsureTwoFactorAuthenticated
+        // middleware allows through all subsequent requests.
+        $request->session()->put('two_factor_confirmed', true);
+
         // Sync tenant session (mirrors AuthenticatedSessionController)
         $tenantId = TenantContext::resolveIdFromUser($request->user())
             ?? TenantContext::resolveIdFromRequest($request);

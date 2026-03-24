@@ -6,6 +6,13 @@
             </a>
         </x-slot>
 
+        @if (config('multitenancy.mode') === 'saas' && ($saasLoginTenant = \App\Support\TenantContext::currentTenant()))
+            <div class="alert alert-info mb-3 py-2 px-3 small">
+                <i class="ti ti-building me-1"></i>
+                Masuk ke <strong>{{ $saasLoginTenant->name }}</strong>
+            </div>
+        @endif
+
         @if (request('installed') === '1')
             <div class="mb-4 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
                 Instalasi berhasil. Silakan login dengan akun Super-admin yang Anda buat saat setup.

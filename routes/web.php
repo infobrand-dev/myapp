@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\TenantOnboardingController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\DashboardController;
@@ -21,6 +22,10 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::redirect('/', '/dashboard');
+
+// SaaS tenant self-registration — only reachable on the apex/root domain (no subdomain)
+Route::get('/onboarding', [TenantOnboardingController::class, 'create'])->name('onboarding.create');
+Route::post('/onboarding', [TenantOnboardingController::class, 'store'])->middleware('throttle:10,5')->name('onboarding.store');
 
 Route::withoutMiddleware([
     \App\Http\Middleware\EncryptCookies::class,

@@ -13,8 +13,16 @@ class TrustHosts extends Middleware
      */
     public function hosts()
     {
-        return [
+        $hosts = [
             $this->allSubdomainsOfApplicationUrl(),
         ];
+
+        // In SaaS mode also trust all subdomains of the dedicated SaaS domain
+        if (config('multitenancy.mode') === 'saas') {
+            $saasDomain = config('multitenancy.saas_domain');
+            $hosts[] = '(.+\.)?' . preg_quote($saasDomain);
+        }
+
+        return $hosts;
     }
 }

@@ -1,5 +1,6 @@
 {
   "permissions": {
+    "defaultMode": "bypassPermissions",
     "allow": [
       "Bash(npm run:*)",
       "Bash(php artisan:*)",
@@ -11,7 +12,10 @@
       "Bash(D:/xampp8/php/php.exe -l app/Http/Controllers/ProfileController.php)",
       "Bash(D:/xampp8/php/php.exe -l app/Http/Controllers/UserController.php)",
       "Bash(D:/xampp8/php/php.exe -l app/Support/TenantContext.php)",
-      "Bash(D:/xampp8/php/php.exe -l app/Exceptions/Handler.php)"
+      "Bash(D:/xampp8/php/php.exe -l app/Exceptions/Handler.php)",
+      "Bash(done)",
+      "Bash(grep -E \"\\\\.md$|ARCHITECTURE|MODULES|SAAS\")",
+      "Bash(D:/xampp8/php/php.exe artisan:*)"
     ]
   }
 }

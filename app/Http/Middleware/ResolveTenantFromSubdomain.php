@@ -40,11 +40,14 @@ class ResolveTenantFromSubdomain
 
         $tenant = Tenant::query()
             ->where('slug', $slug)
-            ->where('is_active', true)
             ->first();
 
         if ($tenant === null) {
-            abort(404, "Tenant «{$slug}» tidak ditemukan atau tidak aktif.");
+            abort(404, "Workspace «{$slug}» tidak ditemukan.");
+        }
+
+        if (! $tenant->is_active) {
+            return response()->view('errors.tenant-suspended', [], 403);
         }
 
         // Inject into request attributes — highest priority, server-side only

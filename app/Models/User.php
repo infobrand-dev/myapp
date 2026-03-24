@@ -29,6 +29,8 @@ class User extends Authenticatable
         'email',
         'password',
         'avatar',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
     ];
 
     /**
@@ -39,6 +41,8 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
     ];
 
     /**
@@ -47,9 +51,16 @@ class User extends Authenticatable
      * @var array<string, string>
      */
     protected $casts = [
-        'tenant_id' => 'integer',
-        'email_verified_at' => 'datetime',
+        'tenant_id'                  => 'integer',
+        'email_verified_at'          => 'datetime',
+        'two_factor_secret'          => 'encrypted',
+        'two_factor_recovery_codes'  => 'encrypted:array',
     ];
+
+    public function hasTwoFactorEnabled(): bool
+    {
+        return ! empty($this->two_factor_secret);
+    }
 
     public function tenant(): BelongsTo
     {

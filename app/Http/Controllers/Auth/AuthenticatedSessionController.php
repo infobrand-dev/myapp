@@ -32,6 +32,16 @@ class AuthenticatedSessionController extends Controller
         $request->authenticate();
 
         $request->session()->regenerate();
+
+        // If user has 2FA enabled, store their ID and redirect to challenge.
+        // We do NOT sync tenant session here — that happens after 2FA succeeds.
+        if ($request->user()->hasTwoFactorEnabled()) {
+            $request->session()->put('two_factor_pending_user_id', $request->user()->id);
+            Auth::guard('web')->logout();
+
+            return redirect()->route('two-factor.challenge');
+        }
+
         $this->syncTenantSession($request);
 
         return redirect()->intended(RouteServiceProvider::HOME);

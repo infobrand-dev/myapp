@@ -23,8 +23,48 @@ use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard');
 
+// Health check — no auth, no session, no CSRF. Used by uptime monitors and load balancers.
+Route::get('/health', function () {
+    $checks = [];
+
+    // Database
+    try {
+        \Illuminate\Support\Facades\DB::connection()->getPdo();
+        $checks['database'] = 'ok';
+    } catch (\Throwable $e) {
+        $checks['database'] = 'error';
+    }
+
+    // Cache
+    try {
+        \Illuminate\Support\Facades\Cache::put('_health', 1, 5);
+        $checks['cache'] = 'ok';
+    } catch (\Throwable $e) {
+        $checks['cache'] = 'error';
+    }
+
+    $healthy = ! in_array('error', $checks, true);
+
+    return response()->json([
+        'status'  => $healthy ? 'ok' : 'degraded',
+        'checks'  => $checks,
+        'version' => config('app.version', '1.0.0'),
+        'env'     => app()->environment(),
+    ], $healthy ? 200 : 503);
+})->withoutMiddleware([
+    \App\Http\Middleware\EnsureInstalled::class,
+    \App\Http\Middleware\ResolveTenantContext::class,
+    \App\Http\Middleware\ResolveCompanyContext::class,
+    \App\Http\Middleware\ResolveBranchContext::class,
+    \App\Http\Middleware\VerifyCsrfToken::class,
+    \App\Http\Middleware\EncryptCookies::class,
+    \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
+    \Illuminate\Session\Middleware\StartSession::class,
+    \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+])->name('health');
+
 // SaaS tenant self-registration — only reachable on the apex/root domain (no subdomain)
-Route::get('/onboarding', [TenantOnboardingController::class, 'create'])->name('onboarding.create');
+Route::get('/onboarding', [TenantOnboardingController::class, 'create'])->middleware('throttle:web')->name('onboarding.create');
 Route::post('/onboarding', [TenantOnboardingController::class, 'store'])->middleware('throttle:10,5')->name('onboarding.store');
 
 Route::withoutMiddleware([

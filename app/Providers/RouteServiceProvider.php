@@ -71,8 +71,31 @@ class RouteServiceProvider extends ServiceProvider
      */
     protected function configureRateLimiting()
     {
+        // General API: 60 req/min per authenticated user or IP
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by(optional($request->user())->id ?: $request->ip());
+        });
+
+        // Web forms (login, register, onboarding, etc.): 120 req/min per user or IP
+        RateLimiter::for('web', function (Request $request) {
+            return Limit::perMinute(120)->by(optional($request->user())->id ?: $request->ip());
+        });
+
+        // Tenant-scoped API: 300 req/min per tenant+user combination.
+        // Prevents a single heavy tenant from degrading service for others.
+        RateLimiter::for('tenant-api', function (Request $request) {
+            $tenantId = $request->attributes->get('tenant_id')
+                ?? optional($request->user())->tenant_id
+                ?? 'unknown';
+
+            $userId = optional($request->user())->id ?: $request->ip();
+
+            return Limit::perMinute(300)->by("tenant:{$tenantId}:user:{$userId}");
+        });
+
+        // Sensitive write operations (password reset, invite, export): 10 req/10 min
+        RateLimiter::for('sensitive', function (Request $request) {
+            return Limit::perMinutes(10, 10)->by(optional($request->user())->id ?: $request->ip());
         });
     }
 }

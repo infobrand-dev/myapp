@@ -7,8 +7,17 @@ use App\Http\Controllers\Auth\EmailVerificationPromptController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
+
+// 2FA challenge — accessible by guests (user not yet fully logged in)
+Route::middleware('guest')->group(function () {
+    Route::get('two-factor-challenge', [TwoFactorController::class, 'showChallenge'])
+        ->name('two-factor.challenge');
+    Route::post('two-factor-challenge', [TwoFactorController::class, 'challenge'])
+        ->middleware('throttle:5,1');
+});
 
 Route::middleware('guest')->group(function () {
     Route::get('register', [RegisteredUserController::class, 'create'])
@@ -53,4 +62,20 @@ Route::middleware('auth')->group(function () {
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
                 ->name('logout');
+
+    // 2FA setup (from profile)
+    Route::get('user/two-factor-authentication', [TwoFactorController::class, 'showSetup'])
+        ->name('two-factor.setup');
+    Route::post('user/two-factor-authentication', [TwoFactorController::class, 'enable'])
+        ->middleware('throttle:5,1')
+        ->name('two-factor.enable');
+    Route::delete('user/two-factor-authentication', [TwoFactorController::class, 'disable'])
+        ->name('two-factor.disable');
+
+    // Recovery codes
+    Route::get('user/two-factor-recovery-codes', [TwoFactorController::class, 'showRecoveryCodes'])
+        ->name('two-factor.recovery-codes');
+    Route::post('user/two-factor-recovery-codes', [TwoFactorController::class, 'regenerateRecoveryCodes'])
+        ->middleware('throttle:sensitive')
+        ->name('two-factor.recovery-codes.regenerate');
 });

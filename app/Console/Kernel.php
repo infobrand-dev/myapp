@@ -15,7 +15,12 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        //
+        // Mark active subscriptions that have passed their end date as expired.
+        // Runs every day at 01:00 server time.
+        $schedule->command('subscriptions:check-expiry')
+            ->dailyAt('01:00')
+            ->withoutOverlapping()
+            ->runInBackground();
     }
 
     /**

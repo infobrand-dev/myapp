@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\TenantWelcomeMail;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\TenantRoleProvisioner;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Spatie\Permission\Models\Role;
@@ -97,6 +98,17 @@ class TenantOnboardingController extends Controller
         $loginUrl = 'http' . (request()->isSecure() ? 's' : '') . '://'
             . $tenant->slug . '.' . config('multitenancy.saas_domain')
             . '/login?registered=1';
+
+        // Send welcome email (queued — won't block the redirect)
+        Mail::to($data['email'])->queue(
+            new TenantWelcomeMail(
+                adminName:  $data['name'],
+                adminEmail: $data['email'],
+                tenantName: $tenant->name,
+                tenantSlug: $tenant->slug,
+                loginUrl:   $loginUrl,
+            )
+        );
 
         return redirect()->away($loginUrl);
     }

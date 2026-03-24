@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
     public function run()
     {
         $this->call([
+            SubscriptionPlanSeeder::class, // must run before TenantSeeder (TenantSeeder assigns internal-unlimited)
             TenantSeeder::class,
             RoleSeeder::class,
         ]);

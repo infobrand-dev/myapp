@@ -3,6 +3,7 @@
 namespace App\Modules\WhatsAppWeb\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\WhatsAppWeb\Http\Requests\SendChatMessageRequest;
 use App\Modules\WhatsAppWeb\Services\WhatsAppWebBridgeClient;
 use App\Modules\WhatsAppWeb\Services\WhatsAppWebConversationSyncService;
 use Illuminate\Http\JsonResponse;
@@ -11,12 +12,9 @@ use RuntimeException;
 
 class ChatController extends Controller
 {
-    public function send(Request $request, string $chatId, WhatsAppWebBridgeClient $bridge, WhatsAppWebConversationSyncService $sync): JsonResponse
+    public function send(SendChatMessageRequest $request, string $chatId, WhatsAppWebBridgeClient $bridge, WhatsAppWebConversationSyncService $sync): JsonResponse
     {
-        $data = $request->validate([
-            'message' => ['required', 'string'],
-            'client_id' => ['nullable', 'string', 'max:100'],
-        ]);
+        $data = $request->validated();
 
         $clientId = trim((string) ($data['client_id'] ?? (string) $request->user()->id));
 

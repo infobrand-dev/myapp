@@ -9,6 +9,11 @@ use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\LiveChat\Models\LiveChatVisitorSession;
 use App\Modules\LiveChat\Models\LiveChatWidget;
+use App\Modules\LiveChat\Http\Requests\BootstrapLiveChatRequest;
+use App\Modules\LiveChat\Http\Requests\LiveChatEventsRequest;
+use App\Modules\LiveChat\Http\Requests\LiveChatMessagesRequest;
+use App\Modules\LiveChat\Http\Requests\LiveChatTypingRequest;
+use App\Modules\LiveChat\Http\Requests\StoreLiveChatVisitorMessageRequest;
 use App\Modules\LiveChat\Support\LiveChatRealtimeState;
 use App\Models\UserPresence;
 use Illuminate\Http\JsonResponse;
@@ -49,19 +54,13 @@ class LiveChatPublicController extends Controller
         return response('', 204)->withHeaders($this->corsHeaders($request, $widget));
     }
 
-    public function bootstrap(Request $request, string $token): JsonResponse
+    public function bootstrap(BootstrapLiveChatRequest $request, string $token): JsonResponse
     {
         $widget = $this->resolveWidget($token);
         $this->ensureOriginAllowed($request, $widget);
         $tenantId = $this->resolvedTenantId($widget);
 
-        $data = $request->validate([
-            'visitor_key' => ['nullable', 'string', 'max:100'],
-            'visitor_token' => ['nullable', 'string', 'max:200'],
-            'visitor_name' => ['nullable', 'string', 'max:120'],
-            'visitor_email' => ['nullable', 'email', 'max:255'],
-            'page_url' => ['nullable', 'url', 'max:500'],
-        ]);
+        $data = $request->validated();
 
         [$visitorKey, $session] = $this->resolveOrIssueVisitorSession($request, $widget, $data);
 
@@ -121,16 +120,12 @@ class LiveChatPublicController extends Controller
         ])->withHeaders($this->corsHeaders($request, $widget));
     }
 
-    public function index(Request $request, string $token): JsonResponse
+    public function index(LiveChatMessagesRequest $request, string $token): JsonResponse
     {
         $widget = $this->resolveWidget($token);
         $this->ensureOriginAllowed($request, $widget);
 
-        $data = $request->validate([
-            'visitor_key' => ['required', 'string', 'max:100'],
-            'visitor_token' => ['required', 'string', 'max:200'],
-            'after_id' => ['nullable', 'integer'],
-        ]);
+        $data = $request->validated();
 
         $session = $this->authorizeVisitorSession($request, $widget, $data['visitor_key'], $data['visitor_token']);
         $conversation = $this->resolveConversation($widget, $session->visitor_key);
@@ -143,17 +138,12 @@ class LiveChatPublicController extends Controller
             ->withHeaders($this->corsHeaders($request, $widget));
     }
 
-    public function events(Request $request, string $token): Response
+    public function events(LiveChatEventsRequest $request, string $token): Response
     {
         $widget = $this->resolveWidget($token);
         $this->ensureOriginAllowed($request, $widget);
 
-        $data = $request->validate([
-            'visitor_key' => ['required', 'string', 'max:100'],
-            'visitor_token' => ['required', 'string', 'max:200'],
-            'after_id' => ['nullable', 'integer'],
-            'wait_seconds' => ['nullable', 'integer', 'min:0', 'max:15'],
-        ]);
+        $data = $request->validated();
 
         $session = $this->authorizeVisitorSession($request, $widget, $data['visitor_key'], $data['visitor_token']);
         $conversation = $this->resolveConversation($widget, $session->visitor_key);
@@ -185,19 +175,12 @@ class LiveChatPublicController extends Controller
         ], $this->corsHeaders($request, $widget)));
     }
 
-    public function store(Request $request, string $token): JsonResponse
+    public function store(StoreLiveChatVisitorMessageRequest $request, string $token): JsonResponse
     {
         $widget = $this->resolveWidget($token);
         $this->ensureOriginAllowed($request, $widget);
 
-        $data = $request->validate([
-            'visitor_key' => ['required', 'string', 'max:100'],
-            'visitor_token' => ['required', 'string', 'max:200'],
-            'body' => ['required', 'string', 'max:4000'],
-            'visitor_name' => ['nullable', 'string', 'max:120'],
-            'visitor_email' => ['nullable', 'email', 'max:255'],
-            'page_url' => ['nullable', 'url', 'max:500'],
-        ]);
+        $data = $request->validated();
 
         $session = $this->authorizeVisitorSession($request, $widget, $data['visitor_key'], $data['visitor_token']);
         $conversation = $this->resolveConversation($widget, $session->visitor_key);
@@ -244,15 +227,12 @@ class LiveChatPublicController extends Controller
         ])->withHeaders($this->corsHeaders($request, $widget));
     }
 
-    public function typing(Request $request, string $token): JsonResponse
+    public function typing(LiveChatTypingRequest $request, string $token): JsonResponse
     {
         $widget = $this->resolveWidget($token);
         $this->ensureOriginAllowed($request, $widget);
 
-        $data = $request->validate([
-            'visitor_key' => ['required', 'string', 'max:100'],
-            'visitor_token' => ['required', 'string', 'max:200'],
-        ]);
+        $data = $request->validated();
 
         $session = $this->authorizeVisitorSession($request, $widget, $data['visitor_key'], $data['visitor_token']);
         $this->realtimeState->markVisitorTyping((int) $widget->id, $session->visitor_key);

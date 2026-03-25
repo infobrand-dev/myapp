@@ -1,0 +1,14 @@
+{
+    "slug": "midtrans",
+    "name": "Midtrans",
+    "description": "Integrasi payment gateway Midtrans (Snap) untuk pembayaran online. Mendukung kartu kredit, transfer bank, GoPay, OVO, dan lainnya.",
+    "provider": "App\\Modules\\Midtrans\\MidtransServiceProvider",
+    "version": "1.0.0",
+    "category": "commerce",
+    "requires": ["payments"],
+    "navigation": [
+        {"label": "Midtrans Transactions", "route": "midtrans.transactions.index"},
+        {"label": "Midtrans Settings", "route": "midtrans.settings.edit"}
+    ],
+    "icon": "resources/icons/icon.svg"
+}

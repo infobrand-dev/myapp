@@ -7,11 +7,11 @@ use App\Models\User;
 use App\Models\UserPresence;
 use App\Modules\Conversations\Contracts\ConversationAccessRegistry;
 use App\Modules\Conversations\Models\Conversation;
+use App\Modules\LiveChat\Http\Requests\StoreLiveChatWidgetRequest;
 use App\Modules\LiveChat\Models\LiveChatWidget;
 use App\Modules\LiveChat\Support\LiveChatRealtimeState;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class LiveChatWidgetController extends Controller
@@ -45,9 +45,9 @@ class LiveChatWidgetController extends Controller
         return view('livechat::widgets.form', compact('widget'));
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreLiveChatWidgetRequest $request): RedirectResponse
     {
-        $widget = LiveChatWidget::query()->create($this->validatedData($request));
+        $widget = LiveChatWidget::query()->create($this->prepareData($request));
 
         return redirect()
             ->route('live-chat.widgets.edit', $widget)
@@ -59,13 +59,26 @@ class LiveChatWidgetController extends Controller
         return view('livechat::widgets.form', compact('widget'));
     }
 
-    public function update(Request $request, LiveChatWidget $widget): RedirectResponse
+    public function update(StoreLiveChatWidgetRequest $request, LiveChatWidget $widget): RedirectResponse
     {
-        $widget->update($this->validatedData($request));
+        $widget->update($this->prepareData($request));
 
         return redirect()
             ->route('live-chat.widgets.edit', $widget)
             ->with('status', 'Widget live chat diperbarui.');
+    }
+
+    public function destroy(LiveChatWidget $widget): RedirectResponse
+    {
+        if ($widget->is_active) {
+            return back()->with('error', 'Nonaktifkan widget terlebih dahulu sebelum menghapus.');
+        }
+
+        $widget->delete();
+
+        return redirect()
+            ->route('live-chat.widgets.index')
+            ->with('status', 'Widget live chat dihapus.');
     }
 
     public function typing(Request $request, Conversation $conversation): JsonResponse
@@ -112,40 +125,27 @@ class LiveChatWidgetController extends Controller
         ]);
     }
 
-    private function validatedData(Request $request): array
+    private function prepareData(StoreLiveChatWidgetRequest $request): array
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:150'],
-            'website_name' => ['nullable', 'string', 'max:150'],
-            'welcome_text' => ['nullable', 'string', 'max:1000'],
-            'theme_color' => ['required', 'string', 'max:20'],
-            'launcher_label' => ['nullable', 'string', 'max:40'],
-            'position' => ['nullable', 'in:left,right'],
-            'logo_url' => ['nullable', 'string', 'max:500'],
-            'header_bg_color' => ['nullable', 'string', 'max:20'],
-            'visitor_bubble_color' => ['nullable', 'string', 'max:20'],
-            'agent_bubble_color' => ['nullable', 'string', 'max:20'],
-            'allowed_domains' => ['nullable', 'string'],
-            'is_active' => ['nullable', 'boolean'],
-        ]);
+        $data = $request->validated();
 
         $domains = preg_split('/\r\n|\r|\n/', (string) ($data['allowed_domains'] ?? '')) ?: [];
         $domains = array_values(array_filter(array_map(static fn ($item) => trim($item), $domains)));
 
         return [
-            'tenant_id' => LiveChatWidget::DEFAULT_TENANT_ID,
-            'name' => $data['name'],
-            'website_name' => $data['website_name'] ?? null,
-            'welcome_text' => $data['welcome_text'] ?? null,
-            'theme_color' => $data['theme_color'],
-            'launcher_label' => trim((string) ($data['launcher_label'] ?? '')) ?: null,
-            'position' => trim((string) ($data['position'] ?? '')) ?: null,
-            'logo_url' => trim((string) ($data['logo_url'] ?? '')) ?: null,
-            'header_bg_color' => trim((string) ($data['header_bg_color'] ?? '')) ?: null,
+            'tenant_id'            => LiveChatWidget::DEFAULT_TENANT_ID,
+            'name'                 => $data['name'],
+            'website_name'         => $data['website_name'] ?? null,
+            'welcome_text'         => $data['welcome_text'] ?? null,
+            'theme_color'          => $data['theme_color'],
+            'launcher_label'       => trim((string) ($data['launcher_label'] ?? '')) ?: null,
+            'position'             => trim((string) ($data['position'] ?? '')) ?: null,
+            'logo_url'             => trim((string) ($data['logo_url'] ?? '')) ?: null,
+            'header_bg_color'      => trim((string) ($data['header_bg_color'] ?? '')) ?: null,
             'visitor_bubble_color' => trim((string) ($data['visitor_bubble_color'] ?? '')) ?: null,
-            'agent_bubble_color' => trim((string) ($data['agent_bubble_color'] ?? '')) ?: null,
-            'allowed_domains' => $domains ?: null,
-            'is_active' => $request->boolean('is_active', true),
+            'agent_bubble_color'   => trim((string) ($data['agent_bubble_color'] ?? '')) ?: null,
+            'allowed_domains'      => $domains ?: null,
+            'is_active'            => $request->boolean('is_active', true),
         ];
     }
 

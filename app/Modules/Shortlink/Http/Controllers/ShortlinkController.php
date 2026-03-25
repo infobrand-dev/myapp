@@ -213,23 +213,6 @@ class ShortlinkController extends Controller
             ->with('success', 'Shortlink berhasil diperbarui.');
     }
 
-    protected function validateInput(Request $request, ShortlinkCode $primaryCode = null)
-    {
-        $primaryId = $primaryCode ? $primaryCode->id : null;
-
-        return $request->validate([
-            'title'           => 'nullable|string|max:255',
-            'destination_url' => 'required|url',
-            'code'            => 'required|alpha_dash|unique:shortlink_codes,code,' . $primaryId,
-            'utm_source'      => 'nullable|string|max:191',
-            'utm_medium'      => 'nullable|string|max:191',
-            'utm_campaign'    => 'nullable|string|max:191',
-            'utm_term'        => 'nullable|string|max:191',
-            'utm_content'     => 'nullable|string|max:191',
-            'is_active'       => 'sometimes|boolean',
-        ]);
-    }
-
     protected function generateCodeSuggestion(): string
     {
         do {

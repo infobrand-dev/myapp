@@ -60,4 +60,5 @@ Route::middleware(['web', 'auth', 'role:Super-admin'])
         Route::post('/widgets', [LiveChatWidgetController::class, 'store'])->name('widgets.store');
         Route::get('/widgets/{widget}/edit', [LiveChatWidgetController::class, 'edit'])->name('widgets.edit');
         Route::put('/widgets/{widget}', [LiveChatWidgetController::class, 'update'])->name('widgets.update');
+        Route::delete('/widgets/{widget}', [LiveChatWidgetController::class, 'destroy'])->name('widgets.destroy');
     });

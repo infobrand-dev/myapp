@@ -78,6 +78,19 @@ class DiscountController extends Controller
         return redirect()->route('discounts.show', $discount)->with('status', 'Discount berhasil diperbarui.');
     }
 
+    public function destroy(Discount $discount): RedirectResponse
+    {
+        abort_unless(request()->user()?->can('discounts.delete'), 403);
+
+        if ($discount->usages()->exists()) {
+            return back()->with('error', 'Discount tidak bisa dihapus karena sudah pernah digunakan. Gunakan Arsip jika ingin menonaktifkan.');
+        }
+
+        $discount->delete();
+
+        return redirect()->route('discounts.index')->with('status', 'Discount dihapus.');
+    }
+
     public function toggleStatus(Discount $discount): RedirectResponse
     {
         abort_unless(request()->user()?->can('discounts.activate'), 403);

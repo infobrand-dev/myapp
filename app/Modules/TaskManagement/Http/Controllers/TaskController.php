@@ -3,12 +3,13 @@
 namespace App\Modules\TaskManagement\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\TaskManagement\Http\Requests\StoreSubtaskRequest;
 use App\Modules\TaskManagement\Http\Requests\StoreTaskRequest;
+use App\Modules\TaskManagement\Http\Requests\UpdateSubtaskStatusRequest;
 use App\Modules\TaskManagement\Http\Requests\UpdateTaskRequest;
 use App\Modules\TaskManagement\Models\Subtask;
 use App\Modules\TaskManagement\Models\Task;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class TaskController extends Controller
@@ -60,27 +61,19 @@ class TaskController extends Controller
         return back()->with('status', 'Task deleted');
     }
 
-    public function storeSubtask(Task $task, Request $request): RedirectResponse
+    public function storeSubtask(Task $task, StoreSubtaskRequest $request): RedirectResponse
     {
-        $data = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-        ]);
-
         $task->subtasks()->create([
-            'title' => $data['title'],
+            'title'  => $request->validated()['title'],
             'status' => 'pending',
         ]);
 
         return back()->with('status', 'Subtask added');
     }
 
-    public function updateSubtaskStatus(Subtask $subtask, Request $request): RedirectResponse
+    public function updateSubtaskStatus(Subtask $subtask, UpdateSubtaskStatusRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'status' => ['required', 'in:pending,in_progress,done'],
-        ]);
-
-        $subtask->update(['status' => $validated['status']]);
+        $subtask->update(['status' => $request->validated()['status']]);
 
         return back()->with('status', 'Subtask updated');
     }

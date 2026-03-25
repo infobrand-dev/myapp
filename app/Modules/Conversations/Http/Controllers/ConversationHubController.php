@@ -7,7 +7,10 @@ use App\Models\User;
 use App\Modules\Conversations\Contracts\ConversationAccessRegistry;
 use App\Modules\Conversations\Contracts\ConversationChannelManager;
 use App\Modules\Conversations\Contracts\ConversationOutboundDispatcher;
+use App\Modules\Conversations\Http\Requests\InviteConversationParticipantRequest;
+use App\Modules\Conversations\Http\Requests\SendConversationMessageRequest;
 use App\Modules\Conversations\Http\Requests\StartConversationRequest;
+use App\Modules\Conversations\Http\Requests\UpdateConversationContactNoteRequest;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\Conversations\Models\ConversationParticipant;
@@ -424,7 +427,7 @@ class ConversationHubController extends Controller
         return back()->with('status', 'Lock dilepas.');
     }
 
-    public function invite(Request $request, Conversation $conversation): RedirectResponse
+    public function invite(InviteConversationParticipantRequest $request, Conversation $conversation): RedirectResponse
     {
         $user = $request->user();
 
@@ -432,10 +435,7 @@ class ConversationHubController extends Controller
             return back()->with('status', 'Hanya pemilik atau super-admin yang dapat mengundang.');
         }
 
-        $data = $request->validate([
-            'query' => ['required', 'string'],
-            'role' => ['nullable', 'string', 'max:50'],
-        ]);
+        $data = $request->validated();
 
         $invitee = User::query()
             ->where('tenant_id', $this->tenantId())
@@ -506,7 +506,7 @@ class ConversationHubController extends Controller
         return back()->with('status', 'Conversation dibuka kembali.');
     }
 
-    public function updateContactNote(Request $request, Conversation $conversation): RedirectResponse
+    public function updateContactNote(UpdateConversationContactNoteRequest $request, Conversation $conversation): RedirectResponse
     {
         $user = $request->user();
         $this->authorizeParticipant($conversation, $user);
@@ -516,9 +516,7 @@ class ConversationHubController extends Controller
             return back()->with('status', 'Contact terkait tidak ditemukan.');
         }
 
-        $data = $request->validate([
-            'notes' => ['nullable', 'string'],
-        ]);
+        $data = $request->validated();
 
         $contact->update([
             'notes' => $data['notes'] ?? null,
@@ -529,7 +527,7 @@ class ConversationHubController extends Controller
         return back()->with('status', 'Catatan contact diperbarui.');
     }
 
-    public function send(Request $request, Conversation $conversation): RedirectResponse|JsonResponse
+    public function send(SendConversationMessageRequest $request, Conversation $conversation): RedirectResponse|JsonResponse
     {
         $user = $request->user();
 
@@ -556,11 +554,7 @@ class ConversationHubController extends Controller
                 return $this->sendErrorResponse($request, 'Template WA belum tersedia. Aktifkan module WhatsApp API terlebih dahulu.');
             }
 
-            $data = $request->validate([
-                'template_id' => ['required', Rule::exists('wa_templates', 'id')->where(fn ($query) => $query->where('tenant_id', $this->tenantId()))],
-                'template_params' => ['array'],
-                'template_params.*' => ['nullable', 'string', 'max:250'],
-            ]);
+            $data = $request->validated();
 
             if (!$this->waTemplateModelClass()::query()->where('tenant_id', $this->tenantId())->find($data['template_id'])) {
                 return $this->sendErrorResponse($request, 'Template tidak ditemukan untuk tenant aktif.');
@@ -592,10 +586,7 @@ class ConversationHubController extends Controller
                 'status' => 'queued',
             ]);
         } elseif ($mode === 'media') {
-            $data = $request->validate([
-                'media_file' => ['required', 'file', 'max:20480'],
-                'body' => ['nullable', 'string', 'max:1000'],
-            ]);
+            $data = $request->validated();
 
             $mediaError = app(ConversationChannelManager::class)->validateTextSend($conversation);
             if ($mediaError !== null) {
@@ -641,9 +632,7 @@ class ConversationHubController extends Controller
                 'sent_at' => $outboundDefaults['sent_at'],
             ]);
         } else {
-            $data = $request->validate([
-                'body' => ['required', 'string'],
-            ]);
+            $data = $request->validated();
 
             $textError = app(ConversationChannelManager::class)->validateTextSend($conversation);
             if ($textError !== null) {

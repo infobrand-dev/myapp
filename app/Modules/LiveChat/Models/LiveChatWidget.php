@@ -3,10 +3,12 @@
 namespace App\Modules\LiveChat\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
 class LiveChatWidget extends Model
 {
+    use SoftDeletes;
     public const DEFAULT_TENANT_ID = 1;
 
     protected $fillable = [

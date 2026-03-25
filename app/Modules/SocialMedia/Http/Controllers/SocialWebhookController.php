@@ -10,8 +10,8 @@ use App\Modules\Chatbot\Services\ConversationBotManager;
 use App\Modules\SocialMedia\Models\SocialAccount;
 use App\Modules\SocialMedia\Models\SocialAccountChatbotIntegration;
 use App\Modules\Conversations\Jobs\GenerateAiReply;
+use App\Modules\SocialMedia\Http\Requests\InboundSocialWebhookRequest;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -21,18 +21,9 @@ class SocialWebhookController extends Controller
     {
     }
 
-    public function inbound(Request $request): JsonResponse
+    public function inbound(InboundSocialWebhookRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'token' => ['required', 'string'],
-            'platform' => ['required', 'in:instagram,facebook'],
-            'contact_id' => ['required', 'string'],
-            'contact_name' => ['nullable', 'string'],
-            'message' => ['required', 'string'],
-            'external_message_id' => ['nullable', 'string'],
-            'direction' => ['nullable', 'in:in,out'],
-            'account_id' => ['nullable', 'integer'],
-        ]);
+        $data = $request->validated();
 
         $account = SocialAccount::query()
             ->where('status', 'active')

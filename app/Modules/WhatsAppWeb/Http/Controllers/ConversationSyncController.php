@@ -3,6 +3,8 @@
 namespace App\Modules\WhatsAppWeb\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\WhatsAppWeb\Http\Requests\SyncChatRequest;
+use App\Modules\WhatsAppWeb\Http\Requests\SyncActiveChatsRequest;
 use App\Modules\WhatsAppWeb\Services\WhatsAppWebBridgeClient;
 use App\Modules\WhatsAppWeb\Services\WhatsAppWebConversationSyncService;
 use Illuminate\Http\JsonResponse;
@@ -12,15 +14,12 @@ use RuntimeException;
 class ConversationSyncController extends Controller
 {
     public function syncChat(
-        Request $request,
+        SyncChatRequest $request,
         string $chatId,
         WhatsAppWebBridgeClient $bridge,
         WhatsAppWebConversationSyncService $sync
     ): JsonResponse {
-        $data = $request->validate([
-            'client_id' => ['nullable', 'string', 'max:100'],
-            'limit' => ['nullable', 'integer', 'min:1', 'max:500'],
-        ]);
+        $data = $request->validated();
 
         $clientId = trim((string) ($data['client_id'] ?? (string) $request->user()->id));
         $limit = (int) ($data['limit'] ?? 150);
@@ -46,15 +45,11 @@ class ConversationSyncController extends Controller
     }
 
     public function syncActiveChats(
-        Request $request,
+        SyncActiveChatsRequest $request,
         WhatsAppWebBridgeClient $bridge,
         WhatsAppWebConversationSyncService $sync
     ): JsonResponse {
-        $data = $request->validate([
-            'client_id' => ['nullable', 'string', 'max:100'],
-            'chat_limit' => ['nullable', 'integer', 'min:1', 'max:200'],
-            'message_limit' => ['nullable', 'integer', 'min:1', 'max:500'],
-        ]);
+        $data = $request->validated();
 
         $clientId = trim((string) ($data['client_id'] ?? (string) $request->user()->id));
         $chatLimit = (int) ($data['chat_limit'] ?? 50);

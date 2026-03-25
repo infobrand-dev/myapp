@@ -22,4 +22,5 @@ Route::middleware(['web', 'auth'])
         Route::get('/{discount}', [DiscountController::class, 'show'])->middleware('permission:discounts.view')->name('show');
         Route::get('/{discount}/edit', [DiscountController::class, 'edit'])->middleware('permission:discounts.update')->name('edit');
         Route::put('/{discount}', [DiscountController::class, 'update'])->middleware('permission:discounts.update')->name('update');
+        Route::delete('/{discount}', [DiscountController::class, 'destroy'])->middleware('permission:discounts.delete')->name('destroy');
     });

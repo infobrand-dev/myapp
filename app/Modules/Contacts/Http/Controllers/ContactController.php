@@ -3,6 +3,7 @@
 namespace App\Modules\Contacts\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Contacts\Http\Requests\BulkDestroyContactRequest;
 use App\Modules\Contacts\Http\Requests\ImportContactRequest;
 use App\Modules\Contacts\Http\Requests\MergeContactRequest;
 use App\Modules\Contacts\Http\Requests\StoreContactRequest;
@@ -18,7 +19,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use ZipArchive;
@@ -263,12 +263,9 @@ class ContactController extends Controller
         return back()->with('status', 'Contact dihapus.');
     }
 
-    public function bulkDestroy(Request $request): RedirectResponse
+    public function bulkDestroy(BulkDestroyContactRequest $request): RedirectResponse
     {
-        $ids = $request->validate([
-            'ids' => ['required', 'array', 'min:1'],
-            'ids.*' => ['integer', Rule::exists('contacts', 'id')->where(fn ($query) => $query->where('tenant_id', $this->tenantId()))],
-        ])['ids'];
+        $ids = $request->validated()['ids'];
 
         $deleted = 0;
         foreach ($ids as $id) {
@@ -357,28 +354,8 @@ class ContactController extends Controller
 
     private function validatedData(Request $request): array
     {
-        $data = $request->validate([
-            'type' => ['required', Rule::in(['company', 'individual'])],
-            'scope' => ['required', Rule::in(ContactScope::visibleLevels())],
-            'parent_contact_id' => ['nullable', 'integer', Rule::exists('contacts', 'id')->where(fn ($query) => $query->where('tenant_id', $this->tenantId()))],
-            'name' => ['required', 'string', 'max:255'],
-            'job_title' => ['nullable', 'string', 'max:255'],
-            'email' => ['nullable', 'email', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:50'],
-            'mobile' => ['nullable', 'string', 'max:50'],
-            'website' => ['nullable', 'url', 'max:255'],
-            'vat' => ['nullable', 'string', 'max:100'],
-            'company_registry' => ['nullable', 'string', 'max:100'],
-            'industry' => ['nullable', 'string', 'max:150'],
-            'street' => ['nullable', 'string', 'max:255'],
-            'street2' => ['nullable', 'string', 'max:255'],
-            'city' => ['nullable', 'string', 'max:150'],
-            'state' => ['nullable', 'string', 'max:150'],
-            'zip' => ['nullable', 'string', 'max:30'],
-            'country' => ['nullable', 'string', 'max:150'],
-            'notes' => ['nullable', 'string'],
-            'is_active' => ['nullable', 'boolean'],
-        ]);
+        // Validation is already performed by StoreContactRequest / UpdateContactRequest
+        $data = $request->validated();
 
         $data = $this->normalizeValidatedContactData($data);
 

@@ -8,6 +8,7 @@ use App\Modules\Shortlink\Http\Requests\UpdateShortlinkRequest;
 use App\Modules\Shortlink\Models\Shortlink;
 use App\Modules\Shortlink\Models\ShortlinkClick;
 use App\Modules\Shortlink\Models\ShortlinkCode;
+use App\Support\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,12 +20,15 @@ class ShortlinkController extends Controller
     public function index(Request $request)
     {
         $filterId = $request->get('shortlink_id');
+        $tenantId = TenantContext::currentId();
 
         $allShortlinks = Shortlink::with('primaryCode')
+            ->where('tenant_id', $tenantId)
             ->orderByDesc('id')
             ->get(['id', 'title']);
 
         $shortlinks = Shortlink::with(['primaryCode', 'codes'])
+            ->where('tenant_id', $tenantId)
             ->withCount('clicks')
             ->orderByDesc('id')
             ->paginate(15);
@@ -33,6 +37,7 @@ class ShortlinkController extends Controller
             DB::raw('DATE(created_at) as tanggal'),
             DB::raw('COUNT(*) as total')
         )
+            ->where('tenant_id', $tenantId)
             ->when($filterId, fn($q) => $q->where('shortlink_id', $filterId))
             ->where('created_at', '>=', Carbon::now()->subDays(13)->startOfDay())
             ->groupBy(DB::raw('DATE(created_at)'))
@@ -40,6 +45,7 @@ class ShortlinkController extends Controller
             ->get();
 
         $topReferrers = ShortlinkClick::select('referer', DB::raw('COUNT(*) as total'))
+            ->where('tenant_id', $tenantId)
             ->whereNotNull('referer')
             ->when($filterId, fn($q) => $q->where('shortlink_id', $filterId))
             ->groupBy('referer')
@@ -48,6 +54,7 @@ class ShortlinkController extends Controller
             ->get();
 
         $topCodes = ShortlinkClick::select('code_used', DB::raw('COUNT(*) as total'))
+            ->where('tenant_id', $tenantId)
             ->when($filterId, fn($q) => $q->where('shortlink_id', $filterId))
             ->groupBy('code_used')
             ->orderByDesc('total')
@@ -80,12 +87,14 @@ class ShortlinkController extends Controller
 
     public function show(Shortlink $shortlink)
     {
+        $tenantId = TenantContext::currentId();
         $shortlink->load(['codes', 'primaryCode']);
 
         $chartRows = ShortlinkClick::select(
             DB::raw('DATE(created_at) as tanggal'),
             DB::raw('COUNT(*) as total')
         )
+            ->where('tenant_id', $tenantId)
             ->where('shortlink_id', $shortlink->id)
             ->where('created_at', '>=', Carbon::now()->subDays(13)->startOfDay())
             ->groupBy(DB::raw('DATE(created_at)'))
@@ -93,6 +102,7 @@ class ShortlinkController extends Controller
             ->get();
 
         $topReferrers = ShortlinkClick::select('referer', DB::raw('COUNT(*) as total'))
+            ->where('tenant_id', $tenantId)
             ->whereNotNull('referer')
             ->where('shortlink_id', $shortlink->id)
             ->groupBy('referer')
@@ -101,6 +111,7 @@ class ShortlinkController extends Controller
             ->get();
 
         $topCodes = ShortlinkClick::select('code_used', DB::raw('COUNT(*) as total'))
+            ->where('tenant_id', $tenantId)
             ->where('shortlink_id', $shortlink->id)
             ->groupBy('code_used')
             ->orderByDesc('total')
@@ -113,16 +124,18 @@ class ShortlinkController extends Controller
             'chartValues'  => $chartRows->pluck('total'),
             'topReferrers' => $topReferrers,
             'topCodes'     => $topCodes,
-            'totalClicks'  => ShortlinkClick::where('shortlink_id', $shortlink->id)->count(),
+            'totalClicks'  => ShortlinkClick::where('tenant_id', $tenantId)->where('shortlink_id', $shortlink->id)->count(),
         ]);
     }
 
     public function store(StoreShortlinkRequest $request)
     {
         $data = $request->validated();
+        $tenantId = TenantContext::currentId();
 
-        DB::transaction(function () use ($data) {
+        DB::transaction(function () use ($data, $tenantId) {
             $shortlink = Shortlink::create([
+                'tenant_id'       => $tenantId,
                 'title'           => $data['title'],
                 'destination_url' => $data['destination_url'],
                 'utm_source'      => $data['utm_source'] ?? null,
@@ -135,6 +148,7 @@ class ShortlinkController extends Controller
             ]);
 
             $shortlink->codes()->create([
+                'tenant_id'  => $tenantId,
                 'code'       => $data['code'],
                 'is_primary' => true,
                 'is_active'  => true,
@@ -202,6 +216,7 @@ class ShortlinkController extends Controller
                 }
 
                 $shortlink->codes()->create([
+                    'tenant_id'  => (int) $shortlink->tenant_id,
                     'code'       => $desiredCode,
                     'is_primary' => true,
                     'is_active'  => true,

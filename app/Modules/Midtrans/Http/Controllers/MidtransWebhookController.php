@@ -58,8 +58,8 @@ class MidtransWebhookController extends Controller
                 'order_id' => $orderId,
                 'error'    => $e->getMessage(),
             ]);
-            // Return 200 to prevent Midtrans retrying on transient errors — investigate manually
-            return response()->json(['message' => 'OK']);
+            // Return 500 so Midtrans can retry transient processing failures.
+            return response()->json(['message' => 'Webhook processing failed'], 500);
         }
 
         return response()->json(['message' => 'OK']);

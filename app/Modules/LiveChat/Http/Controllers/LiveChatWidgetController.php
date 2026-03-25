@@ -10,8 +10,10 @@ use App\Modules\Conversations\Models\Conversation;
 use App\Modules\LiveChat\Http\Requests\StoreLiveChatWidgetRequest;
 use App\Modules\LiveChat\Models\LiveChatWidget;
 use App\Modules\LiveChat\Support\LiveChatRealtimeState;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class LiveChatWidgetController extends Controller
@@ -23,6 +25,7 @@ class LiveChatWidgetController extends Controller
     public function index(): View
     {
         $widgets = LiveChatWidget::query()
+            ->where('tenant_id', TenantContext::currentId())
             ->latest('id')
             ->paginate(15);
 
@@ -133,7 +136,7 @@ class LiveChatWidgetController extends Controller
         $domains = array_values(array_filter(array_map(static fn ($item) => trim($item), $domains)));
 
         return [
-            'tenant_id'            => LiveChatWidget::DEFAULT_TENANT_ID,
+            'tenant_id'            => TenantContext::currentId(),
             'name'                 => $data['name'],
             'website_name'         => $data['website_name'] ?? null,
             'welcome_text'         => $data['welcome_text'] ?? null,

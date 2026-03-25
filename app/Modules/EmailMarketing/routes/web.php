@@ -2,6 +2,7 @@
 
 use App\Modules\EmailMarketing\Http\Controllers\EmailCampaignController;
 use App\Modules\EmailMarketing\Http\Controllers\EmailAttachmentTemplateController;
+use App\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['web', 'auth', 'role:Super-admin|Admin'])
@@ -21,8 +22,6 @@ Route::middleware(['web', 'auth', 'role:Super-admin|Admin'])
         Route::post('/{campaign}/launch', [EmailCampaignController::class, 'launch'])->name('launch');
 
         Route::post('/recipients/{recipient}/reply', [EmailCampaignController::class, 'markReply'])->name('recipients.reply');
-
-        Route::resource('templates', EmailAttachmentTemplateController::class)->names('templates')->except(['show']);
     });
 
 Route::middleware(['web'])
@@ -34,6 +33,7 @@ Route::middleware(['web'])
     });
 
 Route::post('/webhook/mailtrap', [\App\Modules\EmailMarketing\Http\Controllers\EmailWebhookController::class, 'mailtrap'])
+    ->withoutMiddleware([VerifyCsrfToken::class])
     ->name('email-marketing.webhook.mailtrap');
 
 Route::get('/email-unsubscribe/{token}', [\App\Modules\EmailMarketing\Http\Controllers\EmailCampaignController::class, 'unsubscribe'])

@@ -14,6 +14,7 @@ class WhatsAppWebhookEvent extends Model
     protected $table = 'whatsapp_webhook_events';
 
     protected $fillable = [
+        'tenant_id',
         'instance_id',
         'provider',
         'event_key',
@@ -28,6 +29,7 @@ class WhatsAppWebhookEvent extends Model
     ];
 
     protected $casts = [
+        'tenant_id' => 'integer',
         'headers' => 'array',
         'payload' => 'array',
         'signature_valid' => 'boolean',

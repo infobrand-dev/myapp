@@ -2,11 +2,13 @@
 
 namespace App\Modules\Shortlink\Models;
 
+use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 
 class Shortlink extends Model
 {
     protected $fillable = [
+        'tenant_id',
         'title',
         'destination_url',
         'utm_source',
@@ -20,6 +22,7 @@ class Shortlink extends Model
     ];
 
     protected $casts = [
+        'tenant_id' => 'integer',
         'is_active' => 'boolean',
     ];
 
@@ -49,5 +52,12 @@ class Shortlink extends Model
             ->orderBy('is_primary', 'desc')
             ->orderBy('id', 'desc')
             ->first();
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where($field ?? $this->getRouteKeyName(), $value)
+            ->where('tenant_id', TenantContext::currentId())
+            ->firstOrFail();
     }
 }

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class ShortlinkCode extends Model
 {
     protected $fillable = [
+        'tenant_id',
         'shortlink_id',
         'code',
         'is_primary',
@@ -14,6 +15,7 @@ class ShortlinkCode extends Model
     ];
 
     protected $casts = [
+        'tenant_id' => 'integer',
         'is_primary' => 'boolean',
         'is_active' => 'boolean',
     ];

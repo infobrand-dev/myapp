@@ -49,7 +49,6 @@ Route::get('/health', function () {
         'status'  => $healthy ? 'ok' : 'degraded',
         'checks'  => $checks,
         'version' => config('app.version', '1.0.0'),
-        'env'     => app()->environment(),
     ], $healthy ? 200 : 503);
 })->withoutMiddleware([
     \App\Http\Middleware\EnsureInstalled::class,

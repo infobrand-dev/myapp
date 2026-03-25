@@ -18,6 +18,10 @@ class EmailWebhookController extends Controller
      */
     public function mailtrap(Request $request)
     {
+        if (!$this->isAuthorizedWebhook($request)) {
+            return response()->json(['status' => 'unauthorized'], 401);
+        }
+
         $payload = $request->all();
         Log::info('mailtrap-webhook', $payload);
 
@@ -48,6 +52,18 @@ class EmailWebhookController extends Controller
         $this->updateCampaignStatus($recipient->campaign);
 
         return response()->json(['status' => 'ok']);
+    }
+
+    protected function isAuthorizedWebhook(Request $request): bool
+    {
+        $secret = trim((string) config('services.mailtrap.webhook_secret', ''));
+        if ($secret === '') {
+            return true;
+        }
+
+        $providedSecret = trim((string) ($request->header('X-Webhook-Secret') ?: $request->query('secret', '')));
+
+        return $providedSecret !== '' && hash_equals($secret, $providedSecret);
     }
 
     protected function extractToken(array $payload): ?string

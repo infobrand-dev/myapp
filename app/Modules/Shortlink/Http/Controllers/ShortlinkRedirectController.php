@@ -34,6 +34,7 @@ class ShortlinkRedirectController extends Controller
         ]);
 
         ShortlinkClick::create([
+            'tenant_id'         => (int) $shortlink->tenant_id,
             'shortlink_id'      => $shortlink->id,
             'shortlink_code_id' => $shortlinkCode->id,
             'code_used'         => $shortlinkCode->code,

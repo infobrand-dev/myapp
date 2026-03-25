@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class ShortlinkClick extends Model
 {
     protected $fillable = [
+        'tenant_id',
         'shortlink_id',
         'shortlink_code_id',
         'code_used',
@@ -19,6 +20,10 @@ class ShortlinkClick extends Model
         'user_agent',
         'ip_address',
         'query',
+    ];
+
+    protected $casts = [
+        'tenant_id' => 'integer',
     ];
 
     public function shortlink()

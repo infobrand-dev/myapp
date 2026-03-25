@@ -2,6 +2,7 @@
 
 namespace App\Modules\LiveChat\Models;
 
+use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
@@ -38,7 +39,7 @@ class LiveChatWidget extends Model
     {
         static::creating(function (self $widget): void {
             if (!$widget->tenant_id) {
-                $widget->tenant_id = self::DEFAULT_TENANT_ID;
+                $widget->tenant_id = TenantContext::currentId();
             }
 
             if (blank($widget->widget_token)) {
@@ -55,5 +56,12 @@ class LiveChatWidget extends Model
     public function embedCode(): string
     {
         return sprintf('<script src="%s" defer></script>', e($this->embedScriptUrl()));
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where($field ?? $this->getRouteKeyName(), $value)
+            ->where('tenant_id', TenantContext::currentId())
+            ->firstOrFail();
     }
 }

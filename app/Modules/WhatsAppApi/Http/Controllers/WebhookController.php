@@ -51,19 +51,20 @@ class WebhookController extends Controller
             return response('Invalid mode', Response::HTTP_FORBIDDEN);
         }
 
-        $hasMatch = WhatsAppInstance::query()
-            ->where('tenant_id', $this->tenantId())
+        $instance = WhatsAppInstance::query()
             ->where('provider', 'cloud')
             ->where('is_active', true)
             ->get()
-            ->contains(function (WhatsAppInstance $instance) use ($token): bool {
+            ->first(function (WhatsAppInstance $instance) use ($token): bool {
                 $verifyToken = $this->instanceSettingValue($instance, ['wa_cloud_verify_token', 'verify_token']);
                 return $verifyToken !== null && hash_equals($verifyToken, $token);
             });
 
-        if (!$hasMatch) {
+        if (!$instance) {
             return response('Invalid verify token', Response::HTTP_UNAUTHORIZED);
         }
+
+        TenantContext::setCurrentId((int) $instance->tenant_id);
 
         return response($challenge, Response::HTTP_OK)->header('Content-Type', 'text/plain');
     }
@@ -72,6 +73,12 @@ class WebhookController extends Controller
     {
         $rawPayload = (string) $request->getContent();
         $payload = $request->all();
+
+        $tenantId = $this->resolveTenantIdForPublicPayload($payload, $request);
+        if ($tenantId !== null) {
+            TenantContext::setCurrentId($tenantId);
+        }
+
         $event = $this->createOrTouchWebhookEvent($request, $payload, $rawPayload);
 
         if ($event->process_status === 'processed') {
@@ -165,11 +172,7 @@ class WebhookController extends Controller
             'instance_key' => ['nullable', 'string'],
         ])->validate();
 
-        $instance = WhatsAppInstance::query()
-            ->where('tenant_id', $this->tenantId())
-            ->where('api_token', $data['token'])
-            ->when($data['instance_key'] ?? null, fn ($q) => $q->where('id', $data['instance_key']))
-            ->first();
+        $instance = $this->resolveGatewayInstanceForPayload($data);
 
         if (!$instance) {
             $this->markWebhookEventFailed($event, 'Invalid token');
@@ -179,7 +182,10 @@ class WebhookController extends Controller
             ];
         }
 
+        TenantContext::setCurrentId((int) $instance->tenant_id);
+
         $event->update([
+            'tenant_id' => $instance->tenant_id,
             'instance_id' => $instance->id,
             'provider' => strtolower((string) ($instance->provider ?? 'gateway')),
         ]);
@@ -256,6 +262,7 @@ class WebhookController extends Controller
         }
 
         $event->update([
+            'tenant_id' => $this->tenantId(),
             'headers' => $request->headers->all(),
             'payload' => $payload,
             'retry_count' => (int) $event->retry_count + 1,
@@ -337,6 +344,7 @@ class WebhookController extends Controller
                 $matchedInstance = true;
 
                 $event->update([
+                    'tenant_id' => $instance->tenant_id,
                     'instance_id' => $instance->id,
                     'provider' => 'cloud',
                 ]);
@@ -404,7 +412,7 @@ class WebhookController extends Controller
             }
 
             $instance = WhatsAppInstance::where('provider', 'cloud')
-                ->where('tenant_id', $this->tenantId())
+                ->where('is_active', true)
                 ->where('cloud_business_account_id', $businessId)
                 ->first();
 
@@ -412,7 +420,7 @@ class WebhookController extends Controller
         }
 
         $instance = WhatsAppInstance::where('provider', 'cloud')
-            ->where('tenant_id', $this->tenantId())
+            ->where('is_active', true)
             ->where('phone_number_id', $phoneNumberId)
             ->first();
 
@@ -427,7 +435,6 @@ class WebhookController extends Controller
         }
 
         $matches = WhatsAppInstance::query()
-            ->where('tenant_id', $this->tenantId())
             ->where('provider', 'cloud')
             ->where('is_active', true)
             ->get()
@@ -439,6 +446,51 @@ class WebhookController extends Controller
         }
 
         return null;
+    }
+
+    private function resolveTenantIdForPublicPayload(array $payload, ?Request $request = null): ?int
+    {
+        if ($this->looksLikeCloudPayload($payload)) {
+            $instance = $this->resolvePublicCloudInstance($payload, $request);
+
+            return $instance ? (int) $instance->tenant_id : null;
+        }
+
+        $instance = $this->resolveGatewayInstanceForPayload($payload);
+
+        return $instance ? (int) $instance->tenant_id : null;
+    }
+
+    private function resolvePublicCloudInstance(array $payload, ?Request $request = null): ?WhatsAppInstance
+    {
+        foreach ((array) ($payload['entry'] ?? []) as $entry) {
+            foreach ((array) ($entry['changes'] ?? []) as $change) {
+                $value = (array) ($change['value'] ?? []);
+                $instance = $this->resolveCloudInstance($value, (array) $entry, (array) $change, $request);
+
+                if ($instance) {
+                    return $instance;
+                }
+            }
+        }
+
+        return $request ? $this->resolveCloudInstanceBySignature($request) : null;
+    }
+
+    private function resolveGatewayInstanceForPayload(array $payload): ?WhatsAppInstance
+    {
+        $token = trim((string) ($payload['token'] ?? ''));
+        if ($token === '') {
+            return null;
+        }
+
+        $instanceKey = trim((string) ($payload['instance_key'] ?? ''));
+
+        return WhatsAppInstance::query()
+            ->where('api_token', $token)
+            ->where('is_active', true)
+            ->when($instanceKey !== '', fn ($query) => $query->where('id', $instanceKey))
+            ->first();
     }
 
     private function handleCloudIncomingMessages(WhatsAppInstance $instance, array $value): void

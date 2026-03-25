@@ -12,6 +12,7 @@ use App\Modules\SocialMedia\Models\SocialAccountChatbotIntegration;
 use App\Modules\Conversations\Jobs\GenerateAiReply;
 use App\Modules\SocialMedia\Http\Requests\InboundSocialWebhookRequest;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -179,5 +180,4 @@ class SocialWebhookController extends Controller
         app(ConversationBotManager::class)->pause($conversation, $reason);
     }
 }
-
 

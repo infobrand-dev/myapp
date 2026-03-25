@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Modules\Conversations\Contracts\ConversationAccessRegistry;
 use App\Modules\Conversations\Contracts\ConversationChannelManager;
 use App\Modules\Conversations\Contracts\ConversationOutboundDispatcher;
+use App\Modules\Conversations\Http\Requests\StartConversationRequest;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\Conversations\Models\ConversationParticipant;
@@ -29,11 +30,8 @@ use Throwable;
 
 class ConversationHubController extends Controller
 {
-    public function start(Request $request): RedirectResponse
+    public function start(StartConversationRequest $request): RedirectResponse
     {
-        $request->validate([
-            'query' => ['required', 'string'],
-        ]);
 
         $me = $request->user();
         $q = $request->input('query');

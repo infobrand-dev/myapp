@@ -4,6 +4,8 @@ namespace App\Modules\EmailMarketing\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\EmailMarketing\Http\Requests\StoreEmailCampaignRequest;
+use App\Modules\EmailMarketing\Http\Requests\UpdateEmailCampaignRequest;
 use App\Modules\EmailMarketing\Models\EmailCampaign;
 use App\Modules\EmailMarketing\Models\EmailCampaignRecipient;
 use App\Modules\EmailMarketing\Models\EmailAttachment;
@@ -176,23 +178,11 @@ HTML;
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreEmailCampaignRequest $request): RedirectResponse
     {
         $action = $request->input('action', 'save');
 
-        $subjectRule = $action === 'save'
-            ? ['nullable', 'string', 'max:255']
-            : ['required', 'string', 'max:255'];
-
-        $data = $request->validate([
-            'subject' => $subjectRule,
-            'body_html' => ['required', 'string'],
-            'scheduled_at' => ['nullable', 'date', 'after:now'],
-            'filters' => ['array'],
-            'attachments.*' => ['file', 'max:5120', 'mimes:pdf,doc,docx,xls,xlsx,png,jpg,jpeg'],
-            'dynamic_template_ids' => ['array'],
-            'dynamic_template_ids.*' => ['integer'],
-        ]);
+        $data = $request->validated();
 
         [$filtersNormalized, $filteredContacts] = $this->filteredContacts($request, $data['filters'] ?? []);
         $contactIds = $filteredContacts->pluck('id');
@@ -248,25 +238,11 @@ HTML;
         return redirect()->route('email-marketing.index')->with('status', 'Draft disimpan.');
     }
 
-    public function update(Request $request, EmailCampaign $campaign): RedirectResponse
+    public function update(UpdateEmailCampaignRequest $request, EmailCampaign $campaign): RedirectResponse
     {
         $action = $request->input('action', 'save');
 
-        $subjectRule = $action === 'save'
-            ? ['nullable', 'string', 'max:255']
-            : ['required', 'string', 'max:255'];
-
-        $data = $request->validate([
-            'subject' => $subjectRule,
-            'body_html' => ['required', 'string'],
-            'scheduled_at' => ['nullable', 'date', 'after:now'],
-            'filters' => ['array'],
-            'attachments.*' => ['file', 'max:5120', 'mimes:pdf,doc,docx,xls,xlsx,png,jpg,jpeg'],
-            'remove_attachments' => ['array'],
-            'remove_attachments.*' => ['integer'],
-            'dynamic_template_ids' => ['array'],
-            'dynamic_template_ids.*' => ['integer'],
-        ]);
+        $data = $request->validated();
 
         // Build recipients from filters (or all active contacts if no filters)
         [$filtersNormalized, $filteredContacts] = $this->filteredContacts($request, $data['filters'] ?? []);

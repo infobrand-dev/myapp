@@ -12,6 +12,7 @@ Route::middleware(['web', 'auth'])
         Route::post('/methods', [PaymentMethodController::class, 'store'])->middleware('permission:payments.manage_methods')->name('methods.store');
         Route::get('/methods/{method}/edit', [PaymentMethodController::class, 'edit'])->middleware('permission:payments.manage_methods')->name('methods.edit');
         Route::put('/methods/{method}', [PaymentMethodController::class, 'update'])->middleware('permission:payments.manage_methods')->name('methods.update');
+        Route::delete('/methods/{method}', [PaymentMethodController::class, 'destroy'])->middleware('permission:payments.manage_methods')->name('methods.destroy');
 
         Route::get('/', [PaymentController::class, 'index'])->middleware('permission:payments.view')->name('index');
         Route::get('/create', [PaymentController::class, 'create'])->middleware('permission:payments.create')->name('create');

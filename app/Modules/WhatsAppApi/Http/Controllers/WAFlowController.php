@@ -3,6 +3,8 @@
 namespace App\Modules\WhatsAppApi\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\WhatsAppApi\Http\Requests\StoreWAFlowRequest;
+use App\Modules\WhatsAppApi\Http\Requests\UpdateWAFlowRequest;
 use App\Modules\WhatsAppApi\Models\WAFlow;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use App\Support\TenantContext;
@@ -54,7 +56,7 @@ class WAFlowController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreWAFlowRequest $request): RedirectResponse
     {
         $data = $this->validated($request);
         $data['tenant_id'] = $this->tenantId();
@@ -78,7 +80,7 @@ class WAFlowController extends Controller
         ]);
     }
 
-    public function update(Request $request, WAFlow $flow): RedirectResponse
+    public function update(UpdateWAFlowRequest $request, WAFlow $flow): RedirectResponse
     {
         $data = $this->validated($request);
 
@@ -277,14 +279,7 @@ class WAFlowController extends Controller
 
     private function validated(Request $request): array
     {
-        $data = $request->validate([
-            'instance_id' => ['required', Rule::exists('whatsapp_instances', 'id')->where(fn ($query) => $query->where('tenant_id', $this->tenantId()))],
-            'name' => ['required', 'string', 'max:255'],
-            'categories' => ['required', 'array', 'min:1'],
-            'categories.*' => ['required', 'string'],
-            'endpoint_uri' => ['nullable', 'url', 'max:255'],
-            'flow_json' => ['nullable', 'string'],
-        ]);
+        $data = $request->validated();
 
         $allowedCategories = self::FLOW_CATEGORIES;
         foreach ($data['categories'] as $category) {

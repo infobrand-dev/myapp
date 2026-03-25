@@ -3,6 +3,8 @@
 namespace App\Modules\Chatbot\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Chatbot\Http\Requests\StoreChatbotKnowledgeRequest;
+use App\Modules\Chatbot\Http\Requests\UpdateChatbotKnowledgeRequest;
 use App\Modules\Chatbot\Models\ChatbotAccount;
 use App\Modules\Chatbot\Models\ChatbotKnowledgeDocument;
 use Illuminate\Http\RedirectResponse;
@@ -27,7 +29,7 @@ class ChatbotKnowledgeController extends Controller
         return view('chatbot::knowledge.form', compact('account', 'document'));
     }
 
-    public function store(Request $request, ChatbotAccount $account): RedirectResponse
+    public function store(StoreChatbotKnowledgeRequest $request, ChatbotAccount $account): RedirectResponse
     {
         $data = $this->validated($request);
         $document = ChatbotKnowledgeDocument::query()->create([
@@ -52,7 +54,7 @@ class ChatbotKnowledgeController extends Controller
         return view('chatbot::knowledge.form', compact('account', 'document'));
     }
 
-    public function update(Request $request, ChatbotAccount $account, ChatbotKnowledgeDocument $document): RedirectResponse
+    public function update(UpdateChatbotKnowledgeRequest $request, ChatbotAccount $account, ChatbotKnowledgeDocument $document): RedirectResponse
     {
         $this->assertOwnership($account, $document);
         $data = $this->validated($request);
@@ -82,12 +84,7 @@ class ChatbotKnowledgeController extends Controller
 
     private function validated(Request $request): array
     {
-        return $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'source' => ['nullable', 'string', 'max:100'],
-            'content' => ['required', 'string', 'max:200000'],
-            'chunk_size' => ['nullable', 'integer', 'min:300', 'max:1200'],
-        ]);
+        return $request->validated();
     }
 
     private function assertOwnership(ChatbotAccount $account, ChatbotKnowledgeDocument $document): void

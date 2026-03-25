@@ -13,6 +13,7 @@ use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use App\Modules\WhatsAppApi\Support\TemplateVariableResolver;
 use App\Support\TenantContext;
+use App\Modules\WhatsAppApi\Http\Requests\StoreBlastCampaignRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -76,20 +77,9 @@ class BlastCampaignController extends Controller
         return response()->json(['count' => $this->filteredContactsCount($filters)]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreBlastCampaignRequest $request): RedirectResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:150'],
-            'instance_id' => ['required', Rule::exists('whatsapp_instances', 'id')->where(fn ($query) => $query->where('tenant_id', $this->tenantId()))],
-            'template_id' => ['required', Rule::exists('wa_templates', 'id')->where(fn ($query) => $query->where('tenant_id', $this->tenantId()))],
-            'recipient_source' => ['required', 'in:manual,csv,contacts'],
-            'recipients_text' => ['nullable', 'string'],
-            'recipients_file' => ['nullable', 'file', 'max:5120', 'mimes:csv,txt'],
-            'filters' => ['nullable', 'array'],
-            'scheduled_at' => ['nullable', 'date'],
-            'delay_ms' => ['nullable', 'integer', 'min:0', 'max:5000'],
-            'action' => ['nullable', 'in:draft,send_now,schedule'],
-        ]);
+        $data = $request->validated();
 
         if (!WATemplate::query()->where('tenant_id', $this->tenantId())->find((int) $data['template_id'])) {
             throw ValidationException::withMessages([

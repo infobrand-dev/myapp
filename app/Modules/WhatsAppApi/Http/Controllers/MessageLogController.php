@@ -5,6 +5,7 @@ namespace App\Modules\WhatsAppApi\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
+use App\Modules\WhatsAppApi\Http\Requests\RetryFailedMessagesRequest;
 use App\Modules\WhatsAppApi\Jobs\SendWhatsAppMessage;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use App\Support\TenantContext;
@@ -78,13 +79,9 @@ class MessageLogController extends Controller
         return view('whatsappapi::logs.index', compact('messages', 'instances', 'filters', 'statusOptions', 'summary'));
     }
 
-    public function retryFailed(Request $request): RedirectResponse
+    public function retryFailed(RetryFailedMessagesRequest $request): RedirectResponse
     {
-        $data = $request->validate([
-            'instance_id' => ['nullable', 'integer'],
-            'date_from' => ['nullable', 'date'],
-            'date_to' => ['nullable', 'date'],
-        ]);
+        $data = $request->validated();
 
         $query = ConversationMessage::query()
             ->where('tenant_id', $this->tenantId())

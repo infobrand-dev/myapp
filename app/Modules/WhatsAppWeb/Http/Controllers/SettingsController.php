@@ -3,6 +3,7 @@
 namespace App\Modules\WhatsAppWeb\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\WhatsAppWeb\Http\Requests\UpdateWhatsAppWebSettingsRequest;
 use App\Modules\WhatsAppWeb\Models\WhatsAppWebSetting;
 use App\Modules\WhatsAppWeb\Support\RuntimeSettings;
 use Illuminate\Http\RedirectResponse;
@@ -19,14 +20,11 @@ class SettingsController extends Controller
         return view('whatsappweb::settings', compact('setting'));
     }
 
-    public function update(Request $request): RedirectResponse
+    public function update(UpdateWhatsAppWebSettingsRequest $request): RedirectResponse
     {
         $setting = WhatsAppWebSetting::first();
 
-        $validated = $request->validate([
-            'base_url' => ['required', 'url'],
-            'verify_token' => ['nullable', 'string', 'max:255'],
-        ]);
+        $validated = $request->validated();
 
         $webhookToken = $validated['verify_token'] ?? null;
         unset($validated['verify_token']);

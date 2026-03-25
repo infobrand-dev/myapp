@@ -3,6 +3,8 @@
 namespace App\Modules\EmailMarketing\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\EmailMarketing\Http\Requests\StoreEmailAttachmentTemplateRequest;
+use App\Modules\EmailMarketing\Http\Requests\UpdateEmailAttachmentTemplateRequest;
 use App\Modules\EmailMarketing\Models\EmailAttachmentTemplate;
 use App\Support\TenantContext;
 use Illuminate\Http\Request;
@@ -27,16 +29,9 @@ class EmailAttachmentTemplateController extends Controller
         return view('emailmarketing::templates.form', compact('template'));
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreEmailAttachmentTemplateRequest $request): RedirectResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'filename' => ['required', 'string', 'max:255'],
-            'mime' => ['required', 'string', 'max:100'],
-            'html' => ['required', 'string'],
-            'paper_size' => ['required', 'in:A4,A4-landscape,Letter,Letter-landscape'],
-        ]);
+        $data = $request->validated();
         $data['created_by'] = $request->user()?->id;
         $data['tenant_id'] = $this->tenantId();
         EmailAttachmentTemplate::create($data);
@@ -64,16 +59,9 @@ class EmailAttachmentTemplateController extends Controller
         return $pdf->download($emailAttachmentTemplate->filename ?? 'attachment.pdf');
     }
 
-    public function update(Request $request, EmailAttachmentTemplate $emailAttachmentTemplate): RedirectResponse
+    public function update(UpdateEmailAttachmentTemplateRequest $request, EmailAttachmentTemplate $emailAttachmentTemplate): RedirectResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'filename' => ['required', 'string', 'max:255'],
-            'mime' => ['required', 'string', 'max:100'],
-            'html' => ['required', 'string'],
-            'paper_size' => ['required', 'in:A4,A4-landscape,Letter,Letter-landscape'],
-        ]);
+        $data = $request->validated();
         $emailAttachmentTemplate->update($data);
 
         return redirect()->route('email-marketing.templates.index')->with('status', 'Template diperbarui.');

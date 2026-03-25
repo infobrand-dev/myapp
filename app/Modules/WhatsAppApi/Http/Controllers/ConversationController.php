@@ -8,6 +8,7 @@ use App\Models\UserPresence;
 use App\Services\Presence\UserPresenceService;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationParticipant;
+use App\Modules\WhatsAppApi\Http\Requests\InviteConversationRequest;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
@@ -159,7 +160,7 @@ class ConversationController extends Controller
         return back()->with('status', 'Lock dilepas.');
     }
 
-    public function invite(Request $request, Conversation $conversation): RedirectResponse
+    public function invite(InviteConversationRequest $request, Conversation $conversation): RedirectResponse
     {
         $user = $request->user();
         $this->authorizeAccess($conversation, $user);
@@ -168,10 +169,7 @@ class ConversationController extends Controller
             return back()->with('status', 'Hanya pemilik atau super-admin yang dapat mengundang.');
         }
 
-        $data = $request->validate([
-            'user_id' => ['required', 'integer', \Illuminate\Validation\Rule::exists('users', 'id')->where(fn ($query) => $query->where('tenant_id', $this->tenantId()))],
-            'role' => ['nullable', 'string', 'max:50'],
-        ]);
+        $data = $request->validated();
 
         $invitee = User::query()
             ->where('tenant_id', $this->tenantId())

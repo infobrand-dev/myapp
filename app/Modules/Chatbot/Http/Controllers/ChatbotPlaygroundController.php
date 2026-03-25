@@ -3,6 +3,7 @@
 namespace App\Modules\Chatbot\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Chatbot\Http\Requests\ChatbotPlaygroundSendRequest;
 use App\Modules\Chatbot\Jobs\MirrorPlaygroundTurnToConversation;
 use App\Modules\Chatbot\Models\ChatbotAccount;
 use App\Modules\Chatbot\Models\ChatbotMessage;
@@ -60,13 +61,9 @@ class ChatbotPlaygroundController extends Controller
         ]);
     }
 
-    public function send(Request $request): RedirectResponse
+    public function send(ChatbotPlaygroundSendRequest $request): RedirectResponse
     {
-        $data = $request->validate([
-            'chatbot_account_id' => ['required', 'integer', 'exists:chatbot_accounts,id'],
-            'session_id' => ['nullable', 'integer'],
-            'message' => ['required', 'string', 'max:4000'],
-        ]);
+        $data = $request->validated();
 
         $user = $request->user();
 

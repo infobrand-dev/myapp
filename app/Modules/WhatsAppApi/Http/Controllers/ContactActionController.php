@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
+use App\Modules\WhatsAppApi\Http\Requests\SendTemplateToContactRequest;
 use App\Modules\WhatsAppApi\Jobs\SendWhatsAppMessage;
 use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
@@ -21,16 +22,9 @@ use Illuminate\Validation\ValidationException;
 class ContactActionController extends Controller
 {
 
-    public function sendTemplate(Request $request): RedirectResponse
+    public function sendTemplate(SendTemplateToContactRequest $request): RedirectResponse
     {
-        $data = $request->validate([
-            'contact_id' => ['required', 'integer'],
-            'instance_id' => ['required', 'integer'],
-            'template_id' => ['required', 'integer', Rule::exists('wa_templates', 'id')->where(fn ($query) => $query->where('tenant_id', $this->tenantId()))],
-            'variables' => ['nullable', 'array'],
-            'variables.*' => ['nullable', 'string', 'max:500'],
-            'return_to' => ['nullable', 'url'],
-        ]);
+        $data = $request->validated();
 
         if (!WATemplate::query()->where('tenant_id', $this->tenantId())->find((int) $data['template_id'])) {
             throw ValidationException::withMessages([

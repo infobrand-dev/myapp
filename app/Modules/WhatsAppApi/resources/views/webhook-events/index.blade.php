@@ -137,9 +137,9 @@
                                 <i class="ti ti-eye icon"></i>
                             </button>
                             @if($event->canReprocess())
-                                <form class="d-inline-block m-0" method="POST" action="{{ route('whatsapp-api.webhook-events.reprocess', $event) }}" onsubmit="return confirm('Reprocess webhook event ini?');">
+                                <form class="d-inline-block m-0" method="POST" action="{{ route('whatsapp-api.webhook-events.reprocess', $event) }}">
                                     @csrf
-                                    <button type="submit" class="btn btn-sm btn-outline-primary btn-icon" title="Reprocess" aria-label="Reprocess">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary btn-icon" title="Reprocess" aria-label="Reprocess" data-confirm="Reprocess webhook event ini?">
                                         <i class="ti ti-refresh icon"></i>
                                     </button>
                                 </form>

@@ -5,6 +5,7 @@ namespace App\Modules\Finance\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\Finance\Http\Requests\StoreFinanceTransactionRequest;
+use App\Modules\Finance\Http\Requests\UpdateFinanceTransactionRequest;
 use App\Modules\Finance\Models\FinanceCategory;
 use App\Modules\Finance\Models\FinanceTransaction;
 use App\Modules\PointOfSale\Models\PosCashSession;
@@ -154,6 +155,65 @@ class FinanceTransactionController extends Controller
             'branch' => BranchContext::currentBranch(),
             'shiftEnabled' => $shiftEnabled,
         ]);
+    }
+
+    public function edit(FinanceTransaction $transaction): View
+    {
+        $shiftEnabled = $this->shiftEnabled();
+        $company = CompanyContext::currentCompany();
+
+        return view('finance::transactions.edit', [
+            'transaction' => $transaction,
+            'categories' => FinanceCategory::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
+                ->where('is_active', true)
+                ->orderBy('transaction_type')
+                ->orderBy('name')
+                ->get(),
+            'shifts' => $shiftEnabled
+                ? PosCashSession::query()
+                    ->where('tenant_id', TenantContext::currentId())
+                    ->where('company_id', CompanyContext::currentId())
+                    ->tap(fn ($query) => BranchContext::applyScope($query))
+                    ->latest('opened_at')
+                    ->limit(30)
+                    ->get()
+                : collect(),
+            'transactionTypeOptions' => [
+                FinanceTransaction::TYPE_CASH_IN => 'Cash In',
+                FinanceTransaction::TYPE_CASH_OUT => 'Cash Out',
+                FinanceTransaction::TYPE_EXPENSE => 'Expense',
+            ],
+            'company' => $company,
+            'branch' => BranchContext::currentBranch(),
+            'shiftEnabled' => $shiftEnabled,
+        ]);
+    }
+
+    public function update(FinanceTransaction $transaction, UpdateFinanceTransactionRequest $request): RedirectResponse
+    {
+        DB::transaction(function () use ($transaction, $request) {
+            $transaction->update([
+                'transaction_type' => $request->input('transaction_type'),
+                'transaction_date' => $request->input('transaction_date'),
+                'amount' => $request->input('amount'),
+                'finance_category_id' => $request->input('finance_category_id'),
+                'notes' => $request->input('notes'),
+                'branch_id' => $request->input('branch_id', BranchContext::currentId()),
+                'pos_cash_session_id' => $request->input('pos_cash_session_id'),
+                'updated_by' => $request->user()->id,
+            ]);
+        });
+
+        return redirect()->route('finance.transactions.show', $transaction)->with('success', 'Finance transaction berhasil diperbarui.');
+    }
+
+    public function destroy(FinanceTransaction $transaction): RedirectResponse
+    {
+        $transaction->delete();
+
+        return redirect()->route('finance.transactions.index')->with('success', 'Finance transaction berhasil dihapus.');
     }
 
     private function shiftEnabled(): bool

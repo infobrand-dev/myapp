@@ -3,6 +3,8 @@
 namespace App\Modules\TaskManagement\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\TaskManagement\Http\Requests\StoreTaskTemplateRequest;
+use App\Modules\TaskManagement\Http\Requests\UpdateTaskTemplateRequest;
 use App\Modules\TaskManagement\Models\TaskTemplate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -46,16 +48,9 @@ class TaskTemplateController extends Controller
         return view('taskmgmt::templates.form');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreTaskTemplateRequest $request): RedirectResponse
     {
-        $data = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'tasks' => ['array'],
-            'tasks.*.title' => ['required_with:tasks', 'string', 'max:255'],
-            'tasks.*.subtasks' => ['array'],
-            'tasks.*.subtasks.*.title' => ['required_with:tasks.*.subtasks', 'string', 'max:255'],
-        ]);
+        $data = $request->validated();
 
         $template = TaskTemplate::create([
             'title' => $data['title'],
@@ -74,16 +69,9 @@ class TaskTemplateController extends Controller
         return view('taskmgmt::templates.form', compact('template', 'itemsText'));
     }
 
-    public function update(TaskTemplate $template, Request $request): RedirectResponse
+    public function update(TaskTemplate $template, UpdateTaskTemplateRequest $request): RedirectResponse
     {
-        $data = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'tasks' => ['array'],
-            'tasks.*.title' => ['required_with:tasks', 'string', 'max:255'],
-            'tasks.*.subtasks' => ['array'],
-            'tasks.*.subtasks.*.title' => ['required_with:tasks.*.subtasks', 'string', 'max:255'],
-        ]);
+        $data = $request->validated();
 
         $template->update([
             'title' => $data['title'],

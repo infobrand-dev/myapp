@@ -3,10 +3,13 @@
 namespace App\Modules\Shortlink\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Shortlink\Http\Requests\StoreShortlinkRequest;
+use App\Modules\Shortlink\Http\Requests\UpdateShortlinkRequest;
 use App\Modules\Shortlink\Models\Shortlink;
 use App\Modules\Shortlink\Models\ShortlinkClick;
 use App\Modules\Shortlink\Models\ShortlinkCode;
 use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -75,9 +78,48 @@ class ShortlinkController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function show(Shortlink $shortlink)
     {
-        $data = $this->validateInput($request);
+        $shortlink->load(['codes', 'primaryCode']);
+
+        $chartRows = ShortlinkClick::select(
+            DB::raw('DATE(created_at) as tanggal'),
+            DB::raw('COUNT(*) as total')
+        )
+            ->where('shortlink_id', $shortlink->id)
+            ->where('created_at', '>=', Carbon::now()->subDays(13)->startOfDay())
+            ->groupBy(DB::raw('DATE(created_at)'))
+            ->orderBy(DB::raw('DATE(created_at)'))
+            ->get();
+
+        $topReferrers = ShortlinkClick::select('referer', DB::raw('COUNT(*) as total'))
+            ->whereNotNull('referer')
+            ->where('shortlink_id', $shortlink->id)
+            ->groupBy('referer')
+            ->orderByDesc('total')
+            ->limit(6)
+            ->get();
+
+        $topCodes = ShortlinkClick::select('code_used', DB::raw('COUNT(*) as total'))
+            ->where('shortlink_id', $shortlink->id)
+            ->groupBy('code_used')
+            ->orderByDesc('total')
+            ->limit(6)
+            ->get();
+
+        return view('shortlink::show', [
+            'shortlink'    => $shortlink,
+            'chartLabels'  => $chartRows->pluck('tanggal'),
+            'chartValues'  => $chartRows->pluck('total'),
+            'topReferrers' => $topReferrers,
+            'topCodes'     => $topCodes,
+            'totalClicks'  => ShortlinkClick::where('shortlink_id', $shortlink->id)->count(),
+        ]);
+    }
+
+    public function store(StoreShortlinkRequest $request)
+    {
+        $data = $request->validated();
 
         DB::transaction(function () use ($data) {
             $shortlink = Shortlink::create([
@@ -118,11 +160,19 @@ class ShortlinkController extends Controller
         ]);
     }
 
-    public function update(Request $request, Shortlink $shortlink)
+    public function destroy(Shortlink $shortlink): RedirectResponse
+    {
+        $shortlink->codes()->delete();
+        $shortlink->delete();
+
+        return redirect()->route('shortlinks.index')->with('success', 'Shortlink berhasil dihapus.');
+    }
+
+    public function update(UpdateShortlinkRequest $request, Shortlink $shortlink)
     {
         $shortlink->load('primaryCode');
 
-        $data = $this->validateInput($request, $shortlink->primaryCode);
+        $data = $request->validated();
 
         DB::transaction(function () use ($shortlink, $data) {
             $shortlink->fill([

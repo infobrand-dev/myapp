@@ -118,10 +118,10 @@
                         @csrf
                         <button type="submit" class="btn btn-outline-success" {{ !$flow->meta_flow_id ? 'disabled' : '' }}>Publish</button>
                     </form>
-                    <form method="POST" action="{{ route('whatsapp-api.flows.destroy', $flow) }}" onsubmit="return confirm('Hapus flow lokal ini?')">
+                    <form method="POST" action="{{ route('whatsapp-api.flows.destroy', $flow) }}">
                         @csrf
                         @method('DELETE')
-                        <button type="submit" class="btn btn-outline-danger">Delete Local</button>
+                        <button type="submit" class="btn btn-outline-danger" data-confirm="Hapus flow lokal ini?">Delete Local</button>
                     </form>
                 </div>
             @endif

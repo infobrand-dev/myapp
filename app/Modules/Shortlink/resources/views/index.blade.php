@@ -127,9 +127,14 @@
                         </td>
                         <td class="text-center">{{ $shortlink->clicks_count }}</td>
                         <td class="text-end">
-                            <a href="{{ route('shortlinks.edit', $shortlink) }}" class="btn btn-sm btn-outline-primary">
-                                Edit
-                            </a>
+                            <div class="d-flex gap-1 justify-content-end">
+                                <a href="{{ route('shortlinks.show', $shortlink) }}" class="btn btn-sm btn-outline-secondary">Detail</a>
+                                <a href="{{ route('shortlinks.edit', $shortlink) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                <form method="POST" action="{{ route('shortlinks.destroy', $shortlink) }}">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" data-confirm="Yakin ingin menghapus shortlink ini?">Hapus</button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 @empty

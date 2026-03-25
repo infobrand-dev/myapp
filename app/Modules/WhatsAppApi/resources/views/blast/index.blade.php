@@ -65,10 +65,10 @@
                                 @endif
 
                                 @if($cp->status !== 'running')
-                                    <form method="POST" action="{{ route('whatsapp-api.blast-campaigns.destroy', $cp) }}" class="d-inline-block m-0" onsubmit="return confirm('Hapus campaign?')">
+                                    <form method="POST" action="{{ route('whatsapp-api.blast-campaigns.destroy', $cp) }}" class="d-inline-block m-0">
                                         @csrf
                                         @method('DELETE')
-                                        <button class="btn btn-sm btn-outline-danger btn-icon" title="Delete" aria-label="Delete" type="submit">
+                                        <button class="btn btn-sm btn-outline-danger btn-icon" title="Delete" aria-label="Delete" type="submit" data-confirm="Hapus campaign ini?">
                                             <i class="ti ti-trash icon"></i>
                                         </button>
                                     </form>

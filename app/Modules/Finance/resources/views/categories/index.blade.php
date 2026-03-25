@@ -67,7 +67,17 @@
                                 <td>{{ $category->transaction_type }}</td>
                                 <td>{{ $category->is_active ? 'Active' : 'Inactive' }}</td>
                                 <td>{{ $category->transactions_count }}</td>
-                                <td class="text-end"><a href="{{ route('finance.categories.edit', $category) }}" class="btn btn-outline-secondary btn-sm">Edit</a></td>
+                                <td class="text-end">
+                                    <div class="d-flex gap-1 justify-content-end">
+                                        <a href="{{ route('finance.categories.edit', $category) }}" class="btn btn-outline-secondary btn-sm">Edit</a>
+                                        @if($category->transactions_count === 0)
+                                            <form method="POST" action="{{ route('finance.categories.destroy', $category) }}">
+                                                @csrf @method('DELETE')
+                                                <button type="submit" class="btn btn-outline-danger btn-sm" data-confirm="Yakin ingin menghapus category ini?">Hapus</button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                </td>
                             </tr>
                         @empty
                             <tr><td colspan="5" class="text-center text-muted">Belum ada category.</td></tr>

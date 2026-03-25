@@ -67,10 +67,10 @@
                                         </button>
                                     </form>
                                 @endif
-                                <form class="d-inline-block m-0" method="POST" action="{{ route('whatsapp-api.templates.destroy', $tpl) }}" onsubmit="return confirm('Hapus template?');">
+                                <form class="d-inline-block m-0" method="POST" action="{{ route('whatsapp-api.templates.destroy', $tpl) }}">
                                     @csrf
                                     @method('DELETE')
-                                    <button class="btn btn-sm btn-outline-danger btn-icon" type="submit" title="Delete" aria-label="Delete">
+                                    <button class="btn btn-sm btn-outline-danger btn-icon" type="submit" title="Delete" aria-label="Delete" data-confirm="Hapus template ini?">
                                         <i class="ti ti-trash icon" aria-hidden="true"></i>
                                     </button>
                                 </form>

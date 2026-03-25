@@ -126,10 +126,10 @@
                                     <a class="btn btn-icon btn-outline-secondary" href="{{ route('products.edit', $product) }}" title="Edit">
                                         <i class="ti ti-edit"></i>
                                     </a>
-                                    <form method="POST" action="{{ route('products.destroy', $product) }}" onsubmit="return confirm('Soft delete product ini?')">
+                                    <form method="POST" action="{{ route('products.destroy', $product) }}">
                                         @csrf
                                         @method('DELETE')
-                                        <button class="btn btn-icon btn-outline-danger" title="Delete">
+                                        <button class="btn btn-icon btn-outline-danger" title="Delete" data-confirm="Soft delete product ini?">
                                             <i class="ti ti-trash"></i>
                                         </button>
                                     </form>

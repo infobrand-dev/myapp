@@ -98,7 +98,7 @@
                     <div class="text-muted small">
                         Nilai utama dipertahankan. Field kosong akan diisi dari contact lain, catatan digabung, dan relasi contact dipindahkan ke record utama.
                     </div>
-                    <button type="submit" class="btn btn-warning" onclick="return confirm('Gabungkan contact yang dipilih ke contact utama?')">Merge Grup Ini</button>
+                    <button type="submit" class="btn btn-warning" data-confirm="Gabungkan contact yang dipilih ke contact utama?">Merge Grup Ini</button>
                 </div>
             </form>
         </div>

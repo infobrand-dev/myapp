@@ -104,7 +104,16 @@
                         @if($shiftEnabled)
                             <td>{{ $transaction->shift ? $transaction->shift->code : '-' }}</td>
                         @endif
-                        <td class="text-end"><a href="{{ route('finance.transactions.show', $transaction) }}" class="btn btn-outline-secondary btn-sm">Detail</a></td>
+                        <td class="text-end">
+                            <div class="d-flex gap-1 justify-content-end">
+                                <a href="{{ route('finance.transactions.show', $transaction) }}" class="btn btn-outline-secondary btn-sm">Detail</a>
+                                <a href="{{ route('finance.transactions.edit', $transaction) }}" class="btn btn-outline-primary btn-sm">Edit</a>
+                                <form method="POST" action="{{ route('finance.transactions.destroy', $transaction) }}">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" data-confirm="Yakin ingin menghapus transaksi ini?">Hapus</button>
+                                </form>
+                            </div>
+                        </td>
                     </tr>
                 @empty
                     <tr><td colspan="{{ $shiftEnabled ? '9' : '8' }}" class="text-center text-muted">Belum ada finance transaction.</td></tr>

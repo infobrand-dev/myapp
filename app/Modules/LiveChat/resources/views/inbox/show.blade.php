@@ -1,0 +1,88 @@
+@extends('layouts.admin')
+
+@section('content')
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-0">{{ $conversation->contact_name ?: 'Website Visitor' }}</h2>
+        <div class="text-muted small">
+            {{ $conversation->contact_external_id }}
+            @if($widget) &mdash; Widget: {{ $widget->name }} @endif
+            &mdash;
+            @if($conversation->status === 'open')
+                <span class="badge bg-success-lt">Open</span>
+            @else
+                <span class="badge bg-secondary-lt">{{ ucfirst($conversation->status) }}</span>
+            @endif
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        @if($conversation->status === 'open')
+            <form method="POST" action="{{ route('live-chat.inbox.close', $conversation) }}">
+                @csrf @method('PATCH')
+                <button type="submit" class="btn btn-outline-warning" data-confirm="Tutup percakapan ini?">Tutup Percakapan</button>
+            </form>
+        @endif
+        <a href="{{ route('live-chat.inbox.index') }}" class="btn btn-outline-secondary">Back</a>
+    </div>
+</div>
+
+@if(session('success'))
+    <div class="alert alert-success">{{ session('success') }}</div>
+@endif
+@if(session('error'))
+    <div class="alert alert-danger">{{ session('error') }}</div>
+@endif
+
+<div class="card mb-3">
+    <div class="card-body" style="max-height: 500px; overflow-y: auto;" id="message-thread">
+        @forelse($messages as $message)
+            <div class="mb-3 d-flex {{ $message->direction === 'out' ? 'justify-content-end' : 'justify-content-start' }}">
+                <div class="p-2 rounded {{ $message->direction === 'out' ? 'bg-primary text-white' : 'bg-light' }}" style="max-width: 70%;">
+                    @if($message->direction === 'out' && $message->user)
+                        <div class="small fw-semibold mb-1 {{ $message->direction === 'out' ? 'text-white-50' : 'text-muted' }}">{{ $message->user->name }}</div>
+                    @elseif($message->direction === 'in')
+                        <div class="small fw-semibold mb-1 text-muted">{{ $conversation->contact_name ?: 'Visitor' }}</div>
+                    @endif
+                    <div>{{ $message->body }}</div>
+                    <div class="small mt-1 {{ $message->direction === 'out' ? 'text-white-50' : 'text-muted' }}">{{ $message->created_at->format('d/m H:i') }}</div>
+                </div>
+            </div>
+        @empty
+            <div class="text-center text-muted py-4">Belum ada pesan.</div>
+        @endforelse
+    </div>
+</div>
+
+@if($conversation->status === 'open')
+    <div class="card">
+        <div class="card-header"><h3 class="card-title">Balas</h3></div>
+        <div class="card-body">
+            <form method="POST" action="{{ route('live-chat.inbox.reply', $conversation) }}">
+                @csrf
+                @if($errors->any())
+                    <div class="alert alert-danger mb-2">
+                        <ul class="mb-0 ps-3">
+                            @foreach($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+                <div class="mb-2">
+                    <textarea name="body" class="form-control" rows="3" placeholder="Ketik pesan..." required>{{ old('body') }}</textarea>
+                </div>
+                <button class="btn btn-primary">Kirim</button>
+            </form>
+        </div>
+    </div>
+@else
+    <div class="alert alert-secondary">Percakapan ini sudah ditutup.</div>
+@endif
+@endsection
+
+@push('scripts')
+<script>
+    const thread = document.getElementById('message-thread');
+    if (thread) thread.scrollTop = thread.scrollHeight;
+</script>
+@endpush

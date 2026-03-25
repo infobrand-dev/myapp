@@ -8,12 +8,12 @@
     </div>
     <div class="d-flex gap-2">
         <a href="{{ route('whatsapp-api.webhook-events.index') }}" class="btn btn-outline-secondary">Webhook Events</a>
-        <form method="POST" action="{{ route('whatsapp-api.logs.retry-failed') }}" onsubmit="return confirm('Retry semua pesan retryable sesuai filter aktif? (maks 200 pesan per aksi)');">
+        <form method="POST" action="{{ route('whatsapp-api.logs.retry-failed') }}">
             @csrf
             <input type="hidden" name="instance_id" value="{{ $filters['instance_id'] ?? '' }}">
             <input type="hidden" name="date_from" value="{{ $filters['date_from'] ?? '' }}">
             <input type="hidden" name="date_to" value="{{ $filters['date_to'] ?? '' }}">
-            <button type="submit" class="btn btn-outline-primary">Retry Retryable</button>
+            <button type="submit" class="btn btn-outline-primary" data-confirm="Retry semua pesan retryable sesuai filter aktif? (maks 200 pesan per aksi)">Retry Retryable</button>
         </form>
         <a href="{{ route('whatsapp-api.inbox') }}" class="btn btn-outline-secondary">Kembali ke Inbox</a>
     </div>

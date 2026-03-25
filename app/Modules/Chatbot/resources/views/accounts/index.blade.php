@@ -53,10 +53,10 @@
                             <div class="table-actions">
                                 <a href="{{ route('chatbot.knowledge.index', $acc) }}" class="btn btn-outline-primary btn-sm">Knowledge</a>
                                 <a href="{{ route('chatbot.accounts.edit', $acc) }}" class="btn btn-outline-secondary btn-sm">Edit</a>
-                                <form class="d-inline-block m-0" method="POST" action="{{ route('chatbot.accounts.destroy', $acc) }}" onsubmit="return confirm('Hapus AI account?');">
+                                <form class="d-inline-block m-0" method="POST" action="{{ route('chatbot.accounts.destroy', $acc) }}">
                                     @csrf
                                     @method('DELETE')
-                                    <button class="btn btn-outline-danger btn-sm" type="submit">Hapus</button>
+                                    <button class="btn btn-outline-danger btn-sm" type="submit" data-confirm="Hapus AI account?">Hapus</button>
                                 </form>
                             </div>
                         </td>

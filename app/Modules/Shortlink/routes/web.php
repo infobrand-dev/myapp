@@ -15,6 +15,8 @@ Route::middleware(['web', 'auth', 'role:Super-admin|Admin'])
         Route::get('/', [ShortlinkController::class, 'index'])->name('index');
         Route::get('/create', [ShortlinkController::class, 'create'])->name('create');
         Route::post('/', [ShortlinkController::class, 'store'])->name('store');
+        Route::get('/{shortlink}', [ShortlinkController::class, 'show'])->name('show');
         Route::get('/{shortlink}/edit', [ShortlinkController::class, 'edit'])->name('edit');
         Route::put('/{shortlink}', [ShortlinkController::class, 'update'])->name('update');
+        Route::delete('/{shortlink}', [ShortlinkController::class, 'destroy'])->name('destroy');
     });

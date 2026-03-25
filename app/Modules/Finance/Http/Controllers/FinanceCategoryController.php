@@ -71,6 +71,17 @@ class FinanceCategoryController extends Controller
         return redirect()->route('finance.categories.index')->with('status', 'Finance category berhasil diperbarui.');
     }
 
+    public function destroy(FinanceCategory $category): RedirectResponse
+    {
+        if ($category->transactions()->count() > 0) {
+            return redirect()->route('finance.categories.index')->with('error', 'Category tidak dapat dihapus karena masih digunakan oleh transaksi.');
+        }
+
+        $category->delete();
+
+        return redirect()->route('finance.categories.index')->with('success', 'Finance category berhasil dihapus.');
+    }
+
     private function typeOptions(): array
     {
         return [

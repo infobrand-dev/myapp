@@ -31,10 +31,10 @@
                         <td class="text-end align-middle">
                             <div class="table-actions">
                                 <a href="{{ route('social-media.accounts.edit', $acc) }}" class="btn btn-outline-secondary btn-sm">Edit</a>
-                                <form class="d-inline-block m-0" method="POST" action="{{ route('social-media.accounts.destroy', $acc) }}" onsubmit="return confirm('Hapus akun?');">
+                                <form class="d-inline-block m-0" method="POST" action="{{ route('social-media.accounts.destroy', $acc) }}">
                                     @csrf
                                     @method('DELETE')
-                                    <button class="btn btn-outline-danger btn-sm" type="submit">Hapus</button>
+                                    <button class="btn btn-outline-danger btn-sm" type="submit" data-confirm="Hapus akun?">Hapus</button>
                                 </form>
                             </div>
                         </td>

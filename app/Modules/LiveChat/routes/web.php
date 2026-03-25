@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\VerifyCsrfToken;
+use App\Modules\LiveChat\Http\Controllers\LiveChatInboxController;
 use App\Modules\LiveChat\Http\Controllers\LiveChatPublicController;
 use App\Modules\LiveChat\Http\Controllers\LiveChatWidgetController;
 use Illuminate\Support\Facades\Route;
@@ -38,6 +39,16 @@ Route::middleware(['web', 'auth'])
         Route::get('/conversations/{conversation}/status', [LiveChatWidgetController::class, 'status'])
             ->middleware('throttle:60,1')
             ->name('conversations.status');
+    });
+
+Route::middleware(['web', 'auth', 'role:Super-admin|Admin'])
+    ->prefix('live-chat')
+    ->name('live-chat.')
+    ->group(function () {
+        Route::get('/inbox', [LiveChatInboxController::class, 'index'])->name('inbox.index');
+        Route::get('/inbox/{conversation}', [LiveChatInboxController::class, 'show'])->name('inbox.show');
+        Route::post('/inbox/{conversation}/reply', [LiveChatInboxController::class, 'reply'])->name('inbox.reply');
+        Route::patch('/inbox/{conversation}/close', [LiveChatInboxController::class, 'close'])->name('inbox.close');
     });
 
 Route::middleware(['web', 'auth', 'role:Super-admin'])

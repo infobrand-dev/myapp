@@ -32,7 +32,7 @@
                                 <a href="{{ route('email-marketing.templates.edit', $tpl) }}" class="btn btn-sm btn-outline-primary">Edit</a>
                                 <form class="d-inline-block m-0" method="POST" action="{{ route('email-marketing.templates.destroy', $tpl) }}">
                                     @csrf @method('DELETE')
-                                    <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Hapus template?')">Delete</button>
+                                    <button class="btn btn-sm btn-outline-danger" data-confirm="Hapus template?">Delete</button>
                                 </form>
                             </div>
                         </td>

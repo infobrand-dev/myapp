@@ -85,9 +85,9 @@
                                     <button class="btn btn-icon btn-outline-warning" title="Toggle"><i class="ti ti-switch-3"></i></button>
                                 </form>
                                 <a href="{{ route('discounts.edit', $discount) }}" class="btn btn-icon btn-outline-secondary" title="Edit"><i class="ti ti-edit"></i></a>
-                                <form method="POST" action="{{ route('discounts.archive', $discount) }}" onsubmit="return confirm('Arsipkan discount ini?')">
+                                <form method="POST" action="{{ route('discounts.archive', $discount) }}">
                                     @csrf
-                                    <button class="btn btn-icon btn-outline-danger" title="Archive"><i class="ti ti-archive"></i></button>
+                                    <button class="btn btn-icon btn-outline-danger" title="Archive" data-confirm="Arsipkan discount ini?"><i class="ti ti-archive"></i></button>
                                 </form>
                             </div>
                         </td>

@@ -1,8 +1,21 @@
 <?php
 
-use App\Modules\TaskManagement\Http\Controllers\TaskTemplateController;
 use App\Modules\TaskManagement\Http\Controllers\MemoController;
+use App\Modules\TaskManagement\Http\Controllers\TaskController;
+use App\Modules\TaskManagement\Http\Controllers\TaskTemplateController;
 use Illuminate\Support\Facades\Route;
+
+Route::middleware(['web', 'auth', 'role:Super-admin|Admin'])
+    ->prefix('tasks')
+    ->name('tasks.')
+    ->group(function () {
+        Route::get('/', [TaskController::class, 'index'])->name('index');
+        Route::post('/', [TaskController::class, 'store'])->name('store');
+        Route::patch('/{task}/status', [TaskController::class, 'updateStatus'])->name('status');
+        Route::delete('/{task}', [TaskController::class, 'destroy'])->name('destroy');
+        Route::post('/{task}/subtasks', [TaskController::class, 'storeSubtask'])->name('subtasks.store');
+        Route::patch('/subtasks/{subtask}/status', [TaskController::class, 'updateSubtaskStatus'])->name('subtasks.status');
+    });
 
 Route::middleware(['web', 'auth', 'role:Super-admin|Admin'])
     ->prefix('task-templates')

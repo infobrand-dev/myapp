@@ -6,7 +6,14 @@
         <h2 class="mb-0">{{ $transaction->transaction_number }}</h2>
         <div class="text-muted small">{{ $transaction->transaction_type }} | {{ $transaction->transaction_date ? $transaction->transaction_date->format('d/m/Y H:i') : '-' }}</div>
     </div>
-    <a href="{{ route('finance.transactions.index') }}" class="btn btn-outline-secondary">Back</a>
+    <div class="d-flex gap-2">
+        <a href="{{ route('finance.transactions.edit', $transaction) }}" class="btn btn-outline-primary">Edit</a>
+        <form method="POST" action="{{ route('finance.transactions.destroy', $transaction) }}">
+            @csrf @method('DELETE')
+            <button type="submit" class="btn btn-outline-danger" data-confirm="Yakin ingin menghapus transaksi ini?">Hapus</button>
+        </form>
+        <a href="{{ route('finance.transactions.index') }}" class="btn btn-outline-secondary">Back</a>
+    </div>
 </div>
 
 <div class="row g-3">

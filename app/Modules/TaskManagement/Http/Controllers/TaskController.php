@@ -3,6 +3,8 @@
 namespace App\Modules\TaskManagement\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\TaskManagement\Http\Requests\StoreTaskRequest;
+use App\Modules\TaskManagement\Http\Requests\UpdateTaskRequest;
 use App\Modules\TaskManagement\Models\Subtask;
 use App\Modules\TaskManagement\Models\Task;
 use Illuminate\Http\RedirectResponse;
@@ -18,17 +20,9 @@ class TaskController extends Controller
         return view('taskmgmt::index', compact('tasks'));
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreTaskRequest $request): RedirectResponse
     {
-        $data = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'due_date' => ['nullable', 'date'],
-            'subtasks' => ['array'],
-            'subtasks.*.title' => ['required_with:subtasks', 'string', 'max:255'],
-            'subtasks.*.pic' => ['nullable', 'string', 'max:255'],
-            'subtasks.*.due_date' => ['nullable', 'date'],
-        ]);
+        $data = $request->validated();
 
         $task = Task::create([
             'title' => $data['title'],
@@ -50,11 +44,9 @@ class TaskController extends Controller
         return back()->with('status', 'Task created');
     }
 
-    public function updateStatus(Task $task, Request $request): RedirectResponse
+    public function updateStatus(Task $task, UpdateTaskRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'status' => ['required', 'in:pending,in_progress,done'],
-        ]);
+        $validated = $request->validated();
 
         $task->update(['status' => $validated['status']]);
 

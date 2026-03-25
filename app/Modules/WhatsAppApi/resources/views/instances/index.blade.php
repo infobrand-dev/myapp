@@ -69,10 +69,10 @@
                                 <a href="{{ route('whatsapp-api.instances.edit', $instance) }}" class="btn btn-sm btn-outline-secondary btn-icon" title="Edit" aria-label="Edit">
                                     <i class="ti ti-pencil icon" aria-hidden="true"></i>
                                 </a>
-                                <form class="d-inline-block m-0" method="POST" action="{{ route('whatsapp-api.instances.destroy', $instance) }}" onsubmit="return confirm('Hapus instance?');">
+                                <form class="d-inline-block m-0" method="POST" action="{{ route('whatsapp-api.instances.destroy', $instance) }}">
                                     @csrf
                                     @method('DELETE')
-                                    <button class="btn btn-sm btn-outline-danger btn-icon" type="submit" title="Delete" aria-label="Delete">
+                                    <button class="btn btn-sm btn-outline-danger btn-icon" type="submit" title="Delete" aria-label="Delete" data-confirm="Hapus instance ini?">
                                         <i class="ti ti-trash icon" aria-hidden="true"></i>
                                     </button>
                                 </form>

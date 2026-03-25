@@ -301,7 +301,87 @@
                 }
             });
         });
+
+        // ── data-confirm: confirmation dialog before form submit ──
+        // Usage: add data-confirm="Yakin?" to a submit button or a form.
+        // Works for both buttons inside forms and standalone <a> tags with data-method.
+        (() => {
+            let _pendingForm = null;
+
+            const modalEl = document.getElementById('confirm-modal');
+            const modalMsg = document.getElementById('confirm-modal-message');
+            const modalOk  = document.getElementById('confirm-modal-ok');
+
+            const bsModal = modalEl
+                ? new bootstrap.Modal(modalEl, { keyboard: true })
+                : null;
+
+            function showConfirm(message, onConfirm) {
+                if (bsModal && modalMsg && modalOk) {
+                    modalMsg.textContent = message;
+                    _pendingForm = onConfirm;
+                    bsModal.show();
+                } else {
+                    // Fallback if modal element missing
+                    if (window.confirm(message)) onConfirm();
+                }
+            }
+
+            if (modalOk) {
+                modalOk.addEventListener('click', () => {
+                    bsModal.hide();
+                    if (typeof _pendingForm === 'function') {
+                        _pendingForm();
+                        _pendingForm = null;
+                    }
+                });
+            }
+
+            // Listen on document so it works for dynamically added elements too
+            document.addEventListener('click', function (e) {
+                const btn = e.target.closest('[data-confirm]');
+                if (!btn) return;
+
+                const message = btn.getAttribute('data-confirm') || 'Yakin ingin melanjutkan?';
+
+                // Button inside a form
+                const form = btn.closest('form');
+                if (form) {
+                    e.preventDefault();
+                    showConfirm(message, () => {
+                        // Remove data-confirm so the next submit goes through
+                        btn.removeAttribute('data-confirm');
+                        btn.click();
+                    });
+                    return;
+                }
+
+                // Anchor link with data-confirm
+                if (btn.tagName === 'A') {
+                    e.preventDefault();
+                    const href = btn.getAttribute('href');
+                    showConfirm(message, () => { window.location.href = href; });
+                }
+            });
+        })();
     </script>
+
+    {{-- Confirmation modal (Bootstrap 5 / Tabler) --}}
+    <div class="modal modal-blur fade" id="confirm-modal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <div class="modal-title">Konfirmasi</div>
+                    <div id="confirm-modal-message" class="text-muted mt-1">Yakin ingin melanjutkan?</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link link-secondary me-auto" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-danger" id="confirm-modal-ok">Ya, Lanjutkan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     @stack('scripts')
 </body>
 </html>

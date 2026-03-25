@@ -3,6 +3,10 @@
 namespace App\Modules\Contacts\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Contacts\Http\Requests\ImportContactRequest;
+use App\Modules\Contacts\Http\Requests\MergeContactRequest;
+use App\Modules\Contacts\Http\Requests\StoreContactRequest;
+use App\Modules\Contacts\Http\Requests\UpdateContactRequest;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Contacts\Support\ContactPhoneNormalizer;
 use App\Modules\Contacts\Support\ContactScope;
@@ -77,11 +81,9 @@ class ContactController extends Controller
         abort(404);
     }
 
-    public function import(Request $request): RedirectResponse
+    public function import(ImportContactRequest $request): RedirectResponse
     {
-        $data = $request->validate([
-            'import_file' => ['required', 'file', 'max:10240', 'mimes:csv,txt,xlsx'],
-        ]);
+        $data = $request->validated();
 
         $file = $data['import_file'];
         $extension = strtolower((string) $file->getClientOriginalExtension());
@@ -198,7 +200,7 @@ class ContactController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreContactRequest $request): RedirectResponse
     {
         $data = $this->validatedData($request);
         $data['is_active'] = $request->boolean('is_active');
@@ -235,7 +237,7 @@ class ContactController extends Controller
         return view('contacts::edit', compact('contact', 'companies'));
     }
 
-    public function update(Request $request, Contact $contact): RedirectResponse
+    public function update(UpdateContactRequest $request, Contact $contact): RedirectResponse
     {
         $data = $this->validatedData($request);
         $data['is_active'] = $request->boolean('is_active');
@@ -261,13 +263,28 @@ class ContactController extends Controller
         return back()->with('status', 'Contact dihapus.');
     }
 
-    public function merge(Request $request): RedirectResponse
+    public function bulkDestroy(Request $request): RedirectResponse
     {
-        $data = $request->validate([
-            'primary_id' => ['required', 'integer', Rule::exists('contacts', 'id')->where(fn ($query) => $query->where('tenant_id', $this->tenantId()))],
-            'duplicate_ids' => ['required', 'array', 'min:1'],
-            'duplicate_ids.*' => ['integer', 'distinct', Rule::exists('contacts', 'id')->where(fn ($query) => $query->where('tenant_id', $this->tenantId()))],
-        ]);
+        $ids = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', Rule::exists('contacts', 'id')->where(fn ($query) => $query->where('tenant_id', $this->tenantId()))],
+        ])['ids'];
+
+        $deleted = 0;
+        foreach ($ids as $id) {
+            $contact = ContactScope::applyVisibilityScope(Contact::query())->find($id);
+            if ($contact && !$contact->employees()->exists()) {
+                $contact->delete();
+                $deleted++;
+            }
+        }
+
+        return redirect()->route('contacts.index')->with('status', "{$deleted} contact berhasil dihapus.");
+    }
+
+    public function merge(MergeContactRequest $request): RedirectResponse
+    {
+        $data = $request->validated();
 
         if (!ContactScope::applyVisibilityScope(Contact::query())->find($data['primary_id'])) {
             throw ValidationException::withMessages([

@@ -31,10 +31,10 @@
                         <td>{{ optional($doc->updated_at)->format('d M Y H:i') }}</td>
                         <td class="text-end">
                             <a class="btn btn-sm btn-outline-secondary" href="{{ route('chatbot.knowledge.edit', [$account, $doc]) }}">Edit</a>
-                            <form class="d-inline-block m-0" method="POST" action="{{ route('chatbot.knowledge.destroy', [$account, $doc]) }}" onsubmit="return confirm('Hapus dokumen ini?');">
+                            <form class="d-inline-block m-0" method="POST" action="{{ route('chatbot.knowledge.destroy', [$account, $doc]) }}">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-outline-danger">Hapus</button>
+                                <button type="submit" class="btn btn-sm btn-outline-danger" data-confirm="Hapus dokumen ini?">Hapus</button>
                             </form>
                         </td>
                     </tr>

@@ -15,6 +15,7 @@ Route::middleware(['web', 'auth', 'role:Super-admin|Admin'])
         Route::post('/import', [ContactController::class, 'import'])->name('import');
         Route::get('/create', [ContactController::class, 'create'])->name('create');
         Route::post('/', [ContactController::class, 'store'])->name('store');
+        Route::delete('/bulk-destroy', [ContactController::class, 'bulkDestroy'])->name('bulk-destroy');
         Route::get('/{contact}', [ContactController::class, 'show'])->name('show');
         Route::get('/{contact}/edit', [ContactController::class, 'edit'])->name('edit');
         Route::put('/{contact}', [ContactController::class, 'update'])->name('update');

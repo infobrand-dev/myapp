@@ -4,6 +4,8 @@ namespace App\Modules\TaskManagement\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Modules\TaskManagement\Http\Requests\StoreMemoRequest;
+use App\Modules\TaskManagement\Http\Requests\UpdateMemoRequest;
 use App\Modules\TaskManagement\Models\Memo;
 use App\Modules\TaskManagement\Models\Task;
 use App\Modules\TaskManagement\Models\Subtask;
@@ -51,10 +53,11 @@ class MemoController extends Controller
         return view('taskmgmt::memos.form', compact('users'));
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreMemoRequest $request): RedirectResponse
     {
-        $data = $this->validated($request);
-        $tasksData = $this->tasksFromRequest($request);
+        $validated = $request->validated();
+        $tasksData = $validated['tasks'] ?? [];
+        $data = collect($validated)->except('tasks')->all();
 
         $memo = Memo::create([
             ...$data,
@@ -82,10 +85,11 @@ class MemoController extends Controller
         return view('taskmgmt::memos.form', compact('memo', 'users'));
     }
 
-    public function update(Request $request, Memo $memo): RedirectResponse
+    public function update(UpdateMemoRequest $request, Memo $memo): RedirectResponse
     {
-        $data = $this->validated($request);
-        $tasksData = $this->tasksFromRequest($request);
+        $validated = $request->validated();
+        $tasksData = $validated['tasks'] ?? [];
+        $data = collect($validated)->except('tasks')->all();
 
         $memo->update($data);
         $memo->tasks()->delete();

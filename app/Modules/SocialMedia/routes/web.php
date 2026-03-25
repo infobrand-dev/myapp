@@ -18,6 +18,8 @@ Route::middleware(['web', 'auth'])
     ->name('social-media.')
     ->group(function () {
         Route::get('/', [SocialMediaController::class, 'index'])->name('index');
+        Route::get('/conversations/{conversation}', [SocialMediaController::class, 'show'])->name('conversations.show');
+        Route::post('/conversations/{conversation}/reply', [SocialMediaController::class, 'reply'])->name('conversations.reply');
         Route::post('/conversations/{conversation}/pause-bot', [SocialMediaController::class, 'pauseBot'])->name('conversations.pause-bot');
         Route::post('/conversations/{conversation}/resume-bot', [SocialMediaController::class, 'resumeBot'])->name('conversations.resume-bot');
         Route::resource('accounts', SocialAccountController::class)->except(['show']);

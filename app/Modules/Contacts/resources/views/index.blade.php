@@ -64,10 +64,10 @@
                                     <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3l-11 11l-4 1l1 -4z" />
                                 </svg>
                             </a>
-                            <form class="d-inline-block m-0" method="POST" action="{{ route('contacts.destroy', $contact) }}" onsubmit="return confirm('Hapus contact ini?')">
+                            <form class="d-inline-block m-0" method="POST" action="{{ route('contacts.destroy', $contact) }}">
                                 @csrf
                                 @method('DELETE')
-                                <button class="btn btn-icon btn-outline-danger" title="Delete">
+                                <button class="btn btn-icon btn-outline-danger" title="Delete" data-confirm="Hapus contact ini?">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                         <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                                         <path d="M4 7h16" />

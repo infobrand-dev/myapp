@@ -11,7 +11,8 @@ module.exports = {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Nunito', ...defaultTheme.fontFamily.sans],
+                sans:    ['Inter', ...defaultTheme.fontFamily.sans],
+                heading: ['Plus Jakarta Sans', ...defaultTheme.fontFamily.sans],
             },
         },
     },

@@ -1,21 +1,124 @@
 /* ============================================================
    BRAND IDENTITY TOKENS
-   Override --tblr-primary below to change the accent color.
+   Brand: Deep Indigo Blue + Warm Amber
+   Fonts: Plus Jakarta Sans (heading) + Inter (body)
    ============================================================ */
 :root {
-    --tblr-primary: #206bc4;
-    --tblr-primary-rgb: 32, 107, 196;
+    /* === PRIMARY: Deep Indigo Blue === */
+    --tblr-primary:     #2D47CC;
+    --tblr-primary-rgb: 45, 71, 204;
 
-    /* App-level design tokens */
+    /* Primary scale */
+    --brand-primary-50:  #EEF1FF;
+    --brand-primary-100: #DCE2FA;
+    --brand-primary-200: #B8C3F5;
+    --brand-primary-300: #8699EE;
+    --brand-primary-400: #5E74E4;
+    --brand-primary-500: #2D47CC;
+    --brand-primary-600: #2439A8;
+    --brand-primary-700: #1C2D84;
+    --brand-primary-800: #152260;
+    --brand-primary-900: #0E163C;
+
+    /* === ACCENT: Warm Amber === */
+    --brand-accent:      #F59E0B;
+    --brand-accent-rgb:  245, 158, 11;
+    --brand-accent-50:   #FFFBEB;
+    --brand-accent-100:  #FEF3C7;
+    --brand-accent-300:  #FCD34D;
+    --brand-accent-500:  #F59E0B;
+    --brand-accent-700:  #B45309;
+
+    /* === SEMANTIC (Tabler overrides) === */
+    --tblr-success:      #16A34A;
+    --tblr-success-rgb:  22, 163, 74;
+    --tblr-warning:      #D97706;
+    --tblr-warning-rgb:  217, 119, 6;
+    --tblr-danger:       #DC2626;
+    --tblr-danger-rgb:   220, 38, 38;
+    --tblr-info:         #0284C7;
+    --tblr-info-rgb:     2, 132, 199;
+
+    /* Light variants (dipakai badge -lt, alert bg) */
+    --tblr-success-lt:   #DCFCE7;
+    --tblr-warning-lt:   #FEF3C7;
+    --tblr-danger-lt:    #FEE2E2;
+    --tblr-info-lt:      #E0F2FE;
+
+    /* Brand aliases (untuk custom komponen di luar Tabler) */
+    --brand-success:     var(--tblr-success);
+    --brand-success-lt:  var(--tblr-success-lt);
+    --brand-warning:     var(--tblr-warning);
+    --brand-warning-lt:  var(--tblr-warning-lt);
+    --brand-error:       var(--tblr-danger);
+    --brand-error-lt:    var(--tblr-danger-lt);
+    --brand-info:        var(--tblr-info);
+    --brand-info-lt:     var(--tblr-info-lt);
+
+    /* === NEUTRALS === */
+    --brand-gray-50:  #F8FAFC;
+    --brand-gray-100: #F1F5F9;
+    --brand-gray-200: #E2E8F0;
+    --brand-gray-300: #CBD5E1;
+    --brand-gray-400: #94A3B8;
+    --brand-gray-500: #64748B;
+    --brand-gray-600: #475569;
+    --brand-gray-700: #334155;
+    --brand-gray-800: #1E293B;
+    --brand-gray-950: #0F172A;
+
+    /* === TYPOGRAPHY === */
+    --font-heading:   'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-body:      'Inter', system-ui, sans-serif;
+    --tblr-font-sans: var(--font-body);
+
+    /* === APP SHELL === */
     --app-topbar-height: 3.625rem;
-    --app-transition: 0.15s ease;
-    --app-shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.07), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
-    --app-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.05);
-    --app-radius: 0.5rem;
+    --app-transition:    0.15s ease;
+    --app-shadow-sm:     0 1px 3px 0 rgba(0, 0, 0, 0.07), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+    --app-shadow:        0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.05);
+    --app-radius:        0.5rem;
 }
 
 [data-bs-theme="dark"] {
     color-scheme: dark;
+    --brand-gray-50:  #1E293B;
+    --brand-gray-100: #263447;
+    --brand-gray-200: #334155;
+}
+
+/* ============================================================
+   TYPOGRAPHY: Apply brand fonts
+   ============================================================ */
+body {
+    font-family: var(--font-body);
+}
+
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6,
+.page-title,
+.card-title,
+.navbar-brand,
+.auth-brand-name {
+    font-family: var(--font-heading);
+    letter-spacing: -0.01em;
+}
+
+.page-title {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.card-title {
+    font-weight: 600;
+}
+
+/* Sidebar brand & navbar brand also heading font */
+.sidebar-brand,
+.navbar-brand {
+    font-family: var(--font-heading);
+    font-weight: 800;
+    letter-spacing: -0.02em;
 }
 
 /* ============================================================

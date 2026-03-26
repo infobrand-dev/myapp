@@ -93,7 +93,7 @@ class MidtransService
             Log::error('Midtrans Snap token creation failed', [
                 'status'  => $response->status(),
                 'error'   => $errorMessage,
-                'payload' => $payload,
+                'payload' => $this->sanitizePayload($payload),
             ]);
             throw new \RuntimeException('Gagal membuat Snap token: ' . $errorMessage);
         }
@@ -198,7 +198,7 @@ class MidtransService
             'payment_type'       => $paymentType ?: $transaction->payment_type,
             'transaction_status' => $transactionStatus,
             'fraud_status'       => $fraudStatus ?: null,
-            'raw_notification'   => $payload,
+            'raw_notification'   => $this->sanitizePayload($payload),
         ]);
 
         $transaction->refresh();
@@ -306,5 +306,40 @@ class MidtransService
                     'sort_order'          => 99,
                 ]
             );
+    }
+
+    private function sanitizePayload(array $payload): array
+    {
+        $sensitiveKeys = [
+            'signature_key',
+            'approval_code',
+            'token_id',
+            'saved_token_id',
+            'customer_email',
+            'customer_phone',
+            'customer_name',
+            'email',
+            'phone',
+            'name',
+            'masked_card',
+        ];
+
+        $sanitized = [];
+
+        foreach ($payload as $key => $value) {
+            if (is_array($value)) {
+                $sanitized[$key] = $this->sanitizePayload($value);
+                continue;
+            }
+
+            if (in_array(mb_strtolower((string) $key), $sensitiveKeys, true)) {
+                $sanitized[$key] = '[redacted]';
+                continue;
+            }
+
+            $sanitized[$key] = $value;
+        }
+
+        return $sanitized;
     }
 }

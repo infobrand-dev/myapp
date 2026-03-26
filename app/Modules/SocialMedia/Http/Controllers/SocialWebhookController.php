@@ -55,7 +55,7 @@ class SocialWebhookController extends Controller
             type: 'text',
             body: $data['message'],
             externalMessageId: $data['external_message_id'] ?? null,
-            payload: $request->all(),
+            payload: $this->sanitizeWebhookPayload($request->all()),
             conversationMetadata: ['platform' => $data['platform']],
             messageStatus: (($data['direction'] ?? 'in') === 'out') ? 'sent' : 'delivered',
             ingestionMode: InboxMessageEnvelope::MODE_REALTIME,
@@ -186,5 +186,40 @@ class SocialWebhookController extends Controller
     private function markConversationHandoff(Conversation $conversation, string $reason): void
     {
         app(ConversationBotManager::class)->pause($conversation, $reason);
+    }
+
+    private function sanitizeWebhookPayload(array $payload): array
+    {
+        return $this->maskSensitiveValues($payload, [
+            'token',
+            'access_token',
+            'verify_token',
+            'app_secret',
+            'authorization',
+            'signature',
+            'signature_key',
+        ]);
+    }
+
+    private function maskSensitiveValues(array $payload, array $sensitiveKeys): array
+    {
+        $sanitized = [];
+
+        foreach ($payload as $key => $value) {
+            if (is_array($value)) {
+                $sanitized[$key] = $this->maskSensitiveValues($value, $sensitiveKeys);
+                continue;
+            }
+
+            $normalizedKey = mb_strtolower((string) $key);
+            if (in_array($normalizedKey, $sensitiveKeys, true)) {
+                $sanitized[$key] = '[redacted]';
+                continue;
+            }
+
+            $sanitized[$key] = $value;
+        }
+
+        return $sanitized;
     }
 }

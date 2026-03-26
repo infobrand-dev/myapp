@@ -78,7 +78,7 @@
                     <h3 class="card-title mb-0">Raw Notification</h3>
                 </div>
                 <div class="card-body">
-                    <textarea class="form-control font-monospace small" rows="14" readonly>{{ json_encode($transaction->raw_notification, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) }}</textarea>
+                    <textarea class="form-control font-monospace small" rows="14" readonly>{{ json_encode($transaction->sanitizedRawNotification(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) }}</textarea>
                 </div>
             </div>
         @endif
@@ -139,8 +139,8 @@
             <div class="card-header"><h3 class="card-title mb-0">Snap Token</h3></div>
             <div class="card-body">
                 @if($transaction->snap_token)
-                    <div class="text-muted small mb-1">Token (gunakan untuk Snap.js)</div>
-                    <textarea class="form-control font-monospace small" rows="3" readonly>{{ $transaction->snap_token }}</textarea>
+                    <div class="text-muted small mb-1">Token tersimpan, ditampilkan sebagian untuk keamanan.</div>
+                    <textarea class="form-control font-monospace small" rows="3" readonly>{{ $transaction->maskedSnapToken() }}</textarea>
                     @if($transaction->snap_redirect_url)
                         <div class="mt-2">
                             <a href="{{ $transaction->snap_redirect_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">

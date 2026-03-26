@@ -62,4 +62,52 @@ class WhatsAppWebhookEvent extends Model
             ->where('tenant_id', TenantContext::currentId())
             ->firstOrFail();
     }
+
+    public function sanitizedHeaders(): array
+    {
+        return $this->sanitizePayload((array) ($this->headers ?? []));
+    }
+
+    public function sanitizedPayload(): array
+    {
+        return $this->sanitizePayload((array) ($this->payload ?? []));
+    }
+
+    private function sanitizePayload(array $payload): array
+    {
+        $sensitiveKeys = [
+            'authorization',
+            'cookie',
+            'token',
+            'api_token',
+            'access_token',
+            'cloud_token',
+            'verify_token',
+            'wa_cloud_verify_token',
+            'wa_cloud_app_secret',
+            'app_secret',
+            'x-bridge-token',
+            'x-hub-signature-256',
+            'signature',
+            'signature_key',
+        ];
+
+        $sanitized = [];
+
+        foreach ($payload as $key => $value) {
+            if (is_array($value)) {
+                $sanitized[$key] = $this->sanitizePayload($value);
+                continue;
+            }
+
+            if (in_array(mb_strtolower((string) $key), $sensitiveKeys, true)) {
+                $sanitized[$key] = '[redacted]';
+                continue;
+            }
+
+            $sanitized[$key] = $value;
+        }
+
+        return $sanitized;
+    }
 }

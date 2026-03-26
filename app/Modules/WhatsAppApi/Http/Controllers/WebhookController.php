@@ -163,7 +163,7 @@ class WebhookController extends Controller
         }
 
         $data = validator($payload, [
-            'token' => ['required', 'string'],
+            'token' => [($trustedReplay && $event->instance_id) ? 'nullable' : 'required', 'string'],
             'contact_id' => ['required', 'string'],
             'contact_name' => ['nullable', 'string'],
             'message' => ['required', 'string'],
@@ -173,6 +173,11 @@ class WebhookController extends Controller
         ])->validate();
 
         $instance = $this->resolveGatewayInstanceForPayload($data);
+        if (!$instance && $trustedReplay && $event->instance_id) {
+            $instance = WhatsAppInstance::query()
+                ->where('tenant_id', $event->tenant_id ?: $this->tenantId())
+                ->find($event->instance_id);
+        }
 
         if (!$instance) {
             $this->markWebhookEventFailed($event, 'Invalid token');
@@ -201,7 +206,7 @@ class WebhookController extends Controller
             type: 'text',
             body: $data['message'],
             externalMessageId: $data['external_message_id'] ?? null,
-            payload: $request?->all() ?? $payload,
+            payload: $this->sanitizeWebhookPayload($request?->all() ?? $payload),
             messageStatus: $isIncoming ? 'delivered' : 'sent',
             ingestionMode: InboxMessageEnvelope::MODE_REALTIME,
             incrementUnread: $isIncoming,
@@ -253,8 +258,8 @@ class WebhookController extends Controller
                 'tenant_id' => $this->tenantId(),
                 'provider' => $this->looksLikeCloudPayload($payload) ? 'cloud' : 'gateway',
                 'event_key' => $eventKey,
-                'headers' => $request->headers->all(),
-                'payload' => $payload,
+                'headers' => $this->sanitizeWebhookHeaders($request->headers->all()),
+                'payload' => $this->sanitizeWebhookPayload($payload),
                 'process_status' => 'pending',
                 'retry_count' => 0,
                 'received_at' => now(),
@@ -263,8 +268,8 @@ class WebhookController extends Controller
 
         $event->update([
             'tenant_id' => $this->tenantId(),
-            'headers' => $request->headers->all(),
-            'payload' => $payload,
+            'headers' => $this->sanitizeWebhookHeaders($request->headers->all()),
+            'payload' => $this->sanitizeWebhookPayload($payload),
             'retry_count' => (int) $event->retry_count + 1,
             'received_at' => now(),
         ]);
@@ -824,7 +829,7 @@ class WebhookController extends Controller
             if (!$template) {
                 Log::info('WhatsApp template status webhook unmatched', [
                     'instance_id' => $instance->id,
-                    'payload' => $statusItem,
+                    'payload' => $this->sanitizeWebhookPayload($statusItem),
                 ]);
                 continue;
             }
@@ -1025,6 +1030,54 @@ class WebhookController extends Controller
             ?? Arr::get($statusItem, 'errors.0.message')
             ?? json_encode($statusItem)
         );
+    }
+
+    private function sanitizeWebhookHeaders(array $headers): array
+    {
+        return $this->maskSensitiveValues($headers, [
+            'authorization',
+            'cookie',
+            'x-bridge-token',
+            'x-hub-signature-256',
+        ]);
+    }
+
+    private function sanitizeWebhookPayload(array $payload): array
+    {
+        return $this->maskSensitiveValues($payload, [
+            'token',
+            'api_token',
+            'access_token',
+            'cloud_token',
+            'verify_token',
+            'wa_cloud_verify_token',
+            'wa_cloud_app_secret',
+            'app_secret',
+            'signature',
+            'signature_key',
+            'authorization',
+        ]);
+    }
+
+    private function maskSensitiveValues(array $payload, array $sensitiveKeys): array
+    {
+        $sanitized = [];
+
+        foreach ($payload as $key => $value) {
+            if (is_array($value)) {
+                $sanitized[$key] = $this->maskSensitiveValues($value, $sensitiveKeys);
+                continue;
+            }
+
+            if (in_array(mb_strtolower((string) $key), $sensitiveKeys, true)) {
+                $sanitized[$key] = '[redacted]';
+                continue;
+            }
+
+            $sanitized[$key] = $value;
+        }
+
+        return $sanitized;
     }
 }
 

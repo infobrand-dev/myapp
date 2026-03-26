@@ -7,6 +7,7 @@ use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Str;
 
 class MidtransTransaction extends Model
 {
@@ -133,5 +134,59 @@ class MidtransTransaction extends Model
     public static function generateOrderId(int $tenantId): string
     {
         return 'MDTRANS-' . $tenantId . '-' . now()->format('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
+    }
+
+    public function sanitizedRawNotification(): array
+    {
+        return $this->maskSensitiveValues((array) ($this->raw_notification ?? []));
+    }
+
+    public function maskedSnapToken(): ?string
+    {
+        $token = (string) ($this->snap_token ?? '');
+        if ($token === '') {
+            return null;
+        }
+
+        if (mb_strlen($token) <= 12) {
+            return Str::mask($token, '*', 3);
+        }
+
+        return Str::mask($token, '*', 6, max(mb_strlen($token) - 12, 0));
+    }
+
+    private function maskSensitiveValues(array $payload): array
+    {
+        $sensitiveKeys = [
+            'signature_key',
+            'approval_code',
+            'token_id',
+            'saved_token_id',
+            'masked_card',
+            'customer_email',
+            'customer_phone',
+            'customer_name',
+            'email',
+            'phone',
+            'name',
+        ];
+
+        $sanitized = [];
+
+        foreach ($payload as $key => $value) {
+            if (is_array($value)) {
+                $sanitized[$key] = $this->maskSensitiveValues($value);
+                continue;
+            }
+
+            if (in_array(mb_strtolower((string) $key), $sensitiveKeys, true)) {
+                $sanitized[$key] = '[redacted]';
+                continue;
+            }
+
+            $sanitized[$key] = $value;
+        }
+
+        return $sanitized;
     }
 }

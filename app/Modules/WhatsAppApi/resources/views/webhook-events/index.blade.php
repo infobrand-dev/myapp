@@ -189,11 +189,11 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Headers</label>
-                        <textarea class="form-control font-monospace" rows="8" readonly>{{ json_encode($event->headers ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</textarea>
+                        <textarea class="form-control font-monospace" rows="8" readonly>{{ json_encode($event->sanitizedHeaders(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</textarea>
                     </div>
                     <div>
                         <label class="form-label">Payload</label>
-                        <textarea class="form-control font-monospace" rows="18" readonly>{{ json_encode($event->payload ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</textarea>
+                        <textarea class="form-control font-monospace" rows="18" readonly>{{ json_encode($event->sanitizedPayload(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</textarea>
                     </div>
                 </div>
                 <div class="modal-footer">

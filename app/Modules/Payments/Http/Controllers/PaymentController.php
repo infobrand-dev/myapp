@@ -83,7 +83,7 @@ class PaymentController extends Controller
     {
         $payment = $this->createPayment->execute($request->validated(), $request->user());
 
-        return redirect()->route('payments.show', $payment)->with('status', 'Payment berhasil dicatat.');
+        return redirect()->route('payments.show', $payment)->with('status', 'Pembayaran dicatat.');
     }
 
     public function show(Payment $payment): View
@@ -102,6 +102,6 @@ class PaymentController extends Controller
 
         $payment = $this->voidPayment->execute($payment, $request->validated(), $request->user());
 
-        return redirect()->route('payments.show', $payment)->with('status', 'Payment berhasil di-void.');
+        return redirect()->route('payments.show', $payment)->with('status', 'Pembayaran di-void.');
     }
 }

@@ -5,7 +5,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Contacts</h2>
-        <div class="text-muted small">Directory external/business contact dengan scope tenant, company aktif, atau branch aktif.</div>
+        <div class="text-muted small">Daftar kontak pelanggan dan supplier.</div>
     </div>
     <div class="btn-list">
         <a href="{{ route('contacts.merge-candidates') }}" class="btn btn-outline-warning">Merge Contacts ({{ $mergeCandidateCount ?? 0 }})</a>
@@ -67,7 +67,7 @@
                             <form class="d-inline-block m-0" method="POST" action="{{ route('contacts.destroy', $contact) }}">
                                 @csrf
                                 @method('DELETE')
-                                <button class="btn btn-icon btn-outline-danger" title="Delete" data-confirm="Hapus contact ini?">
+                                <button class="btn btn-icon btn-outline-danger" title="Delete" data-confirm="Hapus kontak ini?">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                         <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                                         <path d="M4 7h16" />
@@ -82,7 +82,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="7" class="text-center text-muted">Belum ada contact.</td></tr>
+                <tr><td colspan="7" class="text-center text-muted">Belum ada kontak.</td></tr>
                 @endforelse
             </tbody>
         </table>

@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Live Chat Widgets</h2>
-        <div class="text-muted small">Kelola widget embed website yang mengirim percakapan ke shared inbox.</div>
+        <div class="text-muted small">Daftar widget live chat untuk website.</div>
     </div>
     <a href="{{ route('live-chat.widgets.create') }}" class="btn btn-primary">Tambah Widget</a>
 </div>

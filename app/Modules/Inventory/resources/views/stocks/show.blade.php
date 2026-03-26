@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">{{ $stock->product?->name }}</h2>
-        <div class="text-muted small">{{ $stock->variant?->name ?? 'Base product' }} | {{ $stock->location?->name }}</div>
+        <div class="text-muted small">{{ $stock->variant?->name ?? '-' }} | {{ $stock->location?->name }}</div>
     </div>
     <a href="{{ route('inventory.stocks.index') }}" class="btn btn-outline-secondary">Kembali</a>
 </div>

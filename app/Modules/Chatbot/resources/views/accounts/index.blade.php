@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Chatbot</h2>
-        <div class="text-muted small">Konfigurasi akun AI (OpenAI) untuk auto-reply Conversations, WA API, Social DM.</div>
+        <div class="text-muted small">Akun AI untuk auto-reply percakapan.</div>
     </div>
     <div class="d-flex gap-2">
         <a href="{{ route('chatbot.playground.index') }}" class="btn btn-outline-secondary">Playground</a>

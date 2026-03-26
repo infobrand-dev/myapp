@@ -213,7 +213,7 @@ class ContactController extends Controller
 
         Contact::create($data);
 
-        return redirect()->route('contacts.index')->with('status', 'Contact ditambahkan.');
+        return redirect()->route('contacts.index')->with('status', 'Kontak ditambahkan.');
     }
 
     public function show(Contact $contact): View
@@ -249,7 +249,7 @@ class ContactController extends Controller
 
         $contact->update($data);
 
-        return redirect()->route('contacts.index')->with('status', 'Contact diperbarui.');
+        return redirect()->route('contacts.index')->with('status', 'Kontak diperbarui.');
     }
 
     public function destroy(Contact $contact): RedirectResponse
@@ -260,7 +260,7 @@ class ContactController extends Controller
 
         $contact->delete();
 
-        return back()->with('status', 'Contact dihapus.');
+        return back()->with('status', 'Kontak dihapus.');
     }
 
     public function bulkDestroy(BulkDestroyContactRequest $request): RedirectResponse
@@ -276,7 +276,7 @@ class ContactController extends Controller
             }
         }
 
-        return redirect()->route('contacts.index')->with('status', "{$deleted} contact berhasil dihapus.");
+        return redirect()->route('contacts.index')->with('status', "{$deleted} kontak dihapus.");
     }
 
     public function merge(MergeContactRequest $request): RedirectResponse
@@ -349,7 +349,7 @@ class ContactController extends Controller
 
         return redirect()
             ->route('contacts.merge-candidates')
-            ->with('status', 'Contact berhasil digabungkan.');
+            ->with('status', 'Kontak digabungkan.');
     }
 
     private function validatedData(Request $request): array

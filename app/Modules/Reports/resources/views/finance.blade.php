@@ -3,7 +3,7 @@
 @section('content')
 <div class="mb-3">
     <h2 class="mb-0">Finance Reports</h2>
-    <div class="text-muted small">Cash in/out dan expense by category untuk transaksi finance non-sales.</div>
+    <div class="text-muted small">Ringkasan kas masuk, kas keluar, dan pengeluaran.</div>
 </div>
 
 @include('reports::partials.nav')

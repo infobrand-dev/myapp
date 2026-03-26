@@ -56,7 +56,7 @@ class StockAdjustmentController extends Controller
     {
         $adjustment = $action->execute($request->validated(), $request->user());
 
-        return redirect()->route('inventory.adjustments.show', $adjustment)->with('status', "Adjustment {$adjustment->code} berhasil dibuat sebagai draft.");
+        return redirect()->route('inventory.adjustments.show', $adjustment)->with('status', "Adjustment {$adjustment->code} dibuat.");
     }
 
     public function show(StockAdjustment $adjustment): View
@@ -85,7 +85,7 @@ class StockAdjustmentController extends Controller
             return back()->withErrors(['adjustment' => $exception->getMessage()]);
         }
 
-        return back()->with('status', 'Stock adjustment berhasil difinalisasi dan movement sudah diposting.');
+        return back()->with('status', 'Adjustment difinalisasi dan stok diperbarui.');
     }
 
     private function productOptions(Collection $products): array

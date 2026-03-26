@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Discount Usage History</h2>
-        <div class="text-muted small">Snapshot penggunaan discount tersimpan terpisah agar histori transaksi tidak berubah walau rule diubah.</div>
+        <div class="text-muted small">Riwayat penggunaan diskon.</div>
     </div>
     <a href="{{ route('discounts.index') }}" class="btn btn-outline-secondary">Kembali</a>
 </div>
@@ -27,7 +27,7 @@
                         <td>{{ $usage->applied_at?->format('d/m/Y H:i') ?: $usage->evaluated_at?->format('d/m/Y H:i') }}</td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="text-center text-muted">Belum ada usage.</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted">Belum ada data penggunaan.</td></tr>
                 @endforelse
             </tbody>
         </table>

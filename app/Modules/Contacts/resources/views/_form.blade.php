@@ -24,7 +24,7 @@
                 <option value="branch" {{ $selectedScope === 'branch' ? 'selected' : '' }}>Branch aktif</option>
             @endif
         </select>
-        <div class="text-muted small">Tenant-wide bisa dipakai seluruh tenant. Company aktif hanya untuk company aktif. Branch aktif hanya untuk branch yang sedang dipilih.</div>
+        <div class="text-muted small">Tentukan siapa yang bisa melihat kontak ini.</div>
     </div>
     <div class="col-md-6">
         <label class="form-label">Relasi Company Contact</label>
@@ -49,13 +49,13 @@
     <div class="col-md-3">
         <label class="form-label">Telepon</label>
         <input type="text" name="phone" class="form-control" value="{{ old('phone', $contact->phone ?? '') }}" placeholder="628123456789 / +628123456789">
-        <div class="text-muted small">Akan dinormalisasi ke format internasional angka saja agar aman dipakai untuk telepon/WhatsApp.</div>
+        <div class="text-muted small">Format otomatis ke internasional.</div>
         @error('phone') <div class="text-danger small">{{ $message }}</div> @enderror
     </div>
     <div class="col-md-3">
         <label class="form-label">Mobile</label>
         <input type="text" name="mobile" class="form-control" value="{{ old('mobile', $contact->mobile ?? '') }}" placeholder="628123456789 / +628123456789">
-        <div class="text-muted small">Disarankan isi nomor WhatsApp utama. Format lokal 08... akan otomatis jadi 628...</div>
+        <div class="text-muted small">Nomor WhatsApp utama. Format 08... otomatis jadi 628...</div>
         @error('mobile') <div class="text-danger small">{{ $message }}</div> @enderror
     </div>
     <div class="col-md-6">

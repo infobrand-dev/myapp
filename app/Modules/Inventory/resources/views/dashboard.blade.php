@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Inventory Dashboard</h2>
-        <div class="text-muted small">Summary stok, mutasi, low stock, dan audit ringkas.</div>
+        <div class="text-muted small">Ringkasan stok, mutasi, dan peringatan stok rendah.</div>
     </div>
     <div class="d-flex gap-2">
         <form method="GET" class="d-flex gap-2">
@@ -46,22 +46,22 @@
                     <div class="col-md-4">
                         <div class="border rounded p-3 h-100">
                             <div class="text-muted small">Adjustment</div>
-                            <div class="small mb-2">Perbaiki mismatch stok atau koreksi saldo fisik.</div>
+                            <div class="small mb-2">Koreksi stok fisik vs sistem.</div>
                             @can('inventory.manage-stock-adjustment')
                                 <a href="{{ route('inventory.adjustments.create') }}" class="btn btn-sm btn-outline-primary">New Adjustment</a>
                             @else
-                                <span class="text-muted small">Akses adjustment tidak tersedia.</span>
+                                <span class="text-muted small">Tidak ada akses adjustment.</span>
                             @endcan
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="border rounded p-3 h-100">
                             <div class="text-muted small">Transfer</div>
-                            <div class="small mb-2">Pindahkan stok antar lokasi untuk cegah stockout.</div>
+                            <div class="small mb-2">Pindah stok antar lokasi.</div>
                             @can('inventory.manage-stock-transfer')
                                 <a href="{{ route('inventory.transfers.create') }}" class="btn btn-sm btn-outline-primary">New Transfer</a>
                             @else
-                                <span class="text-muted small">Akses transfer tidak tersedia.</span>
+                                <span class="text-muted small">Tidak ada akses transfer.</span>
                             @endcan
                         </div>
                     </div>
@@ -82,7 +82,7 @@
                         <span class="badge bg-blue-lt text-blue">{{ $row->total }}</span>
                     </div>
                 @empty
-                    <div class="list-group-item text-muted">Belum ada data movement untuk breakdown.</div>
+                    <div class="list-group-item text-muted">Belum ada mutasi stok.</div>
                 @endforelse
             </div>
         </div>

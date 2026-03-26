@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Stock List</h2>
-        <div class="text-muted small">Workspace saldo stok untuk cek stockout, risiko reserved, dan kandidat reorder.</div>
+        <div class="text-muted small">Saldo stok per produk dan lokasi.</div>
     </div>
     <div class="btn-list">
         <a href="{{ route('inventory.reports.low-stock', ['location_id' => $filters['location_id'] ?? null]) }}" class="btn btn-outline-warning">Low Stock</a>

@@ -60,7 +60,7 @@ class StockOpnameController extends Controller
             return back()->withErrors(['opname' => $exception->getMessage()])->withInput();
         }
 
-        return redirect()->route('inventory.opnames.show', $opname)->with('status', 'Sesi stock opname berhasil dibuat sebagai draft.');
+        return redirect()->route('inventory.opnames.show', $opname)->with('status', 'Sesi opname dibuat.');
     }
 
     public function show(StockOpname $opname): View
@@ -85,7 +85,7 @@ class StockOpnameController extends Controller
             return back()->withErrors(['opname' => $exception->getMessage()]);
         }
 
-        return back()->with('status', 'Draft stock opname berhasil diperbarui.');
+        return back()->with('status', 'Draft opname diperbarui.');
     }
 
     public function finalize(StockOpname $opname, FinalizeStockOpnameAction $action): RedirectResponse
@@ -100,6 +100,6 @@ class StockOpnameController extends Controller
             return back()->withErrors(['opname' => $exception->getMessage()]);
         }
 
-        return back()->with('status', 'Stock opname berhasil difinalisasi. Selisih sudah dibuatkan adjustment dan movement.');
+        return back()->with('status', 'Opname difinalisasi. Selisih stok sudah diposting.');
     }
 }

@@ -131,7 +131,7 @@ class ContactActionController extends Controller
 
         $target = $data['return_to'] ?? route('contacts.show', $contact);
 
-        return redirect()->to($target)->with('status', 'Template WhatsApp berhasil diantrikan.');
+        return redirect()->to($target)->with('status', 'Template WhatsApp diantrikan.');
     }
 
     public static function modalData(?\Illuminate\Contracts\Auth\Authenticatable $user): array

@@ -3,7 +3,7 @@
 @section('content')
 <div class="mb-3">
     <h2 class="mb-0">Buat Stock Adjustment</h2>
-    <div class="text-muted small">Buat draft adjustment terlebih dahulu. Stok baru berubah saat dokumen difinalisasi.</div>
+    <div class="text-muted small">Stok berubah setelah dokumen difinalisasi.</div>
 </div>
 
 @if($errors->any())
@@ -56,7 +56,7 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <div>
                         <h3 class="card-title mb-0">Items</h3>
-                        <div class="text-muted small">Pilih produk stockable, variant jika ada, arah adjustment, lalu qty.</div>
+                        <div class="text-muted small">Pilih produk, arah, dan qty.</div>
                     </div>
                     <button type="button" class="btn btn-outline-primary btn-sm" id="add-item-row">Tambah Item</button>
                 </div>

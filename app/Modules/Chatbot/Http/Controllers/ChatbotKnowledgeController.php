@@ -45,7 +45,7 @@ class ChatbotKnowledgeController extends Controller
 
         return redirect()
             ->route('chatbot.knowledge.index', $account)
-            ->with('status', 'Dokumen knowledge ditambahkan.');
+            ->with('status', 'Dokumen ditambahkan.');
     }
 
     public function edit(ChatbotAccount $account, ChatbotKnowledgeDocument $document): View
@@ -71,7 +71,7 @@ class ChatbotKnowledgeController extends Controller
 
         return redirect()
             ->route('chatbot.knowledge.index', $account)
-            ->with('status', 'Dokumen knowledge diperbarui.');
+            ->with('status', 'Dokumen diperbarui.');
     }
 
     public function destroy(ChatbotAccount $account, ChatbotKnowledgeDocument $document): RedirectResponse
@@ -79,7 +79,7 @@ class ChatbotKnowledgeController extends Controller
         $this->assertOwnership($account, $document);
         $document->delete();
 
-        return back()->with('status', 'Dokumen knowledge dihapus.');
+        return back()->with('status', 'Dokumen dihapus.');
     }
 
     private function validated(Request $request): array

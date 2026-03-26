@@ -148,7 +148,7 @@ class MessageLogController extends Controller
 
         SendWhatsAppMessage::dispatch($message->id);
 
-        return back()->with('status', 'Pesan berhasil di-requeue.');
+        return back()->with('status', 'Pesan di-requeue.');
     }
 
     private function tenantId(): int

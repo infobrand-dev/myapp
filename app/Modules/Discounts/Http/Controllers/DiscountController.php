@@ -53,7 +53,7 @@ class DiscountController extends Controller
     {
         $discount = $this->upsertAction->execute($request->validated(), actor: $request->user());
 
-        return redirect()->route('discounts.show', $discount)->with('status', 'Discount berhasil dibuat.');
+        return redirect()->route('discounts.show', $discount)->with('status', 'Diskon dibuat.');
     }
 
     public function show(Discount $discount): View
@@ -75,7 +75,7 @@ class DiscountController extends Controller
     {
         $discount = $this->upsertAction->execute($request->validated(), $discount, $request->user());
 
-        return redirect()->route('discounts.show', $discount)->with('status', 'Discount berhasil diperbarui.');
+        return redirect()->route('discounts.show', $discount)->with('status', 'Diskon diperbarui.');
     }
 
     public function destroy(Discount $discount): RedirectResponse
@@ -83,7 +83,7 @@ class DiscountController extends Controller
         abort_unless(request()->user()?->can('discounts.delete'), 403);
 
         if ($discount->usages()->exists()) {
-            return back()->with('error', 'Discount tidak bisa dihapus karena sudah pernah digunakan. Gunakan Arsip jika ingin menonaktifkan.');
+            return back()->with('error', 'Tidak bisa dihapus — diskon sudah pernah digunakan. Gunakan Arsip.');
         }
 
         $discount->delete();

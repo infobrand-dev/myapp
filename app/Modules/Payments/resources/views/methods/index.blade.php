@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Payment Methods</h2>
-        <div class="text-muted small">Master data metode pembayaran reusable untuk Sales dan POS.</div>
+        <div class="text-muted small">Daftar metode pembayaran yang tersedia.</div>
     </div>
 </div>
 
@@ -56,7 +56,7 @@
                                             <form class="d-inline-block m-0" method="POST" action="{{ route('payments.methods.destroy', $method) }}">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button class="btn btn-sm btn-outline-danger btn-icon" type="submit" title="Delete" aria-label="Delete" data-confirm="Hapus payment method '{{ $method->name }}'?">
+                                                <button class="btn btn-sm btn-outline-danger btn-icon" type="submit" title="Delete" aria-label="Delete" data-confirm="Hapus metode '{{ $method->name }}'?">
                                                     <i class="ti ti-trash icon" aria-hidden="true"></i>
                                                 </button>
                                             </form>
@@ -65,7 +65,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="6" class="text-center text-muted">Belum ada payment method.</td></tr>
+                            <tr><td colspan="6" class="text-center text-muted">Belum ada metode pembayaran.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

@@ -10,9 +10,9 @@
         <a href="{{ route('finance.transactions.edit', $transaction) }}" class="btn btn-outline-primary">Edit</a>
         <form method="POST" action="{{ route('finance.transactions.destroy', $transaction) }}">
             @csrf @method('DELETE')
-            <button type="submit" class="btn btn-outline-danger" data-confirm="Yakin ingin menghapus transaksi ini?">Hapus</button>
+            <button type="submit" class="btn btn-outline-danger" data-confirm="Hapus transaksi ini?">Hapus</button>
         </form>
-        <a href="{{ route('finance.transactions.index') }}" class="btn btn-outline-secondary">Back</a>
+        <a href="{{ route('finance.transactions.index') }}" class="btn btn-outline-secondary">Kembali</a>
     </div>
 </div>
 
@@ -37,8 +37,7 @@
         <div class="card">
             <div class="card-header"><h3 class="card-title">Audit Note</h3></div>
             <div class="card-body">
-                <p class="mb-2">Transaction ini bersifat operasional dan immutable. Tidak ada debit, credit, journal, ledger, atau chart of accounts formal.</p>
-                <p class="mb-0 text-muted">Future upgrade ke accounting sebaiknya memetakan category ini ke akun akuntansi dan mem-post jurnal otomatis tanpa mengubah histori transaksi finance yang sudah ada.</p>
+                <p class="mb-0 text-muted">Transaksi ini bersifat operasional.</p>
             </div>
         </div>
     </div>

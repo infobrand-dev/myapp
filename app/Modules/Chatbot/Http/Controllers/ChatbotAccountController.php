@@ -39,7 +39,7 @@ class ChatbotAccountController extends Controller
         $data['mirror_to_conversations'] = $request->boolean('mirror_to_conversations');
         $data['rag_enabled'] = $request->boolean('rag_enabled');
         ChatbotAccount::create($data);
-        return redirect()->route('chatbot.accounts.index')->with('status', 'Chatbot account dibuat.');
+        return redirect()->route('chatbot.accounts.index')->with('status', 'Akun chatbot dibuat.');
     }
 
     public function edit(ChatbotAccount $account): View
@@ -53,13 +53,13 @@ class ChatbotAccountController extends Controller
         $data['mirror_to_conversations'] = $request->boolean('mirror_to_conversations');
         $data['rag_enabled'] = $request->boolean('rag_enabled');
         $account->update($data);
-        return redirect()->route('chatbot.accounts.index')->with('status', 'Chatbot account diperbarui.');
+        return redirect()->route('chatbot.accounts.index')->with('status', 'Akun chatbot diperbarui.');
     }
 
     public function destroy(ChatbotAccount $account): RedirectResponse
     {
         $account->delete();
-        return back()->with('status', 'Chatbot account dihapus.');
+        return back()->with('status', 'Akun chatbot dihapus.');
     }
 
     private function validated(Request $request, bool $isEdit = false): array

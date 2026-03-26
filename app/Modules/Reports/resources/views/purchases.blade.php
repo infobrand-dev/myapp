@@ -3,7 +3,7 @@
 @section('content')
 <div class="mb-3">
     <h2 class="mb-0">Purchase Reports</h2>
-    <div class="text-muted small">Summary pembelian, performa supplier, dan bucket received vs pending.</div>
+    <div class="text-muted small">Ringkasan transaksi pembelian dari supplier.</div>
 </div>
 
 @include('reports::partials.nav')

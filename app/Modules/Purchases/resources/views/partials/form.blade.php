@@ -136,7 +136,7 @@
                     </div>
                 </div>
                 <div class="card-footer d-flex justify-content-between">
-                    <div class="text-muted small">Purchases menyimpan dokumen pembelian dan receiving flow. Mutasi stok tetap ditulis oleh Inventory.</div>
+                    <div class="text-muted small">Total dihitung otomatis oleh server.</div>
                     <button type="submit" class="btn btn-primary">Save Draft</button>
                 </div>
             </div>

@@ -23,7 +23,7 @@
 
 <div class="mb-3">
     <h2 class="mb-0">Create Sales Return</h2>
-    <div class="text-muted small">Pilih sale finalized, tentukan item dan qty return, lalu simpan sebagai draft return baru. Sale asli tidak diubah.</div>
+    <div class="text-muted small">Buat retur penjualan baru.</div>
 </div>
 
 @if($errors->any())
@@ -97,7 +97,7 @@
             <div class="card">
                 <div class="card-header"><h3 class="card-title mb-0">Return Items</h3></div>
                 <div class="card-body">
-                    <div class="text-muted small mb-3">Support full return dan partial return. Qty yang diisi akan divalidasi lagi saat finalize supaya tidak melebihi sisa returnable.</div>
+                    <div class="text-muted small mb-3">Qty akan divalidasi ulang saat finalisasi.</div>
                     <div class="table-responsive">
                         <table class="table table-vcenter" id="sale-return-items-table">
                             <thead>
@@ -114,7 +114,7 @@
                     </div>
                 </div>
                 <div class="card-footer d-flex justify-content-between">
-                    <div class="text-muted small">Draft akan menyimpan snapshot item return, bukan mengubah `sale_items` asli.</div>
+                    <div class="text-muted small">Simpan sebagai draft return.</div>
                     <button type="submit" class="btn btn-primary">Save Draft Return</button>
                 </div>
             </div>

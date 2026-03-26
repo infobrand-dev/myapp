@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Sales Returns</h2>
-        <div class="text-muted small">Return disimpan sebagai transaksi baru yang mereferensikan sale asli. Histori sale asli tetap utuh dan immutable.</div>
+        <div class="text-muted small">Daftar retur penjualan.</div>
     </div>
     <a href="{{ route('sales.returns.create') }}" class="btn btn-primary">Create Sales Return</a>
 </div>
@@ -104,7 +104,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="7" class="text-center text-muted">Belum ada sales return.</td></tr>
+                    <tr><td colspan="7" class="text-center text-muted">Belum ada retur penjualan.</td></tr>
                 @endforelse
             </tbody>
         </table>

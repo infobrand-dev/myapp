@@ -3,8 +3,8 @@
 @section('content')
 <div class="mb-3">
     <h2 class="mb-0">Create Finance Transaction</h2>
-    <div class="text-muted small">Pencatatan cash flow operasional ringan, bukan pembukuan debit/credit.</div>
-    <div class="text-muted small">Company aktif: {{ $company?->name ?? 'No active company' }}</div>
+    <div class="text-muted small">Pencatatan kas masuk dan keluar.</div>
+    <div class="text-muted small">Company: {{ $company?->name ?? '-' }}</div>
 </div>
 
 @if($errors->any())

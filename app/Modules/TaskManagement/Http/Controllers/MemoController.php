@@ -66,7 +66,7 @@ class MemoController extends Controller
         ]);
         $this->syncTasks($memo, $tasksData, $request->user()->id);
 
-        return redirect()->route('memos.index')->with('status', 'Memo created');
+        return redirect()->route('memos.index')->with('status', 'Memo ditambahkan.');
     }
 
     public function show(Memo $memo): View
@@ -96,13 +96,13 @@ class MemoController extends Controller
         $memo->tasks()->delete();
         $this->syncTasks($memo, $tasksData, $request->user()->id);
 
-        return redirect()->route('memos.index')->with('status', 'Memo updated');
+        return redirect()->route('memos.index')->with('status', 'Memo diperbarui.');
     }
 
     public function destroy(Memo $memo): RedirectResponse
     {
         $memo->delete();
-        return back()->with('status', 'Memo deleted');
+        return back()->with('status', 'Memo dihapus.');
     }
 
     private function syncTasks(Memo $memo, array $tasksData, int $userId): void
@@ -131,13 +131,13 @@ class MemoController extends Controller
     public function updateTask(UpdateMemoTaskRequest $request, Task $task): RedirectResponse
     {
         $task->update($request->validated());
-        return back()->with('status', 'Task updated');
+        return back()->with('status', 'Tugas diperbarui.');
     }
 
     public function updateSubtask(UpdateMemoSubtaskRequest $request, Subtask $subtask): RedirectResponse
     {
         $subtask->update($request->validated());
-        return back()->with('status', 'Subtask updated');
+        return back()->with('status', 'Subtugas diperbarui.');
     }
 
     private function tenantId(): int

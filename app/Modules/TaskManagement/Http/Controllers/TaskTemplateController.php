@@ -60,7 +60,7 @@ class TaskTemplateController extends Controller
 
         $this->syncItems($template, $data['tasks'] ?? []);
 
-        return redirect()->route('tasktemplates.index')->with('status', 'Template created');
+        return redirect()->route('tasktemplates.index')->with('status', 'Template ditambahkan.');
     }
 
     public function edit(TaskTemplate $template): View
@@ -82,13 +82,13 @@ class TaskTemplateController extends Controller
         $template->items()->delete();
         $this->syncItems($template, $data['tasks'] ?? []);
 
-        return redirect()->route('tasktemplates.index')->with('status', 'Template updated');
+        return redirect()->route('tasktemplates.index')->with('status', 'Template diperbarui.');
     }
 
     public function destroy(TaskTemplate $template): RedirectResponse
     {
         $template->delete();
-        return back()->with('status', 'Template deleted');
+        return back()->with('status', 'Template dihapus.');
     }
 
     private function syncItems(TaskTemplate $template, array $tasks): void

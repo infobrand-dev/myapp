@@ -3,7 +3,7 @@
 @section('content')
 <div class="mb-3">
     <h2 class="mb-0">Receive Goods {{ $purchase->purchase_number }}</h2>
-    <div class="text-muted small">Posting receipt akan memicu stock-in ke Inventory untuk qty yang diterima.</div>
+    <div class="text-muted small">Catat penerimaan barang dari supplier.</div>
 </div>
 
 <form method="POST" action="{{ route('purchases.receipts.store', $purchase) }}">
@@ -46,7 +46,7 @@
                                 <tr>
                                     <td>
                                         <div class="fw-semibold">{{ $item->product_name_snapshot }}</div>
-                                        <div class="text-muted small">{{ $item->variant_name_snapshot ?: 'No variant' }}</div>
+                                        <div class="text-muted small">{{ $item->variant_name_snapshot ?: '-' }}</div>
                                         <input type="hidden" name="items[{{ $loop->index }}][purchase_item_id]" value="{{ $item->id }}">
                                     </td>
                                     <td>{{ number_format((float) $item->qty, 2, ',', '.') }}</td>
@@ -59,7 +59,7 @@
                     </table>
                 </div>
                 <div class="card-footer d-flex justify-content-between">
-                    <div class="text-muted small">Receiving tidak boleh melebihi quantity purchase. Partial receiving didukung.</div>
+                    <div class="text-muted small">Qty tidak boleh melebihi sisa purchase.</div>
                     <button type="submit" class="btn btn-success">Post Receipt</button>
                 </div>
             </div>

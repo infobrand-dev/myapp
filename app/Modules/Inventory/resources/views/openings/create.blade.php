@@ -3,7 +3,7 @@
 @section('content')
 <div class="mb-3">
     <h2 class="mb-0">Buat Opening Stock</h2>
-    <div class="text-muted small">Hanya gunakan untuk inisialisasi atau cut-off periode yang sah.</div>
+    <div class="text-muted small">Input stok awal per lokasi.</div>
 </div>
 
 @include('inventory::partials.document-form', [

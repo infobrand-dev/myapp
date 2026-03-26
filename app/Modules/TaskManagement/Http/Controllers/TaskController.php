@@ -42,7 +42,7 @@ class TaskController extends Controller
             ]);
         }
 
-        return back()->with('status', 'Task created');
+        return back()->with('status', 'Tugas ditambahkan.');
     }
 
     public function updateStatus(Task $task, UpdateTaskRequest $request): RedirectResponse
@@ -51,14 +51,14 @@ class TaskController extends Controller
 
         $task->update(['status' => $validated['status']]);
 
-        return back()->with('status', 'Task updated');
+        return back()->with('status', 'Tugas diperbarui.');
     }
 
     public function destroy(Task $task): RedirectResponse
     {
         $task->delete();
 
-        return back()->with('status', 'Task deleted');
+        return back()->with('status', 'Tugas dihapus.');
     }
 
     public function storeSubtask(Task $task, StoreSubtaskRequest $request): RedirectResponse
@@ -68,13 +68,13 @@ class TaskController extends Controller
             'status' => 'pending',
         ]);
 
-        return back()->with('status', 'Subtask added');
+        return back()->with('status', 'Subtugas ditambahkan.');
     }
 
     public function updateSubtaskStatus(Subtask $subtask, UpdateSubtaskStatusRequest $request): RedirectResponse
     {
         $subtask->update(['status' => $request->validated()['status']]);
 
-        return back()->with('status', 'Subtask updated');
+        return back()->with('status', 'Subtugas diperbarui.');
     }
 }

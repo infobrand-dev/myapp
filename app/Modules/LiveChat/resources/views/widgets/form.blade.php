@@ -5,7 +5,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">{{ $isEdit ? 'Edit Live Chat Widget' : 'Tambah Live Chat Widget' }}</h2>
-        <div class="text-muted small">Widget website ini akan memakai channel <code>live_chat</code> di conversations.</div>
+        <div class="text-muted small">Widget live chat untuk website.</div>
     </div>
     <a href="{{ route('live-chat.widgets.index') }}" class="btn btn-outline-secondary">Kembali</a>
 </div>
@@ -91,7 +91,7 @@
     <div class="card mt-3">
         <div class="card-body">
             <h3 class="card-title">Embed Script</h3>
-            <p class="text-muted small mb-2">Pasang snippet ini di website yang ingin menampilkan widget chat.</p>
+            <p class="text-muted small mb-2">Pasang snippet ini di website Anda.</p>
             <textarea class="form-control" rows="3" readonly>{{ $widget->embedCode() }}</textarea>
             <div class="form-hint mt-2">Token widget: <code>{{ $widget->widget_token }}</code></div>
         </div>

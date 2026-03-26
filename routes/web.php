@@ -21,6 +21,8 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+Route::post('locale/switch', [App\Http\Controllers\LocaleController::class, 'switch'])->name('locale.switch');
+
 Route::redirect('/', '/dashboard');
 
 // Health check — no auth, no session, no CSRF. Used by uptime monitors and load balancers.

@@ -4,11 +4,11 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Invoice {{ $sale->sale_number }}</h2>
-        <div class="text-muted small">View print sederhana untuk backoffice. Flow POS atau channel lain tetap mengarah ke transaksi Sales yang sama.</div>
+        <div class="text-muted small">Invoice penjualan.</div>
     </div>
     <div class="btn-list">
         <button type="button" class="btn btn-primary" onclick="window.print()">Print</button>
-        <a href="{{ route('sales.show', $sale) }}" class="btn btn-outline-secondary">Back</a>
+        <a href="{{ route('sales.show', $sale) }}" class="btn btn-outline-secondary">Kembali</a>
     </div>
 </div>
 

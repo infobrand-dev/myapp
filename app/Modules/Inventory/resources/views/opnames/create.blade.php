@@ -3,7 +3,7 @@
 @section('content')
 <div class="mb-3">
     <h2 class="mb-0">Buat Stock Opname</h2>
-    <div class="text-muted small">Pilih lokasi, tinjau stok sistem, lalu buat draft sesi opname untuk input stok fisik.</div>
+    <div class="text-muted small">Buat sesi opname stok fisik.</div>
 </div>
 
 @if($errors->any())

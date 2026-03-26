@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Voucher / Promo Codes</h2>
-        <div class="text-muted small">Voucher opsional per discount. Tidak semua discount harus punya voucher.</div>
+        <div class="text-muted small">Daftar voucher dan kode promo.</div>
     </div>
     <a href="{{ route('discounts.index') }}" class="btn btn-outline-secondary">Kembali ke Discounts</a>
 </div>

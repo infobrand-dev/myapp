@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Finance Categories</h2>
-        <div class="text-muted small">Category untuk cash in, cash out, dan expense operasional ringan.</div>
+        <div class="text-muted small">Kategori transaksi keuangan.</div>
     </div>
 </div>
 
@@ -73,14 +73,14 @@
                                         @if($category->transactions_count === 0)
                                             <form method="POST" action="{{ route('finance.categories.destroy', $category) }}">
                                                 @csrf @method('DELETE')
-                                                <button type="submit" class="btn btn-outline-danger btn-sm" data-confirm="Yakin ingin menghapus category ini?">Hapus</button>
+                                                <button type="submit" class="btn btn-outline-danger btn-sm" data-confirm="Hapus kategori ini?">Hapus</button>
                                             </form>
                                         @endif
                                     </div>
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="5" class="text-center text-muted">Belum ada category.</td></tr>
+                            <tr><td colspan="5" class="text-center text-muted">Belum ada kategori.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

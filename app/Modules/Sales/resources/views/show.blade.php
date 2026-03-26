@@ -24,7 +24,7 @@
             <a href="{{ route('pos.receipts.show', $sale) }}" class="btn btn-outline-dark">POS Receipt</a>
         @endif
         <a href="{{ route('sales.invoice', $sale) }}" class="btn btn-outline-primary">Print / Invoice</a>
-        <a href="{{ route('sales.index') }}" class="btn btn-outline-secondary">Back</a>
+        <a href="{{ route('sales.index') }}" class="btn btn-outline-secondary">Kembali</a>
     </div>
 </div>
 
@@ -49,7 +49,7 @@
                             <tr>
                                 <td>
                                     <div class="fw-semibold">{{ $item->product_name_snapshot }}</div>
-                                    <div class="text-muted small">{{ $item->variant_name_snapshot ?: 'No variant' }} | SKU: {{ $item->sku_snapshot ?: '-' }}</div>
+                                    <div class="text-muted small">{{ $item->variant_name_snapshot ?: '-' }} | SKU: {{ $item->sku_snapshot ?: '-' }}</div>
                                 </td>
                                 <td>{{ number_format((float) $item->qty, 2, ',', '.') }}</td>
                                 <td>Rp {{ number_format((float) $item->unit_price, 0, ',', '.') }}</td>
@@ -198,8 +198,8 @@
                         @csrf
                         <label class="form-label">Receipt reprint reason</label>
                         <textarea name="reason" class="form-control" rows="3" required minlength="10" placeholder="Contoh: Customer kehilangan struk original dan meminta duplikat."></textarea>
-                        <button type="submit" class="btn btn-outline-danger w-100 mt-2">Reprint POS Receipt</button>
-                        <div class="form-text">Hanya user dengan permission reprint yang dapat melihat aksi ini.</div>
+                        <button type="submit" class="btn btn-outline-danger w-100 mt-2">Reprint Struk</button>
+                        <div class="form-text">Hanya pengguna dengan izin reprint.</div>
                     </form>
                 @endif
 
@@ -276,9 +276,9 @@
 
                 @if($sale->status === 'finalized' && Route::has('payments.create'))
                     <div class="d-grid gap-2">
-                        <a href="{{ route('payments.create', ['sale_id' => $sale->id]) }}" class="btn btn-outline-primary">Add Payment via Payments Module</a>
+                        <a href="{{ route('payments.create', ['sale_id' => $sale->id]) }}" class="btn btn-outline-primary">Tambah Pembayaran</a>
                         @if((float) $sale->balance_due > 0)
-                            <div class="text-muted small">Gunakan tombol ini untuk mencatat pelunasan atau partial payment atas outstanding sale ini.</div>
+                            <div class="text-muted small">Catat pelunasan atau pembayaran parsial.</div>
                         @endif
                     </div>
                 @endif

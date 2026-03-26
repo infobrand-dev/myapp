@@ -156,7 +156,7 @@ class ShortlinkController extends Controller
         });
 
         return redirect()->route('shortlinks.index')
-            ->with('success', 'Shortlink berhasil dibuat.');
+            ->with('success', 'Shortlink dibuat.');
     }
 
     public function edit(Shortlink $shortlink)
@@ -179,7 +179,7 @@ class ShortlinkController extends Controller
         $shortlink->codes()->delete();
         $shortlink->delete();
 
-        return redirect()->route('shortlinks.index')->with('success', 'Shortlink berhasil dihapus.');
+        return redirect()->route('shortlinks.index')->with('success', 'Shortlink dihapus.');
     }
 
     public function update(UpdateShortlinkRequest $request, Shortlink $shortlink)
@@ -225,7 +225,7 @@ class ShortlinkController extends Controller
         });
 
         return redirect()->route('shortlinks.index')
-            ->with('success', 'Shortlink berhasil diperbarui.');
+            ->with('success', 'Shortlink diperbarui.');
     }
 
     protected function generateCodeSuggestion(): string

@@ -170,7 +170,7 @@ class WAFlowController extends Controller
 
             return redirect()
                 ->route('whatsapp-api.flows.edit', $flow)
-                ->with('status', 'Flow berhasil di-sync ke Meta.');
+                ->with('status', 'Flow di-sync ke Meta.');
         } catch (ValidationException $e) {
             $flow->update(['last_sync_error' => collect($e->errors())->flatten()->implode(' ')]);
             throw $e;
@@ -223,7 +223,7 @@ class WAFlowController extends Controller
 
             return redirect()
                 ->route('whatsapp-api.flows.edit', $flow)
-                ->with('status', 'Flow berhasil dipublish di Meta.');
+                ->with('status', 'Flow dipublish di Meta.');
         } catch (\Throwable $e) {
             return redirect()
                 ->route('whatsapp-api.flows.edit', $flow)

@@ -143,7 +143,7 @@ class FinanceTransactionController extends Controller
             ]);
         });
 
-        return redirect()->route('finance.transactions.show', $transaction)->with('status', 'Finance transaction berhasil dicatat.');
+        return redirect()->route('finance.transactions.show', $transaction)->with('status', 'Transaksi dicatat.');
     }
 
     public function show(FinanceTransaction $transaction): View
@@ -207,14 +207,14 @@ class FinanceTransactionController extends Controller
             ]);
         });
 
-        return redirect()->route('finance.transactions.show', $transaction)->with('success', 'Finance transaction berhasil diperbarui.');
+        return redirect()->route('finance.transactions.show', $transaction)->with('success', 'Transaksi diperbarui.');
     }
 
     public function destroy(FinanceTransaction $transaction): RedirectResponse
     {
         $transaction->delete();
 
-        return redirect()->route('finance.transactions.index')->with('success', 'Finance transaction berhasil dihapus.');
+        return redirect()->route('finance.transactions.index')->with('success', 'Transaksi dihapus.');
     }
 
     private function shiftEnabled(): bool

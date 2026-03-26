@@ -4,8 +4,8 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Finance Transactions</h2>
-        <div class="text-muted small">Cash in, cash out, dan expense operasional non-sales.</div>
-        <div class="text-muted small">Company aktif: {{ $company?->name ?? 'No active company' }}</div>
+        <div class="text-muted small">Kas masuk, kas keluar, dan pengeluaran operasional.</div>
+        <div class="text-muted small">Company: {{ $company?->name ?? '-' }}</div>
     </div>
     <a href="{{ route('finance.transactions.create') }}" class="btn btn-primary">Create Transaction</a>
 </div>
@@ -110,13 +110,13 @@
                                 <a href="{{ route('finance.transactions.edit', $transaction) }}" class="btn btn-outline-primary btn-sm">Edit</a>
                                 <form method="POST" action="{{ route('finance.transactions.destroy', $transaction) }}">
                                     @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-outline-danger btn-sm" data-confirm="Yakin ingin menghapus transaksi ini?">Hapus</button>
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" data-confirm="Hapus transaksi ini?">Hapus</button>
                                 </form>
                             </div>
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="{{ $shiftEnabled ? '9' : '8' }}" class="text-center text-muted">Belum ada finance transaction.</td></tr>
+                    <tr><td colspan="{{ $shiftEnabled ? '9' : '8' }}" class="text-center text-muted">Belum ada transaksi.</td></tr>
                 @endforelse
             </tbody>
         </table>

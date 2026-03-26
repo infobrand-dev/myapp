@@ -57,7 +57,7 @@ class ProductController extends Controller
     {
         $product = $this->productService->create($request->validated(), $request->user());
 
-        return redirect()->route('products.show', $product)->with('status', 'Produk berhasil ditambahkan.');
+        return redirect()->route('products.show', $product)->with('status', 'Produk ditambahkan.');
     }
 
     public function show(Product $product): View
@@ -77,7 +77,7 @@ class ProductController extends Controller
     {
         $product = $this->productService->update($product, $request->validated(), $request->user());
 
-        return redirect()->route('products.show', $product)->with('status', 'Produk berhasil diperbarui.');
+        return redirect()->route('products.show', $product)->with('status', 'Produk diperbarui.');
     }
 
     public function destroy(Product $product, Request $request): RedirectResponse
@@ -86,7 +86,7 @@ class ProductController extends Controller
 
         return redirect()
             ->route('products.index')
-            ->with('status', 'Produk di-soft delete. Permanent delete sengaja tidak diekspos dari UI.');
+            ->with('status', 'Produk dihapus.');
     }
 
     public function toggleStatus(Product $product): RedirectResponse
@@ -101,7 +101,7 @@ class ProductController extends Controller
         $data = $request->validated();
         $this->productService->bulkAction($data['product_ids'], $data['action'], $request->user());
 
-        return back()->with('status', 'Bulk action berhasil dijalankan.');
+        return back()->with('status', 'Aksi massal dijalankan.');
     }
 
     private function formViewData(Product $product): array

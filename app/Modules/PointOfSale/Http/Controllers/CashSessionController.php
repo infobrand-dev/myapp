@@ -50,7 +50,7 @@ class CashSessionController extends Controller
     {
         $session = $this->service->open($request->user(), $request->validated());
 
-        return redirect()->route('pos.shifts.show', $session)->with('status', 'Shift kasir berhasil dibuka.');
+        return redirect()->route('pos.shifts.show', $session)->with('status', 'Shift dibuka.');
     }
 
     public function show(PosCashSession $shift): View
@@ -83,7 +83,7 @@ class CashSessionController extends Controller
             return back()->withErrors($exception->errors());
         }
 
-        return back()->with('status', 'Shift berhasil ditutup.');
+        return back()->with('status', 'Shift ditutup.');
     }
 
     public function storeMovement(PosCashSession $shift, StoreCashSessionMovementRequest $request): RedirectResponse
@@ -94,6 +94,6 @@ class CashSessionController extends Controller
             return back()->withErrors($exception->errors());
         }
 
-        return back()->with('status', 'Cash movement berhasil dicatat.');
+        return back()->with('status', 'Cash movement dicatat.');
     }
 }

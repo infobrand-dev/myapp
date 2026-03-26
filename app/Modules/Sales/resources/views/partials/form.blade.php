@@ -142,7 +142,7 @@
                     </div>
                 </div>
                 <div class="card-footer d-flex justify-content-between">
-                    <div class="text-muted small">Server akan recalculate subtotal, discount, tax, dan grand total. Tidak ada stock mutation, cart POS, atau engine discount di module ini.</div>
+                    <div class="text-muted small">Total dihitung otomatis oleh server.</div>
                     <button type="submit" class="btn btn-primary">Save Draft</button>
                 </div>
             </div>

@@ -87,7 +87,7 @@ class PurchaseController extends Controller
     {
         $purchase = $this->createDraftPurchase->execute($request->validated(), $request->user());
 
-        return redirect()->route('purchases.show', $purchase)->with('status', 'Draft purchase berhasil dibuat.');
+        return redirect()->route('purchases.show', $purchase)->with('status', 'Draft pembelian dibuat.');
     }
 
     public function show(Purchase $purchase): View
@@ -114,7 +114,7 @@ class PurchaseController extends Controller
         $this->authorizeView($purchase);
         $purchase = $this->updateDraftPurchase->execute($purchase, $request->validated(), $request->user());
 
-        return redirect()->route('purchases.show', $purchase)->with('status', 'Draft purchase berhasil diperbarui.');
+        return redirect()->route('purchases.show', $purchase)->with('status', 'Draft diperbarui.');
     }
 
     public function finalize(FinalizePurchaseRequest $request, Purchase $purchase): RedirectResponse
@@ -122,7 +122,7 @@ class PurchaseController extends Controller
         $this->authorizeView($purchase);
         $purchase = $this->finalizePurchase->execute($purchase, $request->validated(), $request->user());
 
-        return redirect()->route('purchases.show', $purchase)->with('status', 'Purchase berhasil di-finalize.');
+        return redirect()->route('purchases.show', $purchase)->with('status', 'Pembelian difinalisasi.');
     }
 
     public function receive(Purchase $purchase): View
@@ -141,7 +141,7 @@ class PurchaseController extends Controller
         $this->authorizeView($purchase);
         $purchase = $this->receivePurchaseGoods->execute($purchase, $request->validated(), $request->user());
 
-        return redirect()->route('purchases.show', $purchase)->with('status', 'Receiving barang berhasil diposting.');
+        return redirect()->route('purchases.show', $purchase)->with('status', 'Penerimaan barang diposting.');
     }
 
     public function cancel(CancelDraftPurchaseRequest $request, Purchase $purchase): RedirectResponse
@@ -149,7 +149,7 @@ class PurchaseController extends Controller
         $this->authorizeView($purchase);
         $purchase = $this->cancelDraftPurchase->execute($purchase, $request->validated(), $request->user());
 
-        return redirect()->route('purchases.show', $purchase)->with('status', 'Draft purchase berhasil dibatalkan.');
+        return redirect()->route('purchases.show', $purchase)->with('status', 'Draft dibatalkan.');
     }
 
     public function void(VoidPurchaseRequest $request, Purchase $purchase): RedirectResponse
@@ -157,7 +157,7 @@ class PurchaseController extends Controller
         $this->authorizeView($purchase);
         $purchase = $this->voidPurchase->execute($purchase, $request->validated(), $request->user());
 
-        return redirect()->route('purchases.show', $purchase)->with('status', 'Purchase berhasil di-void.');
+        return redirect()->route('purchases.show', $purchase)->with('status', 'Pembelian di-void.');
     }
 
     public function print(Purchase $purchase): View

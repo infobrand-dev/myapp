@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Stock Adjustment</h2>
-        <div class="text-muted small">Penambahan atau pengurangan stok manual yang dapat diaudit.</div>
+        <div class="text-muted small">Koreksi stok manual yang dapat diaudit.</div>
     </div>
     <a href="{{ route('inventory.adjustments.create') }}" class="btn btn-primary">Buat Adjustment</a>
 </div>

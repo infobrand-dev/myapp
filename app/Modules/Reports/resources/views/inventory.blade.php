@@ -3,7 +3,7 @@
 @section('content')
 <div class="mb-3">
     <h2 class="mb-0">Inventory Reports</h2>
-    <div class="text-muted small">Stok, low stock, movement, adjustment, dan opname dibaca read-only dari module Inventory.</div>
+    <div class="text-muted small">Data stok dan mutasi dari modul Inventory.</div>
 </div>
 
 @include('reports::partials.nav')

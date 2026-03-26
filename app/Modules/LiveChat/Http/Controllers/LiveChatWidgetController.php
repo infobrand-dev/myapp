@@ -74,7 +74,7 @@ class LiveChatWidgetController extends Controller
     public function destroy(LiveChatWidget $widget): RedirectResponse
     {
         if ($widget->is_active) {
-            return back()->with('error', 'Nonaktifkan widget terlebih dahulu sebelum menghapus.');
+            return back()->with('error', 'Nonaktifkan widget sebelum menghapus.');
         }
 
         $widget->delete();

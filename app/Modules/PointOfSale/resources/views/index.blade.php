@@ -92,7 +92,7 @@
 
             <div class="pos-panel p-3">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div><div class="pos-section-title mb-1">Quick Products</div><div class="text-muted small">Typical fast-pick grid used at Indonesian cashier counters.</div></div>
+                    <div><div class="pos-section-title mb-1">Quick Products</div></div>
                     <button type="button" class="btn btn-outline-secondary btn-sm" @click="refreshWorkspace()">Refresh</button>
                 </div>
                 <div class="pos-grid">
@@ -116,7 +116,7 @@
             <div class="pos-cart-panel">
                 <div class="pos-panel p-3 mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div><div class="pos-section-title mb-1">Customer</div><div class="text-muted small">Walk-in by default, selectable for member or regular customer.</div></div>
+                        <div><div class="pos-section-title mb-1">Customer</div></div>
                         <button type="button" class="btn btn-outline-secondary btn-sm" @click="customerQuery=''; searchCustomers()">Browse</button>
                     </div>
                     <div class="input-group mb-3">
@@ -137,7 +137,7 @@
 
                 <div class="pos-panel p-3 mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div><div class="pos-section-title mb-1">Active Cart</div><div class="text-muted small">Right-side cart with sticky totals.</div></div>
+                        <div><div class="pos-section-title mb-1">Active Cart</div></div>
                         <span class="badge bg-orange-lt text-orange" x-text="cart.totals.item_count + ' Lines'"></span>
                     </div>
                     <div class="d-grid gap-2" style="max-height: 360px; overflow:auto;">
@@ -236,7 +236,7 @@
                         <button type="button" class="btn btn-outline-secondary btn-sm" @click="loadHeldCarts()">Reload</button>
                     </div>
                     <div class="d-grid gap-2">
-                        <template x-if="heldCarts.length === 0"><div class="text-muted small">No held carts.</div></template>
+                        <template x-if="heldCarts.length === 0"><div class="text-muted small">Tidak ada cart yang ditahan.</div></template>
                         <template x-for="held in heldCarts" :key="held.id">
                             <button type="button" class="pos-held-item w-100 text-start" @click="resumeHeldCart(held)">
                                 <div class="d-flex justify-content-between">

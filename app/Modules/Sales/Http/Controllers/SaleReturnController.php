@@ -77,7 +77,7 @@ class SaleReturnController extends Controller
     {
         $saleReturn = $this->createSalesReturn->execute($request->validated(), $request->user());
 
-        return redirect()->route('sales.returns.show', $saleReturn)->with('status', 'Draft sales return berhasil dibuat.');
+        return redirect()->route('sales.returns.show', $saleReturn)->with('status', 'Draft retur dibuat.');
     }
 
     public function show(SaleReturn $saleReturn): View
@@ -101,14 +101,14 @@ class SaleReturnController extends Controller
     {
         $saleReturn = $this->finalizeSalesReturn->execute($saleReturn, $request->user());
 
-        return redirect()->route('sales.returns.show', $saleReturn)->with('status', 'Sales return berhasil di-finalize.');
+        return redirect()->route('sales.returns.show', $saleReturn)->with('status', 'Retur difinalisasi.');
     }
 
     public function cancel(CancelDraftReturnRequest $request, SaleReturn $saleReturn): RedirectResponse
     {
         $saleReturn = $this->cancelDraftReturn->execute($saleReturn, $request->validated()['reason'] ?? null, $request->user());
 
-        return redirect()->route('sales.returns.show', $saleReturn)->with('status', 'Draft sales return berhasil dibatalkan.');
+        return redirect()->route('sales.returns.show', $saleReturn)->with('status', 'Draft retur dibatalkan.');
     }
 
     public function print(SaleReturn $saleReturn): View

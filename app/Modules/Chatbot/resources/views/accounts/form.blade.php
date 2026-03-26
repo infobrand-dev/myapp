@@ -5,7 +5,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">{{ $isEdit ? 'Edit' : 'Tambah' }} Chatbot Account</h2>
-        <div class="text-muted small">Set credentials OpenAI untuk auto-reply Conversations, WA API, Social DM.</div>
+        <div class="text-muted small">Set kredensial AI untuk auto-reply.</div>
     </div>
     <a href="{{ route('chatbot.accounts.index') }}" class="btn btn-outline-secondary">Kembali</a>
 </div>

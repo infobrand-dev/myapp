@@ -4,11 +4,11 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Return Note {{ $saleReturn->return_number }}</h2>
-        <div class="text-muted small">Print view untuk dokumen sales return. Sale asli tetap direferensikan tanpa diubah.</div>
+        <div class="text-muted small">Dokumen retur penjualan.</div>
     </div>
     <div class="btn-list">
         <button type="button" class="btn btn-primary" onclick="window.print()">Print</button>
-        <a href="{{ route('sales.returns.show', $saleReturn) }}" class="btn btn-outline-secondary">Back</a>
+        <a href="{{ route('sales.returns.show', $saleReturn) }}" class="btn btn-outline-secondary">Kembali</a>
     </div>
 </div>
 

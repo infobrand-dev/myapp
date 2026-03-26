@@ -83,11 +83,11 @@ class PaymentMethodController extends Controller
     public function destroy(PaymentMethod $method): RedirectResponse
     {
         if ($method->is_system) {
-            return back()->with('error', 'Payment method sistem tidak bisa dihapus.');
+            return back()->with('error', 'Metode sistem tidak bisa dihapus.');
         }
 
         if ($method->payments()->exists()) {
-            return back()->with('error', 'Payment method tidak bisa dihapus karena sudah digunakan pada transaksi.');
+            return back()->with('error', 'Tidak bisa dihapus — sudah digunakan pada transaksi.');
         }
 
         $method->delete();

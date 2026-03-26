@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Discounts</h2>
-        <div class="text-muted small">Rule promo, voucher, dan evaluasi discount dipusatkan di module ini. Products tetap menjadi master data dan base pricing.</div>
+        <div class="text-muted small">Kelola promo, voucher, dan aturan diskon.</div>
     </div>
     <a href="{{ route('discounts.create') }}" class="btn btn-primary">Buat Discount</a>
 </div>
@@ -87,13 +87,13 @@
                                 <a href="{{ route('discounts.edit', $discount) }}" class="btn btn-icon btn-outline-secondary" title="Edit"><i class="ti ti-edit"></i></a>
                                 <form method="POST" action="{{ route('discounts.archive', $discount) }}">
                                     @csrf
-                                    <button class="btn btn-icon btn-outline-danger" title="Archive" data-confirm="Arsipkan discount ini?"><i class="ti ti-archive"></i></button>
+                                    <button class="btn btn-icon btn-outline-danger" title="Archive" data-confirm="Arsipkan diskon ini?"><i class="ti ti-archive"></i></button>
                                 </form>
                             </div>
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="7" class="text-center text-muted">Belum ada discount.</td></tr>
+                    <tr><td colspan="7" class="text-center text-muted">Belum ada diskon.</td></tr>
                 @endforelse
             </tbody>
         </table>

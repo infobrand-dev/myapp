@@ -39,7 +39,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="4" class="text-muted">Belum ada dokumen knowledge.</td></tr>
+                    <tr><td colspan="4" class="text-muted">Belum ada dokumen.</td></tr>
                 @endforelse
             </tbody>
         </table>

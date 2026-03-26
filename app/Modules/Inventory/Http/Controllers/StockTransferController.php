@@ -49,7 +49,7 @@ class StockTransferController extends Controller
     {
         $transfer = $action->execute($request->validated(), $request->user());
 
-        return redirect()->route('inventory.transfers.show', $transfer)->with('status', "Transfer {$transfer->code} berhasil dibuat.");
+        return redirect()->route('inventory.transfers.show', $transfer)->with('status', "Transfer {$transfer->code} dibuat.");
     }
 
     public function show(StockTransfer $transfer): View
@@ -63,20 +63,20 @@ class StockTransferController extends Controller
     {
         $action->execute($transfer, request()->user());
 
-        return back()->with('status', 'Transfer berhasil di-approve.');
+        return back()->with('status', 'Transfer disetujui.');
     }
 
     public function send(StockTransfer $transfer, SendStockTransferAction $action): RedirectResponse
     {
         $action->execute($transfer, request()->user());
 
-        return back()->with('status', 'Transfer berhasil dikirim dan stok asal dikurangi.');
+        return back()->with('status', 'Transfer dikirim dan stok dikurangi.');
     }
 
     public function receive(StockTransfer $transfer, ReceiveStockTransferAction $action): RedirectResponse
     {
         $action->execute($transfer, request()->user());
 
-        return back()->with('status', 'Transfer berhasil diterima dan stok tujuan ditambah.');
+        return back()->with('status', 'Transfer diterima dan stok bertambah.');
     }
 }

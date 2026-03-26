@@ -203,7 +203,7 @@ HTML;
 
         if ($action === 'send') {
             if ($contactIds->isEmpty()) {
-                return back()->withInput()->with('status', 'Pilih minimal satu penerima dari Contacts.');
+                return back()->withInput()->with('status', 'Pilih minimal satu penerima.');
             }
             $recipients = $this->syncRecipients($campaign, $contactIds, sendNow: false, markPending: true);
             foreach ($recipients as $recipient) {
@@ -214,12 +214,12 @@ HTML;
                 'started_at' => Carbon::now(),
                 'scheduled_at' => null,
             ]);
-            return redirect()->route('email-marketing.index')->with('status', 'Email dikirim sekarang ke ' . $contactIds->count() . ' kontak (queued).');
+            return redirect()->route('email-marketing.index')->with('status', 'Email dikirim ke ' . $contactIds->count() . ' kontak.');
         }
 
         if ($action === 'schedule') {
             if ($contactIds->isEmpty()) {
-                return back()->withInput()->with('status', 'Pilih minimal satu penerima dari Contacts.');
+                return back()->withInput()->with('status', 'Pilih minimal satu penerima.');
             }
             $scheduledAt = Carbon::parse($data['scheduled_at']);
             $recipients = $this->syncRecipients($campaign, $contactIds, sendNow: false, markPending: true);
@@ -231,7 +231,7 @@ HTML;
                 'started_at' => null,
                 'scheduled_at' => $scheduledAt,
             ]);
-            return redirect()->route('email-marketing.index')->with('status', 'Campaign dijadwalkan pada ' . $scheduledAt->format('d M Y H:i') . ' (queued).');
+            return redirect()->route('email-marketing.index')->with('status', 'Campaign dijadwalkan: ' . $scheduledAt->format('d M Y H:i') . '.');
         }
 
         // save draft
@@ -266,7 +266,7 @@ HTML;
 
         if ($action === 'send') {
             if ($contactIds->isEmpty()) {
-                return back()->withInput()->with('status', 'Pilih minimal satu penerima dari Contacts.');
+                return back()->withInput()->with('status', 'Pilih minimal satu penerima.');
             }
             $recipients = $this->syncRecipients($campaign, $contactIds, sendNow: false, markPending: true);
             foreach ($recipients as $recipient) {
@@ -279,12 +279,12 @@ HTML;
                 'scheduled_at' => null,
             ]);
 
-            return redirect()->route('email-marketing.index')->with('status', 'Email dikirim sekarang ke ' . $contactIds->count() . ' kontak (queued).');
+            return redirect()->route('email-marketing.index')->with('status', 'Email dikirim ke ' . $contactIds->count() . ' kontak.');
         }
 
         if ($action === 'schedule') {
             if ($contactIds->isEmpty()) {
-                return back()->withInput()->with('status', 'Pilih minimal satu penerima dari Contacts.');
+                return back()->withInput()->with('status', 'Pilih minimal satu penerima.');
             }
             $scheduledAt = Carbon::parse($data['scheduled_at']);
             $recipients = $this->syncRecipients($campaign, $contactIds, sendNow: false, markPending: true);
@@ -298,7 +298,7 @@ HTML;
                 'scheduled_at' => $scheduledAt,
             ]);
 
-            return redirect()->route('email-marketing.index')->with('status', 'Campaign dijadwalkan pada ' . $scheduledAt->format('d M Y H:i') . ' (queued).');
+            return redirect()->route('email-marketing.index')->with('status', 'Campaign dijadwalkan: ' . $scheduledAt->format('d M Y H:i') . '.');
         }
 
         // default save draft

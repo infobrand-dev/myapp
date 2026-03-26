@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Purchases</h2>
-        <div class="text-muted small">Source of truth transaksi pembelian supplier, termasuk draft, finalize, dan receiving parsial.</div>
+        <div class="text-muted small">Daftar transaksi pembelian dari supplier.</div>
     </div>
     <a href="{{ route('purchases.create') }}" class="btn btn-primary">Create Purchase</a>
 </div>
@@ -64,7 +64,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="text-center text-muted">Belum ada purchase.</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted">Belum ada pembelian.</td></tr>
                 @endforelse
             </tbody>
         </table>

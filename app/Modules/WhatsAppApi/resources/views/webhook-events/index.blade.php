@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">WhatsApp Webhook Events</h2>
-        <div class="text-muted small">Pantau webhook gagal, signature issue, dan reprocess event yang aman.</div>
+        <div class="text-muted small">Pantau dan proses ulang webhook yang gagal.</div>
     </div>
     <div class="d-flex gap-2">
         <a href="{{ route('whatsapp-api.logs.index') }}" class="btn btn-outline-secondary">Message Logs</a>

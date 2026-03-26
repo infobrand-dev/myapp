@@ -82,7 +82,7 @@ class SaleController extends Controller
     {
         $sale = $this->createDraftSale->execute($request->validated(), $request->user());
 
-        return redirect()->route('sales.show', $sale)->with('status', 'Draft sale berhasil dibuat.');
+        return redirect()->route('sales.show', $sale)->with('status', 'Draft penjualan dibuat.');
     }
 
     public function show(Sale $sale): View
@@ -109,28 +109,28 @@ class SaleController extends Controller
     {
         $sale = $this->updateDraftSale->execute($sale, $request->validated(), $request->user());
 
-        return redirect()->route('sales.show', $sale)->with('status', 'Draft sale berhasil diperbarui.');
+        return redirect()->route('sales.show', $sale)->with('status', 'Draft diperbarui.');
     }
 
     public function finalize(FinalizeSaleRequest $request, Sale $sale): RedirectResponse
     {
         $sale = $this->finalizeSale->execute($sale, $request->validated(), $request->user());
 
-        return redirect()->route('sales.show', $sale)->with('status', 'Sale berhasil di-finalize.');
+        return redirect()->route('sales.show', $sale)->with('status', 'Penjualan difinalisasi.');
     }
 
     public function void(VoidSaleRequest $request, Sale $sale): RedirectResponse
     {
         $sale = $this->voidSale->execute($sale, $request->validated(), $request->user());
 
-        return redirect()->route('sales.show', $sale)->with('status', 'Sale berhasil di-void.');
+        return redirect()->route('sales.show', $sale)->with('status', 'Penjualan di-void.');
     }
 
     public function cancel(CancelDraftSaleRequest $request, Sale $sale): RedirectResponse
     {
         $sale = $this->cancelDraftSale->execute($sale, $request->validated(), $request->user());
 
-        return redirect()->route('sales.show', $sale)->with('status', 'Draft sale berhasil dibatalkan.');
+        return redirect()->route('sales.show', $sale)->with('status', 'Draft dibatalkan.');
     }
 
     public function invoice(Sale $sale): View

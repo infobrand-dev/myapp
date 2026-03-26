@@ -139,7 +139,7 @@ class ConversationController extends Controller
             ['role' => 'owner', 'invited_at' => $now, 'invited_by' => $user->id]
         );
 
-        return back()->with('status', 'Percakapan berhasil diklaim.');
+        return back()->with('status', 'Percakapan diklaim.');
     }
 
     public function release(Request $request, Conversation $conversation): RedirectResponse

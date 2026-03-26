@@ -76,7 +76,7 @@ class SocialMediaController extends Controller
             'metadata' => $metadata,
         ]);
 
-        return back()->with('status', 'Bot dilanjutkan untuk conversation social ini.');
+        return back()->with('status', 'Bot dilanjutkan.');
     }
 
     public function pauseBot(Conversation $conversation): RedirectResponse
@@ -94,7 +94,7 @@ class SocialMediaController extends Controller
             'metadata' => $metadata,
         ]);
 
-        return back()->with('status', 'Bot dipause untuk conversation social ini.');
+        return back()->with('status', 'Bot dipause.');
     }
 
     private function authorizeBotControl(Conversation $conversation): void

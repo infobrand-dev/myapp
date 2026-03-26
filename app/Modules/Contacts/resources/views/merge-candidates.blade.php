@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Merge Contacts</h2>
-        <div class="text-muted small">Deteksi kandidat duplikat berdasarkan nomor telepon/mobile atau email yang sama.</div>
+        <div class="text-muted small">Kontak duplikat berdasarkan nomor atau email yang sama.</div>
     </div>
     <a href="{{ route('contacts.index') }}" class="btn btn-outline-secondary">Kembali</a>
 </div>
@@ -35,7 +35,7 @@
         <div class="card-header">
             <div>
                 <h3 class="card-title mb-1">{{ $group['match_label'] }} cocok: {{ $group['match_value'] }}</h3>
-                <div class="text-muted small">{{ $contacts->count() }} contact terdeteksi dalam grup ini. Pilih satu contact utama lalu merge sisanya.</div>
+                <div class="text-muted small">{{ $contacts->count() }} kontak. Pilih satu utama lalu gabungkan sisanya.</div>
             </div>
         </div>
         <div class="card-body">
@@ -96,9 +96,9 @@
                 </div>
                 <div class="d-flex justify-content-between align-items-center mt-3">
                     <div class="text-muted small">
-                        Nilai utama dipertahankan. Field kosong akan diisi dari contact lain, catatan digabung, dan relasi contact dipindahkan ke record utama.
+                        Data utama dipertahankan. Field kosong diisi dari kontak lain.
                     </div>
-                    <button type="submit" class="btn btn-warning" data-confirm="Gabungkan contact yang dipilih ke contact utama?">Merge Grup Ini</button>
+                    <button type="submit" class="btn btn-warning" data-confirm="Gabungkan kontak yang dipilih?">Merge Grup Ini</button>
                 </div>
             </form>
         </div>
@@ -106,7 +106,7 @@
 @empty
     <div class="card">
         <div class="card-body text-muted">
-            Tidak ada kandidat merge berdasarkan nomor atau email yang sama.
+            Tidak ada kontak duplikat ditemukan.
         </div>
     </div>
 @endforelse

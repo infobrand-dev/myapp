@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Payments</h2>
-        <div class="text-muted small">Workspace pembayaran lintas transaksi, receiver, dan source.</div>
+        <div class="text-muted small">Daftar pembayaran masuk dan keluar.</div>
     </div>
     <div class="btn-list">
         @can('payments.create')
@@ -25,7 +25,7 @@
         <form method="GET" class="row g-3">
             <div class="col-md-3">
                 <label class="form-label">Search</label>
-                <input type="text" name="search" class="form-control" value="{{ $filters['search'] ?? '' }}" placeholder="Payment / reference / sale">
+                <input type="text" name="search" class="form-control" value="{{ $filters['search'] ?? '' }}" placeholder="Pembayaran / referensi">
             </div>
             <div class="col-md-2">
                 <label class="form-label">Status</label>
@@ -130,7 +130,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="text-center text-muted">Belum ada payment.</td>
+                        <td colspan="8" class="text-center text-muted">Belum ada pembayaran.</td>
                     </tr>
                 @endforelse
             </tbody>

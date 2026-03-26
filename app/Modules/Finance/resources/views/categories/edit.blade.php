@@ -3,7 +3,7 @@
 @section('content')
 <div class="mb-3">
     <h2 class="mb-0">Edit Finance Category</h2>
-    <div class="text-muted small">Aktif/nonaktif category tanpa mengubah histori transaksi lama.</div>
+    <div class="text-muted small">Edit kategori transaksi keuangan.</div>
 </div>
 
 @if($errors->any())

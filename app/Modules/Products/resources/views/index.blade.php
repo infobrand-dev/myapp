@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Products</h2>
-        <div class="text-muted small">Master produk dengan harga dasar, varian, barcode, SKU, dan konfigurasi stockable. Stok dikelola di Inventory, sedangkan promo dan voucher dikelola di module Discounts.</div>
+        <div class="text-muted small">Master produk dengan harga, varian, dan barcode.</div>
     </div>
     <a href="{{ route('products.create') }}" class="btn btn-primary">Tambah Product</a>
 </div>
@@ -63,7 +63,7 @@
     @csrf
     <div class="card">
         <div class="card-header d-flex flex-column flex-md-row gap-2 justify-content-between">
-            <div class="text-muted small">Bulk action hanya melakukan aktivasi, nonaktifkan, atau soft delete.</div>
+            <div class="text-muted small">Pilih produk lalu terapkan aksi massal.</div>
             <div class="d-flex gap-2">
                 <select name="action" class="form-select" style="min-width: 180px;">
                     <option value="">Pilih action</option>
@@ -129,7 +129,7 @@
                                     <form method="POST" action="{{ route('products.destroy', $product) }}">
                                         @csrf
                                         @method('DELETE')
-                                        <button class="btn btn-icon btn-outline-danger" title="Delete" data-confirm="Soft delete product ini?">
+                                        <button class="btn btn-icon btn-outline-danger" title="Delete" data-confirm="Hapus produk ini?">
                                             <i class="ti ti-trash"></i>
                                         </button>
                                     </form>
@@ -138,7 +138,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center text-muted">Belum ada product.</td>
+                            <td colspan="7" class="text-center text-muted">Belum ada produk.</td>
                         </tr>
                     @endforelse
                 </tbody>

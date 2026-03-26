@@ -3,7 +3,7 @@
 @section('content')
 <div class="mb-3">
     <h2 class="mb-0">Sales Reports</h2>
-    <div class="text-muted small">Summary penjualan finalized berdasarkan tanggal, produk, customer, dan cashier pada company/branch context aktif.</div>
+    <div class="text-muted small">Ringkasan transaksi penjualan.</div>
 </div>
 
 @include('reports::partials.nav')

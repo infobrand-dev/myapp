@@ -122,7 +122,7 @@
                     <div class="col-md-3"><label class="form-label">Harga member default</label><input type="number" step="0.01" min="0" name="member_price" class="form-control" value="{{ old('member_price', $product->member_price) }}"></div>
                     <div class="col-12">
                         <div class="text-muted small">
-                            Harga grosir/member di sini tetap tersimpan sebagai `product_prices` level `wholesale` dan `member`. Promo sementara, voucher, bundling, dan campaign diskon tidak disimpan di Products.
+                            Harga grosir/member tersimpan sebagai level harga standar. Promo sementara dikelola di Discounts.
                         </div>
                     </div>
                 </div>
@@ -158,7 +158,7 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <div>
                         <h3 class="card-title">Varian Produk</h3>
-                        <div class="text-muted small">Format atribut: `Ukuran:M|Warna:Merah`.</div>
+                        <div class="text-muted small">Format: Ukuran:M|Warna:Merah</div>
                     </div>
                     <button type="button" class="btn btn-outline-primary btn-sm" id="add-variant-row">Tambah variant</button>
                 </div>
@@ -205,7 +205,7 @@
                     <div class="col-12" id="track-stock-wrapper"><div class="form-check"><input type="hidden" name="track_stock" value="0"><input class="form-check-input" type="checkbox" name="track_stock" value="1" @checked((bool) old('track_stock', $product->track_stock))><label class="form-check-label">Track stock</label></div></div>
                     <div class="col-12">
                         <div class="alert alert-secondary mb-0">
-                            Stok, minimum stock, opening stock, adjustment, transfer, dan histori mutasi dikelola di Inventory. Promo, voucher, campaign discount, dan rule evaluasi transaksi dikelola di Discounts.
+                            Stok dikelola di Inventory. Promo dan voucher dikelola di Discounts.
                         </div>
                     </div>
                     <div class="col-12"><label class="form-label">Featured image</label><input type="file" name="featured_image" class="form-control" accept="image/*"></div>

@@ -17,7 +17,7 @@ class ConversationBotController extends Controller
 
         $manager->pause($conversation, 'manual_pause');
 
-        return back()->with('status', 'AI bot dipause untuk conversation ini.');
+        return back()->with('status', 'AI bot dipause.');
     }
 
     public function resume(Conversation $conversation, ConversationBotManager $manager): RedirectResponse
@@ -27,7 +27,7 @@ class ConversationBotController extends Controller
 
         $manager->resume($conversation);
 
-        return back()->with('status', 'AI bot dilanjutkan untuk conversation ini.');
+        return back()->with('status', 'AI bot dilanjutkan.');
     }
 
     private function authorizeBotControl(Conversation $conversation): void

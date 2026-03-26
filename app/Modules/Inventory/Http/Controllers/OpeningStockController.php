@@ -46,6 +46,6 @@ class OpeningStockController extends Controller
     {
         $opening = $action->execute($request->validated(), $request->user());
 
-        return redirect()->route('inventory.openings.index')->with('status', "Opening stock {$opening->code} berhasil diposting.");
+        return redirect()->route('inventory.openings.index')->with('status', "Stok awal {$opening->code} diposting.");
     }
 }

@@ -405,7 +405,7 @@ class ConversationHubController extends Controller
             return back()->with('status', 'Percakapan sedang diklaim orang lain.');
         }
 
-        return back()->with('status', 'Percakapan berhasil diklaim.');
+        return back()->with('status', 'Percakapan diklaim.');
     }
 
     public function release(Request $request, Conversation $conversation): RedirectResponse
@@ -413,7 +413,7 @@ class ConversationHubController extends Controller
         $user = $request->user();
 
         if ($conversation->owner_id && $conversation->owner_id !== $user->id && !$user->hasRole('Super-admin')) {
-            return back()->with('status', 'Hanya pemilik atau super-admin yang dapat merilis.');
+            return back()->with('status', 'Tidak ada izin untuk merilis.');
         }
 
         $conversation->update([
@@ -432,7 +432,7 @@ class ConversationHubController extends Controller
         $user = $request->user();
 
         if ($conversation->owner_id !== $user->id && !$user->hasRole('Super-admin')) {
-            return back()->with('status', 'Hanya pemilik atau super-admin yang dapat mengundang.');
+            return back()->with('status', 'Tidak ada izin untuk mengundang.');
         }
 
         $data = $request->validated();
@@ -468,7 +468,7 @@ class ConversationHubController extends Controller
         $this->authorizeParticipant($conversation, $user);
 
         if ($conversation->channel !== 'live_chat') {
-            return back()->with('status', 'Close manual saat ini hanya tersedia untuk live chat.');
+            return back()->with('status', 'Close hanya tersedia untuk live chat.');
         }
 
         $conversation->update([
@@ -490,7 +490,7 @@ class ConversationHubController extends Controller
         $this->authorizeParticipant($conversation, $user);
 
         if ($conversation->channel !== 'live_chat') {
-            return back()->with('status', 'Reopen manual saat ini hanya tersedia untuk live chat.');
+            return back()->with('status', 'Reopen hanya tersedia untuk live chat.');
         }
 
         $metadata = $conversation->metadata ?? [];
@@ -513,7 +513,7 @@ class ConversationHubController extends Controller
 
         $contact = $this->findRelatedContact($conversation);
         if (!$contact) {
-            return back()->with('status', 'Contact terkait tidak ditemukan.');
+            return back()->with('status', 'Kontak terkait tidak ditemukan.');
         }
 
         $data = $request->validated();
@@ -524,7 +524,7 @@ class ConversationHubController extends Controller
 
         $this->log($conversation, $user->id, 'update_contact_note', "Update notes untuk contact {$contact->id}");
 
-        return back()->with('status', 'Catatan contact diperbarui.');
+        return back()->with('status', 'Catatan kontak diperbarui.');
     }
 
     public function send(SendConversationMessageRequest $request, Conversation $conversation): RedirectResponse|JsonResponse

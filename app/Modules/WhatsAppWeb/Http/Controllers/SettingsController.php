@@ -55,6 +55,6 @@ class SettingsController extends Controller
 
         return redirect()
             ->route('whatsappweb.settings.edit')
-            ->with('status', 'Settings WhatsApp Web berhasil disimpan.');
+            ->with('status', 'Settings WhatsApp Web disimpan.');
     }
 }

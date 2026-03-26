@@ -45,7 +45,7 @@ class FinanceCategoryController extends Controller
             ]);
         });
 
-        return redirect()->route('finance.categories.index')->with('status', 'Finance category berhasil dibuat.');
+        return redirect()->route('finance.categories.index')->with('status', 'Kategori ditambahkan.');
     }
 
     public function edit(FinanceCategory $category): View
@@ -68,18 +68,18 @@ class FinanceCategoryController extends Controller
             ]);
         });
 
-        return redirect()->route('finance.categories.index')->with('status', 'Finance category berhasil diperbarui.');
+        return redirect()->route('finance.categories.index')->with('status', 'Kategori diperbarui.');
     }
 
     public function destroy(FinanceCategory $category): RedirectResponse
     {
         if ($category->transactions()->count() > 0) {
-            return redirect()->route('finance.categories.index')->with('error', 'Category tidak dapat dihapus karena masih digunakan oleh transaksi.');
+            return redirect()->route('finance.categories.index')->with('error', 'Tidak bisa dihapus — kategori masih digunakan.');
         }
 
         $category->delete();
 
-        return redirect()->route('finance.categories.index')->with('success', 'Finance category berhasil dihapus.');
+        return redirect()->route('finance.categories.index')->with('success', 'Kategori dihapus.');
     }
 
     private function typeOptions(): array

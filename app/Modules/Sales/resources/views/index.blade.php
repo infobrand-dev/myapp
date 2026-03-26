@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Sales</h2>
-        <div class="text-muted small">Source of truth transaksi penjualan dari manual entry, POS, online, dan channel integrasi lainnya.</div>
+        <div class="text-muted small">Daftar transaksi penjualan.</div>
     </div>
     <a href="{{ route('sales.create') }}" class="btn btn-primary">Create Sale</a>
 </div>
@@ -70,7 +70,7 @@
 
 <div class="card">
     <div class="card-header">
-        <div class="text-muted small">Boundary: stock tetap di Inventory, rule diskon di Discounts, master customer di Contacts, dan master produk di Products.</div>
+        <div class="text-muted small"></div>
     </div>
     <div class="table-responsive">
         <table class="table table-vcenter">
@@ -120,7 +120,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="7" class="text-center text-muted">Belum ada sales.</td></tr>
+                    <tr><td colspan="7" class="text-center text-muted">Belum ada penjualan.</td></tr>
                 @endforelse
             </tbody>
         </table>

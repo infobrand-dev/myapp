@@ -52,7 +52,7 @@
                                     <td>Rp {{ number_format((float) $price->price, 0, ',', '.') }}</td>
                                 </tr>
                             @empty
-                                <tr><td colspan="3" class="text-center text-muted">Belum ada multi price level tambahan.</td></tr>
+                                <tr><td colspan="3" class="text-center text-muted">Belum ada price level tambahan.</td></tr>
                             @endforelse
                         </tbody>
                     </table>

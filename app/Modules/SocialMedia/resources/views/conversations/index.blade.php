@@ -52,7 +52,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-4">Belum ada percakapan. Hubungkan akun social media untuk mulai menerima pesan.</td>
+                        <td colspan="6" class="text-center text-muted py-4">Belum ada percakapan.</td>
                     </tr>
                 @endforelse
             </tbody>

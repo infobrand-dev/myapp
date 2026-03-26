@@ -29,6 +29,7 @@ class User extends Authenticatable
         'email',
         'password',
         'avatar',
+        'locale',
         'two_factor_secret',
         'two_factor_recovery_codes',
     ];

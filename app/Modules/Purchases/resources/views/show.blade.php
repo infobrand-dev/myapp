@@ -15,7 +15,7 @@
             <a href="{{ route('purchases.receive', $purchase) }}" class="btn btn-outline-success">Receive Goods</a>
         @endif
         <a href="{{ route('purchases.print', $purchase) }}" class="btn btn-outline-primary">Print</a>
-        <a href="{{ route('purchases.index') }}" class="btn btn-outline-secondary">Back</a>
+        <a href="{{ route('purchases.index') }}" class="btn btn-outline-secondary">Kembali</a>
     </div>
 </div>
 
@@ -29,7 +29,7 @@
                     <tbody>
                     @foreach($purchase->items as $item)
                         <tr>
-                            <td><div class="fw-semibold">{{ $item->product_name_snapshot }}</div><div class="text-muted small">{{ $item->variant_name_snapshot ?: 'No variant' }} | SKU: {{ $item->sku_snapshot ?: '-' }}</div></td>
+                            <td><div class="fw-semibold">{{ $item->product_name_snapshot }}</div><div class="text-muted small">{{ $item->variant_name_snapshot ?: '-' }} | SKU: {{ $item->sku_snapshot ?: '-' }}</div></td>
                             <td>{{ number_format((float) $item->qty, 2, ',', '.') }}</td>
                             <td>{{ number_format((float) $item->qty_received, 2, ',', '.') }}</td>
                             <td>Rp {{ number_format((float) $item->unit_cost, 0, ',', '.') }}</td>
@@ -92,7 +92,7 @@
                     <div class="text-muted mb-3">Belum ada payment tercatat.</div>
                 @endif
                 @if($purchase->status !== 'draft' && Route::has('payments.create'))
-                    <a href="{{ route('payments.create', ['purchase_id' => $purchase->id]) }}" class="btn btn-outline-primary w-100">Add Payment via Payments</a>
+                    <a href="{{ route('payments.create', ['purchase_id' => $purchase->id]) }}" class="btn btn-outline-primary w-100">Tambah Pembayaran</a>
                 @endif
             </div>
         </div>

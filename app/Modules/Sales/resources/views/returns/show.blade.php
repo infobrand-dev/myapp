@@ -14,7 +14,7 @@
             </form>
         @endif
         <a href="{{ route('sales.returns.print', $saleReturn) }}" class="btn btn-outline-primary">Print Return Note</a>
-        <a href="{{ route('sales.returns.index') }}" class="btn btn-outline-secondary">Back</a>
+        <a href="{{ route('sales.returns.index') }}" class="btn btn-outline-secondary">Kembali</a>
     </div>
 </div>
 
@@ -38,7 +38,7 @@
                             <tr>
                                 <td>
                                     <div class="fw-semibold">{{ $item->product_name_snapshot }}</div>
-                                    <div class="text-muted small">{{ $item->variant_name_snapshot ?: 'No variant' }} | SKU: {{ $item->sku_snapshot ?: '-' }}</div>
+                                    <div class="text-muted small">{{ $item->variant_name_snapshot ?: '-' }} | SKU: {{ $item->sku_snapshot ?: '-' }}</div>
                                 </td>
                                 <td>{{ number_format((float) $item->sale_qty_snapshot, 2, ',', '.') }}</td>
                                 <td>{{ number_format((float) $item->previous_returned_qty_snapshot, 2, ',', '.') }}</td>

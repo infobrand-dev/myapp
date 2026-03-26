@@ -4,6 +4,8 @@ namespace App\Modules\Purchases\Actions;
 
 use App\Models\User;
 use App\Modules\Purchases\Models\Purchase;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -19,7 +21,12 @@ class CancelDraftPurchaseAction
         }
 
         return DB::transaction(function () use ($purchase, $data, $actor) {
-            $purchase = Purchase::query()->where('tenant_id', TenantContext::currentId())->lockForUpdate()->findOrFail($purchase->id);
+            $purchase = Purchase::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
+                ->tap(fn ($query) => BranchContext::applyScope($query))
+                ->lockForUpdate()
+                ->findOrFail($purchase->id);
             $fromStatus = $purchase->status;
 
             $purchase->update([
@@ -31,6 +38,8 @@ class CancelDraftPurchaseAction
 
             $purchase->statusHistories()->create([
                 'tenant_id' => TenantContext::currentId(),
+                'company_id' => CompanyContext::currentId(),
+                'branch_id' => BranchContext::currentId(),
                 'from_status' => $fromStatus,
                 'to_status' => Purchase::STATUS_CANCELLED,
                 'event' => 'cancelled',

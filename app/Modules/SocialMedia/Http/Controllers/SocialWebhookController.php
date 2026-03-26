@@ -11,6 +11,7 @@ use App\Modules\SocialMedia\Models\SocialAccount;
 use App\Modules\SocialMedia\Models\SocialAccountChatbotIntegration;
 use App\Modules\Conversations\Jobs\GenerateAiReply;
 use App\Modules\SocialMedia\Http\Requests\InboundSocialWebhookRequest;
+use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -26,16 +27,23 @@ class SocialWebhookController extends Controller
     {
         $data = $request->validated();
 
+        $token = trim((string) ($data['token'] ?? ''));
         $account = SocialAccount::query()
             ->where('status', 'active')
             ->where('platform', $data['platform'])
             ->when($data['account_id'] ?? null, fn ($q) => $q->where('id', $data['account_id']))
-            ->where('access_token', $data['token'])
-            ->first();
+            ->where(function ($query) use ($token) {
+                $query->where('access_token_hash', hash('sha256', $token))
+                    ->orWhere('access_token', $token);
+            })
+            ->get()
+            ->first(fn (SocialAccount $candidate) => hash_equals((string) $candidate->access_token, $token));
 
         if (!$account) {
             return response()->json(['message' => 'Invalid token/account'], Response::HTTP_UNAUTHORIZED);
         }
+
+        TenantContext::setCurrentId((int) $account->tenant_id);
 
         $result = $this->ingester->ingest(new InboxMessageEnvelope(
             channel: 'social_dm',
@@ -180,4 +188,3 @@ class SocialWebhookController extends Controller
         app(ConversationBotManager::class)->pause($conversation, $reason);
     }
 }
-

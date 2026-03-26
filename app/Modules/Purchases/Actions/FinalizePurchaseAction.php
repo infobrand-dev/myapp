@@ -8,6 +8,8 @@ use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Purchases\Events\PurchaseFinalized;
 use App\Modules\Purchases\Models\Purchase;
 use App\Modules\Purchases\Services\PurchaseSnapshotService;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -31,7 +33,9 @@ class FinalizePurchaseAction
         $purchase = DB::transaction(function () use ($purchase, $data, $actor) {
             $purchase = Purchase::query()
                 ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
                 ->with('items')
+                ->tap(fn ($query) => BranchContext::applyScope($query))
                 ->lockForUpdate()
                 ->findOrFail($purchase->id);
 
@@ -93,6 +97,8 @@ class FinalizePurchaseAction
 
             $purchase->statusHistories()->create([
                 'tenant_id' => TenantContext::currentId(),
+                'company_id' => CompanyContext::currentId(),
+                'branch_id' => BranchContext::currentId(),
                 'from_status' => $fromStatus,
                 'to_status' => Purchase::STATUS_CONFIRMED,
                 'event' => 'finalized',

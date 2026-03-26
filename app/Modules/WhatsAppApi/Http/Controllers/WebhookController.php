@@ -485,12 +485,17 @@ class WebhookController extends Controller
         }
 
         $instanceKey = trim((string) ($payload['instance_key'] ?? ''));
+        $tokenHash = hash('sha256', $token);
 
         return WhatsAppInstance::query()
-            ->where('api_token', $token)
             ->where('is_active', true)
+            ->where(function ($query) use ($token, $tokenHash) {
+                $query->where('api_token_hash', $tokenHash)
+                    ->orWhere('api_token', $token);
+            })
             ->when($instanceKey !== '', fn ($query) => $query->where('id', $instanceKey))
-            ->first();
+            ->get()
+            ->first(fn (WhatsAppInstance $instance) => hash_equals((string) $instance->api_token, $token));
     }
 
     private function handleCloudIncomingMessages(WhatsAppInstance $instance, array $value): void

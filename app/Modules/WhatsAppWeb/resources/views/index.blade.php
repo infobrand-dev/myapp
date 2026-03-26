@@ -3,6 +3,7 @@
 @section('content')
 <div id="whatsapp-web"
     data-bridge-url="{{ $bridgeUrl }}"
+    data-bridge-token="{{ $bridgeToken ?? '' }}"
     data-client-id="{{ auth()->id() }}"
     data-send-url-template="{{ route('whatsappweb.chats.messages.send', ['chatId' => '__CHAT_ID__']) }}"
     data-sync-url-template="{{ route('whatsappweb.chats.sync', ['chatId' => '__CHAT_ID__']) }}"
@@ -83,6 +84,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('whatsapp-web');
     const bridgeUrl = container?.dataset.bridgeUrl;
+    const bridgeToken = container?.dataset.bridgeToken || '';
     const clientId = container?.dataset.clientId || 'default';
     const sendUrlTemplate = container?.dataset.sendUrlTemplate || '';
     const syncUrlTemplate = container?.dataset.syncUrlTemplate || '';
@@ -107,7 +109,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeChatId = null;
 
     const api = (path, options = {}) => fetch(`${bridgeUrl}${path}${path.includes('?') ? '&' : '?'}clientId=${clientId}`, {
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            ...(bridgeToken ? { 'X-Bridge-Token': bridgeToken } : {}),
+        },
         ...options,
     });
 
@@ -340,7 +345,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Socket.IO realtime
     if (window.io) {
-        const socket = io(bridgeUrl, { query: { clientId } });
+        const socket = io(bridgeUrl, {
+            query: {
+                clientId,
+                ...(bridgeToken ? { bridgeToken } : {}),
+            },
+            auth: bridgeToken ? { token: bridgeToken } : {},
+        });
         socket.on('status', handleStatusPayload);
         socket.on('qr', (payload) => handleStatusPayload({ ready: false, qr: payload.qr }));
         socket.on('ready', () => handleStatusPayload({ ready: true, info: {} }));

@@ -3,11 +3,14 @@
 namespace App\Modules\WhatsAppWeb\Support;
 
 use App\Modules\WhatsAppWeb\Models\WhatsAppWebSetting;
+use App\Support\TenantContext;
 
 class RuntimeSettings
 {
-    private static ?WhatsAppWebSetting $cachedWhatsAppSetting = null;
-    private static bool $loaded = false;
+    /**
+     * @var array<int, WhatsAppWebSetting|null>
+     */
+    private static array $cachedWhatsAppSettings = [];
 
     public static function waWebBridgeUrl(): string
     {
@@ -30,18 +33,20 @@ class RuntimeSettings
 
     public static function clearCache(): void
     {
-        self::$loaded = false;
-        self::$cachedWhatsAppSetting = null;
+        self::$cachedWhatsAppSettings = [];
     }
 
     private static function setting(): ?WhatsAppWebSetting
     {
-        if (!self::$loaded) {
-            self::$cachedWhatsAppSetting = WhatsAppWebSetting::query()->first();
-            self::$loaded = true;
+        $tenantId = TenantContext::currentId();
+
+        if (!array_key_exists($tenantId, self::$cachedWhatsAppSettings)) {
+            self::$cachedWhatsAppSettings[$tenantId] = WhatsAppWebSetting::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->first();
         }
 
-        return self::$cachedWhatsAppSetting;
+        return self::$cachedWhatsAppSettings[$tenantId];
     }
 
     private static function stringOrFallback(?string $value, string $fallback): string

@@ -16,6 +16,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Database\QueryException;
 use Illuminate\View\View;
 
 class FinanceTransactionController extends Controller
@@ -125,7 +126,7 @@ class FinanceTransactionController extends Controller
             return FinanceTransaction::query()->create([
                 'tenant_id' => TenantContext::currentId(),
                 'company_id' => CompanyContext::currentId(),
-                'transaction_number' => 'FIN-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4)),
+                'transaction_number' => $this->generateTransactionNumber(),
                 'transaction_type' => $request->input('transaction_type'),
                 'transaction_date' => $request->input('transaction_date'),
                 'amount' => $request->input('amount'),
@@ -219,5 +220,31 @@ class FinanceTransactionController extends Controller
     private function shiftEnabled(): bool
     {
         return Schema::hasTable('pos_cash_sessions');
+    }
+
+    private function generateTransactionNumber(): string
+    {
+        $tenantId = TenantContext::currentId();
+        $companyId = (int) CompanyContext::currentId();
+
+        for ($attempt = 0; $attempt < 5; $attempt++) {
+            $number = 'FIN-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(6));
+
+            try {
+                $exists = FinanceTransaction::query()
+                    ->where('tenant_id', $tenantId)
+                    ->where('company_id', $companyId)
+                    ->where('transaction_number', $number)
+                    ->exists();
+            } catch (QueryException) {
+                $exists = false;
+            }
+
+            if (!$exists) {
+                return $number;
+            }
+        }
+
+        return 'FIN-' . now()->format('YmdHis') . '-' . Str::upper(Str::ulid());
     }
 }

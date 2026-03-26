@@ -4,6 +4,7 @@ namespace App\Modules\Finance\Models;
 
 use App\Models\Company;
 use App\Models\User;
+use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
@@ -36,7 +37,11 @@ class FinanceCategory extends Model
 
     public function transactions(): HasMany
     {
-        return $this->hasMany(FinanceTransaction::class, 'finance_category_id');
+        $relation = $this->hasMany(FinanceTransaction::class, 'finance_category_id')
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId());
+
+        return BranchContext::applyScope($relation);
     }
 
     public function company(): BelongsTo

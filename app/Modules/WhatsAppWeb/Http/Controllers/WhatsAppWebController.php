@@ -11,7 +11,8 @@ class WhatsAppWebController extends Controller
     public function index(): View
     {
         $bridgeUrl = rtrim(RuntimeSettings::waWebBridgeUrl(), '/');
+        $bridgeToken = RuntimeSettings::waWebWebhookToken();
 
-        return view('whatsappweb::index', compact('bridgeUrl'));
+        return view('whatsappweb::index', compact('bridgeUrl', 'bridgeToken'));
     }
 }

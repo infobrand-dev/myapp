@@ -158,18 +158,19 @@
                             <label class="form-label">Verify Token Webhook</label>
                             <div class="input-group">
                                 <input
-                                    type="text"
+                                    type="password"
                                     name="wa_cloud_verify_token"
                                     id="wa_cloud_verify_token"
                                     class="form-control"
-                                    value="{{ old('wa_cloud_verify_token', data_get($instance->settings, 'wa_cloud_verify_token', '')) }}"
-                                    placeholder="verify-token-meta"
+                                    value="{{ old('wa_cloud_verify_token', $isEdit ? '' : data_get($instance->settings, 'wa_cloud_verify_token', '')) }}"
+                                    placeholder="{{ $isEdit && data_get($instance->settings, 'wa_cloud_verify_token') ? 'Kosongkan jika tidak diubah' : 'verify-token-meta' }}"
+                                    autocomplete="off"
                                 >
                                 <button type="button" class="btn btn-outline-secondary btn-icon" id="copy-verify-token" title="Copy Verify Token" aria-label="Copy Verify Token">
                                     <i class="ti ti-copy"></i>
                                 </button>
                             </div>
-                            <div class="text-muted small">Wajib untuk provider Cloud.</div>
+                            <div class="text-muted small">Wajib untuk provider Cloud. Nilai lama tidak ditampilkan ulang untuk keamanan.</div>
                             @error('wa_cloud_verify_token') <div class="text-danger small">{{ $message }}</div> @enderror
                         </div>
                         <div class="cloud-fields col-md-6">

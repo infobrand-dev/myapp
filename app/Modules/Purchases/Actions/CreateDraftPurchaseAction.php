@@ -8,6 +8,8 @@ use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Purchases\Models\Purchase;
 use App\Modules\Purchases\Services\PurchaseNumberService;
 use App\Modules\Purchases\Services\PurchaseSnapshotService;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 
@@ -39,6 +41,8 @@ class CreateDraftPurchaseAction
 
             $purchase = Purchase::query()->create([
                 'tenant_id' => TenantContext::currentId(),
+                'company_id' => CompanyContext::currentId(),
+                'branch_id' => BranchContext::currentId(),
                 'purchase_number' => $this->numberService->generate(),
                 'contact_id' => $supplier ? $supplier->id : null,
                 'supplier_name_snapshot' => $snapshot['name'],
@@ -73,6 +77,8 @@ class CreateDraftPurchaseAction
 
             $purchase->statusHistories()->create([
                 'tenant_id' => TenantContext::currentId(),
+                'company_id' => CompanyContext::currentId(),
+                'branch_id' => BranchContext::currentId(),
                 'from_status' => null,
                 'to_status' => Purchase::STATUS_DRAFT,
                 'event' => 'created',
@@ -88,6 +94,8 @@ class CreateDraftPurchaseAction
     {
         return array_map(function (array $row): array {
             $row['tenant_id'] = TenantContext::currentId();
+            $row['company_id'] = CompanyContext::currentId();
+            $row['branch_id'] = BranchContext::currentId();
 
             return $row;
         }, $rows);

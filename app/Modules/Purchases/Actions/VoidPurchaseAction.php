@@ -5,6 +5,8 @@ namespace App\Modules\Purchases\Actions;
 use App\Models\User;
 use App\Modules\Purchases\Events\PurchaseVoided;
 use App\Modules\Purchases\Models\Purchase;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -16,7 +18,9 @@ class VoidPurchaseAction
         $purchase = DB::transaction(function () use ($purchase, $data, $actor) {
             $purchase = Purchase::query()
                 ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
                 ->with('items', 'receipts.items')
+                ->tap(fn ($query) => BranchContext::applyScope($query))
                 ->lockForUpdate()
                 ->findOrFail($purchase->id);
 
@@ -43,6 +47,8 @@ class VoidPurchaseAction
 
             $purchase->voidLogs()->create([
                 'tenant_id' => TenantContext::currentId(),
+                'company_id' => CompanyContext::currentId(),
+                'branch_id' => BranchContext::currentId(),
                 'status_before' => $fromStatus,
                 'reason' => $data['reason'],
                 'snapshot' => [
@@ -54,6 +60,8 @@ class VoidPurchaseAction
 
             $purchase->statusHistories()->create([
                 'tenant_id' => TenantContext::currentId(),
+                'company_id' => CompanyContext::currentId(),
+                'branch_id' => BranchContext::currentId(),
                 'from_status' => $fromStatus,
                 'to_status' => Purchase::STATUS_VOIDED,
                 'event' => 'voided',

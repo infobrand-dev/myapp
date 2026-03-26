@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\WhatsAppWeb\Http\Requests\UpdateWhatsAppWebSettingsRequest;
 use App\Modules\WhatsAppWeb\Models\WhatsAppWebSetting;
 use App\Modules\WhatsAppWeb\Support\RuntimeSettings;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,14 +16,18 @@ class SettingsController extends Controller
 {
     public function edit(): View
     {
-        $setting = WhatsAppWebSetting::first();
+        $setting = WhatsAppWebSetting::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->first();
 
         return view('whatsappweb::settings', compact('setting'));
     }
 
     public function update(UpdateWhatsAppWebSettingsRequest $request): RedirectResponse
     {
-        $setting = WhatsAppWebSetting::first();
+        $setting = WhatsAppWebSetting::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->first();
 
         $validated = $request->validated();
 
@@ -32,6 +37,7 @@ class SettingsController extends Controller
         DB::transaction(function () use (&$setting, $request, $validated, $webhookToken): void {
             if (!$setting) {
                 $setting = new WhatsAppWebSetting();
+                $setting->tenant_id = TenantContext::currentId();
                 $setting->provider = 'whatsapp_web';
                 $setting->created_by = $request->user()->id;
             }

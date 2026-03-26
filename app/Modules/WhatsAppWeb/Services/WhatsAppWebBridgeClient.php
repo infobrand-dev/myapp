@@ -10,15 +10,24 @@ use RuntimeException;
 
 class WhatsAppWebBridgeClient
 {
+    private function request()
+    {
+        $request = Http::baseUrl(rtrim(RuntimeSettings::waWebBridgeUrl(), '/'))
+            ->acceptJson()
+            ->timeout(30);
+
+        $token = RuntimeSettings::waWebWebhookToken();
+
+        return $token ? $request->withHeaders(['X-Bridge-Token' => $token]) : $request;
+    }
+
     /**
      * @return array<int, array<string, mixed>>
      */
     public function getChats(?string $clientId = null, int $limit = 50, bool $activeOnly = false): array
     {
         try {
-            $response = Http::baseUrl(rtrim(RuntimeSettings::waWebBridgeUrl(), '/'))
-                ->acceptJson()
-                ->timeout(30)
+            $response = $this->request()
                 ->get('/chats', [
                     'clientId' => $this->clientId($clientId),
                     'limit' => max(1, min(200, $limit)),
@@ -40,8 +49,7 @@ class WhatsAppWebBridgeClient
     public function getMessages(string $chatId, int $limit = 100, ?string $clientId = null): array
     {
         try {
-            $response = Http::baseUrl(rtrim(RuntimeSettings::waWebBridgeUrl(), '/'))
-                ->acceptJson()
+            $response = $this->request()
                 ->timeout(60)
                 ->get('/chats/' . rawurlencode($chatId) . '/messages', [
                     'clientId' => $this->clientId($clientId),
@@ -63,8 +71,7 @@ class WhatsAppWebBridgeClient
     public function sendMessage(string $chatId, string $message, ?string $clientId = null): array
     {
         try {
-            $response = Http::baseUrl(rtrim(RuntimeSettings::waWebBridgeUrl(), '/'))
-                ->acceptJson()
+            $response = $this->request()
                 ->timeout(15)
                 ->post(
                     '/chats/' . rawurlencode($chatId) . '/messages?' . http_build_query(['clientId' => $this->clientId($clientId)]),

@@ -11,6 +11,7 @@ app.use(cors());
 app.use(express.json());
 
 const port = process.env.WHATSAPP_WEB_PORT || process.env.WHATSAPP_BRO_PORT || 3020;
+const bridgeToken = process.env.WHATSAPP_WEB_BRIDGE_TOKEN || process.env.WHATSAPP_BRO_BRIDGE_TOKEN || process.env.WHATSAPP_WEB_WEBHOOK_TOKEN || process.env.WHATSAPP_BRO_WEBHOOK_TOKEN || null;
 
 const server = app.listen(port, () => {
   console.log(`WhatsApp Web bridge running on :${port}`);
@@ -18,6 +19,26 @@ const server = app.listen(port, () => {
 
 const io = new Server(server, {
   cors: { origin: '*' },
+});
+
+function isAuthorizedRequest(req) {
+  if (!bridgeToken) return true;
+
+  const provided = req.get('X-Bridge-Token') || req.query.bridgeToken || null;
+
+  return provided && provided === bridgeToken;
+}
+
+function rejectUnauthorized(res) {
+  return res.status(401).json({ message: 'Unauthorized bridge access' });
+}
+
+app.use((req, res, next) => {
+  if (isAuthorizedRequest(req)) {
+    return next();
+  }
+
+  return rejectUnauthorized(res);
 });
 
 const clients = new Map(); // clientId -> { client, latestQr, ready }
@@ -89,6 +110,15 @@ function getClient(clientId = 'default') {
 }
 
 io.on('connection', (socket) => {
+  if (bridgeToken) {
+    const provided = socket.handshake.auth?.token || socket.handshake.query.bridgeToken || null;
+    if (!provided || provided !== bridgeToken) {
+      socket.emit('error', { message: 'Unauthorized bridge socket' });
+      socket.disconnect(true);
+      return;
+    }
+  }
+
   const clientId = socket.handshake.query.clientId || 'default';
   socket.join(clientId);
   const { client, state } = getClient(clientId);

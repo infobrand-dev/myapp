@@ -41,7 +41,9 @@
                 </div>
                 <div class="col-12">
                     <label class="form-label">Access Token</label>
-                    <input type="text" name="access_token" class="form-control" value="{{ old('access_token', $account->access_token) }}" required>
+                    <input type="password" name="access_token" class="form-control" placeholder="{{ $isEdit && $account->access_token ? 'Kosongkan jika tidak diubah' : 'Isi access token' }}" autocomplete="off" {{ $isEdit ? '' : 'required' }}>
+                    <div class="text-muted small">Token tidak ditampilkan ulang untuk keamanan.</div>
+                    @error('access_token') <div class="text-danger small">{{ $message }}</div> @enderror
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Nama</label>

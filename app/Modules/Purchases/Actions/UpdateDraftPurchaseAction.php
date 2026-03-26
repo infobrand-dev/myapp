@@ -7,6 +7,8 @@ use App\Modules\Contacts\Models\Contact;
 use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Purchases\Models\Purchase;
 use App\Modules\Purchases\Services\PurchaseSnapshotService;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -36,7 +38,12 @@ class UpdateDraftPurchaseAction
         }
 
         return DB::transaction(function () use ($purchase, $data, $actor) {
-            $purchase = Purchase::query()->where('tenant_id', TenantContext::currentId())->lockForUpdate()->findOrFail($purchase->id);
+            $purchase = Purchase::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
+                ->tap(fn ($query) => BranchContext::applyScope($query))
+                ->lockForUpdate()
+                ->findOrFail($purchase->id);
             $totals = $this->recalculateTotals->execute($data);
             $supplier = ContactScope::applyVisibilityScope(Contact::query()->with('parentContact'))->find($data['contact_id']);
             $snapshot = $this->snapshotService->supplierSnapshot($supplier);
@@ -75,6 +82,8 @@ class UpdateDraftPurchaseAction
     {
         return array_map(function (array $row): array {
             $row['tenant_id'] = TenantContext::currentId();
+            $row['company_id'] = CompanyContext::currentId();
+            $row['branch_id'] = BranchContext::currentId();
 
             return $row;
         }, $rows);

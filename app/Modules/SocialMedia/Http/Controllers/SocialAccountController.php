@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\SocialMedia\Http\Requests\SocialAccountRequest;
 use App\Modules\SocialMedia\Models\SocialAccount;
 use App\Modules\SocialMedia\Models\SocialAccountChatbotIntegration;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
@@ -14,7 +15,11 @@ class SocialAccountController extends Controller
 {
     public function index(): View
     {
-        $accounts = SocialAccount::orderBy('platform')->orderBy('name')->paginate(20);
+        $accounts = SocialAccount::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->orderBy('platform')
+            ->orderBy('name')
+            ->paginate(20);
         return view('socialmedia::accounts.index', compact('accounts'));
     }
 
@@ -30,6 +35,7 @@ class SocialAccountController extends Controller
     public function store(SocialAccountRequest $request): RedirectResponse
     {
         $data = $request->validated();
+        $data['tenant_id'] = TenantContext::currentId();
         $data['created_by'] = $request->user()?->id;
         unset($data['auto_reply'], $data['chatbot_account_id']);
         $account = SocialAccount::create($data);
@@ -49,6 +55,9 @@ class SocialAccountController extends Controller
     public function update(SocialAccountRequest $request, SocialAccount $account): RedirectResponse
     {
         $data = $request->validated();
+        if (!$request->filled('access_token')) {
+            unset($data['access_token']);
+        }
         unset($data['auto_reply'], $data['chatbot_account_id']);
         $account->update($data);
         $this->persistChatbotIntegration($request, $account);

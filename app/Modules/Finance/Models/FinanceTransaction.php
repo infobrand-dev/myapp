@@ -44,7 +44,9 @@ class FinanceTransaction extends Model
 
     public function category(): BelongsTo
     {
-        return $this->belongsTo(FinanceCategory::class, 'finance_category_id');
+        return $this->belongsTo(FinanceCategory::class, 'finance_category_id')
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId());
     }
 
     public function company(): BelongsTo
@@ -69,7 +71,9 @@ class FinanceTransaction extends Model
 
     public function shift(): BelongsTo
     {
-        return $this->belongsTo(PosCashSession::class, 'pos_cash_session_id');
+        return $this->belongsTo(PosCashSession::class, 'pos_cash_session_id')
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId());
     }
 
     public function isCashOut(): bool

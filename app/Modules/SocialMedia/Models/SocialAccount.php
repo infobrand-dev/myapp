@@ -3,20 +3,25 @@
 namespace App\Modules\SocialMedia\Models;
 
 use App\Models\User;
+use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Support\Facades\Crypt;
 
 class SocialAccount extends Model
 {
     use HasFactory;
 
     protected $fillable = [
+        'tenant_id',
         'platform',
         'page_id',
         'ig_business_id',
         'access_token',
+        'access_token_hash',
         'name',
         'status',
         'metadata',
@@ -27,6 +32,41 @@ class SocialAccount extends Model
         'metadata' => 'array',
     ];
 
+    protected $hidden = [
+        'access_token_hash',
+    ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $account): void {
+            if (!$account->tenant_id) {
+                $account->tenant_id = TenantContext::currentId();
+            }
+        });
+    }
+
+    protected function accessToken(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $this->decryptSecret($value),
+            set: function ($value): array {
+                $token = trim((string) $value);
+
+                if ($token === '') {
+                    return [
+                        'access_token' => null,
+                        'access_token_hash' => null,
+                    ];
+                }
+
+                return [
+                    'access_token' => $this->encryptSecret($token),
+                    'access_token_hash' => hash('sha256', $token),
+                ];
+            },
+        );
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -35,5 +75,41 @@ class SocialAccount extends Model
     public function chatbotIntegration(): HasOne
     {
         return $this->hasOne(SocialAccountChatbotIntegration::class, 'social_account_id');
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where($field ?? $this->getRouteKeyName(), $value)
+            ->where('tenant_id', TenantContext::currentId())
+            ->firstOrFail();
+    }
+
+    private function encryptSecret(string $value): string
+    {
+        return str_starts_with($value, 'enc::')
+            ? $value
+            : 'enc::' . Crypt::encryptString($value);
+    }
+
+    private function decryptSecret($value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $secret = (string) $value;
+        if ($secret === '') {
+            return '';
+        }
+
+        if (!str_starts_with($secret, 'enc::')) {
+            return $secret;
+        }
+
+        try {
+            return Crypt::decryptString(substr($secret, 5));
+        } catch (\Throwable) {
+            return null;
+        }
     }
 }

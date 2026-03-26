@@ -14,6 +14,7 @@ class SocialAccountRequest extends FormRequest
 
     public function rules(): array
     {
+        $isCreate = $this->isMethod('post');
         $chatbotRule = ['nullable'];
         if (class_exists(\App\Modules\Chatbot\Models\ChatbotAccount::class) && Schema::hasTable('chatbot_accounts')) {
             $chatbotRule[] = 'exists:chatbot_accounts,id';
@@ -25,7 +26,7 @@ class SocialAccountRequest extends FormRequest
             'platform' => ['required', 'in:instagram,facebook'],
             'page_id' => ['nullable', 'string', 'max:255'],
             'ig_business_id' => ['nullable', 'string', 'max:255'],
-            'access_token' => ['required', 'string'],
+            'access_token' => [$isCreate ? 'required' : 'nullable', 'string'],
             'name' => ['nullable', 'string', 'max:255'],
             'status' => ['required', 'in:active,inactive'],
             'auto_reply' => ['sometimes', 'boolean'],

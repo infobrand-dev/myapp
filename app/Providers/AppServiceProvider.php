@@ -57,7 +57,7 @@ class AppServiceProvider extends ServiceProvider
             $allowedCompanyIds = $userAccessManager->companyIdsFor($user);
             $allowedBranchIds = $userAccessManager->branchIdsFor($user, optional($currentCompany)->id);
 
-            if (Auth::check() && Schema::hasTable('companies')) {
+            if (Auth::check() && $this->schemaHasTable('companies')) {
                 $companies = Company::query()
                     ->where('tenant_id', TenantContext::currentId())
                     ->when($allowedCompanyIds, fn ($query) => $query->whereIn('id', $allowedCompanyIds->all()))
@@ -66,7 +66,7 @@ class AppServiceProvider extends ServiceProvider
                     ->get(['id', 'name', 'slug', 'code']);
             }
 
-            if (Auth::check() && Schema::hasTable('branches') && $currentCompany) {
+            if (Auth::check() && $this->schemaHasTable('branches') && $currentCompany) {
                 $branches = Branch::query()
                     ->where('tenant_id', TenantContext::currentId())
                     ->where('company_id', $currentCompany->id)
@@ -85,13 +85,13 @@ class AppServiceProvider extends ServiceProvider
             ]);
         });
 
-        if (!Schema::hasTable('permissions')) {
+        if (!$this->schemaHasTable('permissions')) {
             return;
         }
 
         if (config('permission.teams') && (
-            !Schema::hasTable('roles')
-            || !Schema::hasColumn('roles', config('permission.column_names.team_foreign_key', 'tenant_id'))
+            !$this->schemaHasTable('roles')
+            || !$this->schemaHasColumn('roles', config('permission.column_names.team_foreign_key', 'tenant_id'))
         )) {
             return;
         }
@@ -109,6 +109,24 @@ class AppServiceProvider extends ServiceProvider
         if ($created) {
             app(TenantRoleProvisioner::class)->ensureForAllTenants();
             app(PermissionRegistrar::class)->forgetCachedPermissions();
+        }
+    }
+
+    private function schemaHasTable(string $table): bool
+    {
+        try {
+            return Schema::hasTable($table);
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    private function schemaHasColumn(string $table, string $column): bool
+    {
+        try {
+            return Schema::hasColumn($table, $column);
+        } catch (\Throwable) {
+            return false;
         }
     }
 }

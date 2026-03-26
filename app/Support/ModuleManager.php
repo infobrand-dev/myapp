@@ -79,7 +79,7 @@ class ModuleManager
             }
         }
 
-        $migrationPath = base_path('app/Modules/' . $this->manifestDirName($slug) . '/database/migrations');
+        $migrationPath = base_path('app/Modules/' . $this->manifestDirName($slug) . '/Database/Migrations');
         if (File::isDirectory($migrationPath)) {
             $relativePath = str_replace(base_path() . DIRECTORY_SEPARATOR, '', $migrationPath);
             $this->callArtisanOrFail('migrate', ['--path' => $relativePath, '--force' => true]);

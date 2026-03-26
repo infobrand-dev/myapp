@@ -79,7 +79,7 @@ class PurchasesServiceProvider extends ServiceProvider
         $this->registerModuleRoutes([__DIR__ . '/routes/web.php']);
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'purchases');
         $this->loadTranslationsFrom(__DIR__ . '/resources/lang', 'purchases');
-        $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
+        $this->loadMigrationsFrom(__DIR__ . '/Database/Migrations');
 
         Event::listen(PurchaseFinalized::class, DispatchFinalizedPurchaseHooks::class);
         Event::listen(PurchaseVoided::class, DispatchVoidedPurchaseHooks::class);

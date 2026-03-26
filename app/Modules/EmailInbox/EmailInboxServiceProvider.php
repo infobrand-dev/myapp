@@ -39,7 +39,7 @@ class EmailInboxServiceProvider extends ServiceProvider
         $this->registerModuleRoutes([__DIR__ . '/routes/web.php']);
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'emailinbox');
         $this->loadTranslationsFrom(__DIR__ . '/resources/lang', 'emailinbox');
-        $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
+        $this->loadMigrationsFrom(__DIR__ . '/Database/Migrations');
 
         $this->ensurePermissions();
 

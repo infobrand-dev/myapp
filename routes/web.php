@@ -69,11 +69,16 @@ Route::get('/onboarding', [TenantOnboardingController::class, 'create'])->middle
 Route::post('/onboarding', [TenantOnboardingController::class, 'store'])->middleware('throttle:10,5')->name('onboarding.store');
 
 Route::withoutMiddleware([
+    \App\Http\Middleware\EnsureInstalled::class,
     \App\Http\Middleware\EncryptCookies::class,
     \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
     \Illuminate\Session\Middleware\StartSession::class,
     \Illuminate\View\Middleware\ShareErrorsFromSession::class,
     \App\Http\Middleware\VerifyCsrfToken::class,
+    \App\Http\Middleware\ResolveTenantFromSubdomain::class,
+    \App\Http\Middleware\ResolveTenantContext::class,
+    \App\Http\Middleware\ResolveCompanyContext::class,
+    \App\Http\Middleware\ResolveBranchContext::class,
 ])->group(function () {
     Route::get('/install', [InstallController::class, 'index'])->name('install.index');
     Route::post('/install/test-db', [InstallController::class, 'testDatabase'])->middleware('throttle:10,1')->name('install.test-db');

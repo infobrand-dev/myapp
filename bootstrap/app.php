@@ -11,9 +11,16 @@
 |
 */
 
-$app = new Illuminate\Foundation\Application(
-    $_ENV['APP_BASE_PATH'] ?? dirname(__DIR__)
-);
+$basePath = $_ENV['APP_BASE_PATH'] ?? dirname(__DIR__);
+
+$envPath = $basePath . DIRECTORY_SEPARATOR . '.env';
+$envExamplePath = $basePath . DIRECTORY_SEPARATOR . '.env.example';
+
+if (!file_exists($envPath) && file_exists($envExamplePath) && is_readable($envExamplePath) && is_writable($basePath)) {
+    @copy($envExamplePath, $envPath);
+}
+
+$app = new Illuminate\Foundation\Application($basePath);
 
 /*
 |--------------------------------------------------------------------------

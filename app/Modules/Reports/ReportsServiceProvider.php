@@ -49,6 +49,7 @@ class ReportsServiceProvider extends ServiceProvider
     {
         $this->registerModuleRoutes([__DIR__ . '/routes/web.php']);
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'reports');
+        $this->loadTranslationsFrom(__DIR__ . '/resources/lang', 'reports');
 
         $this->ensurePermissions();
     }

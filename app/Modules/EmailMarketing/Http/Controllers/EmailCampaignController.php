@@ -15,6 +15,7 @@ use App\Support\TenantContext;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -473,18 +474,27 @@ HTML;
 
     public function unsubscribe(string $token)
     {
-        $recipient = EmailCampaignRecipient::query()->where('tracking_token', $token)->firstOrFail();
-        if (!$recipient->unsubscribed_at) {
+        $recipient = $this->recipientByTrackingToken($token);
+        if ($recipient && !$recipient->unsubscribed_at) {
             $recipient->update(['unsubscribed_at' => Carbon::now()]);
         }
+
+        if (!$recipient) {
+            return response(
+                '<html><body style="font-family:Arial,sans-serif;padding:24px;"><h2>Link unsubscribe tidak valid atau sudah tidak aktif.</h2></body></html>',
+                Response::HTTP_OK,
+                ['Content-Type' => 'text/html; charset=UTF-8']
+            );
+        }
+
         return response()->view('emailmarketing::unsubscribe', ['recipient' => $recipient]);
     }
 
     public function trackOpen(string $token)
     {
-        $recipient = EmailCampaignRecipient::query()->where('tracking_token', $token)->firstOrFail();
+        $recipient = $this->recipientByTrackingToken($token);
 
-        if (!$recipient->opened_at) {
+        if ($recipient && !$recipient->opened_at) {
             $recipient->update(['opened_at' => Carbon::now()]);
         }
 
@@ -498,13 +508,15 @@ HTML;
 
     public function trackClick(string $token)
     {
-        $recipient = EmailCampaignRecipient::query()->where('tracking_token', $token)->firstOrFail();
+        $recipient = $this->recipientByTrackingToken($token);
 
-        if (!$recipient->clicked_at) {
+        if ($recipient && !$recipient->clicked_at) {
             $recipient->update(['clicked_at' => Carbon::now()]);
         }
 
-        $target = request()->query('u', 'https://example.com');
+        $fallback = rtrim((string) config('app.url', url('/')), '/');
+        $target = $this->validatedTrackingTarget((string) request()->query('u', ''), $fallback);
+
         return redirect()->away($target);
     }
 
@@ -547,5 +559,32 @@ HTML;
                 'filename',
                 'description',
             ]);
+    }
+
+    private function recipientByTrackingToken(string $token): ?EmailCampaignRecipient
+    {
+        $trackingToken = trim($token);
+        if ($trackingToken === '') {
+            return null;
+        }
+
+        return EmailCampaignRecipient::query()
+            ->where('tracking_token', $trackingToken)
+            ->first();
+    }
+
+    private function validatedTrackingTarget(string $target, string $fallback): string
+    {
+        $target = trim($target);
+        if ($target === '' || mb_strlen($target) > 2000) {
+            return $fallback;
+        }
+
+        $scheme = strtolower((string) parse_url($target, PHP_URL_SCHEME));
+        if (!in_array($scheme, ['http', 'https'], true)) {
+            return $fallback;
+        }
+
+        return $target;
     }
 }

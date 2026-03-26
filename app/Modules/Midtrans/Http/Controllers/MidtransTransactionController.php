@@ -6,10 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Modules\Midtrans\Http\Requests\CreateSnapTokenRequest;
 use App\Modules\Midtrans\Models\MidtransTransaction;
 use App\Modules\Midtrans\Services\MidtransService;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 
 class MidtransTransactionController extends Controller
@@ -108,60 +111,71 @@ class MidtransTransactionController extends Controller
             return response()->json(['error' => 'Nominal pembayaran tidak valid atau sudah lunas.'], 422);
         }
 
-        // Check if there's already a pending snap token for this payable
-        $existing = MidtransTransaction::query()
-            ->where('tenant_id', $tenantId)
-            ->where('payable_type', $payableType)
-            ->where('payable_id', $payableId)
-            ->where('transaction_status', MidtransTransaction::STATUS_PENDING)
-            ->whereNotNull('snap_token')
-            ->latest()
-            ->first();
-
-        if ($existing) {
-            return response()->json([
-                'snap_token'   => $existing->snap_token,
-                'redirect_url' => $existing->snap_redirect_url,
-                'order_id'     => $existing->order_id,
-            ]);
-        }
-
-        // Create new transaction record
-        $orderId = MidtransTransaction::generateOrderId($tenantId);
+        $lockKey = sprintf('midtrans:snap:%d:%s:%d', $tenantId, md5($payableType), $payableId);
 
         try {
-            $result = $this->midtrans->createSnapToken([
-                'order_id'           => $orderId,
-                'gross_amount'       => $amount,
-                'customer_name'      => $data['customer_name'] ?? $payable?->customer_name_snapshot,
-                'customer_email'     => $data['customer_email'] ?? $payable?->customer_email_snapshot,
-                'customer_phone'     => $data['customer_phone'] ?? $payable?->customer_phone_snapshot,
-                'item_description'   => $data['description'] ?? ($payable ? class_basename($payableType) . ' #' . ($payable->sale_number ?? $payableId) : 'Pembayaran'),
-            ]);
+            $response = Cache::lock($lockKey, 20)->block(5, function () use ($tenantId, $payableType, $payableId, $data, $payable, $amount, $request) {
+                $existing = MidtransTransaction::query()
+                    ->where('tenant_id', $tenantId)
+                    ->where('payable_type', $payableType)
+                    ->where('payable_id', $payableId)
+                    ->where('transaction_status', MidtransTransaction::STATUS_PENDING)
+                    ->whereNotNull('snap_token')
+                    ->latest()
+                    ->first();
+
+                if ($existing) {
+                    return [
+                        'snap_token'   => $existing->snap_token,
+                        'redirect_url' => $existing->snap_redirect_url,
+                        'order_id'     => $existing->order_id,
+                    ];
+                }
+
+                $orderId = MidtransTransaction::generateOrderId($tenantId);
+                $customerName = $data['customer_name'] ?? $payable?->customer_name_snapshot;
+                $customerEmail = $data['customer_email'] ?? $payable?->customer_email_snapshot;
+                $customerPhone = $data['customer_phone'] ?? $payable?->customer_phone_snapshot;
+                $description = $data['description'] ?? ($payable ? class_basename($payableType) . ' #' . ($payable->sale_number ?? $payableId) : 'Pembayaran');
+
+                $result = $this->midtrans->createSnapToken([
+                    'order_id' => $orderId,
+                    'gross_amount' => $amount,
+                    'customer_name' => $customerName,
+                    'customer_email' => $customerEmail,
+                    'customer_phone' => $customerPhone,
+                    'item_description' => $description,
+                ]);
+
+                MidtransTransaction::create([
+                    'tenant_id' => $tenantId,
+                    'company_id' => CompanyContext::currentId(),
+                    'order_id' => $orderId,
+                    'snap_token' => $result['token'],
+                    'snap_redirect_url' => $result['redirect_url'],
+                    'gross_amount' => $amount,
+                    'transaction_status' => MidtransTransaction::STATUS_PENDING,
+                    'payable_type' => $payableType,
+                    'payable_id' => $payableId,
+                    'customer_name' => $customerName,
+                    'customer_email' => $customerEmail,
+                    'customer_phone' => $customerPhone,
+                    'item_description' => $data['description'] ?? null,
+                    'created_by' => $request->user()?->id,
+                ]);
+
+                return [
+                    'snap_token' => $result['token'],
+                    'redirect_url' => $result['redirect_url'],
+                    'order_id' => $orderId,
+                ];
+            });
+        } catch (LockTimeoutException) {
+            return response()->json(['error' => 'Permintaan pembayaran sedang diproses. Coba ulang beberapa detik lagi.'], 409);
         } catch (\RuntimeException $e) {
             return response()->json(['error' => $e->getMessage()], 422);
         }
 
-        MidtransTransaction::create([
-            'tenant_id'          => $tenantId,
-            'order_id'           => $orderId,
-            'snap_token'         => $result['token'],
-            'snap_redirect_url'  => $result['redirect_url'],
-            'gross_amount'       => $amount,
-            'transaction_status' => MidtransTransaction::STATUS_PENDING,
-            'payable_type'       => $payableType,
-            'payable_id'         => $payableId,
-            'customer_name'      => $data['customer_name'] ?? $payable?->customer_name_snapshot,
-            'customer_email'     => $data['customer_email'] ?? $payable?->customer_email_snapshot,
-            'customer_phone'     => $data['customer_phone'] ?? $payable?->customer_phone_snapshot,
-            'item_description'   => $data['description'] ?? null,
-            'created_by'         => $request->user()?->id,
-        ]);
-
-        return response()->json([
-            'snap_token'   => $result['token'],
-            'redirect_url' => $result['redirect_url'],
-            'order_id'     => $orderId,
-        ]);
+        return response()->json($response);
     }
 }

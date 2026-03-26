@@ -77,6 +77,7 @@ class InventoryServiceProvider extends ServiceProvider
     {
         $this->registerModuleRoutes([__DIR__ . '/routes/web.php']);
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'inventory');
+        $this->loadTranslationsFrom(__DIR__ . '/resources/lang', 'inventory');
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
 
         $this->ensurePermissions();

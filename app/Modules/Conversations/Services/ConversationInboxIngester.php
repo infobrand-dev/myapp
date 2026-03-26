@@ -12,6 +12,7 @@ use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\Conversations\Models\ConversationParticipant;
 use App\Support\TenantContext;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -126,7 +127,7 @@ class ConversationInboxIngester implements InboxMessageIngester
             'media_mime' => $envelope->mediaMime,
             'status' => $envelope->messageStatus ?? ($direction === 'out' ? 'sent' : 'delivered'),
             'external_message_id' => $envelope->externalMessageId,
-            'payload' => $envelope->payload ?: null,
+            'payload' => ($payload = $this->sanitizePayload($envelope->payload)) ? $payload : null,
             'sent_at' => $envelope->sentAt ?? ($direction === 'out' ? $occurredAt : null),
             'delivered_at' => $envelope->deliveredAt ?? ($direction === 'in' ? $occurredAt : null),
             'read_at' => $envelope->readAt,
@@ -175,7 +176,10 @@ class ConversationInboxIngester implements InboxMessageIngester
      */
     private function mergeMetadata(?array $current, array $incoming): array
     {
-        return array_merge($current ?? [], $incoming);
+        return array_merge(
+            $this->sanitizePayload($current ?? []),
+            $this->sanitizePayload($incoming),
+        );
     }
 
     private function laterOf(mixed $current, CarbonImmutable $candidate): CarbonImmutable
@@ -205,5 +209,66 @@ class ConversationInboxIngester implements InboxMessageIngester
             '', 'chat' => 'text',
             default => $normalized,
         };
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
+    private function sanitizePayload(array $payload): array
+    {
+        $sensitiveKeys = [
+            'token',
+            'api_token',
+            'access_token',
+            'cloud_token',
+            'visitor_token',
+            'session_token',
+            'session_token_plain',
+            'authorization',
+            'cookie',
+            'secret',
+            'app_secret',
+            'signature',
+            'signature_key',
+            'x-bridge-token',
+            'x-webhook-secret',
+        ];
+
+        $sanitized = [];
+
+        foreach ($payload as $key => $value) {
+            $normalizedKey = strtolower((string) $key);
+
+            if (is_array($value)) {
+                $sanitized[$key] = $this->sanitizePayload($value);
+                continue;
+            }
+
+            if (in_array($normalizedKey, $sensitiveKeys, true)) {
+                $sanitized[$key] = '[redacted]';
+                continue;
+            }
+
+            if (in_array($normalizedKey, ['ip', 'ip_address', 'client_ip'], true)) {
+                $sanitized[$key] = $value ? hash('sha256', (string) $value) : null;
+                continue;
+            }
+
+            if ($normalizedKey === 'origin' || $normalizedKey === 'referer') {
+                $host = strtolower((string) parse_url((string) $value, PHP_URL_HOST));
+                $sanitized[$key] = $host !== '' ? $host : $value;
+                continue;
+            }
+
+            if ($normalizedKey === 'user_agent') {
+                $sanitized[$key] = Str::limit((string) $value, 255, '');
+                continue;
+            }
+
+            $sanitized[$key] = $value;
+        }
+
+        return $sanitized;
     }
 }

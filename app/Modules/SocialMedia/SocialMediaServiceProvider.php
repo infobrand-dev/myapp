@@ -25,6 +25,7 @@ class SocialMediaServiceProvider extends ServiceProvider
     {
         $this->registerModuleRoutes([__DIR__ . '/routes/web.php']);
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'socialmedia');
+        $this->loadTranslationsFrom(__DIR__ . '/resources/lang', 'socialmedia');
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
     }
 }

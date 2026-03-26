@@ -31,6 +31,7 @@ class FinanceServiceProvider extends ServiceProvider
     {
         $this->registerModuleRoutes([__DIR__ . '/routes/web.php']);
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'finance');
+        $this->loadTranslationsFrom(__DIR__ . '/resources/lang', 'finance');
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
 
         $this->ensurePermissions();

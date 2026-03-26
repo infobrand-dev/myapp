@@ -25,6 +25,7 @@ Route::middleware(['web', 'auth', 'role:Super-admin|Admin'])
     });
 
 Route::middleware(['web'])
+    ->middleware('throttle:email-marketing-public')
     ->prefix('email-tracking')
     ->name('email-marketing.track.')
     ->group(function () {
@@ -37,4 +38,5 @@ Route::post('/webhook/mailtrap', [\App\Modules\EmailMarketing\Http\Controllers\E
     ->name('email-marketing.webhook.mailtrap');
 
 Route::get('/email-unsubscribe/{token}', [\App\Modules\EmailMarketing\Http\Controllers\EmailCampaignController::class, 'unsubscribe'])
+    ->middleware(['web', 'throttle:email-marketing-public'])
     ->name('email-marketing.unsubscribe');

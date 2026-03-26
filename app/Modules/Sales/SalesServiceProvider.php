@@ -116,6 +116,7 @@ class SalesServiceProvider extends ServiceProvider
     {
         $this->registerRoutes();
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'sales');
+        $this->loadTranslationsFrom(__DIR__ . '/resources/lang', 'sales');
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
 
         Event::listen(SaleFinalized::class, DispatchFinalizedSaleHooks::class);

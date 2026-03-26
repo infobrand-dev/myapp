@@ -16,10 +16,12 @@ use App\Modules\LiveChat\Http\Requests\LiveChatTypingRequest;
 use App\Modules\LiveChat\Http\Requests\StoreLiveChatVisitorMessageRequest;
 use App\Modules\LiveChat\Support\LiveChatRealtimeState;
 use App\Models\UserPresence;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cache;
 
 class LiveChatPublicController extends Controller
 {
@@ -64,37 +66,47 @@ class LiveChatPublicController extends Controller
 
         [$visitorKey, $session] = $this->resolveOrIssueVisitorSession($request, $widget, $data);
 
-        $conversation = Conversation::query()
-            ->where('tenant_id', $tenantId)
-            ->where('channel', 'live_chat')
-            ->where('instance_id', $widget->id)
-            ->where('contact_external_id', $visitorKey)
-            ->first();
+        $lockKey = sprintf('live-chat:bootstrap:%d:%s', (int) $widget->id, sha1($visitorKey));
+        try {
+            $conversation = Cache::lock($lockKey, 10)->block(3, function () use ($tenantId, $widget, $visitorKey, $data, $request, $session) {
+                $conversation = Conversation::query()
+                    ->where('tenant_id', $tenantId)
+                    ->where('channel', 'live_chat')
+                    ->where('instance_id', $widget->id)
+                    ->where('contact_external_id', $visitorKey)
+                    ->first();
 
-        if (!$conversation) {
-            $conversation = Conversation::query()->create([
-                'tenant_id' => $tenantId,
-                'channel' => 'live_chat',
-                'instance_id' => $widget->id,
-                'contact_external_id' => $visitorKey,
-                'contact_name' => $data['visitor_name'] ?? 'Website Visitor',
-                'status' => 'open',
-                'last_message_at' => now(),
-                'metadata' => $this->conversationMetadata($request, $widget, $data),
-            ]);
-        } else {
-            $conversation->update([
-                'contact_name' => $data['visitor_name'] ?: $conversation->contact_name,
-                'metadata' => array_merge($conversation->metadata ?? [], $this->conversationMetadata($request, $widget, $data)),
-            ]);
+                if (!$conversation) {
+                    $conversation = Conversation::query()->create([
+                        'tenant_id' => $tenantId,
+                        'channel' => 'live_chat',
+                        'instance_id' => $widget->id,
+                        'contact_external_id' => $visitorKey,
+                        'contact_name' => $data['visitor_name'] ?? 'Website Visitor',
+                        'status' => 'open',
+                        'last_message_at' => now(),
+                        'metadata' => $this->conversationMetadata($request, $widget, $data),
+                    ]);
+                } else {
+                    $conversation->update([
+                        'contact_name' => $data['visitor_name'] ?: $conversation->contact_name,
+                        'metadata' => array_merge($conversation->metadata ?? [], $this->conversationMetadata($request, $widget, $data)),
+                    ]);
+                }
+
+                $session->forceFill([
+                    'tenant_id' => $tenantId,
+                    'conversation_id' => $conversation->id,
+                    'last_seen_at' => now(),
+                    'expires_at' => now()->addDays(30),
+                ])->save();
+
+                return $conversation;
+            });
+        } catch (LockTimeoutException) {
+            return response()->json(['message' => 'Sesi chat sedang dipersiapkan. Coba ulang beberapa detik lagi.'], 409)
+                ->withHeaders($this->corsHeaders($request, $widget));
         }
-
-        $session->forceFill([
-            'tenant_id' => $tenantId,
-            'conversation_id' => $conversation->id,
-            'last_seen_at' => now(),
-            'expires_at' => now()->addDays(30),
-        ])->save();
 
         return response()->json([
             'visitor_key' => $visitorKey,

@@ -150,6 +150,6 @@ Ringkasan modul tersedia di `MODULES.md`.
 Kategori saat ini:
 - commerce: `products`, `inventory`, `discounts`, `sales`, `payments`, `purchases`, `finance`, `point-of-sale`
 - reporting: `reports`
-- communication: `conversations`, `live_chat`, `whatsapp_api`, `whatsapp_web`, `social_media`, `email_marketing`
+- communication: `conversations`, `live_chat`, `whatsapp_api`, `whatsapp_web`, `social_media`, `email_marketing`, `email_inbox`
 - automation: `chatbot`
 - support: `contacts`, `task_management`, `shortlink`, `sample_data`

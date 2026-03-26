@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Tenant;
 use App\Modules\Discounts\DiscountsServiceProvider;
+use App\Modules\EmailInbox\EmailInboxServiceProvider;
 use App\Modules\Finance\FinanceServiceProvider;
 use App\Modules\Inventory\InventoryServiceProvider;
 use App\Modules\Payments\PaymentsServiceProvider;
@@ -27,6 +28,7 @@ class TenantRoleProvisioner
         ProductsServiceProvider::class,
         InventoryServiceProvider::class,
         DiscountsServiceProvider::class,
+        EmailInboxServiceProvider::class,
         FinanceServiceProvider::class,
         PaymentsServiceProvider::class,
         PointOfSaleServiceProvider::class,

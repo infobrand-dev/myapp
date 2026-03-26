@@ -21,6 +21,11 @@ return [
     'email_marketing' => [
         'enabled' => true,
     ],
+    'email_inbox' => [
+        'enabled' => true,
+        'fetch_limit' => env('EMAIL_INBOX_FETCH_LIMIT', 20),
+        'schedule_enabled' => env('EMAIL_INBOX_SCHEDULE_ENABLED', true),
+    ],
     'social_media' => [
         'enabled' => true,
     ],

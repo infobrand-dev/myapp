@@ -1,0 +1,27 @@
+{
+    "slug": "email_inbox",
+    "name": "Email Inbox",
+    "description": "Mailbox operasional untuk baca email masuk, kirim email keluar, dan sinkronisasi folder inbox.",
+    "provider": "App\\Modules\\EmailInbox\\EmailInboxServiceProvider",
+    "version": "1.0.0",
+    "category": "communication",
+    "requires": [],
+    "sample_data": {
+        "description": "Membuat mailbox draft contoh untuk konfigurasi awal.",
+        "seeders": [
+            "App\\Modules\\EmailInbox\\Database\\Seeders\\EmailInboxSampleSeeder"
+        ]
+    },
+    "navigation": [
+        {
+            "label": "Mailbox",
+            "route": "email-inbox.index"
+        },
+        {
+            "label": "Accounts",
+            "route": "email-inbox.accounts.index",
+            "role": "Super-admin"
+        }
+    ],
+    "icon": "resources/icons/icon.svg"
+}

@@ -22,6 +22,7 @@ This file is a quick catalog. The authoritative metadata for each module lives i
 - `whatsapp_web`: WhatsApp Web bridge with QR auth, chat sync, and Node bridge runtime. Requires `conversations`.
 - `social_media`: social account integrations and webhook-driven inbox flow. Requires `conversations`.
 - `email_marketing`: campaigns, recipients, attachment templates, unsubscribe flow. Requires `contacts`.
+- `email_inbox`: mailbox account, inbound sync, outbound send, folder/message storage, and operational email workspace.
 
 ## Automation
 - `chatbot`: bot accounts, playground, knowledge base, and conversation mirroring. Requires `conversations`.

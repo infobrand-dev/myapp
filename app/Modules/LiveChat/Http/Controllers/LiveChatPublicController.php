@@ -204,9 +204,8 @@ class LiveChatPublicController extends Controller
             body: $data['body'],
             externalMessageId: null,
             payload: [
-                'origin' => $request->headers->get('Origin'),
+                'origin_host' => $this->originHost($request),
                 'page_url' => $data['page_url'] ?? null,
-                'visitor_email' => $data['visitor_email'] ?? null,
             ],
             conversationMetadata: $this->conversationMetadata($request, $widget, $data),
             messageStatus: 'delivered',
@@ -267,9 +266,9 @@ class LiveChatPublicController extends Controller
             'source' => 'website_widget',
             'visitor_email' => $data['visitor_email'] ?? null,
             'page_url' => $data['page_url'] ?? null,
-            'origin' => $request->headers->get('Origin'),
-            'user_agent' => $request->userAgent(),
-            'ip' => $request->ip(),
+            'origin_host' => $this->originHost($request),
+            'user_agent' => Str::limit((string) $request->userAgent(), 255, ''),
+            'ip_hash' => $this->clientIpHash($request),
         ], static fn ($value) => $value !== null && $value !== '');
     }
 
@@ -388,7 +387,7 @@ class LiveChatPublicController extends Controller
         if ($session) {
             $session->session_token_plain = $visitorToken;
             $session->origin_host = $this->originHost($request);
-            $session->ip_address = (string) $request->ip();
+            $session->ip_address = $this->clientIpHash($request);
             $session->user_agent = Str::limit((string) $request->userAgent(), 500, '');
             $session->last_seen_at = now();
             $session->expires_at = now()->addDays(30);
@@ -406,7 +405,7 @@ class LiveChatPublicController extends Controller
             'visitor_key' => $visitorKey,
             'session_token_hash' => hash('sha256', $plainToken),
             'origin_host' => $this->originHost($request),
-            'ip_address' => (string) $request->ip(),
+            'ip_address' => $this->clientIpHash($request),
             'user_agent' => Str::limit((string) $request->userAgent(), 500, ''),
             'last_seen_at' => now(),
             'expires_at' => now()->addDays(30),
@@ -429,7 +428,7 @@ class LiveChatPublicController extends Controller
 
         $session->forceFill([
             'origin_host' => $originHost ?: $session->origin_host,
-            'ip_address' => (string) $request->ip(),
+            'ip_address' => $this->clientIpHash($request),
             'user_agent' => Str::limit((string) $request->userAgent(), 500, ''),
             'last_seen_at' => now(),
             'expires_at' => now()->addDays(30),
@@ -468,6 +467,13 @@ class LiveChatPublicController extends Controller
         $host = strtolower((string) parse_url($origin, PHP_URL_HOST));
 
         return $host !== '' ? $host : null;
+    }
+
+    private function clientIpHash(Request $request): ?string
+    {
+        $ip = trim((string) $request->ip());
+
+        return $ip !== '' ? hash('sha256', $ip) : null;
     }
 
     private function hostAllowed(string $originHost, array $allowedDomains): bool

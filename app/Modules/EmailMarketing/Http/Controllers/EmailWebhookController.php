@@ -4,6 +4,7 @@ namespace App\Modules\EmailMarketing\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\EmailMarketing\Models\EmailCampaignRecipient;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -23,7 +24,7 @@ class EmailWebhookController extends Controller
         }
 
         $payload = $request->all();
-        Log::info('mailtrap-webhook', $payload);
+        Log::info('mailtrap-webhook', $this->sanitizedWebhookLogContext($payload));
 
         $token = $this->extractToken($payload);
         if (!$token) {
@@ -34,6 +35,8 @@ class EmailWebhookController extends Controller
         if (!$recipient) {
             return response()->json(['status' => 'ignored', 'reason' => 'recipient not found'], 200);
         }
+
+        TenantContext::setCurrentId((int) $recipient->tenant_id);
 
         $event = strtolower($payload['event'] ?? '');
 
@@ -97,5 +100,33 @@ class EmailWebhookController extends Controller
                 'finished_at' => $campaign->finished_at ?: Carbon::now(),
             ]);
         }
+    }
+
+    private function sanitizedWebhookLogContext(array $payload): array
+    {
+        return [
+            'event' => strtolower((string) ($payload['event'] ?? '')),
+            'message_id' => (string) ($payload['message_id'] ?? data_get($payload, 'message.id', '')),
+            'recipient_email' => $this->maskEmail((string) (
+                $payload['email']
+                ?? data_get($payload, 'message.to_email')
+                ?? data_get($payload, 'message.to.0.email')
+                ?? ''
+            )),
+            'token_present' => $this->extractToken($payload) !== null,
+        ];
+    }
+
+    private function maskEmail(string $email): ?string
+    {
+        $email = trim($email);
+        if ($email === '' || !str_contains($email, '@')) {
+            return null;
+        }
+
+        [$local, $domain] = explode('@', $email, 2);
+        $visible = mb_substr($local, 0, 2);
+
+        return $visible . str_repeat('*', max(mb_strlen($local) - 2, 1)) . '@' . $domain;
     }
 }

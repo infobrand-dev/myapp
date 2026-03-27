@@ -43,8 +43,14 @@ return new class extends Migration
             return;
         }
 
-        Schema::table($table, function (Blueprint $blueprint): void {
-            $blueprint->unsignedBigInteger('tenant_id')->default(1);
+        $supportsAfter = $this->supportsColumnAfter();
+
+        Schema::table($table, function (Blueprint $blueprint) use ($supportsAfter): void {
+            $column = $blueprint->unsignedBigInteger('tenant_id')->default(1);
+
+            if ($supportsAfter) {
+                $column->after('id');
+            }
         });
     }
 
@@ -72,12 +78,31 @@ return new class extends Migration
 
     private function indexExists(string $table, string $indexName): bool
     {
-        $database = DB::connection()->getDatabaseName();
+        $connection = DB::connection();
+        $driver = $connection->getDriverName();
+        $database = $connection->getDatabaseName();
 
-        return DB::table('information_schema.statistics')
-            ->where('table_schema', $database)
-            ->where('table_name', $table)
-            ->where('index_name', $indexName)
-            ->exists();
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            return DB::table('information_schema.statistics')
+                ->where('table_schema', $database)
+                ->where('table_name', $table)
+                ->where('index_name', $indexName)
+                ->exists();
+        }
+
+        if ($driver === 'pgsql') {
+            return DB::table('pg_indexes')
+                ->where('schemaname', 'public')
+                ->where('tablename', $table)
+                ->where('indexname', $indexName)
+                ->exists();
+        }
+
+        return false;
+    }
+
+    private function supportsColumnAfter(): bool
+    {
+        return in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true);
     }
 };

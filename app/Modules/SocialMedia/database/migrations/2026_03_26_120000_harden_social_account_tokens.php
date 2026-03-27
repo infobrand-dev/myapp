@@ -10,9 +10,17 @@ return new class extends Migration
 {
     public function up(): void
     {
+        $supportsAfter = in_array(Schema::getConnection()->getDriverName(), ['mysql', 'mariadb'], true);
+
         if (!$this->hasColumn('social_accounts', 'access_token_hash')) {
-            Schema::table('social_accounts', function (Blueprint $table) {
-                $table->string('access_token_hash', 64)->nullable()->after('access_token')->index();
+            Schema::table('social_accounts', function (Blueprint $table) use ($supportsAfter) {
+                $column = $table->string('access_token_hash', 64)->nullable();
+
+                if ($supportsAfter) {
+                    $column->after('access_token');
+                }
+
+                $column->index();
             });
         }
 

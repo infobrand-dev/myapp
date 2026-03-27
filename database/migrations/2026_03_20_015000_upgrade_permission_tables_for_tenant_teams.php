@@ -33,9 +33,15 @@ return new class extends Migration
             return;
         }
 
+        $supportsAfter = in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true);
+
         if (!Schema::hasColumn($table, $teamForeignKey)) {
-            Schema::table($table, function (Blueprint $tableBlueprint) use ($teamForeignKey) {
-                $tableBlueprint->unsignedBigInteger($teamForeignKey)->nullable()->after('id');
+            Schema::table($table, function (Blueprint $tableBlueprint) use ($teamForeignKey, $supportsAfter) {
+                $column = $tableBlueprint->unsignedBigInteger($teamForeignKey)->nullable();
+
+                if ($supportsAfter) {
+                    $column->after('id');
+                }
             });
 
             DB::table($table)
@@ -67,9 +73,15 @@ return new class extends Migration
             return;
         }
 
+        $supportsAfter = in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true);
+
         if (!Schema::hasColumn($table, $teamForeignKey)) {
-            Schema::table($table, function (Blueprint $tableBlueprint) use ($teamForeignKey) {
-                $tableBlueprint->unsignedBigInteger($teamForeignKey)->default(1)->after('model_id');
+            Schema::table($table, function (Blueprint $tableBlueprint) use ($teamForeignKey, $supportsAfter) {
+                $column = $tableBlueprint->unsignedBigInteger($teamForeignKey)->default(1);
+
+                if ($supportsAfter) {
+                    $column->after('model_id');
+                }
             });
 
             if (!$this->indexExists($table, $table . '_team_foreign_key_index')) {
@@ -93,15 +105,35 @@ return new class extends Migration
 
     private function indexExists(string $table, string $indexName): bool
     {
-        return DB::table('information_schema.statistics')
-            ->where('table_schema', DB::getDatabaseName())
-            ->where('table_name', $table)
-            ->where('index_name', $indexName)
-            ->exists();
+        $driver = DB::connection()->getDriverName();
+
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            return DB::table('information_schema.statistics')
+                ->where('table_schema', DB::getDatabaseName())
+                ->where('table_name', $table)
+                ->where('index_name', $indexName)
+                ->exists();
+        }
+
+        if ($driver === 'pgsql') {
+            return DB::table('pg_indexes')
+                ->where('schemaname', 'public')
+                ->where('tablename', $table)
+                ->where('indexname', $indexName)
+                ->exists();
+        }
+
+        return false;
     }
 
     private function primaryStartsWith(string $table, string $column): bool
     {
+        $driver = DB::connection()->getDriverName();
+
+        if (!in_array($driver, ['mysql', 'mariadb'], true)) {
+            return false;
+        }
+
         $firstColumn = DB::table('information_schema.statistics')
             ->where('table_schema', DB::getDatabaseName())
             ->where('table_name', $table)

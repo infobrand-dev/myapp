@@ -60,9 +60,15 @@ return new class extends Migration
             return;
         }
 
-        Schema::table($table, function (Blueprint $blueprint) use ($table): void {
+        $supportsAfter = in_array(Schema::getConnection()->getDriverName(), ['mysql', 'mariadb'], true);
+
+        Schema::table($table, function (Blueprint $blueprint) use ($table, $supportsAfter): void {
             if (!Schema::hasColumn($table, 'tenant_id')) {
-                $blueprint->unsignedBigInteger('tenant_id')->default(1)->after('id');
+                $column = $blueprint->unsignedBigInteger('tenant_id')->default(1);
+
+                if ($supportsAfter) {
+                    $column->after('id');
+                }
             }
         });
 

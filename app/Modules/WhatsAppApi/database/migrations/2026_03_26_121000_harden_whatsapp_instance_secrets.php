@@ -10,9 +10,17 @@ return new class extends Migration
 {
     public function up(): void
     {
+        $supportsAfter = in_array(Schema::getConnection()->getDriverName(), ['mysql', 'mariadb'], true);
+
         if (!$this->hasColumn('whatsapp_instances', 'api_token_hash')) {
-            Schema::table('whatsapp_instances', function (Blueprint $table) {
-                $table->string('api_token_hash', 64)->nullable()->after('api_token')->index();
+            Schema::table('whatsapp_instances', function (Blueprint $table) use ($supportsAfter) {
+                $column = $table->string('api_token_hash', 64)->nullable();
+
+                if ($supportsAfter) {
+                    $column->after('api_token');
+                }
+
+                $column->index();
             });
         }
 

@@ -2,6 +2,10 @@
 
 namespace App\Modules\Chatbot;
 
+use App\Modules\Chatbot\Models\ChatbotAccount;
+use App\Modules\Chatbot\Contracts\ConversationBotIntegrationRegistry;
+use App\Modules\Chatbot\Services\ConversationBotIntegrationManager;
+use App\Modules\Conversations\Contracts\ConversationAiAssistantRegistry;
 use App\Support\HookManager;
 use App\Support\RegistersModuleRoutes;
 use Illuminate\Support\ServiceProvider;
@@ -12,7 +16,19 @@ class ChatbotServiceProvider extends ServiceProvider
 
     public function register(): void
     {
-        //
+        $this->app->singleton(ConversationBotIntegrationRegistry::class, ConversationBotIntegrationManager::class);
+
+        $this->app->afterResolving(ConversationAiAssistantRegistry::class, function (ConversationAiAssistantRegistry $registry): void {
+            $registry->registerAccountResolver(function (?int $accountId) {
+                if (!$accountId) {
+                    return null;
+                }
+
+                return ChatbotAccount::query()
+                    ->where('status', 'active')
+                    ->find($accountId);
+            });
+        });
     }
 
     public function boot(): void

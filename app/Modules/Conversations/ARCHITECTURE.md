@@ -45,6 +45,14 @@ Catatan:
 `Conversations` hanya memanggil dispatcher.
 Setiap module channel mendaftarkan sender atau job miliknya sendiri dari service provider modul tersebut.
 
+### 2b. AI assistant resolution
+
+- Contract: `App\Modules\Conversations\Contracts\ConversationAiAssistantRegistry`
+- Service: `App\Modules\Conversations\Services\ConversationAiAssistantManager`
+
+`Conversations` tidak boleh mengimpor model akun AI dari module automation secara langsung.
+Module seperti `Chatbot` mendaftarkan resolver account-nya sendiri.
+
 ### 3. Access policy
 
 - Contract: `App\Modules\Conversations\Contracts\ConversationAccessRegistry`
@@ -72,8 +80,20 @@ Registry ini dipakai untuk kebutuhan channel-specific yang masih berhubungan den
 - preflight send check
 - aturan apakah text atau media boleh dikirim
 - dukungan template
+- template lookup dan payload builder
+- dukungan AI structured reply jika channel memang mendukung payload non-text
 - default persistence status seperti `queued`
 - flag UI seperti menampilkan template composer atau media composer
+
+### 5. Detail hooks
+
+Detail panel dan badge integrasi yang benar-benar channel/domain-specific tidak lagi di-hardcode di controller inbox.
+Gunakan hook view seperti:
+
+- `conversations.index.integration_badges`
+- `conversations.show.detail_rows`
+
+Dengan pola ini, module seperti `WhatsAppApi` atau `Contacts` bisa menambahkan UI detail sendiri tanpa membuat `Conversations` mengimpor class mereka.
 
 ## Aturan praktis saat menambah channel baru
 

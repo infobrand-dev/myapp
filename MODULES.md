@@ -7,10 +7,11 @@ This file is a quick catalog. The authoritative metadata for each module lives i
 - `inventory`: stock balances, movements, opening stock, adjustments, transfers, opname. Requires `products`.
 - `discounts`: discount engine and voucher rules. Requires `products`.
 - `sales`: sales workflow and returns. Requires `products`, `contacts`.
-- `payments`: payment records, methods, allocations, void flow. Requires `sales`.
+- `payments`: payment records, methods, allocations, void flow. Requires `sales`, `purchases`, `point-of-sale`.
 - `purchases`: draft/finalized purchase flow and goods receiving. Requires `products`, `contacts`, `inventory`, `payments`.
 - `finance`: finance-related services and permissions used by the commerce stack.
 - `point-of-sale`: POS cart, checkout, cash session, receipt flow. Requires `products`, `contacts`, `sales`, `payments`, `discounts`.
+- `midtrans`: Midtrans payment gateway integration for online payment flow. Requires `payments`, `sales`, `point-of-sale`.
 
 ## Reporting
 - `reports`: dashboard and module-level reports for sales, payments, inventory, purchases, finance, POS, and products.

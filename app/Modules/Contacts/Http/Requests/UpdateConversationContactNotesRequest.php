@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Modules\Conversations\Http\Requests;
+namespace App\Modules\Contacts\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateConversationContactNoteRequest extends FormRequest
+class UpdateConversationContactNotesRequest extends FormRequest
 {
     public function authorize(): bool
     {

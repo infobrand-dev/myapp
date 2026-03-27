@@ -1,8 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Modules\Conversations\Http\Controllers\ConversationHubController;
 use App\Modules\Conversations\Http\Controllers\ActivityController;
+use App\Modules\Conversations\Http\Controllers\ConversationHubController;
 
 Route::middleware(['web', 'auth'])
     ->prefix('conversations')
@@ -33,9 +33,6 @@ Route::middleware(['web', 'auth'])
         Route::post('/{conversation}/invite', [ConversationHubController::class, 'invite'])
             ->middleware('throttle:20,1')
             ->name('invite');
-        Route::post('/{conversation}/contact-note', [ConversationHubController::class, 'updateContactNote'])
-            ->middleware('throttle:20,1')
-            ->name('contact-note.update');
         Route::post('/{conversation}/message', [ConversationHubController::class, 'send'])
             ->middleware('throttle:60,1')
             ->name('send');

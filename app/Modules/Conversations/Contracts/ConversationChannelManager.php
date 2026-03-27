@@ -21,7 +21,13 @@ interface ConversationChannelManager
 
     public function templatesFor(Conversation $conversation): Collection;
 
+    public function findTemplate(Conversation $conversation, int $templateId): mixed;
+
+    public function buildTemplatePayload(Conversation $conversation, mixed $template, array $params): ?array;
+
     public function hasUiFeature(Conversation $conversation, string $feature): bool;
+
+    public function supportsAiStructuredReply(Conversation $conversation): bool;
 
     /**
      * @return array{status:string,sent_at:mixed}

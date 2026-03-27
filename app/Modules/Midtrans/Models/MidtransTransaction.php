@@ -20,7 +20,6 @@ class MidtransTransaction extends Model
     public const ALLOWED_PAYABLE_TYPES = [
         \App\Modules\Sales\Models\Sale::class,
         \App\Modules\PointOfSale\Models\PosOrder::class,
-        \App\Modules\Invoices\Models\Invoice::class,
     ];
 
     // Transaction statuses

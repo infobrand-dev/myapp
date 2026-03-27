@@ -7,6 +7,7 @@ use App\Modules\Contacts\Http\Requests\BulkDestroyContactRequest;
 use App\Modules\Contacts\Http\Requests\ImportContactRequest;
 use App\Modules\Contacts\Http\Requests\MergeContactRequest;
 use App\Modules\Contacts\Http\Requests\StoreContactRequest;
+use App\Modules\Contacts\Http\Requests\UpdateConversationContactNotesRequest;
 use App\Modules\Contacts\Http\Requests\UpdateContactRequest;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Contacts\Support\ContactPhoneNormalizer;
@@ -250,6 +251,15 @@ class ContactController extends Controller
         $contact->update($data);
 
         return redirect()->route('contacts.index')->with('status', 'Kontak diperbarui.');
+    }
+
+    public function updateNotesFromConversation(UpdateConversationContactNotesRequest $request, Contact $contact): RedirectResponse
+    {
+        $contact->update([
+            'notes' => $request->validated()['notes'] ?? null,
+        ]);
+
+        return back()->with('status', 'Catatan kontak diperbarui.');
     }
 
     public function destroy(Contact $contact): RedirectResponse

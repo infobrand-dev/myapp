@@ -3,6 +3,7 @@
 namespace App\Modules\Conversations;
 
 use App\Modules\Conversations\Contracts\ConversationAccessRegistry;
+use App\Modules\Conversations\Contracts\ConversationAiAssistantRegistry;
 use App\Modules\Conversations\Contracts\ConversationChannelManager;
 use App\Modules\Conversations\Contracts\ConversationOutboundDispatcher;
 use App\Modules\Conversations\Contracts\InboxMessageIngester;
@@ -10,6 +11,7 @@ use App\Modules\Conversations\Console\Commands\ReleaseExpiredLocks;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Services\ConversationInboxIngester;
 use App\Modules\Conversations\Services\ConversationAccessManager;
+use App\Modules\Conversations\Services\ConversationAiAssistantManager;
 use App\Modules\Conversations\Services\ConversationChannelRegistry;
 use App\Modules\Conversations\Services\ConversationOutboundRegistry;
 use App\Support\RegistersModuleRoutes;
@@ -29,6 +31,7 @@ class ConversationsServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(ConversationAccessRegistry::class, ConversationAccessManager::class);
+        $this->app->singleton(ConversationAiAssistantRegistry::class, ConversationAiAssistantManager::class);
         $this->app->singleton(ConversationChannelManager::class, ConversationChannelRegistry::class);
         $this->app->singleton(InboxMessageIngester::class, ConversationInboxIngester::class);
         $this->app->singleton(ConversationOutboundDispatcher::class, ConversationOutboundRegistry::class);

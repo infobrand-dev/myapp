@@ -7,8 +7,8 @@ use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Conversation extends Model
 {
@@ -44,18 +44,6 @@ class Conversation extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
-    }
-
-    public function instance(): BelongsTo
-    {
-        $waInstanceClass = \App\Modules\WhatsAppApi\Models\WhatsAppInstance::class;
-        if (class_exists($waInstanceClass)) {
-            return $this->belongsTo($waInstanceClass, 'instance_id')
-                ->where('tenant_id', TenantContext::currentId());
-        }
-
-        // Fallback dummy relation to keep conversations module bootable without WhatsAppApi module.
-        return $this->belongsTo(User::class, 'instance_id')->whereRaw('1 = 0');
     }
 
     public function participants(): HasMany

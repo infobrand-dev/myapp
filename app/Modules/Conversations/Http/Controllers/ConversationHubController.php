@@ -10,14 +10,11 @@ use App\Modules\Conversations\Contracts\ConversationOutboundDispatcher;
 use App\Modules\Conversations\Http\Requests\InviteConversationParticipantRequest;
 use App\Modules\Conversations\Http\Requests\SendConversationMessageRequest;
 use App\Modules\Conversations\Http\Requests\StartConversationRequest;
-use App\Modules\Conversations\Http\Requests\UpdateConversationContactNoteRequest;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\Conversations\Models\ConversationParticipant;
 use App\Modules\Conversations\Models\ConversationActivityLog;
 use App\Modules\Conversations\Events\ConversationMessageCreated;
-use App\Modules\Contacts\Models\Contact;
-use App\Modules\Contacts\Support\ContactPhoneNormalizer;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
@@ -25,7 +22,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -102,7 +98,6 @@ class ConversationHubController extends Controller
     {
         $user = $request->user();
         $lockMinutes = (int) config('conversations.lock_minutes', 30);
-        $waModuleReady = $this->isWhatsAppApiReady();
         $filters = [
             'search' => trim((string) $request->string('search')->toString()),
             'channel' => $request->string('channel')->toString() ?: null,
@@ -127,7 +122,7 @@ class ConversationHubController extends Controller
             'locked' => (clone $summaryBase)->whereNotNull('locked_until')->where('locked_until', '>', now())->count(),
         ];
 
-        return view('conversations::index', compact('conversations', 'lockMinutes', 'waModuleReady', 'filters', 'summary'));
+        return view('conversations::index', compact('conversations', 'lockMinutes', 'filters', 'summary'));
     }
 
     public function show(Request $request, Conversation $conversation): View
@@ -170,28 +165,23 @@ class ConversationHubController extends Controller
             ->get();
 
         $lockMinutes = (int) config('conversations.lock_minutes', 30);
-        $waModuleReady = $this->isWhatsAppApiReady();
         $channelManager = app(ConversationChannelManager::class);
         $waTemplates = $channelManager->templatesFor($conversation);
         $channelUi = [
             'show_ai_bot' => $channelManager->hasUiFeature($conversation, 'show_ai_bot'),
             'show_media_composer' => $channelManager->hasUiFeature($conversation, 'show_media_composer'),
             'show_template_composer' => $channelManager->hasUiFeature($conversation, 'show_template_composer'),
-            'show_contact_crm' => $channelManager->hasUiFeature($conversation, 'show_contact_crm'),
         ];
-        $relatedContact = $this->findRelatedContact($conversation);
 
         return view('conversations::show', [
             'conversation' => $conversation,
             'conversationsList' => $conversationsList,
             'lockMinutes' => $lockMinutes,
             'waTemplates' => $waTemplates,
-            'waModuleReady' => $waModuleReady,
             'oldestMessageId' => $oldestMessageId,
             'latestMessageId' => $latestMessageId,
             'hasMoreMessages' => $hasMoreMessages,
             'channelUi' => $channelUi,
-            'relatedContact' => $relatedContact,
         ]);
     }
 
@@ -506,27 +496,6 @@ class ConversationHubController extends Controller
         return back()->with('status', 'Conversation dibuka kembali.');
     }
 
-    public function updateContactNote(UpdateConversationContactNoteRequest $request, Conversation $conversation): RedirectResponse
-    {
-        $user = $request->user();
-        $this->authorizeParticipant($conversation, $user);
-
-        $contact = $this->findRelatedContact($conversation);
-        if (!$contact) {
-            return back()->with('status', 'Kontak terkait tidak ditemukan.');
-        }
-
-        $data = $request->validated();
-
-        $contact->update([
-            'notes' => $data['notes'] ?? null,
-        ]);
-
-        $this->log($conversation, $user->id, 'update_contact_note', "Update notes untuk contact {$contact->id}");
-
-        return back()->with('status', 'Catatan kontak diperbarui.');
-    }
-
     public function send(SendConversationMessageRequest $request, Conversation $conversation): RedirectResponse|JsonResponse
     {
         $user = $request->user();
@@ -556,17 +525,14 @@ class ConversationHubController extends Controller
 
             $data = $request->validated();
 
-            if (!$this->waTemplateModelClass()::query()->where('tenant_id', $this->tenantId())->find($data['template_id'])) {
-                return $this->sendErrorResponse($request, 'Template tidak ditemukan untuk tenant aktif.');
-            }
-
-            $template = $this->waTemplateModelClass()::query()
-                ->where('tenant_id', $this->tenantId())
-                ->find($data['template_id']);
+            $template = app(ConversationChannelManager::class)->findTemplate($conversation, (int) $data['template_id']);
             if (!$template) {
                 return $this->sendErrorResponse($request, 'Template tidak ditemukan.');
             }
-            $payload = $this->buildTemplatePayload($template, $request->input('template_params', []));
+            $payload = app(ConversationChannelManager::class)->buildTemplatePayload($conversation, $template, $request->input('template_params', []));
+            if ($payload === null) {
+                return $this->sendErrorResponse($request, 'Payload template tidak dapat dibuat untuk channel ini.');
+            }
 
             // Pastikan semua placeholder terisi
             foreach ($payload['placeholders'] as $idx) {
@@ -793,9 +759,6 @@ class ConversationHubController extends Controller
                 ]);
             },
         ]);
-        if ($this->isWhatsAppApiReady()) {
-            $query->with('instance');
-        }
 
         return $query
             ->where('tenant_id', $this->tenantId())
@@ -846,119 +809,6 @@ class ConversationHubController extends Controller
             'action' => $action,
             'detail' => $detail,
         ]);
-    }
-
-    private function buildTemplatePayload(object $template, array $params): array
-    {
-        $header = collect($template->components ?? [])->firstWhere('type', 'header');
-        $headerText = strtolower(data_get($header, 'format')) === 'text'
-            ? data_get($header, 'parameters.0.text')
-            : null;
-
-        $bodyIndexes = $this->placeholderIndexes($template->body);
-        $headerIndexes = $this->placeholderIndexes($headerText);
-        $allIndexes = array_values(array_unique(array_merge($bodyIndexes, $headerIndexes)));
-        sort($allIndexes);
-
-        $bodyParams = [];
-        foreach ($bodyIndexes as $idx) {
-            $bodyParams[] = [
-                'type' => 'text',
-                'text' => $params[$idx] ?? '',
-            ];
-        }
-
-        $headerParams = [];
-        if ($headerText) {
-            foreach ($headerIndexes as $idx) {
-                $headerParams[] = [
-                    'type' => 'text',
-                    'text' => $params[$idx] ?? '',
-                ];
-            }
-        } elseif ($header && data_get($header, 'parameters.0.link')) {
-            $linkType = strtolower(data_get($header, 'parameters.0.type', 'image'));
-            $headerParams[] = [
-                'type' => $linkType,
-                'link' => data_get($header, 'parameters.0.link'),
-            ];
-        }
-
-        $components = [];
-        if ($headerParams) {
-            $components[] = [
-                'type' => 'header',
-                'parameters' => $headerParams,
-            ];
-        }
-        if ($bodyParams) {
-            $components[] = [
-                'type' => 'body',
-                'parameters' => $bodyParams,
-            ];
-        }
-        // Buttons/components from template (CTA/quick reply) do not require parameters for send payload
-        return [
-            'template_id' => $template->id,
-            'name' => $template->name,
-            'meta_name' => method_exists($template, 'metaTemplateName') ? $template->metaTemplateName() : ($template->meta_name ?: $template->name),
-            'language' => $template->language,
-            'components' => $components,
-            'placeholders' => $allIndexes,
-        ];
-    }
-
-    private function placeholderIndexes(?string $text): array
-    {
-        if (!$text) {
-            return [];
-        }
-        preg_match_all('/\\{\\{(\\d+)\\}\\}/', $text, $matches);
-        $indexes = array_map('intval', $matches[1] ?? []);
-        $unique = array_values(array_unique($indexes));
-        sort($unique);
-        return $unique;
-    }
-
-    private function isWhatsAppApiReady(): bool
-    {
-        return class_exists(\App\Modules\WhatsAppApi\Models\WhatsAppInstance::class)
-            && Schema::hasTable('whatsapp_instances')
-            && Schema::hasTable('whatsapp_instance_user');
-    }
-
-    private function isContactsReady(): bool
-    {
-        return class_exists(Contact::class)
-            && class_exists(ContactPhoneNormalizer::class)
-            && Schema::hasTable('contacts');
-    }
-
-    private function findRelatedContact(Conversation $conversation): ?Contact
-    {
-        if (!$this->isContactsReady()) {
-            return null;
-        }
-
-        $phone = ContactPhoneNormalizer::normalize((string) ($conversation->contact_external_id ?? ''));
-        if (!$phone) {
-            return null;
-        }
-
-        return Contact::query()
-            ->where('tenant_id', $this->tenantId())
-            ->where(function ($query) use ($phone) {
-                $query->where('mobile', $phone)
-                    ->orWhere('phone', $phone);
-            })
-            ->orderByRaw('CASE WHEN mobile = ? THEN 0 ELSE 1 END', [$phone])
-            ->orderBy('name')
-            ->first();
-    }
-
-    private function waTemplateModelClass(): string
-    {
-        return \App\Modules\WhatsAppApi\Models\WATemplate::class;
     }
 
     private function publicStorageUrl(string $path): string
@@ -1018,4 +868,3 @@ class ConversationHubController extends Controller
         return TenantContext::currentId();
     }
 }
-

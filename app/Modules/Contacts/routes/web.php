@@ -18,6 +18,7 @@ Route::middleware(['web', 'auth', 'role:Super-admin|Admin'])
         Route::delete('/bulk-destroy', [ContactController::class, 'bulkDestroy'])->name('bulk-destroy');
         Route::get('/{contact}', [ContactController::class, 'show'])->name('show');
         Route::get('/{contact}/edit', [ContactController::class, 'edit'])->name('edit');
+        Route::post('/{contact}/notes-from-conversation', [ContactController::class, 'updateNotesFromConversation'])->name('notes-from-conversation');
         Route::put('/{contact}', [ContactController::class, 'update'])->name('update');
         Route::delete('/{contact}', [ContactController::class, 'destroy'])->name('destroy');
     });

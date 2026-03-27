@@ -5,7 +5,7 @@
     "provider": "App\\Modules\\Midtrans\\MidtransServiceProvider",
     "version": "1.0.0",
     "category": "commerce",
-    "requires": ["payments"],
+    "requires": ["payments", "sales", "point-of-sale"],
     "navigation": [
         {"label": "Midtrans Transactions", "route": "midtrans.transactions.index"},
         {"label": "Midtrans Settings", "route": "midtrans.settings.edit"}

@@ -2,9 +2,11 @@
 
 namespace App\Modules\Conversations\Jobs;
 
+use App\Modules\Conversations\Contracts\ConversationAiAssistantRegistry;
+use App\Modules\Conversations\Contracts\ConversationChannelManager;
+use App\Modules\Conversations\Contracts\ConversationOutboundDispatcher;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
-use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
@@ -54,15 +56,12 @@ class GenerateAiReply implements ShouldQueue
             return;
         }
 
-        $chatbotClass = \App\Modules\Chatbot\Models\ChatbotAccount::class;
-        if (!class_exists($chatbotClass)) {
+        $aiAccount = app(ConversationAiAssistantRegistry::class)->resolveAccount($this->chatbotAccountId);
+        if (!$aiAccount) {
             Log::warning('AI reply skipped: chatbot module not ready', ['conversation_id' => $this->conversationId]);
             return;
         }
 
-        $aiAccount = $this->chatbotAccountId
-            ? $chatbotClass::where('status', 'active')->find($this->chatbotAccountId)
-            : null;
         if (!$aiAccount || !$aiAccount->api_key) {
             Log::warning('AI reply skipped: no active chatbot account', ['conversation_id' => $this->conversationId]);
             return;
@@ -122,6 +121,8 @@ class GenerateAiReply implements ShouldQueue
 
         $outgoing = $this->buildOutgoingReply((string) $reply, $conversation);
 
+        $outboundDefaults = app(ConversationChannelManager::class)->outboundPersistenceDefaults($conversation);
+
         $replyMessage = ConversationMessage::create([
             'tenant_id' => $this->tenantId(),
             'conversation_id' => $conversation->id,
@@ -130,21 +131,11 @@ class GenerateAiReply implements ShouldQueue
             'type' => $outgoing['type'],
             'body' => $outgoing['body'],
             'payload' => $outgoing['payload'],
-            'status' => $conversation->channel === 'wa_api' ? 'queued' : 'sent',
-            'sent_at' => $conversation->channel === 'wa_api' ? null : now(),
+            'status' => $outboundDefaults['status'],
+            'sent_at' => $outboundDefaults['sent_at'],
         ]);
 
-        if ($conversation->channel === 'wa_api') {
-            $waJobClass = \App\Modules\WhatsAppApi\Jobs\SendWhatsAppMessage::class;
-            if (class_exists($waJobClass)) {
-                $waJobClass::dispatch($replyMessage->id);
-            }
-        } elseif ($conversation->channel === 'social_dm') {
-            $socialJobClass = \App\Modules\SocialMedia\Jobs\SendSocialMessage::class;
-            if (class_exists($socialJobClass)) {
-                $socialJobClass::dispatch($replyMessage->id);
-            }
-        }
+        app(ConversationOutboundDispatcher::class)->dispatch($replyMessage);
     }
 
     private function systemPrompt(Conversation $conversation): string
@@ -291,18 +282,7 @@ class GenerateAiReply implements ShouldQueue
 
     private function supportsInteractiveButtons(Conversation $conversation): bool
     {
-        if ($conversation->channel !== 'wa_api' || !$conversation->instance_id) {
-            return false;
-        }
-
-        $instance = WhatsAppInstance::query()
-            ->where('tenant_id', $this->tenantId())
-            ->find($conversation->instance_id);
-        if (!$instance) {
-            return false;
-        }
-
-        return strtolower((string) ($instance->provider ?? '')) === 'cloud';
+        return app(ConversationChannelManager::class)->supportsAiStructuredReply($conversation);
     }
 
     private function shouldPauseForHuman(Conversation $conversation, $aiAccount): bool

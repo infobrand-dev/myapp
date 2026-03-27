@@ -1127,67 +1127,6 @@
                         </span>
                     </div>
                 @endif
-                @if($channelUi['show_contact_crm'] && !empty($conversation->contact_external_id))
-                    <div class="detail-row">
-                        <span class="detail-key">Contact CRM</span>
-                        <span class="detail-value">
-                            <span class="detail-action-group">
-                            @if(!empty($relatedContact))
-                                <a href="{{ route('contacts.edit', $relatedContact) }}" class="btn btn-sm btn-outline-primary detail-action-btn" title="Open Contact" aria-label="Open Contact">
-                                    <i class="ti ti-address-book" aria-hidden="true"></i>
-                                </a>
-                                <button
-                                    type="button"
-                                    class="btn btn-sm btn-outline-secondary detail-action-btn"
-                                    data-bs-toggle="collapse"
-                                    data-bs-target="#contact-note-panel"
-                                    aria-expanded="false"
-                                    aria-controls="contact-note-panel"
-                                    title="Open Note"
-                                    aria-label="Open Note"
-                                >
-                                    <i class="ti ti-notebook" aria-hidden="true"></i>
-                                </button>
-                            @elseif(Route::has('contacts.create'))
-                                <a
-                                    href="{{ route('contacts.create', [
-                                        'type' => 'individual',
-                                        'name' => $conversation->contact_name,
-                                        'mobile' => $conversation->contact_external_id,
-                                        'phone' => $conversation->contact_external_id,
-                                        'notes' => 'Created from conversation #' . $conversation->id,
-                                    ]) }}"
-                                    class="btn btn-sm btn-outline-success detail-action-btn"
-                                    title="Add Contact"
-                                    aria-label="Add Contact"
-                                >
-                                    <i class="ti ti-user-plus" aria-hidden="true"></i>
-                                </a>
-                            @else
-                                <span class="text-muted">Contacts module not available.</span>
-                            @endif
-                            </span>
-                        </span>
-                    </div>
-                @endif
-                @if(!empty($relatedContact))
-                    <div class="detail-row detail-row-stack">
-                        <span class="detail-key">Contact Notes</span>
-                        <div class="detail-value detail-value-detail">
-                            <div class="collapse" id="contact-note-panel">
-                                <div class="detail-collapse-panel">
-                                    <form method="POST" action="{{ route('conversations.contact-note.update', $conversation) }}" class="detail-inline-form">
-                                        @csrf
-                                        <textarea name="notes" class="form-control form-control-sm mb-2" {{ $canReply ? '' : 'disabled' }}>{{ old('notes', $relatedContact->notes ?? '') }}</textarea>
-                                        <div class="d-flex justify-content-end">
-                                            <button type="submit" class="btn btn-sm btn-primary" {{ $canReply ? '' : 'disabled' }}>Save Note</button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @endif
                 <div class="detail-row"><span class="detail-key">Owner</span><span class="detail-value" id="detail-owner-name">{{ $conversation->owner->name ?? 'Unassigned' }}</span></div>
                 <div class="detail-row"><span class="detail-key">Status</span><span class="detail-value">{{ ucfirst($conversation->status) }}</span></div>
                 @if($channelUi['show_ai_bot'])
@@ -1208,9 +1147,9 @@
                     </div>
                 @endif
                 <div class="detail-row"><span class="detail-key">Last message</span><span class="detail-value" id="detail-last-message-time">{{ optional($conversation->last_message_at)->diffForHumans() ?? '-' }}</span></div>
-                @if(($waModuleReady ?? false) && $conversation->instance)
-                    <div class="detail-row"><span class="detail-key">Instance</span><span class="detail-value">{{ $conversation->instance->name }}</span></div>
-                @endif
+                @foreach($hooks->render('conversations.show.detail_rows', ['conversation' => $conversation, 'canReply' => $canReply]) as $hookedDetailRow)
+                    {!! $hookedDetailRow !!}
+                @endforeach
             </div>
         </div>
         @if($conversation->channel === 'live_chat')

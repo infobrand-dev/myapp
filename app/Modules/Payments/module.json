@@ -6,7 +6,9 @@
     "version":  "1.0.0",
     "category":  "commerce",
     "requires":  [
-                     "sales"
+                     "sales",
+                     "purchases",
+                     "point-of-sale"
                  ],
     "sample_data":  {
                         "description":  "Membuat satu payment posted menggunakan metode yang tersedia.",

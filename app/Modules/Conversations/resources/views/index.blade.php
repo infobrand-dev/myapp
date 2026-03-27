@@ -1,5 +1,7 @@
 @extends('layouts.admin')
 
+@php($hooks = app(\App\Support\HookManager::class))
+
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
@@ -107,9 +109,9 @@
                             @endif
                         </td>
                         <td>
-                            @if(($waModuleReady ?? false) && $conv->instance)
-                                <span class="badge bg-azure-lt text-azure">{{ $conv->instance->name }}</span>
-                                <span class="badge {{ $conv->instance->status === 'connected' ? 'text-bg-success' : ($conv->instance->status === 'error' ? 'text-bg-danger' : 'text-bg-secondary') }}">{{ $conv->instance->status }}</span>
+                            @php($integrationBadges = $hooks->render('conversations.index.integration_badges', ['conversation' => $conv]))
+                            @if(!empty($integrationBadges))
+                                {!! implode('', $integrationBadges) !!}
                             @else
                                 <span class="text-muted small">-</span>
                             @endif

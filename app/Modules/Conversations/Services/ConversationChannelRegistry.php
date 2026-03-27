@@ -50,6 +50,18 @@ class ConversationChannelRegistry implements ConversationChannelManager
         return $templates instanceof Collection ? $templates : collect($templates);
     }
 
+    public function findTemplate(Conversation $conversation, int $templateId): mixed
+    {
+        return $this->resolve($conversation, 'find_template', null, $templateId);
+    }
+
+    public function buildTemplatePayload(Conversation $conversation, mixed $template, array $params): ?array
+    {
+        $payload = $this->resolve($conversation, 'build_template_payload', null, $template, $params);
+
+        return is_array($payload) ? $payload : null;
+    }
+
     public function hasUiFeature(Conversation $conversation, string $feature): bool
     {
         $features = $this->resolve($conversation, 'ui_features', []);
@@ -58,6 +70,11 @@ class ConversationChannelRegistry implements ConversationChannelManager
         }
 
         return (bool) ($features[$feature] ?? false);
+    }
+
+    public function supportsAiStructuredReply(Conversation $conversation): bool
+    {
+        return (bool) $this->resolve($conversation, 'supports_ai_structured_reply', false);
     }
 
     public function outboundPersistenceDefaults(Conversation $conversation): array

@@ -30,6 +30,33 @@ class WhatsAppApiServiceProvider extends ServiceProvider
 
     public function register(): void
     {
+        $chatbotRegistry = \App\Modules\Chatbot\Contracts\ConversationBotIntegrationRegistry::class;
+
+        $this->app->afterResolving($chatbotRegistry, function ($registry): void {
+            $registry->register('wa_api', function (Conversation $conversation): ?array {
+                if (!$conversation->instance_id
+                    || !class_exists(\App\Modules\WhatsAppApi\Models\WhatsAppInstanceChatbotIntegration::class)
+                    || !\Illuminate\Support\Facades\Schema::hasTable('whatsapp_instance_chatbot_integrations')) {
+                    return null;
+                }
+
+                $integration = \Illuminate\Support\Facades\DB::table('whatsapp_instance_chatbot_integrations')
+                    ->where('instance_id', (int) $conversation->instance_id)
+                    ->first(['auto_reply', 'chatbot_account_id']);
+
+                if (!$integration || empty($integration->chatbot_account_id)) {
+                    return null;
+                }
+
+                return [
+                    'channel' => 'wa_api',
+                    'connected' => true,
+                    'auto_reply' => (bool) ($integration->auto_reply ?? false),
+                    'chatbot_account_id' => (int) $integration->chatbot_account_id,
+                ];
+            });
+        });
+
         $this->app->afterResolving(ConversationChannelManager::class, function (ConversationChannelManager $channels): void {
             $channels->register('wa_api', [
                 'default_message_type' => 'text',
@@ -105,6 +132,96 @@ class WhatsAppApiServiceProvider extends ServiceProvider
                         ->orderBy('name')
                         ->get();
                 },
+                'find_template' => function (Conversation $conversation, int $templateId) {
+                    if ($conversation->channel !== 'wa_api'
+                        || !class_exists(\App\Modules\WhatsAppApi\Models\WATemplate::class)
+                        || !\Illuminate\Support\Facades\Schema::hasTable('wa_templates')) {
+                        return null;
+                    }
+
+                    return \App\Modules\WhatsAppApi\Models\WATemplate::query()
+                        ->where('tenant_id', \App\Support\TenantContext::currentId())
+                        ->find($templateId);
+                },
+                'build_template_payload' => function (Conversation $conversation, $template, array $params): ?array {
+                    if ($conversation->channel !== 'wa_api' || !$template) {
+                        return null;
+                    }
+
+                    $header = collect($template->components ?? [])->firstWhere('type', 'header');
+                    $headerText = strtolower(data_get($header, 'format')) === 'text'
+                        ? data_get($header, 'parameters.0.text')
+                        : null;
+
+                    $bodyIndexes = $this->placeholderIndexes($template->body);
+                    $headerIndexes = $this->placeholderIndexes($headerText);
+                    $allIndexes = array_values(array_unique(array_merge($bodyIndexes, $headerIndexes)));
+                    sort($allIndexes);
+
+                    $bodyParams = [];
+                    foreach ($bodyIndexes as $idx) {
+                        $bodyParams[] = [
+                            'type' => 'text',
+                            'text' => $params[$idx] ?? '',
+                        ];
+                    }
+
+                    $headerParams = [];
+                    if ($headerText) {
+                        foreach ($headerIndexes as $idx) {
+                            $headerParams[] = [
+                                'type' => 'text',
+                                'text' => $params[$idx] ?? '',
+                            ];
+                        }
+                    } elseif ($header && data_get($header, 'parameters.0.link')) {
+                        $linkType = strtolower(data_get($header, 'parameters.0.type', 'image'));
+                        $headerParams[] = [
+                            'type' => $linkType,
+                            'link' => data_get($header, 'parameters.0.link'),
+                        ];
+                    }
+
+                    $components = [];
+                    if ($headerParams) {
+                        $components[] = [
+                            'type' => 'header',
+                            'parameters' => $headerParams,
+                        ];
+                    }
+                    if ($bodyParams) {
+                        $components[] = [
+                            'type' => 'body',
+                            'parameters' => $bodyParams,
+                        ];
+                    }
+
+                    return [
+                        'template_id' => $template->id,
+                        'name' => $template->name,
+                        'meta_name' => method_exists($template, 'metaTemplateName') ? $template->metaTemplateName() : ($template->meta_name ?: $template->name),
+                        'language' => $template->language,
+                        'components' => $components,
+                        'placeholders' => $allIndexes,
+                    ];
+                },
+                'supports_ai_structured_reply' => function (Conversation $conversation): bool {
+                    if ($conversation->channel !== 'wa_api' || !$conversation->instance_id) {
+                        return false;
+                    }
+
+                    if (!class_exists(WhatsAppInstance::class)
+                        || !\Illuminate\Support\Facades\Schema::hasTable('whatsapp_instances')) {
+                        return false;
+                    }
+
+                    $provider = \Illuminate\Support\Facades\DB::table('whatsapp_instances')
+                        ->where('tenant_id', \App\Support\TenantContext::currentId())
+                        ->where('id', (int) $conversation->instance_id)
+                        ->value('provider');
+
+                    return strtolower((string) $provider) === 'cloud';
+                },
                 'ui_features' => [
                     'show_ai_bot' => true,
                     'show_media_composer' => true,
@@ -168,6 +285,7 @@ class WhatsAppApiServiceProvider extends ServiceProvider
         $this->loadTranslationsFrom(__DIR__ . '/resources/lang', 'whatsappapi');
         $this->loadMigrationsFrom(__DIR__ . '/Database/Migrations');
         $this->registerContactHooks();
+        $this->registerConversationHooks();
 
         if (!$this->app->runningInConsole()) {
             return;
@@ -219,5 +337,69 @@ class WhatsAppApiServiceProvider extends ServiceProvider
 
         $hooks->register('contacts.index.after_content', 'whatsapp_api.contact_modal', fn () => $modalRenderer());
         $hooks->register('contacts.show.after_content', 'whatsapp_api.contact_modal', fn () => $modalRenderer());
+    }
+
+    private function registerConversationHooks(): void
+    {
+        /** @var HookManager $hooks */
+        $hooks = $this->app->make(HookManager::class);
+
+        $hooks->register('conversations.index.integration_badges', 'whatsapp_api.instance_badges', function (array $context): string {
+            $conversation = $context['conversation'] ?? null;
+            $instance = $conversation ? $this->resolveConversationInstance($conversation) : null;
+
+            if (!$instance) {
+                return '';
+            }
+
+            return view('whatsappapi::conversations.hooks.index-badges', [
+                'instanceName' => $instance->name,
+                'instanceStatus' => $instance->status,
+            ])->render();
+        });
+
+        $hooks->register('conversations.show.detail_rows', 'whatsapp_api.instance_detail', function (array $context): string {
+            $conversation = $context['conversation'] ?? null;
+            $instance = $conversation ? $this->resolveConversationInstance($conversation) : null;
+
+            if (!$instance) {
+                return '';
+            }
+
+            return view('whatsappapi::conversations.hooks.detail-row', [
+                'instanceName' => $instance->name,
+            ])->render();
+        });
+    }
+
+    private function resolveConversationInstance(?Conversation $conversation): ?object
+    {
+        if (!$conversation || $conversation->channel !== 'wa_api' || !$conversation->instance_id) {
+            return null;
+        }
+
+        if (!class_exists(WhatsAppInstance::class)
+            || !\Illuminate\Support\Facades\Schema::hasTable('whatsapp_instances')) {
+            return null;
+        }
+
+        return \Illuminate\Support\Facades\DB::table('whatsapp_instances')
+            ->where('tenant_id', \App\Support\TenantContext::currentId())
+            ->where('id', (int) $conversation->instance_id)
+            ->first(['name', 'status']);
+    }
+
+    private function placeholderIndexes(?string $text): array
+    {
+        if (!$text) {
+            return [];
+        }
+
+        preg_match_all('/\\{\\{(\\d+)\\}\\}/', $text, $matches);
+        $indexes = array_map('intval', $matches[1] ?? []);
+        $unique = array_values(array_unique($indexes));
+        sort($unique);
+
+        return $unique;
     }
 }

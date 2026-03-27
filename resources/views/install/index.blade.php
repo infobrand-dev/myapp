@@ -7,6 +7,23 @@
     <link rel="stylesheet" href="{{ mix('css/app.css') }}">
 </head>
 <body class="bg-body">
+<style>
+    .install-submit-spinner {
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid currentColor;
+        border-right-color: transparent;
+        border-radius: 999px;
+        display: inline-block;
+        animation: install-spin .7s linear infinite;
+    }
+
+    @keyframes install-spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+</style>
 <div class="page">
     <div class="container-xl py-4">
         <div class="text-center mb-4">
@@ -20,7 +37,7 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('install.run') }}">
+        <form method="POST" action="{{ route('install.run') }}" id="install-form">
             <div class="row g-3">
                 <div class="col-lg-4">
                     <div class="card">
@@ -79,9 +96,16 @@
 
                             <div class="mb-3">
                                 <h4 class="mb-1">Database</h4>
-                                <div class="text-muted">Data ini dipakai untuk koneksi aplikasi ke MySQL.</div>
+                                <div class="text-muted">Pilih driver database. Untuk Supabase gunakan <code>pgsql</code> dan isi <code>sslmode=require</code>.</div>
                             </div>
                             <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">DB Driver</label>
+                                    <select class="form-select" name="db_connection" required>
+                                        <option value="mysql" @selected($defaults['db_connection'] === 'mysql')>MySQL</option>
+                                        <option value="pgsql" @selected($defaults['db_connection'] === 'pgsql')>PostgreSQL / Supabase</option>
+                                    </select>
+                                </div>
                                 <div class="col-md-4">
                                     <label class="form-label">DB Host</label>
                                     <input type="text" class="form-control" name="db_host" value="{{ $defaults['db_host'] }}" required>
@@ -101,6 +125,11 @@
                                 <div class="col-12">
                                     <label class="form-label">DB Password</label>
                                     <input type="password" class="form-control" name="db_password" value="{{ $defaults['db_password'] }}">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">DB SSL Mode</label>
+                                    <input type="text" class="form-control" name="db_sslmode" value="{{ $defaults['db_sslmode'] }}" placeholder="prefer / require">
+                                    <div class="form-hint">Kosongkan untuk MySQL biasa. Untuk Supabase umumnya <code>require</code>.</div>
                                 </div>
                             </div>
 
@@ -131,10 +160,11 @@
                                 type="submit"
                                 formaction="{{ route('install.test-db') }}"
                                 formnovalidate
+                                data-submit-label="Testing database..."
                             >
                                 Test Database
                             </button>
-                            <button class="btn btn-primary" type="submit">Run Installation</button>
+                            <button class="btn btn-primary" type="submit" data-submit-label="Running installation...">Run Installation</button>
                         </div>
                     </div>
                 </div>
@@ -143,5 +173,38 @@
     </div>
 </div>
 <script src="{{ mix('js/app.js') }}" defer></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('install-form');
+
+        if (!form) {
+            return;
+        }
+
+        const buttons = Array.from(form.querySelectorAll('button[type="submit"]'));
+
+        form.addEventListener('submit', function (event) {
+            const submitter = event.submitter;
+
+            if (!submitter) {
+                return;
+            }
+
+            buttons.forEach(function (button) {
+                button.disabled = true;
+            });
+
+            const spinner = document.createElement('span');
+            spinner.className = 'install-submit-spinner me-2';
+            spinner.setAttribute('aria-hidden', 'true');
+
+            const label = submitter.getAttribute('data-submit-label') || 'Processing...';
+            submitter.dataset.originalHtml = submitter.innerHTML;
+            submitter.innerHTML = '';
+            submitter.appendChild(spinner);
+            submitter.appendChild(document.createTextNode(label));
+        });
+    });
+</script>
 </body>
 </html>

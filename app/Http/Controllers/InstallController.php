@@ -39,11 +39,13 @@ class InstallController extends Controller
                 $request->only([
                     'app_name',
                     'app_url',
+                    'db_connection',
                     'db_host',
                     'db_port',
                     'db_database',
                     'db_username',
                     'db_password',
+                    'db_sslmode',
                     'admin_name',
                     'admin_email',
                 ]),
@@ -72,12 +74,13 @@ class InstallController extends Controller
                 'APP_URL' => $data['app_url'],
                 'APP_KEY' => trim((string) env('APP_KEY', '')),
                 'APP_INSTALLED' => 'false',
-                'DB_CONNECTION' => 'mysql',
+                'DB_CONNECTION' => $data['db_connection'],
                 'DB_HOST' => $data['db_host'],
                 'DB_PORT' => $data['db_port'],
                 'DB_DATABASE' => $data['db_database'],
                 'DB_USERNAME' => $data['db_username'],
                 'DB_PASSWORD' => $data['db_password'],
+                'DB_SSLMODE' => $data['db_sslmode'] ?? '',
             ]);
 
             $this->applyDatabaseConfig($data);
@@ -146,11 +149,13 @@ class InstallController extends Controller
                 $request->only([
                     'app_name',
                     'app_url',
+                    'db_connection',
                     'db_host',
                     'db_port',
                     'db_database',
                     'db_username',
                     'db_password',
+                    'db_sslmode',
                     'admin_name',
                     'admin_email',
                 ]),
@@ -162,15 +167,21 @@ class InstallController extends Controller
 
     private function renderInstall(array $overrides = [], ?string $statusMessage = null, string $statusLevel = 'info'): View
     {
+        if ($statusMessage !== null && $statusMessage !== '') {
+            $statusMessage = sprintf('[%s] %s', now()->format('H:i:s'), $statusMessage);
+        }
+
         return view('install.index', [
             'defaults' => array_merge([
                 'app_name' => env('APP_NAME', 'MyApp'),
                 'app_url' => env('APP_URL', 'http://127.0.0.1:8000'),
+                'db_connection' => env('DB_CONNECTION', 'mysql'),
                 'db_host' => env('DB_HOST', '127.0.0.1'),
                 'db_port' => env('DB_PORT', '3306'),
                 'db_database' => env('DB_DATABASE', ''),
                 'db_username' => env('DB_USERNAME', ''),
                 'db_password' => env('DB_PASSWORD', ''),
+                'db_sslmode' => env('DB_SSLMODE', ''),
                 'admin_name' => 'Super Admin',
                 'admin_email' => 'superadmin@myapp.test',
             ], $overrides),
@@ -185,11 +196,13 @@ class InstallController extends Controller
         $rules = [
             'app_name' => ['required', 'string', 'max:100'],
             'app_url' => ['required', 'url', 'max:255'],
+            'db_connection' => ['required', 'string', 'in:mysql,pgsql'],
             'db_host' => ['required', 'string', 'max:100'],
             'db_port' => ['required', 'numeric'],
             'db_database' => ['required', 'string', 'max:100'],
             'db_username' => ['required', 'string', 'max:100'],
             'db_password' => ['nullable', 'string', 'max:200'],
+            'db_sslmode' => ['nullable', 'string', 'max:50'],
         ];
 
         if ($withAdmin) {
@@ -208,28 +221,37 @@ class InstallController extends Controller
 
     private function applyDatabaseConfig(array $data): void
     {
+        $driver = $this->databaseDriver($data);
+
         config([
-            'database.default' => 'mysql',
+            'database.default' => $driver,
             'database.connections.mysql.host' => $data['db_host'],
             'database.connections.mysql.port' => $data['db_port'],
             'database.connections.mysql.database' => $data['db_database'],
             'database.connections.mysql.username' => $data['db_username'],
             'database.connections.mysql.password' => $data['db_password'] ?? '',
+            'database.connections.pgsql.host' => $data['db_host'],
+            'database.connections.pgsql.port' => $data['db_port'],
+            'database.connections.pgsql.database' => $data['db_database'],
+            'database.connections.pgsql.username' => $data['db_username'],
+            'database.connections.pgsql.password' => $data['db_password'] ?? '',
+            'database.connections.pgsql.sslmode' => $data['db_sslmode'] ?? env('DB_SSLMODE', 'prefer'),
         ]);
 
-        DB::purge('mysql');
-        DB::reconnect('mysql');
+        DB::purge($driver);
+        DB::reconnect($driver);
     }
 
     private function testConnection(array $data): void
     {
+        $driver = $this->databaseDriver($data);
         $this->applyDatabaseConfig($data);
-        DB::connection('mysql')->getPdo();
+        DB::connection($driver)->getPdo();
     }
 
     private function systemChecks(): array
     {
-        $extensions = ['openssl', 'pdo', 'pdo_mysql', 'mbstring', 'json', 'curl', 'fileinfo'];
+        $extensions = ['openssl', 'pdo', 'pdo_mysql', 'pdo_pgsql', 'mbstring', 'json', 'curl', 'fileinfo'];
         $extChecks = [];
         foreach ($extensions as $ext) {
             $extChecks[$ext] = extension_loaded($ext);
@@ -360,6 +382,13 @@ class InstallController extends Controller
         }
 
         return $content;
+    }
+
+    private function databaseDriver(array $data): string
+    {
+        return in_array(($data['db_connection'] ?? 'mysql'), ['mysql', 'pgsql'], true)
+            ? $data['db_connection']
+            : 'mysql';
     }
 
 }

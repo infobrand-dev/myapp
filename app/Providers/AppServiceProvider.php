@@ -11,7 +11,6 @@ use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use App\Support\TenantPlanManager;
 use App\Support\TenantRoleProvisioner;
-use App\Modules\LiveChat\Support\LiveChatRealtimeState;
 use App\Support\ModuleIconRegistry;
 use App\Support\ModuleManager;
 use Illuminate\Support\Facades\Auth;
@@ -33,7 +32,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(ModuleManager::class, fn () => new ModuleManager());
         $this->app->singleton(ModuleIconRegistry::class, fn () => new ModuleIconRegistry());
         $this->app->singleton(HookManager::class, fn () => new HookManager());
-        $this->app->singleton(LiveChatRealtimeState::class, fn () => new LiveChatRealtimeState());
         $this->app->singleton(TenantPlanManager::class);
     }
 

@@ -8,6 +8,7 @@ use App\Modules\Conversations\Contracts\ConversationChannelManager;
 use App\Modules\Conversations\Contracts\ConversationOutboundDispatcher;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
+use App\Modules\LiveChat\Support\LiveChatRealtimeState;
 use App\Support\RegistersModuleRoutes;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -20,6 +21,8 @@ class LiveChatServiceProvider extends ServiceProvider
 
     public function register(): void
     {
+        $this->app->singleton(LiveChatRealtimeState::class, fn () => new LiveChatRealtimeState());
+
         $this->app->afterResolving(ConversationChannelManager::class, function (ConversationChannelManager $channels): void {
             $channels->register('live_chat', [
                 'default_message_type' => 'text',

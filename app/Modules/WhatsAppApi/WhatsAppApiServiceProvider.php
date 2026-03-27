@@ -21,6 +21,13 @@ class WhatsAppApiServiceProvider extends ServiceProvider
 {
     use RegistersModuleRoutes;
 
+    public const PLAN_LIMIT_MODELS = [
+        \App\Support\PlanLimit::WHATSAPP_INSTANCES => [
+            'table' => 'whatsapp_instances',
+            'model' => \App\Modules\WhatsAppApi\Models\WhatsAppInstance::class,
+        ],
+    ];
+
     public function register(): void
     {
         $this->app->afterResolving(ConversationChannelManager::class, function (ConversationChannelManager $channels): void {

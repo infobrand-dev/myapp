@@ -12,6 +12,13 @@ class EmailMarketingServiceProvider extends ServiceProvider
 {
     use RegistersModuleRoutes;
 
+    public const PLAN_LIMIT_MODELS = [
+        \App\Support\PlanLimit::EMAIL_CAMPAIGNS => [
+            'table' => 'email_campaigns',
+            'model' => \App\Modules\EmailMarketing\Models\EmailCampaign::class,
+        ],
+    ];
+
     public function register(): void
     {
         //

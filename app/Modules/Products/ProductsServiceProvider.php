@@ -33,6 +33,13 @@ class ProductsServiceProvider extends ServiceProvider
         ],
     ];
 
+    public const PLAN_LIMIT_MODELS = [
+        \App\Support\PlanLimit::PRODUCTS => [
+            'table' => 'products',
+            'model' => \App\Modules\Products\Models\Product::class,
+        ],
+    ];
+
     public function register(): void
     {
         $this->app->singleton(ProductRepository::class);

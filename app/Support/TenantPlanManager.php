@@ -7,10 +7,6 @@ use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Models\TenantSubscription;
 use App\Models\User;
-use App\Modules\Contacts\Models\Contact;
-use App\Modules\EmailMarketing\Models\EmailCampaign;
-use App\Modules\Products\Models\Product;
-use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
@@ -70,15 +66,18 @@ class TenantPlanManager
     {
         $tenantId ??= TenantContext::currentId();
 
-        return match ($key) {
-            PlanLimit::COMPANIES => $this->countIfReady('companies', Company::class, $tenantId),
-            PlanLimit::USERS => $this->countIfReady('users', User::class, $tenantId),
-            PlanLimit::PRODUCTS => $this->countIfReady('products', Product::class, $tenantId),
-            PlanLimit::CONTACTS => $this->countIfReady('contacts', Contact::class, $tenantId),
-            PlanLimit::WHATSAPP_INSTANCES => $this->countIfReady('whatsapp_instances', WhatsAppInstance::class, $tenantId),
-            PlanLimit::EMAIL_CAMPAIGNS => $this->countIfReady('email_campaigns', EmailCampaign::class, $tenantId),
-            default => 0,
-        };
+        $sources = array_merge([
+            PlanLimit::COMPANIES => ['table' => 'companies', 'model' => Company::class],
+            PlanLimit::USERS => ['table' => 'users', 'model' => User::class],
+        ], $this->moduleUsageSources());
+
+        $source = $sources[$key] ?? null;
+
+        if (!$source) {
+            return 0;
+        }
+
+        return $this->countIfReady($source['table'], $source['model'], $tenantId);
     }
 
     public function hasCapacity(string $key, int $increment = 1, ?int $tenantId = null): bool
@@ -148,5 +147,35 @@ class TenantPlanManager
             PlanLimit::EMAIL_CAMPAIGNS => "Plan tenant hanya mengizinkan maksimal {$limit} email campaign.",
             default => 'Batas plan tenant sudah tercapai.',
         };
+    }
+
+    /**
+     * @return array<string, array{table:string, model:class-string}>
+     */
+    private function moduleUsageSources(): array
+    {
+        $sources = [];
+
+        foreach (app(ModuleManager::class)->all() as $module) {
+            $provider = $module['provider'] ?? null;
+
+            if (!is_string($provider) || $provider === '' || !class_exists($provider) || !defined($provider . '::PLAN_LIMIT_MODELS')) {
+                continue;
+            }
+
+            foreach ((array) $provider::PLAN_LIMIT_MODELS as $key => $definition) {
+                $table = is_array($definition) ? ($definition['table'] ?? null) : null;
+                $model = is_array($definition) ? ($definition['model'] ?? null) : null;
+
+                if (is_string($key) && is_string($table) && is_string($model)) {
+                    $sources[$key] = [
+                        'table' => $table,
+                        'model' => $model,
+                    ];
+                }
+            }
+        }
+
+        return $sources;
     }
 }

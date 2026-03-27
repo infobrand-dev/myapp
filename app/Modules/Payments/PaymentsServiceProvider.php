@@ -6,11 +6,14 @@ use App\Modules\Payments\Actions\CreatePaymentAction;
 use App\Modules\Payments\Actions\RecalculatePaymentSummaryAction;
 use App\Modules\Payments\Actions\ValidatePayableTransactionAction;
 use App\Modules\Payments\Actions\VoidPaymentAction;
+use App\Modules\Payments\Models\Payment;
+use App\Modules\Payments\Policies\PaymentPolicy;
 use App\Modules\Payments\Repositories\PaymentRepository;
 use App\Modules\Payments\Services\PaymentLookupService;
 use App\Modules\Payments\Services\PaymentNumberService;
 use App\Modules\Payments\Services\PaymentSummaryService;
 use App\Support\RegistersModuleRoutes;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\Models\Permission;
@@ -62,6 +65,7 @@ class PaymentsServiceProvider extends ServiceProvider
         $this->loadTranslationsFrom(__DIR__ . '/resources/lang', 'payments');
         $this->loadMigrationsFrom(__DIR__ . '/Database/Migrations');
 
+        Gate::policy(Payment::class, PaymentPolicy::class);
         $this->ensurePermissions();
     }
 

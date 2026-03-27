@@ -3,17 +3,6 @@
 namespace App\Support;
 
 use App\Models\Tenant;
-use App\Modules\Discounts\DiscountsServiceProvider;
-use App\Modules\EmailInbox\EmailInboxServiceProvider;
-use App\Modules\Finance\FinanceServiceProvider;
-use App\Modules\Inventory\InventoryServiceProvider;
-use App\Modules\Payments\PaymentsServiceProvider;
-use App\Modules\PointOfSale\PointOfSaleServiceProvider;
-use App\Modules\Products\ProductsServiceProvider;
-use App\Modules\Purchases\PurchasesServiceProvider;
-use App\Modules\Reports\ReportsServiceProvider;
-use App\Modules\Sales\SalesServiceProvider;
-use App\Modules\SampleData\SampleDataServiceProvider;
 use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -21,23 +10,6 @@ use Spatie\Permission\PermissionRegistrar;
 
 class TenantRoleProvisioner
 {
-    /**
-     * @var array<int, class-string>
-     */
-    private const ROLE_SOURCES = [
-        ProductsServiceProvider::class,
-        InventoryServiceProvider::class,
-        DiscountsServiceProvider::class,
-        EmailInboxServiceProvider::class,
-        FinanceServiceProvider::class,
-        PaymentsServiceProvider::class,
-        PointOfSaleServiceProvider::class,
-        PurchasesServiceProvider::class,
-        ReportsServiceProvider::class,
-        SalesServiceProvider::class,
-        SampleDataServiceProvider::class,
-    ];
-
     public function ensureForTenant(?int $tenantId = null): void
     {
         if (!Schema::hasTable('permissions') || !Schema::hasTable('roles')) {
@@ -100,7 +72,7 @@ class TenantRoleProvisioner
     {
         $definitions = CorePermissions::DEFAULT_ROLE_PERMISSIONS;
 
-        foreach (self::ROLE_SOURCES as $source) {
+        foreach ($this->roleSources() as $source) {
             if (!defined($source . '::DEFAULT_ROLE_PERMISSIONS')) {
                 continue;
             }
@@ -114,5 +86,23 @@ class TenantRoleProvisioner
         }
 
         return $definitions;
+    }
+
+    /**
+     * @return array<int, class-string>
+     */
+    private function roleSources(): array
+    {
+        $providers = [];
+
+        foreach (app(ModuleManager::class)->all() as $module) {
+            $provider = $module['provider'] ?? null;
+
+            if (is_string($provider) && $provider !== '' && class_exists($provider)) {
+                $providers[] = $provider;
+            }
+        }
+
+        return array_values(array_unique($providers));
     }
 }

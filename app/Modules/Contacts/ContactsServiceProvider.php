@@ -9,6 +9,13 @@ class ContactsServiceProvider extends ServiceProvider
 {
     use RegistersModuleRoutes;
 
+    public const PLAN_LIMIT_MODELS = [
+        \App\Support\PlanLimit::CONTACTS => [
+            'table' => 'contacts',
+            'model' => \App\Modules\Contacts\Models\Contact::class,
+        ],
+    ];
+
     public function register(): void
     {
         //

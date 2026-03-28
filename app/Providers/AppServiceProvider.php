@@ -46,7 +46,7 @@ class AppServiceProvider extends ServiceProvider
             return;
         }
 
-        app(PermissionRegistrar::class)->setPermissionsTeamId(TenantContext::currentId());
+        app(PermissionRegistrar::class)->setPermissionsTeamId($this->bootstrapPermissionTeamId());
 
         View::composer('layouts.admin', function ($view): void {
             $tenant = TenantContext::currentTenant();
@@ -145,5 +145,30 @@ class AppServiceProvider extends ServiceProvider
         } catch (\Throwable $e) {
             return false;
         }
+    }
+
+    private function bootstrapPermissionTeamId(): ?int
+    {
+        if ($this->app->runningInConsole()) {
+            return 1;
+        }
+
+        try {
+            $request = $this->app->make('request');
+
+            $tenantId = $request->attributes->get('tenant_id');
+            if ($tenantId) {
+                return (int) $tenantId;
+            }
+
+            $userTenantId = optional(Auth::user())->tenant_id;
+            if ($userTenantId) {
+                return (int) $userTenantId;
+            }
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        return null;
     }
 }

@@ -29,13 +29,17 @@ class TenantContext
 
     public static function currentTenant(): ?Tenant
     {
-        if (!Schema::hasTable('tenants')) {
+        if (!self::schemaHasTable('tenants')) {
             return null;
         }
 
-        return Tenant::query()
-            ->whereKey(self::currentId())
-            ->first();
+        try {
+            return Tenant::query()
+                ->whereKey(self::currentId())
+                ->first();
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     public static function setCurrentId(?int $tenantId): void
@@ -50,7 +54,7 @@ class TenantContext
 
     public static function resolveIdFromRequest(Request $request): int
     {
-        if (!Schema::hasTable('tenants')) {
+        if (!self::schemaHasTable('tenants')) {
             return 1;
         }
 
@@ -93,7 +97,7 @@ class TenantContext
 
     public static function resolveIdFromUser(?User $user): ?int
     {
-        if (!$user || !Schema::hasTable('tenants')) {
+        if (!$user || !self::schemaHasTable('tenants')) {
             return null;
         }
 
@@ -108,10 +112,14 @@ class TenantContext
 
     private static function tenantExists(int $tenantId): bool
     {
-        return Tenant::query()
-            ->whereKey($tenantId)
-            ->where('is_active', true)
-            ->exists();
+        try {
+            return Tenant::query()
+                ->whereKey($tenantId)
+                ->where('is_active', true)
+                ->exists();
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     private static function normalizeInteger(mixed $value): ?int
@@ -130,5 +138,14 @@ class TenantContext
         $slug = trim((string) $value);
 
         return $slug !== '' ? $slug : null;
+    }
+
+    private static function schemaHasTable(string $table): bool
+    {
+        try {
+            return Schema::hasTable($table);
+        } catch (\Throwable) {
+            return false;
+        }
     }
 }

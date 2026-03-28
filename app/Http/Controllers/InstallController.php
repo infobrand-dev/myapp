@@ -332,12 +332,15 @@ class InstallController extends Controller
             return '""';
         }
 
-        if (preg_match('/\s|#|=/', $value)) {
-            $escaped = str_replace('"', '\"', $value);
-            return "\"{$escaped}\"";
-        }
+        // Always quote installer-written env values so special characters
+        // such as $, spaces, #, =, and backslashes round-trip safely.
+        $escaped = str_replace(
+            ['\\', '"', '$'],
+            ['\\\\', '\\"', '\\$'],
+            $value
+        );
 
-        return $value;
+        return "\"{$escaped}\"";
     }
 
     private function callArtisanOrFail(string $command, array $parameters = []): void

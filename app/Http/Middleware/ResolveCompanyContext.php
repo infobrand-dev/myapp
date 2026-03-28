@@ -11,6 +11,10 @@ class ResolveCompanyContext
 {
     public function handle(Request $request, Closure $next): Response
     {
+        if ($request->is('install') || $request->is('install/*')) {
+            return $next($request);
+        }
+
         $companyId = CompanyContext::resolveIdFromRequest($request);
 
         CompanyContext::setCurrentId($companyId);

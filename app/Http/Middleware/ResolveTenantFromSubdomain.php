@@ -19,6 +19,10 @@ class ResolveTenantFromSubdomain
      */
     public function handle(Request $request, Closure $next): Response
     {
+        if ($request->is('install') || $request->is('install/*')) {
+            return $next($request);
+        }
+
         if (config('multitenancy.mode') !== 'saas') {
             return $next($request);
         }

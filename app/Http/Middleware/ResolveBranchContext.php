@@ -11,6 +11,10 @@ class ResolveBranchContext
 {
     public function handle(Request $request, Closure $next): Response
     {
+        if ($request->is('install') || $request->is('install/*')) {
+            return $next($request);
+        }
+
         $branchId = BranchContext::resolveIdFromRequest($request);
 
         BranchContext::setCurrentId($branchId);

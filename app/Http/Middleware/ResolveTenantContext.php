@@ -13,6 +13,10 @@ class ResolveTenantContext
 {
     public function handle(Request $request, Closure $next): Response
     {
+        if ($request->is('install') || $request->is('install/*')) {
+            return $next($request);
+        }
+
         $tenantId = TenantContext::resolveIdFromRequest($request);
         $userTenantId = TenantContext::resolveIdFromUser($request->user());
 

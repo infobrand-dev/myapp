@@ -3,33 +3,46 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\AiUsageService;
 use App\Support\ModuleManager;
+use App\Support\PlanFeature;
 use App\Support\TenantContext;
+use App\Support\TenantPlanManager;
 use Illuminate\Contracts\View\View;
 use Spatie\Permission\Models\Role;
 
 class DashboardController extends Controller
 {
-    public function __invoke(ModuleManager $modules): View
+    public function __invoke(ModuleManager $modules, TenantPlanManager $plans, AiUsageService $aiUsage)
     {
+        if (request()->attributes->get('platform_admin_host')) {
+            return redirect()->route('platform.dashboard');
+        }
+
         $user = auth()->user();
         $isPrivileged = $user->hasAnyRole(['Super-admin', 'Admin']);
         $allModules = collect($modules->all());
-        $activeModules = $allModules->filter(fn ($module) => $module['installed'] && $module['active']);
-        $installedModules = $allModules->filter(fn ($module) => $module['installed']);
+        $tenantId = TenantContext::currentId();
+        $visibleModules = $allModules->filter(function ($module) use ($plans, $tenantId) {
+            $feature = PlanFeature::moduleFeatureForSlug((string) ($module['slug'] ?? ''));
+
+            return $feature ? $plans->hasFeature($feature, $tenantId) : true;
+        });
+        $activeModules = $visibleModules->filter(fn ($module) => $module['installed'] && $module['active']);
+        $installedModules = $visibleModules->filter(fn ($module) => $module['installed']);
 
         $stats = $isPrivileged
             ? [
                 [
                     'label' => 'Active Modules',
                     'value' => $activeModules->count(),
-                    'meta' => $allModules->count() . ' available',
+                    'meta' => $visibleModules->count() . ' available',
                     'tone' => 'primary',
                 ],
                 [
                     'label' => 'Installed Modules',
                     'value' => $installedModules->count(),
-                    'meta' => max($allModules->count() - $installedModules->count(), 0) . ' pending',
+                    'meta' => max($visibleModules->count() - $installedModules->count(), 0) . ' pending',
                     'tone' => 'azure',
                 ],
                 [
@@ -89,13 +102,18 @@ class DashboardController extends Controller
             ->take(5)
             ->values();
 
+        $aiCredits = $aiUsage->summary($tenantId);
+
         return view('dashboard', [
             'isPrivileged' => $isPrivileged,
             'stats' => $stats,
             'recentUsers' => $recentUsers,
             'moduleHighlights' => $moduleHighlights,
             'activeModules' => $activeModules,
-            'totalModules' => $allModules->count(),
+            'totalModules' => $visibleModules->count(),
+            'aiCredits' => $aiCredits + [
+                'enabled' => $plans->hasFeature(PlanFeature::CHATBOT_AI, $tenantId),
+            ],
         ]);
     }
 }

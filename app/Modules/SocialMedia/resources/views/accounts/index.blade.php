@@ -4,10 +4,20 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Social Accounts</h2>
-        <div class="text-muted small">Kelola akun Instagram/Facebook untuk DM.</div>
+        <div class="text-muted small">Hubungkan Facebook Page dan Instagram Business Account tenant melalui Meta OAuth platform.</div>
     </div>
-    <a href="{{ route('social-media.accounts.create') }}" class="btn btn-primary">Tambah Akun</a>
+    <a href="{{ route('social-media.accounts.connect.meta') }}" class="btn btn-primary {{ ($metaOAuthReady ?? false) ? '' : 'disabled' }}">Hubungkan Meta</a>
 </div>
+
+@if(!($metaOAuthReady ?? false))
+    <div class="alert alert-warning">
+        META OAuth belum siap. Isi <code>META_APP_ID</code> dan <code>META_APP_SECRET</code> di environment platform agar tenant bisa connect akun sosial media tanpa input token manual.
+    </div>
+@endif
+
+@if($errors->has('meta_oauth'))
+    <div class="alert alert-danger">{{ $errors->first('meta_oauth') }}</div>
+@endif
 
 <div class="card">
     <div class="table-responsive">
@@ -30,7 +40,7 @@
                         <td><span class="badge {{ $acc->status === 'active' ? 'text-bg-success' : 'text-bg-secondary' }}">{{ $acc->status }}</span></td>
                         <td class="text-end align-middle">
                             <div class="table-actions">
-                                <a href="{{ route('social-media.accounts.edit', $acc) }}" class="btn btn-outline-secondary btn-sm">Edit</a>
+                                <a href="{{ route('social-media.accounts.edit', $acc) }}" class="btn btn-outline-secondary btn-sm">Pengaturan</a>
                                 <form class="d-inline-block m-0" method="POST" action="{{ route('social-media.accounts.destroy', $acc) }}">
                                     @csrf
                                     @method('DELETE')

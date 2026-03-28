@@ -17,6 +17,7 @@ class SocialMediaController extends Controller
     public function index(): View
     {
         $conversations = Conversation::query()
+            ->where('tenant_id', TenantContext::currentId())
             ->where('channel', 'social_dm')
             ->with('owner')
             ->orderByDesc('last_message_at')

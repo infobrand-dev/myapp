@@ -21,12 +21,12 @@ This file is a quick catalog. The authoritative metadata for each module lives i
 - `live_chat`: embeddable website live chat widget that routes visitor chat into `conversations`.
 - `whatsapp_api`: WhatsApp Cloud/API-oriented messaging, instances, templates, flows, blast, webhook ingestion. Requires `conversations`.
 - `whatsapp_web`: WhatsApp Web bridge with QR auth, chat sync, and Node bridge runtime. Requires `conversations`.
-- `social_media`: social account integrations and webhook-driven inbox flow. Requires `conversations`.
+- `social_media`: social account integrations and webhook-driven inbox flow. Tenant accounts are connected via platform-owned Meta OAuth rather than per-tenant raw token entry. Requires `conversations`.
 - `email_marketing`: campaigns, recipients, attachment templates, unsubscribe flow. Requires `contacts`.
 - `email_inbox`: mailbox account, inbound sync, outbound send, folder/message storage, and operational email workspace.
 
 ## Automation
-- `chatbot`: bot accounts, playground, knowledge base, and conversation mirroring. Requires `conversations`.
+- `chatbot`: bot accounts, playground, knowledge base, conversation mirroring, and automation modes (`rule_only`, `ai_assisted`, `ai_first`). AI usage is tracked separately so plan-based AI Credits can be reused by future automation flows. Requires `conversations`.
 
 ## Support
 - `contacts`: contact directory and merge/import flows.

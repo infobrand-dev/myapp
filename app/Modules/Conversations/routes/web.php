@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Modules\Conversations\Http\Controllers\ActivityController;
 use App\Modules\Conversations\Http\Controllers\ConversationHubController;
 
-Route::middleware(['web', 'auth'])
+Route::middleware(['web', 'auth', 'plan.feature:conversations'])
     ->prefix('conversations')
     ->name('conversations.')
     ->group(function () {

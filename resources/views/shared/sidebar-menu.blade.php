@@ -1,37 +1,52 @@
 <li class="nav-item">
     <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('dashboard') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('dashboard') }}">
-        <span class="nav-link-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                <path d="M5 12l-2 0l9 -9l9 9l-2 0" />
-                <path d="M5 12v7a2 2 0 0 0 2 2h3v-5a2 2 0 0 1 2 -2h0a2 2 0 0 1 2 2v5h3a2 2 0 0 0 2 -2v-7" />
-            </svg>
-        </span>
+        <span class="nav-link-icon"><i class="ti ti-home-2"></i></span>
         <span class="nav-link-title">Dashboard</span>
     </a>
 </li>
+@if(request()->attributes->get('platform_admin_host'))
+<li class="nav-item">
+    <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('platform.tenants.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('platform.tenants.index') }}">
+        <span class="nav-link-icon"><i class="ti ti-buildings"></i></span>
+        <span class="nav-link-title">Platform Tenants</span>
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('platform.plans.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('platform.plans.index') }}">
+        <span class="nav-link-icon"><i class="ti ti-badge-dollar-sign"></i></span>
+        <span class="nav-link-title">Platform Plans</span>
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('platform.orders.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('platform.orders.index') }}">
+        <span class="nav-link-icon"><i class="ti ti-receipt-2"></i></span>
+        <span class="nav-link-title">Platform Orders</span>
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('platform.golive') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('platform.golive') }}">
+        <span class="nav-link-icon"><i class="ti ti-rocket"></i></span>
+        <span class="nav-link-title">Go-Live Audit</span>
+    </a>
+</li>
+@endif
+
+@canany(['users.view', 'roles.view', 'modules.view', 'settings.view'])
+<li class="nav-item mt-2">
+    <div class="text-uppercase text-secondary fw-bold small px-3">Administrasi</div>
+</li>
+@endcanany
+
 <li class="nav-item">
     <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('profile.edit') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('profile.edit') }}">
-        <span class="nav-link-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                <path d="M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
-                <path d="M6 20a6 6 0 0 1 12 0" />
-            </svg>
-        </span>
-        <span class="nav-link-title">Profile</span>
+        <span class="nav-link-icon"><i class="ti ti-user-circle"></i></span>
+        <span class="nav-link-title">Profil</span>
     </a>
 </li>
 @can('settings.view')
     <li class="nav-item">
         <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('settings.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('settings.general') }}">
-            <span class="nav-link-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                    <path d="M12 15a3 3 0 1 0 0 -6a3 3 0 0 0 0 6z" />
-                    <path d="M19.622 10.395a1.65 1.65 0 0 0 .33 1.82a2 2 0 0 1 0 2.828a2 2 0 0 1 -2.828 0a1.65 1.65 0 0 0 -1.82 -.33a1.65 1.65 0 0 0 -1 1.51a2 2 0 0 1 -2 2a2 2 0 0 1 -2 -2a1.65 1.65 0 0 0 -1 -1.51a1.65 1.65 0 0 0 -1.82 .33a2 2 0 0 1 -2.828 0a2 2 0 0 1 0 -2.828a1.65 1.65 0 0 0 .33 -1.82a1.65 1.65 0 0 0 -1.51 -1a2 2 0 0 1 -2 -2a2 2 0 0 1 2 -2a1.65 1.65 0 0 0 1.51 -1a1.65 1.65 0 0 0 -.33 -1.82a2 2 0 0 1 0 -2.828a2 2 0 0 1 2.828 0a1.65 1.65 0 0 0 1.82 .33h.09a1.65 1.65 0 0 0 .91 -1.51a2 2 0 0 1 2 -2a2 2 0 0 1 2 2a1.65 1.65 0 0 0 1 1.51a1.65 1.65 0 0 0 1.82 -.33a2 2 0 0 1 2.828 0a2 2 0 0 1 0 2.828a1.65 1.65 0 0 0 -.33 1.82v.09a1.65 1.65 0 0 0 1.51 .91a2 2 0 0 1 2 2a2 2 0 0 1 -2 2a1.65 1.65 0 0 0 -1.51 1z" />
-                </svg>
-            </span>
+            <span class="nav-link-icon"><i class="ti ti-settings"></i></span>
             <span class="nav-link-title">Settings</span>
         </a>
     </li>
@@ -40,15 +55,7 @@
 @can('users.view')
 <li class="nav-item">
     <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('users.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('users.index') }}">
-        <span class="nav-link-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                <path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
-                <path d="M3 21v-2a4 4 0 0 1 4 -4h4" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                <path d="M21 21v-2a4 4 0 0 0 -3 -3.85" />
-            </svg>
-        </span>
+        <span class="nav-link-icon"><i class="ti ti-users"></i></span>
         <span class="nav-link-title">Users</span>
     </a>
 </li>
@@ -56,13 +63,7 @@
 @can('roles.view')
 <li class="nav-item">
     <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('roles.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('roles.index') }}">
-        <span class="nav-link-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                <path d="M4 7a2 2 0 0 1 2 -2h4l2 2h6a2 2 0 0 1 2 2v1a2 2 0 0 1 -2 2h-6l-2 2h-4a2 2 0 0 1 -2 -2z" />
-                <path d="M8 13v4a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2v-4" />
-            </svg>
-        </span>
+        <span class="nav-link-icon"><i class="ti ti-shield-check"></i></span>
         <span class="nav-link-title">Roles</span>
     </a>
 </li>
@@ -70,15 +71,7 @@
 @can('modules.view')
 <li class="nav-item">
     <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('modules.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('modules.index') }}">
-        <span class="nav-link-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                <path d="M4 4h6v6h-6z" />
-                <path d="M14 4h6v6h-6z" />
-                <path d="M4 14h6v6h-6z" />
-                <path d="M14 14h6v6h-6z" />
-            </svg>
-        </span>
+        <span class="nav-link-icon"><i class="ti ti-apps"></i></span>
         <span class="nav-link-title">Modules</span>
     </a>
 </li>
@@ -86,7 +79,7 @@
 
 @if($moduleMenus->isNotEmpty())
 <li class="nav-item mt-2">
-    <div class="text-uppercase text-secondary fw-bold small px-3">Modules</div>
+    <div class="text-uppercase text-secondary fw-bold small px-3">Fitur Aktif</div>
 </li>
 @endif
 

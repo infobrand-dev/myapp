@@ -15,7 +15,7 @@ Route::middleware('web')
         Route::post('/whatsapp-bro/webhook', [WebhookController::class, 'inbound'])->name('whatsapp-bro.webhook');
     });
 
-Route::middleware(['web', 'auth', 'role:Super-admin|Admin'])
+Route::middleware(['web', 'auth', 'role:Super-admin|Admin', 'plan.feature:whatsapp_web'])
     ->prefix('whatsapp-web')
     ->name('whatsappweb.')
     ->group(function () {
@@ -29,7 +29,7 @@ Route::middleware(['web', 'auth', 'role:Super-admin|Admin'])
         });
     });
 
-Route::middleware(['web', 'auth', 'role:Super-admin|Admin'])
+Route::middleware(['web', 'auth', 'role:Super-admin|Admin', 'plan.feature:whatsapp_web'])
     ->prefix('whatsapp-bro')
     ->name('whatsappbro.')
     ->group(function () {

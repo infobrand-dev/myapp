@@ -10,15 +10,22 @@
     ];
 @endphp
 
-<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-3">
+<div class="page-header d-flex align-items-start align-items-md-center justify-content-between flex-column flex-md-row gap-3">
     <div>
-        <h2 class="mb-1">Modules</h2>
-        <div class="text-muted small">Kelola installasi dan aktivasi module. Dependency dicek sebelum activate atau deactivate agar core app tetap aman.</div>
+        <div class="page-pretitle">Administrasi</div>
+        <h2 class="page-title">Modules</h2>
+        <div class="text-muted small mt-1">Kelola instalasi dan aktivasi modul. Dependency dicek otomatis sebelum aktivasi atau deaktivasi.</div>
     </div>
-    <div class="d-flex flex-wrap gap-2">
-        <span class="badge bg-success-lt text-success px-3 py-2">Active: {{ $moduleStats['active'] }}</span>
-        <span class="badge bg-warning-lt text-warning px-3 py-2">Installed: {{ $moduleStats['installed'] }}</span>
-        <span class="badge bg-secondary-lt text-secondary px-3 py-2">Not Installed: {{ $moduleStats['not_installed'] }}</span>
+    <div class="d-flex flex-wrap gap-2 flex-shrink-0">
+        <span class="badge bg-success-lt text-success px-3 py-2">
+            <i class="ti ti-circle-check me-1"></i>Aktif: {{ $moduleStats['active'] }}
+        </span>
+        <span class="badge bg-warning-lt text-warning px-3 py-2">
+            <i class="ti ti-package me-1"></i>Terpasang: {{ $moduleStats['installed'] }}
+        </span>
+        <span class="badge bg-secondary-lt text-secondary px-3 py-2">
+            <i class="ti ti-package-off me-1"></i>Belum pasang: {{ $moduleStats['not_installed'] }}
+        </span>
     </div>
 </div>
 
@@ -161,42 +168,42 @@
                             <div class="d-inline-flex flex-column align-items-end gap-2">
                                 @if(!$module['installed'])
                                     @can('modules.install')
-                                        <form
-                                            method="POST"
-                                            action="{{ route('modules.install', $module['slug']) }}"
-                                            onsubmit='if (!confirm("Install module " + @json($module["name"]) + "? Migration dan seeder module akan dijalankan bila tersedia.")) { return false; } const button = this.querySelector("button[type=submit]"); if (button) { button.disabled = true; button.textContent = "Installing..."; }'
-                                        >
+                                        <form method="POST" action="{{ route('modules.install', $module['slug']) }}" class="module-action-form">
                                             @csrf
-                                            <button type="submit" class="btn btn-sm btn-primary">Install</button>
+                                            <button type="submit" class="btn btn-sm btn-primary"
+                                                data-confirm="Install modul {{ $module['name'] }}? Migration dan seeder akan dijalankan bila tersedia."
+                                                data-loading="Installing...">
+                                                Install
+                                            </button>
                                         </form>
                                     @else
-                                        <span class="text-muted small">No permission</span>
+                                        <span class="text-muted small">Tidak ada akses</span>
                                     @endcan
                                 @elseif(!$module['active'])
                                     @can('modules.activate')
-                                        <form
-                                            method="POST"
-                                            action="{{ route('modules.activate', $module['slug']) }}"
-                                            onsubmit='if (!confirm("Activate module " + @json($module["name"]) + "? Pastikan semua dependency sudah aktif.")) { return false; } const button = this.querySelector("button[type=submit]"); if (button) { button.disabled = true; button.textContent = "Activating..."; }'
-                                        >
+                                        <form method="POST" action="{{ route('modules.activate', $module['slug']) }}" class="module-action-form">
                                             @csrf
-                                            <button type="submit" class="btn btn-sm btn-success">Activate</button>
+                                            <button type="submit" class="btn btn-sm btn-success"
+                                                data-confirm="Aktifkan modul {{ $module['name'] }}? Pastikan semua dependency sudah aktif."
+                                                data-loading="Activating...">
+                                                Activate
+                                            </button>
                                         </form>
                                     @else
-                                        <span class="text-muted small">No permission</span>
+                                        <span class="text-muted small">Tidak ada akses</span>
                                     @endcan
                                 @else
                                     @can('modules.deactivate')
-                                        <form
-                                            method="POST"
-                                            action="{{ route('modules.deactivate', $module['slug']) }}"
-                                            onsubmit='if (!confirm("Deactivate module " + @json($module["name"]) + "? Module dependent yang masih aktif akan memblokir proses ini.")) { return false; } const button = this.querySelector("button[type=submit]"); if (button) { button.disabled = true; button.textContent = "Deactivating..."; }'
-                                        >
+                                        <form method="POST" action="{{ route('modules.deactivate', $module['slug']) }}" class="module-action-form">
                                             @csrf
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">Deactivate</button>
+                                            <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                data-confirm="Nonaktifkan modul {{ $module['name'] }}? Modul dependent yang masih aktif akan memblokir proses ini."
+                                                data-loading="Deactivating...">
+                                                Deactivate
+                                            </button>
                                         </form>
                                     @else
-                                        <span class="text-muted small">No permission</span>
+                                        <span class="text-muted small">Tidak ada akses</span>
                                     @endcan
                                 @endif
 
@@ -220,3 +227,24 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    // Setelah confirm modal OK, disable button dan tampilkan loading text
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('[data-loading]');
+        if (!btn || !btn.closest('.module-action-form')) return;
+        // Tunggu confirm selesai lalu set loading state
+        const originalConfirm = btn.getAttribute('data-confirm');
+        if (!originalConfirm) return;
+        const observer = new MutationObserver(() => {
+            if (!btn.hasAttribute('data-confirm')) {
+                btn.disabled = true;
+                btn.textContent = btn.getAttribute('data-loading') || 'Processing...';
+                observer.disconnect();
+            }
+        });
+        observer.observe(btn, { attributes: true, attributeFilter: ['data-confirm'] });
+    });
+</script>
+@endpush

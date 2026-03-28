@@ -1,11 +1,15 @@
 @extends('layouts.admin')
 
 @section('content')
-@php $isEdit = $account->exists; @endphp
+@php
+    $isEdit = $account->exists;
+    $automationMode = old('automation_mode', $account->automation_mode ?: 'ai_first');
+    $requiresAiKey = $automationMode !== 'rule_only';
+@endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">{{ $isEdit ? 'Edit' : 'Tambah' }} Chatbot Account</h2>
-        <div class="text-muted small">Set kredensial AI untuk auto-reply.</div>
+        <div class="text-muted small">Pisahkan mode automation bot dari cara AI dipakai. Rule-only tidak mengonsumsi AI Credits.</div>
     </div>
     <a href="{{ route('chatbot.accounts.index') }}" class="btn btn-outline-secondary">Kembali</a>
 </div>
@@ -32,7 +36,16 @@
                     <label class="form-label">Model</label>
                     <input type="text" name="model" class="form-control" placeholder="gpt-4o-mini" value="{{ old('model', $account->model) }}">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
+                    <label class="form-label">Automation Mode</label>
+                    <select name="automation_mode" class="form-select">
+                        <option value="rule_only" {{ $automationMode === 'rule_only' ? 'selected' : '' }}>Rule-only</option>
+                        <option value="ai_assisted" {{ $automationMode === 'ai_assisted' ? 'selected' : '' }}>AI-assisted</option>
+                        <option value="ai_first" {{ $automationMode === 'ai_first' ? 'selected' : '' }}>AI-first</option>
+                    </select>
+                    <div class="form-hint">Rule-only disiapkan untuk automations/rules dan tidak memakai AI Credits. AI-assisted dan AI-first memakai AI Credits saat model dipanggil.</div>
+                </div>
+                <div class="col-md-4">
                     <label class="form-label">Response Style</label>
                     <select name="response_style" class="form-select">
                         @foreach(['concise' => 'Concise', 'balanced' => 'Balanced', 'detailed' => 'Detailed'] as $val => $label)
@@ -40,13 +53,13 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <label class="form-label">Operation Mode</label>
                     <select name="operation_mode" class="form-select">
                         <option value="ai_only" {{ old('operation_mode', $account->operation_mode ?: 'ai_only') === 'ai_only' ? 'selected' : '' }}>AI Only</option>
                         <option value="ai_then_human" {{ old('operation_mode', $account->operation_mode ?: 'ai_only') === 'ai_then_human' ? 'selected' : '' }}>AI then Human</option>
                     </select>
-                    <div class="form-hint">AI then Human akan pause bot saat user minta agent/manusia.</div>
+                    <div class="form-hint">Mode ini hanya berlaku saat automation mode memakai AI. AI then Human akan pause bot saat user minta agent/manusia.</div>
                 </div>
                 <div class="col-12">
                     <label class="form-label">API Key</label>
@@ -56,9 +69,9 @@
                         class="form-control"
                         placeholder="{{ $isEdit ? 'Kosongkan jika tidak diubah' : 'sk-...' }}"
                         autocomplete="off"
-                        {{ $isEdit ? '' : 'required' }}
+                        {{ $requiresAiKey && !$isEdit ? 'required' : '' }}
                     >
-                    <div class="form-hint">Nilai API key disimpan aman dan tidak ditampilkan kembali.</div>
+                    <div class="form-hint">Wajib untuk AI-assisted dan AI-first. Rule-only boleh kosong karena tidak memanggil model AI.</div>
                 </div>
                 <div class="col-12">
                     <label class="form-label">System Prompt</label>

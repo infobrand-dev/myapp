@@ -29,7 +29,7 @@ Route::middleware('web')
             ->name('live-chat.api.messages.store');
     });
 
-Route::middleware(['web', 'auth'])
+Route::middleware(['web', 'auth', 'plan.feature:live_chat'])
     ->prefix('live-chat')
     ->name('live-chat.')
     ->group(function () {
@@ -41,7 +41,7 @@ Route::middleware(['web', 'auth'])
             ->name('conversations.status');
     });
 
-Route::middleware(['web', 'auth', 'role:Super-admin|Admin'])
+Route::middleware(['web', 'auth', 'role:Super-admin|Admin', 'plan.feature:live_chat'])
     ->prefix('live-chat')
     ->name('live-chat.')
     ->group(function () {
@@ -51,7 +51,7 @@ Route::middleware(['web', 'auth', 'role:Super-admin|Admin'])
         Route::patch('/inbox/{conversation}/close', [LiveChatInboxController::class, 'close'])->name('inbox.close');
     });
 
-Route::middleware(['web', 'auth', 'role:Super-admin'])
+Route::middleware(['web', 'auth', 'role:Super-admin', 'plan.feature:live_chat'])
     ->prefix('live-chat')
     ->name('live-chat.')
     ->group(function () {

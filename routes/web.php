@@ -5,8 +5,10 @@ use App\Http\Controllers\TenantOnboardingController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\InstallController;
+use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\ModuleController;
+use App\Http\Controllers\PlatformOwnerController;
+use App\Http\Controllers\PlatformBillingMidtransController;
 use App\Http\Controllers\UserPresenceController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,7 +25,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('locale/switch', [App\Http\Controllers\LocaleController::class, 'switch'])->name('locale.switch');
 
-Route::redirect('/', '/dashboard');
+Route::get('/', LandingPageController::class)->name('landing');
 
 // Health check — no auth, no session, no CSRF. Used by uptime monitors and load balancers.
 Route::get('/health', function () {
@@ -68,25 +70,34 @@ Route::get('/health', function () {
 Route::get('/onboarding', [TenantOnboardingController::class, 'create'])->middleware('throttle:web')->name('onboarding.create');
 Route::post('/onboarding', [TenantOnboardingController::class, 'store'])->middleware('throttle:10,5')->name('onboarding.store');
 
-Route::withoutMiddleware([
-    \App\Http\Middleware\EnsureInstalled::class,
-    \App\Http\Middleware\EncryptCookies::class,
-    \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
-    \Illuminate\Session\Middleware\StartSession::class,
-    \Illuminate\View\Middleware\ShareErrorsFromSession::class,
-    \App\Http\Middleware\VerifyCsrfToken::class,
-    \App\Http\Middleware\ResolveTenantFromSubdomain::class,
-    \App\Http\Middleware\ResolveTenantContext::class,
-    \App\Http\Middleware\ResolveCompanyContext::class,
-    \App\Http\Middleware\ResolveBranchContext::class,
-])->group(function () {
-    Route::get('/install', [InstallController::class, 'index'])->name('install.index');
-    Route::post('/install/test-db', [InstallController::class, 'testDatabase'])->middleware('throttle:10,1')->name('install.test-db');
-    Route::post('/install/run', [InstallController::class, 'run'])->middleware('throttle:5,1')->name('install.run');
-});
+Route::any('/install/{any?}', function () {
+    return redirect('/login');
+})->where('any', '.*');
 
-Route::middleware(['auth', 'verified', '2fa', \App\Http\Middleware\ResolveCompanyContext::class, \App\Http\Middleware\ResolveBranchContext::class])->group(function () {
+Route::middleware(['auth', 'verified', '2fa', 'platform.admin', \App\Http\Middleware\ResolveCompanyContext::class, \App\Http\Middleware\ResolveBranchContext::class])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+    Route::prefix('platform')->name('platform.')->group(function () {
+        Route::get('/', [PlatformOwnerController::class, 'dashboard'])->name('dashboard');
+        Route::get('/tenants', [PlatformOwnerController::class, 'tenants'])->name('tenants.index');
+        Route::get('/tenants/{tenant}', [PlatformOwnerController::class, 'tenant'])->name('tenants.show');
+        Route::post('/tenants/{tenant}/status', [PlatformOwnerController::class, 'updateTenantStatus'])->name('tenants.status');
+        Route::post('/tenants/{tenant}/notes', [PlatformOwnerController::class, 'updateTenantNotes'])->name('tenants.notes');
+        Route::post('/tenants/{tenant}/ai-credits', [PlatformOwnerController::class, 'topUpAiCredits'])->name('tenants.ai-credits.store');
+        Route::post('/tenants/{tenant}/assign-plan', [PlatformOwnerController::class, 'assignPlan'])->name('tenants.assign-plan');
+        Route::post('/tenants/{tenant}/orders', [PlatformOwnerController::class, 'createOrder'])->name('tenants.orders.store');
+        Route::get('/plans', [PlatformOwnerController::class, 'plans'])->name('plans.index');
+        Route::get('/plans/{plan}/edit', [PlatformOwnerController::class, 'editPlan'])->name('plans.edit');
+        Route::put('/plans/{plan}', [PlatformOwnerController::class, 'updatePlan'])->name('plans.update');
+        Route::get('/go-live', [PlatformOwnerController::class, 'golive'])->name('golive');
+        Route::get('/orders', [PlatformOwnerController::class, 'orders'])->name('orders.index');
+        Route::post('/orders/{order}/mark-paid', [PlatformOwnerController::class, 'markOrderPaid'])->name('orders.mark-paid');
+        Route::post('/orders/{order}/cancel', [PlatformOwnerController::class, 'cancelOrder'])->name('orders.cancel');
+        Route::post('/orders/{order}/invoice', [PlatformOwnerController::class, 'createInvoice'])->name('orders.invoice');
+        Route::get('/invoices/{invoice}', [PlatformOwnerController::class, 'invoice'])->name('invoices.show');
+        Route::post('/invoices/{invoice}/resend', [PlatformOwnerController::class, 'resendInvoice'])->name('invoices.resend');
+        Route::post('/invoices/{invoice}/payments', [PlatformOwnerController::class, 'recordPayment'])->name('invoices.payments.store');
+    });
 
     Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
@@ -118,12 +129,43 @@ Route::middleware(['auth', 'verified', '2fa', \App\Http\Middleware\ResolveCompan
     });
 });
 
-Route::middleware(['auth', 'verified', '2fa', \App\Http\Middleware\ResolveCompanyContext::class, \App\Http\Middleware\ResolveBranchContext::class])->prefix('presence')->name('presence.')->group(function () {
+Route::post('/platform/billing/midtrans/webhook', [PlatformBillingMidtransController::class, 'notification'])
+    ->withoutMiddleware([
+        \App\Http\Middleware\VerifyCsrfToken::class,
+        \App\Http\Middleware\ResolveTenantFromSubdomain::class,
+        \App\Http\Middleware\ResolveTenantContext::class,
+        \App\Http\Middleware\ResolveCompanyContext::class,
+        \App\Http\Middleware\ResolveBranchContext::class,
+    ])
+    ->name('platform.billing.midtrans.webhook');
+
+Route::get('/platform/public/invoices/{invoice}', [PlatformOwnerController::class, 'publicInvoice'])
+    ->middleware('signed')
+    ->withoutMiddleware([
+        \App\Http\Middleware\ResolveTenantFromSubdomain::class,
+        \App\Http\Middleware\ResolveTenantContext::class,
+        \App\Http\Middleware\ResolveCompanyContext::class,
+        \App\Http\Middleware\ResolveBranchContext::class,
+    ])
+    ->name('platform.invoices.public');
+
+Route::post('/platform/public/invoices/{invoice}/midtrans/checkout', [PlatformBillingMidtransController::class, 'checkout'])
+    ->middleware('signed')
+    ->withoutMiddleware([
+        \App\Http\Middleware\VerifyCsrfToken::class,
+        \App\Http\Middleware\ResolveTenantFromSubdomain::class,
+        \App\Http\Middleware\ResolveTenantContext::class,
+        \App\Http\Middleware\ResolveCompanyContext::class,
+        \App\Http\Middleware\ResolveBranchContext::class,
+    ])
+    ->name('platform.invoices.public.midtrans.checkout');
+
+Route::middleware(['auth', 'verified', '2fa', 'platform.admin', \App\Http\Middleware\ResolveCompanyContext::class, \App\Http\Middleware\ResolveBranchContext::class])->prefix('presence')->name('presence.')->group(function () {
     Route::post('/heartbeat', [UserPresenceController::class, 'heartbeat'])->name('heartbeat');
     Route::post('/status', [UserPresenceController::class, 'setStatus'])->name('status');
 });
 
-Route::middleware(['auth', '2fa', \App\Http\Middleware\ResolveCompanyContext::class, \App\Http\Middleware\ResolveBranchContext::class])->group(function () {
+Route::middleware(['auth', '2fa', 'platform.admin', \App\Http\Middleware\ResolveCompanyContext::class, \App\Http\Middleware\ResolveBranchContext::class])->group(function () {
     Route::get('/users', [UserController::class, 'index'])->middleware('permission:users.view')->name('users.index');
     Route::get('/users/create', [UserController::class, 'create'])->middleware('permission:users.create')->name('users.create');
     Route::post('/users', [UserController::class, 'store'])->middleware('permission:users.create')->name('users.store');

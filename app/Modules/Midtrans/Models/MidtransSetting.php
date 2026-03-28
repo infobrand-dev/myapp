@@ -4,6 +4,7 @@ namespace App\Modules\Midtrans\Models;
 
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
 
 class MidtransSetting extends Model
 {
@@ -89,9 +90,45 @@ class MidtransSetting extends Model
 
     public static function forCurrentTenant(): ?self
     {
-        return static::query()
-            ->where('tenant_id', TenantContext::currentId())
-            ->first();
+        $tenantId = TenantContext::currentId();
+
+        $setting = null;
+
+        if (Schema::hasTable((new static())->getTable())) {
+            $setting = static::query()
+                ->where('tenant_id', $tenantId)
+                ->first();
+        }
+
+        if ($setting) {
+            return $setting;
+        }
+
+        if ((int) $tenantId === 1) {
+            return static::platformOwnerFallback();
+        }
+
+        return null;
+    }
+
+    public static function platformOwnerFallback(): ?self
+    {
+        $serverKey = config('services.midtrans.server_key');
+
+        if (!$serverKey) {
+            return null;
+        }
+
+        $setting = new static();
+        $setting->tenant_id = 1;
+        $setting->environment = (string) config('services.midtrans.environment', 'sandbox');
+        $setting->merchant_id = config('services.midtrans.merchant_id');
+        $setting->is_active = (bool) config('services.midtrans.is_active', false);
+        $setting->enabled_payments = config('services.midtrans.enabled_payments', []);
+        $setting->server_key = $serverKey;
+        $setting->client_key = config('services.midtrans.client_key');
+
+        return $setting;
     }
 
     public function getSnapBaseUrl(): string

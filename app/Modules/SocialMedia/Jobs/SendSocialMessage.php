@@ -27,24 +27,31 @@ class SendSocialMessage implements ShouldQueue
     public function handle(): void
     {
         $message = ConversationMessage::query()
-            ->where('tenant_id', TenantContext::currentId())
-            ->with('conversation')
             ->find($this->messageId);
-        if (!$message || !$message->conversation || $message->conversation->channel !== 'social_dm') {
+        if (!$message) {
+            return;
+        }
+
+        TenantContext::setCurrentId((int) $message->tenant_id);
+        $message->load('conversation');
+
+        if (!$message->conversation || $message->conversation->channel !== 'social_dm') {
             return;
         }
 
         $platform = $message->conversation->metadata['platform'] ?? 'facebook';
         $recipient = $message->conversation->contact_external_id;
         $accountId = $message->conversation->instance_id;
-        $account = $accountId ? SocialAccount::find($accountId) : null;
+        $account = $accountId
+            ? SocialAccount::query()->where('tenant_id', (int) $message->tenant_id)->find($accountId)
+            : null;
         $graphVersion = config('services.meta.graph_version', 'v22.0');
-        $pageToken = $account->access_token ?? config('services.meta.page_token');
-        $pageId = $account->page_id ?? config('services.meta.page_id');
-        $igBusinessId = $account->ig_business_id ?? config('services.meta.ig_business_id');
+        $pageToken = $account?->access_token;
+        $pageId = $account?->page_id;
+        $igBusinessId = $account?->ig_business_id;
 
-        if (!$pageToken) {
-            $message->update(['status' => 'error', 'error_message' => 'META_PAGE_TOKEN not set']);
+        if (!$account || !$pageToken) {
+            $message->update(['status' => 'error', 'error_message' => 'Social account token is not connected for this tenant.']);
             return;
         }
 

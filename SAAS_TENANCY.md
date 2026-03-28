@@ -8,7 +8,7 @@
 ## Tenant lifecycle
 - One SaaS customer registration creates one tenant.
 - The first owner/admin user for that customer belongs to the created tenant.
-- Default installation must always keep tenant `id = 1` available as `Default tenant` for bootstrap and safe fallback behavior.
+- Tenant `id = 1` remains reserved for platform/bootstrap-safe behavior and internal control-plane needs.
 - Tenant resolution should prefer session-based context for the web application, with safe fallback to the authenticated user's `tenant_id` and then tenant `id = 1`.
 
 ## App separation

@@ -112,7 +112,7 @@
                             {{ config('app.name') }}
                         </a>
 
-                        <div class="d-none d-sm-flex">
+                        <div class="d-flex">
                             @include('shared.topbar-context-switcher', ['selectorId' => 'mobile-topbar'])
                         </div>
 

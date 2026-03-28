@@ -2,36 +2,34 @@
     <x-auth-card>
         <x-slot name="logo">
             <a href="/">
-                <x-application-logo class="w-20 h-20 fill-current text-gray-500" />
+                <x-application-logo />
             </a>
         </x-slot>
 
-        <div class="mb-4 text-sm text-gray-600">
-            {{ __('Thanks for signing up! Before getting started, could you verify your email address by clicking on the link we just emailed to you? If you didn\'t receive the email, we will gladly send you another.') }}
-        </div>
+        <h2 class="h4 mb-1">Verifikasi email Anda</h2>
+        <p class="text-muted small mb-4">
+            Terima kasih sudah mendaftar. Silakan klik link verifikasi yang sudah kami kirim ke email Anda sebelum mulai menggunakan aplikasi.
+        </p>
 
         @if (session('status') == 'verification-link-sent')
-            <div class="mb-4 font-medium text-sm text-green-600">
-                {{ __('A new verification link has been sent to the email address you provided during registration.') }}
+            <div class="alert alert-success mb-4">
+                <i class="ti ti-circle-check me-2"></i>
+                Link verifikasi baru sudah dikirim ke email Anda.
             </div>
         @endif
 
-        <div class="mt-4 flex items-center justify-between">
+        <div class="d-flex align-items-center justify-content-between gap-2">
             <form method="POST" action="{{ route('verification.send') }}">
                 @csrf
-
-                <div>
-                    <x-button>
-                        {{ __('Resend Verification Email') }}
-                    </x-button>
-                </div>
+                <x-button>
+                    {{ __('Kirim Ulang Email Verifikasi') }}
+                </x-button>
             </form>
 
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
-
-                <button type="submit" class="underline text-sm text-gray-600 hover:text-gray-900">
-                    {{ __('Log Out') }}
+                <button type="submit" class="btn btn-link text-secondary text-decoration-none p-0">
+                    {{ __('Keluar') }}
                 </button>
             </form>
         </div>

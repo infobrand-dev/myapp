@@ -7,6 +7,7 @@ use App\Modules\Conversations\Contracts\ConversationChannelManager;
 use App\Modules\Conversations\Contracts\ConversationOutboundDispatcher;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
+use App\Services\AiUsageService;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
@@ -67,6 +68,22 @@ class GenerateAiReply implements ShouldQueue
             return;
         }
 
+        if (method_exists($aiAccount, 'usesAi') && !$aiAccount->usesAi()) {
+            Log::info('AI reply skipped: chatbot account is configured as rule-only', [
+                'conversation_id' => $this->conversationId,
+                'chatbot_account_id' => $aiAccount->id,
+            ]);
+            return;
+        }
+
+        if (!app(AiUsageService::class)->hasCreditsRemaining($this->tenantId())) {
+            Log::info('AI reply skipped: tenant AI credits exhausted', [
+                'conversation_id' => $this->conversationId,
+                'tenant_id' => $this->tenantId(),
+            ]);
+            return;
+        }
+
         if ($this->shouldPauseForHuman($conversation, $aiAccount)) {
             Log::info('AI reply skipped: conversation paused for human', [
                 'conversation_id' => $this->conversationId,
@@ -95,6 +112,7 @@ class GenerateAiReply implements ShouldQueue
         ];
 
         $cacheKey = $this->responseCacheKey((int) $aiAccount->id, $payload);
+        $usage = null;
         try {
             $reply = Cache::get($cacheKey);
 
@@ -105,6 +123,7 @@ class GenerateAiReply implements ShouldQueue
                 $reply = $response->successful()
                     ? ($response->json('choices.0.message.content') ?? null)
                     : null;
+                $usage = $response->successful() ? $response->json('usage') : null;
 
                 if (is_string($reply) && trim($reply) !== '') {
                     Cache::put($cacheKey, $reply, now()->addSeconds(self::RESPONSE_CACHE_TTL_SECONDS));
@@ -134,6 +153,26 @@ class GenerateAiReply implements ShouldQueue
             'status' => $outboundDefaults['status'],
             'sent_at' => $outboundDefaults['sent_at'],
         ]);
+
+        if (is_array($usage ?? null) && (int) ($usage['total_tokens'] ?? 0) > 0) {
+            app(AiUsageService::class)->recordUsage([
+                'tenant_id' => $this->tenantId(),
+                'source_module' => 'conversations',
+                'source_type' => 'auto_reply',
+                'source_id' => $conversation->id,
+                'chatbot_account_id' => $aiAccount->id,
+                'provider' => $aiAccount->provider,
+                'model' => $aiAccount->model ?: config('services.openai.model', 'gpt-4o-mini'),
+                'prompt_tokens' => (int) ($usage['prompt_tokens'] ?? 0),
+                'completion_tokens' => (int) ($usage['completion_tokens'] ?? 0),
+                'total_tokens' => (int) ($usage['total_tokens'] ?? 0),
+                'metadata' => [
+                    'incoming_message_id' => $incoming->id,
+                    'reply_message_id' => $replyMessage->id,
+                    'channel' => $conversation->channel,
+                ],
+            ]);
+        }
 
         app(ConversationOutboundDispatcher::class)->dispatch($replyMessage);
     }

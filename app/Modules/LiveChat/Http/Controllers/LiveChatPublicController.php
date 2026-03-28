@@ -16,6 +16,8 @@ use App\Modules\LiveChat\Http\Requests\LiveChatTypingRequest;
 use App\Modules\LiveChat\Http\Requests\StoreLiveChatVisitorMessageRequest;
 use App\Modules\LiveChat\Support\LiveChatRealtimeState;
 use App\Models\UserPresence;
+use App\Support\PlanFeature;
+use App\Support\TenantPlanManager;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,7 +29,8 @@ class LiveChatPublicController extends Controller
 {
     public function __construct(
         private readonly InboxMessageIngester $ingester,
-        private readonly LiveChatRealtimeState $realtimeState
+        private readonly LiveChatRealtimeState $realtimeState,
+        private readonly TenantPlanManager $plans,
     )
     {
     }
@@ -253,10 +256,14 @@ class LiveChatPublicController extends Controller
 
     private function resolveWidget(string $token): LiveChatWidget
     {
-        return LiveChatWidget::query()
+        $widget = LiveChatWidget::query()
             ->where('widget_token', $token)
             ->where('is_active', true)
             ->firstOrFail();
+
+        abort_unless($this->plans->hasFeature(PlanFeature::LIVE_CHAT, (int) $widget->tenant_id), 403);
+
+        return $widget;
     }
 
     private function resolveConversation(LiveChatWidget $widget, string $visitorKey): ?Conversation

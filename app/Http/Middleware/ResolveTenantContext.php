@@ -6,6 +6,7 @@ use App\Support\TenantContext;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Tenant;
 use Spatie\Permission\PermissionRegistrar;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -15,6 +16,14 @@ class ResolveTenantContext
     {
         if ($request->is('install') || $request->is('install/*')) {
             return $next($request);
+        }
+
+        if ($this->shouldBypassTenantContext($request)) {
+            return $next($request);
+        }
+
+        if ($response = $this->redirectGuestAuthToTenantSubdomain($request)) {
+            return $response;
         }
 
         $tenantId = TenantContext::resolveIdFromRequest($request);
@@ -46,7 +55,7 @@ class ResolveTenantContext
         if ($request->hasSession()) {
             $request->session()->put('tenant_id', $tenantId);
             $tenant = TenantContext::currentTenant();
-            $request->session()->put('tenant_slug', $tenant?->slug);
+            $request->session()->put('tenant_slug', optional($tenant)->slug);
         }
 
         try {
@@ -55,5 +64,89 @@ class ResolveTenantContext
             app(PermissionRegistrar::class)->setPermissionsTeamId(null);
             TenantContext::forget();
         }
+    }
+
+    private function redirectGuestAuthToTenantSubdomain(Request $request): ?Response
+    {
+        if (config('multitenancy.mode') !== 'saas') {
+            return null;
+        }
+
+        if ($request->user()) {
+            return null;
+        }
+
+        if (!$this->isGuestAuthRoute($request)) {
+            return null;
+        }
+
+        if ($request->attributes->get('tenant_id')) {
+            return null;
+        }
+
+        if ($this->isApexAllowedRoute($request)) {
+            return null;
+        }
+
+        $workspace = trim((string) $request->input('workspace', ''));
+        if ($workspace !== '') {
+            $tenant = Tenant::query()
+                ->where('slug', $workspace)
+                ->where('is_active', true)
+                ->first();
+
+            if ($tenant) {
+                $scheme = $request->isSecure() ? 'https' : 'http';
+                $target = sprintf(
+                    '%s://%s.%s/login',
+                    $scheme,
+                    $tenant->slug,
+                    config('multitenancy.saas_domain')
+                );
+
+                return redirect()->away($target);
+            }
+        }
+
+        return redirect()
+            ->route('onboarding.create')
+            ->with('warning', 'Masuk melalui subdomain workspace Anda. Contoh: tenantanda.' . config('multitenancy.saas_domain'));
+    }
+
+    private function isGuestAuthRoute(Request $request): bool
+    {
+        return $request->is('login')
+            || $request->is('register')
+            || $request->is('forgot-password')
+            || $request->is('reset-password/*')
+            || $request->is('reset-password')
+            || $request->is('two-factor-challenge');
+    }
+
+    private function isApexAllowedRoute(Request $request): bool
+    {
+        return $request->path() === '/'
+            || $request->is('onboarding')
+            || $request->is('health')
+            || $request->is('locale/switch');
+    }
+
+    private function shouldBypassTenantContext(Request $request): bool
+    {
+        if ($this->isPlatformWebhookRoute($request) && !$request->user()) {
+            return true;
+        }
+
+        return config('multitenancy.mode') === 'saas'
+            && $this->isApexAllowedRoute($request)
+            && !$request->attributes->get('tenant_id')
+            && !$request->user();
+    }
+
+    private function isPlatformWebhookRoute(Request $request): bool
+    {
+        return $request->is('social-media/webhook')
+            || $request->is('whatsapp-api/webhook')
+            || $request->is('platform/billing/midtrans/webhook');
     }
 }

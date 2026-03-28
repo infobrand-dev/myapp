@@ -2,8 +2,7 @@
 
 ## Product snapshot
 - Laravel 11 app with Breeze (Blade), Tabler UI, Laravel Mix, Spatie Permission, and MySQL/MariaDB.
-- The app is installer-first. Fresh setup is expected to go through `/install`.
-- Core app responsibilities are the shell and shared platform pieces such as installer, authentication, dashboard, profile, users, roles, module registry, shared layout, and cross-cutting infrastructure.
+- Core app responsibilities are the shell and shared platform pieces such as authentication, dashboard, profile, users, roles, module registry, shared layout, and cross-cutting infrastructure.
 - Business features live under `app/Modules/*` and are discovered from each module's `module.json`.
 
 ## Current architecture
@@ -20,7 +19,10 @@
 - Multi-tenant readiness is a standing requirement even where `tenant_id` is not fully rolled out yet. New schema, services, and module integrations should avoid assumptions that make tenant scoping difficult later.
 - When practical, keep room for `tenant_id` in table design, query composition, unique constraints, cache keys, webhook/account resolution, and ownership rules. Avoid building new flows that implicitly assume a single global tenant.
 - Core runtime tenant resolution now flows through `App\Support\TenantContext` and `App\Http\Middleware\ResolveTenantContext`.
-- Current resolver order is: explicit request attribute/header/query, session, authenticated user `tenant_id`, then fallback to tenant `id = 1`.
+- Current resolver order is: explicit request attribute/header/query, session, authenticated user `tenant_id`, then fallback to tenant `id = 1` only for standalone/bootstrap-safe flows. In SaaS mode, unresolved tenant context should fail closed instead of silently falling back to tenant `1`.
+- In SaaS mode, guest auth pages must be reached from the tenant subdomain. Apex/root domain is for onboarding or workspace discovery, not shared tenant login.
+- Public self-serve sales now starts from the apex onboarding flow. Buyer selects a public subscription plan, creates a tenant in `pending_payment`, receives a platform invoice, and is redirected to Midtrans checkout before the tenant is activated.
+- Platform owner access is separated onto the reserved `dash` subdomain, which binds to tenant `id = 1` for control-plane work.
 - Core runtime company resolution now flows through `App\Support\CompanyContext` and `App\Http\Middleware\ResolveCompanyContext`.
 - Current company resolver order is: explicit request attribute/header/query, session, then first active company under the active tenant.
 - Core runtime branch resolution now flows through `App\Support\BranchContext` and `App\Http\Middleware\ResolveBranchContext`.
@@ -47,18 +49,20 @@
 - Deactivation must refuse when active dependents still require the module.
 - Category is metadata for grouping and filtering in the Modules UI; it is not a runtime policy layer.
 
-## Installer and auth
-- Treat the web installer as the default bootstrap path for a fresh deployment.
-- The first Super-admin account is created from the installer form, not from a permanent default password.
-- `superadmin@myapp.test` is only a form placeholder in the installer UI, not a guaranteed seeded account.
-- Installation state is determined by a valid `APP_KEY`, installer lock file, `APP_INSTALLED`, and backward-compatible core table checks.
+## Auth
+- Super-admin and tenant users authenticate through the standard auth flow.
+- Production runtime should continue without exposing a web installer path.
 
 ## Roles and permissions
 - Core permissions include `users.*`, `roles.*`, and `modules.*`.
 - Core seeded roles are `Super-admin` and `Admin`.
 - Role seeding also pulls default permission maps from some modules via their service providers.
 - Tenant subscription and plan enforcement foundation now lives in `subscription_plans`, `tenant_subscriptions`, `companies`, and `App\Support\TenantPlanManager`.
-- New quota or premium-feature work should prefer adding keys to the centralized plan feature/limit layer instead of hardcoding rules inside modules.
+- Platform billing for SaaS plans lives in dedicated `platform_*` tables (`platform_plan_orders`, `platform_invoices`, `platform_invoice_items`, `platform_payments`) and must stay separate from tenant-facing `sales` / `payments` domain tables.
+- Current online payment flow for platform invoices uses Midtrans against the platform owner account, while `platform_*` tables remain the internal source of truth for invoice, payment, and subscription activation.
+- Successful self-serve payment must also finalize onboarding by activating the tenant and sending the post-payment welcome email; welcome mail should not be sent before payment settles.
+- For go-live, platform-owner Midtrans credentials may be sourced directly from `.env` via `config/services.php` when no persisted `midtrans_settings` row exists for tenant `id = 1`.
+- New quota or premium-feature work should prefer adding keys to the centralized plan feature/limit layer instead of hardcoding rules inside modules. Omnichannel module routes should enforce plan access with `plan.feature:*` middleware so the package sold to the tenant matches the modules they can use.
 - Company-aware rollout has started with `finance` and `point-of-sale` cash session boundaries. New work in accounting, cashier shift, and related reporting should follow the active `tenant + company` scope.
 - Branch-aware rollout has started with `point-of-sale`, `finance transactions`, `sales`, and `payments`, but branch must remain optional where the flow is company-level rather than outlet-level.
 - Reports are being migrated to the same active `tenant + company + optional branch` runtime context. New or updated report queries must follow the active context resolver and must not reintroduce legacy `outlet_id`-style bypass filters.

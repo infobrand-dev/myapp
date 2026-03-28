@@ -5,16 +5,19 @@
     $section = $sections[$currentSection] ?? $sections['general'];
 @endphp
 
-<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-3">
+<div class="page-header d-flex align-items-start align-items-md-center justify-content-between flex-column flex-md-row gap-3">
     <div>
-        <h2 class="mb-1">Settings</h2>
-        <div class="text-muted small">{{ $section['description'] }}</div>
+        <div class="page-pretitle">Konfigurasi</div>
+        <h2 class="page-title">Settings</h2>
+        <div class="text-muted small mt-1">{{ $section['description'] }}</div>
     </div>
-    <div class="d-flex flex-wrap gap-2">
+    @if(!empty($settingsStats))
+    <div class="d-flex flex-wrap gap-2 flex-shrink-0">
         @foreach($settingsStats as $stat)
             <span class="badge bg-blue-lt text-blue px-3 py-2">{{ $stat['label'] }}: {{ $stat['value'] }}</span>
         @endforeach
     </div>
+    @endif
 </div>
 
 <div class="row g-3">

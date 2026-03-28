@@ -19,7 +19,7 @@ Route::middleware('web')
         Route::get('/whatsapp-api/webhook', [WebhookController::class, 'verify'])->name('whatsapp-api.webhook.verify');
     });
 
-Route::middleware(['web', 'auth'])
+Route::middleware(['web', 'auth', 'plan.feature:whatsapp_api'])
     ->prefix('whatsapp-api')
     ->name('whatsapp-api.')
     ->group(function () {

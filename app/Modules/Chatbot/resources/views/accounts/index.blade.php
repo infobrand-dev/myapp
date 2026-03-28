@@ -18,6 +18,7 @@
             <thead>
                 <tr>
                     <th>Nama</th>
+                    <th>Automation</th>
                     <th>Provider</th>
                     <th>Model</th>
                     <th>Mode</th>
@@ -31,6 +32,15 @@
                 @forelse($accounts as $acc)
                     <tr>
                         <td>{{ $acc->name }}</td>
+                        <td>
+                            <span class="badge text-bg-dark">
+                                {{ match($acc->automation_mode ?? 'ai_first') {
+                                    'rule_only' => 'Rule Only',
+                                    'ai_assisted' => 'AI Assisted',
+                                    default => 'AI First',
+                                } }}
+                            </span>
+                        </td>
                         <td>{{ strtoupper($acc->provider) }}</td>
                         <td>{{ $acc->model ?? '-' }}</td>
                         <td>
@@ -62,7 +72,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="8" class="text-muted">Belum ada akun.</td></tr>
+                    <tr><td colspan="9" class="text-muted">Belum ada akun.</td></tr>
                 @endforelse
             </tbody>
         </table>

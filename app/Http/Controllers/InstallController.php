@@ -71,9 +71,12 @@ class InstallController extends Controller
 
             $this->writeEnv([
                 'APP_NAME' => $data['app_name'],
+                'APP_ENV' => 'production',
+                'APP_DEBUG' => 'false',
                 'APP_URL' => $data['app_url'],
                 'APP_KEY' => trim((string) env('APP_KEY', '')),
                 'APP_INSTALLED' => 'false',
+                'LOG_LEVEL' => 'warning',
                 'DB_CONNECTION' => $data['db_connection'],
                 'DB_HOST' => $data['db_host'],
                 'DB_PORT' => $data['db_port'],

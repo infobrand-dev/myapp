@@ -1,13 +1,15 @@
 @extends('layouts.admin')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="page-header d-flex align-items-center justify-content-between">
     <div>
-        <h2 class="mb-0">Roles</h2>
-        <div class="text-muted small">Lihat hak akses tiap role dan user yang saat ini memegang role tersebut.</div>
+        <div class="page-pretitle">Administrasi</div>
+        <h2 class="page-title">Roles</h2>
     </div>
     @can('roles.create')
-        <a href="{{ route('roles.create') }}" class="btn btn-primary">Tambah Role</a>
+        <a href="{{ route('roles.create') }}" class="btn btn-primary">
+            <i class="ti ti-shield-plus me-1"></i>Tambah Role
+        </a>
     @endcan
 </div>
 
@@ -69,10 +71,10 @@
                                         <a href="{{ route('roles.edit', $role) }}" class="btn btn-sm btn-outline-primary">Edit</a>
                                     @endcan
                                     @can('roles.delete')
-                                        <form class="d-inline-block m-0" method="POST" action="{{ route('roles.destroy', $role) }}" onsubmit="return confirm('Hapus role ini?');">
+                                        <form class="d-inline-block m-0" method="POST" action="{{ route('roles.destroy', $role) }}">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">Hapus</button>
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" data-confirm="Hapus role {{ $role->name }}?">Hapus</button>
                                         </form>
                                     @endcan
                                 </div>
@@ -80,7 +82,13 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="text-center text-muted">Belum ada role.</td>
+                            <td colspan="4" class="text-center py-5">
+                                <i class="ti ti-shield-check text-muted d-block mb-2" style="font-size:2rem;"></i>
+                                <div class="text-muted mb-2">Belum ada role.</div>
+                                @can('roles.create')
+                                    <a href="{{ route('roles.create') }}" class="btn btn-sm btn-primary">Tambah Role Pertama</a>
+                                @endcan
+                            </td>
                         </tr>
                     @endforelse
                 </tbody>

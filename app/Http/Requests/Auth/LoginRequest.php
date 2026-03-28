@@ -46,7 +46,9 @@ class LoginRequest extends FormRequest
     public function authenticate()
     {
         $this->ensureIsNotRateLimited();
-        $tenantId = TenantContext::resolveIdFromRequest($this);
+        $tenantId = $this->isPlatformAdminHost()
+            ? 1
+            : TenantContext::resolveIdFromRequest($this);
 
         if (! Auth::attempt([
             'email' => $this->string('email')->toString(),
@@ -72,6 +74,15 @@ class LoginRequest extends FormRequest
 
             throw ValidationException::withMessages([
                 'email' => 'Tenant akun tidak aktif atau tidak valid.',
+            ]);
+        }
+
+        if ($this->isPlatformAdminHost() && ((int) $user->tenant_id !== 1 || !$user->hasRole('Super-admin'))) {
+            Auth::guard('web')->logout();
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => 'Login ini khusus untuk platform Super-admin.',
             ]);
         }
 
@@ -111,5 +122,18 @@ class LoginRequest extends FormRequest
     public function throttleKey()
     {
         return Str::lower($this->input('email')).'|'.TenantContext::resolveIdFromRequest($this).'|'.$this->ip();
+    }
+
+    private function isPlatformAdminHost(): bool
+    {
+        if (config('multitenancy.mode') !== 'saas') {
+            return false;
+        }
+
+        $host = $this->getHost();
+        $saasDomain = (string) config('multitenancy.saas_domain');
+        $platformSubdomain = (string) config('multitenancy.platform_admin_subdomain', 'dash');
+
+        return $host === $platformSubdomain . '.' . $saasDomain;
     }
 }

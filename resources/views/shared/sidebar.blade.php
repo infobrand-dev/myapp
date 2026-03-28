@@ -1,10 +1,24 @@
 @php
     $moduleManager = app(\App\Support\ModuleManager::class);
+    $planManager = app(\App\Support\TenantPlanManager::class);
     $currentRouteName = optional(request()->route())->getName();
     $moduleNavBadges = $moduleNavBadges ?? [];
+    $platformAdminHost = request()->attributes->get('platform_admin_host');
 
     $moduleMenus = collect($moduleManager->all())
-        ->filter(fn ($module) => $module['installed'] && $module['active'])
+        ->filter(function ($module) use ($planManager, $platformAdminHost) {
+            if (!$module['installed'] || !$module['active']) {
+                return false;
+            }
+
+            if ($platformAdminHost) {
+                return true;
+            }
+
+            $feature = \App\Support\PlanFeature::moduleFeatureForSlug((string) ($module['slug'] ?? ''));
+
+            return $feature ? $planManager->hasFeature($feature) : true;
+        })
         ->map(function ($module) {
             $items = collect($module['navigation'] ?? [])
                 ->filter(function ($item) {

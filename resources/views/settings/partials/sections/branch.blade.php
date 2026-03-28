@@ -2,7 +2,7 @@
     <div class="col-lg-5">
         <div class="card">
             <div class="card-header">
-                <h3 class="card-title mb-0">{{ $editingBranch ? 'Edit Branch' : 'Add Branch' }}</h3>
+                <h3 class="card-title mb-0">{{ $editingBranch ? 'Edit Branch' : 'Tambah Branch' }}</h3>
             </div>
             <div class="card-body">
                 @if(!$currentCompany)
@@ -21,7 +21,7 @@
                             <input type="text" class="form-control" value="{{ $currentCompany->name }}" disabled>
                         </div>
                         <div class="col-12">
-                            <label class="form-label">Name</label>
+                            <label class="form-label">Nama</label>
                             <input type="text" name="name" class="form-control" value="{{ old('name', optional($editingBranch)->name) }}" required>
                         </div>
                         <div class="col-md-6">
@@ -29,7 +29,7 @@
                             <input type="text" name="slug" class="form-control" value="{{ old('slug', optional($editingBranch)->slug) }}" placeholder="auto dari nama">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Code</label>
+                            <label class="form-label">Kode</label>
                             <input type="text" name="code" class="form-control" value="{{ old('code', optional($editingBranch)->code) }}">
                         </div>
                         <div class="col-12">
@@ -41,10 +41,10 @@
                         </div>
                         <div class="col-12 d-flex gap-2">
                             @can('settings.manage')
-                                <button class="btn btn-primary" type="submit">{{ $editingBranch ? 'Update Branch' : 'Create Branch' }}</button>
+                                <button class="btn btn-primary" type="submit">{{ $editingBranch ? 'Update Branch' : 'Buat Branch' }}</button>
                             @endcan
                             @if($editingBranch)
-                                <a href="{{ route('settings.branch') }}" class="btn btn-outline-secondary">Cancel</a>
+                                <a href="{{ route('settings.branch') }}" class="btn btn-outline-secondary">Batal</a>
                             @endif
                         </div>
                     </form>
@@ -56,15 +56,15 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center gap-3">
                 <div>
-                    <h3 class="card-title mb-0">Branch Directory</h3>
+                    <h3 class="card-title mb-0">Direktori Branch</h3>
                     <div class="text-muted small mt-1">Daftar branch mengikuti company aktif dan menyediakan switch untuk runtime scope branch.</div>
                 </div>
                 <div class="d-flex gap-2">
-                    <span class="badge bg-azure-lt text-azure">{{ optional($currentCompany)->name ?? 'No company selected' }}</span>
+                    <span class="badge bg-azure-lt text-azure">{{ optional($currentCompany)->name ?? 'Belum ada company dipilih' }}</span>
                     @if($currentBranch)
                         <form method="POST" action="{{ route('settings.branch.clear') }}">
                             @csrf
-                            <button type="submit" class="btn btn-sm btn-outline-secondary">Clear Branch</button>
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">Hapus Pilihan Branch</button>
                         </form>
                     @endif
                 </div>
@@ -75,7 +75,7 @@
                         <tr>
                             <th>Branch</th>
                             <th>Status</th>
-                            <th class="text-end">Action</th>
+                            <th class="text-end">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -87,10 +87,10 @@
                                 </td>
                                 <td>
                                     <span class="badge bg-{{ $branch->is_active ? 'success' : 'secondary' }}-lt text-{{ $branch->is_active ? 'success' : 'secondary' }}">
-                                        {{ $branch->is_active ? 'Active' : 'Inactive' }}
+                                        {{ $branch->is_active ? 'Aktif' : 'Nonaktif' }}
                                     </span>
                                     @if(optional($currentBranch)->id === $branch->id)
-                                        <span class="badge bg-primary text-white">Current</span>
+                                        <span class="badge bg-primary text-white">Sedang digunakan</span>
                                     @endif
                                 </td>
                                 <td class="text-end">
@@ -98,7 +98,7 @@
                                         @if($branch->is_active)
                                             <form method="POST" action="{{ route('settings.branch.switch', $branch) }}">
                                                 @csrf
-                                                <button type="submit" class="btn btn-sm btn-outline-primary">Use</button>
+                                                <button type="submit" class="btn btn-sm btn-outline-primary">Gunakan</button>
                                             </form>
                                         @endif
                                         @can('settings.manage')
@@ -106,7 +106,7 @@
                                             @if(!$branch->is_active)
                                                 <form method="POST" action="{{ route('settings.branch.activate', $branch) }}">
                                                     @csrf
-                                                    <button type="submit" class="btn btn-sm btn-outline-success">Activate</button>
+                                                    <button type="submit" class="btn btn-sm btn-outline-success">Aktifkan</button>
                                                 </form>
                                             @endif
                                         @endcan

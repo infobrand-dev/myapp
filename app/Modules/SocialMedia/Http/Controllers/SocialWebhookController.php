@@ -126,6 +126,10 @@ class SocialWebhookController extends Controller
             return false;
         }
 
+        if (method_exists($account, 'usesAi') && !$account->usesAi()) {
+            return false;
+        }
+
         $mode = strtolower((string) ($account->operation_mode ?? 'ai_only'));
         if ($mode === 'ai_only') {
             return true;
@@ -152,6 +156,7 @@ class SocialWebhookController extends Controller
         }
 
         return $chatbotClass::query()
+            ->where('tenant_id', TenantContext::currentId())
             ->where('status', 'active')
             ->find($chatbotAccountId);
     }

@@ -36,6 +36,15 @@ class ResolveTenantFromSubdomain
         }
 
         $slug = substr($host, 0, -strlen('.' . $saasDomain));
+        $platformSubdomain = (string) config('multitenancy.platform_admin_subdomain', 'dash');
+
+        if ($slug === $platformSubdomain) {
+            $request->attributes->set('tenant_id', 1);
+            $request->attributes->set('tenant_slug', $platformSubdomain);
+            $request->attributes->set('platform_admin_host', true);
+
+            return $next($request);
+        }
 
         // Refuse reserved slugs early — prevents confusion with system routes
         if (in_array($slug, config('multitenancy.reserved_slugs', []), true)) {

@@ -2,7 +2,7 @@
     <div class="col-lg-5">
         <div class="card">
             <div class="card-header">
-                <h3 class="card-title mb-0">{{ $editingCompany ? 'Edit Company' : 'Add Company' }}</h3>
+                <h3 class="card-title mb-0">{{ $editingCompany ? 'Edit Company' : 'Tambah Company' }}</h3>
             </div>
             <div class="card-body">
                 @php
@@ -14,7 +14,7 @@
                         @method('PUT')
                     @endif
                     <div class="col-12">
-                        <label class="form-label">Name</label>
+                        <label class="form-label">Nama</label>
                         <input type="text" name="name" class="form-control" value="{{ old('name', optional($editingCompany)->name) }}" required>
                     </div>
                     <div class="col-md-6">
@@ -22,7 +22,7 @@
                         <input type="text" name="slug" class="form-control" value="{{ old('slug', optional($editingCompany)->slug) }}" placeholder="auto dari nama">
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Code</label>
+                        <label class="form-label">Kode</label>
                         <input type="text" name="code" class="form-control" value="{{ old('code', optional($editingCompany)->code) }}">
                     </div>
                     <div class="col-12">
@@ -34,10 +34,10 @@
                     </div>
                     <div class="col-12 d-flex gap-2">
                         @can('settings.manage')
-                            <button class="btn btn-primary" type="submit">{{ $editingCompany ? 'Update Company' : 'Create Company' }}</button>
+                            <button class="btn btn-primary" type="submit">{{ $editingCompany ? 'Update Company' : 'Buat Company' }}</button>
                         @endcan
                         @if($editingCompany)
-                            <a href="{{ route('settings.company') }}" class="btn btn-outline-secondary">Cancel</a>
+                            <a href="{{ route('settings.company') }}" class="btn btn-outline-secondary">Batal</a>
                         @endif
                     </div>
                 </form>
@@ -48,7 +48,7 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center gap-3">
                 <div>
-                    <h3 class="card-title mb-0">Company Directory</h3>
+                    <h3 class="card-title mb-0">Direktori Company</h3>
                     <div class="text-muted small mt-1">Kelola business entity internal tenant dan pilih context company aktif dari sini.</div>
                 </div>
                 <span class="badge bg-blue-lt text-blue">Tenant scope</span>
@@ -58,9 +58,9 @@
                     <thead>
                         <tr>
                             <th>Company</th>
-                            <th>Branches</th>
+                            <th>Cabang</th>
                             <th>Status</th>
-                            <th class="text-end">Action</th>
+                            <th class="text-end">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -73,10 +73,10 @@
                                 <td>{{ $company->active_branches_count }}/{{ $company->branches_count }}</td>
                                 <td>
                                     <span class="badge bg-{{ $company->is_active ? 'success' : 'secondary' }}-lt text-{{ $company->is_active ? 'success' : 'secondary' }}">
-                                        {{ $company->is_active ? 'Active' : 'Inactive' }}
+                                        {{ $company->is_active ? 'Aktif' : 'Nonaktif' }}
                                     </span>
                                     @if(optional($currentCompany)->id === $company->id)
-                                        <span class="badge bg-primary text-white">Current</span>
+                                        <span class="badge bg-primary text-white">Sedang digunakan</span>
                                     @endif
                                 </td>
                                 <td class="text-end">
@@ -84,7 +84,7 @@
                                         @if($company->is_active)
                                             <form method="POST" action="{{ route('settings.company.switch', $company) }}">
                                                 @csrf
-                                                <button type="submit" class="btn btn-sm btn-outline-primary">Use</button>
+                                                <button type="submit" class="btn btn-sm btn-outline-primary">Gunakan</button>
                                             </form>
                                         @endif
                                         @can('settings.manage')
@@ -92,7 +92,7 @@
                                             @if(!$company->is_active)
                                                 <form method="POST" action="{{ route('settings.company.activate', $company) }}">
                                                     @csrf
-                                                    <button type="submit" class="btn btn-sm btn-outline-success">Activate</button>
+                                                    <button type="submit" class="btn btn-sm btn-outline-success">Aktifkan</button>
                                                 </form>
                                             @endif
                                         @endcan

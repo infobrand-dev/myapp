@@ -6,6 +6,7 @@ use App\Modules\Chatbot\Models\ChatbotAccount;
 use App\Modules\Chatbot\Contracts\ConversationBotIntegrationRegistry;
 use App\Modules\Chatbot\Services\ConversationBotIntegrationManager;
 use App\Modules\Conversations\Contracts\ConversationAiAssistantRegistry;
+use App\Support\TenantContext;
 use App\Support\HookManager;
 use App\Support\RegistersModuleRoutes;
 use Illuminate\Support\ServiceProvider;
@@ -25,6 +26,7 @@ class ChatbotServiceProvider extends ServiceProvider
                 }
 
                 return ChatbotAccount::query()
+                    ->where('tenant_id', TenantContext::currentId())
                     ->where('status', 'active')
                     ->find($accountId);
             });

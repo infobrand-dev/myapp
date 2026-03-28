@@ -40,6 +40,26 @@ class Tenant extends Model
         return $this->hasMany(TenantSubscription::class);
     }
 
+    public function planOrders(): HasMany
+    {
+        return $this->hasMany(PlatformPlanOrder::class);
+    }
+
+    public function platformInvoices(): HasMany
+    {
+        return $this->hasMany(PlatformInvoice::class);
+    }
+
+    public function platformPayments(): HasMany
+    {
+        return $this->hasMany(PlatformPayment::class);
+    }
+
+    public function aiCreditTransactions(): HasMany
+    {
+        return $this->hasMany(AiCreditTransaction::class);
+    }
+
     public function activeSubscription(): HasOne
     {
         return $this->hasOne(TenantSubscription::class)

@@ -6,7 +6,7 @@ use App\Modules\Chatbot\Http\Controllers\ConversationBotController;
 use App\Modules\Chatbot\Http\Controllers\ChatbotKnowledgeController;
 use App\Modules\Chatbot\Http\Controllers\ChatbotPlaygroundController;
 
-Route::middleware(['web', 'auth'])
+Route::middleware(['web', 'auth', 'plan.feature:chatbot_ai'])
     ->prefix('chatbot')
     ->name('chatbot.')
     ->group(function () {

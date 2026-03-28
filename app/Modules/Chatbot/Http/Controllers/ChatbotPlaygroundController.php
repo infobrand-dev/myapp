@@ -9,6 +9,8 @@ use App\Modules\Chatbot\Models\ChatbotAccount;
 use App\Modules\Chatbot\Models\ChatbotMessage;
 use App\Modules\Chatbot\Models\ChatbotSession;
 use App\Modules\Chatbot\Services\RagContextBuilder;
+use App\Services\AiUsageService;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -68,8 +70,17 @@ class ChatbotPlaygroundController extends Controller
         $user = $request->user();
 
         $account = ChatbotAccount::query()
+            ->where('tenant_id', TenantContext::currentId())
             ->where('status', 'active')
             ->findOrFail((int) $data['chatbot_account_id']);
+
+        if (!$account->usesAi()) {
+            return redirect('/chatbot/playground')->with('status', 'Chatbot mode Rule-only tidak memakai AI Playground. Siapkan rule/automation di modul automation saat modul itu aktif.');
+        }
+
+        if (!app(AiUsageService::class)->hasCreditsRemaining(TenantContext::currentId())) {
+            return redirect('/chatbot/playground')->with('status', 'AI Credits tenant bulan ini sudah habis.');
+        }
 
         $session = $this->resolveSession($user->id, $account->id, $data);
 
@@ -183,6 +194,25 @@ class ChatbotPlaygroundController extends Controller
             'total_tokens' => (int) ($usage['total_tokens'] ?? 0) ?: null,
         ]);
 
+        if (is_array($usage ?? null) && (int) ($usage['total_tokens'] ?? 0) > 0) {
+            app(AiUsageService::class)->recordUsage([
+                'tenant_id' => TenantContext::currentId(),
+                'source_module' => 'chatbot',
+                'source_type' => 'playground',
+                'source_id' => $session->id,
+                'chatbot_account_id' => $account->id,
+                'provider' => $account->provider,
+                'model' => $account->model ?: config('services.openai.model', 'gpt-4o-mini'),
+                'prompt_tokens' => (int) ($usage['prompt_tokens'] ?? 0),
+                'completion_tokens' => (int) ($usage['completion_tokens'] ?? 0),
+                'total_tokens' => (int) ($usage['total_tokens'] ?? 0),
+                'metadata' => [
+                    'channel' => 'playground',
+                    'chatbot_message_id' => $assistantMessage->id,
+                ],
+            ]);
+        }
+
         $session->update([
             'last_message_at' => now(),
             'title' => $session->title ?: Str::limit(trim((string) $data['message']), 80),
@@ -208,6 +238,7 @@ class ChatbotPlaygroundController extends Controller
     private function activeAccounts()
     {
         return ChatbotAccount::query()
+            ->where('tenant_id', TenantContext::currentId())
             ->where('status', 'active')
             ->orderBy('name')
             ->get();

@@ -10,4 +10,5 @@ class PlanLimit
     public const CONTACTS = 'max_contacts';
     public const WHATSAPP_INSTANCES = 'max_whatsapp_instances';
     public const EMAIL_CAMPAIGNS = 'max_email_campaigns';
+    public const AI_CREDITS_MONTHLY = 'max_ai_credits_monthly';
 }

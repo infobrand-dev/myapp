@@ -2,48 +2,49 @@
 
 @section('content')
 @php
-    $isEdit = $account->exists;
     $integrationAutoReply = old('auto_reply', data_get($integration, 'auto_reply', false));
     $integrationChatbotAccountId = old('chatbot_account_id', data_get($integration, 'chatbot_account_id'));
     $chatbotEnabled = $chatbotEnabled ?? false;
+    $metaOAuthReady = $metaOAuthReady ?? false;
 @endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-        <h2 class="mb-0">{{ $isEdit ? 'Edit' : 'Tambah' }} Social Account</h2>
-        <div class="text-muted small">Isi token page/IG untuk DM.</div>
+        <h2 class="mb-0">Pengaturan Social Account</h2>
+        <div class="text-muted small">Kredensial dihubungkan melalui Meta OAuth platform. Tenant hanya mengatur status dan AI auto-reply.</div>
     </div>
     <a href="{{ route('social-media.accounts.index') }}" class="btn btn-outline-secondary">Kembali</a>
 </div>
 
+@if(!$metaOAuthReady)
+    <div class="alert alert-warning">
+        META OAuth belum siap di environment platform. Isi <code>META_APP_ID</code> dan <code>META_APP_SECRET</code>, lalu reconnect akun ini.
+    </div>
+@endif
+
 <div class="card">
     <div class="card-body">
-        <form method="POST" action="{{ $isEdit ? route('social-media.accounts.update', $account) : route('social-media.accounts.store') }}">
+        <form method="POST" action="{{ route('social-media.accounts.update', $account) }}">
             @csrf
-            @if($isEdit)
-                @method('PUT')
-            @endif
+            @method('PUT')
             <div class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">Platform</label>
-                    <select name="platform" class="form-select">
-                        @foreach(['facebook','instagram'] as $p)
-                            <option value="{{ $p }}" {{ old('platform', $account->platform) === $p ? 'selected' : '' }}>{{ ucfirst($p) }}</option>
-                        @endforeach
-                    </select>
+                    <input type="text" class="form-control" value="{{ ucfirst($account->platform) }}" readonly>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Page ID (FB)</label>
-                    <input type="text" name="page_id" class="form-control" value="{{ old('page_id', $account->page_id) }}">
+                    <input type="text" class="form-control" value="{{ $account->page_id }}" readonly>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">IG Business ID</label>
-                    <input type="text" name="ig_business_id" class="form-control" value="{{ old('ig_business_id', $account->ig_business_id) }}">
+                    <input type="text" class="form-control" value="{{ $account->ig_business_id }}" readonly>
                 </div>
                 <div class="col-12">
-                    <label class="form-label">Access Token</label>
-                    <input type="password" name="access_token" class="form-control" placeholder="{{ $isEdit && $account->access_token ? 'Kosongkan jika tidak diubah' : 'Isi access token' }}" autocomplete="off" {{ $isEdit ? '' : 'required' }}>
-                    <div class="text-muted small">Token tidak ditampilkan ulang untuk keamanan.</div>
-                    @error('access_token') <div class="text-danger small">{{ $message }}</div> @enderror
+                    <div class="alert alert-info mb-0">
+                        Token akses tidak diinput manual oleh tenant. Jika akses Meta berubah atau tenant ingin mengganti Page/Instagram yang terhubung, klik
+                        <a href="{{ route('social-media.accounts.connect.meta') }}" class="alert-link">Hubungkan Meta</a>
+                        untuk sinkron ulang akun dari platform OAuth.
+                    </div>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Nama</label>
@@ -73,7 +74,7 @@
                     </select>
                     <div class="text-muted small">
                         @if($chatbotEnabled)
-                            Aktifkan auto-reply hanya bila token aman.
+                            Aktifkan auto-reply setelah akun sosial media berhasil terhubung melalui OAuth.
                         @else
                             Install dan aktifkan module Chatbot untuk menghubungkan auto-reply AI.
                         @endif

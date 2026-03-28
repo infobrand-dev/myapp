@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Chatbot\Http\Requests\StoreChatbotAccountRequest;
 use App\Modules\Chatbot\Http\Requests\UpdateChatbotAccountRequest;
 use App\Modules\Chatbot\Models\ChatbotAccount;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -14,7 +15,10 @@ class ChatbotAccountController extends Controller
 {
     public function index(): View
     {
-        $accounts = ChatbotAccount::orderBy('name')->paginate(20);
+        $accounts = ChatbotAccount::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->orderBy('name')
+            ->paginate(20);
         return view('chatbot::accounts.index', compact('accounts'));
     }
 
@@ -24,6 +28,7 @@ class ChatbotAccountController extends Controller
             'provider' => 'openai',
             'status' => 'active',
             'model' => 'gpt-4o-mini',
+            'automation_mode' => 'ai_first',
             'response_style' => 'balanced',
             'operation_mode' => 'ai_only',
             'rag_top_k' => 3,
@@ -35,6 +40,7 @@ class ChatbotAccountController extends Controller
     {
         $data = $this->validated($request);
         $user = $request->user();
+        $data['tenant_id'] = TenantContext::currentId();
         $data['created_by'] = $user ? $user->id : null;
         $data['mirror_to_conversations'] = $request->boolean('mirror_to_conversations');
         $data['rag_enabled'] = $request->boolean('rag_enabled');
@@ -68,6 +74,10 @@ class ChatbotAccountController extends Controller
 
         if ($isEdit && !$request->filled('api_key')) {
             unset($data['api_key']);
+        }
+
+        if (($data['automation_mode'] ?? $request->input('automation_mode')) === 'rule_only' && !array_key_exists('api_key', $data)) {
+            $data['api_key'] = 'rule-only-disabled';
         }
 
         return $data;

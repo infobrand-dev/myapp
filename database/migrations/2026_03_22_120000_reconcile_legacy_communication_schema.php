@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -72,10 +73,45 @@ return new class extends Migration
             }
         });
 
-        Schema::table($table, function (Blueprint $blueprint) use ($addIndexes, $table): void {
-            if (Schema::hasColumn($table, 'tenant_id')) {
+        Schema::table($table, function (Blueprint $blueprint) use ($addIndexes, $table, $indexName): void {
+            if (Schema::hasColumn($table, 'tenant_id') && !$this->indexExists($table, $indexName)) {
                 $addIndexes($blueprint);
             }
         });
+    }
+
+    private function indexExists(string $table, string $indexName): bool
+    {
+        $connection = DB::connection();
+        $driver = $connection->getDriverName();
+        $database = $connection->getDatabaseName();
+
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            return DB::table('information_schema.statistics')
+                ->where('table_schema', $database)
+                ->where('table_name', $table)
+                ->where('index_name', $indexName)
+                ->exists();
+        }
+
+        if ($driver === 'pgsql') {
+            return DB::table('pg_indexes')
+                ->where('schemaname', 'public')
+                ->where('tablename', $table)
+                ->where('indexname', $indexName)
+                ->exists();
+        }
+
+        if ($driver === 'sqlite') {
+            $indexes = DB::select("PRAGMA index_list('{$table}')");
+
+            foreach ($indexes as $index) {
+                if (($index->name ?? null) === $indexName) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 };

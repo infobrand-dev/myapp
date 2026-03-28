@@ -6,6 +6,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
+use RuntimeException;
 
 class TenantContext
 {
@@ -19,6 +20,11 @@ class TenantContext
             // All DB queries will fall back to tenant 1 which may cause cross-tenant leaks.
             if (app()->runningInConsole()) {
                 logger()->warning('TenantContext::currentId() called without a resolved context (console/job). Defaulting to tenant 1. Call TenantContext::setCurrentId() before executing tenant-scoped queries.');
+                return 1;
+            }
+
+            if (config('multitenancy.mode') === 'saas') {
+                throw new RuntimeException('Tenant context was not resolved for this SaaS request.');
             }
 
             return 1;
@@ -37,13 +43,18 @@ class TenantContext
             return Tenant::query()
                 ->whereKey(self::currentId())
                 ->first();
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
             return null;
         }
     }
 
     public static function setCurrentId(?int $tenantId): void
     {
+        if ($tenantId === null && config('multitenancy.mode') === 'saas') {
+            self::$currentTenantId = null;
+            return;
+        }
+
         self::$currentTenantId = $tenantId ?: 1;
     }
 
@@ -92,6 +103,10 @@ class TenantContext
             }
         }
 
+        if (config('multitenancy.mode') === 'saas') {
+            throw new RuntimeException('Tenant could not be resolved from the request.');
+        }
+
         return self::tenantExists(1) ? 1 : (int) (Tenant::query()->where('is_active', true)->value('id') ?: 1);
     }
 
@@ -117,7 +132,7 @@ class TenantContext
                 ->whereKey($tenantId)
                 ->where('is_active', true)
                 ->exists();
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
             return false;
         }
     }
@@ -144,7 +159,7 @@ class TenantContext
     {
         try {
             return Schema::hasTable($table);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
             return false;
         }
     }

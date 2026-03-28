@@ -25,10 +25,11 @@ class ChatbotSampleSeeder extends Seeder
             [
                 'provider' => 'openai',
                 'model' => 'gpt-4.1-mini',
+                'automation_mode' => 'ai_assisted',
                 'system_prompt' => 'Bantu jawab pertanyaan pelanggan dengan singkat dan sopan.',
                 'focus_scope' => 'customer-support',
-                'response_style' => 'friendly',
-                'operation_mode' => 'assisted',
+                'response_style' => 'balanced',
+                'operation_mode' => 'ai_then_human',
                 'api_key' => 'demo-chatbot-key',
                 'status' => 'active',
                 'mirror_to_conversations' => true,

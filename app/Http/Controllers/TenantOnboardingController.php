@@ -2,18 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Mail\TenantWelcomeMail;
-use App\Models\Tenant;
-use App\Models\User;
-use App\Support\TenantRoleProvisioner;
+use App\Models\SubscriptionPlan;
+use App\Services\PlatformMidtransBillingService;
+use App\Services\TenantOnboardingSalesService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\PermissionRegistrar;
 
 class TenantOnboardingController extends Controller
 {
@@ -21,24 +15,39 @@ class TenantOnboardingController extends Controller
      * Show the new-tenant registration form.
      * Only accessible in SaaS mode.
      */
-    public function create()
+    public function create(TenantOnboardingSalesService $sales)
     {
         abort_unless(config('multitenancy.mode') === 'saas', 404);
 
-        return view('onboarding.create');
+        $preferredPlanId = SubscriptionPlan::query()
+            ->where('code', request()->query('plan'))
+            ->where('is_active', true)
+            ->where('is_public', true)
+            ->value('id');
+
+        return view('onboarding.create', [
+            'plans' => $sales->publicPlans(),
+            'preferredPlanId' => $preferredPlanId,
+        ]);
     }
 
     /**
-     * Validate, create the tenant + super-admin, then redirect to the tenant's login page.
+     * Validate, create the pending tenant sale, then redirect to checkout.
      */
-    public function store(Request $request)
+    public function store(Request $request, TenantOnboardingSalesService $sales, PlatformMidtransBillingService $midtrans)
     {
         abort_unless(config('multitenancy.mode') === 'saas', 404);
 
-        $saasDomain     = config('multitenancy.saas_domain');
-        $reservedSlugs  = config('multitenancy.reserved_slugs', []);
+        $reservedSlugs = config('multitenancy.reserved_slugs', []);
 
         $data = $request->validate([
+            'subscription_plan_id' => [
+                'required',
+                'integer',
+                Rule::exists('subscription_plans', 'id')->where(fn ($query) => $query
+                    ->where('is_active', true)
+                    ->where('is_public', true)),
+            ],
             'company_name' => ['required', 'string', 'max:100'],
             'slug' => [
                 'required',
@@ -48,77 +57,39 @@ class TenantOnboardingController extends Controller
                 Rule::notIn($reservedSlugs),
                 Rule::unique('tenants', 'slug'),
             ],
-            'name'     => ['required', 'string', 'max:255'],
-            'email'    => ['required', 'email', 'max:255'],
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255'],
             'password' => ['required', 'confirmed', Password::defaults()],
         ], [
-            'slug.regex'   => 'Subdomain hanya boleh huruf kecil, angka, dan tanda hubung, dan tidak boleh diawali/diakhiri tanda hubung.',
-            'slug.not_in'  => 'Subdomain tersebut tidak tersedia. Pilih nama lain.',
-            'slug.unique'  => 'Subdomain tersebut sudah dipakai. Pilih nama lain.',
+            'slug.regex' => 'Subdomain hanya boleh huruf kecil, angka, dan tanda hubung, dan tidak boleh diawali/diakhiri tanda hubung.',
+            'slug.not_in' => 'Subdomain tersebut tidak tersedia. Pilih nama lain.',
+            'slug.unique' => 'Subdomain tersebut sudah dipakai. Pilih nama lain.',
         ]);
 
-        $tenant = DB::transaction(function () use ($data) {
-            // 1. Create the tenant record
-            $tenant = Tenant::create([
-                'name'      => $data['company_name'],
-                'slug'      => $data['slug'],
-                'is_active' => true,
-            ]);
+        $plan = SubscriptionPlan::query()
+            ->whereKey($data['subscription_plan_id'])
+            ->where('is_active', true)
+            ->where('is_public', true)
+            ->firstOrFail();
 
-            // 2. Provision default roles and permissions for this tenant
-            app(TenantRoleProvisioner::class)->ensureForTenant($tenant->id);
+        $result = $sales->createPendingWorkspace($data, $plan);
+        $invoice = $result['invoice']->fresh(['tenant', 'plan', 'order']);
 
-            // 3. Create the super-admin user scoped to this tenant
-            $registrar = app(PermissionRegistrar::class);
-            $registrar->setPermissionsTeamId($tenant->id);
+        $sales->queueInvoiceMail($invoice);
 
-            try {
-                $user = User::create([
-                    'tenant_id' => $tenant->id,
-                    'name'      => $data['name'],
-                    'email'     => $data['email'],
-                    'password'  => Hash::make($data['password']),
-                ]);
-
-                $superAdminRole = Role::query()
-                    ->where('name', 'Super-admin')
-                    ->where('tenant_id', $tenant->id)
-                    ->where('guard_name', 'web')
-                    ->firstOrFail();
-
-                $user->assignRole($superAdminRole);
-            } finally {
-                $registrar->setPermissionsTeamId(null);
-                $registrar->forgetCachedPermissions();
-            }
-
-            return $tenant;
-        });
-
-        $loginUrl = 'http' . (request()->isSecure() ? 's' : '') . '://'
-            . $tenant->slug . '.' . config('multitenancy.saas_domain')
-            . '/login?registered=1';
-
-        // Send welcome email (queued — won't block the redirect).
-        // Wrapped in try-catch so a mail/queue misconfiguration never breaks onboarding.
         try {
-            Mail::to($data['email'])->queue(
-                new TenantWelcomeMail(
-                    adminName:  $data['name'],
-                    adminEmail: $data['email'],
-                    tenantName: $tenant->name,
-                    tenantSlug: $tenant->slug,
-                    loginUrl:   $loginUrl,
-                )
-            );
-        } catch (\Throwable $e) {
-            logger()->error('TenantOnboarding: failed to queue welcome email', [
-                'tenant' => $tenant->slug,
-                'email'  => $data['email'],
-                'error'  => $e->getMessage(),
-            ]);
-        }
+            $checkout = $midtrans->createOrReuseCheckout($invoice);
 
-        return redirect()->away($loginUrl);
+            return redirect()->away($checkout['redirect_url']);
+        } catch (\Throwable $e) {
+            logger()->error('TenantOnboarding: failed to create checkout', [
+                'tenant' => $result['tenant']->slug,
+                'plan' => $plan->code,
+                'invoice_id' => $invoice->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()->away($sales->publicInvoiceUrl($invoice));
+        }
     }
 }

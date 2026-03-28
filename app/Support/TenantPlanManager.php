@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Company;
+use App\Models\AiUsageLog;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Models\TenantSubscription;
@@ -65,6 +66,10 @@ class TenantPlanManager
     public function usage(string $key, ?int $tenantId = null): int
     {
         $tenantId ??= TenantContext::currentId();
+
+        if ($key === PlanLimit::AI_CREDITS_MONTHLY) {
+            return $this->aiCreditsUsage($tenantId);
+        }
 
         $sources = array_merge([
             PlanLimit::COMPANIES => ['table' => 'companies', 'model' => Company::class],
@@ -145,8 +150,21 @@ class TenantPlanManager
             PlanLimit::CONTACTS => "Plan tenant hanya mengizinkan maksimal {$limit} contact.",
             PlanLimit::WHATSAPP_INSTANCES => "Plan tenant hanya mengizinkan maksimal {$limit} WhatsApp instance.",
             PlanLimit::EMAIL_CAMPAIGNS => "Plan tenant hanya mengizinkan maksimal {$limit} email campaign.",
+            PlanLimit::AI_CREDITS_MONTHLY => "Kuota AI Credits bulanan tenant hanya {$limit} credit.",
             default => 'Batas plan tenant sudah tercapai.',
         };
+    }
+
+    private function aiCreditsUsage(int $tenantId): int
+    {
+        if (!Schema::hasTable('ai_usage_logs')) {
+            return 0;
+        }
+
+        return (int) AiUsageLog::query()
+            ->where('tenant_id', $tenantId)
+            ->whereBetween('used_at', [now()->startOfMonth(), now()->endOfMonth()])
+            ->sum('credits_used');
     }
 
     /**

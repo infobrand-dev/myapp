@@ -1,13 +1,15 @@
 @extends('layouts.admin')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="page-header d-flex align-items-center justify-content-between">
     <div>
-        <h2 class="mb-0">Users</h2>
-        <div class="text-muted small">Kelola user & role.</div>
+        <div class="page-pretitle">Administrasi</div>
+        <h2 class="page-title">Users</h2>
     </div>
     @can('users.create')
-        <a href="{{ route('users.create') }}" class="btn btn-primary">Tambah User</a>
+        <a href="{{ route('users.create') }}" class="btn btn-primary">
+            <i class="ti ti-user-plus me-1"></i>Tambah User
+        </a>
     @endcan
 </div>
 
@@ -47,10 +49,10 @@
                                 </a>
                             @endcan
                             @can('users.delete')
-                                <form class="d-inline-block m-0" method="POST" action="{{ route('users.destroy', $user) }}" onsubmit="return confirm('Hapus user ini?')">
+                                <form class="d-inline-block m-0" method="POST" action="{{ route('users.destroy', $user) }}">
                                     @csrf
                                     @method('DELETE')
-                                    <button class="btn btn-icon btn-outline-danger" title="Delete">
+                                    <button class="btn btn-icon btn-outline-danger" title="Delete" data-confirm="Hapus user {{ $user->name }}?">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                             <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                                             <path d="M4 7h16" />
@@ -66,7 +68,15 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="5" class="text-center text-muted">Belum ada user.</td></tr>
+                <tr>
+                    <td colspan="5" class="text-center py-5">
+                        <i class="ti ti-users text-muted d-block mb-2" style="font-size:2rem;"></i>
+                        <div class="text-muted mb-2">Belum ada user.</div>
+                        @can('users.create')
+                            <a href="{{ route('users.create') }}" class="btn btn-sm btn-primary">Tambah User Pertama</a>
+                        @endcan
+                    </td>
+                </tr>
                 @endforelse
             </tbody>
         </table>

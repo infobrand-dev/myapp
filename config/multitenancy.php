@@ -28,6 +28,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Platform Admin Subdomain
+    |--------------------------------------------------------------------------
+    |
+    | Dedicated host for the SaaS owner / platform-level control plane.
+    | Example: dash.myapp.com
+    |
+    */
+    'platform_admin_subdomain' => env('PLATFORM_ADMIN_SUBDOMAIN', 'dash'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Reserved Slugs
     |--------------------------------------------------------------------------
     |
@@ -37,7 +48,7 @@ return [
     'reserved_slugs' => [
         'www', 'api', 'app', 'admin', 'mail', 'ftp', 'cdn',
         'dev', 'staging', 'test', 'demo', 'status', 'docs',
-        'support', 'help', 'login', 'register', 'onboarding',
+        'support', 'help', 'login', 'register', 'onboarding', 'dash',
         'auth', 'static', 'assets', 'media', 'billing', 'dashboard',
     ],
 

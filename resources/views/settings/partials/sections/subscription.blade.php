@@ -2,27 +2,27 @@
     <div class="col-lg-5">
         <div class="card h-100">
             <div class="card-header">
-                <h3 class="card-title mb-0">Current Subscription</h3>
+                <h3 class="card-title mb-0">Langganan Aktif</h3>
             </div>
             <div class="card-body">
                 <div class="text-secondary text-uppercase small fw-bold">Plan</div>
-                <div class="fs-2 fw-bold mt-2">{{ optional($plan)->name ?? 'No active subscription' }}</div>
+                <div class="fs-2 fw-bold mt-2">{{ optional($plan)->name ?? 'Belum ada langganan aktif' }}</div>
                 <div class="text-muted small mt-1">{{ optional($plan)->code ?? 'billing-ready foundation only' }}</div>
                 <div class="row g-3 mt-2">
                     <div class="col-sm-6">
                         <div class="text-secondary small text-uppercase fw-bold">Status</div>
-                        <div class="fw-semibold mt-1">{{ optional($subscription)->status ?? 'inactive' }}</div>
+                        <div class="fw-semibold mt-1">{{ optional($subscription)->status ?? 'nonaktif' }}</div>
                     </div>
                     <div class="col-sm-6">
-                        <div class="text-secondary small text-uppercase fw-bold">Billing interval</div>
+                        <div class="text-secondary small text-uppercase fw-bold">Siklus Tagihan</div>
                         <div class="fw-semibold mt-1">{{ optional($plan)->billing_interval ?: '-' }}</div>
                     </div>
                     <div class="col-sm-6">
-                        <div class="text-secondary small text-uppercase fw-bold">Starts at</div>
+                        <div class="text-secondary small text-uppercase fw-bold">Mulai</div>
                         <div class="fw-semibold mt-1">{{ optional(optional($subscription)->starts_at)->format('d M Y') ?: '-' }}</div>
                     </div>
                     <div class="col-sm-6">
-                        <div class="text-secondary small text-uppercase fw-bold">Ends at</div>
+                        <div class="text-secondary small text-uppercase fw-bold">Berakhir</div>
                         <div class="fw-semibold mt-1">{{ optional(optional($subscription)->ends_at)->format('d M Y') ?: '-' }}</div>
                     </div>
                 </div>
@@ -32,15 +32,15 @@
     <div class="col-lg-7">
         <div class="card h-100">
             <div class="card-header">
-                <h3 class="card-title mb-0">Quota Usage</h3>
+                <h3 class="card-title mb-0">Kuota Penggunaan</h3>
             </div>
             <div class="table-responsive">
                 <table class="table table-vcenter card-table">
                     <thead>
                         <tr>
-                            <th>Resource</th>
-                            <th>Usage</th>
-                            <th>Limit</th>
+                            <th>Sumber Daya</th>
+                            <th>Penggunaan</th>
+                            <th>Batas</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -48,7 +48,7 @@
                             <tr>
                                 <td>{{ $limit['label'] }}</td>
                                 <td>{{ $limit['usage'] }}</td>
-                                <td>{{ $limit['limit'] ?? 'Unlimited' }}</td>
+                                <td>{{ $limit['limit'] ?? 'Tidak terbatas' }}</td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -60,7 +60,7 @@
 
 <div class="card">
     <div class="card-header">
-        <h3 class="card-title mb-0">Feature Flags</h3>
+        <h3 class="card-title mb-0">Fitur Plan</h3>
     </div>
     <div class="card-body">
         <div class="row g-3">
@@ -70,7 +70,7 @@
                         <div class="d-flex align-items-center justify-content-between gap-3">
                             <div class="fw-semibold">{{ \Illuminate\Support\Str::headline($feature['key']) }}</div>
                             <span class="badge bg-{{ $feature['enabled'] ? 'success' : 'secondary' }}-lt text-{{ $feature['enabled'] ? 'success' : 'secondary' }}">
-                                {{ $feature['enabled'] ? 'Enabled' : 'Disabled' }}
+                                {{ $feature['enabled'] ? 'Aktif' : 'Nonaktif' }}
                             </span>
                         </div>
                     </div>

@@ -36,15 +36,30 @@ return [
 
     'meta' => [
         'graph_version' => env('META_GRAPH_VERSION', 'v22.0'),
+        'app_id' => env('META_APP_ID'),
+        'app_secret' => env('META_APP_SECRET'),
         'page_token' => env('META_PAGE_TOKEN'),
         'page_id' => env('META_PAGE_ID'),
         'ig_business_id' => env('META_IG_BUSINESS_ID'),
         'verify_token' => env('META_VERIFY_TOKEN', 'changeme'),
+        'oauth_scopes' => array_values(array_filter(array_map('trim', explode(',', (string) env('META_OAUTH_SCOPES', 'pages_show_list,pages_manage_metadata,pages_messaging,instagram_basic,instagram_manage_messages,business_management'))))),
     ],
 
     'openai' => [
         'api_key' => env('OPENAI_API_KEY'),
         'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
+        'credit_token_unit' => (int) env('OPENAI_CREDIT_TOKEN_UNIT', 1000),
+        'input_rate_per_million_tokens' => (float) env('OPENAI_INPUT_RATE_PER_MILLION_TOKENS', 0),
+        'output_rate_per_million_tokens' => (float) env('OPENAI_OUTPUT_RATE_PER_MILLION_TOKENS', 0),
+    ],
+
+    'midtrans' => [
+        'is_active' => env('MIDTRANS_IS_ACTIVE', false),
+        'environment' => env('MIDTRANS_ENVIRONMENT', 'sandbox'),
+        'server_key' => env('MIDTRANS_SERVER_KEY'),
+        'client_key' => env('MIDTRANS_CLIENT_KEY'),
+        'merchant_id' => env('MIDTRANS_MERCHANT_ID'),
+        'enabled_payments' => array_values(array_filter(array_map('trim', explode(',', (string) env('MIDTRANS_ENABLED_PAYMENTS', ''))))),
     ],
 
     'wa_cloud' => [

@@ -1,31 +1,15 @@
 # MyApp
 
-Laravel 11 + Breeze (Blade) + Tabler UI. Core app menyediakan shell dasar seperti installer, auth, dashboard, profile, users, roles, dan module registry. Fitur bisnis utama ditempatkan sebagai modul di `app/Modules`.
+Laravel 11 + Breeze (Blade) + Tabler UI. Core app menyediakan shell dasar seperti auth, dashboard, profile, users, roles, dan module registry. Fitur bisnis utama ditempatkan sebagai modul di `app/Modules`.
 
 Dokumen arsitektur terkait:
 - `ARCHITECTURE.md`
 - `MODULES.md`
 - `SAAS_TENANCY.md`
 - `SAAS_PRODUCT_MODEL.md`
+- `GO_LIVE_RUNBOOK.md`
 
 ## Quick start
-
-### Opsi A: Web installer
-Setelah project dicopy dan dependency terpasang, buka:
-
-```text
-/install
-```
-
-Installer akan:
-1. cek requirement server,
-2. menyimpan konfigurasi `.env`,
-3. menguji koneksi database,
-4. menjalankan migrate + seed core,
-5. membuat akun Super-admin pertama dari form instalasi,
-6. menandai aplikasi sebagai installed.
-
-### Opsi B: Manual setup
 
 ### 1. Prasyarat
 - PHP `>= 8.2`
@@ -71,7 +55,6 @@ php artisan migrate --seed
 
 Catatan:
 - Seed default membuat role dan permission inti.
-- Untuk instalasi baru, akun Super-admin sebaiknya dibuat melalui `/install`, bukan diasumsikan dari seed default lama.
 
 ### 7. Install dependency frontend
 ```bash
@@ -107,10 +90,16 @@ php artisan serve
 php artisan optimize:clear
 ```
 
-## Installer notes
-- Installer tersedia di `/install`.
-- Installer akan redirect ulang ke dashboard bila aplikasi sudah dianggap installed.
-- Status installed ditentukan dari `APP_KEY`, `storage/app/installed.lock`, `APP_INSTALLED`, dan fallback pengecekan tabel inti untuk kompatibilitas instalasi lama.
+## SaaS login flow
+- Untuk mode `TENANT_MODE=saas`, login user final harus lewat subdomain tenant, misalnya `acme.example.com/login`.
+- Apex/root domain dipakai untuk onboarding, landing, atau workspace lookup, bukan login tenant umum.
+- Resolver tenant membaca slug dari subdomain lebih dulu lalu mengautentikasi user dalam scope `tenant_id` tersebut.
+
+## SaaS self-serve sales flow
+- Flow jualan publik saat ini berjalan lewat `/onboarding`: pilih paket, daftar workspace, sistem membuat `platform_plan_orders` + `platform_invoices` + `platform_invoice_items`, lalu redirect ke checkout Midtrans.
+- Tenant hasil self-serve onboarding dibuat dalam status `pending_payment` dan baru aktif setelah payment platform settle.
+- Welcome email tenant dikirim setelah payment sukses, sedangkan email invoice platform dikirim saat invoice diterbitkan.
+- Paket omnichannel publik saat ini mengontrol entitlement modul inti seperti `conversations`, `social_media`, `chatbot`, `whatsapp_api`, dan `whatsapp_web` melalui middleware plan feature.
 
 ## Queue
 - Default dapat berjalan dengan `QUEUE_CONNECTION=sync`.
@@ -122,6 +111,15 @@ php artisan queue:table
 php artisan migrate
 php artisan queue:work
 ```
+
+## Go-live audit
+Jalankan audit readiness production:
+
+```bash
+php artisan golive:audit
+```
+
+Command ini memeriksa critical path env dan runtime seperti tenancy mode, session cookie, queue, tabel billing platform, mail, dan Midtrans.
 
 ## Realtime
 - Realtime memakai driver `pusher` dengan server yang ditujukan untuk Pusher-compatible stack.

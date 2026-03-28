@@ -53,6 +53,10 @@ class RouteServiceProvider extends ServiceProvider
 
     private function registerActiveModuleProviders(): void
     {
+        if ($this->shouldSkipModuleBootstrap()) {
+            return;
+        }
+
         try {
             /** @var ModuleManager $modules */
             $modules = $this->app->make(ModuleManager::class);
@@ -97,5 +101,20 @@ class RouteServiceProvider extends ServiceProvider
         RateLimiter::for('sensitive', function (Request $request) {
             return Limit::perMinutes(10, 10)->by(optional($request->user())->id ?: $request->ip());
         });
+    }
+
+    private function shouldSkipModuleBootstrap(): bool
+    {
+        if ($this->app->runningInConsole()) {
+            return false;
+        }
+
+        try {
+            $request = $this->app->make('request');
+
+            return $request->is('install') || $request->is('install/*');
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 }

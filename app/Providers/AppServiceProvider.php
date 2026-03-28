@@ -42,6 +42,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        if ($this->shouldSkipDatabaseBootstrap()) {
+            return;
+        }
+
         app(PermissionRegistrar::class)->setPermissionsTeamId(TenantContext::currentId());
 
         View::composer('layouts.admin', function ($view): void {
@@ -114,7 +118,7 @@ class AppServiceProvider extends ServiceProvider
     {
         try {
             return Schema::hasTable($table);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
             return false;
         }
     }
@@ -123,7 +127,22 @@ class AppServiceProvider extends ServiceProvider
     {
         try {
             return Schema::hasColumn($table, $column);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    private function shouldSkipDatabaseBootstrap(): bool
+    {
+        if ($this->app->runningInConsole()) {
+            return false;
+        }
+
+        try {
+            $request = $this->app->make('request');
+
+            return $request->is('install') || $request->is('install/*');
+        } catch (\Throwable $e) {
             return false;
         }
     }

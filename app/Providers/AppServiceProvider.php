@@ -98,19 +98,21 @@ class AppServiceProvider extends ServiceProvider
             return;
         }
 
-        $created = false;
-        foreach (CorePermissions::PERMISSIONS as $permission) {
-            $record = Permission::query()->firstOrCreate([
-                'name' => $permission,
-                'guard_name' => 'web',
-            ]);
+        if ($this->app->runningInConsole()) {
+            $created = false;
+            foreach (CorePermissions::PERMISSIONS as $permission) {
+                $record = Permission::query()->firstOrCreate([
+                    'name' => $permission,
+                    'guard_name' => 'web',
+                ]);
 
-            $created = $created || $record->wasRecentlyCreated;
-        }
+                $created = $created || $record->wasRecentlyCreated;
+            }
 
-        if ($created) {
-            app(TenantRoleProvisioner::class)->ensureForAllTenants();
-            app(PermissionRegistrar::class)->forgetCachedPermissions();
+            if ($created) {
+                app(TenantRoleProvisioner::class)->ensureForAllTenants();
+                app(PermissionRegistrar::class)->forgetCachedPermissions();
+            }
         }
     }
 

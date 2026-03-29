@@ -1,10 +1,15 @@
+@php
+    $isPlatformAdminHost = (bool) request()->attributes->get('platform_admin_host');
+    $homeRoute = $isPlatformAdminHost ? 'platform.dashboard' : 'dashboard';
+    $homeLabel = $isPlatformAdminHost ? 'Platform Dashboard' : 'Dashboard';
+@endphp
 <li class="nav-item">
-    <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('dashboard') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('dashboard') }}">
+    <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('dashboard') || request()->routeIs('platform.dashboard') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route($homeRoute) }}">
         <span class="nav-link-icon"><i class="ti ti-home-2"></i></span>
-        <span class="nav-link-title">Dashboard</span>
+        <span class="nav-link-title">{{ $homeLabel }}</span>
     </a>
 </li>
-@if(request()->attributes->get('platform_admin_host'))
+@if($isPlatformAdminHost)
 <li class="nav-item">
     <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('platform.tenants.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('platform.tenants.index') }}">
         <span class="nav-link-icon"><i class="ti ti-buildings"></i></span>

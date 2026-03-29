@@ -208,6 +208,18 @@
 
     <script src="{{ mix('js/app.js') }}" defer></script>
     <script>
+        // ── Desktop sidebar: force show class before first paint ──
+        // CSS !important rules can still lose to Bootstrap's collapse
+        // initialisation in some browser/cache combinations. Adding
+        // the `show` class synchronously here (the sidebar is already
+        // in the DOM above this script tag) is the safest guarantee.
+        (function () {
+            if (window.matchMedia('(min-width: 992px)').matches) {
+                var s = document.getElementById('sidebar-menu');
+                if (s) s.classList.add('show');
+            }
+        })();
+
         // ── MyApp Push Notifications ─────────────────────────────
         window.MyAppNotifier = (() => {
             let swRegistrationPromise = null;

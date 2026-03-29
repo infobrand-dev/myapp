@@ -99,8 +99,7 @@
                         <button
                             type="button"
                             class="btn btn-outline-secondary mobile-nav-toggle"
-                            data-bs-toggle="collapse"
-                            data-bs-target="#sidebar-menu"
+                            id="mobile-nav-toggle"
                             aria-controls="sidebar-menu"
                             aria-label="Toggle menu"
                             aria-expanded="false"
@@ -208,17 +207,19 @@
 
     <script src="{{ mix('js/app.js') }}" defer></script>
     <script>
-        // ── Desktop sidebar: force show class before first paint ──
-        // CSS !important rules can still lose to Bootstrap's collapse
-        // initialisation in some browser/cache combinations. Adding
-        // the `show` class synchronously here (the sidebar is already
-        // in the DOM above this script tag) is the safest guarantee.
-        (function () {
-            if (window.matchMedia('(min-width: 992px)').matches) {
-                var s = document.getElementById('sidebar-menu');
-                if (s) s.classList.add('show');
-            }
-        })();
+        // ── Mobile sidebar toggle ─────────────────────────────────
+        // sidebar-menu no longer uses Bootstrap collapse class, so we
+        // manually toggle the `show` class via our own click handler.
+        document.addEventListener('DOMContentLoaded', function () {
+            const toggleBtn = document.getElementById('mobile-nav-toggle');
+            const sidebarEl = document.getElementById('sidebar-menu');
+            if (!toggleBtn || !sidebarEl) return;
+
+            toggleBtn.addEventListener('click', function () {
+                const isOpen = sidebarEl.classList.toggle('show');
+                toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            });
+        });
 
         // ── MyApp Push Notifications ─────────────────────────────
         window.MyAppNotifier = (() => {
@@ -302,18 +303,13 @@
         handleVisibility();
 
         // ── Auto-close mobile sidebar on nav click ────────────────
-        // Uses getOrCreateInstance (not getInstance) so it works even if
-        // the user has not yet clicked the hamburger on this page load.
         const sidebarEl = document.getElementById('sidebar-menu');
+        const mobileToggleBtn = document.getElementById('mobile-nav-toggle');
         sidebarEl?.querySelectorAll('a.nav-link, a.dropdown-item').forEach(a => {
             a.addEventListener('click', () => {
                 if (!window.matchMedia('(max-width: 991.98px)').matches) return;
-                if (window.bootstrap?.Collapse) {
-                    window.bootstrap.Collapse.getOrCreateInstance(sidebarEl).hide();
-                } else {
-                    // Fallback: manually remove Bootstrap show class
-                    sidebarEl.classList.remove('show');
-                }
+                sidebarEl.classList.remove('show');
+                mobileToggleBtn?.setAttribute('aria-expanded', 'false');
             });
         });
 

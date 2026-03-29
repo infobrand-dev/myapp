@@ -479,15 +479,20 @@ h1, h2, h3, h4, h5, h6,
     .desktop-topbar {
         display: flex;
     }
-    .page > .navbar-vertical #sidebar-menu.collapse:not(.show) {
-        display: block !important;
-    }
 }
 
 /* ============================================================
    RESPONSIVE: MOBILE (<992px)
    ============================================================ */
 @media (max-width: 991.98px) {
+    /* Sidebar hidden by default on mobile; JS adds .show to toggle */
+    #sidebar-menu {
+        display: none;
+    }
+    #sidebar-menu.show {
+        display: block;
+    }
+
     .desktop-topbar {
         display: none;
     }

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\EmailInbox\Database\Seeders;
+namespace App\Modules\EmailInbox\database\seeders;
 
 use App\Modules\EmailInbox\Models\EmailAccount;
 use Illuminate\Database\Seeder;
@@ -35,3 +35,5 @@ class EmailInboxSampleSeeder extends Seeder
         );
     }
 }
+
+

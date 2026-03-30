@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Chatbot\Database\Seeders;
+namespace App\Modules\Chatbot\database\seeders;
 
 use App\Modules\Chatbot\Models\ChatbotAccount;
 use App\Modules\Chatbot\Models\ChatbotKnowledgeChunk;
@@ -105,3 +105,5 @@ class ChatbotSampleSeeder extends Seeder
         );
     }
 }
+
+

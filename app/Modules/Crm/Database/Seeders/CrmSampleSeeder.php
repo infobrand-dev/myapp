@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Crm\Database\Seeders;
+namespace App\Modules\Crm\database\seeders;
 
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Crm\Models\CrmLead;
@@ -34,3 +34,5 @@ class CrmSampleSeeder extends Seeder
         }
     }
 }
+
+

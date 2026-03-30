@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\TaskManagement\Database\Seeders;
+namespace App\Modules\TaskManagement\database\seeders;
 
 use App\Modules\TaskManagement\Models\Memo;
 use App\Modules\TaskManagement\Models\Subtask;
@@ -81,3 +81,5 @@ class TaskManagementSampleSeeder extends Seeder
         );
     }
 }
+
+

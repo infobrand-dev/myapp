@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Modules\Sales\Database\Seeders;
+namespace App\Modules\Sales\database\seeders;
 
-use App\Modules\Contacts\Database\Seeders\ContactSampleSeeder;
+use App\Modules\Contacts\database\seeders\ContactSampleSeeder;
 use App\Modules\Contacts\Models\Contact;
-use App\Modules\Products\Database\Seeders\ProductSampleSeeder;
+use App\Modules\Products\database\seeders\ProductSampleSeeder;
 use App\Modules\Products\Models\Product;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\SaleItem;
@@ -90,3 +90,5 @@ class SaleSampleSeeder extends Seeder
         }
     }
 }
+
+

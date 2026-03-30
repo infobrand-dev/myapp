@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\WhatsAppApi\Database\Seeders;
+namespace App\Modules\WhatsAppApi\database\seeders;
 
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use App\Support\SampleDataUserResolver;
@@ -66,3 +66,5 @@ class WhatsAppInstanceDummySeeder extends Seeder
         }
     }
 }
+
+

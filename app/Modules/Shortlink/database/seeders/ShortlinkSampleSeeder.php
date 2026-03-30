@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Shortlink\Database\Seeders;
+namespace App\Modules\Shortlink\database\seeders;
 
 use App\Modules\Shortlink\Models\Shortlink;
 use App\Modules\Shortlink\Models\ShortlinkClick;
@@ -55,3 +55,5 @@ class ShortlinkSampleSeeder extends Seeder
         );
     }
 }
+
+

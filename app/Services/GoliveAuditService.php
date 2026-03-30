@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\SubscriptionPlan;
+use App\Support\PlanFeature;
+use App\Support\PlanLimit;
 use Illuminate\Support\Facades\Schema;
 
 class GoliveAuditService
@@ -40,6 +43,8 @@ class GoliveAuditService
             $this->check('wa_verify_token', 'WA verify token changed', $this->isMeaningful((string) config('services.wa_cloud.verify_token'), ['changeme', '']), (string) config('services.wa_cloud.verify_token'), 'Replace default WA webhook verify token.', 'fail'),
             $this->check('meta_verify_token', 'Meta verify token changed', $this->isMeaningful((string) config('services.meta.verify_token'), ['changeme', '']), (string) config('services.meta.verify_token'), 'Replace default Meta webhook verify token.', 'fail'),
         ];
+
+        $checks = array_merge($checks, $this->planCatalogChecks());
 
         $stats = [
             'pass' => count(array_filter($checks, fn (array $check) => $check['status'] === 'pass')),
@@ -126,6 +131,97 @@ class GoliveAuditService
             'Smoke billing payment' => 'Buat invoice uji, jalankan checkout Midtrans, dan pastikan payment serta subscription aktif di platform.',
             'Smoke email delivery' => 'Pastikan email invoice dan payment confirmation benar-benar terkirim ke inbox tujuan.',
             'Rollback readiness' => 'Simpan backup database dan prosedur rollback sebelum publish trafik penuh.',
+        ];
+    }
+
+    private function planCatalogChecks(): array
+    {
+        if (!Schema::hasTable('subscription_plans')) {
+            return [];
+        }
+
+        $publicPlans = SubscriptionPlan::query()
+            ->where('is_public', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+
+        if ($publicPlans->isEmpty()) {
+            return [];
+        }
+
+        $expensiveLimitKeys = [
+            PlanLimit::USERS,
+            PlanLimit::CONTACTS,
+            PlanLimit::WHATSAPP_INSTANCES,
+            PlanLimit::SOCIAL_ACCOUNTS,
+            PlanLimit::LIVE_CHAT_WIDGETS,
+            PlanLimit::CHATBOT_ACCOUNTS,
+            PlanLimit::AI_CREDITS_MONTHLY,
+        ];
+
+        $plansMissingCaps = $publicPlans
+            ->filter(function (SubscriptionPlan $plan) use ($expensiveLimitKeys) {
+                $limits = is_array($plan->limits) ? $plan->limits : [];
+
+                foreach ($expensiveLimitKeys as $key) {
+                    if (!array_key_exists($key, $limits) || $limits[$key] === null || (int) $limits[$key] < 0) {
+                        return true;
+                    }
+                }
+
+                return false;
+            })
+            ->pluck('code')
+            ->all();
+
+        $featureLimitMap = [
+            PlanFeature::SOCIAL_MEDIA => [PlanLimit::SOCIAL_ACCOUNTS],
+            PlanFeature::LIVE_CHAT => [PlanLimit::LIVE_CHAT_WIDGETS],
+            PlanFeature::CHATBOT_AI => [PlanLimit::CHATBOT_ACCOUNTS, PlanLimit::AI_CREDITS_MONTHLY, PlanLimit::CHATBOT_KNOWLEDGE_DOCUMENTS],
+            PlanFeature::WHATSAPP_API => [PlanLimit::WHATSAPP_INSTANCES, PlanLimit::WA_BLAST_RECIPIENTS_MONTHLY],
+            PlanFeature::EMAIL_MARKETING => [PlanLimit::EMAIL_CAMPAIGNS, PlanLimit::EMAIL_RECIPIENTS_MONTHLY],
+        ];
+
+        $plansWithFeatureRisk = $publicPlans
+            ->filter(function (SubscriptionPlan $plan) use ($featureLimitMap) {
+                $features = is_array($plan->features) ? $plan->features : [];
+                $limits = is_array($plan->limits) ? $plan->limits : [];
+
+                foreach ($featureLimitMap as $feature => $requiredLimitKeys) {
+                    if (empty($features[$feature])) {
+                        continue;
+                    }
+
+                    foreach ($requiredLimitKeys as $key) {
+                        if (!array_key_exists($key, $limits) || $limits[$key] === null || (int) $limits[$key] < 0) {
+                            return true;
+                        }
+                    }
+                }
+
+                return false;
+            })
+            ->pluck('code')
+            ->all();
+
+        return [
+            $this->check(
+                'public_plans_have_cost_caps',
+                'Public plans have hard caps for expensive resources',
+                empty($plansMissingCaps),
+                empty($plansMissingCaps) ? 'all public plans capped' : implode(', ', $plansMissingCaps),
+                'Set explicit caps for users, contacts, channel connections, live chat widgets, chatbot accounts, and AI credits on every public plan.',
+                'warn'
+            ),
+            $this->check(
+                'public_plan_feature_cost_control',
+                'Enabled public plan features have matching cost controls',
+                empty($plansWithFeatureRisk),
+                empty($plansWithFeatureRisk) ? 'all enabled features controlled' : implode(', ', $plansWithFeatureRisk),
+                'Do not publish expensive features without matching hard caps or monthly usage caps.',
+                'warn'
+            ),
         ];
     }
 }

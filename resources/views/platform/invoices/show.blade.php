@@ -53,7 +53,7 @@
                     </div>
                     <div class="mb-3">
                         <div class="text-secondary small text-uppercase fw-bold">Plan</div>
-                        <div class="fw-semibold mt-1">{{ optional($invoice->plan)->name ?? '-' }}</div>
+                        <div class="fw-semibold mt-1">{{ optional($invoice->plan)->display_name ?? optional($invoice->plan)->name ?? '-' }}</div>
                     </div>
                     <div class="mb-3">
                         <div class="text-secondary small text-uppercase fw-bold">Jumlah</div>

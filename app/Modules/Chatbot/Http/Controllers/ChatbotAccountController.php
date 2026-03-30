@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Modules\Chatbot\Http\Requests\StoreChatbotAccountRequest;
 use App\Modules\Chatbot\Http\Requests\UpdateChatbotAccountRequest;
 use App\Modules\Chatbot\Models\ChatbotAccount;
+use App\Support\PlanLimit;
 use App\Support\TenantContext;
+use App\Support\TenantPlanManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -38,6 +40,8 @@ class ChatbotAccountController extends Controller
 
     public function store(StoreChatbotAccountRequest $request): RedirectResponse
     {
+        app(TenantPlanManager::class)->ensureWithinLimit(PlanLimit::CHATBOT_ACCOUNTS);
+
         $data = $this->validated($request);
         $user = $request->user();
         $data['tenant_id'] = TenantContext::currentId();

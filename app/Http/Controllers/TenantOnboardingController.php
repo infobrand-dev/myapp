@@ -22,11 +22,7 @@ class TenantOnboardingController extends Controller
 
         $affiliate = $affiliateService->captureFromRequest($request);
 
-        $preferredPlanId = SubscriptionPlan::query()
-            ->where('code', request()->query('plan'))
-            ->where('is_active', true)
-            ->where('is_public', true)
-            ->value('id');
+        $preferredPlanId = $sales->resolvePublicPlanIdByCode((string) request()->query('plan'));
 
         return view('onboarding.create', [
             'plans' => $sales->publicPlans(),

@@ -12,7 +12,7 @@ use App\Modules\PointOfSale\Http\Controllers\PosWorkspaceController;
 use App\Modules\PointOfSale\Http\Controllers\ReceiptController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['web', 'auth'])
+Route::middleware(['web', 'auth', 'plan.feature:commerce'])
     ->prefix('pos')
     ->name('pos.')
     ->group(function () {

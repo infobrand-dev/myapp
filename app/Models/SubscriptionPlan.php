@@ -34,4 +34,48 @@ class SubscriptionPlan extends Model
     {
         return $this->hasMany(TenantSubscription::class);
     }
+
+    public function productLine(): ?string
+    {
+        $value = $this->meta['product_line'] ?? null;
+
+        if (! is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        return trim($value);
+    }
+
+    public function productLineLabel(): ?string
+    {
+        return match ($this->productLine()) {
+            'omnichannel' => 'Omnichannel',
+            'crm' => 'CRM',
+            'commerce' => 'Commerce',
+            'project_management' => 'Project Management',
+            'internal' => 'Internal',
+            default => $this->productLine() ? str($this->productLine())->replace('_', ' ')->title()->toString() : null,
+        };
+    }
+
+    public function displayName(): string
+    {
+        $productLine = $this->productLineLabel();
+        $name = trim((string) $this->name);
+
+        if (!$productLine) {
+            return $name;
+        }
+
+        if (strtolower($name) === strtolower($productLine) || str_starts_with(strtolower($name), strtolower($productLine) . ' ')) {
+            return $name;
+        }
+
+        return trim($productLine . ' ' . $name);
+    }
+
+    public function getDisplayNameAttribute(): string
+    {
+        return $this->displayName();
+    }
 }

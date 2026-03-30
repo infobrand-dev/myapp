@@ -183,7 +183,7 @@
                                     </td>
                                     <td>
                                         <span class="badge bg-blue-lt text-blue">
-                                            {{ optional(optional($tenant->activeSubscription)->plan)->name ?? 'No plan' }}
+                                            {{ optional(optional($tenant->activeSubscription)->plan)->display_name ?? optional(optional($tenant->activeSubscription)->plan)->name ?? 'No plan' }}
                                         </span>
                                     </td>
                                     <td>{{ $tenant->users_count }}</td>
@@ -215,11 +215,19 @@
                                     <div class="fw-semibold">{{ $row['tenant']->name }}</div>
                                     <div class="text-muted small">
                                         {{ $row['tenant']->is_active ? 'Aktif' : 'Nonaktif' }}
-                                        &middot; {{ optional(optional($row['tenant']->activeSubscription)->plan)->name ?? 'No active plan' }}
+                                        &middot; {{ optional(optional($row['tenant']->activeSubscription)->plan)->display_name ?? optional(optional($row['tenant']->activeSubscription)->plan)->name ?? 'No active plan' }}
                                     </div>
                                 </div>
-                                <span class="badge {{ $row['warning_count'] > 0 ? 'bg-warning-lt text-warning' : 'bg-danger-lt text-danger' }}">
-                                    {{ $row['warning_count'] > 0 ? $row['warning_count'] . ' limit' : 'nonaktif' }}
+                                @php
+                                    $riskInfo = match($row['risk']['status'] ?? 'ok') {
+                                        'near_limit' => ['label' => 'Near limit', 'class' => 'bg-warning-lt text-warning'],
+                                        'at_limit' => ['label' => 'At limit', 'class' => 'bg-danger-lt text-danger'],
+                                        'over_limit' => ['label' => 'Over limit', 'class' => 'bg-danger-lt text-danger'],
+                                        default => ['label' => 'Nonaktif', 'class' => 'bg-danger-lt text-danger'],
+                                    };
+                                @endphp
+                                <span class="badge {{ $riskInfo['class'] }}">
+                                    {{ $row['tenant']->is_active ? $riskInfo['label'] : 'Nonaktif' }}
                                 </span>
                             </div>
                         </a>
@@ -256,8 +264,8 @@
                                         <div class="text-muted small">{{ $row['tenant']->slug }}</div>
                                     </td>
                                     <td class="fw-semibold">{{ number_format($row['used']) }}</td>
-                                    <td>{{ $row['limit'] ?? '<span class="text-muted">Unlimited</span>' }}</td>
-                                    <td>{{ $row['remaining'] ?? '<span class="text-muted">Unlimited</span>' }}</td>
+                                    <td>{{ $row['limit'] ?? 'Unlimited' }}</td>
+                                    <td>{{ $row['remaining'] ?? 'Unlimited' }}</td>
                                 </tr>
                             @empty
                                 <tr>

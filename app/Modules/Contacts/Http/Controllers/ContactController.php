@@ -14,7 +14,9 @@ use App\Modules\Contacts\Support\ContactPhoneNormalizer;
 use App\Modules\Contacts\Support\ContactScope;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
+use App\Support\PlanLimit;
 use App\Support\TenantContext;
+use App\Support\TenantPlanManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -103,6 +105,11 @@ class ContactController extends Controller
             throw ValidationException::withMessages([
                 'import_file' => 'Header tidak dikenali. Gunakan template download atau sertakan minimal kolom "name".',
             ]);
+        }
+
+        $increment = $this->estimateImportContactIncrement(array_slice($rows, 1), $headerMap);
+        if ($increment > 0) {
+            app(TenantPlanManager::class)->ensureWithinLimit(PlanLimit::CONTACTS, $increment);
         }
 
         $result = DB::transaction(function () use ($rows, $headerMap) {
@@ -203,6 +210,8 @@ class ContactController extends Controller
 
     public function store(StoreContactRequest $request): RedirectResponse
     {
+        app(TenantPlanManager::class)->ensureWithinLimit(PlanLimit::CONTACTS);
+
         $data = $this->validatedData($request);
         $data['is_active'] = $request->boolean('is_active');
         if ($data['type'] === 'company') {
@@ -745,6 +754,48 @@ class ContactController extends Controller
         ]);
 
         return (int) $company->id;
+    }
+
+    private function estimateImportContactIncrement(array $rows, array $headerMap): int
+    {
+        $tenantId = $this->tenantId();
+        $existingCompanyNames = Contact::query()
+            ->where('tenant_id', $tenantId)
+            ->where('type', 'company')
+            ->whereNull('parent_contact_id')
+            ->tap(fn ($query) => ContactScope::applyVisibilityScope($query))
+            ->get(['name'])
+            ->map(fn (Contact $contact) => mb_strtolower(trim((string) $contact->name)))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $knownCompanies = array_fill_keys($existingCompanyNames, true);
+        $increment = 0;
+
+        foreach ($rows as $rawRow) {
+            if ($this->rowIsEmpty($rawRow)) {
+                continue;
+            }
+
+            $payload = $this->mapImportedRow($rawRow, $headerMap);
+            $normalized = $this->normalizeImportedContact($payload);
+
+            if (empty($normalized['name'])) {
+                continue;
+            }
+
+            $increment++;
+
+            $companyName = mb_strtolower(trim((string) ($normalized['company_name'] ?? '')));
+            if (($normalized['type'] ?? 'individual') !== 'company' && $companyName !== '' && !isset($knownCompanies[$companyName])) {
+                $knownCompanies[$companyName] = true;
+                $increment++;
+            }
+        }
+
+        return $increment;
     }
 
     private function rowIsEmpty(array $row): bool

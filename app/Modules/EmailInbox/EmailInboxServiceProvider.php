@@ -14,6 +14,13 @@ class EmailInboxServiceProvider extends ServiceProvider
 {
     use RegistersModuleRoutes;
 
+    public const PLAN_LIMIT_MODELS = [
+        \App\Support\PlanLimit::EMAIL_INBOX_ACCOUNTS => [
+            'table' => 'email_accounts',
+            'model' => \App\Modules\EmailInbox\Models\EmailAccount::class,
+        ],
+    ];
+
     public const PERMISSIONS = [
         'email_inbox.view',
         'email_inbox.manage_accounts',

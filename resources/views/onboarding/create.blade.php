@@ -51,7 +51,7 @@
                                                     @checked(old('subscription_plan_id', $preferredPlanId ?: ($loop->first ? $plan->id : null)) == $plan->id)
                                                     required
                                                 >
-                                                <span class="fw-semibold">{{ $plan->name }}</span>
+                                                <span class="fw-semibold">{{ $sales['display_name'] ?? $plan->display_name }}</span>
                                             </div>
                                             <div class="text-muted small mt-2">{{ $sales['tagline'] ?? 'Paket omnichannel' }}</div>
                                         </div>

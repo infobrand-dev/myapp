@@ -15,6 +15,17 @@ class ChatbotServiceProvider extends ServiceProvider
 {
     use RegistersModuleRoutes;
 
+    public const PLAN_LIMIT_MODELS = [
+        \App\Support\PlanLimit::CHATBOT_ACCOUNTS => [
+            'table' => 'chatbot_accounts',
+            'model' => \App\Modules\Chatbot\Models\ChatbotAccount::class,
+        ],
+        \App\Support\PlanLimit::CHATBOT_KNOWLEDGE_DOCUMENTS => [
+            'table' => 'chatbot_knowledge_documents',
+            'model' => \App\Modules\Chatbot\Models\ChatbotKnowledgeDocument::class,
+        ],
+    ];
+
     public function register(): void
     {
         $this->app->singleton(ConversationBotIntegrationRegistry::class, ConversationBotIntegrationManager::class);

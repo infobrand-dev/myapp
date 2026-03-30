@@ -36,7 +36,7 @@
                             <div class="col-md-6">
                                 <div class="border rounded p-3 h-100">
                                     <div class="text-secondary text-uppercase fw-bold small">Plan</div>
-                                    <div class="fw-semibold mt-1">{{ optional($invoice->plan)->name ?? '-' }}</div>
+                                    <div class="fw-semibold mt-1">{{ optional($invoice->plan)->display_name ?? optional($invoice->plan)->name ?? '-' }}</div>
                                 </div>
                             </div>
                             <div class="col-md-6">

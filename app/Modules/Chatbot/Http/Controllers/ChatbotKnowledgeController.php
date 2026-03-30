@@ -7,6 +7,8 @@ use App\Modules\Chatbot\Http\Requests\StoreChatbotKnowledgeRequest;
 use App\Modules\Chatbot\Http\Requests\UpdateChatbotKnowledgeRequest;
 use App\Modules\Chatbot\Models\ChatbotAccount;
 use App\Modules\Chatbot\Models\ChatbotKnowledgeDocument;
+use App\Support\PlanLimit;
+use App\Support\TenantPlanManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -31,6 +33,8 @@ class ChatbotKnowledgeController extends Controller
 
     public function store(StoreChatbotKnowledgeRequest $request, ChatbotAccount $account): RedirectResponse
     {
+        app(TenantPlanManager::class)->ensureWithinLimit(PlanLimit::CHATBOT_KNOWLEDGE_DOCUMENTS);
+
         $data = $this->validated($request);
         $document = ChatbotKnowledgeDocument::query()->create([
             'chatbot_account_id' => $account->id,
@@ -175,4 +179,3 @@ class ChatbotKnowledgeController extends Controller
         return array_values(array_filter(array_map('trim', $chunks), fn ($item) => $item !== ''));
     }
 }
-

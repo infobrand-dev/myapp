@@ -11,7 +11,9 @@ use App\Modules\EmailMarketing\Models\EmailCampaignRecipient;
 use App\Modules\EmailMarketing\Models\EmailAttachment;
 use App\Modules\EmailMarketing\Models\EmailAttachmentTemplate;
 use App\Modules\EmailMarketing\Jobs\SendCampaignEmailRecipient;
+use App\Support\PlanLimit;
 use App\Support\TenantContext;
+use App\Support\TenantPlanManager;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -181,6 +183,8 @@ HTML;
 
     public function store(StoreEmailCampaignRequest $request): RedirectResponse
     {
+        app(TenantPlanManager::class)->ensureWithinLimit(PlanLimit::EMAIL_CAMPAIGNS);
+
         $action = $request->input('action', 'save');
 
         $data = $request->validated();
@@ -206,6 +210,7 @@ HTML;
             if ($contactIds->isEmpty()) {
                 return back()->withInput()->with('status', 'Pilih minimal satu penerima.');
             }
+            $this->ensureRecipientCapacity($contactIds->count());
             $recipients = $this->syncRecipients($campaign, $contactIds, sendNow: false, markPending: true);
             foreach ($recipients as $recipient) {
                 dispatch(new SendCampaignEmailRecipient($recipient));
@@ -222,6 +227,7 @@ HTML;
             if ($contactIds->isEmpty()) {
                 return back()->withInput()->with('status', 'Pilih minimal satu penerima.');
             }
+            $this->ensureRecipientCapacity($contactIds->count());
             $scheduledAt = Carbon::parse($data['scheduled_at']);
             $recipients = $this->syncRecipients($campaign, $contactIds, sendNow: false, markPending: true);
             foreach ($recipients as $recipient) {
@@ -269,6 +275,7 @@ HTML;
             if ($contactIds->isEmpty()) {
                 return back()->withInput()->with('status', 'Pilih minimal satu penerima.');
             }
+            $this->ensureRecipientCapacity($contactIds->count());
             $recipients = $this->syncRecipients($campaign, $contactIds, sendNow: false, markPending: true);
             foreach ($recipients as $recipient) {
                 dispatch(new SendCampaignEmailRecipient($recipient));
@@ -287,6 +294,7 @@ HTML;
             if ($contactIds->isEmpty()) {
                 return back()->withInput()->with('status', 'Pilih minimal satu penerima.');
             }
+            $this->ensureRecipientCapacity($contactIds->count());
             $scheduledAt = Carbon::parse($data['scheduled_at']);
             $recipients = $this->syncRecipients($campaign, $contactIds, sendNow: false, markPending: true);
             foreach ($recipients as $recipient) {
@@ -523,6 +531,15 @@ HTML;
     private function tenantId(): int
     {
         return TenantContext::currentId();
+    }
+
+    private function ensureRecipientCapacity(int $recipientCount): void
+    {
+        if ($recipientCount < 1) {
+            return;
+        }
+
+        app(TenantPlanManager::class)->ensureWithinLimit(PlanLimit::EMAIL_RECIPIENTS_MONTHLY, $recipientCount);
     }
 
     private function attachPlannedCounts(LengthAwarePaginator $campaigns): void

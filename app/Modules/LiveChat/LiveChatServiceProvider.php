@@ -19,6 +19,13 @@ class LiveChatServiceProvider extends ServiceProvider
 {
     use RegistersModuleRoutes;
 
+    public const PLAN_LIMIT_MODELS = [
+        \App\Support\PlanLimit::LIVE_CHAT_WIDGETS => [
+            'table' => 'live_chat_widgets',
+            'model' => \App\Modules\LiveChat\Models\LiveChatWidget::class,
+        ],
+    ];
+
     public function register(): void
     {
         $this->app->singleton(LiveChatRealtimeState::class, fn () => new LiveChatRealtimeState());

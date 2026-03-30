@@ -10,7 +10,9 @@ use App\Modules\Conversations\Models\Conversation;
 use App\Modules\LiveChat\Http\Requests\StoreLiveChatWidgetRequest;
 use App\Modules\LiveChat\Models\LiveChatWidget;
 use App\Modules\LiveChat\Support\LiveChatRealtimeState;
+use App\Support\PlanLimit;
 use App\Support\TenantContext;
+use App\Support\TenantPlanManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -50,6 +52,8 @@ class LiveChatWidgetController extends Controller
 
     public function store(StoreLiveChatWidgetRequest $request): RedirectResponse
     {
+        app(TenantPlanManager::class)->ensureWithinLimit(PlanLimit::LIVE_CHAT_WIDGETS);
+
         $widget = LiveChatWidget::query()->create($this->prepareData($request));
 
         return redirect()

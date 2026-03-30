@@ -12,7 +12,9 @@ use App\Modules\WhatsAppApi\Models\WAContactPhoneStatus;
 use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use App\Modules\WhatsAppApi\Support\TemplateVariableResolver;
+use App\Support\PlanLimit;
 use App\Support\TenantContext;
+use App\Support\TenantPlanManager;
 use App\Modules\WhatsAppApi\Http\Requests\StoreBlastCampaignRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -124,6 +126,14 @@ class BlastCampaignController extends Controller
                     'recipients_text' => 'Tidak ada recipient valid dari sumber yang dipilih.',
                 ]);
             }
+        }
+
+        $recipientCount = ($data['recipient_source'] ?? null) === 'contacts'
+            ? $this->filteredContactsCount($normalizedFilters)
+            : count($rows);
+
+        if ($recipientCount > 0) {
+            app(TenantPlanManager::class)->ensureWithinLimit(PlanLimit::WA_BLAST_RECIPIENTS_MONTHLY, $recipientCount);
         }
 
         $action = (string) ($data['action'] ?? 'draft');

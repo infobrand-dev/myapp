@@ -9,7 +9,9 @@ use App\Modules\EmailInbox\Jobs\FetchMailboxMessages;
 use App\Modules\EmailInbox\Models\EmailAccount;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
+use App\Support\PlanLimit;
 use App\Support\TenantContext;
+use App\Support\TenantPlanManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -43,6 +45,8 @@ class EmailAccountController extends Controller
 
     public function store(StoreEmailAccountRequest $request): RedirectResponse
     {
+        app(TenantPlanManager::class)->ensureWithinLimit(PlanLimit::EMAIL_INBOX_ACCOUNTS);
+
         $data = $request->validated();
         $data['tenant_id'] = TenantContext::currentId();
         $data['company_id'] = CompanyContext::currentId();

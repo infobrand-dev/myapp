@@ -61,7 +61,7 @@ class DashboardAiCreditsTest extends TestCase
             ->get('/dashboard')
             ->assertOk()
             ->assertSeeText('AI Credits')
-            ->assertSeeText('Monthly AI usage')
+            ->assertSeeText('Pemakaian AI bulan ini')
             ->assertSeeText('598');
     }
 

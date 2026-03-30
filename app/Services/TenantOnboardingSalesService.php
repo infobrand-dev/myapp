@@ -23,6 +23,12 @@ use Spatie\Permission\PermissionRegistrar;
 
 class TenantOnboardingSalesService
 {
+    private const PUBLIC_PLAN_ALIASES = [
+        'starter' => 'starter-v2',
+        'growth' => 'growth-v2',
+        'scale' => 'scale-v2',
+    ];
+
     private const PLAN_CATALOG = [
         'starter' => [
             'price' => 149000,
@@ -59,6 +65,47 @@ class TenantOnboardingSalesService
                 'Advanced reports',
             ],
         ],
+        'starter-v2' => [
+            'price' => 149000,
+            'currency' => 'IDR',
+            'tagline' => 'Inbox sosial media, live chat, dan CRM lite untuk mulai jualan dengan aman.',
+            'description' => 'Plan public konservatif untuk tim kecil yang butuh social inbox, live chat, dan pipeline follow-up dasar tanpa biaya AI atau channel mahal.',
+            'highlights' => [
+                'Conversation inbox tim',
+                'CRM lead pipeline dasar',
+                'Live chat widget website',
+                'Social media conversation',
+                'Kapasitas terkendali untuk launch',
+            ],
+        ],
+        'growth-v2' => [
+            'price' => 349000,
+            'currency' => 'IDR',
+            'tagline' => 'Omnichannel aktif dengan chatbot AI, WhatsApp API, dan batas biaya yang lebih aman.',
+            'description' => 'Untuk tim yang mulai serius dengan AI, otomasi awal, dan WhatsApp Business API tanpa membuka limit mahal secara terlalu longgar.',
+            'highlights' => [
+                'Semua fitur Starter',
+                'CRM lead pipeline',
+                'Chatbot AI',
+                '500 AI Credits per bulan',
+                'WhatsApp API',
+                'Limit koneksi dan recipient lebih terjaga',
+            ],
+        ],
+        'scale-v2' => [
+            'price' => 799000,
+            'currency' => 'IDR',
+            'tagline' => 'Stack omnichannel penuh dengan WhatsApp Web dan kapasitas besar, tetap terukur.',
+            'description' => 'Paket untuk tim operasional yang membutuhkan social inbox, chatbot AI, WhatsApp API, dan WhatsApp Web dengan limit konservatif yang tetap scalable.',
+            'highlights' => [
+                'Semua fitur Growth',
+                'CRM pipeline untuk follow up lead',
+                '2.500 AI Credits per bulan',
+                'WhatsApp Web',
+                'Kapasitas user, kontak, dan channel lebih besar',
+                'Advanced reports',
+            ],
+        ],
     ];
 
     public function publicPlans(): Collection
@@ -74,6 +121,36 @@ class TenantOnboardingSalesService
 
                 return $plan;
             });
+    }
+
+    public function resolvePublicPlanIdByCode(?string $code): ?int
+    {
+        $normalized = strtolower(trim((string) $code));
+        if ($normalized === '') {
+            return null;
+        }
+
+        $resolvedCode = self::PUBLIC_PLAN_ALIASES[$normalized] ?? $normalized;
+
+        return SubscriptionPlan::query()
+            ->where('code', $resolvedCode)
+            ->where('is_active', true)
+            ->where('is_public', true)
+            ->value('id');
+    }
+
+    public function resolvePlanForNewSale(SubscriptionPlan $plan): SubscriptionPlan
+    {
+        $replacementCode = (string) ($plan->meta['replaced_by_code'] ?? '');
+
+        if ($replacementCode === '') {
+            return $plan;
+        }
+
+        return SubscriptionPlan::query()
+            ->where('code', $replacementCode)
+            ->where('is_active', true)
+            ->first() ?? $plan;
     }
 
     public function createPendingWorkspace(array $data, SubscriptionPlan $plan): array
@@ -158,8 +235,8 @@ class TenantOnboardingSalesService
                 'platform_invoice_id' => $invoice->id,
                 'item_type' => 'plan',
                 'item_code' => $plan->code,
-                'name' => $plan->name,
-                'description' => (string) ($salesMeta['tagline'] ?? $salesMeta['description'] ?? $plan->name),
+                'name' => $plan->display_name,
+                'description' => (string) ($salesMeta['tagline'] ?? $salesMeta['description'] ?? $plan->display_name),
                 'quantity' => 1,
                 'unit_price' => $order->amount,
                 'total_price' => $order->amount,
@@ -280,7 +357,9 @@ class TenantOnboardingSalesService
 
     public function salesMeta(SubscriptionPlan $plan): array
     {
-        $defaults = self::PLAN_CATALOG[$plan->code] ?? [
+        $catalogKey = self::PUBLIC_PLAN_ALIASES[$plan->code] ?? $plan->code;
+
+        $defaults = self::PLAN_CATALOG[$catalogKey] ?? self::PLAN_CATALOG[$plan->code] ?? [
             'price' => 0,
             'currency' => 'IDR',
             'tagline' => $plan->name,
@@ -292,6 +371,9 @@ class TenantOnboardingSalesService
         $meta['price'] = (float) ($meta['price'] ?? 0);
         $meta['currency'] = (string) ($meta['currency'] ?? 'IDR');
         $meta['highlights'] = array_values(array_filter((array) ($meta['highlights'] ?? [])));
+        $meta['product_line'] = $plan->productLine();
+        $meta['product_line_label'] = $plan->productLineLabel();
+        $meta['display_name'] = $plan->display_name;
 
         return $meta;
     }

@@ -114,7 +114,7 @@
                                 </td>
                                 <td>
                                     <div class="fw-semibold">{{ $referral->order?->order_number ?: '-' }}</div>
-                                    <div class="text-muted small">{{ optional($referral->order?->plan)->name ?: '-' }}</div>
+                                    <div class="text-muted small">{{ optional($referral->order?->plan)->display_name ?: optional($referral->order?->plan)->name ?: '-' }}</div>
                                 </td>
                                 <td>
                                     <div class="fw-semibold">{{ $money->format((float) ($referral->commission_amount ?? 0), $referral->order_currency ?: 'IDR') }}</div>

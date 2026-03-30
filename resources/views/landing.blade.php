@@ -233,14 +233,14 @@
                         </div>
                     </div>
                     <div class="row g-4">
-                        @foreach ($plans as $plan)
-                            @php
-                                $sales = $plan->sales_meta ?? [];
-                                $priceCurrency = strtoupper((string) ($sales['currency'] ?? 'IDR'));
-                                $fit = match($plan->code) {
-                                    'starter' => 'Cocok untuk tim kecil yang baru mulai omnichannel',
-                                    'growth' => 'Cocok untuk tim yang mulai scale follow-up dan automasi',
-                                    'scale' => 'Cocok untuk operasional multi-admin dengan channel lengkap',
+                            @foreach ($plans as $plan)
+                                @php
+                                    $sales = $plan->sales_meta ?? [];
+                                    $priceCurrency = strtoupper((string) ($sales['currency'] ?? 'IDR'));
+                                $fit = match(true) {
+                                    str_starts_with($plan->code, 'starter') => 'Cocok untuk tim kecil yang baru mulai omnichannel',
+                                    str_starts_with($plan->code, 'growth') => 'Cocok untuk tim yang mulai scale follow-up dan automasi',
+                                    str_starts_with($plan->code, 'scale') => 'Cocok untuk operasional multi-admin dengan channel lengkap',
                                     default => 'Paket omnichannel',
                                 };
                             @endphp
@@ -248,10 +248,10 @@
                                 <div class="landing-plan-card p-4 {{ $plan->code === 'growth' ? 'featured' : '' }}">
                                     <div class="d-flex justify-content-between align-items-start mb-3">
                                         <div>
-                                            <div class="h3 mb-1">{{ $plan->name }}</div>
+                                            <div class="h3 mb-1">{{ $sales['display_name'] ?? $plan->display_name }}</div>
                                             <div class="text-muted small">{{ $sales['tagline'] ?? 'Paket omnichannel' }}</div>
                                         </div>
-                                        @if ($plan->code === 'growth')
+                                        @if (str_starts_with($plan->code, 'growth'))
                                             <span class="badge bg-primary-lt text-primary">Paling populer</span>
                                         @endif
                                     </div>
@@ -264,8 +264,8 @@
                                             <div class="mb-2">{{ $highlight }}</div>
                                         @endforeach
                                     </div>
-                                    <a href="{{ route('onboarding.create') }}?plan={{ $plan->code }}" class="btn {{ $plan->code === 'growth' ? 'btn-dark' : 'btn-outline-dark' }} w-100">
-                                        Pilih {{ $plan->name }}
+                                    <a href="{{ route('onboarding.create') }}?plan={{ $plan->code }}" class="btn {{ str_starts_with($plan->code, 'growth') ? 'btn-dark' : 'btn-outline-dark' }} w-100">
+                                        Pilih {{ $sales['display_name'] ?? $plan->display_name }}
                                     </a>
                                 </div>
                             </div>

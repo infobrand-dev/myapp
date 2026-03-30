@@ -296,7 +296,7 @@ class PlatformMidtransBillingService
 
     private function itemDescription(PlatformInvoice $invoice): string
     {
-        $planName = optional($invoice->plan)->name ?: 'Plan SaaS';
+        $planName = optional($invoice->plan)->display_name ?: optional($invoice->plan)->name ?: 'Plan SaaS';
 
         return $planName . ' - ' . $invoice->invoice_number;
     }

@@ -93,19 +93,33 @@ class SettingsController extends Controller
 
         $limitDefinitions = [
             ['key' => PlanLimit::COMPANIES, 'label' => 'Companies'],
+            ['key' => PlanLimit::BRANCHES, 'label' => 'Branches'],
             ['key' => PlanLimit::USERS, 'label' => 'Users'],
             ['key' => PlanLimit::PRODUCTS, 'label' => 'Products'],
             ['key' => PlanLimit::CONTACTS, 'label' => 'Contacts'],
             ['key' => PlanLimit::WHATSAPP_INSTANCES, 'label' => 'WhatsApp Instances'],
+            ['key' => PlanLimit::SOCIAL_ACCOUNTS, 'label' => 'Social Accounts'],
+            ['key' => PlanLimit::LIVE_CHAT_WIDGETS, 'label' => 'Live Chat Widgets'],
+            ['key' => PlanLimit::CHATBOT_ACCOUNTS, 'label' => 'Chatbot Accounts'],
+            ['key' => PlanLimit::EMAIL_INBOX_ACCOUNTS, 'label' => 'Email Inbox Accounts'],
             ['key' => PlanLimit::EMAIL_CAMPAIGNS, 'label' => 'Email Campaigns'],
+            ['key' => PlanLimit::WA_BLAST_RECIPIENTS_MONTHLY, 'label' => 'WA Blast Recipients / Month'],
+            ['key' => PlanLimit::EMAIL_RECIPIENTS_MONTHLY, 'label' => 'Email Recipients / Month'],
+            ['key' => PlanLimit::CHATBOT_KNOWLEDGE_DOCUMENTS, 'label' => 'Chatbot Knowledge Documents'],
         ];
 
         $limitSummaries = collect($limitDefinitions)
-            ->map(fn (array $definition) => [
-                'label' => $definition['label'],
-                'limit' => $planManager->limit($definition['key'], $tenantId),
-                'usage' => $planManager->usage($definition['key'], $tenantId),
-            ])
+            ->map(function (array $definition) use ($planManager, $tenantId) {
+                $state = $planManager->usageState($definition['key'], $tenantId);
+
+                return [
+                    'label' => $definition['label'],
+                    'limit' => $state['limit'],
+                    'usage' => $state['usage'],
+                    'remaining' => $state['remaining'],
+                    'status' => $state['status'],
+                ];
+            })
             ->values();
 
         $editingCompany = null;
@@ -236,6 +250,8 @@ class SettingsController extends Controller
 
     public function storeBranch(Request $request): RedirectResponse
     {
+        app(TenantPlanManager::class)->ensureWithinLimit(PlanLimit::BRANCHES);
+
         $company = $this->requireCurrentCompany();
         $data = $this->validateBranch($request, $company);
 

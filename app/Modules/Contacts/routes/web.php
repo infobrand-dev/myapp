@@ -3,7 +3,7 @@
 use App\Modules\Contacts\Http\Controllers\ContactController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['web', 'auth', 'role:Super-admin|Admin'])
+Route::middleware(['web', 'auth', 'role:Super-admin|Admin', 'plan.feature:crm'])
     ->prefix('contacts')
     ->name('contacts.')
     ->group(function () {

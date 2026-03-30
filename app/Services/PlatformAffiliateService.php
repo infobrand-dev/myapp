@@ -293,7 +293,7 @@ class PlatformAffiliateService
                     affiliateName: $referral->affiliate->name,
                     tenantName: optional($referral->tenant)->name ?? 'Workspace baru',
                     orderNumber: optional($referral->order)->order_number ?? '-',
-                    planName: optional(optional($referral->order)->plan)->name ?? 'Plan SaaS',
+                    planName: optional(optional($referral->order)->plan)->display_name ?? optional(optional($referral->order)->plan)->name ?? 'Plan SaaS',
                     orderAmount: (float) $referral->order_amount,
                     orderCurrency: $referral->order_currency ?: 'IDR',
                     commissionAmount: (float) ($referral->commission_amount ?? 0),

@@ -6,7 +6,7 @@
             </div>
             <div class="card-body">
                 <div class="text-secondary text-uppercase small fw-bold">Plan</div>
-                <div class="fs-2 fw-bold mt-2">{{ optional($plan)->name ?? 'Belum ada langganan aktif' }}</div>
+                <div class="fs-2 fw-bold mt-2">{{ optional($plan)->display_name ?? optional($plan)->name ?? 'Belum ada langganan aktif' }}</div>
                 <div class="text-muted small mt-1">{{ optional($plan)->code ?? 'billing-ready foundation only' }}</div>
                 <div class="row g-3 mt-2">
                     <div class="col-sm-6">
@@ -41,14 +41,24 @@
                             <th>Sumber Daya</th>
                             <th>Penggunaan</th>
                             <th>Batas</th>
+                            <th>Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($limitSummaries as $limit)
+                            @php
+                                $statusInfo = match($limit['status']) {
+                                    'near_limit' => ['label' => 'Near limit', 'class' => 'bg-warning-lt text-warning'],
+                                    'at_limit' => ['label' => 'At limit', 'class' => 'bg-danger-lt text-danger'],
+                                    'over_limit' => ['label' => 'Over limit', 'class' => 'bg-danger-lt text-danger'],
+                                    default => ['label' => $limit['limit'] === null ? 'Tidak terbatas' : 'OK', 'class' => $limit['limit'] === null ? 'bg-azure-lt text-azure' : 'bg-success-lt text-success'],
+                                };
+                            @endphp
                             <tr>
                                 <td>{{ $limit['label'] }}</td>
                                 <td>{{ $limit['usage'] }}</td>
                                 <td>{{ $limit['limit'] ?? 'Tidak terbatas' }}</td>
+                                <td><span class="badge {{ $statusInfo['class'] }}">{{ $statusInfo['label'] }}</span></td>
                             </tr>
                         @endforeach
                     </tbody>

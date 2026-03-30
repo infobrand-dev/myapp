@@ -20,10 +20,15 @@
                 <div class="card h-100">
                     <div class="card-header d-flex align-items-center justify-content-between">
                         <div>
-                            <h3 class="card-title mb-0">{{ $plan->name }}</h3>
+                            <h3 class="card-title mb-0">{{ $plan->display_name }}</h3>
                             <div class="text-muted small">{{ $plan->code }} · {{ $plan->billing_interval ?: 'custom' }}</div>
                         </div>
                         <div class="d-flex align-items-center gap-2">
+                            @if(($plan->meta['plan_revision'] ?? null) === 'v2')
+                                <span class="badge bg-primary-lt text-primary">V2</span>
+                            @elseif(($plan->meta['sales_status'] ?? null) === 'legacy')
+                                <span class="badge bg-warning-lt text-warning">Legacy</span>
+                            @endif
                             <span class="badge {{ $plan->is_public ? 'bg-success-lt text-success' : 'bg-secondary-lt text-secondary' }}">
                                 {{ $plan->is_public ? 'Public' : 'Internal' }}
                             </span>

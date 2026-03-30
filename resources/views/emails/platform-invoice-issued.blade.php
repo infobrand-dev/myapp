@@ -15,7 +15,7 @@
     <div class="info-box">
         <strong>Detail Invoice</strong>
         Invoice: {{ $invoice->invoice_number }}<br>
-        Plan: {{ optional($invoice->plan)->name ?? '-' }}<br>
+        Plan: {{ optional($invoice->plan)->display_name ?? optional($invoice->plan)->name ?? '-' }}<br>
         Amount: {{ $money->format((float) $invoice->amount, $invoice->currency) }}<br>
         Due: {{ optional($invoice->due_at)->format('d M Y H:i') ?: '-' }}
     </div>

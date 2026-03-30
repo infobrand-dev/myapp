@@ -5,7 +5,7 @@ use App\Modules\EmailMarketing\Http\Controllers\EmailAttachmentTemplateControlle
 use App\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['web', 'auth', 'role:Super-admin|Admin'])
+Route::middleware(['web', 'auth', 'role:Super-admin|Admin', 'plan.feature:email_marketing'])
     ->prefix('email-marketing')
     ->name('email-marketing.')
     ->group(function () {

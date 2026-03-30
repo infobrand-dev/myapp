@@ -7,7 +7,7 @@
         <div>
             <div class="page-pretitle">Platform Owner</div>
             <h1 class="page-title">Edit Plan</h1>
-            <div class="text-muted small mt-1">{{ $plan->name }} · {{ $plan->code }}</div>
+            <div class="text-muted small mt-1">{{ $plan->display_name }} · {{ $plan->code }}</div>
         </div>
         <a href="{{ route('platform.plans.index') }}" class="btn btn-outline-secondary">
             <i class="ti ti-arrow-left me-1"></i>Katalog Plan
@@ -27,9 +27,32 @@
                             <label class="form-label">Kode</label>
                             <input type="text" class="form-control" value="{{ $plan->code }}" disabled>
                         </div>
+                        @if(($plan->meta['plan_revision'] ?? null) || ($plan->meta['sales_status'] ?? null))
+                            <div class="mb-3">
+                                <label class="form-label">Status Katalog</label>
+                                <div class="d-flex flex-wrap gap-2">
+                                    @if(($plan->meta['plan_revision'] ?? null) === 'v2')
+                                        <span class="badge bg-primary-lt text-primary">Public revision V2</span>
+                                    @endif
+                                    @if(($plan->meta['sales_status'] ?? null) === 'legacy')
+                                        <span class="badge bg-warning-lt text-warning">Legacy sales plan</span>
+                                    @endif
+                                </div>
+                            </div>
+                        @endif
                         <div class="mb-3">
                             <label class="form-label">Nama</label>
                             <input type="text" class="form-control" name="name" value="{{ old('name', $plan->name) }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Product Line</label>
+                            <select class="form-select" name="product_line">
+                                <option value="">Tanpa kategori khusus</option>
+                                @foreach($productLineOptions as $key => $label)
+                                    <option value="{{ $key }}" @selected(old('product_line', $plan->productLine()) === $key)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            <div class="form-hint">Gunakan ini untuk membedakan lini produk seperti Omnichannel, CRM, Commerce, atau Project Management.</div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Siklus Tagihan</label>

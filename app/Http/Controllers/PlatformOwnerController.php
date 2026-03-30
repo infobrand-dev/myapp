@@ -33,12 +33,22 @@ class PlatformOwnerController extends Controller
 {
     private const LIMIT_LABELS = [
         PlanLimit::COMPANIES => 'Companies',
+        PlanLimit::BRANCHES => 'Branches',
         PlanLimit::USERS => 'Users',
         PlanLimit::PRODUCTS => 'Products',
         PlanLimit::CONTACTS => 'Contacts',
         PlanLimit::WHATSAPP_INSTANCES => 'WhatsApp Instances',
+        PlanLimit::SOCIAL_ACCOUNTS => 'Social Accounts',
+        PlanLimit::LIVE_CHAT_WIDGETS => 'Live Chat Widgets',
+        PlanLimit::CHATBOT_ACCOUNTS => 'Chatbot Accounts',
+        PlanLimit::EMAIL_INBOX_ACCOUNTS => 'Email Inbox Accounts',
         PlanLimit::EMAIL_CAMPAIGNS => 'Email Campaigns',
+        PlanLimit::WA_BLAST_RECIPIENTS_MONTHLY => 'WA Blast Recipients / Month',
+        PlanLimit::EMAIL_RECIPIENTS_MONTHLY => 'Email Recipients / Month',
         PlanLimit::AI_CREDITS_MONTHLY => 'AI Credits / Month',
+        PlanLimit::CHATBOT_KNOWLEDGE_DOCUMENTS => 'Chatbot Knowledge Documents',
+        PlanLimit::AUTOMATION_WORKFLOWS => 'Automation Workflows',
+        PlanLimit::AUTOMATION_EXECUTIONS_MONTHLY => 'Automation Executions / Month',
     ];
 
     public function dashboard(TenantPlanManager $planManager, AiUsageService $aiUsage): View
@@ -84,7 +94,7 @@ class PlatformOwnerController extends Controller
             ]);
 
         $planDistribution = $tenants
-            ->groupBy(fn (Tenant $tenant) => optional(optional($tenant->activeSubscription)->plan)->name ?? 'No active plan')
+            ->groupBy(fn (Tenant $tenant) => optional(optional($tenant->activeSubscription)->plan)->display_name ?? optional(optional($tenant->activeSubscription)->plan)->name ?? 'No active plan')
             ->map(fn ($group, $label) => ['label' => $label, 'count' => $group->count()])
             ->sortByDesc('count')
             ->values();
@@ -92,17 +102,15 @@ class PlatformOwnerController extends Controller
         $tenantsAtRisk = $tenants
             ->map(function (Tenant $tenant) use ($planManager) {
                 $usages = $this->limitUsageRows($planManager, $tenant->id);
-                $warningCount = collect($usages)->filter(function (array $row) {
-                    return $row['limit'] !== null && $row['limit'] > 0 && $row['usage'] >= $row['limit'];
-                })->count();
+                $risk = $this->summarizeLimitRisk($usages);
 
                 return [
                     'tenant' => $tenant,
-                    'warning_count' => $warningCount,
+                    'risk' => $risk,
                 ];
             })
-            ->filter(fn (array $row) => $row['warning_count'] > 0 || !$row['tenant']->is_active)
-            ->sortByDesc('warning_count')
+            ->filter(fn (array $row) => $row['risk']['status'] !== 'ok' || !$row['tenant']->is_active)
+            ->sortByDesc(fn (array $row) => $row['risk']['score'])
             ->take(8)
             ->values();
 
@@ -144,16 +152,39 @@ class PlatformOwnerController extends Controller
         ]);
     }
 
-    public function tenants(): View
+    public function tenants(Request $request, TenantPlanManager $planManager): View
     {
         $tenants = Tenant::query()
             ->with(['activeSubscription.plan:id,name,code'])
             ->withCount(['users', 'companies', 'branches'])
             ->orderByDesc('created_at')
-            ->get();
+            ->get()
+            ->map(function (Tenant $tenant) use ($planManager) {
+                $usageRows = $this->limitUsageRows($planManager, $tenant->id);
+                $tenant->setAttribute('plan_risk', $this->summarizeLimitRisk($usageRows));
+                $tenant->setAttribute('usage_rows', $usageRows);
+
+                return $tenant;
+            });
+
+        $riskFilter = trim((string) $request->query('risk', ''));
+        if ($riskFilter !== '') {
+            $tenants = $tenants->filter(function (Tenant $tenant) use ($riskFilter) {
+                $risk = (array) ($tenant->getAttribute('plan_risk') ?? []);
+
+                return match ($riskFilter) {
+                    'near_limit' => ($risk['status'] ?? null) === 'near_limit',
+                    'over_limit' => in_array(($risk['status'] ?? null), ['at_limit', 'over_limit'], true),
+                    'heavy_ai' => (bool) ($risk['heavy_ai'] ?? false),
+                    'heavy_contacts' => (bool) ($risk['heavy_contacts'] ?? false),
+                    default => true,
+                };
+            })->values();
+        }
 
         return view('platform.tenants.index', [
             'tenants' => $tenants,
+            'riskFilter' => $riskFilter,
         ]);
     }
 
@@ -304,6 +335,7 @@ class PlatformOwnerController extends Controller
             'plan' => $plan,
             'featureLabels' => $this->featureLabels(),
             'limitLabels' => self::LIMIT_LABELS,
+            'productLineOptions' => $this->productLineOptions(),
         ]);
     }
 
@@ -345,6 +377,7 @@ class PlatformOwnerController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
+            'product_line' => ['nullable', 'string', 'max:50'],
             'billing_interval' => ['nullable', 'string', 'max:50'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
@@ -364,6 +397,9 @@ class PlatformOwnerController extends Controller
             $limits[$limitKey] = ($raw === null || $raw === '') ? null : (int) $raw;
         }
 
+        $meta = (array) ($plan->meta ?? []);
+        $meta['product_line'] = $data['product_line'] ?: null;
+
         $plan->forceFill([
             'name' => $data['name'],
             'billing_interval' => $data['billing_interval'] ?: null,
@@ -372,6 +408,7 @@ class PlatformOwnerController extends Controller
             'is_public' => (bool) ($data['is_public'] ?? false),
             'features' => $features,
             'limits' => $limits,
+            'meta' => $meta,
         ])->save();
 
         return redirect()
@@ -439,9 +476,12 @@ class PlatformOwnerController extends Controller
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
         ]);
 
+        $selectedPlan = SubscriptionPlan::query()->findOrFail((int) $data['subscription_plan_id']);
+        $sellablePlan = app(TenantOnboardingSalesService::class)->resolvePlanForNewSale($selectedPlan);
+
         PlatformPlanOrder::create([
             'tenant_id' => $tenant->id,
-            'subscription_plan_id' => (int) $data['subscription_plan_id'],
+            'subscription_plan_id' => $sellablePlan->id,
             'order_number' => $this->nextOrderNumber(),
             'status' => 'pending',
             'amount' => $data['amount'],
@@ -454,10 +494,19 @@ class PlatformOwnerController extends Controller
             'meta' => [
                 'created_from' => 'platform_owner',
                 'created_by_user_id' => auth()->id(),
+                'requested_plan_id' => $selectedPlan->id,
+                'requested_plan_code' => $selectedPlan->code,
+                'resolved_plan_id' => $sellablePlan->id,
+                'resolved_plan_code' => $sellablePlan->code,
             ],
         ]);
 
-        return back()->with('status', 'Order plan berhasil dibuat.');
+        $message = 'Order plan berhasil dibuat.';
+        if ($sellablePlan->id !== $selectedPlan->id) {
+            $message .= " Plan legacy {$selectedPlan->code} dialihkan ke {$sellablePlan->code} untuk sales baru.";
+        }
+
+        return back()->with('status', $message);
     }
 
     public function markOrderPaid(PlatformPlanOrder $order, TenantOnboardingSalesService $onboardingSales, PlatformAffiliateService $affiliates): RedirectResponse
@@ -584,7 +633,7 @@ class PlatformOwnerController extends Controller
         $invoice->items()->create([
             'item_type' => 'plan',
             'item_code' => optional($order->plan)->code,
-            'name' => optional($order->plan)->name ?: 'Subscription Plan',
+            'name' => optional($order->plan)->display_name ?: optional($order->plan)->name ?: 'Subscription Plan',
             'description' => 'Tagihan langganan plan untuk workspace ' . optional($order->tenant)->name,
             'quantity' => 1,
             'unit_price' => $order->amount,
@@ -705,11 +754,14 @@ class PlatformOwnerController extends Controller
         $rows = [];
 
         foreach (self::LIMIT_LABELS as $key => $label) {
+            $state = $planManager->usageState($key, $tenantId);
             $rows[] = [
                 'key' => $key,
                 'label' => $label,
-                'limit' => $planManager->limit($key, $tenantId),
-                'usage' => $planManager->usage($key, $tenantId),
+                'limit' => $state['limit'],
+                'usage' => $state['usage'],
+                'remaining' => $state['remaining'],
+                'status' => $state['status'],
             ];
         }
 
@@ -722,6 +774,8 @@ class PlatformOwnerController extends Controller
             PlanFeature::MULTI_COMPANY => 'Multi company',
             PlanFeature::CONVERSATIONS => 'Conversations inbox',
             PlanFeature::CRM => 'CRM pipeline',
+            PlanFeature::COMMERCE => 'Commerce suite',
+            PlanFeature::PROJECT_MANAGEMENT => 'Project management',
             PlanFeature::LIVE_CHAT => 'Live chat widget',
             PlanFeature::SOCIAL_MEDIA => 'Social media conversations',
             PlanFeature::CHATBOT_AI => 'Chatbot AI',
@@ -733,6 +787,54 @@ class PlatformOwnerController extends Controller
             'inventory' => 'Inventory',
             'finance' => 'Finance',
             'pos' => 'Point of Sale',
+        ];
+    }
+
+    private function productLineOptions(): array
+    {
+        return [
+            'omnichannel' => 'Omnichannel',
+            'crm' => 'CRM',
+            'commerce' => 'Commerce',
+            'project_management' => 'Project Management',
+            'internal' => 'Internal',
+        ];
+    }
+
+    private function summarizeLimitRisk(array $usageRows): array
+    {
+        $priority = [
+            'ok' => 0,
+            'near_limit' => 1,
+            'at_limit' => 2,
+            'over_limit' => 3,
+        ];
+
+        $status = 'ok';
+        $score = 0;
+
+        foreach ($usageRows as $row) {
+            $rowStatus = (string) ($row['status'] ?? 'ok');
+            if (($priority[$rowStatus] ?? 0) > ($priority[$status] ?? 0)) {
+                $status = $rowStatus;
+            }
+
+            $score += match ($rowStatus) {
+                'over_limit' => 10,
+                'at_limit' => 6,
+                'near_limit' => 2,
+                default => 0,
+            };
+        }
+
+        $contacts = collect($usageRows)->firstWhere('key', PlanLimit::CONTACTS);
+        $ai = collect($usageRows)->firstWhere('key', PlanLimit::AI_CREDITS_MONTHLY);
+
+        return [
+            'status' => $status,
+            'score' => $score,
+            'heavy_contacts' => in_array($contacts['status'] ?? 'ok', ['near_limit', 'at_limit', 'over_limit'], true),
+            'heavy_ai' => in_array($ai['status'] ?? 'ok', ['near_limit', 'at_limit', 'over_limit'], true),
         ];
     }
 

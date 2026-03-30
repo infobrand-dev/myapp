@@ -6,7 +6,7 @@ use App\Modules\Discounts\Http\Controllers\DiscountUsageController;
 use App\Modules\Discounts\Http\Controllers\VoucherController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['web', 'auth'])
+Route::middleware(['web', 'auth', 'plan.feature:commerce'])
     ->prefix('discounts')
     ->name('discounts.')
     ->group(function () {

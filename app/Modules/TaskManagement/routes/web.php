@@ -5,7 +5,7 @@ use App\Modules\TaskManagement\Http\Controllers\TaskController;
 use App\Modules\TaskManagement\Http\Controllers\TaskTemplateController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['web', 'auth', 'role:Super-admin|Admin'])
+Route::middleware(['web', 'auth', 'role:Super-admin|Admin', 'plan.feature:project_management'])
     ->prefix('tasks')
     ->name('tasks.')
     ->group(function () {
@@ -17,7 +17,7 @@ Route::middleware(['web', 'auth', 'role:Super-admin|Admin'])
         Route::patch('/subtasks/{subtask}/status', [TaskController::class, 'updateSubtaskStatus'])->name('subtasks.status');
     });
 
-Route::middleware(['web', 'auth', 'role:Super-admin|Admin'])
+Route::middleware(['web', 'auth', 'role:Super-admin|Admin', 'plan.feature:project_management'])
     ->prefix('task-templates')
     ->name('tasktemplates.')
     ->group(function () {
@@ -31,7 +31,7 @@ Route::middleware(['web', 'auth', 'role:Super-admin|Admin'])
         Route::get('/{template}', [TaskTemplateController::class, 'show'])->name('show');
     });
 
-Route::middleware(['web', 'auth', 'role:Super-admin|Admin'])
+Route::middleware(['web', 'auth', 'role:Super-admin|Admin', 'plan.feature:project_management'])
     ->prefix('memos')
     ->name('memos.')
     ->group(function () {

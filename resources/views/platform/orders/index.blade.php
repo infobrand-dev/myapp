@@ -59,7 +59,7 @@
                                 <a href="{{ route('platform.tenants.show', $order->tenant) }}" class="text-reset fw-semibold">{{ optional($order->tenant)->name ?? '-' }}</a>
                                 <div class="text-muted small">{{ optional($order->tenant)->slug }}</div>
                             </td>
-                            <td>{{ optional($order->plan)->name ?? '-' }}</td>
+                            <td>{{ optional($order->plan)->display_name ?? optional($order->plan)->name ?? '-' }}</td>
                             <td>
                                 <span class="badge {{ $statusInfo['class'] }}">{{ $statusInfo['label'] }}</span>
                             </td>

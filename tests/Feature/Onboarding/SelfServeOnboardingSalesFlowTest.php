@@ -44,6 +44,14 @@ class SelfServeOnboardingSalesFlowTest extends TestCase
         $response->assertSee('Lanjut ke Pembayaran');
     }
 
+    public function test_legacy_plan_query_alias_resolves_to_current_public_revision(): void
+    {
+        $response = $this->get(route('onboarding.create', ['plan' => 'growth']));
+
+        $response->assertOk();
+        $response->assertViewHas('preferredPlanId', SubscriptionPlan::query()->where('code', 'growth-v2')->value('id'));
+    }
+
     public function test_self_serve_onboarding_creates_pending_workspace_invoice_and_redirects_to_midtrans(): void
     {
         Mail::fake();
@@ -56,7 +64,7 @@ class SelfServeOnboardingSalesFlowTest extends TestCase
         ]);
 
         $response = $this->post(route('onboarding.store'), [
-            'subscription_plan_id' => SubscriptionPlan::query()->where('code', 'growth')->value('id'),
+            'subscription_plan_id' => SubscriptionPlan::query()->where('code', 'growth-v2')->value('id'),
             'company_name' => 'Acme Omnichannel',
             'slug' => 'acme',
             'name' => 'Owner Acme',
@@ -95,7 +103,7 @@ class SelfServeOnboardingSalesFlowTest extends TestCase
         ]);
 
         $this->post(route('onboarding.store'), [
-            'subscription_plan_id' => SubscriptionPlan::query()->where('code', 'scale')->value('id'),
+            'subscription_plan_id' => SubscriptionPlan::query()->where('code', 'scale-v2')->value('id'),
             'company_name' => 'Beta Omnichannel',
             'slug' => 'beta',
             'name' => 'Owner Beta',

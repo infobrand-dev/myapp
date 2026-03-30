@@ -8,7 +8,9 @@ use App\Modules\WhatsAppApi\Http\Requests\UpdateWhatsAppInstanceRequest;
 use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstanceChatbotIntegration;
+use App\Support\PlanLimit;
 use App\Support\TenantContext;
+use App\Support\TenantPlanManager;
 use Illuminate\Support\Arr;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -52,6 +54,8 @@ class InstanceController extends Controller
 
     public function store(StoreWhatsAppInstanceRequest $request): RedirectResponse
     {
+        app(TenantPlanManager::class)->ensureWithinLimit(PlanLimit::WHATSAPP_INSTANCES);
+
         $data = $this->validated($request, null);
         $data['tenant_id'] = $this->tenantId();
         $data['is_active'] = $request->boolean('is_active');

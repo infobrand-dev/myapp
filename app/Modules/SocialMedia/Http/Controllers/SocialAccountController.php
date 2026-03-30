@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Modules\SocialMedia\Http\Requests\SocialAccountRequest;
 use App\Modules\SocialMedia\Models\SocialAccount;
 use App\Modules\SocialMedia\Models\SocialAccountChatbotIntegration;
+use App\Support\PlanLimit;
 use App\Support\TenantContext;
+use App\Support\TenantPlanManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -156,6 +158,11 @@ class SocialAccountController extends Controller
                 ->withErrors(['meta_oauth' => 'Tidak ada Facebook Page atau Instagram Business Account yang berhasil dihubungkan.']);
         }
 
+        $newAccountCount = $this->estimateMetaAccountsToCreate($pages);
+        if ($newAccountCount > 0) {
+            app(TenantPlanManager::class)->ensureWithinLimit(PlanLimit::SOCIAL_ACCOUNTS, $newAccountCount);
+        }
+
         $connected = $this->syncMetaAccounts($pages, $request->user()?->id);
 
         if ($connected === 0) {
@@ -179,6 +186,34 @@ class SocialAccountController extends Controller
         }
 
         return $connected;
+    }
+
+    private function estimateMetaAccountsToCreate(Collection $pages): int
+    {
+        $tenantId = TenantContext::currentId();
+        $newAccounts = 0;
+
+        foreach ($pages as $page) {
+            $pageId = trim((string) data_get($page, 'id', ''));
+            if ($pageId !== '' && !SocialAccount::query()
+                ->where('tenant_id', $tenantId)
+                ->where('platform', 'facebook')
+                ->where('page_id', $pageId)
+                ->exists()) {
+                $newAccounts++;
+            }
+
+            $instagramId = trim((string) data_get($page, 'instagram_business_account.id', ''));
+            if ($instagramId !== '' && !SocialAccount::query()
+                ->where('tenant_id', $tenantId)
+                ->where('platform', 'instagram')
+                ->where('ig_business_id', $instagramId)
+                ->exists()) {
+                $newAccounts++;
+            }
+        }
+
+        return $newAccounts;
     }
 
     private function syncFacebookPageAccount(array $page, ?int $userId): int

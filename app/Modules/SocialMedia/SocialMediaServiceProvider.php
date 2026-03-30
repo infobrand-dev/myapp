@@ -15,6 +15,13 @@ class SocialMediaServiceProvider extends ServiceProvider
 {
     use RegistersModuleRoutes;
 
+    public const PLAN_LIMIT_MODELS = [
+        \App\Support\PlanLimit::SOCIAL_ACCOUNTS => [
+            'table' => 'social_accounts',
+            'model' => \App\Modules\SocialMedia\Models\SocialAccount::class,
+        ],
+    ];
+
     public function register(): void
     {
         $chatbotRegistry = \App\Modules\Chatbot\Contracts\ConversationBotIntegrationRegistry::class;

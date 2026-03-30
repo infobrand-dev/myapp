@@ -24,7 +24,7 @@
                     </div>
                     <div class="col-md-6">
                         <div class="text-secondary small text-uppercase fw-bold">Plan Aktif</div>
-                        <div class="fw-semibold mt-1">{{ optional($plan)->name ?? 'Belum ada plan' }}</div>
+                        <div class="fw-semibold mt-1">{{ optional($plan)->display_name ?? optional($plan)->name ?? 'Belum ada plan' }}</div>
                     </div>
                 </div>
                 <div class="alert alert-blue-lt mt-4 mb-0">

@@ -29,7 +29,7 @@
                 <div class="card-body">
                     <div class="mb-3">
                         <div class="text-secondary text-uppercase small fw-bold">Plan Aktif</div>
-                        <div class="fw-semibold mt-1">{{ optional(optional($tenant->activeSubscription)->plan)->name ?? 'Belum ada plan' }}</div>
+                        <div class="fw-semibold mt-1">{{ optional(optional($tenant->activeSubscription)->plan)->display_name ?? optional(optional($tenant->activeSubscription)->plan)->name ?? 'Belum ada plan' }}</div>
                     </div>
                     <form method="POST" action="{{ route('platform.tenants.status', $tenant) }}" class="mb-3">
                         @csrf
@@ -108,14 +108,19 @@
                         <tbody>
                             @foreach($usageRows as $row)
                                 @php
-                                    $status = $row['limit'] === null ? 'Tidak terbatas' : ($row['usage'] >= $row['limit'] ? 'Mencapai batas' : 'OK');
-                                    $badge = $row['limit'] === null ? 'bg-azure-lt text-azure' : ($row['usage'] >= $row['limit'] ? 'bg-warning-lt text-warning' : 'bg-success-lt text-success');
+                                    $statusMap = [
+                                        'ok' => ['label' => $row['limit'] === null ? 'Tidak terbatas' : 'OK', 'class' => $row['limit'] === null ? 'bg-azure-lt text-azure' : 'bg-success-lt text-success'],
+                                        'near_limit' => ['label' => 'Near limit', 'class' => 'bg-warning-lt text-warning'],
+                                        'at_limit' => ['label' => 'At limit', 'class' => 'bg-danger-lt text-danger'],
+                                        'over_limit' => ['label' => 'Over limit', 'class' => 'bg-danger-lt text-danger'],
+                                    ];
+                                    $statusInfo = $statusMap[$row['status']] ?? $statusMap['ok'];
                                 @endphp
                                 <tr>
                                     <td>{{ $row['label'] }}</td>
                                     <td>{{ $row['usage'] }}</td>
                                     <td>{{ $row['limit'] ?? 'Tidak terbatas' }}</td>
-                                    <td><span class="badge {{ $badge }}">{{ $status }}</span></td>
+                                    <td><span class="badge {{ $statusInfo['class'] }}">{{ $statusInfo['label'] }}</span></td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -133,7 +138,7 @@
                                 <label class="form-label">Plan</label>
                                 <select class="form-select" name="subscription_plan_id" required>
                                     @foreach($plans as $plan)
-                                        <option value="{{ $plan->id }}" @selected(optional(optional($tenant->activeSubscription)->plan)->id === $plan->id)>{{ $plan->name }} ({{ $plan->code }})</option>
+                                        <option value="{{ $plan->id }}" @selected(optional(optional($tenant->activeSubscription)->plan)->id === $plan->id)>{{ $plan->display_name }} ({{ $plan->code }})</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -196,7 +201,7 @@
                                 <label class="form-label">Plan</label>
                                 <select class="form-select" name="subscription_plan_id" required>
                                     @foreach($plans as $plan)
-                                        <option value="{{ $plan->id }}">{{ $plan->name }} ({{ $plan->code }})</option>
+                                        <option value="{{ $plan->id }}">{{ $plan->display_name }} ({{ $plan->code }})</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -297,7 +302,7 @@
                                     $subInfo = $subStatusMap[$subscription->status] ?? ['label' => $subscription->status, 'class' => 'bg-secondary-lt text-secondary'];
                                 @endphp
                                 <tr>
-                                    <td>{{ optional($subscription->plan)->name ?? '-' }}</td>
+                                    <td>{{ optional($subscription->plan)->display_name ?? optional($subscription->plan)->name ?? '-' }}</td>
                                     <td><span class="badge {{ $subInfo['class'] }}">{{ $subInfo['label'] }}</span></td>
                                     <td>{{ $subscription->billing_provider ?: '-' }}</td>
                                     <td>{{ $subscription->billing_reference ?: '-' }}</td>
@@ -361,7 +366,7 @@
                                         <div class="fw-semibold">{{ $order->order_number }}</div>
                                         <div class="text-muted small">{{ optional($order->created_at)->format('d M Y H:i') }}</div>
                                     </td>
-                                    <td>{{ optional($order->plan)->name ?? '-' }}</td>
+                                    <td>{{ optional($order->plan)->display_name ?? optional($order->plan)->name ?? '-' }}</td>
                                     <td><span class="badge {{ $orderInfo['class'] }}">{{ $orderInfo['label'] }}</span></td>
                                     <td>{{ $money->format((float) $order->amount, $order->currency) }}</td>
                                     <td class="text-nowrap">
@@ -426,7 +431,7 @@
                                         <a href="{{ route('platform.invoices.show', $invoice) }}" class="fw-semibold text-reset">{{ $invoice->invoice_number }}</a>
                                         <div class="text-muted small">{{ optional($invoice->issued_at)->format('d M Y H:i') ?: '-' }}</div>
                                     </td>
-                                    <td>{{ optional($invoice->plan)->name ?? '-' }}</td>
+                                    <td>{{ optional($invoice->plan)->display_name ?? optional($invoice->plan)->name ?? '-' }}</td>
                                     <td><span class="badge {{ $invInfo['class'] }}">{{ $invInfo['label'] }}</span></td>
                                     <td>{{ $money->format((float) $invoice->amount, $invoice->currency) }}</td>
                                     <td>

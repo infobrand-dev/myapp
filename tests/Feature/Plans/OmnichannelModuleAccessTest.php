@@ -26,6 +26,8 @@ class OmnichannelModuleAccessTest extends TestCase
         Route::middleware(['web', 'auth', 'plan.feature:chatbot_ai'])->get('/_feature-test/chatbot-ai', fn () => 'ok');
         Route::middleware(['web', 'auth', 'plan.feature:live_chat'])->get('/_feature-test/live-chat', fn () => 'ok');
         Route::middleware(['web', 'auth', 'plan.feature:crm'])->get('/_feature-test/crm', fn () => 'ok');
+        Route::middleware(['web', 'auth', 'plan.feature:commerce'])->get('/_feature-test/commerce', fn () => 'ok');
+        Route::middleware(['web', 'auth', 'plan.feature:project_management'])->get('/_feature-test/project-management', fn () => 'ok');
     }
 
     public function test_tenant_without_feature_is_blocked(): void
@@ -79,6 +81,39 @@ class OmnichannelModuleAccessTest extends TestCase
         $this->actingAs($freeUser)
             ->get('/_feature-test/crm')
             ->assertForbidden();
+    }
+
+    public function test_commerce_bundle_is_dynamic_and_opt_in(): void
+    {
+        [$starterUser] = $this->makeTenantWithPlan('starter');
+        [$commerceUser] = $this->makeTenantWithFeatureOverrides([
+            PlanFeature::CRM => true,
+            PlanFeature::COMMERCE => true,
+        ]);
+
+        $this->actingAs($starterUser)
+            ->get('/_feature-test/commerce')
+            ->assertForbidden();
+
+        $this->actingAs($commerceUser)
+            ->get('/_feature-test/commerce')
+            ->assertOk();
+    }
+
+    public function test_project_management_bundle_is_dynamic_and_opt_in(): void
+    {
+        [$growthUser] = $this->makeTenantWithPlan('growth');
+        [$projectUser] = $this->makeTenantWithFeatureOverrides([
+            PlanFeature::PROJECT_MANAGEMENT => true,
+        ]);
+
+        $this->actingAs($growthUser)
+            ->get('/_feature-test/project-management')
+            ->assertForbidden();
+
+        $this->actingAs($projectUser)
+            ->get('/_feature-test/project-management')
+            ->assertOk();
     }
 
     private function makeTenantWithFeatureOverrides(array $features): array

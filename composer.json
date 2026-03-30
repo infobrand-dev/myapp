@@ -14,6 +14,7 @@
         "minishlink/web-push": "^9.0",
         "pragmarx/google2fa-laravel": "^3.0",
         "pusher/pusher-php-server": "^7.2",
+        "sentry/sentry-laravel": "^4.18",
         "spatie/laravel-permission": "^6.0"
     },
     "require-dev": {

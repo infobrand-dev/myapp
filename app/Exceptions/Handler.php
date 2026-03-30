@@ -4,6 +4,7 @@ namespace App\Exceptions;
 
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Http\Request;
+use Sentry\Laravel\Integration;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -25,8 +26,9 @@ class Handler extends ExceptionHandler
     public function register(): void
     {
         $this->reportable(function (Throwable $e) {
-            // Add a third-party error reporting service here when ready for production.
-            // Example: \Sentry\Laravel\Integration::captureUnhandledException($e);
+            if (config('sentry.dsn')) {
+                Integration::captureUnhandledException($e);
+            }
         });
     }
 

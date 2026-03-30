@@ -121,6 +121,29 @@ php artisan golive:audit
 
 Command ini memeriksa critical path env dan runtime seperti tenancy mode, session cookie, queue, tabel billing platform, mail, dan Midtrans.
 
+## Sentry
+- Paket monitoring yang dipakai: `sentry/sentry-laravel`
+- Isi minimal di `.env` production:
+  - `SENTRY_LARAVEL_DSN`
+  - `SENTRY_ENVIRONMENT`
+  - `SENTRY_RELEASE`
+- Sample tracing default di `.env.example`:
+  - `SENTRY_TRACES_SAMPLE_RATE=0.1`
+  - `SENTRY_PROFILES_SAMPLE_RATE=0`
+- Setelah mengubah env, jalankan:
+
+```bash
+php artisan optimize:clear
+```
+
+- Cek integrasi lokal/runtime:
+
+```bash
+php artisan about
+```
+
+Jika DSN terisi, blok `Sentry` akan tampil aktif dan unhandled exception akan dikirim ke proyek Sentry Anda.
+
 ## Realtime
 - Realtime memakai driver `pusher` dengan server yang ditujukan untuk Pusher-compatible stack.
 - Untuk local/self-hosted, gunakan `soketi`.

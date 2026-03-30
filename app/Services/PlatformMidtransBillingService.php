@@ -20,6 +20,7 @@ class PlatformMidtransBillingService
 {
     public function __construct(
         private readonly TenantOnboardingSalesService $onboardingSales,
+        private readonly PlatformAffiliateService $affiliates,
     ) {
     }
 
@@ -263,6 +264,10 @@ class PlatformMidtransBillingService
 
         if ($freshInvoice && $createdPayment) {
             $this->sendPlatformPaymentReceivedMail($freshInvoice, $createdPayment);
+        }
+
+        if ($freshInvoice?->order) {
+            $this->affiliates->finalizeSale($freshInvoice->order->fresh(['affiliateReferral.affiliate', 'tenant', 'plan']), $freshInvoice->paid_at);
         }
 
         if ($welcomePayload) {

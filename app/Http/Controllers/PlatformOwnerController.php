@@ -14,6 +14,7 @@ use App\Models\Tenant;
 use App\Models\TenantSubscription;
 use App\Services\GoliveAuditService;
 use App\Services\AiUsageService;
+use App\Services\PlatformAffiliateService;
 use App\Services\PlatformMidtransBillingService;
 use App\Services\TenantOnboardingSalesService;
 use App\Support\PlanFeature;
@@ -459,7 +460,7 @@ class PlatformOwnerController extends Controller
         return back()->with('status', 'Order plan berhasil dibuat.');
     }
 
-    public function markOrderPaid(PlatformPlanOrder $order, TenantOnboardingSalesService $onboardingSales): RedirectResponse
+    public function markOrderPaid(PlatformPlanOrder $order, TenantOnboardingSalesService $onboardingSales, PlatformAffiliateService $affiliates): RedirectResponse
     {
         if (!$this->orderTableReady()) {
             return back()->with('error', 'Table billing order belum tersedia. Jalankan migration terlebih dahulu.');
@@ -545,6 +546,8 @@ class PlatformOwnerController extends Controller
             $this->sendPlatformPaymentReceivedMail($mailPayload['invoice'], $mailPayload['payment']);
         }
 
+        $affiliates->finalizeSale($order->fresh(['affiliateReferral.affiliate', 'tenant', 'plan']));
+
         if ($welcomePayload) {
             $onboardingSales->queueWelcomeMail($welcomePayload);
         }
@@ -607,7 +610,7 @@ class PlatformOwnerController extends Controller
         return back()->with('status', 'Email invoice berhasil dikirim ulang.');
     }
 
-    public function recordPayment(Request $request, PlatformInvoice $invoice, TenantOnboardingSalesService $onboardingSales): RedirectResponse
+    public function recordPayment(Request $request, PlatformInvoice $invoice, TenantOnboardingSalesService $onboardingSales, PlatformAffiliateService $affiliates): RedirectResponse
     {
         if (!$this->paymentTableReady()) {
             return back()->with('error', 'Table platform payment belum tersedia. Jalankan migration terlebih dahulu.');
@@ -671,6 +674,10 @@ class PlatformOwnerController extends Controller
 
         if ($welcomePayload) {
             $onboardingSales->queueWelcomeMail($welcomePayload);
+        }
+
+        if ($invoice->order) {
+            $affiliates->finalizeSale($invoice->order->fresh(['affiliateReferral.affiliate', 'tenant', 'plan']), $invoice->paid_at);
         }
 
         return back()->with('status', 'Payment platform berhasil dicatat.');

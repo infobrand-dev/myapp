@@ -10,6 +10,11 @@
 
         <h2 class="h4 mb-1">Jualan omnichannel mulai dari sini</h2>
         <p class="text-muted small mb-4">Pilih paket, buat workspace, lalu lanjutkan ke pembayaran untuk mengaktifkan modul yang Anda beli.</p>
+        @if(!empty($affiliate))
+            <div class="alert alert-info py-2 px-3 small">
+                Anda mendaftar melalui partner affiliate <strong>{{ $affiliate->name }}</strong>.
+            </div>
+        @endif
 
         <form method="POST" action="{{ route('onboarding.store') }}">
             @csrf

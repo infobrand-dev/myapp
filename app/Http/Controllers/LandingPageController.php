@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Tenant;
+use App\Services\PlatformAffiliateService;
 use App\Services\TenantOnboardingSalesService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -10,8 +11,10 @@ use Illuminate\View\View;
 
 class LandingPageController extends Controller
 {
-    public function __invoke(Request $request, TenantOnboardingSalesService $sales): View|RedirectResponse
+    public function __invoke(Request $request, TenantOnboardingSalesService $sales, PlatformAffiliateService $affiliateService): View|RedirectResponse
     {
+        $affiliate = $affiliateService->captureFromRequest($request);
+
         if ($request->attributes->get('platform_admin_host')) {
             return auth()->check()
                 ? redirect()->route('platform.dashboard')
@@ -31,13 +34,16 @@ class LandingPageController extends Controller
         return view('landing', [
             'plans' => $sales->publicPlans(),
             'workspaceUrl' => $this->workspaceUrlFor($request, false),
+            'affiliate' => $affiliate,
         ]);
     }
 
-    public function workspaceFinder(): View|RedirectResponse
+    public function workspaceFinder(Request $request, PlatformAffiliateService $affiliateService): View|RedirectResponse
     {
+        $affiliateService->captureFromRequest($request);
+
         if (auth()->check()) {
-            return redirect()->away($this->workspaceUrlFor(request(), false));
+            return redirect()->away($this->workspaceUrlFor($request, false));
         }
 
         return view('workspace-finder');

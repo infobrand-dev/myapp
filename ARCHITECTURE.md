@@ -60,6 +60,7 @@
 - Tenant subscription and plan enforcement foundation now lives in `subscription_plans`, `tenant_subscriptions`, `companies`, and `App\Support\TenantPlanManager`.
 - Platform billing for SaaS plans lives in dedicated `platform_*` tables (`platform_plan_orders`, `platform_invoices`, `platform_invoice_items`, `platform_payments`) and must stay separate from tenant-facing `sales` / `payments` domain tables.
 - Current online payment flow for platform invoices uses Midtrans against the platform owner account, while `platform_*` tables remain the internal source of truth for invoice, payment, and subscription activation.
+- Platform-owned affiliate tracking for SaaS sales also lives in dedicated `platform_*` tables and attaches to platform plan orders; affiliate accounts are separate from tenant `users` and do not participate in tenant authentication.
 - Successful self-serve payment must also finalize onboarding by activating the tenant and sending the post-payment welcome email; welcome mail should not be sent before payment settles.
 - For go-live, platform-owner Midtrans credentials may be sourced directly from `.env` via `config/services.php` when no persisted `midtrans_settings` row exists for tenant `id = 1`.
 - New quota or premium-feature work should prefer adding keys to the centralized plan feature/limit layer instead of hardcoding rules inside modules. Omnichannel module routes should enforce plan access with `plan.feature:*` middleware so the package sold to the tenant matches the modules they can use.

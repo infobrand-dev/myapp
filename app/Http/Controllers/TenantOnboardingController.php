@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SubscriptionPlan;
+use App\Services\PlatformAffiliateService;
 use App\Services\PlatformMidtransBillingService;
 use App\Services\TenantOnboardingSalesService;
 use Illuminate\Http\Request;
@@ -15,9 +16,11 @@ class TenantOnboardingController extends Controller
      * Show the new-tenant registration form.
      * Only accessible in SaaS mode.
      */
-    public function create(TenantOnboardingSalesService $sales)
+    public function create(Request $request, TenantOnboardingSalesService $sales, PlatformAffiliateService $affiliateService)
     {
         abort_unless(config('multitenancy.mode') === 'saas', 404);
+
+        $affiliate = $affiliateService->captureFromRequest($request);
 
         $preferredPlanId = SubscriptionPlan::query()
             ->where('code', request()->query('plan'))
@@ -28,15 +31,18 @@ class TenantOnboardingController extends Controller
         return view('onboarding.create', [
             'plans' => $sales->publicPlans(),
             'preferredPlanId' => $preferredPlanId,
+            'affiliate' => $affiliate,
         ]);
     }
 
     /**
      * Validate, create the pending tenant sale, then redirect to checkout.
      */
-    public function store(Request $request, TenantOnboardingSalesService $sales, PlatformMidtransBillingService $midtrans)
+    public function store(Request $request, TenantOnboardingSalesService $sales, PlatformMidtransBillingService $midtrans, PlatformAffiliateService $affiliateService)
     {
         abort_unless(config('multitenancy.mode') === 'saas', 404);
+
+        $affiliateService->captureFromRequest($request);
 
         $reservedSlugs = config('multitenancy.reserved_slugs', []);
 
@@ -73,6 +79,7 @@ class TenantOnboardingController extends Controller
             ->firstOrFail();
 
         $result = $sales->createPendingWorkspace($data, $plan);
+        $affiliateService->attachReferralToOrder($request, $result['order'], $result['tenant'], $plan);
         $invoice = $result['invoice']->fresh(['tenant', 'plan', 'order']);
 
         $sales->queueInvoiceMail($invoice);

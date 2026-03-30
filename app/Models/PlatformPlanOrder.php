@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class PlatformPlanOrder extends Model
 {
@@ -51,5 +52,10 @@ class PlatformPlanOrder extends Model
     public function invoices(): HasMany
     {
         return $this->hasMany(PlatformInvoice::class);
+    }
+
+    public function affiliateReferral(): HasOne
+    {
+        return $this->hasOne(PlatformAffiliateReferral::class);
     }
 }

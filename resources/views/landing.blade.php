@@ -37,6 +37,15 @@
         </header>
 
         <main>
+            @if(!empty($affiliate))
+                <section class="py-3">
+                    <div class="container">
+                        <div class="alert alert-info border-0 shadow-sm mb-0">
+                            Anda masuk dari link affiliate <strong>{{ $affiliate->name }}</strong>. Referral akan tercatat otomatis saat Anda melanjutkan pendaftaran.
+                        </div>
+                    </div>
+                </section>
+            @endif
             <section class="landing-hero py-5 py-lg-6">
                 <div class="container py-lg-5">
                     <div class="row g-4 align-items-center">

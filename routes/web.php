@@ -9,6 +9,7 @@ use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\PlatformOwnerController;
 use App\Http\Controllers\PlatformBillingMidtransController;
+use App\Http\Controllers\PlatformAffiliateController;
 use App\Http\Controllers\UserPresenceController;
 use Illuminate\Support\Facades\Route;
 
@@ -92,6 +93,9 @@ Route::middleware(['auth', 'verified', '2fa', 'platform.admin', \App\Http\Middle
         Route::get('/plans/{plan}/edit', [PlatformOwnerController::class, 'editPlan'])->name('plans.edit');
         Route::put('/plans/{plan}', [PlatformOwnerController::class, 'updatePlan'])->name('plans.update');
         Route::get('/go-live', [PlatformOwnerController::class, 'golive'])->name('golive');
+        Route::get('/affiliates', [PlatformAffiliateController::class, 'index'])->name('affiliates.index');
+        Route::post('/affiliates', [PlatformAffiliateController::class, 'store'])->name('affiliates.store');
+        Route::get('/affiliates/{affiliate}', [PlatformAffiliateController::class, 'show'])->name('affiliates.show');
         Route::get('/orders', [PlatformOwnerController::class, 'orders'])->name('orders.index');
         Route::post('/orders/{order}/mark-paid', [PlatformOwnerController::class, 'markOrderPaid'])->name('orders.mark-paid');
         Route::post('/orders/{order}/cancel', [PlatformOwnerController::class, 'cancelOrder'])->name('orders.cancel');

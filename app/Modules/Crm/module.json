@@ -1,0 +1,24 @@
+{
+    "slug": "crm",
+    "name": "CRM",
+    "description": "Pipeline lead dan customer relationship management berbasis contact.",
+    "provider": "App\\Modules\\Crm\\CrmServiceProvider",
+    "version": "1.0.0",
+    "category": "support",
+    "requires": [
+        "contacts"
+    ],
+    "sample_data": {
+        "description": "Membuat beberapa lead CRM contoh berbasis contact.",
+        "seeders": [
+            "App\\Modules\\Crm\\Database\\Seeders\\CrmSampleSeeder"
+        ]
+    },
+    "navigation": [
+        {
+            "label": "CRM",
+            "route": "crm.index"
+        }
+    ],
+    "icon": "resources/icons/icon.svg"
+}

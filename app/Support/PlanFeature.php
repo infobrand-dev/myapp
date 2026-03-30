@@ -6,6 +6,7 @@ class PlanFeature
 {
     public const MULTI_COMPANY = 'multi_company';
     public const CONVERSATIONS = 'conversations';
+    public const CRM = 'crm';
     public const LIVE_CHAT = 'live_chat';
     public const SOCIAL_MEDIA = 'social_media';
     public const CHATBOT_AI = 'chatbot_ai';
@@ -18,6 +19,7 @@ class PlanFeature
     {
         return [
             'conversations' => self::CONVERSATIONS,
+            'crm' => self::CRM,
             'live_chat' => self::LIVE_CHAT,
             'social_media' => self::SOCIAL_MEDIA,
             'chatbot' => self::CHATBOT_AI,

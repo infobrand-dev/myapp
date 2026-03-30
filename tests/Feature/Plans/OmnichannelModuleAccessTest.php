@@ -7,6 +7,7 @@ use App\Models\Tenant;
 use App\Models\TenantSubscription;
 use App\Models\User;
 use App\Support\PlanFeature;
+use Database\Seeders\SubscriptionPlanSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
@@ -19,9 +20,12 @@ class OmnichannelModuleAccessTest extends TestCase
     {
         parent::setUp();
 
+        $this->seed(SubscriptionPlanSeeder::class);
+
         Route::middleware(['web', 'auth', 'plan.feature:social_media'])->get('/_feature-test/social-media', fn () => 'ok');
         Route::middleware(['web', 'auth', 'plan.feature:chatbot_ai'])->get('/_feature-test/chatbot-ai', fn () => 'ok');
         Route::middleware(['web', 'auth', 'plan.feature:live_chat'])->get('/_feature-test/live-chat', fn () => 'ok');
+        Route::middleware(['web', 'auth', 'plan.feature:crm'])->get('/_feature-test/crm', fn () => 'ok');
     }
 
     public function test_tenant_without_feature_is_blocked(): void
@@ -60,6 +64,20 @@ class OmnichannelModuleAccessTest extends TestCase
 
         $this->actingAs($disabledUser)
             ->get('/_feature-test/live-chat')
+            ->assertForbidden();
+    }
+
+    public function test_crm_follows_plan_entitlement(): void
+    {
+        [$starterUser] = $this->makeTenantWithPlan('starter');
+        [$freeUser] = $this->makeTenantWithPlan('free');
+
+        $this->actingAs($starterUser)
+            ->get('/_feature-test/crm')
+            ->assertOk();
+
+        $this->actingAs($freeUser)
+            ->get('/_feature-test/crm')
             ->assertForbidden();
     }
 

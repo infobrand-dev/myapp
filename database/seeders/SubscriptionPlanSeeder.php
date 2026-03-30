@@ -28,6 +28,7 @@ class SubscriptionPlanSeeder extends Seeder
             'features' => [
                 PlanFeature::MULTI_COMPANY => false,
                 PlanFeature::CONVERSATIONS => false,
+                PlanFeature::CRM => false,
                 PlanFeature::LIVE_CHAT => false,
                 PlanFeature::SOCIAL_MEDIA => false,
                 PlanFeature::CHATBOT_AI => false,
@@ -66,6 +67,7 @@ class SubscriptionPlanSeeder extends Seeder
             'features' => [
                 PlanFeature::MULTI_COMPANY => false,
                 PlanFeature::CONVERSATIONS => true,
+                PlanFeature::CRM => true,
                 PlanFeature::LIVE_CHAT => true,
                 PlanFeature::SOCIAL_MEDIA => true,
                 PlanFeature::CHATBOT_AI => false,
@@ -90,6 +92,7 @@ class SubscriptionPlanSeeder extends Seeder
                 'description' => 'Paket awal untuk tim yang mulai mengelola lead dan customer service dari sosial media.',
                 'highlights' => [
                     'Conversation inbox tim',
+                    'CRM lead pipeline dasar',
                     'Live chat widget website',
                     'Social media conversation',
                     'Kontak dan histori percakapan dasar',
@@ -107,6 +110,7 @@ class SubscriptionPlanSeeder extends Seeder
             'features' => [
                 PlanFeature::MULTI_COMPANY => true,
                 PlanFeature::CONVERSATIONS => true,
+                PlanFeature::CRM => true,
                 PlanFeature::LIVE_CHAT => true,
                 PlanFeature::SOCIAL_MEDIA => true,
                 PlanFeature::CHATBOT_AI => true,
@@ -131,6 +135,7 @@ class SubscriptionPlanSeeder extends Seeder
                 'description' => 'Untuk tim yang mulai serius dengan otomasi, balasan AI, dan WhatsApp Business API.',
                 'highlights' => [
                     'Semua fitur Starter',
+                    'CRM lead pipeline',
                     'Chatbot AI',
                     '500 AI Credits per bulan',
                     'WhatsApp API',
@@ -149,6 +154,7 @@ class SubscriptionPlanSeeder extends Seeder
             'features' => [
                 PlanFeature::MULTI_COMPANY => true,
                 PlanFeature::CONVERSATIONS => true,
+                PlanFeature::CRM => true,
                 PlanFeature::LIVE_CHAT => true,
                 PlanFeature::SOCIAL_MEDIA => true,
                 PlanFeature::CHATBOT_AI => true,
@@ -173,6 +179,7 @@ class SubscriptionPlanSeeder extends Seeder
                 'description' => 'Paket untuk tim operasional yang butuh social inbox, chatbot AI, WhatsApp API, dan WhatsApp Web.',
                 'highlights' => [
                     'Semua fitur Growth',
+                    'CRM pipeline untuk follow up lead',
                     '2.500 AI Credits per bulan',
                     'WhatsApp Web',
                     'Kapasitas user dan kontak lebih besar',
@@ -191,6 +198,7 @@ class SubscriptionPlanSeeder extends Seeder
             'features' => [
                 PlanFeature::MULTI_COMPANY => true,
                 PlanFeature::CONVERSATIONS => true,
+                PlanFeature::CRM => true,
                 PlanFeature::LIVE_CHAT => true,
                 PlanFeature::SOCIAL_MEDIA => true,
                 PlanFeature::CHATBOT_AI => true,

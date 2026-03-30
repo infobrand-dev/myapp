@@ -714,6 +714,7 @@ class PlatformOwnerController extends Controller
         return [
             PlanFeature::MULTI_COMPANY => 'Multi company',
             PlanFeature::CONVERSATIONS => 'Conversations inbox',
+            PlanFeature::CRM => 'CRM pipeline',
             PlanFeature::LIVE_CHAT => 'Live chat widget',
             PlanFeature::SOCIAL_MEDIA => 'Social media conversations',
             PlanFeature::CHATBOT_AI => 'Chatbot AI',

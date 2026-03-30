@@ -173,4 +173,4 @@ Kategori saat ini:
 - reporting: `reports`
 - communication: `conversations`, `live_chat`, `whatsapp_api`, `whatsapp_web`, `social_media`, `email_marketing`, `email_inbox`
 - automation: `chatbot`
-- support: `contacts`, `task_management`, `shortlink`, `sample_data`
+- support: `crm`, `contacts`, `task_management`, `shortlink`, `sample_data`

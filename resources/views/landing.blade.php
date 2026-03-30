@@ -188,7 +188,7 @@
                             <div class="landing-usecase-card p-4">
                                 <div class="text-uppercase text-muted small fw-bold mb-2">Sales</div>
                                 <h3 class="h4">Lead masuk tidak lagi tercecer</h3>
-                                <p class="text-muted mb-0">Semua lead dari sosial media, chatbot, dan WhatsApp bisa masuk ke alur follow up yang lebih rapi.</p>
+                                <p class="text-muted mb-0">Semua lead dari sosial media, chatbot, live chat, dan WhatsApp bisa masuk ke CRM pipeline untuk follow up yang lebih rapi.</p>
                             </div>
                         </div>
                         <div class="col-lg-4">

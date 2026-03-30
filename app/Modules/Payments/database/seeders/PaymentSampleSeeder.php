@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Payments\database\seeders;
+namespace App\Modules\Payments\Database\Seeders;
 
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentMethod;
@@ -55,5 +55,7 @@ class PaymentSampleSeeder extends Seeder
         );
     }
 }
+
+
 
 

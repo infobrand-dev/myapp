@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\WhatsAppWeb\database\seeders;
+namespace App\Modules\WhatsAppWeb\Database\Seeders;
 
 use App\Support\SampleDataUserResolver;
 use Illuminate\Database\Seeder;
@@ -33,5 +33,7 @@ class WhatsAppWebSampleSeeder extends Seeder
         );
     }
 }
+
+
 
 

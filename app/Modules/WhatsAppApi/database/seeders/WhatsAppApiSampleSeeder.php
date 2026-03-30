@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Modules\WhatsAppApi\database\seeders;
+namespace App\Modules\WhatsAppApi\Database\Seeders;
 
-use App\Modules\Conversations\database\seeders\ConversationDemoSeeder;
+use App\Modules\Conversations\Database\Seeders\ConversationDemoSeeder;
 use App\Modules\WhatsAppApi\Models\WABlastCampaign;
 use App\Modules\WhatsAppApi\Models\WABlastRecipient;
 use App\Modules\WhatsAppApi\Models\WAFlow;
@@ -90,5 +90,7 @@ class WhatsAppApiSampleSeeder extends Seeder
         );
     }
 }
+
+
 
 

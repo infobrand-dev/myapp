@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Inventory\database\seeders;
+namespace App\Modules\Inventory\Database\Seeders;
 
 use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Inventory\Models\StockAdjustment;
@@ -11,7 +11,7 @@ use App\Modules\Inventory\Models\StockOpening;
 use App\Modules\Inventory\Models\StockOpeningItem;
 use App\Modules\Inventory\Models\StockTransfer;
 use App\Modules\Inventory\Models\StockTransferItem;
-use App\Modules\Products\database\seeders\ProductSampleSeeder;
+use App\Modules\Products\Database\Seeders\ProductSampleSeeder;
 use App\Modules\Products\Models\Product;
 use App\Support\SampleDataUserResolver;
 use Illuminate\Database\Seeder;
@@ -204,5 +204,7 @@ class InventorySampleSeeder extends Seeder
         );
     }
 }
+
+
 
 

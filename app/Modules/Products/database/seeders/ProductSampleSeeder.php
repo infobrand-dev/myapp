@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Products\database\seeders;
+namespace App\Modules\Products\Database\Seeders;
 
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductBrand;
@@ -104,5 +104,7 @@ class ProductSampleSeeder extends Seeder
         }
     }
 }
+
+
 
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Conversations\database\seeders;
+namespace App\Modules\Conversations\Database\Seeders;
 
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
@@ -92,5 +92,7 @@ class ConversationSampleSeeder extends Seeder
         );
     }
 }
+
+
 
 

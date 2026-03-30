@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Contacts\database\seeders;
+namespace App\Modules\Contacts\Database\Seeders;
 
 use App\Modules\Contacts\Models\Contact;
 use Illuminate\Database\Seeder;
@@ -49,5 +49,7 @@ class ContactSampleSeeder extends Seeder
         );
     }
 }
+
+
 
 

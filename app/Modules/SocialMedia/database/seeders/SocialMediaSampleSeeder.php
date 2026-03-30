@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\SocialMedia\database\seeders;
+namespace App\Modules\SocialMedia\Database\Seeders;
 
 use App\Modules\SocialMedia\Models\SocialAccount;
 use App\Support\SampleDataUserResolver;
@@ -26,5 +26,7 @@ class SocialMediaSampleSeeder extends Seeder
         );
     }
 }
+
+
 
 

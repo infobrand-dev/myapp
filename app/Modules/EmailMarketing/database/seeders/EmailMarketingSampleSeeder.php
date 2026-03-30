@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Modules\EmailMarketing\database\seeders;
+namespace App\Modules\EmailMarketing\Database\Seeders;
 
-use App\Modules\Contacts\database\seeders\ContactSampleSeeder;
+use App\Modules\Contacts\Database\Seeders\ContactSampleSeeder;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\EmailMarketing\Models\EmailAttachmentTemplate;
 use App\Modules\EmailMarketing\Models\EmailCampaign;
@@ -68,5 +68,7 @@ class EmailMarketingSampleSeeder extends Seeder
         }
     }
 }
+
+
 
 

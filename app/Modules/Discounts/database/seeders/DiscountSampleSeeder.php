@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Discounts\database\seeders;
+namespace App\Modules\Discounts\Database\Seeders;
 
 use App\Modules\Discounts\Models\Discount;
 use App\Modules\Discounts\Models\DiscountCondition;
@@ -8,7 +8,7 @@ use App\Modules\Discounts\Models\DiscountTarget;
 use App\Modules\Discounts\Models\DiscountUsage;
 use App\Modules\Discounts\Models\DiscountUsageLine;
 use App\Modules\Discounts\Models\DiscountVoucher;
-use App\Modules\Products\database\seeders\ProductSampleSeeder;
+use App\Modules\Products\Database\Seeders\ProductSampleSeeder;
 use App\Modules\Products\Models\Product;
 use App\Support\SampleDataUserResolver;
 use Illuminate\Database\Seeder;
@@ -139,5 +139,7 @@ class DiscountSampleSeeder extends Seeder
         );
     }
 }
+
+
 
 

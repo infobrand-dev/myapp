@@ -1422,6 +1422,31 @@ body.landing-page {
 }
 
 /* ============================================================
+   DOCUMENT SETTINGS PREVIEW CELLS
+   ============================================================ */
+.doc-preview-label {
+    font-size: .6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--tblr-muted);
+    margin-bottom: .25rem;
+}
+.doc-preview-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--tblr-body-color);
+    line-height: 1.3;
+    margin-bottom: .25rem;
+    word-break: break-all;
+}
+.doc-preview-hint {
+    font-size: .6875rem;
+    color: var(--tblr-muted);
+    line-height: 1.4;
+}
+
+/* ============================================================
    PRINT
    ============================================================ */
 @media print {

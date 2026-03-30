@@ -1,116 +1,78 @@
 @extends('layouts.admin')
 
 @section('content')
-@push('styles')
-<style>
-    .crm-board {
-        display: grid;
-        grid-template-columns: repeat(6, minmax(250px, 1fr));
-        gap: 1rem;
-        align-items: start;
-    }
-    .crm-column {
-        background: #f8fafc;
-        border: 1px solid rgba(15, 23, 42, 0.08);
-        border-radius: 1rem;
-        padding: 1rem;
-        min-height: 420px;
-    }
-    .crm-card {
-        background: #fff;
-        border: 1px solid rgba(15, 23, 42, 0.08);
-        border-radius: .9rem;
-        padding: .9rem;
-        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
-    }
-    .crm-card + .crm-card {
-        margin-top: .8rem;
-    }
-    .crm-card-title {
-        font-weight: 700;
-        color: #0f172a;
-    }
-    .crm-metric {
-        border: 1px solid rgba(15, 23, 42, 0.08);
-        border-radius: 1rem;
-        padding: 1rem 1.1rem;
-        background: #fff;
-        height: 100%;
-    }
-    @media (max-width: 1399.98px) {
-        .crm-board {
-            grid-template-columns: repeat(3, minmax(240px, 1fr));
-        }
-    }
-    @media (max-width: 991.98px) {
-        .crm-board {
-            grid-template-columns: 1fr;
-        }
-    }
-</style>
-@endpush
-
-<div class="d-flex justify-content-between align-items-start gap-3 mb-4">
-    <div>
-        <h2 class="mb-1">CRM</h2>
-        <div class="text-muted small">Kelola lead, customer relationship, dan follow up tim dalam bentuk list atau pipeline kanban.</div>
-    </div>
-    <div class="btn-list">
-        <a href="{{ route('crm.index', array_merge(request()->query(), ['view' => 'list'])) }}" class="btn {{ $viewMode === 'list' ? 'btn-primary' : 'btn-outline-secondary' }}">List</a>
-        <a href="{{ route('crm.index', array_merge(request()->query(), ['view' => 'kanban'])) }}" class="btn {{ $viewMode === 'kanban' ? 'btn-primary' : 'btn-outline-secondary' }}">Kanban</a>
-        <a href="{{ route('crm.create') }}" class="btn btn-dark">Tambah Lead</a>
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-end gap-3">
+        <div>
+            <div class="page-pretitle">Sales</div>
+            <h2 class="page-title">CRM</h2>
+        </div>
+        <div class="btn-list">
+            <a href="{{ route('crm.index', array_merge(request()->query(), ['view' => 'list'])) }}"
+               class="btn {{ $viewMode === 'list' ? 'btn-primary' : 'btn-outline-secondary' }}">
+                <i class="ti ti-list me-1"></i>List
+            </a>
+            <a href="{{ route('crm.index', array_merge(request()->query(), ['view' => 'kanban'])) }}"
+               class="btn {{ $viewMode === 'kanban' ? 'btn-primary' : 'btn-outline-secondary' }}">
+                <i class="ti ti-layout-kanban me-1"></i>Kanban
+            </a>
+            <a href="{{ route('crm.create') }}" class="btn btn-dark">
+                <i class="ti ti-plus me-1"></i>Tambah Lead
+            </a>
+        </div>
     </div>
 </div>
 
-@if(session('status'))
-    <div class="alert alert-info">{{ session('status') }}</div>
-@endif
-
+{{-- Summary metrics --}}
 <div class="row g-3 mb-4">
-    <div class="col-md-3">
-        <div class="crm-metric">
-            <div class="text-muted text-uppercase small fw-bold mb-1">Total Lead</div>
-            <div class="fs-2 fw-bold">{{ $summary['total'] }}</div>
+    @php
+        $metricItems = [
+            ['label' => 'Total Lead',      'value' => $summary['total'], 'icon' => 'ti-users',    'color' => 'primary'],
+            ['label' => 'Open Pipeline',   'value' => $summary['open'],  'icon' => 'ti-activity', 'color' => 'azure'],
+            ['label' => 'Won',             'value' => $summary['won'],   'icon' => 'ti-trophy',   'color' => 'green'],
+            ['label' => 'Estimated Value', 'value' => 'Rp ' . number_format((float) $summary['value'], 0, ',', '.'), 'icon' => 'ti-coin', 'color' => 'orange'],
+        ];
+    @endphp
+    @foreach($metricItems as $m)
+    <div class="col-md-3 col-sm-6">
+        <div class="card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <span class="avatar bg-{{ $m['color'] }}-lt text-{{ $m['color'] }} rounded-3">
+                    <i class="ti {{ $m['icon'] }} fs-4"></i>
+                </span>
+                <div>
+                    <div class="text-muted small fw-semibold text-uppercase">{{ $m['label'] }}</div>
+                    <div class="fs-3 fw-bold lh-1 mt-1">{{ $m['value'] }}</div>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="crm-metric">
-            <div class="text-muted text-uppercase small fw-bold mb-1">Open Pipeline</div>
-            <div class="fs-2 fw-bold">{{ $summary['open'] }}</div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="crm-metric">
-            <div class="text-muted text-uppercase small fw-bold mb-1">Won</div>
-            <div class="fs-2 fw-bold">{{ $summary['won'] }}</div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="crm-metric">
-            <div class="text-muted text-uppercase small fw-bold mb-1">Estimated Value</div>
-            <div class="fs-2 fw-bold">Rp {{ number_format((float) $summary['value'], 0, ',', '.') }}</div>
-        </div>
-    </div>
+    @endforeach
 </div>
 
+{{-- Filter --}}
 <div class="card mb-4">
     <div class="card-body">
         <form method="GET" action="{{ route('crm.index') }}" class="row g-3 align-items-end">
             <input type="hidden" name="view" value="{{ $viewMode }}">
             <div class="col-lg-4">
                 <label class="form-label">Cari</label>
-                <input type="text" name="q" value="{{ $filters['q'] }}" class="form-control" placeholder="Judul lead, nama contact, email, atau catatan">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ti ti-search text-muted"></i></span>
+                    <input type="text" name="q" value="{{ $filters['q'] }}"
+                           class="form-control" placeholder="Judul, contact, email, atau catatan">
+                </div>
             </div>
-            <div class="col-lg-3">
+            <div class="col-lg-2">
                 <label class="form-label">Stage</label>
                 <select name="stage" class="form-select">
                     <option value="">Semua stage</option>
-                    @foreach($stageOptions as $stageKey => $stageLabel)
-                        <option value="{{ $stageKey }}" @selected($filters['stage'] === $stageKey)>{{ $stageLabel }}</option>
+                    @foreach($stageOptions as $key => $label)
+                        <option value="{{ $key }}" @selected($filters['stage'] === $key)>{{ $label }}</option>
                     @endforeach
                 </select>
             </div>
-            <div class="col-lg-3">
+            <div class="col-lg-2">
                 <label class="form-label">Owner</label>
                 <select name="owner_user_id" class="form-select">
                     <option value="">Semua owner</option>
@@ -119,119 +81,319 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-lg-2">
-                <label class="form-check">
-                    <input type="checkbox" name="show_archived" value="1" class="form-check-input" @checked($filters['show_archived'])>
+            <div class="col-lg-2 d-flex align-items-center pt-lg-4">
+                <label class="form-check mb-0">
+                    <input type="checkbox" name="show_archived" value="1"
+                           class="form-check-input" @checked($filters['show_archived'])>
                     <span class="form-check-label">Tampilkan arsip</span>
                 </label>
             </div>
-            <div class="col-12 d-flex gap-2">
-                <button class="btn btn-primary">Terapkan Filter</button>
-                <a href="{{ route('crm.index', ['view' => $viewMode]) }}" class="btn btn-outline-secondary">Reset</a>
+            <div class="col-lg-2 d-flex gap-2">
+                <button class="btn btn-primary flex-fill" type="submit">
+                    <i class="ti ti-filter me-1"></i>Filter
+                </button>
+                <a href="{{ route('crm.index', ['view' => $viewMode]) }}"
+                   class="btn btn-outline-secondary" title="Reset filter">
+                    <i class="ti ti-x"></i>
+                </a>
             </div>
         </form>
     </div>
 </div>
 
 @if($viewMode === 'kanban')
-    <div class="crm-board">
+{{-- ═══════════════════════════════ KANBAN VIEW ═══════════════════════════════ --}}
+<div class="crm-kanban-wrap">
+    <div class="crm-board" id="crm-kanban-board">
         @foreach($board as $column)
-            <div class="crm-column">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div>
-                        <div class="fw-bold">{{ $column['label'] }}</div>
-                        <div class="small text-muted">{{ $column['items']->count() }} lead</div>
-                    </div>
-                    <span class="badge {{ $column['badge_class'] }}">{{ $column['label'] }}</span>
-                </div>
+        @php
+            $colValue = $column['items']->sum(fn ($l) => (float) ($l->estimated_value ?? 0));
+        @endphp
+        <div class="crm-column"
+             data-stage="{{ $column['key'] }}"
+             data-stage-label="{{ $column['label'] }}">
 
+            {{-- Column header --}}
+            <div class="d-flex justify-content-between align-items-start mb-3 gap-2">
+                <div class="min-width-0">
+                    <div class="fw-semibold" style="font-size:.85rem;">{{ $column['label'] }}</div>
+                    <div class="text-muted" style="font-size:.72rem;" data-col-count>
+                        {{ $column['items']->count() }} lead
+                        @if($colValue > 0)· Rp {{ number_format($colValue, 0, ',', '.') }}@endif
+                    </div>
+                </div>
+                <span class="badge {{ $column['badge_class'] }} flex-shrink-0">{{ $column['items']->count() }}</span>
+            </div>
+
+            {{-- Cards --}}
+            <div class="crm-cards">
                 @forelse($column['items'] as $lead)
-                    <div class="crm-card">
-                        <div class="d-flex justify-content-between gap-2 mb-2">
-                            <a href="{{ route('crm.show', $lead) }}" class="crm-card-title text-decoration-none">{{ $lead->title }}</a>
-                            <span class="badge bg-secondary-lt text-secondary">{{ \Illuminate\Support\Str::headline($lead->priority) }}</span>
-                        </div>
-                        <div class="small text-muted mb-2">
-                            {{ $lead->contact?->name ?? 'Tanpa contact terhubung' }}
-                        </div>
-                        <div class="small mb-2">
-                            <i class="ti ti-currency-rupiah me-1"></i>Rp {{ number_format((float) ($lead->estimated_value ?? 0), 0, ',', '.') }}
-                        </div>
-                        <div class="small text-muted mb-3">
-                            <div><i class="ti ti-user me-1"></i>{{ $lead->owner?->name ?? 'Belum ada owner' }}</div>
-                            <div><i class="ti ti-calendar-event me-1"></i>{{ optional($lead->next_follow_up_at)->translatedFormat('d M Y H:i') ?? 'Belum ada follow up' }}</div>
-                        </div>
-                        <div class="d-flex gap-2">
-                            @if($prev = \App\Modules\Crm\Support\CrmStageCatalog::previousStage($lead->stage))
-                                <form method="POST" action="{{ route('crm.stage', $lead) }}">
-                                    @csrf
-                                    <input type="hidden" name="stage" value="{{ $prev }}">
-                                    <button class="btn btn-sm btn-outline-secondary" title="Pindah ke {{ $stageOptions[$prev] }}">
-                                        <i class="ti ti-arrow-left"></i>
-                                    </button>
-                                </form>
+                @php
+                    $isOverdue = $lead->next_follow_up_at && $lead->next_follow_up_at->isPast();
+                    $priorityBar = match($lead->priority) {
+                        'low'    => 'crm-priority-low',
+                        'medium' => 'crm-priority-medium',
+                        'high'   => 'crm-priority-high',
+                        'urgent' => 'crm-priority-urgent',
+                        default  => 'crm-priority-medium',
+                    };
+                @endphp
+                <div class="crm-card"
+                     draggable="true"
+                     data-lead-id="{{ $lead->id }}"
+                     data-value="{{ (float) ($lead->estimated_value ?? 0) }}">
+                    <div class="d-flex gap-2">
+                        <div class="crm-priority-bar {{ $priorityBar }}"></div>
+                        <div class="flex-fill min-width-0">
+                            <a href="{{ route('crm.show', $lead) }}"
+                               class="crm-card-title text-decoration-none d-block mb-1">
+                                {{ $lead->title }}
+                            </a>
+                            @if($lead->contact)
+                            <div class="text-muted mb-1" style="font-size:.75rem;">
+                                <i class="ti ti-user me-1"></i>{{ $lead->contact->name }}
+                            </div>
                             @endif
-                            @if($next = \App\Modules\Crm\Support\CrmStageCatalog::nextStage($lead->stage))
-                                <form method="POST" action="{{ route('crm.stage', $lead) }}">
-                                    @csrf
-                                    <input type="hidden" name="stage" value="{{ $next }}">
-                                    <button class="btn btn-sm btn-outline-primary" title="Pindah ke {{ $stageOptions[$next] }}">
-                                        <i class="ti ti-arrow-right"></i>
-                                    </button>
-                                </form>
+                            <div class="d-flex justify-content-between align-items-center gap-1 mb-1">
+                                <span class="text-muted" style="font-size:.75rem;">
+                                    <i class="ti ti-currency-rupiah"></i>{{ number_format((float) ($lead->estimated_value ?? 0), 0, ',', '.') }}
+                                </span>
+                                @if($lead->probability)
+                                <span class="badge bg-secondary-lt text-secondary" style="font-size:.65rem;">{{ $lead->probability }}%</span>
+                                @endif
+                            </div>
+                            @if($lead->next_follow_up_at)
+                            <div class="{{ $isOverdue ? 'text-danger fw-semibold' : 'text-muted' }}" style="font-size:.72rem;">
+                                <i class="ti ti-calendar-event me-1"></i>{{ $lead->next_follow_up_at->translatedFormat('d M H:i') }}
+                                @if($isOverdue)<span class="badge bg-red-lt text-red ms-1">Overdue</span>@endif
+                            </div>
                             @endif
-                            <a href="{{ route('crm.edit', $lead) }}" class="btn btn-sm btn-outline-dark ms-auto">Edit</a>
+                            <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
+                                <div class="text-muted" style="font-size:.72rem;">
+                                    <i class="ti ti-user-circle me-1"></i>{{ $lead->owner?->name ?? 'No owner' }}
+                                </div>
+                                <a href="{{ route('crm.edit', $lead) }}"
+                                   class="btn btn-ghost-secondary btn-sm py-0 px-1" title="Edit">
+                                    <i class="ti ti-pencil" style="font-size:.8rem;"></i>
+                                </a>
+                            </div>
                         </div>
                     </div>
+                </div>
                 @empty
-                    <div class="text-muted small">Belum ada lead pada stage ini.</div>
+                <div class="text-center text-muted py-4 crm-empty-col"
+                     style="font-size:.8rem; border:2px dashed var(--tblr-card-border-color); border-radius:.75rem;">
+                    <i class="ti ti-inbox d-block mb-1" style="font-size:1.4rem;"></i>
+                    Belum ada lead
+                </div>
                 @endforelse
             </div>
+
+            {{-- Quick add --}}
+            <div class="mt-2">
+                <a href="{{ route('crm.create', ['stage' => $column['key']]) }}"
+                   class="btn btn-ghost-secondary w-100 btn-sm" style="font-size:.75rem;">
+                    <i class="ti ti-plus me-1"></i>Tambah di sini
+                </a>
+            </div>
+        </div>
         @endforeach
     </div>
+</div>
+
+@push('scripts')
+<script>
+(function () {
+    const board = document.getElementById('crm-kanban-board');
+    if (!board) return;
+
+    const token = document.querySelector('meta[name="csrf-token"]')?.content;
+    let draggedEl = null;
+    let draggedId = null;
+
+    board.addEventListener('dragstart', e => {
+        const card = e.target.closest('[data-lead-id]');
+        if (!card) return;
+        draggedEl = card;
+        draggedId = card.dataset.leadId;
+        card.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+    });
+
+    board.addEventListener('dragend', () => {
+        draggedEl?.classList.remove('dragging');
+        board.querySelectorAll('.crm-column').forEach(c => c.classList.remove('drag-over'));
+        draggedEl = draggedId = null;
+    });
+
+    board.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        const col = e.target.closest('.crm-column');
+        if (!col) return;
+        board.querySelectorAll('.crm-column').forEach(c => c.classList.remove('drag-over'));
+        col.classList.add('drag-over');
+    });
+
+    board.addEventListener('dragleave', e => {
+        const col = e.target.closest('.crm-column');
+        if (col && !col.contains(e.relatedTarget)) col.classList.remove('drag-over');
+    });
+
+    board.addEventListener('drop', async e => {
+        e.preventDefault();
+        const col = e.target.closest('.crm-column');
+        col?.classList.remove('drag-over');
+        if (!col || !draggedEl || !draggedId) return;
+
+        const newStage = col.dataset.stage;
+        const originCol = board.querySelector('.crm-column:has([data-lead-id="' + draggedId + '"])');
+        if (originCol === col) return;
+
+        // Optimistic move
+        const cardsEl = col.querySelector('.crm-cards');
+        const emptyEl = cardsEl.querySelector('.crm-empty-col');
+        if (emptyEl) emptyEl.remove();
+        cardsEl.prepend(draggedEl);
+        updateCounters();
+
+        try {
+            const res = await fetch('/crm/' + draggedId + '/stage', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': token,
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ stage: newStage }),
+            });
+            if (!res.ok) throw new Error('server error');
+        } catch {
+            window.location.reload();
+        }
+    });
+
+    function updateCounters() {
+        board.querySelectorAll('.crm-column').forEach(col => {
+            const count = col.querySelectorAll('[data-lead-id]').length;
+            const countEl = col.querySelector('[data-col-count]');
+            if (countEl) countEl.textContent = count + ' lead';
+            const badge = col.querySelector('.badge');
+            if (badge) badge.textContent = count;
+        });
+    }
+})();
+</script>
+@endpush
+
 @else
-    <div class="card">
-        <div class="table-responsive">
-            <table class="table table-vcenter">
-                <thead>
-                    <tr>
-                        <th>Lead</th>
-                        <th>Contact</th>
-                        <th>Stage</th>
-                        <th>Owner</th>
-                        <th>Value</th>
-                        <th>Follow Up</th>
-                        <th class="w-1"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($leads as $lead)
-                        <tr>
-                            <td>
-                                <a href="{{ route('crm.show', $lead) }}" class="text-decoration-none fw-semibold">{{ $lead->title }}</a>
-                                <div class="small text-muted">{{ $lead->lead_source ?: 'Sumber belum diisi' }}</div>
-                            </td>
-                            <td>{{ $lead->contact?->name ?? '-' }}</td>
-                            <td><span class="badge {{ \App\Modules\Crm\Support\CrmStageCatalog::badgeClass($lead->stage) }}">{{ $stageOptions[$lead->stage] ?? $lead->stage }}</span></td>
-                            <td>{{ $lead->owner?->name ?? '-' }}</td>
-                            <td>Rp {{ number_format((float) ($lead->estimated_value ?? 0), 0, ',', '.') }}</td>
-                            <td>{{ optional($lead->next_follow_up_at)->translatedFormat('d M Y H:i') ?? '-' }}</td>
-                            <td class="text-end">
-                                <div class="btn-list flex-nowrap">
-                                    <a href="{{ route('crm.edit', $lead) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
-                                    <a href="{{ route('crm.show', $lead) }}" class="btn btn-sm btn-primary">Detail</a>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="7" class="text-center text-muted">Belum ada lead CRM.</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-        <div class="card-footer">
-            {{ $leads?->links() }}
-        </div>
+{{-- ════════════════════════════════ LIST VIEW ════════════════════════════════ --}}
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter table-hover">
+            <thead>
+                <tr>
+                    <th>Lead</th>
+                    <th>Contact</th>
+                    <th>Stage</th>
+                    <th>Priority</th>
+                    <th>Owner</th>
+                    <th>Value</th>
+                    <th>Follow Up</th>
+                    <th class="w-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($leads as $lead)
+                @php
+                    $isOverdue = $lead->next_follow_up_at && $lead->next_follow_up_at->isPast();
+                @endphp
+                <tr>
+                    <td>
+                        <a href="{{ route('crm.show', $lead) }}"
+                           class="text-decoration-none fw-semibold text-body">{{ $lead->title }}</a>
+                        @if($lead->lead_source)
+                        <div class="small text-muted">{{ $lead->lead_source }}</div>
+                        @endif
+                        @if($lead->is_archived)
+                        <span class="badge bg-secondary-lt text-secondary">Arsip</span>
+                        @endif
+                    </td>
+                    <td>
+                        @if($lead->contact)
+                            <div>{{ $lead->contact->name }}</div>
+                            @if($lead->contact->email)
+                            <div class="small text-muted">{{ $lead->contact->email }}</div>
+                            @endif
+                        @else
+                            <span class="text-muted">-</span>
+                        @endif
+                    </td>
+                    <td>
+                        <span class="badge {{ \App\Modules\Crm\Support\CrmStageCatalog::badgeClass($lead->stage) }}">
+                            {{ $stageOptions[$lead->stage] ?? $lead->stage }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge {{ \App\Modules\Crm\Support\CrmStageCatalog::priorityBadgeClass($lead->priority) }}">
+                            {{ \Illuminate\Support\Str::headline($lead->priority) }}
+                        </span>
+                    </td>
+                    <td>{{ $lead->owner?->name ?? '-' }}</td>
+                    <td>
+                        <span class="fw-semibold">Rp {{ number_format((float) ($lead->estimated_value ?? 0), 0, ',', '.') }}</span>
+                        @if($lead->probability)
+                        <div class="small text-muted">{{ $lead->probability }}%</div>
+                        @endif
+                    </td>
+                    <td>
+                        @if($lead->next_follow_up_at)
+                            <span class="{{ $isOverdue ? 'text-danger fw-semibold' : '' }}">
+                                {{ $lead->next_follow_up_at->translatedFormat('d M Y H:i') }}
+                            </span>
+                            @if($isOverdue)
+                            <div><span class="badge bg-red-lt text-red">Overdue</span></div>
+                            @endif
+                        @else
+                            <span class="text-muted">-</span>
+                        @endif
+                    </td>
+                    <td>
+                        <div class="table-actions">
+                            <a href="{{ route('crm.show', $lead) }}"
+                               class="btn btn-icon btn-ghost-secondary" title="Detail">
+                                <i class="ti ti-eye"></i>
+                            </a>
+                            <a href="{{ route('crm.edit', $lead) }}"
+                               class="btn btn-icon btn-ghost-secondary" title="Edit">
+                                <i class="ti ti-pencil"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="8">
+                        <div class="text-center py-5">
+                            <i class="ti ti-users-group d-block mx-auto mb-2"
+                               style="font-size:2.5rem; color:var(--brand-gray-300);"></i>
+                            <div class="text-muted fw-medium">Belum ada lead CRM.</div>
+                            <div class="text-muted small mb-3">Mulai dengan menambahkan lead pertama.</div>
+                            <a href="{{ route('crm.create') }}" class="btn btn-primary">
+                                <i class="ti ti-plus me-1"></i>Tambah Lead Pertama
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
+    @if($leads?->hasPages())
+    <div class="card-footer">
+        {{ $leads->links() }}
+    </div>
+    @endif
+</div>
 @endif
 @endsection

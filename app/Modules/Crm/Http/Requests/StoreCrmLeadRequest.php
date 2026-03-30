@@ -3,6 +3,7 @@
 namespace App\Modules\Crm\Http\Requests;
 
 use App\Modules\Crm\Support\CrmStageCatalog;
+use App\Support\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -16,8 +17,16 @@ class StoreCrmLeadRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'contact_id' => ['nullable', 'integer', 'exists:contacts,id'],
-            'owner_user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'contact_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('contacts', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId())),
+            ],
+            'owner_user_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('users', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId())),
+            ],
             'title' => ['required', 'string', 'max:255'],
             'stage' => ['required', Rule::in(array_keys(CrmStageCatalog::options()))],
             'priority' => ['nullable', Rule::in(array_keys(CrmStageCatalog::priorities()))],

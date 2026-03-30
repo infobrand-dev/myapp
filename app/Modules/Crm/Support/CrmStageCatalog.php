@@ -46,6 +46,17 @@ class CrmStageCatalog
         };
     }
 
+    public static function priorityBadgeClass(string $priority): string
+    {
+        return match ($priority) {
+            'low'    => 'bg-green-lt text-green',
+            'medium' => 'bg-azure-lt text-azure',
+            'high'   => 'bg-warning-lt text-warning',
+            'urgent' => 'bg-red-lt text-red',
+            default  => 'bg-secondary-lt text-secondary',
+        };
+    }
+
     public static function nextStage(?string $stage): ?string
     {
         $keys = array_keys(self::options());

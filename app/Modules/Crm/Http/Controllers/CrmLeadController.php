@@ -14,6 +14,7 @@ use App\Modules\Crm\Support\CrmStageCatalog;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -172,7 +173,7 @@ class CrmLeadController extends Controller
         return redirect()->route('crm.show', $lead)->with('status', 'Lead CRM berhasil diperbarui.');
     }
 
-    public function updateStage(Request $request, CrmLead $lead): RedirectResponse
+    public function updateStage(Request $request, CrmLead $lead): RedirectResponse|JsonResponse
     {
         $request->validate([
             'stage' => ['required', 'in:' . implode(',', array_keys(CrmStageCatalog::options()))],
@@ -185,6 +186,10 @@ class CrmLeadController extends Controller
             'won_at' => $stage === CrmStageCatalog::WON ? now() : null,
             'lost_at' => $stage === CrmStageCatalog::LOST ? now() : null,
         ])->save();
+
+        if ($request->wantsJson()) {
+            return response()->json(['ok' => true, 'stage' => $stage]);
+        }
 
         return back()->with('status', 'Tahap CRM berhasil diperbarui.');
     }

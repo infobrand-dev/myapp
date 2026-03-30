@@ -470,8 +470,9 @@ class PlatformOwnerController extends Controller
         }
 
         $welcomePayload = null;
+        $paymentMailQueue = [];
 
-        DB::transaction(function () use ($order, $onboardingSales, &$welcomePayload): void {
+        DB::transaction(function () use ($order, $onboardingSales, &$welcomePayload, &$paymentMailQueue): void {
             TenantSubscription::query()
                 ->where('tenant_id', $order->tenant_id)
                 ->where('status', 'active')
@@ -503,17 +504,52 @@ class PlatformOwnerController extends Controller
                 'tenant_subscription_id' => $subscription->id,
             ])->save();
 
+            foreach ($order->invoices()->get() as $invoice) {
+                $invoice->forceFill([
+                    'status' => 'paid',
+                    'paid_at' => $order->paid_at ?: now(),
+                ])->save();
+
+                $payment = PlatformPayment::query()->firstOrCreate(
+                    [
+                        'platform_invoice_id' => $invoice->id,
+                        'reference' => $order->order_number,
+                    ],
+                    [
+                        'tenant_id' => $invoice->tenant_id,
+                        'amount' => $invoice->amount,
+                        'currency' => $invoice->currency,
+                        'status' => 'paid',
+                        'payment_channel' => $order->payment_channel ?: 'manual',
+                        'paid_at' => $order->paid_at ?: now(),
+                        'meta' => [
+                            'recorded_from' => 'mark_order_paid',
+                            'recorded_by_user_id' => auth()->id(),
+                        ],
+                    ]
+                );
+
+                $paymentMailQueue[] = [
+                    'invoice' => $invoice->fresh(['tenant', 'plan', 'order']),
+                    'payment' => $payment,
+                ];
+            }
+
             $welcomePayload = $onboardingSales->completePaidOnboarding(
                 $order->fresh(['tenant']),
                 $order->paid_at ?: now()
             );
         });
 
+        foreach ($paymentMailQueue as $mailPayload) {
+            $this->sendPlatformPaymentReceivedMail($mailPayload['invoice'], $mailPayload['payment']);
+        }
+
         if ($welcomePayload) {
             $onboardingSales->queueWelcomeMail($welcomePayload);
         }
 
-        return back()->with('status', 'Order ditandai paid dan subscription tenant sudah diaktifkan.');
+        return back()->with('status', 'Order ditandai paid, invoice disinkronkan, dan subscription tenant sudah diaktifkan.');
     }
 
     public function createInvoice(PlatformPlanOrder $order): RedirectResponse

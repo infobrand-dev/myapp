@@ -127,6 +127,7 @@ class ResolveTenantContext
     {
         return $request->path() === '/'
             || $request->is('onboarding')
+            || $request->is('workspace')
             || $request->is('health')
             || $request->is('locale/switch');
     }

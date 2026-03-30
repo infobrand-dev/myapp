@@ -26,6 +26,8 @@ use Illuminate\Support\Facades\Route;
 Route::post('locale/switch', [App\Http\Controllers\LocaleController::class, 'switch'])->name('locale.switch');
 
 Route::get('/', LandingPageController::class)->name('landing');
+Route::get('/workspace', [LandingPageController::class, 'workspaceFinder'])->name('workspace.finder');
+Route::post('/workspace', [LandingPageController::class, 'redirectToWorkspaceLogin'])->name('workspace.redirect');
 
 // Health check — no auth, no session, no CSRF. Used by uptime monitors and load balancers.
 Route::get('/health', function () {

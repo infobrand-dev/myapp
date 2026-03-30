@@ -29,7 +29,7 @@
                         <a href="#results" class="btn btn-link text-decoration-none text-dark">Fitur</a>
                         <a href="#pricing" class="btn btn-link text-decoration-none text-dark">Paket & Harga</a>
                         <a href="#faq" class="btn btn-link text-decoration-none text-dark">FAQ</a>
-                        <a href="{{ $workspaceUrl }}" class="btn btn-outline-dark">Login Workspace</a>
+                        <a href="{{ route('workspace.finder') }}" class="btn btn-outline-dark">Login Workspace</a>
                         <a href="{{ route('onboarding.create') }}" class="btn btn-dark">Daftar Sekarang</a>
                     </div>
                 </div>
@@ -421,7 +421,7 @@
                                 </p>
                             </div>
                             <div class="col-lg-4 text-lg-end">
-                                <a href="{{ $workspaceUrl }}" class="btn btn-dark btn-lg">Buka Login Workspace</a>
+                                <a href="{{ route('workspace.finder') }}" class="btn btn-dark btn-lg">Buka Login Workspace</a>
                             </div>
                         </div>
                     </div>
@@ -439,7 +439,7 @@
                             </div>
                             <div class="col-lg-4 text-lg-end">
                                 <a href="{{ route('onboarding.create') }}" class="btn btn-light btn-lg me-2 mb-2">Mulai Sekarang</a>
-                                <a href="{{ $workspaceUrl }}" class="btn btn-outline-light btn-lg mb-2">Masuk Workspace</a>
+                                <a href="{{ route('workspace.finder') }}" class="btn btn-outline-light btn-lg mb-2">Masuk Workspace</a>
                             </div>
                         </div>
                     </div>

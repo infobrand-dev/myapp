@@ -90,6 +90,7 @@ Route::middleware(['auth', 'verified', '2fa', 'platform.admin', \App\Http\Middle
         Route::post('/tenants/{tenant}/status', [PlatformOwnerController::class, 'updateTenantStatus'])->name('tenants.status');
         Route::post('/tenants/{tenant}/notes', [PlatformOwnerController::class, 'updateTenantNotes'])->name('tenants.notes');
         Route::post('/tenants/{tenant}/ai-credits', [PlatformOwnerController::class, 'topUpAiCredits'])->name('tenants.ai-credits.store');
+        Route::post('/ai-credit-pricing', [PlatformOwnerController::class, 'updateAiCreditPricing'])->name('ai-credit-pricing.update');
         Route::post('/tenants/{tenant}/assign-plan', [PlatformOwnerController::class, 'assignPlan'])->name('tenants.assign-plan');
         Route::post('/tenants/{tenant}/orders', [PlatformOwnerController::class, 'createOrder'])->name('tenants.orders.store');
         Route::get('/plans', [PlatformOwnerController::class, 'plans'])->name('plans.index');

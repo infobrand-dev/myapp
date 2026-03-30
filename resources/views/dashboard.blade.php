@@ -2,6 +2,7 @@
 
 @section('content')
 @php($hooks = app(\App\Support\HookManager::class))
+@php($money = app(\App\Support\MoneyFormatter::class))
 
 <div class="dashboard-shell">
     <div class="row g-3">
@@ -206,6 +207,26 @@
                             </div>
                         </div>
                     </div>
+                </div>
+
+                @if(!empty($aiCredits['advice']))
+                    @php($aiAdviceTone = in_array(($aiCredits['status'] ?? 'ok'), ['at_limit', 'over_limit'], true) ? 'danger' : (($aiCredits['status'] ?? 'ok') === 'near_limit' ? 'warning' : 'secondary'))
+                    <div class="alert alert-{{ $aiAdviceTone }} mt-3 mb-0">
+                        <div class="fw-semibold">{{ $aiCredits['advice']['title'] }}</div>
+                        <div class="small mt-1">{{ $aiCredits['advice']['tenant_cta'] }}</div>
+                    </div>
+                @endif
+
+                <div class="text-muted small mt-3">
+                    <div>{{ $money->format($aiCreditPricing['price_per_credit'], $aiCreditPricing['currency']) }} / AI Credit</div>
+                    <div>1 AI Credit dipakai saat fitur AI memproses permintaan.</div>
+                </div>
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                    @foreach($aiCreditPricing['packs'] as $pack)
+                        <span class="badge bg-azure-lt text-azure">
+                            Top Up {{ number_format($pack['credits']) }} AI Credits · {{ $money->format($pack['price'], $aiCreditPricing['currency']) }}
+                        </span>
+                    @endforeach
                 </div>
             </div>
         </div>

@@ -12,6 +12,7 @@ class AiUsageService
 {
     public function __construct(
         private readonly TenantPlanManager $plans,
+        private readonly AiCreditPricingService $pricing,
     ) {
     }
 
@@ -51,7 +52,7 @@ class AiUsageService
 
     public function creditsForTokens(int $totalTokens): int
     {
-        $unit = max(1, (int) config('services.openai.credit_token_unit', 1000));
+        $unit = $this->pricing->unitTokens();
 
         return max(1, (int) ceil(max(0, $totalTokens) / $unit));
     }

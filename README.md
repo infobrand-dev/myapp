@@ -142,6 +142,19 @@ php artisan optimize:clear
 php artisan about
 ```
 
+## AI Credits
+- Konversi internal launch: `1 AI Credit = 1.000 tokens`
+- Harga default launch:
+  - `Rp 100 / AI Credit`
+  - `500 AI Credits = Rp 50.000`
+  - `1.000 AI Credits = Rp 100.000`
+- Fallback env default tersedia di `.env.example`:
+  - `AI_CREDIT_CURRENCY=IDR`
+  - `AI_CREDIT_UNIT_TOKENS=1000`
+  - `AI_CREDIT_PRICE_PER_CREDIT=100`
+  - `AI_CREDIT_PACK_OPTIONS=500,1000`
+- Source of truth runtime tetap di database table `ai_credit_pricing_settings` bila migration sudah dijalankan dan pricing diubah dari control plane.
+
 Jika DSN terisi, blok `Sentry` akan tampil aktif dan unhandled exception akan dikirim ke proyek Sentry Anda.
 
 ## Realtime

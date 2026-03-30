@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\DocumentSetting;
+use App\Services\AiCreditPricingService;
 use App\Models\User;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
@@ -31,6 +32,7 @@ class SettingsController extends Controller
         ModuleManager $modules,
         TenantPlanManager $planManager,
         CurrencySettingsResolver $currencySettings,
+        AiCreditPricingService $aiPricing,
         DocumentSettingsResolver $documentSettingsResolver,
         string $section = 'general'
     ): View
@@ -113,11 +115,13 @@ class SettingsController extends Controller
                 $state = $planManager->usageState($definition['key'], $tenantId);
 
                 return [
+                    'key' => $definition['key'],
                     'label' => $definition['label'],
                     'limit' => $state['limit'],
                     'usage' => $state['usage'],
                     'remaining' => $state['remaining'],
                     'status' => $state['status'],
+                    'advice' => $planManager->limitActionAdvice($definition['key'], $state['status'], $tenantId),
                 ];
             })
             ->values();
@@ -189,6 +193,7 @@ class SettingsController extends Controller
             'branchDocumentSetting' => $branchDocumentSetting,
             'documentPreview' => $documentPreview,
             'settingsStats' => $this->stats($companies, $branches, $users, $activeModules, $currentCompanyId, $currentBranchId),
+            'aiCreditPricing' => $aiPricing->snapshot(),
         ]);
     }
 

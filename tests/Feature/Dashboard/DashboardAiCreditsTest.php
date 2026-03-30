@@ -3,6 +3,7 @@
 namespace Tests\Feature\Dashboard;
 
 use App\Models\AiCreditTransaction;
+use App\Models\AiCreditPricingSetting;
 use App\Models\AiUsageLog;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
@@ -26,6 +27,10 @@ class DashboardAiCreditsTest extends TestCase
         ]);
         $this->artisan('migrate', [
             '--path' => 'database/migrations/2026_03_28_131000_create_ai_credit_transactions_table.php',
+            '--force' => true,
+        ]);
+        $this->artisan('migrate', [
+            '--path' => 'database/migrations/2026_03_31_090000_create_ai_credit_pricing_settings_table.php',
             '--force' => true,
         ]);
 
@@ -57,12 +62,23 @@ class DashboardAiCreditsTest extends TestCase
             'reference' => 'AI-TOPUP-1',
         ]);
 
+        AiCreditPricingSetting::query()->create([
+            'tenant_id' => 1,
+            'currency' => 'IDR',
+            'unit_tokens' => 1000,
+            'price_per_credit' => 100,
+            'pack_options' => [500, 1000],
+        ]);
+
         $this->actingAs($user)
             ->get('/dashboard')
             ->assertOk()
             ->assertSeeText('AI Credits')
             ->assertSeeText('Pemakaian AI bulan ini')
-            ->assertSeeText('598');
+            ->assertSeeText('598')
+            ->assertSeeText('1 AI Credit dipakai saat fitur AI memproses permintaan.')
+            ->assertSeeText('Top Up 500 AI Credits')
+            ->assertSeeText('Top Up 1,000 AI Credits');
     }
 
     private function makeTenantWithPlan(string $planCode, string $slug): array

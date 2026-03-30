@@ -53,6 +53,13 @@ return [
         'output_rate_per_million_tokens' => (float) env('OPENAI_OUTPUT_RATE_PER_MILLION_TOKENS', 0),
     ],
 
+    'ai_credits' => [
+        'currency' => env('AI_CREDIT_CURRENCY', 'IDR'),
+        'unit_tokens' => (int) env('AI_CREDIT_UNIT_TOKENS', 1000),
+        'price_per_credit' => (int) env('AI_CREDIT_PRICE_PER_CREDIT', 100),
+        'pack_options' => array_values(array_filter(array_map('intval', explode(',', (string) env('AI_CREDIT_PACK_OPTIONS', '500,1000'))))),
+    ],
+
     'midtrans' => [
         'is_active' => env('MIDTRANS_IS_ACTIVE', false),
         'environment' => env('MIDTRANS_ENVIRONMENT', 'sandbox'),

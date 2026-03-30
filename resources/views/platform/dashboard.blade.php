@@ -118,6 +118,73 @@
         </div>
     </div>
 
+    <div class="row g-3 mb-4">
+        <div class="col-lg-5">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">Pricing AI Credits</h3>
+                </div>
+                <div class="card-body">
+                    <div class="text-secondary text-uppercase small fw-bold">Harga Dasar</div>
+                    <div class="fs-2 fw-bold mt-2">{{ $money->format($aiPricing['price_per_credit'], $aiPricing['currency']) }} / AI Credit</div>
+                    <div class="text-muted small mt-2">1 AI Credit = {{ number_format($aiPricing['unit_tokens']) }} tokens internal.</div>
+                    <div class="mt-3">
+                        <div class="text-secondary text-uppercase small fw-bold mb-2">Pack Launch</div>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach($aiPricing['packs'] as $pack)
+                                <span class="badge bg-azure-lt text-azure">
+                                    {{ number_format($pack['credits']) }} AI Credits · {{ $money->format($pack['price'], $aiPricing['currency']) }}
+                                </span>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-7">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">Atur Pricing AI Credits</h3>
+                </div>
+                <div class="card-body">
+                    @if(!($aiPricing['ready'] ?? false))
+                        <div class="alert alert-warning mb-3">
+                            <i class="ti ti-alert-triangle me-2"></i>Table AI credit pricing settings belum tersedia. Jalankan migration terlebih dahulu.
+                        </div>
+                    @endif
+                    <form method="POST" action="{{ route('platform.ai-credit-pricing.update') }}">
+                        @csrf
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Currency</label>
+                                <input type="text" class="form-control" name="currency" value="{{ $aiPricing['currency'] }}" readonly>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Tokens per Credit</label>
+                                <input type="number" class="form-control" name="unit_tokens" min="1" step="1" value="{{ $aiPricing['unit_tokens'] }}" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Harga per Credit</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">Rp</span>
+                                    <input type="number" class="form-control" name="price_per_credit" min="1" step="1" value="{{ $aiPricing['price_per_credit'] }}" required>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Pack Options</label>
+                                <input type="text" class="form-control" name="pack_options" value="{{ implode(',', $aiPricing['pack_options']) }}" placeholder="500,1000" required>
+                                <div class="form-hint">Pisahkan dengan koma. Harga pack dihitung otomatis dari harga per credit.</div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-outline-primary" @disabled(!($aiPricing['ready'] ?? false))>Simpan Pricing AI</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row g-3">
         <div class="col-lg-6">
             <div class="card h-100">

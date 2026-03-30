@@ -136,6 +136,42 @@ class TenantPlanManager
         ];
     }
 
+    public function limitActionAdvice(string $key, ?string $status = null, ?int $tenantId = null): ?array
+    {
+        $status ??= $this->usageState($key, $tenantId)['status'] ?? 'ok';
+
+        if (!in_array($status, ['near_limit', 'at_limit', 'over_limit'], true)) {
+            return null;
+        }
+
+        return match ($key) {
+            PlanLimit::AI_CREDITS_MONTHLY => [
+                'title' => 'Tambahkan AI Credits atau upgrade plan',
+                'message' => 'Jika kuota AI Credits hampir habis atau sudah habis, tambahkan top up AI Credits atau pindahkan tenant ke plan dengan kuota AI lebih besar.',
+                'tenant_cta' => 'Hubungi admin platform untuk top up AI Credits atau upgrade plan.',
+                'owner_cta' => 'Gunakan Top Up AI Credits atau assign plan yang lebih tinggi.',
+            ],
+            PlanLimit::WA_BLAST_RECIPIENTS_MONTHLY, PlanLimit::EMAIL_RECIPIENTS_MONTHLY => [
+                'title' => 'Naikkan kuota recipient bulanan',
+                'message' => 'Kuota recipient bulanan tidak bertambah otomatis. Tenant perlu upgrade plan atau dipindahkan ke paket dengan batas pengiriman yang lebih besar.',
+                'tenant_cta' => 'Hubungi admin platform untuk upgrade plan atau penyesuaian kuota bulanan.',
+                'owner_cta' => 'Assign plan yang lebih tinggi atau revisi limit plan untuk tenant ini.',
+            ],
+            PlanLimit::WHATSAPP_INSTANCES, PlanLimit::SOCIAL_ACCOUNTS, PlanLimit::LIVE_CHAT_WIDGETS, PlanLimit::CHATBOT_ACCOUNTS, PlanLimit::EMAIL_INBOX_ACCOUNTS => [
+                'title' => 'Aktifkan kapasitas channel yang lebih besar',
+                'message' => 'Batas channel atau connection perlu ditambah lewat upgrade plan atau add-on. Resource baru tidak bisa dibuat saat kapasitas sudah penuh.',
+                'tenant_cta' => 'Hubungi admin platform untuk upgrade plan atau aktivasi add-on channel.',
+                'owner_cta' => 'Naikkan plan tenant atau tambah limit connection/channel pada plan yang dipakai.',
+            ],
+            default => [
+                'title' => 'Upgrade plan atau tambah limit',
+                'message' => 'Saat kapasitas mendekati habis, tenant tetap bisa memakai data yang ada tetapi tidak bisa menambah resource baru setelah batas tercapai.',
+                'tenant_cta' => 'Hubungi admin platform untuk upgrade plan atau penambahan limit.',
+                'owner_cta' => 'Assign plan yang lebih tinggi atau revisi limit pada plan tenant ini.',
+            ],
+        };
+    }
+
     public function hasCapacity(string $key, int $increment = 1, ?int $tenantId = null): bool
     {
         $limit = $this->limit($key, $tenantId);

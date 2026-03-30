@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\AiCreditPricingService;
 use App\Services\AiUsageService;
 use App\Support\ModuleManager;
 use App\Support\PlanFeature;
+use App\Support\PlanLimit;
 use App\Support\TenantContext;
 use App\Support\TenantPlanManager;
 use Illuminate\Contracts\View\View;
@@ -13,7 +15,7 @@ use Spatie\Permission\Models\Role;
 
 class DashboardController extends Controller
 {
-    public function __invoke(ModuleManager $modules, TenantPlanManager $plans, AiUsageService $aiUsage)
+    public function __invoke(ModuleManager $modules, TenantPlanManager $plans, AiUsageService $aiUsage, AiCreditPricingService $aiPricing)
     {
         if (request()->attributes->get('platform_admin_host')) {
             return redirect()->route('platform.dashboard');
@@ -103,6 +105,8 @@ class DashboardController extends Controller
             ->values();
 
         $aiCredits = $aiUsage->summary($tenantId);
+        $aiState = $plans->usageState(PlanLimit::AI_CREDITS_MONTHLY, $tenantId);
+        $aiAdvice = $plans->limitActionAdvice(PlanLimit::AI_CREDITS_MONTHLY, $aiState['status'], $tenantId);
 
         return view('dashboard', [
             'isPrivileged' => $isPrivileged,
@@ -113,7 +117,10 @@ class DashboardController extends Controller
             'totalModules' => $visibleModules->count(),
             'aiCredits' => $aiCredits + [
                 'enabled' => $plans->hasFeature(PlanFeature::CHATBOT_AI, $tenantId),
+                'status' => $aiState['status'],
+                'advice' => $aiAdvice,
             ],
+            'aiCreditPricing' => $aiPricing->snapshot(),
         ]);
     }
 }

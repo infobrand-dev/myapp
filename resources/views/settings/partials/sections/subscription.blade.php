@@ -42,6 +42,7 @@
                             <th>Penggunaan</th>
                             <th>Batas</th>
                             <th>Status</th>
+                            <th>Tindakan</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -59,12 +60,43 @@
                                 <td>{{ $limit['usage'] }}</td>
                                 <td>{{ $limit['limit'] ?? 'Tidak terbatas' }}</td>
                                 <td><span class="badge {{ $statusInfo['class'] }}">{{ $statusInfo['label'] }}</span></td>
+                                <td class="small text-muted">{{ $limit['advice']['tenant_cta'] ?? 'Tidak perlu tindakan saat ini.' }}</td>
                             </tr>
                         @endforeach
                     </tbody>
                 </table>
             </div>
+            @if(collect($limitSummaries)->contains(fn ($limit) => !empty($limit['advice'])))
+                <div class="card-body border-top">
+                    <div class="alert alert-warning mb-0">
+                        Jika kapasitas hampir habis atau sudah habis, tenant tetap bisa memakai data yang sudah ada, tetapi penambahan resource baru akan diblokir. Hubungi admin platform untuk upgrade plan, penambahan limit, atau top up AI Credits.
+                    </div>
+                </div>
+            @endif
         </div>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Top Up AI Credits</h3>
+    </div>
+    <div class="card-body">
+        @php($money = app(\App\Support\MoneyFormatter::class))
+        <div class="text-muted small mb-3">
+            1 AI Credit dipakai saat fitur AI memproses permintaan. Jika kuota AI hampir habis, hubungi admin platform untuk top up atau upgrade plan.
+        </div>
+        <div class="row g-3">
+            @foreach($aiCreditPricing['packs'] as $pack)
+                <div class="col-md-6">
+                    <div class="border rounded-3 p-3 h-100">
+                        <div class="fw-semibold">Top Up {{ number_format($pack['credits']) }} AI Credits</div>
+                        <div class="text-muted small mt-1">{{ $money->format($pack['price'], $aiCreditPricing['currency']) }}</div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+        <div class="text-muted small mt-3">{{ $money->format($aiCreditPricing['price_per_credit'], $aiCreditPricing['currency']) }} / AI Credit · 1 AI Credit = {{ number_format($aiCreditPricing['unit_tokens']) }} tokens.</div>
     </div>
 </div>
 

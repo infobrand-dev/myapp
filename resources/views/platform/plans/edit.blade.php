@@ -78,6 +78,24 @@
                 <div class="card">
                     <div class="card-header"><h3 class="card-title mb-0">Fitur & Batas</h3></div>
                     <div class="card-body">
+                        <div class="mb-4">
+                            <label class="form-label">Template Paket</label>
+                            <div class="row g-2">
+                                @foreach($planPresets as $presetKey => $preset)
+                                    <div class="col-md-6">
+                                        <button
+                                            type="button"
+                                            class="btn btn-outline-secondary text-start w-100 h-100 js-plan-preset"
+                                            data-preset='@json($preset)'
+                                        >
+                                            <div class="fw-semibold">{{ $preset['label'] }}</div>
+                                            <div class="small text-muted">{{ $preset['description'] }}</div>
+                                        </button>
+                                    </div>
+                                @endforeach
+                            </div>
+                            <div class="form-hint mt-2">Template ini hanya mengisi default feature dan limit. Anda tetap bisa mengubah manual setelahnya.</div>
+                        </div>
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <div class="text-secondary text-uppercase small fw-bold mb-2">Fitur</div>
@@ -109,4 +127,35 @@
             </button>
         </div>
     </form>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.js-plan-preset').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    const preset = JSON.parse(button.getAttribute('data-preset') || '{}');
+
+                    if (preset.product_line) {
+                        const productLine = document.querySelector('select[name="product_line"]');
+                        if (productLine) {
+                            productLine.value = preset.product_line;
+                        }
+                    }
+
+                    Object.entries(preset.features || {}).forEach(function ([key, enabled]) {
+                        const input = document.querySelector('input[name="features[' + key + ']"]');
+                        if (input) {
+                            input.checked = !!enabled;
+                        }
+                    });
+
+                    Object.entries(preset.limits || {}).forEach(function ([key, value]) {
+                        const input = document.querySelector('input[name="limits[' + key + ']"]');
+                        if (input) {
+                            input.value = value;
+                        }
+                    });
+                });
+            });
+        });
+    </script>
 @endsection

@@ -66,6 +66,41 @@
                                 · Sisa {{ number_format($aiSummary['remaining'] ?? 0) }}
                             @endif
                         </div>
+                        <div class="text-muted small mt-2">
+                            {{ $money->format($aiPricing['price_per_credit'], $aiPricing['currency']) }} / AI Credit
+                            Â· 1 AI Credit = {{ number_format($aiPricing['unit_tokens']) }} tokens
+                        </div>
+                        <div class="d-flex flex-wrap gap-2 mt-2">
+                            @foreach($aiPricing['packs'] as $pack)
+                                <span class="badge bg-azure-lt text-azure">
+                                    {{ number_format($pack['credits']) }} AI Credits · {{ $money->format($pack['price'], $aiPricing['currency']) }}
+                                </span>
+                            @endforeach
+                        </div>
+                        {{--
+                        <div class="text-muted small mt-2">
+                            {{ $money->format($aiPricing['price_per_credit'], $aiPricing['currency']) }} / AI Credit
+                            Ã‚Â· 1 AI Credit = {{ number_format($aiPricing['unit_tokens']) }} tokens
+                        </div>
+                        <div class="d-flex flex-wrap gap-2 mt-2">
+                            @foreach($aiPricing['packs'] as $pack)
+                                <span class="badge bg-azure-lt text-azure">
+                                    {{ number_format($pack['credits']) }} AI Credits Â· {{ $money->format($pack['price'], $aiPricing['currency']) }}
+                                </span>
+                            @endforeach
+                        </div>
+                        --}}
+                        <div class="text-muted small mt-2">
+                            {{ $money->format($aiPricing['price_per_credit'], $aiPricing['currency']) }} / AI Credit
+                            - 1 AI Credit = {{ number_format($aiPricing['unit_tokens']) }} tokens
+                        </div>
+                        <div class="d-flex flex-wrap gap-2 mt-2">
+                            @foreach($aiPricing['packs'] as $pack)
+                                <span class="badge bg-azure-lt text-azure">
+                                    {{ number_format($pack['credits']) }} AI Credits - {{ $money->format($pack['price'], $aiPricing['currency']) }}
+                                </span>
+                            @endforeach
+                        </div>
                     </div>
                 </div>
             </div>
@@ -104,7 +139,7 @@
                 <div class="card-header"><h3 class="card-title mb-0">Penggunaan & Batas Plan</h3></div>
                 <div class="table-responsive">
                     <table class="table table-vcenter card-table">
-                        <thead><tr><th>Metrik</th><th>Penggunaan</th><th>Batas</th><th>Status</th></tr></thead>
+                        <thead><tr><th>Metrik</th><th>Penggunaan</th><th>Batas</th><th>Status</th><th>Tindakan</th></tr></thead>
                         <tbody>
                             @foreach($usageRows as $row)
                                 @php
@@ -121,11 +156,19 @@
                                     <td>{{ $row['usage'] }}</td>
                                     <td>{{ $row['limit'] ?? 'Tidak terbatas' }}</td>
                                     <td><span class="badge {{ $statusInfo['class'] }}">{{ $statusInfo['label'] }}</span></td>
+                                    <td class="small text-muted">{{ $row['advice']['owner_cta'] ?? 'Tidak perlu tindakan saat ini.' }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
                     </table>
                 </div>
+                @if(collect($usageRows)->contains(fn ($row) => !empty($row['advice'])))
+                    <div class="card-body border-top">
+                        <div class="alert alert-warning mb-0">
+                            Saat limit tenant mendekati habis atau sudah habis, penambahan resource baru akan diblokir. Dari halaman ini Anda bisa assign plan yang lebih tinggi atau gunakan top up AI Credits untuk kebutuhan AI.
+                        </div>
+                    </div>
+                @endif
             </div>
 
             <div class="card mt-3">
@@ -249,6 +292,15 @@
                             <i class="ti ti-alert-triangle me-2"></i>Table AI credit transactions belum tersedia. Jalankan migration terlebih dahulu.
                         </div>
                     @endif
+                    <div class="alert alert-azure mb-3">
+                        <div class="fw-semibold">Pack launch AI Credits</div>
+                        <div class="small mt-1">
+                            @foreach($aiPricing['packs'] as $pack)
+                                <div>Top Up {{ number_format($pack['credits']) }} AI Credits · {{ $money->format($pack['price'], $aiPricing['currency']) }}</div>
+                            @endforeach
+                            <div class="mt-1">{{ $money->format($aiPricing['price_per_credit'], $aiPricing['currency']) }} / AI Credit sebagai harga dasar.</div>
+                        </div>
+                    </div>
                     <form method="POST" action="{{ route('platform.tenants.ai-credits.store', $tenant) }}">
                         @csrf
                         <div class="row g-3">

@@ -13,6 +13,7 @@ use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Models\TenantSubscription;
 use App\Services\GoliveAuditService;
+use App\Services\AiCreditPricingService;
 use App\Services\AiUsageService;
 use App\Services\PlatformAffiliateService;
 use App\Services\PlatformMidtransBillingService;
@@ -51,7 +52,7 @@ class PlatformOwnerController extends Controller
         PlanLimit::AUTOMATION_EXECUTIONS_MONTHLY => 'Automation Executions / Month',
     ];
 
-    public function dashboard(TenantPlanManager $planManager, AiUsageService $aiUsage): View
+    public function dashboard(TenantPlanManager $planManager, AiUsageService $aiUsage, AiCreditPricingService $aiPricing): View
     {
         $tenants = Tenant::query()
             ->with(['activeSubscription.plan:id,name,code'])
@@ -149,6 +150,7 @@ class PlatformOwnerController extends Controller
             'tenantsAtRisk' => $tenantsAtRisk,
             'tenantAiLeaderboard' => $tenantAiLeaderboard,
             'aiUsageReady' => $this->aiUsageTableReady(),
+            'aiPricing' => $aiPricing->snapshot(),
         ]);
     }
 
@@ -188,7 +190,7 @@ class PlatformOwnerController extends Controller
         ]);
     }
 
-    public function tenant(Tenant $tenant, TenantPlanManager $planManager, AiUsageService $aiUsage): View
+    public function tenant(Tenant $tenant, TenantPlanManager $planManager, AiUsageService $aiUsage, AiCreditPricingService $aiPricing): View
     {
         $relations = [
             'activeSubscription.plan',
@@ -227,7 +229,33 @@ class PlatformOwnerController extends Controller
                 'ready' => $this->aiUsageTableReady(),
                 'transactions_ready' => $this->aiCreditTransactionsTableReady(),
             ],
+            'aiPricing' => $aiPricing->snapshot(),
         ]);
+    }
+
+    public function updateAiCreditPricing(Request $request, AiCreditPricingService $aiPricing): RedirectResponse
+    {
+        if (!$aiPricing->ready()) {
+            return back()->with('error', 'Table AI credit pricing settings belum tersedia. Jalankan migration terlebih dahulu.');
+        }
+
+        $data = $request->validate([
+            'currency' => ['required', 'string', 'size:3', 'in:IDR'],
+            'unit_tokens' => ['required', 'integer', 'min:1'],
+            'price_per_credit' => ['required', 'integer', 'min:1'],
+            'pack_options' => ['required', 'string', 'max:255'],
+        ]);
+
+        $aiPricing->upsert([
+            'currency' => $data['currency'],
+            'unit_tokens' => (int) $data['unit_tokens'],
+            'price_per_credit' => (int) $data['price_per_credit'],
+            'pack_options' => $data['pack_options'],
+            'created_by' => auth()->id(),
+            'updated_by' => auth()->id(),
+        ]);
+
+        return back()->with('status', 'Pricing AI Credits berhasil diperbarui.');
     }
 
     public function topUpAiCredits(Request $request, Tenant $tenant): RedirectResponse
@@ -336,6 +364,7 @@ class PlatformOwnerController extends Controller
             'featureLabels' => $this->featureLabels(),
             'limitLabels' => self::LIMIT_LABELS,
             'productLineOptions' => $this->productLineOptions(),
+            'planPresets' => $this->planPresetTemplates(),
         ]);
     }
 
@@ -762,6 +791,7 @@ class PlatformOwnerController extends Controller
                 'usage' => $state['usage'],
                 'remaining' => $state['remaining'],
                 'status' => $state['status'],
+                'advice' => $planManager->limitActionAdvice($key, $state['status'], $tenantId),
             ];
         }
 
@@ -798,6 +828,180 @@ class PlatformOwnerController extends Controller
             'commerce' => 'Commerce',
             'project_management' => 'Project Management',
             'internal' => 'Internal',
+        ];
+    }
+
+    private function planPresetTemplates(): array
+    {
+        return [
+            'omnichannel' => [
+                'label' => 'Omnichannel',
+                'description' => 'Inbox percakapan, live chat, sosial media, dan pondasi CRM untuk paket komunikasi customer.',
+                'product_line' => 'omnichannel',
+                'features' => [
+                    PlanFeature::MULTI_COMPANY => false,
+                    PlanFeature::CONVERSATIONS => true,
+                    PlanFeature::CRM => true,
+                    PlanFeature::COMMERCE => false,
+                    PlanFeature::PROJECT_MANAGEMENT => false,
+                    PlanFeature::LIVE_CHAT => true,
+                    PlanFeature::SOCIAL_MEDIA => true,
+                    PlanFeature::CHATBOT_AI => false,
+                    PlanFeature::WHATSAPP_API => false,
+                    PlanFeature::WHATSAPP_WEB => false,
+                    PlanFeature::EMAIL_MARKETING => false,
+                    PlanFeature::ADVANCED_REPORTS => false,
+                    'multi_branch' => false,
+                    'inventory' => false,
+                    'finance' => false,
+                    'pos' => false,
+                ],
+                'limits' => [
+                    PlanLimit::COMPANIES => 1,
+                    PlanLimit::BRANCHES => 1,
+                    PlanLimit::USERS => 5,
+                    PlanLimit::PRODUCTS => 100,
+                    PlanLimit::CONTACTS => 2000,
+                    PlanLimit::WHATSAPP_INSTANCES => 0,
+                    PlanLimit::SOCIAL_ACCOUNTS => 2,
+                    PlanLimit::LIVE_CHAT_WIDGETS => 1,
+                    PlanLimit::CHATBOT_ACCOUNTS => 0,
+                    PlanLimit::EMAIL_INBOX_ACCOUNTS => 0,
+                    PlanLimit::EMAIL_CAMPAIGNS => 0,
+                    PlanLimit::WA_BLAST_RECIPIENTS_MONTHLY => 0,
+                    PlanLimit::EMAIL_RECIPIENTS_MONTHLY => 0,
+                    PlanLimit::AI_CREDITS_MONTHLY => 0,
+                    PlanLimit::CHATBOT_KNOWLEDGE_DOCUMENTS => 0,
+                    PlanLimit::AUTOMATION_WORKFLOWS => 0,
+                    PlanLimit::AUTOMATION_EXECUTIONS_MONTHLY => 0,
+                ],
+            ],
+            'crm' => [
+                'label' => 'CRM',
+                'description' => 'Pipeline lead dan kontak tanpa membuka modul transaksi atau omnichannel penuh.',
+                'product_line' => 'crm',
+                'features' => [
+                    PlanFeature::MULTI_COMPANY => false,
+                    PlanFeature::CONVERSATIONS => false,
+                    PlanFeature::CRM => true,
+                    PlanFeature::COMMERCE => false,
+                    PlanFeature::PROJECT_MANAGEMENT => false,
+                    PlanFeature::LIVE_CHAT => false,
+                    PlanFeature::SOCIAL_MEDIA => false,
+                    PlanFeature::CHATBOT_AI => false,
+                    PlanFeature::WHATSAPP_API => false,
+                    PlanFeature::WHATSAPP_WEB => false,
+                    PlanFeature::EMAIL_MARKETING => false,
+                    PlanFeature::ADVANCED_REPORTS => false,
+                    'multi_branch' => false,
+                    'inventory' => false,
+                    'finance' => false,
+                    'pos' => false,
+                ],
+                'limits' => [
+                    PlanLimit::COMPANIES => 1,
+                    PlanLimit::BRANCHES => 1,
+                    PlanLimit::USERS => 5,
+                    PlanLimit::PRODUCTS => 0,
+                    PlanLimit::CONTACTS => 5000,
+                    PlanLimit::WHATSAPP_INSTANCES => 0,
+                    PlanLimit::SOCIAL_ACCOUNTS => 0,
+                    PlanLimit::LIVE_CHAT_WIDGETS => 0,
+                    PlanLimit::CHATBOT_ACCOUNTS => 0,
+                    PlanLimit::EMAIL_INBOX_ACCOUNTS => 0,
+                    PlanLimit::EMAIL_CAMPAIGNS => 0,
+                    PlanLimit::WA_BLAST_RECIPIENTS_MONTHLY => 0,
+                    PlanLimit::EMAIL_RECIPIENTS_MONTHLY => 0,
+                    PlanLimit::AI_CREDITS_MONTHLY => 0,
+                    PlanLimit::CHATBOT_KNOWLEDGE_DOCUMENTS => 0,
+                    PlanLimit::AUTOMATION_WORKFLOWS => 0,
+                    PlanLimit::AUTOMATION_EXECUTIONS_MONTHLY => 0,
+                ],
+            ],
+            'commerce' => [
+                'label' => 'Commerce',
+                'description' => 'Sales, payments, products, inventory, purchases, finance, discounts, dan POS.',
+                'product_line' => 'commerce',
+                'features' => [
+                    PlanFeature::MULTI_COMPANY => true,
+                    PlanFeature::CONVERSATIONS => false,
+                    PlanFeature::CRM => false,
+                    PlanFeature::COMMERCE => true,
+                    PlanFeature::PROJECT_MANAGEMENT => false,
+                    PlanFeature::LIVE_CHAT => false,
+                    PlanFeature::SOCIAL_MEDIA => false,
+                    PlanFeature::CHATBOT_AI => false,
+                    PlanFeature::WHATSAPP_API => false,
+                    PlanFeature::WHATSAPP_WEB => false,
+                    PlanFeature::EMAIL_MARKETING => false,
+                    PlanFeature::ADVANCED_REPORTS => true,
+                    'multi_branch' => true,
+                    'inventory' => true,
+                    'finance' => true,
+                    'pos' => true,
+                ],
+                'limits' => [
+                    PlanLimit::COMPANIES => 1,
+                    PlanLimit::BRANCHES => 3,
+                    PlanLimit::USERS => 10,
+                    PlanLimit::PRODUCTS => 1000,
+                    PlanLimit::CONTACTS => 3000,
+                    PlanLimit::WHATSAPP_INSTANCES => 0,
+                    PlanLimit::SOCIAL_ACCOUNTS => 0,
+                    PlanLimit::LIVE_CHAT_WIDGETS => 0,
+                    PlanLimit::CHATBOT_ACCOUNTS => 0,
+                    PlanLimit::EMAIL_INBOX_ACCOUNTS => 0,
+                    PlanLimit::EMAIL_CAMPAIGNS => 0,
+                    PlanLimit::WA_BLAST_RECIPIENTS_MONTHLY => 0,
+                    PlanLimit::EMAIL_RECIPIENTS_MONTHLY => 0,
+                    PlanLimit::AI_CREDITS_MONTHLY => 0,
+                    PlanLimit::CHATBOT_KNOWLEDGE_DOCUMENTS => 0,
+                    PlanLimit::AUTOMATION_WORKFLOWS => 0,
+                    PlanLimit::AUTOMATION_EXECUTIONS_MONTHLY => 0,
+                ],
+            ],
+            'project_management' => [
+                'label' => 'Project Management',
+                'description' => 'Task, workflow, dan kolaborasi proyek tanpa membuka bundle commerce atau omnichannel.',
+                'product_line' => 'project_management',
+                'features' => [
+                    PlanFeature::MULTI_COMPANY => true,
+                    PlanFeature::CONVERSATIONS => false,
+                    PlanFeature::CRM => false,
+                    PlanFeature::COMMERCE => false,
+                    PlanFeature::PROJECT_MANAGEMENT => true,
+                    PlanFeature::LIVE_CHAT => false,
+                    PlanFeature::SOCIAL_MEDIA => false,
+                    PlanFeature::CHATBOT_AI => false,
+                    PlanFeature::WHATSAPP_API => false,
+                    PlanFeature::WHATSAPP_WEB => false,
+                    PlanFeature::EMAIL_MARKETING => false,
+                    PlanFeature::ADVANCED_REPORTS => false,
+                    'multi_branch' => false,
+                    'inventory' => false,
+                    'finance' => false,
+                    'pos' => false,
+                ],
+                'limits' => [
+                    PlanLimit::COMPANIES => 1,
+                    PlanLimit::BRANCHES => 3,
+                    PlanLimit::USERS => 10,
+                    PlanLimit::PRODUCTS => 0,
+                    PlanLimit::CONTACTS => 1000,
+                    PlanLimit::WHATSAPP_INSTANCES => 0,
+                    PlanLimit::SOCIAL_ACCOUNTS => 0,
+                    PlanLimit::LIVE_CHAT_WIDGETS => 0,
+                    PlanLimit::CHATBOT_ACCOUNTS => 0,
+                    PlanLimit::EMAIL_INBOX_ACCOUNTS => 0,
+                    PlanLimit::EMAIL_CAMPAIGNS => 0,
+                    PlanLimit::WA_BLAST_RECIPIENTS_MONTHLY => 0,
+                    PlanLimit::EMAIL_RECIPIENTS_MONTHLY => 0,
+                    PlanLimit::AI_CREDITS_MONTHLY => 0,
+                    PlanLimit::CHATBOT_KNOWLEDGE_DOCUMENTS => 0,
+                    PlanLimit::AUTOMATION_WORKFLOWS => 25,
+                    PlanLimit::AUTOMATION_EXECUTIONS_MONTHLY => 5000,
+                ],
+            ],
         ];
     }
 

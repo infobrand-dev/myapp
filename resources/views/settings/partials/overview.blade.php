@@ -1,20 +1,30 @@
 <div class="card mb-3">
     <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-4">
-                <div class="text-secondary text-uppercase small fw-bold">Tenant</div>
-                <div class="fs-3 fw-bold mt-2">{{ optional($tenant)->name ?? 'Default tenant' }}</div>
-                <div class="text-muted small mt-1">{{ optional($tenant)->slug ?? 'default-tenant' }}</div>
+        <div class="d-flex align-items-center flex-wrap gap-3 gap-md-5">
+            <div>
+                <div class="text-muted text-uppercase small fw-bold mb-1">Tenant</div>
+                <div class="fw-bold">{{ optional($tenant)->name ?? 'Default tenant' }}</div>
+                <div class="text-muted" style="font-size:.75rem;">{{ optional($tenant)->slug ?? 'default-tenant' }}</div>
             </div>
-            <div class="col-md-4">
-                <div class="text-secondary text-uppercase small fw-bold">Active Company</div>
-                <div class="fs-4 fw-semibold mt-2">{{ optional($currentCompany)->name ?? 'Belum ada company aktif' }}</div>
-                <div class="text-muted small mt-1">{{ optional($currentCompany)->code ?: 'Scope company masih fallback-safe' }}</div>
+            <div class="ctx-switcher-divider d-none d-sm-block" style="height:2.5rem;"></div>
+            <div>
+                <div class="text-muted text-uppercase small fw-bold mb-1">Company Aktif</div>
+                @if(optional($currentCompany)->name)
+                    <div class="fw-bold">{{ $currentCompany->name }}</div>
+                    <div class="text-muted" style="font-size:.75rem;">{{ $currentCompany->code ?? '' }}</div>
+                @else
+                    <div class="text-muted fst-italic" style="font-size:.875rem;">Belum ada company aktif</div>
+                @endif
             </div>
-            <div class="col-md-4">
-                <div class="text-secondary text-uppercase small fw-bold">Active Branch</div>
-                <div class="fs-4 fw-semibold mt-2">{{ optional($currentBranch)->name ?? 'Tidak memilih branch' }}</div>
-                <div class="text-muted small mt-1">{{ optional($currentBranch)->code ?: 'Branch tetap optional untuk flow company-level' }}</div>
+            <div class="ctx-switcher-divider d-none d-sm-block" style="height:2.5rem;"></div>
+            <div>
+                <div class="text-muted text-uppercase small fw-bold mb-1">Branch Aktif</div>
+                @if(optional($currentBranch)->name)
+                    <div class="fw-bold">{{ $currentBranch->name }}</div>
+                    <div class="text-muted" style="font-size:.75rem;">{{ $currentBranch->code ?? '' }}</div>
+                @else
+                    <div class="text-muted fst-italic" style="font-size:.875rem;">Tidak memilih branch</div>
+                @endif
             </div>
         </div>
     </div>

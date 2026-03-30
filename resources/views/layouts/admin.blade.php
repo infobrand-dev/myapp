@@ -111,7 +111,7 @@
                             {{ config('app.name') }}
                         </a>
 
-                        <div class="d-flex">
+                        <div class="flex-fill min-width-0 overflow-hidden">
                             @include('shared.topbar-context-switcher', ['selectorId' => 'mobile-topbar'])
                         </div>
 

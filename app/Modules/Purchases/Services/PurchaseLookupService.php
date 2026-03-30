@@ -8,11 +8,19 @@ use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
 use App\Modules\Purchases\Models\Purchase;
+use App\Support\CurrencySettingsResolver;
+use App\Support\MoneyFormatter;
 use App\Support\TenantContext;
 use Illuminate\Support\Collection;
 
 class PurchaseLookupService
 {
+    public function __construct(
+        private readonly MoneyFormatter $money,
+        private readonly CurrencySettingsResolver $currencies,
+    ) {
+    }
+
     public function suppliers(): Collection
     {
         return Contact::query()
@@ -24,6 +32,8 @@ class PurchaseLookupService
 
     public function purchasables(): Collection
     {
+        $defaultCurrency = $this->currencies->defaultCurrency();
+
         $products = Product::query()
             ->with([
                 'unit',
@@ -34,7 +44,7 @@ class PurchaseLookupService
             ->orderBy('name')
             ->get();
 
-        return $products->flatMap(function (Product $product) {
+        return $products->flatMap(function (Product $product) use ($defaultCurrency) {
             $rows = collect([[
                 'key' => 'product:' . $product->id,
                 'product_id' => $product->id,
@@ -43,12 +53,12 @@ class PurchaseLookupService
                 'description' => implode(' | ', array_filter([
                     'SKU: ' . $product->sku,
                     $product->unit ? 'Unit: ' . $product->unit->name : null,
-                    'Cost default: Rp ' . number_format((float) $product->cost_price, 0, ',', '.'),
+                    'Cost default: ' . $this->money->format((float) $product->cost_price, $product->currency_code ?: $defaultCurrency),
                 ])),
                 'unit_cost' => (float) $product->cost_price,
             ]]);
 
-            $variants = $product->variants->map(function (ProductVariant $variant) use ($product) {
+            $variants = $product->variants->map(function (ProductVariant $variant) use ($product, $defaultCurrency) {
                 return [
                     'key' => 'variant:' . $variant->id,
                     'product_id' => $product->id,
@@ -57,7 +67,7 @@ class PurchaseLookupService
                     'description' => implode(' | ', array_filter([
                         'SKU: ' . $variant->sku,
                         $variant->attribute_summary,
-                        'Cost default: Rp ' . number_format((float) $variant->cost_price, 0, ',', '.'),
+                        'Cost default: ' . $this->money->format((float) $variant->cost_price, $variant->currency_code ?: $product->currency_code ?: $defaultCurrency),
                     ])),
                     'unit_cost' => (float) $variant->cost_price,
                 ];

@@ -10,11 +10,19 @@ use App\Modules\Products\Models\ProductVariant;
 use App\Modules\Sales\Models\Sale;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
+use App\Support\CurrencySettingsResolver;
+use App\Support\MoneyFormatter;
 use App\Support\TenantContext;
 use Illuminate\Support\Collection;
 
 class SaleLookupService
 {
+    public function __construct(
+        private readonly MoneyFormatter $money,
+        private readonly CurrencySettingsResolver $currencies,
+    ) {
+    }
+
     public function customers(): Collection
     {
         return Contact::query()
@@ -26,6 +34,8 @@ class SaleLookupService
 
     public function sellables(): Collection
     {
+        $defaultCurrency = $this->currencies->defaultCurrency();
+
         $products = Product::query()
             ->with([
                 'unit',
@@ -43,17 +53,17 @@ class SaleLookupService
                     'type' => 'product',
                     'product_id' => $product->id,
                     'product_variant_id' => null,
-                    'label' => $product->name,
-                    'description' => implode(' | ', array_filter([
-                        'SKU: ' . $product->sku,
-                        $product->unit && $product->unit->name ? 'Unit: ' . $product->unit->name : null,
-                        'Harga default: Rp ' . number_format((float) $product->sell_price, 0, ',', '.'),
-                    ])),
-                    'unit_price' => (float) $product->sell_price,
-                ],
-            ]);
+                        'label' => $product->name,
+                        'description' => implode(' | ', array_filter([
+                            'SKU: ' . $product->sku,
+                            $product->unit && $product->unit->name ? 'Unit: ' . $product->unit->name : null,
+                            'Harga default: ' . $this->money->format((float) $product->sell_price, $product->currency_code ?: $defaultCurrency),
+                        ])),
+                        'unit_price' => (float) $product->sell_price,
+                    ],
+                ]);
 
-            $variants = $product->variants->map(function (ProductVariant $variant) use ($product) {
+            $variants = $product->variants->map(function (ProductVariant $variant) use ($product, $defaultCurrency) {
                 return [
                     'key' => 'variant:' . $variant->id,
                     'type' => 'variant',
@@ -63,7 +73,7 @@ class SaleLookupService
                     'description' => implode(' | ', array_filter([
                         'SKU: ' . $variant->sku,
                         $variant->attribute_summary,
-                        'Harga default: Rp ' . number_format((float) $variant->sell_price, 0, ',', '.'),
+                        'Harga default: ' . $this->money->format((float) $variant->sell_price, $variant->currency_code ?: $product->currency_code ?: $defaultCurrency),
                     ])),
                     'unit_price' => (float) $variant->sell_price,
                 ];

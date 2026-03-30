@@ -1,6 +1,10 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+    $currency = app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency();
+@endphp
 <div class="mb-3">
     <h2 class="mb-0">Finance Reports</h2>
     <div class="text-muted small">Ringkasan kas masuk, kas keluar, dan pengeluaran.</div>
@@ -22,16 +26,16 @@
 </div>
 
 <div class="row g-3 mb-3">
-    <div class="col-md-4"><div class="card"><div class="card-body"><div class="text-muted small">Cash In</div><div class="fs-2 fw-bold text-success">Rp {{ number_format((float) $summary['cash_in_total'], 0, ',', '.') }}</div></div></div></div>
-    <div class="col-md-4"><div class="card"><div class="card-body"><div class="text-muted small">Cash Out + Expense</div><div class="fs-2 fw-bold text-danger">Rp {{ number_format((float) $summary['cash_out_total'], 0, ',', '.') }}</div></div></div></div>
-    <div class="col-md-4"><div class="card"><div class="card-body"><div class="text-muted small">Net</div><div class="fs-2 fw-bold {{ $summary['net_total'] >= 0 ? 'text-primary' : 'text-danger' }}">Rp {{ number_format((float) $summary['net_total'], 0, ',', '.') }}</div></div></div></div>
+    <div class="col-md-4"><div class="card"><div class="card-body"><div class="text-muted small">Cash In</div><div class="fs-2 fw-bold text-success">{{ $money->format((float) $summary['cash_in_total'], $currency) }}</div></div></div></div>
+    <div class="col-md-4"><div class="card"><div class="card-body"><div class="text-muted small">Cash Out + Expense</div><div class="fs-2 fw-bold text-danger">{{ $money->format((float) $summary['cash_out_total'], $currency) }}</div></div></div></div>
+    <div class="col-md-4"><div class="card"><div class="card-body"><div class="text-muted small">Net</div><div class="fs-2 fw-bold {{ $summary['net_total'] >= 0 ? 'text-primary' : 'text-danger' }}">{{ $money->format((float) $summary['net_total'], $currency) }}</div></div></div></div>
 </div>
 
 <div class="row g-3">
     <div class="col-lg-7">
         <div class="card"><div class="card-header"><h3 class="card-title mb-0">Cash In / Out by Date</h3></div><div class="table-responsive"><table class="table table-vcenter"><thead><tr><th>Date</th><th>Cash In</th><th>Cash Out</th></tr></thead><tbody>
             @forelse($cashInOut as $row)
-                <tr><td>{{ \Illuminate\Support\Carbon::parse($row->report_date)->format('d/m/Y') }}</td><td>Rp {{ number_format((float) $row->cash_in_total, 0, ',', '.') }}</td><td>Rp {{ number_format((float) $row->cash_out_total, 0, ',', '.') }}</td></tr>
+                <tr><td>{{ \Illuminate\Support\Carbon::parse($row->report_date)->format('d/m/Y') }}</td><td>{{ $money->format((float) $row->cash_in_total, $currency) }}</td><td>{{ $money->format((float) $row->cash_out_total, $currency) }}</td></tr>
             @empty
                 <tr><td colspan="3" class="text-center text-muted">Tidak ada data.</td></tr>
             @endforelse
@@ -40,7 +44,7 @@
     <div class="col-lg-5">
         <div class="card"><div class="card-header"><h3 class="card-title mb-0">Expense by Category</h3></div><div class="table-responsive"><table class="table table-vcenter"><thead><tr><th>Category</th><th>Transactions</th><th>Total</th></tr></thead><tbody>
             @forelse($expenseByCategory as $row)
-                <tr><td>{{ $row->category_name }}</td><td>{{ $row->transaction_count }}</td><td>Rp {{ number_format((float) $row->total_amount, 0, ',', '.') }}</td></tr>
+                <tr><td>{{ $row->category_name }}</td><td>{{ $row->transaction_count }}</td><td>{{ $money->format((float) $row->total_amount, $currency) }}</td></tr>
             @empty
                 <tr><td colspan="3" class="text-center text-muted">Tidak ada data.</td></tr>
             @endforelse

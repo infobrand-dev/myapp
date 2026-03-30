@@ -1,6 +1,10 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+    $currency = app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency();
+@endphp
 <div class="mb-3">
     <h2 class="mb-0">Payment Reports</h2>
     <div class="text-muted small">Ringkasan pembayaran posted berdasarkan method dan bucket cash vs non-cash.</div>
@@ -23,16 +27,16 @@
 
 <div class="row g-3 mb-3">
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Posted Payments</div><div class="fs-2 fw-bold">{{ $summary['payment_count'] }}</div></div></div></div>
-    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Total Amount</div><div class="fs-2 fw-bold">Rp {{ number_format((float) $summary['total_amount'], 0, ',', '.') }}</div></div></div></div>
-    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Cash</div><div class="fs-2 fw-bold text-success">Rp {{ number_format((float) $summary['cash_amount'], 0, ',', '.') }}</div></div></div></div>
-    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Non-cash</div><div class="fs-2 fw-bold text-primary">Rp {{ number_format((float) $summary['non_cash_amount'], 0, ',', '.') }}</div><div class="text-muted small mt-1">Avg: Rp {{ number_format((float) $summary['average_payment'], 0, ',', '.') }}</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Total Amount</div><div class="fs-2 fw-bold">{{ $money->format((float) $summary['total_amount'], $currency) }}</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Cash</div><div class="fs-2 fw-bold text-success">{{ $money->format((float) $summary['cash_amount'], $currency) }}</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Non-cash</div><div class="fs-2 fw-bold text-primary">{{ $money->format((float) $summary['non_cash_amount'], $currency) }}</div><div class="text-muted small mt-1">Avg: {{ $money->format((float) $summary['average_payment'], $currency) }}</div></div></div></div>
 </div>
 
 <div class="row g-3">
     <div class="col-lg-7">
         <div class="card"><div class="card-header"><h3 class="card-title mb-0">By Method</h3></div><div class="table-responsive"><table class="table table-vcenter"><thead><tr><th>Method</th><th>Payments</th><th>Total</th></tr></thead><tbody>
             @forelse($byMethod as $row)
-                <tr><td>{{ $row->method_name }}</td><td>{{ $row->payment_count }}</td><td>Rp {{ number_format((float) $row->total_amount, 0, ',', '.') }}</td></tr>
+                <tr><td>{{ $row->method_name }}</td><td>{{ $row->payment_count }}</td><td>{{ $money->format((float) $row->total_amount, $currency) }}</td></tr>
             @empty
                 <tr><td colspan="3" class="text-center text-muted">Tidak ada data.</td></tr>
             @endforelse
@@ -41,7 +45,7 @@
     <div class="col-lg-5">
         <div class="card"><div class="card-header"><h3 class="card-title mb-0">Cash vs Non-cash</h3></div><div class="table-responsive"><table class="table table-vcenter"><thead><tr><th>Bucket</th><th>Payments</th><th>Total</th></tr></thead><tbody>
             @forelse($cashVsNonCash as $row)
-                <tr><td>{{ $row->payment_bucket }}</td><td>{{ $row->payment_count }}</td><td>Rp {{ number_format((float) $row->total_amount, 0, ',', '.') }}</td></tr>
+                <tr><td>{{ $row->payment_bucket }}</td><td>{{ $row->payment_count }}</td><td>{{ $money->format((float) $row->total_amount, $currency) }}</td></tr>
             @empty
                 <tr><td colspan="3" class="text-center text-muted">Tidak ada data.</td></tr>
             @endforelse

@@ -28,6 +28,10 @@
     </style>
 </head>
 <body @if($printMode) onload="window.print()" @endif>
+    @php
+        $money = app(\App\Support\MoneyFormatter::class);
+        $currency = $sale->currency_code ?: 'IDR';
+    @endphp
     <div class="receipt-page">
         <div class="receipt-header">
             <div class="strong" style="font-size:1.1rem;">MYAPP STORE</div>
@@ -58,17 +62,17 @@
                     <div>
                         <div class="strong">{{ $item->product_name_snapshot }}</div>
                         <div class="small">{{ $item->variant_name_snapshot ?: $item->sku_snapshot ?: '-' }}</div>
-                        <div class="small">{{ number_format((float) $item->qty, 0, ',', '.') }} x {{ number_format((float) $item->unit_price, 0, ',', '.') }}</div>
+                        <div class="small">{{ number_format((float) $item->qty, 0, ',', '.') }} x {{ $money->format((float) $item->unit_price, $currency) }}</div>
                     </div>
-                    <div class="strong">{{ number_format((float) $item->line_total, 0, ',', '.') }}</div>
+                    <div class="strong">{{ $money->format((float) $item->line_total, $currency) }}</div>
                 </div>
             @endforeach
 
             <div class="receipt-total">
-                <div class="receipt-row"><span>Subtotal</span><span>{{ number_format((float) $sale->subtotal, 0, ',', '.') }}</span></div>
-                <div class="receipt-row"><span>Discount</span><span>{{ number_format((float) $sale->discount_total, 0, ',', '.') }}</span></div>
-                <div class="receipt-row"><span>Tax</span><span>{{ number_format((float) $sale->tax_total, 0, ',', '.') }}</span></div>
-                <div class="receipt-row strong"><span>Grand Total</span><span>{{ number_format((float) $sale->grand_total, 0, ',', '.') }}</span></div>
+                <div class="receipt-row"><span>Subtotal</span><span>{{ $money->format((float) $sale->subtotal, $currency) }}</span></div>
+                <div class="receipt-row"><span>Discount</span><span>{{ $money->format((float) $sale->discount_total, $currency) }}</span></div>
+                <div class="receipt-row"><span>Tax</span><span>{{ $money->format((float) $sale->tax_total, $currency) }}</span></div>
+                <div class="receipt-row strong"><span>Grand Total</span><span>{{ $money->format((float) $sale->grand_total, $currency) }}</span></div>
 
                 <div style="border-top:1px dashed #9ca3af; margin: .9rem 0;"></div>
 
@@ -76,12 +80,12 @@
                     @if($allocation->payment && $allocation->payment->method)
                         <div class="receipt-row">
                             <span>{{ $allocation->payment->method->name }}</span>
-                            <span>{{ number_format((float) $allocation->amount, 0, ',', '.') }}</span>
+                            <span>{{ $money->format((float) $allocation->amount, optional($allocation->payment)->currency_code ?: $currency) }}</span>
                         </div>
                     @endif
                 @endforeach
-                <div class="receipt-row"><span>Paid</span><span>{{ number_format((float) $sale->paid_total, 0, ',', '.') }}</span></div>
-                <div class="receipt-row"><span>Change</span><span>{{ number_format((float) $changeAmount, 0, ',', '.') }}</span></div>
+                <div class="receipt-row"><span>Paid</span><span>{{ $money->format((float) $sale->paid_total, $currency) }}</span></div>
+                <div class="receipt-row"><span>Change</span><span>{{ $money->format((float) $changeAmount, $currency) }}</span></div>
             </div>
 
             <div style="border-top:1px dashed #9ca3af; margin: .9rem 0;"></div>

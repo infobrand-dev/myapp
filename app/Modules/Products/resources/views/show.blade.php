@@ -1,6 +1,10 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+    $currency = $product->currency_code ?: 'IDR';
+@endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">{{ $product->name }}</h2>
@@ -33,10 +37,10 @@
             <div class="card-header"><h3 class="card-title">Harga</h3></div>
             <div class="card-body">
                 <div class="row g-3 mb-3">
-                    <div class="col-md-3"><div class="text-muted small">Harga beli</div><div>Rp {{ number_format((float) $product->cost_price, 0, ',', '.') }}</div></div>
-                    <div class="col-md-3"><div class="text-muted small">Harga jual</div><div>Rp {{ number_format((float) $product->sell_price, 0, ',', '.') }}</div></div>
-                    <div class="col-md-3"><div class="text-muted small">Harga grosir default</div><div>{{ $product->wholesale_price !== null ? 'Rp ' . number_format((float) $product->wholesale_price, 0, ',', '.') : '-' }}</div></div>
-                    <div class="col-md-3"><div class="text-muted small">Harga member default</div><div>{{ $product->member_price !== null ? 'Rp ' . number_format((float) $product->member_price, 0, ',', '.') : '-' }}</div></div>
+                    <div class="col-md-3"><div class="text-muted small">Harga beli</div><div>{{ $money->format((float) $product->cost_price, $currency) }}</div></div>
+                    <div class="col-md-3"><div class="text-muted small">Harga jual</div><div>{{ $money->format((float) $product->sell_price, $currency) }}</div></div>
+                    <div class="col-md-3"><div class="text-muted small">Harga grosir default</div><div>{{ $product->wholesale_price !== null ? $money->format((float) $product->wholesale_price, $currency) : '-' }}</div></div>
+                    <div class="col-md-3"><div class="text-muted small">Harga member default</div><div>{{ $product->member_price !== null ? $money->format((float) $product->member_price, $currency) : '-' }}</div></div>
                 </div>
                 <div class="alert alert-secondary">
                     Harga di halaman ini adalah base/default pricing dari tabel `product_prices`. Jika ada promo aktif, source of truth tetap berasal dari module Discounts.
@@ -49,7 +53,7 @@
                                 <tr>
                                     <td>{{ $price->priceLevel?->name ?? 'Custom' }}</td>
                                     <td>{{ number_format((float) $price->minimum_qty, 2, ',', '.') }}</td>
-                                    <td>Rp {{ number_format((float) $price->price, 0, ',', '.') }}</td>
+                                    <td>{{ $money->format((float) $price->price, $price->currency_code ?: $currency) }}</td>
                                 </tr>
                             @empty
                                 <tr><td colspan="3" class="text-center text-muted">Belum ada price level tambahan.</td></tr>
@@ -75,7 +79,7 @@
                                         <td>{{ $variant->name }}</td>
                                         <td>{{ $variant->optionValues->map(fn($item) => $item->group?->name . ': ' . $item->value)->implode(', ') ?: ($variant->attribute_summary ?: '-') }}</td>
                                         <td>{{ $variant->sku }}</td>
-                                        <td>Rp {{ number_format((float) $variant->sell_price, 0, ',', '.') }}</td>
+                                        <td>{{ $money->format((float) $variant->sell_price, $variant->currency_code ?: $currency) }}</td>
                                         <td><span class="badge bg-secondary-lt text-secondary">Lihat di Inventory</span></td>
                                     </tr>
                                 @endforeach

@@ -3,6 +3,9 @@
 @section('title', 'Tenant Detail')
 
 @section('content')
+    @php
+        $money = app(\App\Support\MoneyFormatter::class);
+    @endphp
     <div class="page-header d-flex align-items-center justify-content-between">
         <div>
             <div class="page-pretitle">Platform Owner</div>
@@ -360,7 +363,7 @@
                                     </td>
                                     <td>{{ optional($order->plan)->name ?? '-' }}</td>
                                     <td><span class="badge {{ $orderInfo['class'] }}">{{ $orderInfo['label'] }}</span></td>
-                                    <td>{{ number_format((float) $order->amount, 0, ',', '.') }} {{ $order->currency }}</td>
+                                    <td>{{ $money->format((float) $order->amount, $order->currency) }}</td>
                                     <td class="text-nowrap">
                                         @if($ordersReady && $invoicesReady && $order->invoices->isEmpty())
                                             <form method="POST" action="{{ route('platform.orders.invoice', $order) }}" class="d-inline">
@@ -425,7 +428,7 @@
                                     </td>
                                     <td>{{ optional($invoice->plan)->name ?? '-' }}</td>
                                     <td><span class="badge {{ $invInfo['class'] }}">{{ $invInfo['label'] }}</span></td>
-                                    <td>{{ number_format((float) $invoice->amount, 0, ',', '.') }} {{ $invoice->currency }}</td>
+                                    <td>{{ $money->format((float) $invoice->amount, $invoice->currency) }}</td>
                                     <td>
                                         @if(!$paymentsReady)
                                             <div class="text-muted small">Payment table belum tersedia.</div>

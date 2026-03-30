@@ -3,6 +3,9 @@
 @section('title', 'Platform Orders')
 
 @section('content')
+    @php
+        $money = app(\App\Support\MoneyFormatter::class);
+    @endphp
     <div class="page-header d-flex align-items-center justify-content-between">
         <div>
             <div class="page-pretitle">Platform Owner</div>
@@ -60,7 +63,7 @@
                             <td>
                                 <span class="badge {{ $statusInfo['class'] }}">{{ $statusInfo['label'] }}</span>
                             </td>
-                            <td>{{ number_format((float) $order->amount, 0, ',', '.') }} {{ $order->currency }}</td>
+                            <td>{{ $money->format((float) $order->amount, $order->currency) }}</td>
                             <td>
                                 @php $invoice = $order->invoices->first(); @endphp
                                 @if($invoice)

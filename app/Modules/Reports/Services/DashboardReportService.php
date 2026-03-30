@@ -2,6 +2,9 @@
 
 namespace App\Modules\Reports\Services;
 
+use App\Support\CurrencySettingsResolver;
+use App\Support\MoneyFormatter;
+
 class DashboardReportService extends BaseReportService
 {
     private SalesReportService $salesReports;
@@ -16,13 +19,19 @@ class DashboardReportService extends BaseReportService
 
     private PosReportService $posReports;
 
+    private MoneyFormatter $money;
+
+    private CurrencySettingsResolver $currencySettings;
+
     public function __construct(
         SalesReportService $salesReports,
         PaymentReportService $paymentReports,
         InventoryReportService $inventoryReports,
         PurchaseReportService $purchaseReports,
         FinanceReportService $financeReports,
-        PosReportService $posReports
+        PosReportService $posReports,
+        MoneyFormatter $money,
+        CurrencySettingsResolver $currencySettings
     ) {
         $this->salesReports = $salesReports;
         $this->paymentReports = $paymentReports;
@@ -30,6 +39,8 @@ class DashboardReportService extends BaseReportService
         $this->purchaseReports = $purchaseReports;
         $this->financeReports = $financeReports;
         $this->posReports = $posReports;
+        $this->money = $money;
+        $this->currencySettings = $currencySettings;
     }
 
     public function filters(array $filters): array
@@ -45,14 +56,15 @@ class DashboardReportService extends BaseReportService
         $purchases = $this->purchaseReports->summaryOnly($this->purchaseReports->filters($filters));
         $finance = $this->financeReports->summaryOnly($this->financeReports->filters($filters));
         $pos = $this->posReports->summaryOnly($this->posReports->filters($filters));
+        $currency = $this->currencySettings->defaultCurrency();
 
         return [
-            ['title' => 'Sales', 'value' => 'Rp ' . number_format((float) $sales['gross_total'], 0, ',', '.'), 'meta' => $sales['transaction_count'] . ' transaksi', 'route' => route('reports.sales')],
-            ['title' => 'Payments', 'value' => 'Rp ' . number_format((float) $payments['total_amount'], 0, ',', '.'), 'meta' => $payments['payment_count'] . ' pembayaran posted', 'route' => route('reports.payments')],
+            ['title' => 'Sales', 'value' => $this->money->format((float) $sales['gross_total'], $currency), 'meta' => $sales['transaction_count'] . ' transaksi', 'route' => route('reports.sales')],
+            ['title' => 'Payments', 'value' => $this->money->format((float) $payments['total_amount'], $currency), 'meta' => $payments['payment_count'] . ' pembayaran posted', 'route' => route('reports.payments')],
             ['title' => 'Inventory', 'value' => number_format((float) $inventory['total_quantity'], 2, ',', '.'), 'meta' => $inventory['low_stock_count'] . ' item low stock', 'route' => route('reports.inventory')],
-            ['title' => 'Purchases', 'value' => 'Rp ' . number_format((float) $purchases['grand_total'], 0, ',', '.'), 'meta' => $purchases['purchase_count'] . ' dokumen', 'route' => route('reports.purchases')],
-            ['title' => 'Finance', 'value' => 'Rp ' . number_format((float) $finance['net_total'], 0, ',', '.'), 'meta' => 'Net cash flow', 'route' => route('reports.finance')],
-            ['title' => 'POS / Cashier', 'value' => 'Rp ' . number_format((float) $pos['difference_total'], 0, ',', '.'), 'meta' => $pos['shift_count'] . ' shift', 'route' => route('reports.pos')],
+            ['title' => 'Purchases', 'value' => $this->money->format((float) $purchases['grand_total'], $currency), 'meta' => $purchases['purchase_count'] . ' dokumen', 'route' => route('reports.purchases')],
+            ['title' => 'Finance', 'value' => $this->money->format((float) $finance['net_total'], $currency), 'meta' => 'Net cash flow', 'route' => route('reports.finance')],
+            ['title' => 'POS / Cashier', 'value' => $this->money->format((float) $pos['difference_total'], $currency), 'meta' => $pos['shift_count'] . ' shift', 'route' => route('reports.pos')],
         ];
     }
 

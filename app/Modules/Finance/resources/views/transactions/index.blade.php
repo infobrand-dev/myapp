@@ -1,6 +1,10 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+    $currency = app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency();
+@endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Finance Transactions</h2>
@@ -15,7 +19,7 @@
         <div class="card">
             <div class="card-body">
                 <div class="text-muted small">Total Cash In</div>
-                <div class="fs-2 fw-bold text-success">Rp {{ number_format((float) $summary['cash_in_total'], 0, ',', '.') }}</div>
+                <div class="fs-2 fw-bold text-success">{{ $money->format((float) $summary['cash_in_total'], $currency) }}</div>
             </div>
         </div>
     </div>
@@ -23,7 +27,7 @@
         <div class="card">
             <div class="card-body">
                 <div class="text-muted small">Total Cash Out + Expense</div>
-                <div class="fs-2 fw-bold text-danger">Rp {{ number_format((float) $summary['cash_out_total'], 0, ',', '.') }}</div>
+                <div class="fs-2 fw-bold text-danger">{{ $money->format((float) $summary['cash_out_total'], $currency) }}</div>
             </div>
         </div>
     </div>
@@ -31,7 +35,7 @@
         <div class="card">
             <div class="card-body">
                 <div class="text-muted small">Net Cash Flow</div>
-                <div class="fs-2 fw-bold {{ $summary['net_cash_flow'] >= 0 ? 'text-primary' : 'text-danger' }}">Rp {{ number_format((float) $summary['net_cash_flow'], 0, ',', '.') }}</div>
+                <div class="fs-2 fw-bold {{ $summary['net_cash_flow'] >= 0 ? 'text-primary' : 'text-danger' }}">{{ $money->format((float) $summary['net_cash_flow'], $currency) }}</div>
             </div>
         </div>
     </div>
@@ -98,7 +102,7 @@
                         <td>{{ $transaction->transaction_date ? $transaction->transaction_date->format('d/m/Y H:i') : '-' }}</td>
                         <td>{{ $transaction->transaction_type }}</td>
                         <td>{{ $transaction->category ? $transaction->category->name : '-' }}</td>
-                        <td>Rp {{ number_format((float) $transaction->amount, 0, ',', '.') }}</td>
+                        <td>{{ $money->format((float) $transaction->amount, $currency) }}</td>
                         <td>{{ $transaction->creator ? $transaction->creator->name : '-' }}</td>
                         <td>{{ $transaction->branch_id ?: '-' }}</td>
                         @if($shiftEnabled)

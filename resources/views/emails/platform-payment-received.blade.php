@@ -3,6 +3,9 @@
 @section('subject', 'Pembayaran diterima untuk ' . $invoice->invoice_number)
 
 @section('content')
+    @php
+        $money = app(\App\Support\MoneyFormatter::class);
+    @endphp
     <h1>Pembayaran Berhasil Diterima</h1>
 
     <p>
@@ -12,7 +15,7 @@
     <div class="info-box">
         <strong>Detail Pembayaran</strong>
         Invoice: {{ $invoice->invoice_number }}<br>
-        Amount: {{ number_format((float) $payment->amount, 0, ',', '.') }} {{ $payment->currency }}<br>
+        Amount: {{ $money->format((float) $payment->amount, $payment->currency) }}<br>
         Channel: {{ $payment->payment_channel ?: '-' }}<br>
         Paid at: {{ optional($payment->paid_at)->format('d M Y H:i') ?: '-' }}
     </div>

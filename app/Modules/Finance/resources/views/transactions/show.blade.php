@@ -1,6 +1,10 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+    $currency = app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency();
+@endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">{{ $transaction->transaction_number }}</h2>
@@ -22,7 +26,7 @@
             <div class="card-header"><h3 class="card-title">Header</h3></div>
             <div class="card-body">
                 <div class="mb-2"><div class="text-muted small">Type</div><div>{{ $transaction->transaction_type }}</div></div>
-                <div class="mb-2"><div class="text-muted small">Amount</div><div>Rp {{ number_format((float) $transaction->amount, 0, ',', '.') }}</div></div>
+                <div class="mb-2"><div class="text-muted small">Amount</div><div>{{ $money->format((float) $transaction->amount, $currency) }}</div></div>
                 <div class="mb-2"><div class="text-muted small">Category</div><div>{{ $transaction->category ? $transaction->category->name : '-' }}</div></div>
                 <div class="mb-2"><div class="text-muted small">User</div><div>{{ $transaction->creator ? $transaction->creator->name : '-' }}</div></div>
                 <div class="mb-2"><div class="text-muted small">Branch</div><div>{{ $transaction->branch_id ?: '-' }}</div></div>

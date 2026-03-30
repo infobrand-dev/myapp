@@ -1,6 +1,10 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+    $currency = app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency();
+@endphp
 <div class="mb-3">
     <h2 class="mb-0">Sales Reports</h2>
     <div class="text-muted small">Ringkasan transaksi penjualan.</div>
@@ -27,16 +31,16 @@
 
 <div class="row g-3 mb-3">
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Transactions</div><div class="fs-2 fw-bold">{{ $summary['transaction_count'] }}</div></div></div></div>
-    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Gross Sales</div><div class="fs-2 fw-bold">Rp {{ number_format((float) $summary['gross_total'], 0, ',', '.') }}</div></div></div></div>
-    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Paid Total</div><div class="fs-2 fw-bold">Rp {{ number_format((float) $summary['paid_total'], 0, ',', '.') }}</div></div></div></div>
-    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Item Qty</div><div class="fs-2 fw-bold">{{ number_format((float) $summary['item_qty'], 2, ',', '.') }}</div><div class="text-muted small mt-1">Avg ticket: Rp {{ number_format((float) $summary['average_ticket'], 0, ',', '.') }}</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Gross Sales</div><div class="fs-2 fw-bold">{{ $money->format((float) $summary['gross_total'], $currency) }}</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Paid Total</div><div class="fs-2 fw-bold">{{ $money->format((float) $summary['paid_total'], $currency) }}</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Item Qty</div><div class="fs-2 fw-bold">{{ number_format((float) $summary['item_qty'], 2, ',', '.') }}</div><div class="text-muted small mt-1">Avg ticket: {{ $money->format((float) $summary['average_ticket'], $currency) }}</div></div></div></div>
 </div>
 
 <div class="row g-3">
     <div class="col-lg-6">
         <div class="card"><div class="card-header"><h3 class="card-title mb-0">By Date</h3></div><div class="table-responsive"><table class="table table-vcenter"><thead><tr><th>Date</th><th>Transactions</th><th>Gross</th><th>Paid</th></tr></thead><tbody>
             @forelse($byDate as $row)
-                <tr><td>{{ \Illuminate\Support\Carbon::parse($row->report_date)->format('d/m/Y') }}</td><td>{{ $row->transaction_count }}</td><td>Rp {{ number_format((float) $row->gross_total, 0, ',', '.') }}</td><td>Rp {{ number_format((float) $row->paid_total, 0, ',', '.') }}</td></tr>
+                <tr><td>{{ \Illuminate\Support\Carbon::parse($row->report_date)->format('d/m/Y') }}</td><td>{{ $row->transaction_count }}</td><td>{{ $money->format((float) $row->gross_total, $currency) }}</td><td>{{ $money->format((float) $row->paid_total, $currency) }}</td></tr>
             @empty
                 <tr><td colspan="4" class="text-center text-muted">Tidak ada data.</td></tr>
             @endforelse
@@ -45,7 +49,7 @@
     <div class="col-lg-6">
         <div class="card"><div class="card-header"><h3 class="card-title mb-0">By Cashier</h3></div><div class="table-responsive"><table class="table table-vcenter"><thead><tr><th>Cashier</th><th>Transactions</th><th>Gross</th><th>Paid</th></tr></thead><tbody>
             @forelse($byCashier as $row)
-                <tr><td>{{ $row->cashier_name }}</td><td>{{ $row->transaction_count }}</td><td>Rp {{ number_format((float) $row->gross_total, 0, ',', '.') }}</td><td>Rp {{ number_format((float) $row->paid_total, 0, ',', '.') }}</td></tr>
+                <tr><td>{{ $row->cashier_name }}</td><td>{{ $row->transaction_count }}</td><td>{{ $money->format((float) $row->gross_total, $currency) }}</td><td>{{ $money->format((float) $row->paid_total, $currency) }}</td></tr>
             @empty
                 <tr><td colspan="4" class="text-center text-muted">Tidak ada data.</td></tr>
             @endforelse
@@ -54,7 +58,7 @@
     <div class="col-lg-6">
         <div class="card"><div class="card-header"><h3 class="card-title mb-0">By Product</h3></div><div class="table-responsive"><table class="table table-vcenter"><thead><tr><th>Product</th><th>Qty</th><th>Transactions</th><th>Gross</th></tr></thead><tbody>
             @forelse($byProduct as $row)
-                <tr><td>{{ $row->product_name_snapshot }}@if($row->variant_name_snapshot)<div class="text-muted small">{{ $row->variant_name_snapshot }}</div>@endif</td><td>{{ number_format((float) $row->qty_sold, 2, ',', '.') }}</td><td>{{ $row->transaction_count }}</td><td>Rp {{ number_format((float) $row->gross_total, 0, ',', '.') }}</td></tr>
+                <tr><td>{{ $row->product_name_snapshot }}@if($row->variant_name_snapshot)<div class="text-muted small">{{ $row->variant_name_snapshot }}</div>@endif</td><td>{{ number_format((float) $row->qty_sold, 2, ',', '.') }}</td><td>{{ $row->transaction_count }}</td><td>{{ $money->format((float) $row->gross_total, $currency) }}</td></tr>
             @empty
                 <tr><td colspan="4" class="text-center text-muted">Tidak ada data.</td></tr>
             @endforelse
@@ -63,7 +67,7 @@
     <div class="col-lg-6">
         <div class="card"><div class="card-header"><h3 class="card-title mb-0">By Customer</h3></div><div class="table-responsive"><table class="table table-vcenter"><thead><tr><th>Customer</th><th>Transactions</th><th>Gross</th><th>Paid</th></tr></thead><tbody>
             @forelse($byCustomer as $row)
-                <tr><td>{{ $row->customer_name }}</td><td>{{ $row->transaction_count }}</td><td>Rp {{ number_format((float) $row->gross_total, 0, ',', '.') }}</td><td>Rp {{ number_format((float) $row->paid_total, 0, ',', '.') }}</td></tr>
+                <tr><td>{{ $row->customer_name }}</td><td>{{ $row->transaction_count }}</td><td>{{ $money->format((float) $row->gross_total, $currency) }}</td><td>{{ $money->format((float) $row->paid_total, $currency) }}</td></tr>
             @empty
                 <tr><td colspan="4" class="text-center text-muted">Tidak ada data.</td></tr>
             @endforelse

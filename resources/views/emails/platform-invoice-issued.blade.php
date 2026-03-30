@@ -3,6 +3,9 @@
 @section('subject', 'Invoice ' . $invoice->invoice_number)
 
 @section('content')
+    @php
+        $money = app(\App\Support\MoneyFormatter::class);
+    @endphp
     <h1>Invoice Baru untuk {{ optional($invoice->tenant)->name }}</h1>
 
     <p>
@@ -13,7 +16,7 @@
         <strong>Detail Invoice</strong>
         Invoice: {{ $invoice->invoice_number }}<br>
         Plan: {{ optional($invoice->plan)->name ?? '-' }}<br>
-        Amount: {{ number_format((float) $invoice->amount, 0, ',', '.') }} {{ $invoice->currency }}<br>
+        Amount: {{ $money->format((float) $invoice->amount, $invoice->currency) }}<br>
         Due: {{ optional($invoice->due_at)->format('d M Y H:i') ?: '-' }}
     </div>
 

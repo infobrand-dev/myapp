@@ -3,6 +3,9 @@
 @section('title', 'Platform Invoice')
 
 @section('content')
+    @php
+        $money = app(\App\Support\MoneyFormatter::class);
+    @endphp
     <div class="page-header d-flex align-items-center justify-content-between">
         <div>
             <div class="page-pretitle">Platform Owner</div>
@@ -54,7 +57,7 @@
                     </div>
                     <div class="mb-3">
                         <div class="text-secondary small text-uppercase fw-bold">Jumlah</div>
-                        <div class="fw-semibold mt-1">{{ number_format((float) $invoice->amount, 0, ',', '.') }} {{ $invoice->currency }}</div>
+                        <div class="fw-semibold mt-1">{{ $money->format((float) $invoice->amount, $invoice->currency) }}</div>
                     </div>
                     <div class="mb-3">
                         <div class="text-secondary small text-uppercase fw-bold">Jatuh Tempo</div>
@@ -105,8 +108,8 @@
                                     </td>
                                     <td>{{ $item->description ?: '-' }}</td>
                                     <td class="text-end">{{ number_format((int) $item->quantity, 0, ',', '.') }}</td>
-                                    <td class="text-end">{{ number_format((float) $item->unit_price, 0, ',', '.') }} {{ $invoice->currency }}</td>
-                                    <td class="text-end fw-semibold">{{ number_format((float) $item->total_price, 0, ',', '.') }} {{ $invoice->currency }}</td>
+                                    <td class="text-end">{{ $money->format((float) $item->unit_price, $invoice->currency) }}</td>
+                                    <td class="text-end fw-semibold">{{ $money->format((float) $item->total_price, $invoice->currency) }}</td>
                                 </tr>
                             @empty
                                 <tr><td colspan="5" class="text-muted text-center py-3">Belum ada item invoice.</td></tr>
@@ -132,7 +135,7 @@
                                 <tr>
                                     <td>{{ $payment->reference ?: '-' }}</td>
                                     <td>{{ $payment->payment_channel ?: '-' }}</td>
-                                    <td>{{ number_format((float) $payment->amount, 0, ',', '.') }} {{ $payment->currency }}</td>
+                                    <td>{{ $money->format((float) $payment->amount, $payment->currency) }}</td>
                                     <td>{{ optional($payment->paid_at)->format('d M Y H:i') ?: '-' }}</td>
                                 </tr>
                             @empty

@@ -3,6 +3,9 @@
 @section('title', 'Platform Dashboard')
 
 @section('content')
+    @php
+        $money = app(\App\Support\MoneyFormatter::class);
+    @endphp
     <div class="page-header d-flex align-items-start align-items-md-center justify-content-between flex-column flex-md-row gap-3">
         <div>
             <div class="page-pretitle">Platform Owner</div>
@@ -82,7 +85,7 @@
                         <div class="text-secondary text-uppercase small fw-bold">Revenue</div>
                         <span class="text-green"><i class="ti ti-currency-dollar" style="font-size:1.3rem;"></i></span>
                     </div>
-                    <div class="fs-1 fw-bold">Rp {{ number_format($stats['paid_revenue'], 0, ',', '.') }}</div>
+                    <div class="fs-1 fw-bold">{{ $money->format((float) $stats['paid_revenue'], 'IDR') }}</div>
                     <div class="text-muted small mt-1">
                         Dari <span class="fw-semibold">{{ $stats['paid_orders'] }}</span> order terbayar
                     </div>

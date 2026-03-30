@@ -12,6 +12,9 @@
     <link rel="stylesheet" href="{{ mix('css/app.css') }}">
 </head>
 <body class="landing-page">
+    @php
+        $money = app(\App\Support\MoneyFormatter::class);
+    @endphp
     <div class="landing-shell">
         <header class="landing-topbar sticky-top">
             <div class="container py-3">
@@ -231,13 +234,16 @@
                     </div>
                     <div class="row g-4">
                         @foreach ($plans as $plan)
-                            @php($sales = $plan->sales_meta ?? [])
-                            @php($fit = match($plan->code) {
-                                'starter' => 'Cocok untuk tim kecil yang baru mulai omnichannel',
-                                'growth' => 'Cocok untuk tim yang mulai scale follow-up dan automasi',
-                                'scale' => 'Cocok untuk operasional multi-admin dengan channel lengkap',
-                                default => 'Paket omnichannel',
-                            })
+                            @php
+                                $sales = $plan->sales_meta ?? [];
+                                $priceCurrency = strtoupper((string) ($sales['currency'] ?? 'IDR'));
+                                $fit = match($plan->code) {
+                                    'starter' => 'Cocok untuk tim kecil yang baru mulai omnichannel',
+                                    'growth' => 'Cocok untuk tim yang mulai scale follow-up dan automasi',
+                                    'scale' => 'Cocok untuk operasional multi-admin dengan channel lengkap',
+                                    default => 'Paket omnichannel',
+                                };
+                            @endphp
                             <div class="col-lg-4">
                                 <div class="landing-plan-card p-4 {{ $plan->code === 'growth' ? 'featured' : '' }}">
                                     <div class="d-flex justify-content-between align-items-start mb-3">
@@ -249,7 +255,7 @@
                                             <span class="badge bg-primary-lt text-primary">Paling populer</span>
                                         @endif
                                     </div>
-                                    <div class="landing-price mb-1">Rp {{ number_format((float) ($sales['price'] ?? 0), 0, ',', '.') }}</div>
+                                    <div class="landing-price mb-1">{{ $money->format((float) ($sales['price'] ?? 0), $priceCurrency) }}</div>
                                     <div class="text-muted small mb-3">/{{ $plan->billing_interval ?: 'sekali bayar' }}</div>
                                     <div class="landing-package-fit mb-3"><i class="ti ti-user-circle"></i>{{ $fit }}</div>
                                     <p class="text-muted">{{ $sales['description'] ?? 'Paket untuk tim omnichannel.' }}</p>

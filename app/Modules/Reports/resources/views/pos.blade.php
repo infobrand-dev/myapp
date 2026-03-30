@@ -1,6 +1,10 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+    $currency = app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency();
+@endphp
 <div class="mb-3">
     <h2 class="mb-0">POS / Cashier Reports</h2>
     <div class="text-muted small">Ringkasan shift cashier dan cash difference per sesi kasir.</div>
@@ -23,9 +27,9 @@
 
 <div class="row g-3 mb-3">
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Shift Count</div><div class="fs-2 fw-bold">{{ $summary['shift_count'] }}</div></div></div></div>
-    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Sales Total</div><div class="fs-2 fw-bold">Rp {{ number_format((float) $summary['sales_total'], 0, ',', '.') }}</div></div></div></div>
-    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Payment Total</div><div class="fs-2 fw-bold">Rp {{ number_format((float) $summary['payment_total'], 0, ',', '.') }}</div></div></div></div>
-    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Cash Difference</div><div class="fs-2 fw-bold {{ $summary['difference_total'] == 0 ? 'text-primary' : 'text-danger' }}">Rp {{ number_format((float) $summary['difference_total'], 0, ',', '.') }}</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Sales Total</div><div class="fs-2 fw-bold">{{ $money->format((float) $summary['sales_total'], $currency) }}</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Payment Total</div><div class="fs-2 fw-bold">{{ $money->format((float) $summary['payment_total'], $currency) }}</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Cash Difference</div><div class="fs-2 fw-bold {{ $summary['difference_total'] == 0 ? 'text-primary' : 'text-danger' }}">{{ $money->format((float) $summary['difference_total'], $currency) }}</div></div></div></div>
 </div>
 
 <div class="row g-3">
@@ -35,11 +39,11 @@
                 <tr>
                     <td>{{ $row->code }}<div class="text-muted small">{{ $row->status }}</div></td>
                     <td>{{ $row->cashier_name ?? '-' }}</td>
-                    <td>{{ $row->sales_count }}<div class="text-muted small">Rp {{ number_format((float) $row->sales_total, 0, ',', '.') }}</div></td>
-                    <td>Rp {{ number_format((float) $row->payment_total, 0, ',', '.') }}<div class="text-muted small">Cash: Rp {{ number_format((float) $row->cash_total, 0, ',', '.') }}</div></td>
-                    <td>Rp {{ number_format((float) $row->expected_cash_amount, 0, ',', '.') }}</td>
-                    <td>Rp {{ number_format((float) $row->closing_cash_amount, 0, ',', '.') }}</td>
-                    <td class="{{ (float) $row->difference_amount == 0.0 ? 'text-primary' : 'text-danger' }}">Rp {{ number_format((float) $row->difference_amount, 0, ',', '.') }}</td>
+                    <td>{{ $row->sales_count }}<div class="text-muted small">{{ $money->format((float) $row->sales_total, $currency) }}</div></td>
+                    <td>{{ $money->format((float) $row->payment_total, $currency) }}<div class="text-muted small">Cash: {{ $money->format((float) $row->cash_total, $currency) }}</div></td>
+                    <td>{{ $money->format((float) $row->expected_cash_amount, $currency) }}</td>
+                    <td>{{ $money->format((float) $row->closing_cash_amount, $currency) }}</td>
+                    <td class="{{ (float) $row->difference_amount == 0.0 ? 'text-primary' : 'text-danger' }}">{{ $money->format((float) $row->difference_amount, $currency) }}</td>
                 </tr>
             @empty
                 <tr><td colspan="7" class="text-center text-muted">Tidak ada data.</td></tr>
@@ -49,7 +53,7 @@
     <div class="col-lg-4">
         <div class="card"><div class="card-header"><h3 class="card-title mb-0">Cash Difference</h3></div><div class="table-responsive"><table class="table table-vcenter"><thead><tr><th>Shift</th><th>Cashier</th><th>Closed</th><th>Diff</th></tr></thead><tbody>
             @forelse($cashDifference as $row)
-                <tr><td>{{ $row->code }}</td><td>{{ $row->cashier_name ?? '-' }}</td><td>{{ $row->closed_at ? \Illuminate\Support\Carbon::parse($row->closed_at)->format('d/m/Y H:i') : '-' }}</td><td class="{{ (float) $row->difference_amount == 0.0 ? 'text-primary' : 'text-danger' }}">Rp {{ number_format((float) $row->difference_amount, 0, ',', '.') }}</td></tr>
+                <tr><td>{{ $row->code }}</td><td>{{ $row->cashier_name ?? '-' }}</td><td>{{ $row->closed_at ? \Illuminate\Support\Carbon::parse($row->closed_at)->format('d/m/Y H:i') : '-' }}</td><td class="{{ (float) $row->difference_amount == 0.0 ? 'text-primary' : 'text-danger' }}">{{ $money->format((float) $row->difference_amount, $currency) }}</td></tr>
             @empty
                 <tr><td colspan="4" class="text-center text-muted">Tidak ada data.</td></tr>
             @endforelse

@@ -1,6 +1,9 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+@endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Detail Transaksi Midtrans</h2>
@@ -38,7 +41,7 @@
                     </div>
                     <div class="col-sm-6">
                         <div class="text-muted small">Amount</div>
-                        <div class="fw-bold">Rp {{ number_format($transaction->gross_amount, 0, ',', '.') }}</div>
+                        <div class="fw-bold">{{ $money->format((float) $transaction->gross_amount, $transaction->currency_code ?: 'IDR') }}</div>
                     </div>
                     <div class="col-sm-6">
                         <div class="text-muted small">Dibuat</div>
@@ -102,7 +105,7 @@
                     </div>
                     <div class="mb-2 d-flex justify-content-between">
                         <span class="text-muted">Amount</span>
-                        <span class="fw-bold">Rp {{ number_format($transaction->payment->amount, 0, ',', '.') }}</span>
+                        <span class="fw-bold">{{ $money->format((float) $transaction->payment->amount, $transaction->payment->currency_code ?: $transaction->currency_code ?: 'IDR') }}</span>
                     </div>
                     <div class="mb-2 d-flex justify-content-between">
                         <span class="text-muted">Paid At</span>

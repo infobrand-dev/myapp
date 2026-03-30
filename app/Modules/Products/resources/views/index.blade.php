@@ -1,6 +1,9 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+@endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Products</h2>
@@ -106,8 +109,8 @@
                                 <div class="text-muted small">{{ $product->brand?->name ?? '-' }}</div>
                             </td>
                             <td>
-                                <div>Jual: Rp {{ number_format((float) $product->sell_price, 0, ',', '.') }}</div>
-                                <div class="text-muted small">Beli: Rp {{ number_format((float) $product->cost_price, 0, ',', '.') }}</div>
+                                <div>Jual: {{ $money->format((float) $product->sell_price, $product->currency_code ?: 'IDR') }}</div>
+                                <div class="text-muted small">Beli: {{ $money->format((float) $product->cost_price, $product->currency_code ?: 'IDR') }}</div>
                             </td>
                             <td>
                                 <span class="badge bg-{{ $product->is_active ? 'success' : 'secondary' }}-lt text-{{ $product->is_active ? 'success' : 'secondary' }}">

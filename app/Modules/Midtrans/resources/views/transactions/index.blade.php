@@ -1,6 +1,9 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+@endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Midtrans Transactions</h2>
@@ -122,7 +125,7 @@
                             @endif
                         </td>
                         <td class="text-end fw-semibold">
-                            Rp {{ number_format($tx->gross_amount, 0, ',', '.') }}
+                            {{ $money->format((float) $tx->gross_amount, $tx->currency_code ?: 'IDR') }}
                         </td>
                         <td>
                             <span class="badge {{ $tx->statusBadgeClass() }}">

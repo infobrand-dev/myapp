@@ -1,5 +1,8 @@
 <x-guest-layout>
     <x-auth-card>
+        @php
+            $money = app(\App\Support\MoneyFormatter::class);
+        @endphp
         <x-slot name="logo">
             <a href="/">
                 <x-application-logo />
@@ -24,7 +27,10 @@
                 <label class="form-label fw-semibold">Pilih paket</label>
                 <div class="row g-3">
                     @foreach ($plans as $plan)
-                        @php($sales = $plan->sales_meta ?? [])
+                        @php
+                            $sales = $plan->sales_meta ?? [];
+                            $priceCurrency = strtoupper((string) ($sales['currency'] ?? 'IDR'));
+                        @endphp
                         <div class="col-12">
                             <label
                                 class="card h-100 cursor-pointer"
@@ -50,7 +56,7 @@
                                             <div class="text-muted small mt-2">{{ $sales['tagline'] ?? 'Paket omnichannel' }}</div>
                                         </div>
                                         <div class="text-end">
-                                            <div class="fw-bold fs-5">Rp {{ number_format((float) ($sales['price'] ?? 0), 0, ',', '.') }}</div>
+                                            <div class="fw-bold fs-5">{{ $money->format((float) ($sales['price'] ?? 0), $priceCurrency) }}</div>
                                             <div class="text-muted small">/{{ $plan->billing_interval ?: 'sekali bayar' }}</div>
                                         </div>
                                     </div>

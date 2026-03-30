@@ -22,6 +22,7 @@ class PlatformAffiliateSaleGeneratedMail extends Mailable implements ShouldQueue
         public readonly string $orderCurrency,
         public readonly float $commissionAmount,
         public readonly string $referralLink,
+        public readonly array $policy,
     ) {
     }
 
@@ -45,6 +46,7 @@ class PlatformAffiliateSaleGeneratedMail extends Mailable implements ShouldQueue
                 'orderCurrency' => $this->orderCurrency,
                 'commissionAmount' => $this->commissionAmount,
                 'referralLink' => $this->referralLink,
+                'policy' => $this->policy,
             ],
         );
     }

@@ -4,6 +4,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\TenantOnboardingController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\AffiliateProgramController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\ModuleController;
@@ -27,6 +28,8 @@ use Illuminate\Support\Facades\Route;
 Route::post('locale/switch', [App\Http\Controllers\LocaleController::class, 'switch'])->name('locale.switch');
 
 Route::get('/', LandingPageController::class)->name('landing');
+Route::get('/affiliate-program', AffiliateProgramController::class)->name('affiliate.program');
+Route::get('/aff/{slug}', [LandingPageController::class, 'affiliateRedirect'])->name('affiliate.redirect');
 Route::get('/workspace', [LandingPageController::class, 'workspaceFinder'])->name('workspace.finder');
 Route::post('/workspace', [LandingPageController::class, 'redirectToWorkspaceLogin'])->name('workspace.redirect');
 
@@ -94,8 +97,10 @@ Route::middleware(['auth', 'verified', '2fa', 'platform.admin', \App\Http\Middle
         Route::put('/plans/{plan}', [PlatformOwnerController::class, 'updatePlan'])->name('plans.update');
         Route::get('/go-live', [PlatformOwnerController::class, 'golive'])->name('golive');
         Route::get('/affiliates', [PlatformAffiliateController::class, 'index'])->name('affiliates.index');
+        Route::get('/affiliate-payouts', [PlatformAffiliateController::class, 'payouts'])->name('affiliates.payouts');
         Route::post('/affiliates', [PlatformAffiliateController::class, 'store'])->name('affiliates.store');
         Route::get('/affiliates/{affiliate}', [PlatformAffiliateController::class, 'show'])->name('affiliates.show');
+        Route::post('/affiliates/{affiliate}/referrals/{referral}/payout', [PlatformAffiliateController::class, 'updatePayoutStatus'])->name('affiliates.referrals.payout');
         Route::get('/orders', [PlatformOwnerController::class, 'orders'])->name('orders.index');
         Route::post('/orders/{order}/mark-paid', [PlatformOwnerController::class, 'markOrderPaid'])->name('orders.mark-paid');
         Route::post('/orders/{order}/cancel', [PlatformOwnerController::class, 'cancelOrder'])->name('orders.cancel');

@@ -25,6 +25,16 @@
         <a href="{{ $referralLink }}" class="btn">Buka Link Referral</a>
     </div>
 
+    <p>Ringkasan program saat ini:</p>
+    <ul>
+        <li>Cookie attribution: {{ $policy['cookie_days'] }} hari</li>
+        <li>Pembelian pertama saja: {{ $policy['first_purchase_only'] ? 'Ya' : 'Tidak' }}</li>
+        <li>Payout: {{ ucfirst($policy['payout_schedule']) }} sekitar tanggal {{ $policy['payout_day'] }}</li>
+    </ul>
+
+    <p>Aturan lengkap program affiliate:</p>
+    <p><a href="{{ $policy['terms_url'] }}">{{ $policy['terms_url'] }}</a></p>
+
     <p>Link referral Anda:</p>
     <p><a href="{{ $referralLink }}">{{ $referralLink }}</a></p>
 @endsection

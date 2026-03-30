@@ -19,6 +19,7 @@ class PlatformAffiliateRegisteredMail extends Mailable implements ShouldQueue
         public readonly string $referralLink,
         public readonly string $commissionType,
         public readonly float $commissionRate,
+        public readonly array $policy,
     ) {
     }
 
@@ -39,6 +40,7 @@ class PlatformAffiliateRegisteredMail extends Mailable implements ShouldQueue
                 'referralLink' => $this->referralLink,
                 'commissionType' => $this->commissionType,
                 'commissionRate' => $this->commissionRate,
+                'policy' => $this->policy,
             ],
         );
     }

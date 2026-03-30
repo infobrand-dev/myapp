@@ -35,6 +35,12 @@
     </a>
 </li>
 <li class="nav-item">
+    <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('platform.affiliates.payouts') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('platform.affiliates.payouts') }}">
+        <span class="nav-link-icon"><i class="ti ti-cash-banknote"></i></span>
+        <span class="nav-link-title">Affiliate Payouts</span>
+    </a>
+</li>
+<li class="nav-item">
     <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('platform.golive') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('platform.golive') }}">
         <span class="nav-link-icon"><i class="ti ti-rocket"></i></span>
         <span class="nav-link-title">Go-Live Audit</span>

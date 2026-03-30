@@ -18,8 +18,13 @@ class PlatformAffiliateReferral extends Model
         'order_amount',
         'order_currency',
         'commission_amount',
+        'payout_status',
         'registered_at',
         'converted_at',
+        'approved_at',
+        'paid_at',
+        'payout_reference',
+        'payout_notes',
         'meta',
     ];
 
@@ -28,6 +33,8 @@ class PlatformAffiliateReferral extends Model
         'commission_amount' => 'decimal:2',
         'registered_at' => 'datetime',
         'converted_at' => 'datetime',
+        'approved_at' => 'datetime',
+        'paid_at' => 'datetime',
         'meta' => 'array',
     ];
 

@@ -473,6 +473,7 @@
                         <span class="text-muted small">&copy; {{ date('Y') }}</span>
                     </div>
                     <div class="d-flex flex-wrap gap-4">
+                        <a href="{{ route('affiliate.program') }}" class="text-muted small text-decoration-none" style="transition: color 0.15s;" onmouseover="this.style.color='var(--landing-blue)'" onmouseout="this.style.color=''">Program Affiliate</a>
                         <a href="#" class="text-muted small text-decoration-none" style="transition: color 0.15s;" onmouseover="this.style.color='var(--landing-blue)'" onmouseout="this.style.color=''">Kebijakan Privasi</a>
                         <a href="#" class="text-muted small text-decoration-none" style="transition: color 0.15s;" onmouseover="this.style.color='var(--landing-blue)'" onmouseout="this.style.color=''">Syarat & Ketentuan</a>
                         <a href="mailto:{{ config('mail.from.address', 'hello@' . config('multitenancy.saas_domain', 'app.com')) }}" class="text-muted small text-decoration-none" style="transition: color 0.15s;" onmouseover="this.style.color='var(--landing-blue)'" onmouseout="this.style.color=''">Hubungi Kami</a>

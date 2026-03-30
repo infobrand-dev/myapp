@@ -30,4 +30,7 @@
     <div class="btn-wrap">
         <a href="{{ $referralLink }}" class="btn">Lihat Link Referral</a>
     </div>
+
+    <p>Status komisi Anda akan mengikuti rule program affiliate aktif. Lihat aturan lengkap di:</p>
+    <p><a href="{{ $policy['terms_url'] }}">{{ $policy['terms_url'] }}</a></p>
 @endsection

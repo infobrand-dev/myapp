@@ -11,17 +11,58 @@ use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class PlatformAffiliateService
 {
     private const SESSION_KEY = 'platform_affiliate_referral_code';
+    private const COOKIE_KEY = 'platform_affiliate_referral_code';
 
     public function tablesReady(): bool
     {
-        return Schema::hasTable('platform_affiliates') && Schema::hasTable('platform_affiliate_referrals');
+        return Schema::hasTable('platform_affiliates')
+            && Schema::hasTable('platform_affiliate_referrals')
+            && Schema::hasColumn('platform_affiliates', 'slug')
+            && Schema::hasColumn('platform_affiliates', 'click_count')
+            && Schema::hasColumn('platform_affiliates', 'last_clicked_at');
+    }
+
+    public function findActiveBySlug(string $slug): ?PlatformAffiliate
+    {
+        if (!$this->tablesReady()) {
+            return null;
+        }
+
+        return PlatformAffiliate::query()
+            ->where('slug', Str::slug($slug))
+            ->where('status', 'active')
+            ->first();
+    }
+
+    public function publicPolicy(): array
+    {
+        $commissionType = (string) config('services.platform_affiliate.default_commission_type', 'percentage');
+        $commissionRate = (float) config('services.platform_affiliate.default_commission_rate', 20);
+        $cookieDays = max(1, (int) config('services.platform_affiliate.cookie_days', 30));
+        $firstPurchaseOnly = (bool) config('services.platform_affiliate.first_purchase_only', true);
+        $payoutSchedule = (string) config('services.platform_affiliate.payout_schedule', 'monthly');
+        $payoutDay = max(1, (int) config('services.platform_affiliate.payout_day', 10));
+        $payoutMethods = array_values(config('services.platform_affiliate.payout_methods', ['bank_transfer']));
+
+        return [
+            'commission_type' => $commissionType,
+            'commission_rate' => $commissionRate,
+            'cookie_days' => $cookieDays,
+            'first_purchase_only' => $firstPurchaseOnly,
+            'payout_schedule' => $payoutSchedule,
+            'payout_day' => $payoutDay,
+            'payout_methods' => $payoutMethods,
+            'terms_url' => route('affiliate.program'),
+        ];
     }
 
     public function captureFromRequest(Request $request): ?PlatformAffiliate
@@ -49,20 +90,40 @@ class PlatformAffiliateService
             return null;
         }
 
-        if ($request->hasSession()) {
-            $request->session()->put(self::SESSION_KEY, $affiliate->referral_code);
+        $this->storeAttribution($request, $affiliate);
+        $this->registerClick($affiliate, $request);
+
+        return $affiliate;
+    }
+
+    public function captureAffiliate(Request $request, PlatformAffiliate $affiliate): ?PlatformAffiliate
+    {
+        if (!$this->tablesReady() || $affiliate->status !== 'active') {
+            return null;
         }
+
+        $this->storeAttribution($request, $affiliate);
+        $this->registerClick($affiliate, $request);
 
         return $affiliate;
     }
 
     public function currentAffiliate(Request $request): ?PlatformAffiliate
     {
-        if (!$this->tablesReady() || !$request->hasSession()) {
+        if (!$this->tablesReady()) {
             return null;
         }
 
-        $code = $this->normalizeCode((string) $request->session()->get(self::SESSION_KEY, ''));
+        $code = null;
+
+        if ($request->hasSession()) {
+            $code = $this->normalizeCode((string) $request->session()->get(self::SESSION_KEY, ''));
+        }
+
+        if ($code === null) {
+            $code = $this->normalizeCode((string) $request->cookie(self::COOKIE_KEY, ''));
+        }
+
         if ($code === null) {
             return null;
         }
@@ -79,11 +140,13 @@ class PlatformAffiliateService
             'name' => $data['name'],
             'email' => mb_strtolower($data['email']),
             'phone' => $data['phone'] ?: null,
+            'slug' => $this->generateSlug($data['name']),
             'referral_code' => $this->generateReferralCode($data['name']),
             'status' => $data['status'] ?? 'active',
             'commission_type' => $data['commission_type'] ?? 'percentage',
             'commission_rate' => (float) ($data['commission_rate'] ?? 10),
             'notes' => $data['notes'] ?: null,
+            'click_count' => 0,
             'meta' => [
                 'created_by_user_id' => auth()->id(),
             ],
@@ -145,20 +208,31 @@ class PlatformAffiliateService
         }
 
         $timestamp = $paidAt ?: now();
-        $commissionAmount = $this->commissionAmount($referral->affiliate, (float) $order->amount);
+        $commissionEligible = $this->isCommissionEligible($order, $referral);
+        $commissionAmount = $commissionEligible
+            ? $this->commissionAmount($referral->affiliate, (float) $order->amount)
+            : 0.0;
         $meta = (array) ($referral->meta ?? []);
         $saleMailAlreadyQueued = !empty($meta['sale_email_queued_at']);
+        $meta['commission_eligible'] = $commissionEligible;
+
+        if (!$commissionEligible) {
+            $meta['commission_reason'] = 'first_purchase_only';
+        }
 
         $referral->forceFill([
             'status' => 'converted',
             'order_amount' => $order->amount,
             'order_currency' => $order->currency,
             'commission_amount' => $commissionAmount,
+            'payout_status' => $commissionEligible ? 'pending' : 'not_eligible',
             'converted_at' => $referral->converted_at ?: $timestamp,
             'meta' => $saleMailAlreadyQueued ? $meta : array_merge($meta, [
-                'sale_email_queued_at' => $timestamp->toIso8601String(),
                 'plan_code' => optional($order->plan)->code,
                 'tenant_slug' => optional($order->tenant)->slug,
+                ...($commissionEligible ? [
+                    'sale_email_queued_at' => $timestamp->toIso8601String(),
+                ] : []),
             ]),
         ])->save();
 
@@ -166,7 +240,7 @@ class PlatformAffiliateService
             'last_sale_at' => $timestamp,
         ])->save();
 
-        if (!$saleMailAlreadyQueued) {
+        if ($commissionEligible && !$saleMailAlreadyQueued) {
             $this->sendSaleGeneratedMail($referral->fresh(['affiliate', 'tenant', 'order.plan']));
         }
 
@@ -175,7 +249,7 @@ class PlatformAffiliateService
 
     public function referralLink(PlatformAffiliate $affiliate): string
     {
-        return rtrim((string) config('app.url'), '/') . '/?ref=' . $affiliate->referral_code;
+        return rtrim((string) config('app.url'), '/') . '/aff/' . $affiliate->slug;
     }
 
     private function commissionAmount(PlatformAffiliate $affiliate, float $orderAmount): float
@@ -197,6 +271,7 @@ class PlatformAffiliateService
                     referralLink: $this->referralLink($affiliate),
                     commissionType: $affiliate->commission_type,
                     commissionRate: (float) $affiliate->commission_rate,
+                    policy: $this->publicPolicy(),
                 )
             );
 
@@ -223,6 +298,7 @@ class PlatformAffiliateService
                     orderCurrency: $referral->order_currency ?: 'IDR',
                     commissionAmount: (float) ($referral->commission_amount ?? 0),
                     referralLink: $this->referralLink($referral->affiliate),
+                    policy: $this->publicPolicy(),
                 )
             );
         } catch (\Throwable $e) {
@@ -250,5 +326,75 @@ class PlatformAffiliateService
         $code = strtoupper(trim($rawCode));
 
         return $code !== '' ? $code : null;
+    }
+
+    private function generateSlug(string $name): string
+    {
+        $baseSlug = Str::slug($name) ?: 'affiliate';
+        $slug = $baseSlug;
+        $counter = 2;
+
+        while (PlatformAffiliate::query()->where('slug', $slug)->exists()) {
+            $slug = $baseSlug . '-' . $counter;
+            $counter++;
+        }
+
+        return $slug;
+    }
+
+    private function storeAttribution(Request $request, PlatformAffiliate $affiliate): void
+    {
+        if ($request->hasSession()) {
+            $request->session()->put(self::SESSION_KEY, $affiliate->referral_code);
+        }
+
+        Cookie::queue(cookie(
+            self::COOKIE_KEY,
+            $affiliate->referral_code,
+            $this->cookieMinutes(),
+            '/',
+            config('session.domain'),
+            (bool) config('session.secure'),
+            false,
+            false,
+            config('session.same_site', 'lax')
+        ));
+    }
+
+    private function registerClick(PlatformAffiliate $affiliate, Request $request): void
+    {
+        $meta = (array) ($affiliate->meta ?? []);
+        $meta['last_click_path'] = '/' . ltrim((string) $request->path(), '/');
+        $meta['last_click_query'] = $request->getQueryString();
+
+        $affiliate->forceFill([
+            'click_count' => (int) $affiliate->click_count + 1,
+            'last_clicked_at' => now(),
+            'meta' => $meta,
+        ])->save();
+    }
+
+    private function cookieMinutes(): int
+    {
+        $days = max(1, (int) config('services.platform_affiliate.cookie_days', 30));
+
+        return $days * 24 * 60;
+    }
+
+    private function isCommissionEligible(PlatformPlanOrder $order, PlatformAffiliateReferral $referral): bool
+    {
+        if (!config('services.platform_affiliate.first_purchase_only', true)) {
+            return true;
+        }
+
+        if (!$order->tenant_id) {
+            return true;
+        }
+
+        return !PlatformPlanOrder::query()
+            ->where('tenant_id', $order->tenant_id)
+            ->where('status', 'paid')
+            ->whereKeyNot($order->id)
+            ->exists();
     }
 }

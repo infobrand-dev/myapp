@@ -72,4 +72,14 @@ return [
         'allowed_domains' => env('WA_CLOUD_ALLOWED_DOMAINS', ''),
     ],
 
+    'platform_affiliate' => [
+        'cookie_days' => (int) env('PLATFORM_AFFILIATE_COOKIE_DAYS', 30),
+        'first_purchase_only' => filter_var(env('PLATFORM_AFFILIATE_FIRST_PURCHASE_ONLY', true), FILTER_VALIDATE_BOOL),
+        'default_commission_type' => env('PLATFORM_AFFILIATE_DEFAULT_COMMISSION_TYPE', 'percentage'),
+        'default_commission_rate' => (float) env('PLATFORM_AFFILIATE_DEFAULT_COMMISSION_RATE', 20),
+        'payout_schedule' => env('PLATFORM_AFFILIATE_PAYOUT_SCHEDULE', 'monthly'),
+        'payout_day' => (int) env('PLATFORM_AFFILIATE_PAYOUT_DAY', 10),
+        'payout_methods' => array_values(array_filter(array_map('trim', explode(',', (string) env('PLATFORM_AFFILIATE_PAYOUT_METHODS', 'bank_transfer'))))),
+    ],
+
 ];

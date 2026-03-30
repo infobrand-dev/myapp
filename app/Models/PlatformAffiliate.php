@@ -11,6 +11,7 @@ class PlatformAffiliate extends Model
         'name',
         'email',
         'phone',
+        'slug',
         'referral_code',
         'status',
         'commission_type',
@@ -18,7 +19,9 @@ class PlatformAffiliate extends Model
         'notes',
         'payout_meta',
         'meta',
+        'click_count',
         'welcome_emailed_at',
+        'last_clicked_at',
         'last_sale_at',
     ];
 
@@ -26,7 +29,9 @@ class PlatformAffiliate extends Model
         'commission_rate' => 'decimal:2',
         'payout_meta' => 'array',
         'meta' => 'array',
+        'click_count' => 'integer',
         'welcome_emailed_at' => 'datetime',
+        'last_clicked_at' => 'datetime',
         'last_sale_at' => 'datetime',
     ];
 

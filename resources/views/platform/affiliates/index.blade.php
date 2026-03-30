@@ -20,6 +20,45 @@
         </div>
     @endif
 
+    <div class="row g-3 mb-3">
+        <div class="col-sm-6 col-xl-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="text-secondary text-uppercase small fw-bold">Affiliates</div>
+                    <div class="fs-2 fw-bold">{{ $stats['total_affiliates'] }}</div>
+                    <div class="text-muted small">{{ $stats['active_affiliates'] }} aktif</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="text-secondary text-uppercase small fw-bold">Clicks</div>
+                    <div class="fs-2 fw-bold">{{ number_format($stats['total_clicks']) }}</div>
+                    <div class="text-muted small">Klik link affiliate</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="text-secondary text-uppercase small fw-bold">Converted</div>
+                    <div class="fs-2 fw-bold">{{ number_format($stats['total_converted']) }}</div>
+                    <div class="text-muted small">Referral menjadi sale</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="text-secondary text-uppercase small fw-bold">Pending Payout</div>
+                    <div class="fs-2 fw-bold">{{ number_format($stats['total_pending_payouts']) }}</div>
+                    <div class="text-muted small">Komisi menunggu approval</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row g-3">
         <div class="col-lg-4">
             <div class="card">
@@ -76,7 +115,7 @@
                         <thead>
                             <tr>
                                 <th>Affiliate</th>
-                                <th>Kode</th>
+                                <th>Link</th>
                                 <th>Komisi</th>
                                 <th>Referral</th>
                                 <th>Sales</th>
@@ -92,8 +131,8 @@
                                         <div class="text-muted small">{{ $affiliate->status }}</div>
                                     </td>
                                     <td>
-                                        <div class="fw-semibold">{{ $affiliate->referral_code }}</div>
-                                        <div class="text-muted small">{{ $affiliate->phone ?: '-' }}</div>
+                                        <div class="fw-semibold">/aff/{{ $affiliate->slug }}</div>
+                                        <div class="text-muted small">{{ number_format((int) $affiliate->click_count) }} klik · {{ $affiliate->phone ?: '-' }}</div>
                                     </td>
                                     <td>
                                         @if($affiliate->commission_type === 'flat')
@@ -104,7 +143,7 @@
                                     </td>
                                     <td>
                                         <div class="fw-semibold">{{ (int) $affiliate->referrals_count }}</div>
-                                        <div class="text-muted small">{{ (int) $affiliate->converted_referrals_count }} converted</div>
+                                        <div class="text-muted small">{{ (int) $affiliate->converted_referrals_count }} converted · {{ (int) $affiliate->pending_payouts_count }} pending payout</div>
                                     </td>
                                     <td>
                                         <div class="fw-semibold">{{ app(\App\Support\MoneyFormatter::class)->format((float) ($affiliate->converted_sales_amount ?? 0), 'IDR') }}</div>

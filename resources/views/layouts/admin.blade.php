@@ -111,10 +111,6 @@
                             {{ config('app.name') }}
                         </a>
 
-                        <div class="flex-fill min-width-0 overflow-hidden">
-                            @include('shared.topbar-context-switcher', ['selectorId' => 'mobile-topbar'])
-                        </div>
-
                         <div class="ms-auto">
                             <div class="dropdown">
                                 <button

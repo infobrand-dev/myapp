@@ -1334,6 +1334,62 @@ body.landing-page {
     }
 }
 
+/* Sidebar mobile context panel */
+.sidebar-ctx-panel {
+    padding: 0.75rem 0.875rem 0.5rem;
+    border-bottom: 1px solid rgba(74, 96, 126, 0.1);
+    margin-bottom: 0.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.sidebar-ctx-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+.sidebar-ctx-label {
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--brand-gray-400);
+}
+.sidebar-ctx-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+.sidebar-ctx-chip {
+    display: inline-flex;
+    align-items: center;
+    background: var(--brand-gray-100);
+    border: 1px solid var(--brand-gray-200);
+    border-radius: 999px;
+    padding: 0.25rem 0.7rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--brand-gray-600);
+    cursor: pointer;
+    transition: background var(--app-transition), color var(--app-transition), border-color var(--app-transition);
+    white-space: nowrap;
+    max-width: 14rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.4;
+}
+.sidebar-ctx-chip:hover:not(.active) {
+    background: rgba(var(--tblr-primary-rgb), 0.07);
+    border-color: rgba(var(--tblr-primary-rgb), 0.25);
+    color: var(--tblr-primary);
+}
+.sidebar-ctx-chip.active {
+    background: rgba(var(--tblr-primary-rgb), 0.12);
+    border-color: rgba(var(--tblr-primary-rgb), 0.3);
+    color: var(--tblr-primary);
+    font-weight: 600;
+}
+
 /* ============================================================
    SETTINGS NAV
    ============================================================ */

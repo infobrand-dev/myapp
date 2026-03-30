@@ -34,6 +34,41 @@
         </div>
     </div>
     <div class="col-lg-5">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h3 class="card-title mb-0">Mata Uang Default</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ route('settings.general.save') }}" class="row g-3">
+                    @csrf
+                    @method('PUT')
+                    <div class="col-12">
+                        <label class="form-label">Workspace Default Currency</label>
+                        <select name="default_currency" class="form-select">
+                            @foreach($currencyOptions as $currencyCode => $currencyLabel)
+                                <option value="{{ $currencyCode }}" @selected(old('default_currency', $defaultCurrency) === $currencyCode)>{{ $currencyLabel }}</option>
+                            @endforeach
+                        </select>
+                        <div class="form-hint">Dipakai sebagai default baru untuk CRM, Sales, Purchases, POS, dan area yang belum memilih currency secara manual.</div>
+                    </div>
+                    @if($currentCompany)
+                        <div class="col-12">
+                            <label class="form-label">Override Currency untuk Company Aktif</label>
+                            <select name="company_default_currency" class="form-select">
+                                <option value="">Ikuti workspace default</option>
+                                @foreach($currencyOptions as $currencyCode => $currencyLabel)
+                                    <option value="{{ $currencyCode }}" @selected(old('company_default_currency', $companyDefaultCurrency) === $currencyCode)>{{ $currencyLabel }}</option>
+                                @endforeach
+                            </select>
+                            <div class="form-hint">Opsional. Kalau diisi, company aktif memakai currency ini sebagai default draft baru.</div>
+                        </div>
+                    @endif
+                    <div class="col-12 d-grid">
+                        <button class="btn btn-primary">Simpan General Settings</button>
+                    </div>
+                </form>
+            </div>
+        </div>
         <div class="card h-100">
             <div class="card-header">
                 <h3 class="card-title mb-0">Ringkasan Scope</h3>

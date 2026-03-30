@@ -1,6 +1,9 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+@endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Invoice {{ $sale->sale_number }}</h2>
@@ -62,20 +65,20 @@
                         <tr>
                             <td>{{ $item->product_name_snapshot }}{{ $item->variant_name_snapshot ? ' - ' . $item->variant_name_snapshot : '' }}</td>
                             <td>{{ number_format((float) $item->qty, 2, ',', '.') }}</td>
-                            <td>Rp {{ number_format((float) $item->unit_price, 0, ',', '.') }}</td>
-                            <td>Rp {{ number_format((float) $item->discount_total, 0, ',', '.') }}</td>
-                            <td>Rp {{ number_format((float) $item->tax_total, 0, ',', '.') }}</td>
-                            <td>Rp {{ number_format((float) $item->line_total, 0, ',', '.') }}</td>
+                            <td>{{ $money->format((float) $item->unit_price, $sale->currency_code) }}</td>
+                            <td>{{ $money->format((float) $item->discount_total, $sale->currency_code) }}</td>
+                            <td>{{ $money->format((float) $item->tax_total, $sale->currency_code) }}</td>
+                            <td>{{ $money->format((float) $item->line_total, $sale->currency_code) }}</td>
                         </tr>
                     @endforeach
                 </tbody>
                 <tfoot>
-                    <tr><td colspan="5" class="text-end">Subtotal</td><td>Rp {{ number_format((float) $sale->subtotal, 0, ',', '.') }}</td></tr>
-                    <tr><td colspan="5" class="text-end">Discount</td><td>Rp {{ number_format((float) $sale->discount_total, 0, ',', '.') }}</td></tr>
-                    <tr><td colspan="5" class="text-end">Tax</td><td>Rp {{ number_format((float) $sale->tax_total, 0, ',', '.') }}</td></tr>
-                    <tr><td colspan="5" class="text-end fw-bold">Grand Total</td><td class="fw-bold">Rp {{ number_format((float) $sale->grand_total, 0, ',', '.') }}</td></tr>
-                    <tr><td colspan="5" class="text-end">Paid</td><td>Rp {{ number_format((float) $sale->paid_total, 0, ',', '.') }}</td></tr>
-                    <tr><td colspan="5" class="text-end">Balance Due</td><td>Rp {{ number_format((float) $sale->balance_due, 0, ',', '.') }}</td></tr>
+                    <tr><td colspan="5" class="text-end">Subtotal</td><td>{{ $money->format((float) $sale->subtotal, $sale->currency_code) }}</td></tr>
+                    <tr><td colspan="5" class="text-end">Discount</td><td>{{ $money->format((float) $sale->discount_total, $sale->currency_code) }}</td></tr>
+                    <tr><td colspan="5" class="text-end">Tax</td><td>{{ $money->format((float) $sale->tax_total, $sale->currency_code) }}</td></tr>
+                    <tr><td colspan="5" class="text-end fw-bold">Grand Total</td><td class="fw-bold">{{ $money->format((float) $sale->grand_total, $sale->currency_code) }}</td></tr>
+                    <tr><td colspan="5" class="text-end">Paid</td><td>{{ $money->format((float) $sale->paid_total, $sale->currency_code) }}</td></tr>
+                    <tr><td colspan="5" class="text-end">Balance Due</td><td>{{ $money->format((float) $sale->balance_due, $sale->currency_code) }}</td></tr>
                 </tfoot>
             </table>
         </div>

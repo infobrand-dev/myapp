@@ -1,6 +1,10 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $defaultCurrency = app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency();
+    $money = app(\App\Support\MoneyFormatter::class);
+@endphp
 <style>
     .pos-shell { --pos-accent:#0f766e; --pos-accent-rgb:15,118,110; --pos-ink:#16302b; --pos-panel:#fffdf9; --pos-line:#e7dccd; min-height:calc(100vh - 6.5rem); background:radial-gradient(circle at top left, rgba(var(--pos-accent-rgb),.10), transparent 24rem), linear-gradient(180deg,#faf5ee 0%,#f5f0e7 100%); border-radius:1.5rem; padding:1rem; }
     .pos-topbar { background:linear-gradient(135deg,#0f766e,#155e75); color:#fff; border-radius:1.25rem; padding:1rem 1.25rem; box-shadow:0 1rem 2rem rgba(15,118,110,.18); }
@@ -28,6 +32,7 @@
         initialProducts: @json($initialProducts->map(function ($product) { return ['sellable_key' => 'product:' . $product->id, 'product_id' => $product->id, 'product_variant_id' => null, 'name' => $product->name, 'variant_name' => null, 'sku' => $product->sku, 'barcode' => $product->barcode, 'price' => (float) $product->sell_price, 'unit' => null]; })->values()),
         initialCustomers: @json($initialCustomers->map(function ($customer) { return ['id' => $customer->id, 'name' => $customer->name, 'phone' => $customer->mobile ?: $customer->phone, 'email' => $customer->email]; })->values()),
         paymentMethods: @json($paymentMethods->map(function ($method) { return ['id' => $method->id, 'code' => $method->code, 'name' => $method->name, 'type' => $method->type, 'requires_reference' => (bool) $method->requires_reference]; })->values()),
+        defaultCurrency: @json($defaultCurrency),
         routes: {
             cartActive: '{{ route('pos.cart.active') }}',
             cartUpdate: '{{ route('pos.cart.update') }}',
@@ -67,7 +72,7 @@
     <div class="alert {{ $activeShift ? 'alert-success' : 'alert-warning' }} mb-3">
         @if($activeShift)
             Shift aktif: <a href="{{ route('pos.shifts.show', $activeShift) }}" class="alert-link">{{ $activeShift->code }}</a>
-            | Opening cash: Rp {{ number_format((float) $activeShift->opening_cash_amount, 0, ',', '.') }}
+            | Opening cash: {{ $money->format((float) $activeShift->opening_cash_amount, $activeShift->currency_code ?: $defaultCurrency) }}
         @else
             Tidak ada shift aktif. <a href="{{ route('pos.shifts.create') }}" class="alert-link">Buka shift</a> sebelum checkout POS.
         @endif
@@ -266,6 +271,7 @@ function posScreen(config) {
         products: config.initialProducts || [],
         customers: config.initialCustomers || [],
         paymentMethods: config.paymentMethods || [],
+        defaultCurrency: config.defaultCurrency || 'IDR',
         heldCarts: [],
         cart: { customer: { label: 'Walk-in Customer' }, totals: { item_count: 0, subtotal: 0, item_discount_total: 0, order_discount_total: 0, tax_total: 0, grand_total: 0 }, items: [] },
         barcode: '',
@@ -504,8 +510,11 @@ function posScreen(config) {
             return Math.max(0, received - cashPayment);
         },
 
-        money(value) {
-            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(value || 0));
+        money(value, currency = null) {
+            const resolvedCurrency = (currency || this.cart.currency_code || this.defaultCurrency || 'IDR').toUpperCase();
+            const localeMap = { IDR: 'id-ID', USD: 'en-US', SGD: 'en-SG', EUR: 'de-DE' };
+            const fractionDigits = resolvedCurrency === 'IDR' ? 0 : 2;
+            return new Intl.NumberFormat(localeMap[resolvedCurrency] || 'id-ID', { style: 'currency', currency: resolvedCurrency, maximumFractionDigits: fractionDigits, minimumFractionDigits: fractionDigits }).format(Number(value || 0));
         },
 
         notify(type, message) {

@@ -1,6 +1,9 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+@endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Print Purchase {{ $purchase->purchase_number }}</h2>
@@ -28,17 +31,17 @@
                     <tr>
                         <td>{{ $item->product_name_snapshot }} {{ $item->variant_name_snapshot ? ' - ' . $item->variant_name_snapshot : '' }}</td>
                         <td>{{ number_format((float) $item->qty, 2, ',', '.') }}</td>
-                        <td>Rp {{ number_format((float) $item->unit_cost, 0, ',', '.') }}</td>
-                        <td>Rp {{ number_format((float) $item->line_total, 0, ',', '.') }}</td>
+                        <td>{{ $money->format((float) $item->unit_cost, $purchase->currency_code) }}</td>
+                        <td>{{ $money->format((float) $item->line_total, $purchase->currency_code) }}</td>
                     </tr>
                 @endforeach
             </tbody>
         </table>
         <div class="text-end">
-            <div>Subtotal: Rp {{ number_format((float) $purchase->subtotal, 0, ',', '.') }}</div>
-            <div>Discount: Rp {{ number_format((float) $purchase->discount_total, 0, ',', '.') }}</div>
-            <div>Tax: Rp {{ number_format((float) $purchase->tax_total, 0, ',', '.') }}</div>
-            <div class="fw-semibold">Grand Total: Rp {{ number_format((float) $purchase->grand_total, 0, ',', '.') }}</div>
+            <div>Subtotal: {{ $money->format((float) $purchase->subtotal, $purchase->currency_code) }}</div>
+            <div>Discount: {{ $money->format((float) $purchase->discount_total, $purchase->currency_code) }}</div>
+            <div>Tax: {{ $money->format((float) $purchase->tax_total, $purchase->currency_code) }}</div>
+            <div class="fw-semibold">Grand Total: {{ $money->format((float) $purchase->grand_total, $purchase->currency_code) }}</div>
         </div>
     </div>
 </div>

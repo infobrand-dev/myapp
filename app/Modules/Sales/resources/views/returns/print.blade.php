@@ -1,6 +1,9 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+@endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Return Note {{ $saleReturn->return_number }}</h2>
@@ -55,13 +58,13 @@
                         <tr>
                             <td>{{ $item->product_name_snapshot }}{{ $item->variant_name_snapshot ? ' - ' . $item->variant_name_snapshot : '' }}</td>
                             <td>{{ number_format((float) $item->qty_returned, 2, ',', '.') }}</td>
-                            <td>Rp {{ number_format((float) $item->unit_price, 0, ',', '.') }}</td>
-                            <td>Rp {{ number_format((float) $item->line_total, 0, ',', '.') }}</td>
+                            <td>{{ $money->format((float) $item->unit_price, $saleReturn->currency_code) }}</td>
+                            <td>{{ $money->format((float) $item->line_total, $saleReturn->currency_code) }}</td>
                         </tr>
                     @endforeach
                 </tbody>
                 <tfoot>
-                    <tr><td colspan="3" class="text-end fw-bold">Grand Return</td><td class="fw-bold">Rp {{ number_format((float) $saleReturn->grand_total, 0, ',', '.') }}</td></tr>
+                    <tr><td colspan="3" class="text-end fw-bold">Grand Return</td><td class="fw-bold">{{ $money->format((float) $saleReturn->grand_total, $saleReturn->currency_code) }}</td></tr>
                 </tfoot>
             </table>
         </div>

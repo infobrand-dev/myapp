@@ -7,10 +7,12 @@ use App\Models\Company;
 use App\Support\HookManager;
 use App\Support\BranchContext;
 use App\Support\CorePermissions;
+use App\Support\CurrencySettingsResolver;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use App\Support\TenantPlanManager;
 use App\Support\TenantRoleProvisioner;
+use App\Support\MoneyFormatter;
 use App\Support\ModuleIconRegistry;
 use App\Support\ModuleManager;
 use Illuminate\Support\Facades\Auth;
@@ -32,6 +34,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(ModuleManager::class, fn () => new ModuleManager());
         $this->app->singleton(ModuleIconRegistry::class, fn () => new ModuleIconRegistry());
         $this->app->singleton(HookManager::class, fn () => new HookManager());
+        $this->app->singleton(CurrencySettingsResolver::class);
+        $this->app->singleton(MoneyFormatter::class);
         $this->app->singleton(TenantPlanManager::class);
     }
 

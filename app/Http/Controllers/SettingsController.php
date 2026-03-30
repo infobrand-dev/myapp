@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\DocumentSettingsResolver;
+use App\Support\CurrencySettingsResolver;
 use App\Support\ModuleManager;
 use App\Support\PlanLimit;
 use App\Support\TenantContext;
@@ -29,6 +30,7 @@ class SettingsController extends Controller
         Request $request,
         ModuleManager $modules,
         TenantPlanManager $planManager,
+        CurrencySettingsResolver $currencySettings,
         DocumentSettingsResolver $documentSettingsResolver,
         string $section = 'general'
     ): View
@@ -151,6 +153,9 @@ class SettingsController extends Controller
             'currentSection' => $section,
             'sections' => $this->sections(),
             'tenant' => $tenant,
+            'defaultCurrency' => $currencySettings->tenantCurrency($tenantId) ?? $currencySettings->defaultCurrency($tenantId),
+            'companyDefaultCurrency' => $currentCompany ? $currencySettings->companyCurrency($tenantId, $currentCompany->id) : null,
+            'currencyOptions' => $currencySettings->options(),
             'currentCompany' => $currentCompany,
             'currentBranch' => $currentBranch,
             'companies' => $companies,
@@ -357,6 +362,40 @@ class SettingsController extends Controller
         }
 
         return redirect()->route('settings.documents')->with('status', 'Document settings berhasil disimpan.');
+    }
+
+    public function saveGeneral(Request $request): RedirectResponse
+    {
+        $tenant = TenantContext::currentTenant();
+        abort_unless($tenant, 404);
+
+        $data = $request->validate([
+            'default_currency' => ['required', Rule::in(array_keys(app(CurrencySettingsResolver::class)->options()))],
+            'company_default_currency' => ['nullable', Rule::in(array_keys(app(CurrencySettingsResolver::class)->options()))],
+        ]);
+
+        $tenantMeta = $tenant->meta ?? [];
+        $tenantMeta['default_currency'] = strtoupper((string) $data['default_currency']);
+        $tenant->update([
+            'meta' => $tenantMeta,
+        ]);
+
+        if ($company = CompanyContext::currentCompany()) {
+            $companyMeta = $company->meta ?? [];
+            $companyCurrency = strtoupper((string) ($data['company_default_currency'] ?? ''));
+
+            if ($companyCurrency === '') {
+                unset($companyMeta['default_currency']);
+            } else {
+                $companyMeta['default_currency'] = $companyCurrency;
+            }
+
+            $company->update([
+                'meta' => $companyMeta,
+            ]);
+        }
+
+        return redirect()->route('settings.general')->with('status', 'General settings berhasil disimpan.');
     }
 
     private function validateCompany(Request $request, ?Company $company = null): array

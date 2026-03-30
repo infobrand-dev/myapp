@@ -13,6 +13,7 @@ use App\Modules\Crm\Support\CrmLeadScope;
 use App\Modules\Crm\Support\CrmStageCatalog;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
+use App\Support\CurrencySettingsResolver;
 use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -114,7 +115,7 @@ class CrmLeadController extends Controller
         $lead = new CrmLead([
             'stage' => $request->string('stage')->toString() ?: CrmStageCatalog::NEW_LEAD,
             'priority' => 'medium',
-            'currency' => 'IDR',
+            'currency' => app(CurrencySettingsResolver::class)->defaultCurrency(),
             'contact_id' => $request->integer('contact_id') ?: null,
             'title' => $request->string('title')->toString(),
         ]);
@@ -229,7 +230,7 @@ class CrmLeadController extends Controller
             'priority' => $data['priority'] ?? 'medium',
             'lead_source' => $data['lead_source'] ?? null,
             'estimated_value' => $data['estimated_value'] ?? null,
-            'currency' => $data['currency'] ?? 'IDR',
+            'currency' => $data['currency'] ?? app(CurrencySettingsResolver::class)->defaultCurrency(),
             'probability' => $data['probability'] ?? null,
             'next_follow_up_at' => $data['next_follow_up_at'] ?? null,
             'last_contacted_at' => $data['last_contacted_at'] ?? null,

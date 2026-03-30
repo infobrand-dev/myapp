@@ -1,6 +1,9 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+@endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">{{ $saleReturn->return_number }}</h2>
@@ -43,7 +46,7 @@
                                 <td>{{ number_format((float) $item->sale_qty_snapshot, 2, ',', '.') }}</td>
                                 <td>{{ number_format((float) $item->previous_returned_qty_snapshot, 2, ',', '.') }}</td>
                                 <td>{{ number_format((float) $item->qty_returned, 2, ',', '.') }}</td>
-                                <td>Rp {{ number_format((float) $item->line_total, 0, ',', '.') }}</td>
+                                <td>{{ $money->format((float) $item->line_total, $saleReturn->currency_code) }}</td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -107,12 +110,12 @@
                 </div>
                 <div class="mb-3">
                     <div class="text-muted small">Totals</div>
-                    <div>Subtotal: Rp {{ number_format((float) $saleReturn->subtotal, 0, ',', '.') }}</div>
-                    <div>Discount: Rp {{ number_format((float) $saleReturn->discount_total, 0, ',', '.') }}</div>
-                    <div>Tax: Rp {{ number_format((float) $saleReturn->tax_total, 0, ',', '.') }}</div>
-                    <div class="fw-semibold">Grand Return: Rp {{ number_format((float) $saleReturn->grand_total, 0, ',', '.') }}</div>
-                    <div>Refunded: Rp {{ number_format((float) $saleReturn->refunded_total, 0, ',', '.') }}</div>
-                    <div>Refund Balance: Rp {{ number_format((float) $saleReturn->refund_balance, 0, ',', '.') }}</div>
+                    <div>Subtotal: {{ $money->format((float) $saleReturn->subtotal, $saleReturn->currency_code) }}</div>
+                    <div>Discount: {{ $money->format((float) $saleReturn->discount_total, $saleReturn->currency_code) }}</div>
+                    <div>Tax: {{ $money->format((float) $saleReturn->tax_total, $saleReturn->currency_code) }}</div>
+                    <div class="fw-semibold">Grand Return: {{ $money->format((float) $saleReturn->grand_total, $saleReturn->currency_code) }}</div>
+                    <div>Refunded: {{ $money->format((float) $saleReturn->refunded_total, $saleReturn->currency_code) }}</div>
+                    <div>Refund Balance: {{ $money->format((float) $saleReturn->refund_balance, $saleReturn->currency_code) }}</div>
                 </div>
 
                 @if($saleReturn->status === 'draft')
@@ -151,7 +154,7 @@
                     <div class="border rounded p-2 mb-2">
                         <div class="fw-semibold">{{ optional(optional($allocation->payment)->method)->name ?: '-' }}</div>
                         <div class="text-muted small">{{ optional(optional($allocation->payment)->paid_at)->format('d M Y H:i') ?? '-' }}</div>
-                        <div>Rp {{ number_format((float) $allocation->amount, 0, ',', '.') }}</div>
+                        <div>{{ $money->format((float) $allocation->amount, optional($allocation->payment)->currency_code ?: $saleReturn->currency_code) }}</div>
                     </div>
                 @empty
                     <div class="text-muted">Belum ada refund tercatat.</div>

@@ -1,6 +1,9 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+@endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Sales Returns</h2>
@@ -92,7 +95,7 @@
                         <td><a href="{{ route('sales.show', $saleReturn->sale_id) }}">{{ $saleReturn->sale_number_snapshot }}</a></td>
                         <td>{{ $saleReturn->customer_name_snapshot ?: '-' }}</td>
                         <td>{{ $saleReturn->items_count }}</td>
-                        <td>Rp {{ number_format((float) $saleReturn->grand_total, 0, ',', '.') }}</td>
+                        <td>{{ $money->format((float) $saleReturn->grand_total, $saleReturn->currency_code) }}</td>
                         <td>
                             <div><span class="badge bg-{{ $saleReturn->status === 'finalized' ? 'success' : ($saleReturn->status === 'draft' ? 'secondary' : 'warning') }}-lt text-{{ $saleReturn->status === 'finalized' ? 'success' : ($saleReturn->status === 'draft' ? 'secondary' : 'warning') }}">{{ ucfirst($saleReturn->status) }}</span></div>
                             <div class="text-muted small">Refund: {{ $refundStatusOptions[$saleReturn->refund_status] ?? ucfirst($saleReturn->refund_status) }}</div>

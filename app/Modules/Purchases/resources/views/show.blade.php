@@ -1,6 +1,9 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+@endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">{{ $purchase->purchase_number }}</h2>
@@ -32,8 +35,8 @@
                             <td><div class="fw-semibold">{{ $item->product_name_snapshot }}</div><div class="text-muted small">{{ $item->variant_name_snapshot ?: '-' }} | SKU: {{ $item->sku_snapshot ?: '-' }}</div></td>
                             <td>{{ number_format((float) $item->qty, 2, ',', '.') }}</td>
                             <td>{{ number_format((float) $item->qty_received, 2, ',', '.') }}</td>
-                            <td>Rp {{ number_format((float) $item->unit_cost, 0, ',', '.') }}</td>
-                            <td>Rp {{ number_format((float) $item->line_total, 0, ',', '.') }}</td>
+                            <td>{{ $money->format((float) $item->unit_cost, $purchase->currency_code) }}</td>
+                            <td>{{ $money->format((float) $item->line_total, $purchase->currency_code) }}</td>
                         </tr>
                     @endforeach
                     </tbody>
@@ -65,7 +68,7 @@
                 <div class="mb-3"><div class="text-muted small">Supplier</div><div>{{ $purchase->supplier_name_snapshot ?: '-' }}</div><div class="text-muted small">{{ $purchase->supplier_phone_snapshot ?: '-' }}</div></div>
                 <div class="mb-3"><div class="text-muted small">Status</div><div>{{ $statusOptions[$purchase->status] ?? ucfirst($purchase->status) }}</div><div class="text-muted small">Payment: {{ $paymentStatusOptions[$purchase->payment_status] ?? ucfirst($purchase->payment_status) }}</div></div>
                 <div class="mb-3"><div class="text-muted small">Supplier Ref</div><div>{{ $purchase->supplier_reference ?: '-' }}</div><div class="text-muted small">Invoice: {{ $purchase->supplier_invoice_number ?: '-' }}</div></div>
-                <div class="mb-3"><div class="text-muted small">Totals</div><div>Subtotal: Rp {{ number_format((float) $purchase->subtotal, 0, ',', '.') }}</div><div>Discount: Rp {{ number_format((float) $purchase->discount_total, 0, ',', '.') }}</div><div>Tax: Rp {{ number_format((float) $purchase->tax_total, 0, ',', '.') }}</div><div class="fw-semibold">Grand: Rp {{ number_format((float) $purchase->grand_total, 0, ',', '.') }}</div><div>Paid: Rp {{ number_format((float) $purchase->paid_total, 0, ',', '.') }}</div><div>Balance: Rp {{ number_format((float) $purchase->balance_due, 0, ',', '.') }}</div></div>
+                <div class="mb-3"><div class="text-muted small">Totals</div><div>Subtotal: {{ $money->format((float) $purchase->subtotal, $purchase->currency_code) }}</div><div>Discount: {{ $money->format((float) $purchase->discount_total, $purchase->currency_code) }}</div><div>Tax: {{ $money->format((float) $purchase->tax_total, $purchase->currency_code) }}</div><div class="fw-semibold">Grand: {{ $money->format((float) $purchase->grand_total, $purchase->currency_code) }}</div><div>Paid: {{ $money->format((float) $purchase->paid_total, $purchase->currency_code) }}</div><div>Balance: {{ $money->format((float) $purchase->balance_due, $purchase->currency_code) }}</div></div>
                 <div class="mb-3"><div class="text-muted small">Notes</div><div>{{ $purchase->notes ?: '-' }}</div></div>
 
                 @if($purchase->status === 'draft')
@@ -85,7 +88,7 @@
                         <div class="border rounded p-2 mb-2">
                             <div class="fw-semibold">{{ optional(optional($allocation->payment)->method)->name ?: '-' }}</div>
                             <div class="text-muted small">{{ optional(optional($allocation->payment)->paid_at)->format('d M Y H:i') ?: '-' }}</div>
-                            <div>Allocated: Rp {{ number_format((float) $allocation->amount, 0, ',', '.') }}</div>
+                            <div>Allocated: {{ $money->format((float) $allocation->amount, optional($allocation->payment)->currency_code ?: $purchase->currency_code) }}</div>
                         </div>
                     @endforeach
                 @else

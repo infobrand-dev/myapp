@@ -1,6 +1,9 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+@endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">{{ $sale->sale_number }}</h2>
@@ -52,10 +55,10 @@
                                     <div class="text-muted small">{{ $item->variant_name_snapshot ?: '-' }} | SKU: {{ $item->sku_snapshot ?: '-' }}</div>
                                 </td>
                                 <td>{{ number_format((float) $item->qty, 2, ',', '.') }}</td>
-                                <td>Rp {{ number_format((float) $item->unit_price, 0, ',', '.') }}</td>
-                                <td>Rp {{ number_format((float) $item->discount_total, 0, ',', '.') }}</td>
-                                <td>Rp {{ number_format((float) $item->tax_total, 0, ',', '.') }}</td>
-                                <td>Rp {{ number_format((float) $item->line_total, 0, ',', '.') }}</td>
+                                <td>{{ $money->format((float) $item->unit_price, $sale->currency_code) }}</td>
+                                <td>{{ $money->format((float) $item->discount_total, $sale->currency_code) }}</td>
+                                <td>{{ $money->format((float) $item->tax_total, $sale->currency_code) }}</td>
+                                <td>{{ $money->format((float) $item->line_total, $sale->currency_code) }}</td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -76,7 +79,7 @@
                                 </div>
                                 <span class="badge bg-{{ $saleReturn->status === 'finalized' ? 'success' : ($saleReturn->status === 'draft' ? 'secondary' : 'warning') }}-lt text-{{ $saleReturn->status === 'finalized' ? 'success' : ($saleReturn->status === 'draft' ? 'secondary' : 'warning') }}">{{ ucfirst($saleReturn->status) }}</span>
                             </div>
-                            <div class="small mt-1">Grand: Rp {{ number_format((float) $saleReturn->grand_total, 0, ',', '.') }}</div>
+                            <div class="small mt-1">Grand: {{ $money->format((float) $saleReturn->grand_total, $saleReturn->currency_code) }}</div>
                             <div class="text-muted small">Refund: {{ ucfirst($saleReturn->refund_status) }}</div>
                         </div>
                     @endforeach
@@ -167,12 +170,12 @@
                 </div>
                 <div class="mb-3">
                     <div class="text-muted small">Totals</div>
-                    <div>Subtotal: Rp {{ number_format((float) $sale->subtotal, 0, ',', '.') }}</div>
-                    <div>Discount: Rp {{ number_format((float) $sale->discount_total, 0, ',', '.') }}</div>
-                    <div>Tax: Rp {{ number_format((float) $sale->tax_total, 0, ',', '.') }}</div>
-                    <div class="fw-semibold">Grand: Rp {{ number_format((float) $sale->grand_total, 0, ',', '.') }}</div>
-                    <div>Paid: Rp {{ number_format((float) $sale->paid_total, 0, ',', '.') }}</div>
-                    <div>Balance Due: Rp {{ number_format((float) $sale->balance_due, 0, ',', '.') }}</div>
+                    <div>Subtotal: {{ $money->format((float) $sale->subtotal, $sale->currency_code) }}</div>
+                    <div>Discount: {{ $money->format((float) $sale->discount_total, $sale->currency_code) }}</div>
+                    <div>Tax: {{ $money->format((float) $sale->tax_total, $sale->currency_code) }}</div>
+                    <div class="fw-semibold">Grand: {{ $money->format((float) $sale->grand_total, $sale->currency_code) }}</div>
+                    <div>Paid: {{ $money->format((float) $sale->paid_total, $sale->currency_code) }}</div>
+                    <div>Balance Due: {{ $money->format((float) $sale->balance_due, $sale->currency_code) }}</div>
                 </div>
 
                 @if($sale->status === 'draft')
@@ -230,7 +233,7 @@
                         </div>
                         <div class="text-end">
                             <div class="text-muted small">Balance Due</div>
-                            <div class="fw-semibold {{ (float) $sale->balance_due > 0 ? 'text-warning' : 'text-success' }}">Rp {{ number_format((float) $sale->balance_due, 0, ',', '.') }}</div>
+                            <div class="fw-semibold {{ (float) $sale->balance_due > 0 ? 'text-warning' : 'text-success' }}">{{ $money->format((float) $sale->balance_due, $sale->currency_code) }}</div>
                         </div>
                     </div>
                     <div class="progress progress-sm mt-2">
@@ -258,7 +261,7 @@
                                         <td>{{ optional(optional($payment)->paid_at)->format('d M Y H:i') ?? '-' }}</td>
                                         <td>{{ optional(optional($payment)->method)->name ?: '-' }}</td>
                                         <td>{{ optional($payment)->reference_number ?: (optional($payment)->external_reference ?: '-') }}</td>
-                                        <td>Rp {{ number_format((float) $allocation->amount, 0, ',', '.') }}</td>
+                                        <td>{{ $money->format((float) $allocation->amount, optional($payment)->currency_code ?: $sale->currency_code) }}</td>
                                         <td>{{ ucfirst(optional($payment)->status ?: '-') }}</td>
                                         <td class="text-end">
                                             @if($payment)

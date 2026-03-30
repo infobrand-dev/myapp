@@ -2,6 +2,7 @@
 
 namespace App\Modules\PointOfSale\Http\Requests;
 
+use App\Support\CurrencySettingsResolver;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -43,7 +44,7 @@ class CheckoutPosRequest extends FormRequest
             ->map(function (array $payment) {
                 $payment['currency_code'] = !empty($payment['currency_code'])
                     ? strtoupper((string) $payment['currency_code'])
-                    : 'IDR';
+                    : app(CurrencySettingsResolver::class)->defaultCurrency();
 
                 return $payment;
             })

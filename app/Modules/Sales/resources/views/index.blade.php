@@ -1,6 +1,9 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+@endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Sales</h2>
@@ -99,8 +102,8 @@
                         <td><span class="badge bg-blue-lt text-blue">{{ strtoupper($sale->source) }}</span></td>
                         <td>{{ $sale->items_count }}</td>
                         <td>
-                            <div>Subtotal: Rp {{ number_format((float) $sale->subtotal, 0, ',', '.') }}</div>
-                            <div class="text-muted small">Grand: Rp {{ number_format((float) $sale->grand_total, 0, ',', '.') }}</div>
+                            <div>Subtotal: {{ $money->format((float) $sale->subtotal, $sale->currency_code) }}</div>
+                            <div class="text-muted small">Grand: {{ $money->format((float) $sale->grand_total, $sale->currency_code) }}</div>
                         </td>
                         <td>
                             <div><span class="badge bg-{{ $sale->status === 'finalized' ? 'success' : ($sale->status === 'draft' ? 'secondary' : 'danger') }}-lt text-{{ $sale->status === 'finalized' ? 'success' : ($sale->status === 'draft' ? 'secondary' : 'danger') }}">{{ ucfirst($sale->status) }}</span></div>

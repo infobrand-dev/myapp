@@ -17,6 +17,7 @@ use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Repositories\SaleRepository;
 use App\Modules\Sales\Services\SaleLookupService;
 use App\Support\DocumentSettingsResolver;
+use App\Support\CurrencySettingsResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -31,6 +32,7 @@ class SaleController extends Controller
     private $voidSale;
     private $cancelDraftSale;
     private $documentSettings;
+    private $currencySettings;
 
     public function __construct(
         SaleRepository $repository,
@@ -40,7 +42,8 @@ class SaleController extends Controller
         FinalizeSaleAction $finalizeSale,
         VoidSaleAction $voidSale,
         CancelDraftSaleAction $cancelDraftSale,
-        DocumentSettingsResolver $documentSettings
+        DocumentSettingsResolver $documentSettings,
+        CurrencySettingsResolver $currencySettings
     ) {
         $this->repository = $repository;
         $this->lookupService = $lookupService;
@@ -50,6 +53,7 @@ class SaleController extends Controller
         $this->voidSale = $voidSale;
         $this->cancelDraftSale = $cancelDraftSale;
         $this->documentSettings = $documentSettings;
+        $this->currencySettings = $currencySettings;
     }
 
     public function index(Request $request): View
@@ -74,7 +78,7 @@ class SaleController extends Controller
             'source' => Sale::SOURCE_MANUAL,
             'payment_status' => Sale::PAYMENT_UNPAID,
             'transaction_date' => now(),
-            'currency_code' => 'IDR',
+            'currency_code' => $this->currencySettings->defaultCurrency(),
         ])));
     }
 

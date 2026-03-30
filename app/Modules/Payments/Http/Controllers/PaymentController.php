@@ -10,6 +10,7 @@ use App\Modules\Payments\Http\Requests\VoidPaymentRequest;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Repositories\PaymentRepository;
 use App\Modules\Payments\Services\PaymentLookupService;
+use App\Support\CurrencySettingsResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -20,17 +21,20 @@ class PaymentController extends Controller
     private $lookupService;
     private $createPayment;
     private $voidPayment;
+    private $currencySettings;
 
     public function __construct(
         PaymentRepository $repository,
         PaymentLookupService $lookupService,
         CreatePaymentAction $createPayment,
-        VoidPaymentAction $voidPayment
+        VoidPaymentAction $voidPayment,
+        CurrencySettingsResolver $currencySettings
     ) {
         $this->repository = $repository;
         $this->lookupService = $lookupService;
         $this->createPayment = $createPayment;
         $this->voidPayment = $voidPayment;
+        $this->currencySettings = $currencySettings;
     }
 
     public function index(Request $request): View
@@ -73,6 +77,7 @@ class PaymentController extends Controller
             'saleReturnOptions' => $this->lookupService->saleReturnOptions(),
             'purchaseOptions' => $this->lookupService->purchaseOptions(),
             'receivers' => $this->lookupService->receivers(),
+            'defaultCurrency' => $this->currencySettings->defaultCurrency(),
             'prefillSaleId' => $request->integer('sale_id') ?: null,
             'prefillSaleReturnId' => $request->integer('sale_return_id') ?: null,
             'prefillPurchaseId' => $request->integer('purchase_id') ?: null,

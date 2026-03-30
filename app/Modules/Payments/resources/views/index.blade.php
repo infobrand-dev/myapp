@@ -1,6 +1,9 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+@endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Payments</h2>
@@ -15,7 +18,7 @@
 
 <div class="row g-3 mb-3">
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Payments</div><div class="h2 mb-0">{{ $summary['total_count'] ?? 0 }}</div></div></div></div>
-    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Posted Amount</div><div class="h2 mb-0">Rp {{ number_format((float) ($summary['posted_amount'] ?? 0), 0, ',', '.') }}</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Posted Amount</div><div class="h2 mb-0">{{ $money->format((float) ($summary['posted_amount'] ?? 0)) }}</div></div></div></div>
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Voided</div><div class="h2 mb-0 text-danger">{{ $summary['voided_count'] ?? 0 }}</div></div></div></div>
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Manual Source</div><div class="h2 mb-0">{{ $summary['manual_count'] ?? 0 }}</div></div></div></div>
 </div>
@@ -83,7 +86,7 @@
     <div class="card-header">
         <div>
             <h3 class="card-title mb-0">Payment Queue</h3>
-            <div class="text-muted small">Total nominal terfilter: Rp {{ number_format((float) ($summary['total_amount'] ?? 0), 0, ',', '.') }}</div>
+            <div class="text-muted small">Total nominal terfilter: {{ $money->format((float) ($summary['total_amount'] ?? 0)) }}</div>
         </div>
     </div>
     <div class="table-responsive">
@@ -119,11 +122,11 @@
                                     @else
                                         {{ class_basename($allocation->payable_type) }} #{{ $allocation->payable_id }}
                                     @endif
-                                    : Rp {{ number_format((float) $allocation->amount, 0, ',', '.') }}
+                                    : {{ $money->format((float) $allocation->amount, $payment->currency_code) }}
                                 </div>
                             @endforeach
                         </td>
-                        <td>Rp {{ number_format((float) $payment->amount, 0, ',', '.') }}</td>
+                        <td>{{ $money->format((float) $payment->amount, $payment->currency_code) }}</td>
                         <td><span class="badge bg-{{ $payment->status === 'voided' ? 'red' : 'azure' }}-lt">{{ ucfirst($payment->status) }}</span></td>
                         <td>{{ optional($payment->receiver)->name ?: '-' }}</td>
                         <td class="text-end"><a href="{{ route('payments.show', $payment) }}" class="btn btn-sm btn-outline-secondary">Open</a></td>

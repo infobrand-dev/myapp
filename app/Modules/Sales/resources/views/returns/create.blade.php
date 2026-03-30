@@ -2,12 +2,14 @@
 
 @section('content')
 @php
+    $defaultCurrency = app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency();
     $salesPayload = $sales->map(function ($sale) {
         return [
             'id' => $sale->id,
             'sale_number' => $sale->sale_number,
             'customer_name' => $sale->customer_name_snapshot ?: 'Guest / Walk-in',
             'transaction_date' => optional($sale->transaction_date)->format('Y-m-d H:i:s'),
+            'currency_code' => $sale->currency_code ?: $defaultCurrency,
             'items' => $sale->items->map(function ($item) {
                 return [
                     'id' => $item->id,
@@ -145,6 +147,11 @@
             return;
         }
 
+        const currency = ((sale.currency_code || @json($defaultCurrency))).toUpperCase();
+        const localeMap = { IDR: 'id-ID', USD: 'en-US', SGD: 'en-SG', EUR: 'de-DE' };
+        const fractionDigits = currency === 'IDR' ? 0 : 2;
+        const money = (value) => new Intl.NumberFormat(localeMap[currency] || 'id-ID', { style: 'currency', currency, maximumFractionDigits: fractionDigits, minimumFractionDigits: fractionDigits }).format(Number(value || 0));
+
         sale.items.forEach((item, index) => {
             const oldRow = oldItemMap[String(item.id)] || {};
             const tr = document.createElement('tr');
@@ -156,7 +163,7 @@
                 </td>
                 <td>${item.qty.toFixed(2)}</td>
                 <td><input type="number" min="0" step="0.0001" class="form-control" name="items[${index}][qty_returned]" value="${oldRow.qty_returned || ''}"></td>
-                <td>Rp ${new Intl.NumberFormat('id-ID').format(item.line_total)}</td>
+                <td>${money(item.line_total)}</td>
                 <td><input type="text" class="form-control" name="items[${index}][notes]" value="${oldRow.notes || ''}"></td>
             `;
             tableBody.appendChild(tr);

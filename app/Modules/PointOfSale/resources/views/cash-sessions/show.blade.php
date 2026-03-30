@@ -1,6 +1,10 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+    $defaultCurrency = app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency();
+@endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">{{ $shift->code }}</h2>
@@ -25,14 +29,14 @@
             <div class="card-header"><h3 class="card-title">Shift Summary</h3></div>
             <div class="card-body">
                 <div class="mb-2"><div class="text-muted small">Status</div><div><span class="badge {{ $shift->isActive() ? 'bg-success-lt text-success' : 'bg-secondary-lt text-secondary' }}">{{ $shift->status }}</span></div></div>
-                <div class="mb-2"><div class="text-muted small">Opening Cash</div><div>Rp {{ number_format((float) $shift->opening_cash_amount, 0, ',', '.') }}</div></div>
+                <div class="mb-2"><div class="text-muted small">Opening Cash</div><div>{{ $money->format((float) $shift->opening_cash_amount, $shift->currency_code ?: $defaultCurrency) }}</div></div>
                 <div class="mb-2"><div class="text-muted small">Opened At</div><div>{{ $shift->opened_at ? $shift->opened_at->format('d/m/Y H:i') : '-' }}</div></div>
                 <div class="mb-2"><div class="text-muted small">Total Transaksi</div><div>{{ $saleCount }}</div></div>
-                <div class="mb-2"><div class="text-muted small">Total Sales</div><div>Rp {{ number_format($salesTotal, 0, ',', '.') }}</div></div>
-                <div class="mb-2"><div class="text-muted small">Total Cash Payment</div><div>Rp {{ number_format($cashPaymentTotal, 0, ',', '.') }}</div></div>
-                <div class="mb-2"><div class="text-muted small">Expected Cash</div><div>Rp {{ number_format($expectedCash, 0, ',', '.') }}</div></div>
-                <div class="mb-2"><div class="text-muted small">Closing Cash</div><div>{{ $shift->closing_cash_amount === null ? '-' : 'Rp ' . number_format((float) $shift->closing_cash_amount, 0, ',', '.') }}</div></div>
-                <div><div class="text-muted small">Difference</div><div>{{ $shift->difference_amount === null ? '-' : 'Rp ' . number_format((float) $shift->difference_amount, 0, ',', '.') }}</div></div>
+                <div class="mb-2"><div class="text-muted small">Total Sales</div><div>{{ $money->format($salesTotal, $defaultCurrency) }}</div></div>
+                <div class="mb-2"><div class="text-muted small">Total Cash Payment</div><div>{{ $money->format($cashPaymentTotal, $defaultCurrency) }}</div></div>
+                <div class="mb-2"><div class="text-muted small">Expected Cash</div><div>{{ $money->format($expectedCash, $defaultCurrency) }}</div></div>
+                <div class="mb-2"><div class="text-muted small">Closing Cash</div><div>{{ $shift->closing_cash_amount === null ? '-' : $money->format((float) $shift->closing_cash_amount, $shift->currency_code ?: $defaultCurrency) }}</div></div>
+                <div><div class="text-muted small">Difference</div><div>{{ $shift->difference_amount === null ? '-' : $money->format((float) $shift->difference_amount, $shift->currency_code ?: $defaultCurrency) }}</div></div>
             </div>
         </div>
 
@@ -99,7 +103,7 @@
                             <tr>
                                 <td>{{ $sale->sale_number }}</td>
                                 <td>{{ $sale->status }}</td>
-                                <td>Rp {{ number_format((float) $sale->grand_total, 0, ',', '.') }}</td>
+                                <td>{{ $money->format((float) $sale->grand_total, $sale->currency_code) }}</td>
                                 <td>{{ $sale->transaction_date ? $sale->transaction_date->format('d/m/Y H:i') : '-' }}</td>
                             </tr>
                         @empty
@@ -120,7 +124,7 @@
                             <tr>
                                 <td>{{ $payment->payment_number }}</td>
                                 <td>{{ $payment->method ? $payment->method->name : '-' }}</td>
-                                <td>Rp {{ number_format((float) $payment->amount, 0, ',', '.') }}</td>
+                                <td>{{ $money->format((float) $payment->amount, $payment->currency_code) }}</td>
                                 <td>{{ $payment->paid_at ? $payment->paid_at->format('d/m/Y H:i') : '-' }}</td>
                             </tr>
                         @empty
@@ -140,7 +144,7 @@
                         @forelse($shift->cashMovements as $movement)
                             <tr>
                                 <td>{{ $movement->movement_type }}</td>
-                                <td>Rp {{ number_format((float) $movement->amount, 0, ',', '.') }}</td>
+                                <td>{{ $money->format((float) $movement->amount, $shift->currency_code ?: $defaultCurrency) }}</td>
                                 <td>{{ $movement->notes ?: '-' }}</td>
                                 <td>{{ $movement->occurred_at ? $movement->occurred_at->format('d/m/Y H:i') : '-' }}</td>
                             </tr>

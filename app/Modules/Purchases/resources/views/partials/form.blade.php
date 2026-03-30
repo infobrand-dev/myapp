@@ -49,7 +49,7 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Currency</label>
-                        <input type="text" name="currency_code" class="form-control" value="{{ old('currency_code', $purchase->currency_code ?: 'IDR') }}">
+                        <input type="text" name="currency_code" class="form-control" value="{{ old('currency_code', $purchase->currency_code ?: app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency()) }}">
                     </div>
                     <div class="col-12">
                         <label class="form-label">Supplier Reference</label>

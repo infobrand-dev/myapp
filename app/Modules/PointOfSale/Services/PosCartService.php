@@ -12,6 +12,7 @@ use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
+use App\Support\CurrencySettingsResolver;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -77,7 +78,7 @@ class PosCartService
                 'cashier_user_id' => $user->id,
                 'pos_cash_session_id' => optional($this->activeSession($user))->id,
                 'customer_label' => 'Walk-in Customer',
-                'currency_code' => 'IDR',
+                'currency_code' => app(CurrencySettingsResolver::class)->defaultCurrency(),
             ])->load(['items', 'contact']);
         });
     }
@@ -407,6 +408,7 @@ class PosCartService
             'id' => $cart->id,
             'uuid' => $cart->uuid,
             'status' => $cart->status,
+            'currency_code' => $cart->currency_code,
             'customer' => [
                 'contact_id' => $cart->contact_id,
                 'label' => $cart->contact ? $cart->contact->name : ($cart->customer_label ?: 'Walk-in Customer'),

@@ -3,6 +3,7 @@
 namespace App\Modules\Sales\Http\Requests\Concerns;
 
 use App\Modules\Products\Models\ProductVariant;
+use App\Support\CurrencySettingsResolver;
 use App\Support\TenantContext;
 
 trait NormalizesSalePayload
@@ -60,7 +61,7 @@ trait NormalizesSalePayload
             'transaction_date' => $this->filled('transaction_date') ? $this->input('transaction_date') : now()->format('Y-m-d\TH:i'),
             'payment_status' => $this->filled('payment_status') ? $this->input('payment_status') : 'unpaid',
             'source' => $this->filled('source') ? $this->input('source') : 'manual',
-            'currency_code' => $this->filled('currency_code') ? strtoupper((string) $this->input('currency_code')) : 'IDR',
+            'currency_code' => $this->filled('currency_code') ? strtoupper((string) $this->input('currency_code')) : app(CurrencySettingsResolver::class)->defaultCurrency(),
         ]);
     }
 }

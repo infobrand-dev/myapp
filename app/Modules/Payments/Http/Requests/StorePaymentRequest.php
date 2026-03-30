@@ -3,6 +3,7 @@
 namespace App\Modules\Payments\Http\Requests;
 
 use App\Support\CompanyContext;
+use App\Support\CurrencySettingsResolver;
 use App\Support\TenantContext;
 use App\Support\UserAccessManager;
 use Illuminate\Foundation\Http\FormRequest;
@@ -85,7 +86,7 @@ class StorePaymentRequest extends FormRequest
         }
 
         $this->merge([
-            'currency_code' => strtoupper((string) ($this->input('currency_code') ?: 'IDR')),
+            'currency_code' => strtoupper((string) ($this->input('currency_code') ?: app(CurrencySettingsResolver::class)->defaultCurrency())),
             'source' => strtolower((string) ($this->input('source') ?: 'backoffice')),
             'branch_id' => $this->input('branch_id', $this->input('outlet_id')),
             'allocations' => $allocations,

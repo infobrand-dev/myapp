@@ -18,6 +18,7 @@ use App\Modules\Purchases\Http\Requests\VoidPurchaseRequest;
 use App\Modules\Purchases\Models\Purchase;
 use App\Modules\Purchases\Repositories\PurchaseRepository;
 use App\Modules\Purchases\Services\PurchaseLookupService;
+use App\Support\CurrencySettingsResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -32,6 +33,7 @@ class PurchaseController extends Controller
     private $receivePurchaseGoods;
     private $cancelDraftPurchase;
     private $voidPurchase;
+    private $currencySettings;
 
     public function __construct(
         PurchaseRepository $repository,
@@ -41,7 +43,8 @@ class PurchaseController extends Controller
         FinalizePurchaseAction $finalizePurchase,
         ReceivePurchaseGoodsAction $receivePurchaseGoods,
         CancelDraftPurchaseAction $cancelDraftPurchase,
-        VoidPurchaseAction $voidPurchase
+        VoidPurchaseAction $voidPurchase,
+        CurrencySettingsResolver $currencySettings
     ) {
         $this->repository = $repository;
         $this->lookupService = $lookupService;
@@ -51,6 +54,7 @@ class PurchaseController extends Controller
         $this->receivePurchaseGoods = $receivePurchaseGoods;
         $this->cancelDraftPurchase = $cancelDraftPurchase;
         $this->voidPurchase = $voidPurchase;
+        $this->currencySettings = $currencySettings;
     }
 
     public function index(Request $request): View
@@ -79,7 +83,7 @@ class PurchaseController extends Controller
             'status' => Purchase::STATUS_DRAFT,
             'payment_status' => Purchase::PAYMENT_UNPAID,
             'purchase_date' => now(),
-            'currency_code' => 'IDR',
+            'currency_code' => $this->currencySettings->defaultCurrency(),
         ])));
     }
 

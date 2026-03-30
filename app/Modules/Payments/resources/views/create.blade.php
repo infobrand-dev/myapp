@@ -1,6 +1,9 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+@endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Create Payment</h2>
@@ -72,9 +75,9 @@
             <div class="card-body">
                 <div class="alert alert-secondary mb-3">
                     <div class="fw-semibold mb-1">Ringkasan Payment</div>
-                    <div class="small">Total payment: <span data-summary-payment>Rp 0</span></div>
-                    <div class="small">Total allocation: <span data-summary-allocation>Rp 0</span></div>
-                    <div class="small">Selisih: <span data-summary-difference>Rp 0</span></div>
+                    <div class="small">Total payment: <span data-summary-payment>{{ $money->format(0, $defaultCurrency) }}</span></div>
+                    <div class="small">Total allocation: <span data-summary-allocation>{{ $money->format(0, $defaultCurrency) }}</span></div>
+                    <div class="small">Selisih: <span data-summary-difference>{{ $money->format(0, $defaultCurrency) }}</span></div>
                 </div>
                 <div class="row g-3 payment-allocation-list">
                     @php
@@ -100,17 +103,17 @@
                                     <option value="">Pilih transaksi</option>
                                     @foreach($saleOptions as $sale)
                                         <option value="{{ $sale->id }}" data-kind="sale" data-balance="{{ (float) $sale->balance_due }}" data-label="{{ $sale->sale_number }}" @selected(($allocation['payable_type'] ?? 'sale') === 'sale' && (string) ($allocation['payable_id'] ?? '') === (string) $sale->id)>
-                                            Sale: {{ $sale->sale_number }} | {{ $sale->customer_name_snapshot ?: 'Guest' }} | Due Rp {{ number_format((float) $sale->balance_due, 0, ',', '.') }}
+                                            Sale: {{ $sale->sale_number }} | {{ $sale->customer_name_snapshot ?: 'Guest' }} | Due {{ $money->format((float) $sale->balance_due, $sale->currency_code) }}
                                         </option>
                                     @endforeach
                                     @foreach($saleReturnOptions as $saleReturn)
                                         <option value="{{ $saleReturn->id }}" data-kind="sale_return" data-balance="{{ (float) $saleReturn->refund_balance }}" data-label="{{ $saleReturn->return_number }}" @selected(($allocation['payable_type'] ?? '') === 'sale_return' && (string) ($allocation['payable_id'] ?? '') === (string) $saleReturn->id)>
-                                            Return: {{ $saleReturn->return_number }} | {{ $saleReturn->customer_name_snapshot ?: 'Guest' }} | Refund Rp {{ number_format((float) $saleReturn->refund_balance, 0, ',', '.') }}
+                                            Return: {{ $saleReturn->return_number }} | {{ $saleReturn->customer_name_snapshot ?: 'Guest' }} | Refund {{ $money->format((float) $saleReturn->refund_balance, $saleReturn->currency_code) }}
                                         </option>
                                     @endforeach
                                     @foreach($purchaseOptions as $purchase)
                                         <option value="{{ $purchase->id }}" data-kind="purchase" data-balance="{{ (float) $purchase->balance_due }}" data-label="{{ $purchase->purchase_number }}" @selected(($allocation['payable_type'] ?? '') === 'purchase' && (string) ($allocation['payable_id'] ?? '') === (string) $purchase->id)>
-                                            Purchase: {{ $purchase->purchase_number }} | {{ $purchase->supplier_name_snapshot ?: 'Supplier' }} | Due Rp {{ number_format((float) $purchase->balance_due, 0, ',', '.') }}
+                                            Purchase: {{ $purchase->purchase_number }} | {{ $purchase->supplier_name_snapshot ?: 'Supplier' }} | Due {{ $money->format((float) $purchase->balance_due, $purchase->currency_code) }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -151,13 +154,13 @@
             <select class="form-select" data-name="payable_id">
                 <option value="">Pilih transaksi</option>
                 @foreach($saleOptions as $sale)
-                    <option value="{{ $sale->id }}" data-kind="sale" data-balance="{{ (float) $sale->balance_due }}" data-label="{{ $sale->sale_number }}">Sale: {{ $sale->sale_number }} | {{ $sale->customer_name_snapshot ?: 'Guest' }} | Due Rp {{ number_format((float) $sale->balance_due, 0, ',', '.') }}</option>
+                    <option value="{{ $sale->id }}" data-kind="sale" data-balance="{{ (float) $sale->balance_due }}" data-currency="{{ $sale->currency_code ?: $defaultCurrency }}" data-label="{{ $sale->sale_number }}">Sale: {{ $sale->sale_number }} | {{ $sale->customer_name_snapshot ?: 'Guest' }} | Due {{ $money->format((float) $sale->balance_due, $sale->currency_code) }}</option>
                 @endforeach
                 @foreach($saleReturnOptions as $saleReturn)
-                    <option value="{{ $saleReturn->id }}" data-kind="sale_return" data-balance="{{ (float) $saleReturn->refund_balance }}" data-label="{{ $saleReturn->return_number }}">Return: {{ $saleReturn->return_number }} | {{ $saleReturn->customer_name_snapshot ?: 'Guest' }} | Refund Rp {{ number_format((float) $saleReturn->refund_balance, 0, ',', '.') }}</option>
+                    <option value="{{ $saleReturn->id }}" data-kind="sale_return" data-balance="{{ (float) $saleReturn->refund_balance }}" data-currency="{{ $saleReturn->currency_code ?: $defaultCurrency }}" data-label="{{ $saleReturn->return_number }}">Return: {{ $saleReturn->return_number }} | {{ $saleReturn->customer_name_snapshot ?: 'Guest' }} | Refund {{ $money->format((float) $saleReturn->refund_balance, $saleReturn->currency_code) }}</option>
                 @endforeach
                 @foreach($purchaseOptions as $purchase)
-                    <option value="{{ $purchase->id }}" data-kind="purchase" data-balance="{{ (float) $purchase->balance_due }}" data-label="{{ $purchase->purchase_number }}">Purchase: {{ $purchase->purchase_number }} | {{ $purchase->supplier_name_snapshot ?: 'Supplier' }} | Due Rp {{ number_format((float) $purchase->balance_due, 0, ',', '.') }}</option>
+                    <option value="{{ $purchase->id }}" data-kind="purchase" data-balance="{{ (float) $purchase->balance_due }}" data-currency="{{ $purchase->currency_code ?: $defaultCurrency }}" data-label="{{ $purchase->purchase_number }}">Purchase: {{ $purchase->purchase_number }} | {{ $purchase->supplier_name_snapshot ?: 'Supplier' }} | Due {{ $money->format((float) $purchase->balance_due, $purchase->currency_code) }}</option>
                 @endforeach
             </select>
         </div>
@@ -179,9 +182,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const paymentSummaryField = document.querySelector('[data-summary-payment]');
     const allocationSummaryField = document.querySelector('[data-summary-allocation]');
     const differenceSummaryField = document.querySelector('[data-summary-difference]');
-    const currencyFormatter = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 });
-
-    const formatCurrency = (value) => currencyFormatter.format(Number.isFinite(value) ? value : 0);
+    const defaultCurrency = @json($defaultCurrency);
+    const currencyLocaleMap = { IDR: 'id-ID', USD: 'en-US', SGD: 'en-SG', EUR: 'de-DE' };
+    const formatCurrency = (value, currency = defaultCurrency) => {
+        const resolvedCurrency = (currency || defaultCurrency || 'IDR').toUpperCase();
+        const locale = currencyLocaleMap[resolvedCurrency] || 'id-ID';
+        const fractionDigits = resolvedCurrency === 'IDR' ? 0 : 2;
+        return new Intl.NumberFormat(locale, { style: 'currency', currency: resolvedCurrency, maximumFractionDigits: fractionDigits, minimumFractionDigits: fractionDigits }).format(Number.isFinite(value) ? value : 0);
+    };
     const parseNumber = (value) => {
         const parsed = parseFloat(value || '0');
         return Number.isFinite(parsed) ? parsed : 0;
@@ -213,11 +221,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const activeOption = targetField.selectedOptions[0];
         const balance = activeOption && activeOption.value ? parseNumber(activeOption.dataset.balance) : 0;
+        const currency = activeOption && activeOption.value ? (activeOption.dataset.currency || defaultCurrency) : defaultCurrency;
         const label = activeOption && activeOption.value ? activeOption.textContent.trim() : '';
 
         if (summaryField) {
             summaryField.textContent = label !== ''
-                ? label + ' | Outstanding ' + formatCurrency(balance)
+                ? label + ' | Outstanding ' + formatCurrency(balance, currency)
                 : 'Pilih transaksi untuk melihat nominal outstanding.';
         }
 

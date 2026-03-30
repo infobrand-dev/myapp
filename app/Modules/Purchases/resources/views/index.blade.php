@@ -1,6 +1,9 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+@endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Purchases</h2>
@@ -47,8 +50,8 @@
                         <td>{{ $purchase->supplier_name_snapshot ?: (optional($purchase->supplier)->name ?: '-') }}</td>
                         <td>{{ $purchase->items_count }}</td>
                         <td>
-                            <div>Grand: Rp {{ number_format((float) $purchase->grand_total, 0, ',', '.') }}</div>
-                            <div class="text-muted small">Paid: Rp {{ number_format((float) $purchase->paid_total, 0, ',', '.') }}</div>
+                            <div>Grand: {{ $money->format((float) $purchase->grand_total, $purchase->currency_code) }}</div>
+                            <div class="text-muted small">Paid: {{ $money->format((float) $purchase->paid_total, $purchase->currency_code) }}</div>
                         </td>
                         <td>
                             <div><span class="badge bg-secondary-lt text-secondary">{{ $statusOptions[$purchase->status] ?? ucfirst($purchase->status) }}</span></div>

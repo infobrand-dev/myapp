@@ -2,6 +2,7 @@
 
 @section('content')
 @php
+    $money = app(\App\Support\MoneyFormatter::class);
     $allStages = \App\Modules\Crm\Support\CrmStageCatalog::options();
     $stageKeys = array_keys($allStages);
     $currentIdx = array_search($lead->stage, $stageKeys, true);
@@ -78,7 +79,7 @@
             <div class="card-body">
                 <div class="text-muted small fw-semibold text-uppercase mb-1">Estimated Value</div>
                 <div class="fs-3 fw-bold text-primary">
-                    Rp {{ number_format((float) ($lead->estimated_value ?? 0), 0, ',', '.') }}
+                    {{ $money->format((float) ($lead->estimated_value ?? 0), $lead->currency) }}
                 </div>
                 @if($lead->currency && $lead->currency !== 'IDR')
                 <div class="small text-muted">{{ $lead->currency }}</div>

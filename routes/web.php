@@ -128,6 +128,7 @@ Route::middleware(['auth', 'verified', '2fa', 'platform.admin', \App\Http\Middle
         Route::post('/settings/branch/{branch}/activate', [SettingsController::class, 'activateBranch'])->name('settings.branch.activate');
 
         Route::put('/settings/documents', [SettingsController::class, 'saveDocuments'])->name('settings.documents.save');
+        Route::put('/settings/general', [SettingsController::class, 'saveGeneral'])->name('settings.general.save');
     });
 });
 

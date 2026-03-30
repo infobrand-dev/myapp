@@ -1,6 +1,9 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+@endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">{{ $payment->payment_number }}</h2>
@@ -39,7 +42,7 @@
                                         #{{ $allocation->payable_id }}
                                     @endif
                                 </td>
-                                <td>Rp {{ number_format((float) $allocation->amount, 0, ',', '.') }}</td>
+                                <td>{{ $money->format((float) $allocation->amount, $payment->currency_code) }}</td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -88,7 +91,7 @@
                 </div>
                 <div class="mb-3">
                     <div class="text-muted small">Amount</div>
-                    <div class="fw-semibold">Rp {{ number_format((float) $payment->amount, 0, ',', '.') }}</div>
+                    <div class="fw-semibold">{{ $money->format((float) $payment->amount, $payment->currency_code) }}</div>
                 </div>
                 <div class="mb-3">
                     <div class="text-muted small">Reference</div>

@@ -65,7 +65,7 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Currency</label>
-                        <input type="text" name="currency_code" class="form-control" maxlength="3" value="{{ old('currency_code', $sale->currency_code ?: 'IDR') }}">
+                        <input type="text" name="currency_code" class="form-control" maxlength="3" value="{{ old('currency_code', $sale->currency_code ?: app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency()) }}">
                     </div>
                     <div class="col-12">
                         <label class="form-label">External Reference</label>

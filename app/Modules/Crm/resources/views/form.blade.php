@@ -1,6 +1,9 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $defaultCurrency = app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency();
+@endphp
 <div class="page-header mb-4">
     <div class="d-flex justify-content-between align-items-center gap-3">
         <div>
@@ -92,7 +95,7 @@
                     <div class="col-md-5">
                         <label class="form-label">Estimated Value</label>
                         <div class="input-group">
-                            <span class="input-group-text">Rp</span>
+                            <span class="input-group-text">{{ old('currency', $lead->currency ?: $defaultCurrency) }}</span>
                             <input type="number" step="1" min="0" name="estimated_value"
                                    class="form-control"
                                    value="{{ old('estimated_value', $lead->estimated_value ? (int) $lead->estimated_value : '') }}">
@@ -111,7 +114,7 @@
                     <div class="col-md-3">
                         <label class="form-label">Currency</label>
                         <input type="text" name="currency" class="form-control"
-                               value="{{ old('currency', $lead->currency ?: 'IDR') }}">
+                               value="{{ old('currency', $lead->currency ?: $defaultCurrency) }}">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Next Follow Up</label>

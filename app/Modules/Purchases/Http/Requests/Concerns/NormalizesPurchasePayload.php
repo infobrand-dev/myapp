@@ -3,6 +3,7 @@
 namespace App\Modules\Purchases\Http\Requests\Concerns;
 
 use App\Modules\Products\Models\ProductVariant;
+use App\Support\CurrencySettingsResolver;
 use App\Support\TenantContext;
 
 trait NormalizesPurchasePayload
@@ -58,7 +59,7 @@ trait NormalizesPurchasePayload
             'contact_id' => $this->filled('contact_id') ? (int) $this->input('contact_id') : null,
             'items' => $items,
             'purchase_date' => $this->filled('purchase_date') ? $this->input('purchase_date') : now()->format('Y-m-d\TH:i'),
-            'currency_code' => $this->filled('currency_code') ? strtoupper((string) $this->input('currency_code')) : 'IDR',
+            'currency_code' => $this->filled('currency_code') ? strtoupper((string) $this->input('currency_code')) : app(CurrencySettingsResolver::class)->defaultCurrency(),
         ]);
     }
 }

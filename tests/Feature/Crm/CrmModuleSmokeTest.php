@@ -89,4 +89,55 @@ class CrmModuleSmokeTest extends TestCase
             ->assertSee('New Lead')
             ->assertSee('Follow up Lead Alpha');
     }
+
+    public function test_crm_rejects_cross_tenant_contact_and_owner_ids(): void
+    {
+        Tenant::query()->firstOrCreate(
+            ['slug' => 'default'],
+            [
+                'id' => 1,
+                'name' => 'Default Tenant',
+                'is_active' => true,
+            ]
+        );
+
+        $tenantTwo = Tenant::query()->create([
+            'name' => 'Tenant Two',
+            'slug' => 'tenant-two',
+            'is_active' => true,
+        ]);
+
+        $user = User::factory()->create([
+            'tenant_id' => 1,
+        ]);
+
+        $foreignOwner = User::factory()->create([
+            'tenant_id' => $tenantTwo->id,
+        ]);
+
+        $foreignContact = Contact::query()->create([
+            'tenant_id' => $tenantTwo->id,
+            'type' => 'individual',
+            'name' => 'Foreign Lead',
+            'email' => 'foreign@example.test',
+            'is_active' => true,
+        ]);
+
+        $this->withoutMiddleware([
+            EnsureInstalled::class,
+            ResolveTenantFromSubdomain::class,
+            ResolveTenantContext::class,
+            RoleMiddleware::class,
+        ]);
+
+        $this->actingAs($user)
+            ->post('/crm', [
+                'contact_id' => $foreignContact->id,
+                'owner_user_id' => $foreignOwner->id,
+                'title' => 'Cross Tenant Lead',
+                'stage' => CrmStageCatalog::NEW_LEAD,
+                'priority' => 'medium',
+            ])
+            ->assertSessionHasErrors(['contact_id', 'owner_user_id']);
+    }
 }

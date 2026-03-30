@@ -9,8 +9,15 @@ use Illuminate\Support\Facades\Schema;
 
 class GoliveAuditService
 {
+    public function __construct(
+        private readonly AiCreditPricingService $aiPricing,
+    ) {
+    }
+
     public function run(): array
     {
+        $aiPricing = $this->aiPricing->snapshot();
+
         $checks = [
             $this->check('app_env', 'APP_ENV production', $this->isProduction(), $this->env('app.env'), 'Set APP_ENV=production in production runtime.', 'fail'),
             $this->check('app_debug', 'APP_DEBUG disabled', !$this->env('app.debug'), $this->boolString($this->env('app.debug')), 'Set APP_DEBUG=false before launch.', 'fail'),
@@ -32,6 +39,23 @@ class GoliveAuditService
             $this->check('platform_payments_table', 'platform_payments table exists', Schema::hasTable('platform_payments'), $this->yesNo('platform_payments'), 'Run billing platform migrations before launch.', 'fail'),
             $this->check('ai_usage_logs_table', 'ai_usage_logs table exists', Schema::hasTable('ai_usage_logs'), $this->yesNo('ai_usage_logs'), 'Run AI usage migration so AI Credits can be tracked and enforced.', 'fail'),
             $this->check('ai_credit_transactions_table', 'ai_credit_transactions table exists', Schema::hasTable('ai_credit_transactions'), $this->yesNo('ai_credit_transactions'), 'Run AI credit transaction migration if you plan to sell AI Credit top ups.', 'warn'),
+            $this->check('ai_credit_pricing_settings_table', 'ai_credit_pricing_settings table exists', Schema::hasTable('ai_credit_pricing_settings'), $this->yesNo('ai_credit_pricing_settings'), 'Run AI credit pricing settings migration so launch pricing can be managed from control plane.', 'warn'),
+            $this->check('ai_credit_currency', 'AI Credit currency fixed to IDR', strtoupper((string) ($aiPricing['currency'] ?? '')) === 'IDR', (string) ($aiPricing['currency'] ?? '-'), 'Keep launch pricing in IDR for consistency with billing copy and tenant messaging.', 'warn'),
+            $this->check('ai_credit_unit_tokens', 'AI Credit token unit configured', (int) ($aiPricing['unit_tokens'] ?? 0) > 0, (string) ($aiPricing['unit_tokens'] ?? '-'), 'Set how many internal tokens equal 1 AI Credit. Launch default is 1000.', 'fail'),
+            $this->check('ai_credit_price_per_credit', 'AI Credit base price configured', (int) ($aiPricing['price_per_credit'] ?? 0) > 0, (string) ($aiPricing['price_per_credit'] ?? '-'), 'Set the base launch sell price per AI Credit before opening AI top-up offers.', 'fail'),
+            $this->check('ai_credit_pack_options', 'AI Credit launch packs configured', !empty($aiPricing['pack_options']), empty($aiPricing['pack_options']) ? '-' : implode(', ', $aiPricing['pack_options']), 'Configure at least one AI Credit top-up pack such as 500 and 1000.', 'warn'),
+            $this->check('platform_affiliates_table', 'platform_affiliates table exists', Schema::hasTable('platform_affiliates'), $this->yesNo('platform_affiliates'), 'Run affiliate migrations if invite-only partner links will be used in production.', 'warn'),
+            $this->check('platform_affiliate_referrals_table', 'platform_affiliate_referrals table exists', Schema::hasTable('platform_affiliate_referrals'), $this->yesNo('platform_affiliate_referrals'), 'Run affiliate referral migrations if partner attribution should be tracked in production.', 'warn'),
+            $this->check('affiliate_cookie_days', 'Affiliate cookie days configured', (int) config('services.platform_affiliate.cookie_days') > 0, (string) config('services.platform_affiliate.cookie_days'), 'Set affiliate attribution cookie duration. Current launch decision is 30 days.', 'warn'),
+            $this->check('affiliate_first_purchase_only', 'Affiliate first purchase only rule set', is_bool(config('services.platform_affiliate.first_purchase_only')), $this->boolString(config('services.platform_affiliate.first_purchase_only')), 'Keep affiliate commission rule explicit. Current launch decision is first purchase only.', 'warn'),
+            $this->check('affiliate_commission_type', 'Affiliate default commission type configured', in_array((string) config('services.platform_affiliate.default_commission_type'), ['percentage', 'flat'], true), (string) config('services.platform_affiliate.default_commission_type'), 'Use percentage or flat as the default affiliate commission type.', 'warn'),
+            $this->check('affiliate_commission_rate', 'Affiliate default commission rate configured', (float) config('services.platform_affiliate.default_commission_rate') > 0, (string) config('services.platform_affiliate.default_commission_rate'), 'Set a non-zero default affiliate commission rate before sharing partner links.', 'warn'),
+            $this->check('affiliate_payout_schedule', 'Affiliate payout schedule configured', $this->filled(config('services.platform_affiliate.payout_schedule')), (string) config('services.platform_affiliate.payout_schedule'), 'Set the affiliate payout cadence shown on the partner info page.', 'warn'),
+            $this->check('affiliate_payout_day', 'Affiliate payout day configured', (int) config('services.platform_affiliate.payout_day') >= 1 && (int) config('services.platform_affiliate.payout_day') <= 31, (string) config('services.platform_affiliate.payout_day'), 'Use a valid monthly payout day between 1 and 31.', 'warn'),
+            $this->check('affiliate_payout_methods', 'Affiliate payout methods configured', !empty(config('services.platform_affiliate.payout_methods', [])), empty(config('services.platform_affiliate.payout_methods', [])) ? '-' : implode(', ', (array) config('services.platform_affiliate.payout_methods', [])), 'List at least one payout method for partner transparency.', 'warn'),
+            $this->check('sentry_dsn', 'Sentry DSN configured', $this->filled(config('sentry.dsn')), $this->masked((string) config('sentry.dsn')), 'Fill SENTRY_LARAVEL_DSN so production errors can be captured.', 'warn'),
+            $this->check('sentry_environment', 'Sentry environment configured', $this->filled(config('sentry.environment')), (string) config('sentry.environment'), 'Set SENTRY_ENVIRONMENT so production issues are grouped correctly.', 'warn'),
+            $this->check('sentry_release', 'Sentry release configured', $this->filled(config('sentry.release')), (string) config('sentry.release'), 'Set SENTRY_RELEASE so issues can be tied to a deploy version.', 'warn'),
             $this->check('mail_mailer', 'MAIL_MAILER not local array/log', !in_array(config('mail.default'), ['array', 'log'], true), (string) config('mail.default'), 'Use SMTP or another real transport in production.', 'fail'),
             $this->check('mail_host', 'MAIL host configured', $this->isMeaningful((string) config('mail.mailers.smtp.host'), ['mailhog', 'smtp.example.com', '']), (string) config('mail.mailers.smtp.host'), 'Set the real SMTP host used by production mail.', 'fail'),
             $this->check('mail_from', 'MAIL from configured', $this->isMeaningful((string) config('mail.from.address'), ['hello@example.com', 'no-reply@example.com', '']), (string) config('mail.from.address'), 'Set a verified sender address.', 'fail'),
@@ -129,6 +153,9 @@ class GoliveAuditService
             'Smoke login tenant' => 'Coba login tenant lewat `slug.domain.com/login` dan pastikan session tetap stabil setelah redirect.',
             'Smoke login platform' => 'Coba login owner platform lewat `dash.domain.com/login` dan pastikan user tenant biasa tidak bisa masuk.',
             'Smoke billing payment' => 'Buat invoice uji, jalankan checkout Midtrans, dan pastikan payment serta subscription aktif di platform.',
+            'Smoke AI top-up pricing' => 'Cek dashboard tenant dan settings subscription: harga per credit serta pack AI Credits harus tampil sesuai pricing launch.',
+            'Smoke affiliate link' => 'Jika affiliate dipakai, buka `/affiliate-program` dan satu link `/aff/{slug}` untuk memastikan attribution dan halaman partner berjalan.',
+            'Smoke Sentry event' => 'Trigger satu error uji atau gunakan check runtime agar event benar-benar masuk ke project Sentry production.',
             'Smoke email delivery' => 'Pastikan email invoice dan payment confirmation benar-benar terkirim ke inbox tujuan.',
             'Rollback readiness' => 'Simpan backup database dan prosedur rollback sebelum publish trafik penuh.',
         ];

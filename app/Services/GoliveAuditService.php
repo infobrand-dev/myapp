@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\SubscriptionPlan;
+use App\Support\ModuleManager;
 use App\Support\PlanFeature;
 use App\Support\PlanLimit;
 use Illuminate\Support\Facades\Schema;
@@ -11,6 +12,7 @@ class GoliveAuditService
 {
     public function __construct(
         private readonly AiCreditPricingService $aiPricing,
+        private readonly ModuleManager $modules
     ) {
     }
 
@@ -68,7 +70,7 @@ class GoliveAuditService
             $this->check('meta_verify_token', 'Meta verify token changed', $this->isMeaningful((string) config('services.meta.verify_token'), ['changeme', '']), (string) config('services.meta.verify_token'), 'Replace default Meta webhook verify token.', 'fail'),
         ];
 
-        $checks = array_merge($checks, $this->planCatalogChecks());
+        $checks = array_merge($checks, $this->planCatalogChecks(), $this->moduleDatabaseChecks());
 
         $stats = [
             'pass' => count(array_filter($checks, fn (array $check) => $check['status'] === 'pass')),
@@ -168,7 +170,7 @@ class GoliveAuditService
         }
 
         $publicPlans = SubscriptionPlan::query()
-            ->where('is_public', true)
+            ->public()
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
@@ -249,6 +251,127 @@ class GoliveAuditService
                 'Do not publish expensive features without matching hard caps or monthly usage caps.',
                 'warn'
             ),
+        ];
+    }
+
+    private function moduleDatabaseChecks(): array
+    {
+        $checks = [];
+
+        foreach ($this->activeModuleTableExpectations() as $slug => $tables) {
+            $module = collect($this->modules->all())->firstWhere('slug', $slug);
+
+            if (!$module || empty($module['installed']) || empty($module['active'])) {
+                continue;
+            }
+
+            $missing = collect($tables)
+                ->filter(fn (string $table) => !Schema::hasTable($table))
+                ->values()
+                ->all();
+
+            $checks[] = $this->check(
+                'module_tables_' . $slug,
+                sprintf('Module %s has required database tables', (string) ($module['name'] ?? $slug)),
+                empty($missing),
+                empty($missing) ? 'all required tables present' : implode(', ', $missing),
+                sprintf(
+                    'Module `%s` is active but some required tables are missing. Run module migrations or reinstall/reactivate the module cleanly.',
+                    $slug
+                ),
+                'fail'
+            );
+        }
+
+        return $checks;
+    }
+
+    /**
+     * @return array<string, array<int, string>>
+     */
+    private function activeModuleTableExpectations(): array
+    {
+        return [
+            'conversations' => [
+                'conversations',
+                'conversation_messages',
+                'conversation_participants',
+                'conversation_activity_logs',
+            ],
+            'contacts' => [
+                'contacts',
+            ],
+            'crm' => [
+                'crm_leads',
+            ],
+            'live_chat' => [
+                'live_chat_widgets',
+            ],
+            'whatsapp_api' => [
+                'whatsapp_instances',
+                'wa_templates',
+                'wa_blast_campaigns',
+                'wa_webhook_events',
+            ],
+            'whatsapp_web' => [
+                'whatsapp_web_settings',
+            ],
+            'social_media' => [
+                'social_accounts',
+            ],
+            'email_inbox' => [
+                'email_accounts',
+                'email_messages',
+            ],
+            'chatbot' => [
+                'chatbot_accounts',
+                'chatbot_messages',
+                'chatbot_knowledge_documents',
+            ],
+            'email_marketing' => [
+                'email_campaigns',
+                'email_campaign_recipients',
+            ],
+            'products' => [
+                'products',
+            ],
+            'inventory' => [
+                'inventory_stocks',
+                'inventory_stock_movements',
+            ],
+            'discounts' => [
+                'discounts',
+                'discount_vouchers',
+            ],
+            'sales' => [
+                'sales',
+                'sale_items',
+            ],
+            'payments' => [
+                'payments',
+                'payment_methods',
+            ],
+            'purchases' => [
+                'purchases',
+                'purchase_items',
+            ],
+            'finance' => [
+                'finance_transactions',
+                'finance_categories',
+            ],
+            'point-of-sale' => [
+                'pos_cash_sessions',
+                'pos_carts',
+                'pos_cash_session_movements',
+            ],
+            'task_management' => [
+                'memos',
+                'tasks',
+            ],
+            'shortlink' => [
+                'shortlinks',
+                'shortlink_clicks',
+            ],
         ];
     }
 }

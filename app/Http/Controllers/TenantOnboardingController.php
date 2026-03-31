@@ -50,7 +50,7 @@ class TenantOnboardingController extends Controller
                 Rule::exists('subscription_plans', 'id')->where(
                     fn ($query) => $query->getConnection()->getDriverName() === 'pgsql'
                         ? $query->whereRaw('is_active is true and is_public is true')
-                        : $query->where('is_active', true)->where('is_public', true)
+                        : $query->active()->public()
                 ),
             ],
             'company_name' => ['required', 'string', 'max:100'],

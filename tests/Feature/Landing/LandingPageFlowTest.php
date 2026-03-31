@@ -28,6 +28,9 @@ class LandingPageFlowTest extends TestCase
         $response->assertSee('Omnichannel Starter');
         $response->assertSee('Omnichannel Growth');
         $response->assertSee('Omnichannel Scale');
+        $response->assertSee('Bulanan');
+        $response->assertSee('6 Bulanan');
+        $response->assertSee('Tahunan');
         $response->assertSee('Hubungkan akun WhatsApp Anda sendiri');
         $response->assertSee('AI Credits top up');
     }

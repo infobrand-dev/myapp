@@ -29,6 +29,12 @@ class TenantOnboardingSalesService
         'starter' => 'starter-v2',
         'growth' => 'growth-v2',
         'scale' => 'scale-v2',
+        'starter-6m' => 'starter-6m-v2',
+        'growth-6m' => 'growth-6m-v2',
+        'scale-6m' => 'scale-6m-v2',
+        'starter-yearly' => 'starter-yearly-v2',
+        'growth-yearly' => 'growth-yearly-v2',
+        'scale-yearly' => 'scale-yearly-v2',
     ];
 
     private const PLAN_CATALOG = [

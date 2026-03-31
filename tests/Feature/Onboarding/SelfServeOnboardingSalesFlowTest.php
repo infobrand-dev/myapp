@@ -41,6 +41,9 @@ class SelfServeOnboardingSalesFlowTest extends TestCase
         $response->assertSee('Omnichannel Starter');
         $response->assertSee('Omnichannel Growth');
         $response->assertSee('Omnichannel Scale');
+        $response->assertSee('Paket Bulanan');
+        $response->assertSee('Paket 6 Bulanan');
+        $response->assertSee('Paket Tahunan');
         $response->assertSee('Hubungkan akun WhatsApp Anda sendiri');
         $response->assertSee('Lanjut ke Pembayaran');
     }

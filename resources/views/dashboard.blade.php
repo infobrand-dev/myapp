@@ -80,26 +80,34 @@
         @endforeach
 
         {{-- ── Kredit AI (compact card, hanya jika aktif di paket) ── --}}
-        @if($aiCredits['enabled'] ?? false)
         @php
-            $aiStatus  = $aiCredits['status'] ?? 'ok';
-            $aiRemain  = $aiCredits['remaining'] ?? null;
-            $aiUsed    = $aiCredits['used'] ?? 0;
-            $aiAvail   = $aiCredits['available'] ?? null;
-            $aiTopUp   = $aiCredits['top_up'] ?? 0;
-            $aiPct     = ($aiAvail > 0) ? min(100, (int) round($aiUsed / $aiAvail * 100)) : ($aiAvail === 0 ? 100 : 0);
-            $aiBadge   = match(true) {
-                in_array($aiStatus, ['at_limit','over_limit']) => ['bg-red-lt text-red', 'Habis'],
-                $aiStatus === 'near_limit'                     => ['bg-orange-lt text-orange', 'Hampir habis'],
-                default                                        => ['bg-azure-lt text-azure', 'Normal'],
-            };
-            $aiBarColor = $aiPct >= 90 ? 'bg-red' : ($aiPct >= 70 ? 'bg-orange' : 'bg-azure');
+            $aiEnabled  = $aiCredits['enabled'] ?? false;
+            $aiStatus   = $aiCredits['status'] ?? 'ok';
+            $aiRemain   = $aiCredits['remaining'] ?? null;
+            $aiUsed     = $aiCredits['used'] ?? 0;
+            $aiAvail    = $aiCredits['available'] ?? null;
+            $aiTopUp    = $aiCredits['top_up'] ?? 0;
+            $aiPct      = ($aiAvail > 0) ? min(100, (int) round($aiUsed / $aiAvail * 100)) : ($aiAvail === 0 ? 100 : 0);
+            if (in_array($aiStatus, ['at_limit', 'over_limit'])) {
+                $aiBadgeClass = 'bg-red-lt text-red';
+                $aiBadgeLabel = 'Habis';
+                $aiBarColor   = 'bg-red';
+            } elseif ($aiStatus === 'near_limit') {
+                $aiBadgeClass = 'bg-orange-lt text-orange';
+                $aiBadgeLabel = 'Hampir habis';
+                $aiBarColor   = 'bg-orange';
+            } else {
+                $aiBadgeClass = 'bg-azure-lt text-azure';
+                $aiBadgeLabel = 'Normal';
+                $aiBarColor   = $aiPct >= 90 ? 'bg-red' : ($aiPct >= 70 ? 'bg-orange' : 'bg-azure');
+            }
         @endphp
+        @if($aiEnabled)
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="dashboard-kpi p-3 p-lg-4 h-100 d-flex flex-column">
                 <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
                     <div class="text-secondary text-uppercase small fw-bold">Kredit AI</div>
-                    <span class="badge {{ $aiBadge[0] }} flex-shrink-0">{{ $aiBadge[1] }}</span>
+                    <span class="badge {{ $aiBadgeClass }} flex-shrink-0">{{ $aiBadgeLabel }}</span>
                 </div>
 
                 @if($aiRemain === null)

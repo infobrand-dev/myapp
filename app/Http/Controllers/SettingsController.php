@@ -171,6 +171,7 @@ class SettingsController extends Controller
             'currentSection' => $section,
             'sections' => $this->sections(),
             'tenant' => $tenant,
+            'currencySettingsLocked' => $this->currencySettingsLocked(),
             'defaultCurrency' => $currencySettings->tenantCurrency($tenantId) ?? $currencySettings->defaultCurrency($tenantId),
             'companyDefaultCurrency' => $currentCompany ? $currencySettings->companyCurrency($tenantId, $currentCompany->id) : null,
             'currencyOptions' => $currencySettings->options(),
@@ -387,6 +388,12 @@ class SettingsController extends Controller
 
     public function saveGeneral(Request $request): RedirectResponse
     {
+        if ($this->currencySettingsLocked()) {
+            return redirect()
+                ->route('settings.general')
+                ->with('warning', 'Mata uang default dikunci setelah setup awal agar transaksi tetap rapi. Jika benar-benar perlu diubah, lakukan lewat intervensi platform.');
+        }
+
         $tenant = TenantContext::currentTenant();
         abort_unless($tenant, 404);
 
@@ -569,6 +576,11 @@ class SettingsController extends Controller
                 'description' => 'Ringkasan module aktif dan arah entitlement tenant.',
             ],
         ];
+    }
+
+    private function currencySettingsLocked(): bool
+    {
+        return true;
     }
 
     private function stats(

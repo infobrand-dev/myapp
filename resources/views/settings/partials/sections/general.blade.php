@@ -11,7 +11,7 @@
                         <div class="fw-semibold mt-1">{{ optional($tenant)->name ?? 'Default tenant' }}</div>
                     </div>
                     <div class="col-md-6">
-                        <div class="text-secondary small text-uppercase fw-bold">Slug Workspace</div>
+                        <div class="text-secondary small text-uppercase fw-bold">Alamat Workspace</div>
                         <div class="fw-semibold mt-1">{{ optional($tenant)->slug ?? 'default-tenant' }}</div>
                     </div>
                     <div class="col-md-6">
@@ -23,12 +23,12 @@
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="text-secondary small text-uppercase fw-bold">Plan Aktif</div>
+                        <div class="text-secondary small text-uppercase fw-bold">Paket Aktif</div>
                         <div class="fw-semibold mt-1">{{ optional($plan)->display_name ?? optional($plan)->name ?? 'Belum ada plan' }}</div>
                     </div>
                 </div>
                 <div class="alert alert-blue-lt mt-4 mb-0">
-                    Halaman ini disiapkan sebagai pusat setting tenant. Profil workspace, branding, locale, timezone, dan konfigurasi global tenant selanjutnya bisa diletakkan di sini tanpa memecah UI ke banyak menu lain.
+                    Halaman ini dipakai untuk ringkasan workspace dan pengaturan dasar yang aman. Hal teknis yang berisiko mengubah transaksi atau laporan tidak dibuka bebas dari sini.
                 </div>
             </div>
         </div>
@@ -39,34 +39,21 @@
                 <h3 class="card-title mb-0">Mata Uang Default</h3>
             </div>
             <div class="card-body">
-                <form method="POST" action="{{ route('settings.general.save') }}" class="row g-3">
-                    @csrf
-                    @method('PUT')
-                    <div class="col-12">
-                        <label class="form-label">Workspace Default Currency</label>
-                        <select name="default_currency" class="form-select">
-                            @foreach($currencyOptions as $currencyCode => $currencyLabel)
-                                <option value="{{ $currencyCode }}" @selected(old('default_currency', $defaultCurrency) === $currencyCode)>{{ $currencyLabel }}</option>
-                            @endforeach
-                        </select>
-                        <div class="form-hint">Dipakai sebagai default baru untuk CRM, Sales, Purchases, POS, dan area yang belum memilih currency secara manual.</div>
+                <div class="border rounded-3 p-3 mb-3">
+                    <div class="text-secondary small text-uppercase fw-bold">Workspace</div>
+                    <div class="fw-semibold mt-1">{{ $currencyOptions[$defaultCurrency] ?? $defaultCurrency }}</div>
+                </div>
+
+                @if($currentCompany)
+                    <div class="border rounded-3 p-3 mb-3">
+                        <div class="text-secondary small text-uppercase fw-bold">Company Aktif</div>
+                        <div class="fw-semibold mt-1">{{ $currencyOptions[$companyDefaultCurrency] ?? ($companyDefaultCurrency ?: $defaultCurrency) }}</div>
                     </div>
-                    @if($currentCompany)
-                        <div class="col-12">
-                            <label class="form-label">Override Currency untuk Company Aktif</label>
-                            <select name="company_default_currency" class="form-select">
-                                <option value="">Ikuti workspace default</option>
-                                @foreach($currencyOptions as $currencyCode => $currencyLabel)
-                                    <option value="{{ $currencyCode }}" @selected(old('company_default_currency', $companyDefaultCurrency) === $currencyCode)>{{ $currencyLabel }}</option>
-                                @endforeach
-                            </select>
-                            <div class="form-hint">Opsional. Kalau diisi, company aktif memakai currency ini sebagai default draft baru.</div>
-                        </div>
-                    @endif
-                    <div class="col-12 d-grid">
-                        <button class="btn btn-primary">Simpan General Settings</button>
-                    </div>
-                </form>
+                @endif
+
+                <div class="alert alert-warning mb-0">
+                    Mata uang default dikunci setelah setup awal agar draft transaksi, laporan, dan angka historis tidak berubah arah di tengah jalan. Jika benar-benar perlu diubah, lakukan lewat intervensi platform.
+                </div>
             </div>
         </div>
         <div class="card h-100">

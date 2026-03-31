@@ -15,9 +15,18 @@ class RagContextBuilder
             return [];
         }
 
+        $normalizedQuery = Str::lower(trim($query));
+
         $candidateQuery = ChatbotKnowledgeChunk::query()
             ->with('document:id,title')
             ->where('chatbot_account_id', $account->id);
+
+        $candidateQuery->whereHas('document', function ($query) {
+            $query->where(function ($documentQuery) {
+                $documentQuery->whereNull('metadata->status')
+                    ->orWhere('metadata->status', 'active');
+            });
+        });
 
         $candidateQuery->where(function ($q) use ($terms) {
             foreach ($terms as $term) {
@@ -30,7 +39,7 @@ class RagContextBuilder
             ->limit(80)
             ->get();
 
-        $scored = $candidates->map(function (ChatbotKnowledgeChunk $chunk) use ($terms) {
+        $scored = $candidates->map(function (ChatbotKnowledgeChunk $chunk) use ($terms, $normalizedQuery) {
             $content = Str::lower((string) $chunk->content);
             $score = 0;
             foreach ($terms as $term) {
@@ -43,6 +52,23 @@ class RagContextBuilder
             foreach ($terms as $term) {
                 if (Str::contains($title, $term)) {
                     $score += 2;
+                }
+            }
+
+            if ($normalizedQuery !== '' && Str::contains($content, $normalizedQuery)) {
+                $score += 5;
+            }
+
+            $metadata = is_array(data_get($chunk, 'document.metadata')) ? data_get($chunk, 'document.metadata') : [];
+            $priority = max(1, min((int) ($metadata['priority'] ?? 1), 10));
+            $score += min($priority, 5);
+
+            $updatedAt = data_get($chunk, 'document.updated_at');
+            if ($updatedAt && method_exists($updatedAt, 'greaterThan')) {
+                if ($updatedAt->greaterThan(now()->subDays(7))) {
+                    $score += 2;
+                } elseif ($updatedAt->greaterThan(now()->subDays(30))) {
+                    $score += 1;
                 }
             }
 
@@ -69,6 +95,7 @@ class RagContextBuilder
                 'document_id' => $chunk->document_id,
                 'title' => (string) data_get($chunk, 'document.title', 'Dokumen'),
                 'content' => Str::limit((string) $chunk->content, 700, '...'),
+                'document_metadata' => is_array(data_get($chunk, 'document.metadata')) ? data_get($chunk, 'document.metadata') : [],
                 'score' => (int) ($item['score'] ?? 0),
             ];
         })->all();
@@ -92,4 +119,3 @@ class RagContextBuilder
         return array_values(array_slice(array_unique($terms), 0, 12));
     }
 }
-

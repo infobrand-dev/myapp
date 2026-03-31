@@ -3,7 +3,7 @@
 namespace App\Modules\WhatsAppApi\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Chatbot\Services\ConversationBotManager;
+use App\Modules\Chatbot\Services\ConversationBotPolicy;
 use App\Modules\Conversations\Contracts\InboxMessageIngester;
 use App\Modules\Conversations\Data\InboxMessageEnvelope;
 use App\Modules\Conversations\Events\ConversationMessageCreated;
@@ -38,6 +38,7 @@ class WebhookController extends Controller
     public function __construct(
         private readonly ConversationAutoAssigner $autoAssigner,
         private readonly InboxMessageIngester $ingester,
+        private readonly ConversationBotPolicy $botPolicy,
     )
     {
     }
@@ -231,11 +232,13 @@ class WebhookController extends Controller
         }
 
         $chatbot = $this->chatbotIntegration($instance);
-        $shouldAutoReply = $chatbot['auto_reply']
-            && $isIncoming
-            && $this->shouldAutoReply($conversation, $chatbot['chatbot_account_id'], (string) ($msg->body ?? ''));
-        if ($shouldAutoReply) {
-            GenerateAiReply::dispatch($conversation->id, $msg->id, $chatbot['chatbot_account_id']);
+        if ($chatbot['auto_reply'] && $isIncoming) {
+            $decision = $this->evaluateAutoReplyDecision($conversation, $chatbot['chatbot_account_id'], (string) ($msg->body ?? ''), []);
+            if (($decision['action'] ?? null) === 'reply') {
+                GenerateAiReply::dispatch($conversation->id, $msg->id, $chatbot['chatbot_account_id']);
+            } elseif (($decision['action'] ?? null) === 'handoff') {
+                $this->applyHandoffDecision($conversation, $instance, $chatbot['chatbot_account_id'], $decision);
+            }
         }
 
         $this->markWebhookEventProcessed($event);
@@ -553,8 +556,13 @@ class WebhookController extends Controller
             }
 
             $chatbot = $this->chatbotIntegration($instance);
-            if ($chatbot['auto_reply'] && $this->shouldAutoReply($conversation, $chatbot['chatbot_account_id'], (string) ($message->body ?? ''), (array) $item)) {
-                GenerateAiReply::dispatch($conversation->id, $message->id, $chatbot['chatbot_account_id']);
+            if ($chatbot['auto_reply']) {
+                $decision = $this->evaluateAutoReplyDecision($conversation, $chatbot['chatbot_account_id'], (string) ($message->body ?? ''), (array) $item);
+                if (($decision['action'] ?? null) === 'reply') {
+                    GenerateAiReply::dispatch($conversation->id, $message->id, $chatbot['chatbot_account_id']);
+                } elseif (($decision['action'] ?? null) === 'handoff') {
+                    $this->applyHandoffDecision($conversation, $instance, $chatbot['chatbot_account_id'], $decision);
+                }
             }
         }
     }
@@ -582,39 +590,22 @@ class WebhookController extends Controller
         ];
     }
 
-    private function shouldAutoReply(Conversation $conversation, ?int $chatbotAccountId, string $incomingBody, array $incomingPayload = []): bool
+    private function evaluateAutoReplyDecision(Conversation $conversation, ?int $chatbotAccountId, string $incomingBody, array $incomingPayload = []): array
     {
         if (!$chatbotAccountId) {
-            return false;
+            return ['action' => 'skip', 'reason' => 'no_chatbot_account'];
         }
 
         $account = $this->resolveChatbotAccount($chatbotAccountId);
         if (!$account) {
-            return false;
+            return ['action' => 'skip', 'reason' => 'chatbot_not_found'];
         }
 
         if (method_exists($account, 'usesAi') && !$account->usesAi()) {
-            return false;
+            return ['action' => 'skip', 'reason' => 'rule_only'];
         }
 
-        $mode = strtolower((string) ($account->operation_mode ?? 'ai_only'));
-        if ($mode === 'ai_only') {
-            return true;
-        }
-
-        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
-        if ((bool) ($metadata['auto_reply_paused'] ?? false)) {
-            return false;
-        }
-
-        $handoffReason = $this->detectHandoffReason($incomingBody, $incomingPayload);
-        if ($handoffReason !== null) {
-            $this->sendHumanHandoffAcknowledgement($conversation);
-            $this->markConversationHandoff($conversation, $handoffReason);
-            return false;
-        }
-
-        return true;
+        return $this->botPolicy->evaluateInbound($conversation, $account, $incomingBody, $incomingPayload);
     }
 
     private function resolveChatbotAccount(int $chatbotAccountId)
@@ -630,80 +621,10 @@ class WebhookController extends Controller
             ->find($chatbotAccountId);
     }
 
-    private function detectHandoffReason(string $incomingBody, array $incomingPayload = []): ?string
+    private function markConversationHandoff(Conversation $conversation, string $reason, ?int $chatbotAccountId = null): void
     {
-        if ($this->isHumanHandoffInteractiveReply($incomingPayload)) {
-            return 'interactive_request_human';
-        }
-
-        return $this->shouldHandoffToHuman($incomingBody)
-            ? 'keyword_request_human'
-            : null;
-    }
-
-    private function shouldHandoffToHuman(string $text): bool
-    {
-        $haystack = mb_strtolower(trim($text));
-        if ($haystack === '') {
-            return false;
-        }
-
-        $keywords = [
-            'agent',
-            'admin',
-            'operator',
-            'manusia',
-            'human',
-            'cs',
-            'customer service',
-            'staff',
-        ];
-
-        foreach ($keywords as $keyword) {
-            if (mb_stripos($haystack, $keyword) !== false) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function isHumanHandoffInteractiveReply(array $payload): bool
-    {
-        $interactiveType = strtolower((string) Arr::get($payload, 'interactive.type', ''));
-        if (!in_array($interactiveType, ['button_reply', 'list_reply'], true)) {
-            return false;
-        }
-
-        $id = trim((string) (
-            Arr::get($payload, 'interactive.button_reply.id')
-            ?: Arr::get($payload, 'interactive.list_reply.id')
-        ));
-
-        if ($id === '') {
-            return false;
-        }
-
-        $normalizedId = strtolower(trim((string) preg_replace('/[^a-z0-9]+/i', '_', $id), '_'));
-
-        $handoffIds = [
-            'handoff_human',
-            'request_human',
-            'hubungi_human',
-            'hubungi_cs',
-            'hubungi_admin',
-            'connect_human',
-            'connect_agent',
-            'talk_to_human',
-            'talk_to_agent',
-        ];
-
-        return in_array($normalizedId, $handoffIds, true);
-    }
-
-    private function markConversationHandoff(Conversation $conversation, string $reason): void
-    {
-        app(ConversationBotManager::class)->pause($conversation, $reason);
+        $account = $chatbotAccountId ? $this->resolveChatbotAccount($chatbotAccountId) : null;
+        $this->botPolicy->pauseForHuman($conversation, $reason, $account);
     }
 
     private function sendHumanHandoffAcknowledgement(Conversation $conversation): void
@@ -754,6 +675,17 @@ class WebhookController extends Controller
         return $configured !== ''
             ? $configured
             : 'Baik, Anda akan kami hubungkan dengan Customer Service kami. Mohon tunggu, tim kami akan merespons secepatnya.';
+    }
+
+    private function applyHandoffDecision(Conversation $conversation, ?WhatsAppInstance $instance, ?int $chatbotAccountId, array $decision): void
+    {
+        $reason = (string) ($decision['reason'] ?? 'user_requested_human');
+
+        if (($decision['send_handoff_ack'] ?? false) && $instance) {
+            $this->sendHumanHandoffAcknowledgement($conversation);
+        }
+
+        $this->markConversationHandoff($conversation, $reason, $chatbotAccountId);
     }
 
     private function handleCloudMessageStatuses(array $value): void

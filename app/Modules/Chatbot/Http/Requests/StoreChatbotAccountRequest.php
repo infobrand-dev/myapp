@@ -29,6 +29,13 @@ class StoreChatbotAccountRequest extends FormRequest
             'mirror_to_conversations' => ['sometimes', 'boolean'],
             'rag_enabled'             => ['sometimes', 'boolean'],
             'rag_top_k'               => ['nullable', 'integer', 'min:1', 'max:8'],
+            'auto_reply_enabled'      => ['sometimes', 'boolean'],
+            'allowed_channels'        => ['nullable', 'array'],
+            'allowed_channels.*'      => ['string', 'in:wa_api,social_dm'],
+            'allow_interactive_buttons' => ['sometimes', 'boolean'],
+            'human_handoff_ack_enabled' => ['sometimes', 'boolean'],
+            'minimum_context_score'   => ['nullable', 'numeric', 'min:1', 'max:30'],
+            'reply_cooldown_seconds'  => ['nullable', 'integer', 'min:0', 'max:300'],
             'metadata'                => ['nullable'],
         ];
     }

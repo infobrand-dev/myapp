@@ -32,6 +32,9 @@ class ConversationBotManager
         $metadata['auto_reply_paused'] = true;
         $metadata['handoff_reason'] = $reason;
         $metadata['handoff_at'] = now()->toDateTimeString();
+        $metadata['bot_last_decision'] = 'handoff';
+        $metadata['bot_last_decision_at'] = now()->toDateTimeString();
+        $metadata['bot_last_reason'] = $reason;
 
         $conversation->update([
             'metadata' => $metadata,
@@ -44,6 +47,9 @@ class ConversationBotManager
         Arr::set($metadata, 'needs_human', false);
         Arr::set($metadata, 'auto_reply_paused', false);
         Arr::set($metadata, 'handoff_resumed_at', now()->toDateTimeString());
+        Arr::set($metadata, 'bot_last_decision', 'resumed');
+        Arr::set($metadata, 'bot_last_decision_at', now()->toDateTimeString());
+        Arr::set($metadata, 'bot_last_reason', 'manual_resume');
         Arr::forget($metadata, ['handoff_reason', 'handoff_at']);
 
         $conversation->update([

@@ -90,8 +90,8 @@ class CrmServiceProvider extends ServiceProvider
             }
 
             $baseQuery = CrmLead::query()
-                ->where('tenant_id', \App\Support\TenantContext::currentId())
-                BooleanQuery::apply($baseQuery, 'is_archived', false);
+                ->where('tenant_id', \App\Support\TenantContext::currentId());
+            BooleanQuery::apply($baseQuery, 'is_archived', false);
 
             if (!$user->hasAnyRole(['Super-admin', 'Admin'])) {
                 $baseQuery->where('owner_user_id', $user->id);

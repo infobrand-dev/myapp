@@ -18,6 +18,8 @@
             <thead>
                 <tr>
                     <th>Judul</th>
+                    <th>Status</th>
+                    <th>Kategori</th>
                     <th>Chunks</th>
                     <th>Update</th>
                     <th class="w-1"></th>
@@ -27,7 +29,9 @@
                 @forelse($documents as $doc)
                     <tr>
                         <td>{{ $doc->title }}</td>
-                        <td>{{ $doc->chunks()->count() }}</td>
+                        <td>{{ data_get($doc->metadata, 'status', 'active') }}</td>
+                        <td>{{ data_get($doc->metadata, 'category', '-') }}</td>
+                        <td>{{ $doc->chunks_count }}</td>
                         <td>{{ optional($doc->updated_at)->format('d M Y H:i') }}</td>
                         <td class="text-end">
                             <a class="btn btn-sm btn-outline-secondary" href="{{ route('chatbot.knowledge.edit', [$account, $doc]) }}">Edit</a>
@@ -39,12 +43,25 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="4" class="text-muted">Belum ada dokumen.</td></tr>
+                    <tr><td colspan="6" class="text-muted">Belum ada dokumen.</td></tr>
                 @endforelse
             </tbody>
         </table>
     </div>
 </div>
 <div class="mt-3">{{ $documents->links() }}</div>
-@endsection
 
+<div class="card mt-3">
+    <div class="card-header"><h3 class="card-title">Dokumen yang Paling Sering Dipakai Bot</h3></div>
+    <div class="list-group list-group-flush">
+        @forelse($topKnowledgeDocuments as $document)
+            <div class="list-group-item">
+                <div class="fw-semibold">{{ $document->title }}</div>
+                <div class="text-muted small">{{ data_get($document->metadata, 'category', 'General') }} · status {{ data_get($document->metadata, 'status', 'active') }}</div>
+            </div>
+        @empty
+            <div class="list-group-item text-muted">Belum ada data penggunaan knowledge oleh bot.</div>
+        @endforelse
+    </div>
+</div>
+@endsection

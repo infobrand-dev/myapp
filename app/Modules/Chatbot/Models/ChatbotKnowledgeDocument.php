@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Support\TenantContext;
 
 class ChatbotKnowledgeDocument extends Model
 {
@@ -14,6 +15,7 @@ class ChatbotKnowledgeDocument extends Model
     protected $table = 'chatbot_knowledge_documents';
 
     protected $fillable = [
+        'tenant_id',
         'chatbot_account_id',
         'title',
         'content',
@@ -21,8 +23,18 @@ class ChatbotKnowledgeDocument extends Model
     ];
 
     protected $casts = [
+        'tenant_id' => 'integer',
         'metadata' => 'array',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $document): void {
+            if (!$document->tenant_id) {
+                $document->tenant_id = TenantContext::currentId();
+            }
+        });
+    }
 
     public function chatbotAccount(): BelongsTo
     {
@@ -34,4 +46,3 @@ class ChatbotKnowledgeDocument extends Model
         return $this->hasMany(ChatbotKnowledgeChunk::class, 'document_id');
     }
 }
-

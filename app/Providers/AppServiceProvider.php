@@ -73,13 +73,19 @@ class AppServiceProvider extends ServiceProvider
             }
 
             if (Auth::check() && $this->schemaHasTable('branches') && $currentCompany) {
-                $branches = Branch::query()
+                $branchesQuery = Branch::query()
                     ->where('tenant_id', TenantContext::currentId())
                     ->where('company_id', $currentCompany->id)
                     ->when($allowedBranchIds, fn ($query) => $query->whereIn('id', $allowedBranchIds->all()))
+                    ->orderBy('name');
+
+                $branches = $branchesQuery
                     ->active()
-                    ->orderBy('name')
                     ->get(['id', 'company_id', 'name', 'slug', 'code']);
+
+                if ($branches->isEmpty() && $currentBranch && (int) $currentBranch->company_id === (int) $currentCompany->id) {
+                    $branches = collect([$currentBranch]);
+                }
             }
 
             $view->with([

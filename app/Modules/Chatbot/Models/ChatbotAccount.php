@@ -102,6 +102,58 @@ class ChatbotAccount extends Model
         return $this->automationMode() === 'rule_only';
     }
 
+    public function botConfig(): array
+    {
+        $metadata = is_array($this->metadata) ? $this->metadata : [];
+
+        return array_merge([
+            'auto_reply_enabled' => true,
+            'allowed_channels' => ['wa_api', 'social_dm'],
+            'allow_interactive_buttons' => true,
+            'human_handoff_ack_enabled' => true,
+            'minimum_context_score' => 4,
+            'reply_cooldown_seconds' => 30,
+            'knowledge_usage_mode' => $this->rag_enabled ? 'required' : 'optional',
+        ], is_array($metadata['bot_config'] ?? null) ? $metadata['bot_config'] : []);
+    }
+
+    public function autoReplyEnabled(): bool
+    {
+        return (bool) ($this->botConfig()['auto_reply_enabled'] ?? true);
+    }
+
+    public function channelAllowed(string $channel): bool
+    {
+        $allowed = array_values(array_filter((array) ($this->botConfig()['allowed_channels'] ?? [])));
+
+        return in_array($channel, $allowed, true);
+    }
+
+    public function allowInteractiveButtons(): bool
+    {
+        return (bool) ($this->botConfig()['allow_interactive_buttons'] ?? true);
+    }
+
+    public function humanHandoffAckEnabled(): bool
+    {
+        return (bool) ($this->botConfig()['human_handoff_ack_enabled'] ?? true);
+    }
+
+    public function minimumContextScore(): float
+    {
+        return (float) ($this->botConfig()['minimum_context_score'] ?? 4);
+    }
+
+    public function replyCooldownSeconds(): int
+    {
+        return (int) ($this->botConfig()['reply_cooldown_seconds'] ?? 30);
+    }
+
+    public function prefersHumanHandoff(): bool
+    {
+        return strtolower((string) ($this->operation_mode ?: 'ai_only')) === 'ai_then_human';
+    }
+
     public function resolveRouteBinding($value, $field = null)
     {
         return $this->newQuery()

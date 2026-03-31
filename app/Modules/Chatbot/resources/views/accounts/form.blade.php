@@ -5,11 +5,19 @@
     $isEdit = $account->exists;
     $automationMode = old('automation_mode', $account->automation_mode ?: 'ai_first');
     $requiresAiKey = $automationMode !== 'rule_only';
+    $botConfig = method_exists($account, 'botConfig') ? $account->botConfig() : [
+        'auto_reply_enabled' => true,
+        'allowed_channels' => ['wa_api', 'social_dm'],
+        'allow_interactive_buttons' => true,
+        'human_handoff_ack_enabled' => true,
+        'minimum_context_score' => 4,
+        'reply_cooldown_seconds' => 30,
+    ];
 @endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-        <h2 class="mb-0">{{ $isEdit ? 'Edit' : 'Tambah' }} Chatbot Account</h2>
-        <div class="text-muted small">Pisahkan mode automation bot dari cara AI dipakai. Rule-only tidak mengonsumsi AI Credits.</div>
+        <h2 class="mb-0">{{ $isEdit ? 'Edit' : 'Tambah' }} Chatbot</h2>
+        <div class="text-muted small">Utamakan chatbot ini untuk auto-reply live channel, lalu teruskan ke tim saat bot tidak yakin.</div>
     </div>
     <a href="{{ route('chatbot.accounts.index') }}" class="btn btn-outline-secondary">Kembali</a>
 </div>
@@ -60,6 +68,50 @@
                         <option value="ai_then_human" {{ old('operation_mode', $account->operation_mode ?: 'ai_only') === 'ai_then_human' ? 'selected' : '' }}>AI then Human</option>
                     </select>
                     <div class="form-hint">Mode ini hanya berlaku saat automation mode memakai AI. AI then Human akan pause bot saat user minta agent/manusia.</div>
+                </div>
+                <div class="col-12"><hr class="my-2"></div>
+                <div class="col-12">
+                    <div class="fw-semibold">Live Auto-reply Settings</div>
+                    <div class="text-muted small">Atur kapan bot boleh menjawab, kapan harus diam, dan kapan langsung menyerahkan ke tim.</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label d-block">Auto-reply</label>
+                    <label class="form-check form-switch m-0">
+                        <input class="form-check-input" type="checkbox" name="auto_reply_enabled" value="1" {{ old('auto_reply_enabled', ($botConfig['auto_reply_enabled'] ?? true) ? '1' : '0') === '1' ? 'checked' : '' }}>
+                        <span class="form-check-label">Aktif untuk channel live</span>
+                    </label>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label d-block">Channel aktif</label>
+                    @foreach(['wa_api' => 'WhatsApp API', 'social_dm' => 'Social Inbox'] as $channel => $label)
+                        <label class="form-check">
+                            <input class="form-check-input" type="checkbox" name="allowed_channels[]" value="{{ $channel }}" {{ in_array($channel, old('allowed_channels', $botConfig['allowed_channels'] ?? []), true) ? 'checked' : '' }}>
+                            <span class="form-check-label">{{ $label }}</span>
+                        </label>
+                    @endforeach
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label d-block">Perilaku saat perlu tim</label>
+                    <label class="form-check form-switch m-0 mb-2">
+                        <input class="form-check-input" type="checkbox" name="human_handoff_ack_enabled" value="1" {{ old('human_handoff_ack_enabled', ($botConfig['human_handoff_ack_enabled'] ?? true) ? '1' : '0') === '1' ? 'checked' : '' }}>
+                        <span class="form-check-label">Kirim pesan “tim kami akan membantu”</span>
+                    </label>
+                    <label class="form-check form-switch m-0">
+                        <input class="form-check-input" type="checkbox" name="allow_interactive_buttons" value="1" {{ old('allow_interactive_buttons', ($botConfig['allow_interactive_buttons'] ?? true) ? '1' : '0') === '1' ? 'checked' : '' }}>
+                        <span class="form-check-label">Izinkan tombol cepat WhatsApp</span>
+                    </label>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Skor konteks minimum</label>
+                    <input type="number" min="1" max="30" step="0.5" name="minimum_context_score" class="form-control" value="{{ old('minimum_context_score', $botConfig['minimum_context_score'] ?? 4) }}">
+                    <div class="form-hint">Kalau knowledge terlalu lemah, bot disuruh menyerahkan ke tim.</div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Jeda antar auto-reply</label>
+                    <div class="input-group">
+                        <input type="number" min="0" max="300" name="reply_cooldown_seconds" class="form-control" value="{{ old('reply_cooldown_seconds', $botConfig['reply_cooldown_seconds'] ?? 30) }}">
+                        <span class="input-group-text">detik</span>
+                    </div>
                 </div>
                 <div class="col-12">
                     <label class="form-label">API Key</label>

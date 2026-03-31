@@ -2,6 +2,8 @@
 
 namespace App\Modules\Conversations\Jobs;
 
+use App\Modules\Chatbot\Services\ConversationBotPolicy;
+use App\Modules\Chatbot\Services\RagContextBuilder;
 use App\Modules\Conversations\Contracts\ConversationAiAssistantRegistry;
 use App\Modules\Conversations\Contracts\ConversationChannelManager;
 use App\Modules\Conversations\Contracts\ConversationOutboundDispatcher;
@@ -81,26 +83,46 @@ class GenerateAiReply implements ShouldQueue
                 'conversation_id' => $this->conversationId,
                 'tenant_id' => $this->tenantId(),
             ]);
+            app(ConversationBotPolicy::class)->markSkipped($conversation, $aiAccount, 'ai_credits_exhausted');
             return;
         }
 
-        if ($this->shouldPauseForHuman($conversation, $aiAccount)) {
-            Log::info('AI reply skipped: conversation paused for human', [
-                'conversation_id' => $this->conversationId,
-                'chatbot_account_id' => $aiAccount->id,
-            ]);
+        $policy = app(ConversationBotPolicy::class);
+        $inboundDecision = $policy->evaluateInbound($conversation, $aiAccount, (string) ($incoming->body ?? ''), (array) ($incoming->payload ?? []));
+        if (($inboundDecision['action'] ?? 'skip') !== 'reply') {
+            if (($inboundDecision['action'] ?? null) === 'handoff') {
+                $policy->pauseForHuman($conversation, (string) ($inboundDecision['reason'] ?? 'user_requested_human'), $aiAccount);
+            } else {
+                $policy->markSkipped($conversation, $aiAccount, (string) ($inboundDecision['reason'] ?? 'ineligible'));
+            }
+
             return;
         }
 
         [$history, $rollingSummary] = $this->buildPromptHistory($conversation);
+        $ragContexts = [];
+        if (method_exists($aiAccount, 'usesAi') && $aiAccount->rag_enabled) {
+            $ragContexts = app(RagContextBuilder::class)->retrieve($aiAccount, (string) ($incoming->body ?? ''));
+        }
 
         $systemMessages = [
-            ['role' => 'system', 'content' => $this->systemPrompt($conversation)],
+            ['role' => 'system', 'content' => $this->systemPrompt($conversation, $aiAccount)],
         ];
         if ($rollingSummary !== null && trim($rollingSummary) !== '') {
             $systemMessages[] = [
                 'role' => 'system',
                 'content' => "Ringkasan konteks sebelumnya:\n{$rollingSummary}",
+            ];
+        }
+        if (!empty($ragContexts)) {
+            $contextText = collect($ragContexts)->map(function ($ctx, $index) {
+                $n = $index + 1;
+                return "[S{$n}] " . ($ctx['title'] ?? 'Dokumen') . "\n" . ($ctx['content'] ?? '');
+            })->implode("\n\n");
+
+            $systemMessages[] = [
+                'role' => 'system',
+                'content' => "Gunakan knowledge base berikut jika relevan. Jika konteks tidak cukup, jangan mengarang dan prioritaskan serahkan ke tim.\n\n{$contextText}",
             ];
         }
 
@@ -131,11 +153,37 @@ class GenerateAiReply implements ShouldQueue
             }
         } catch (\Throwable $e) {
             Log::error('AI request failed', ['error' => $e->getMessage()]);
+            $policy->markError($conversation, $aiAccount, 'ai_error', [
+                'incoming_message_id' => $incoming->id,
+                'channel' => $conversation->channel,
+            ]);
             $reply = null;
         }
 
+        $evaluation = $policy->evaluateReplyCandidate($conversation, $aiAccount, (string) $reply, $ragContexts);
+        $knowledgeChunkIds = array_values(array_filter(array_map(fn (array $ctx) => $ctx['chunk_id'] ?? null, $ragContexts)));
+        $knowledgeDocumentIds = array_values(array_filter(array_map(fn (array $ctx) => $ctx['document_id'] ?? null, $ragContexts)));
+        $decisionMetadata = [
+            'incoming_message_id' => $incoming->id,
+            'channel' => $conversation->channel,
+            'knowledge_chunk_ids' => $knowledgeChunkIds,
+            'knowledge_document_ids' => $knowledgeDocumentIds,
+            'confidence_score' => $evaluation['confidence_score'] ?? null,
+        ];
+
+        if (($evaluation['action'] ?? 'handoff') !== 'reply') {
+            $reason = (string) ($evaluation['reason'] ?? 'ai_error');
+            $policy->pauseForHuman($conversation, $reason, $aiAccount, $decisionMetadata);
+
+            if (!($evaluation['send_handoff_ack'] ?? false)) {
+                return;
+            }
+
+            $reply = $this->humanHandoffAcknowledgementMessage();
+        }
+
         if (!$reply) {
-            $reply = "Terima kasih, pesan Anda sudah kami terima.";
+            $reply = $this->humanHandoffAcknowledgementMessage();
         }
 
         $outgoing = $this->buildOutgoingReply((string) $reply, $conversation);
@@ -149,7 +197,14 @@ class GenerateAiReply implements ShouldQueue
             'direction' => 'out',
             'type' => $outgoing['type'],
             'body' => $outgoing['body'],
-            'payload' => $outgoing['payload'],
+            'payload' => array_filter([
+                'message_payload' => $outgoing['payload'],
+                'reply_source' => 'ai_auto_reply',
+                'confidence_score' => $evaluation['confidence_score'] ?? null,
+                'knowledge_chunk_ids' => $knowledgeChunkIds,
+                'knowledge_document_ids' => $knowledgeDocumentIds,
+                'fallback_reason' => ($evaluation['action'] ?? 'reply') === 'reply' ? null : ($evaluation['reason'] ?? null),
+            ]),
             'status' => $outboundDefaults['status'],
             'sent_at' => $outboundDefaults['sent_at'],
         ]);
@@ -170,18 +225,31 @@ class GenerateAiReply implements ShouldQueue
                     'incoming_message_id' => $incoming->id,
                     'reply_message_id' => $replyMessage->id,
                     'channel' => $conversation->channel,
+                    'knowledge_document_ids' => $knowledgeDocumentIds,
                 ],
             ]);
         }
 
+        $policy->markReplySent($conversation, $aiAccount, isset($evaluation['confidence_score']) ? (float) $evaluation['confidence_score'] : null, array_merge($decisionMetadata, [
+            'reply_message_id' => $replyMessage->id,
+        ]));
+
         app(ConversationOutboundDispatcher::class)->dispatch($replyMessage);
     }
 
-    private function systemPrompt(Conversation $conversation): string
+    private function systemPrompt(Conversation $conversation, $aiAccount): string
     {
-        $base = 'Kamu adalah asisten CS singkat dan sopan berbahasa Indonesia.';
+        $base = trim((string) ($aiAccount->system_prompt ?? ''));
+        if ($base === '') {
+            $base = 'Kamu adalah asisten CS singkat, jelas, sopan, dan berbahasa Indonesia.';
+        }
 
-        if ($conversation->channel !== 'wa_api' || !$this->supportsInteractiveButtons($conversation)) {
+        $focusScope = trim((string) ($aiAccount->focus_scope ?? ''));
+        if ($focusScope !== '') {
+            $base .= "\nBatasan fokus: {$focusScope}";
+        }
+
+        if ($conversation->channel !== 'wa_api' || !$this->supportsInteractiveButtons($conversation) || !method_exists($aiAccount, 'allowInteractiveButtons') || !$aiAccount->allowInteractiveButtons()) {
             return $base;
         }
 
@@ -324,17 +392,6 @@ class GenerateAiReply implements ShouldQueue
         return app(ConversationChannelManager::class)->supportsAiStructuredReply($conversation);
     }
 
-    private function shouldPauseForHuman(Conversation $conversation, $aiAccount): bool
-    {
-        $mode = strtolower((string) ($aiAccount->operation_mode ?? 'ai_only'));
-        if ($mode !== 'ai_then_human') {
-            return false;
-        }
-
-        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
-        return (bool) ($metadata['auto_reply_paused'] ?? false);
-    }
-
     private function buildPromptHistory(Conversation $conversation): array
     {
         $history = ConversationMessage::query()
@@ -404,5 +461,10 @@ class GenerateAiReply implements ShouldQueue
     private function tenantId(): int
     {
         return TenantContext::currentId();
+    }
+
+    private function humanHandoffAcknowledgementMessage(): string
+    {
+        return 'Baik, percakapan ini kami teruskan ke tim kami agar dibantu lebih lanjut.';
     }
 }

@@ -251,7 +251,7 @@ class SettingsController extends Controller
         $request->session()->put('company_slug', $company->slug);
         $request->session()->forget(['branch_id', 'branch_slug']);
 
-        return back()->with('status', 'Context company aktif berhasil diganti.');
+        return back();
     }
 
     public function storeBranch(Request $request): RedirectResponse
@@ -310,14 +310,14 @@ class SettingsController extends Controller
         $request->session()->put('branch_id', $branch->id);
         $request->session()->put('branch_slug', $branch->slug);
 
-        return back()->with('status', 'Context branch aktif berhasil diganti.');
+        return back();
     }
 
     public function clearBranch(Request $request): RedirectResponse
     {
         $request->session()->forget(['branch_id', 'branch_slug']);
 
-        return back()->with('status', 'Context branch aktif dibersihkan.');
+        return back();
     }
 
     public function saveDocuments(Request $request): RedirectResponse

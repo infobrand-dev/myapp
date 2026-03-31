@@ -3,10 +3,10 @@
 namespace App\Modules\SocialMedia\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Chatbot\Services\ConversationBotPolicy;
 use App\Modules\Conversations\Contracts\InboxMessageIngester;
 use App\Modules\Conversations\Data\InboxMessageEnvelope;
 use App\Modules\Conversations\Models\Conversation;
-use App\Modules\Chatbot\Services\ConversationBotManager;
 use App\Modules\SocialMedia\Models\SocialAccount;
 use App\Modules\SocialMedia\Models\SocialAccountChatbotIntegration;
 use App\Modules\Conversations\Jobs\GenerateAiReply;
@@ -19,8 +19,10 @@ use Symfony\Component\HttpFoundation\Response;
 
 class SocialWebhookController extends Controller
 {
-    public function __construct(private readonly InboxMessageIngester $ingester)
-    {
+    public function __construct(
+        private readonly InboxMessageIngester $ingester,
+        private readonly ConversationBotPolicy $botPolicy
+    ) {
     }
 
     public function inbound(InboundSocialWebhookRequest $request): JsonResponse
@@ -71,11 +73,13 @@ class SocialWebhookController extends Controller
         }
 
         $chatbot = $this->chatbotIntegration($account);
-        $shouldAutoReply = $chatbot['auto_reply']
-            && (($data['direction'] ?? 'in') === 'in')
-            && $this->shouldAutoReply($conversation, $chatbot['chatbot_account_id'], (string) ($message->body ?? ''));
-        if ($shouldAutoReply) {
-            GenerateAiReply::dispatch($conversation->id, $message->id, $chatbot['chatbot_account_id']);
+        if ($chatbot['auto_reply'] && (($data['direction'] ?? 'in') === 'in')) {
+            $decision = $this->evaluateAutoReplyDecision($conversation, $chatbot['chatbot_account_id'], (string) ($message->body ?? ''));
+            if (($decision['action'] ?? null) === 'reply') {
+                GenerateAiReply::dispatch($conversation->id, $message->id, $chatbot['chatbot_account_id']);
+            } elseif (($decision['action'] ?? null) === 'handoff') {
+                $this->markConversationHandoff($conversation, (string) ($decision['reason'] ?? 'user_requested_human'), $chatbot['chatbot_account_id']);
+            }
         }
 
         return response()->json(['stored' => true, 'deduplicated' => $result->deduplicated]);
@@ -115,37 +119,22 @@ class SocialWebhookController extends Controller
         ];
     }
 
-    private function shouldAutoReply(Conversation $conversation, ?int $chatbotAccountId, string $incomingBody): bool
+    private function evaluateAutoReplyDecision(Conversation $conversation, ?int $chatbotAccountId, string $incomingBody): array
     {
         if (!$chatbotAccountId) {
-            return false;
+            return ['action' => 'skip', 'reason' => 'no_chatbot_account'];
         }
 
         $account = $this->resolveChatbotAccount($chatbotAccountId);
         if (!$account) {
-            return false;
+            return ['action' => 'skip', 'reason' => 'chatbot_not_found'];
         }
 
         if (method_exists($account, 'usesAi') && !$account->usesAi()) {
-            return false;
+            return ['action' => 'skip', 'reason' => 'rule_only'];
         }
 
-        $mode = strtolower((string) ($account->operation_mode ?? 'ai_only'));
-        if ($mode === 'ai_only') {
-            return true;
-        }
-
-        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
-        if ((bool) ($metadata['auto_reply_paused'] ?? false)) {
-            return false;
-        }
-
-        if ($this->shouldHandoffToHuman($incomingBody)) {
-            $this->markConversationHandoff($conversation, 'keyword_request_human');
-            return false;
-        }
-
-        return true;
+        return $this->botPolicy->evaluateInbound($conversation, $account, $incomingBody);
     }
 
     private function resolveChatbotAccount(int $chatbotAccountId)
@@ -161,36 +150,10 @@ class SocialWebhookController extends Controller
             ->find($chatbotAccountId);
     }
 
-    private function shouldHandoffToHuman(string $text): bool
+    private function markConversationHandoff(Conversation $conversation, string $reason, ?int $chatbotAccountId = null): void
     {
-        $haystack = mb_strtolower(trim($text));
-        if ($haystack === '') {
-            return false;
-        }
-
-        $keywords = [
-            'agent',
-            'admin',
-            'operator',
-            'manusia',
-            'human',
-            'cs',
-            'customer service',
-            'staff',
-        ];
-
-        foreach ($keywords as $keyword) {
-            if (mb_stripos($haystack, $keyword) !== false) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function markConversationHandoff(Conversation $conversation, string $reason): void
-    {
-        app(ConversationBotManager::class)->pause($conversation, $reason);
+        $account = $chatbotAccountId ? $this->resolveChatbotAccount($chatbotAccountId) : null;
+        $this->botPolicy->pauseForHuman($conversation, $reason, $account);
     }
 
     private function sanitizeWebhookPayload(array $payload): array

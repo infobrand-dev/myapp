@@ -9,6 +9,7 @@ use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\SocialMedia\Models\SocialAccount;
 use App\Modules\SocialMedia\SocialMediaServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Middleware\PermissionMiddleware;
 use Tests\TestCase;
 
 class SocialWebhookTest extends TestCase
@@ -30,6 +31,8 @@ class SocialWebhookTest extends TestCase
             '--path' => 'app/Modules/SocialMedia/database/migrations',
             '--force' => true,
         ]);
+
+        $this->withoutMiddleware(PermissionMiddleware::class);
     }
 
     public function test_webhook_rejects_account_id_without_matching_token()

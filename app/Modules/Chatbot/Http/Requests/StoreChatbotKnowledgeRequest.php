@@ -16,6 +16,10 @@ class StoreChatbotKnowledgeRequest extends FormRequest
         return [
             'title'      => ['required', 'string', 'max:255'],
             'source'     => ['nullable', 'string', 'max:100'],
+            'category'   => ['nullable', 'string', 'max:100'],
+            'language'   => ['nullable', 'string', 'max:30'],
+            'status'     => ['nullable', 'in:active,draft,archived'],
+            'priority'   => ['nullable', 'integer', 'min:1', 'max:10'],
             'content'    => ['required', 'string', 'max:200000'],
             'chunk_size' => ['nullable', 'integer', 'min:300', 'max:1200'],
         ];

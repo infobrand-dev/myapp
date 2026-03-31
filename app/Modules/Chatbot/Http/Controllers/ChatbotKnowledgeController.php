@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Modules\Chatbot\Http\Requests\StoreChatbotKnowledgeRequest;
 use App\Modules\Chatbot\Http\Requests\UpdateChatbotKnowledgeRequest;
 use App\Modules\Chatbot\Models\ChatbotAccount;
+use App\Modules\Chatbot\Models\ChatbotDecisionLog;
 use App\Modules\Chatbot\Models\ChatbotKnowledgeDocument;
 use App\Support\PlanLimit;
 use App\Support\TenantPlanManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class ChatbotKnowledgeController extends Controller
@@ -19,10 +21,34 @@ class ChatbotKnowledgeController extends Controller
     {
         $documents = ChatbotKnowledgeDocument::query()
             ->where('chatbot_account_id', $account->id)
+            ->withCount('chunks')
             ->orderByDesc('updated_at')
             ->paginate(20);
 
-        return view('chatbot::knowledge.index', compact('account', 'documents'));
+        $topKnowledgeDocuments = collect();
+        if (Schema::hasTable('chatbot_decision_logs')) {
+            $topDocumentIds = ChatbotDecisionLog::query()
+                ->where('tenant_id', $account->tenant_id)
+                ->where('chatbot_account_id', $account->id)
+                ->orderByDesc('id')
+                ->limit(200)
+                ->get()
+                ->flatMap(function (ChatbotDecisionLog $log) {
+                    $metadata = is_array($log->metadata) ? $log->metadata : [];
+                    return array_values(array_filter((array) ($metadata['knowledge_document_ids'] ?? [])));
+                })
+                ->countBy()
+                ->sortDesc()
+                ->take(5);
+
+            $topKnowledgeDocuments = ChatbotKnowledgeDocument::query()
+                ->whereIn('id', $topDocumentIds->keys()->all())
+                ->get()
+                ->sortByDesc(fn (ChatbotKnowledgeDocument $document) => (int) ($topDocumentIds[$document->id] ?? 0))
+                ->values();
+        }
+
+        return view('chatbot::knowledge.index', compact('account', 'documents', 'topKnowledgeDocuments'));
     }
 
     public function create(ChatbotAccount $account): View
@@ -37,11 +63,16 @@ class ChatbotKnowledgeController extends Controller
 
         $data = $this->validated($request);
         $document = ChatbotKnowledgeDocument::query()->create([
+            'tenant_id' => $account->tenant_id,
             'chatbot_account_id' => $account->id,
             'title' => $data['title'],
             'content' => $data['content'],
             'metadata' => [
                 'source' => $data['source'] ?? 'manual',
+                'category' => $data['category'] ?? null,
+                'language' => $data['language'] ?? 'id',
+                'status' => $data['status'] ?? 'active',
+                'priority' => (int) ($data['priority'] ?? 5),
             ],
         ]);
 
@@ -68,6 +99,10 @@ class ChatbotKnowledgeController extends Controller
             'content' => $data['content'],
             'metadata' => [
                 'source' => $data['source'] ?? 'manual',
+                'category' => $data['category'] ?? null,
+                'language' => $data['language'] ?? 'id',
+                'status' => $data['status'] ?? 'active',
+                'priority' => (int) ($data['priority'] ?? 5),
             ],
         ]);
 

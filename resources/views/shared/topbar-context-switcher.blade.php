@@ -2,7 +2,7 @@
     $selectorId = $selectorId ?? 'topbar-context';
     $canSwitchContext = auth()->user()?->can('settings.view') ?? false;
     $hasCompanies = $topbarCompanies->isNotEmpty();
-    $hasBranches = $topbarCurrentCompany && $topbarBranches->isNotEmpty();
+    $hasBranches = $topbarCurrentCompany && ($topbarBranches->isNotEmpty() || $topbarCurrentBranch);
 @endphp
 @if($hasCompanies || $hasBranches)
 <div class="d-flex align-items-center gap-1 flex-wrap">

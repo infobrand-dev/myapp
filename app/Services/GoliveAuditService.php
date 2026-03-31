@@ -7,6 +7,7 @@ use App\Support\ModuleFilesystemAudit;
 use App\Support\ModuleManager;
 use App\Support\PlanFeature;
 use App\Support\PlanLimit;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 
 class GoliveAuditService
@@ -72,7 +73,13 @@ class GoliveAuditService
             $this->check('meta_verify_token', 'Meta verify token changed', $this->isMeaningful((string) config('services.meta.verify_token'), ['changeme', '']), (string) config('services.meta.verify_token'), 'Replace default Meta webhook verify token.', 'fail'),
         ];
 
-        $checks = array_merge($checks, $this->planCatalogChecks(), $this->moduleFilesystemChecks(), $this->moduleDatabaseChecks());
+        $checks = array_merge(
+            $checks,
+            $this->planCatalogChecks(),
+            $this->moduleFilesystemChecks(),
+            $this->moduleDatabaseChecks(),
+            $this->whatsAppWebBridgeChecks()
+        );
 
         $stats = [
             'pass' => count(array_filter($checks, fn (array $check) => $check['status'] === 'pass')),
@@ -159,6 +166,7 @@ class GoliveAuditService
             'Smoke billing payment' => 'Buat invoice uji, jalankan checkout Midtrans, dan pastikan payment serta subscription aktif di platform.',
             'Smoke AI top-up pricing' => 'Cek dashboard tenant dan settings subscription: harga per credit serta pack AI Credits harus tampil sesuai pricing launch.',
             'Smoke affiliate link' => 'Jika affiliate dipakai, buka `/affiliate-program` dan satu link `/aff/{slug}` untuk memastikan attribution dan halaman partner berjalan.',
+            'Smoke WhatsApp Web bridge' => 'Jika WhatsApp Web dipakai, pastikan bridge process hidup, endpoint `/status` merespons, dan QR/session bisa muncul dari dashboard tenant.',
             'Smoke Sentry event' => 'Trigger satu error uji atau gunakan check runtime agar event benar-benar masuk ke project Sentry production.',
             'Smoke email delivery' => 'Pastikan email invoice dan payment confirmation benar-benar terkirim ke inbox tujuan.',
             'Rollback readiness' => 'Simpan backup database dan prosedur rollback sebelum publish trafik penuh.',
@@ -319,6 +327,69 @@ class GoliveAuditService
                 'fail'
             ),
         ];
+    }
+
+    private function whatsAppWebBridgeChecks(): array
+    {
+        $module = collect($this->modules->all())->firstWhere('slug', 'whatsapp_web');
+
+        if (!$module || empty($module['installed']) || empty($module['active'])) {
+            return [];
+        }
+
+        $bridgeUrl = trim((string) config('modules.whatsapp_web.bridge_url', config('modules.whatsapp_bro.bridge_url', '')));
+        $webhookToken = trim((string) config('modules.whatsapp_web.webhook_token', config('modules.whatsapp_bro.webhook_token', '')));
+
+        $checks = [
+            $this->check(
+                'whatsapp_web_bridge_url',
+                'WhatsApp Web bridge URL configured',
+                $bridgeUrl !== '',
+                $bridgeUrl !== '' ? $bridgeUrl : '-',
+                'Set WHATSAPP_WEB_BRIDGE_URL to the running Node bridge endpoint before using WhatsApp Web in production.',
+                'fail'
+            ),
+        ];
+
+        if ($bridgeUrl === '') {
+            return $checks;
+        }
+
+        $statusUrl = rtrim($bridgeUrl, '/') . '/status';
+
+        try {
+            $request = Http::timeout(4)->acceptJson();
+
+            if ($webhookToken !== '') {
+                $request = $request->withHeaders([
+                    'X-Bridge-Token' => $webhookToken,
+                ]);
+            }
+
+            $response = $request->get($statusUrl, [
+                'clientId' => 'default',
+            ]);
+
+            $checks[] = $this->check(
+                'whatsapp_web_bridge_runtime',
+                'WhatsApp Web bridge responds to /status',
+                $response->successful(),
+                $response->successful() ? ('HTTP ' . $response->status()) : ('HTTP ' . $response->status()),
+                'Start the Node WhatsApp Web bridge process and ensure the configured bridge URL is reachable from Laravel.',
+                'fail'
+            );
+        } catch (\Throwable $exception) {
+            $checks[] = $this->check(
+                'whatsapp_web_bridge_runtime',
+                'WhatsApp Web bridge responds to /status',
+                false,
+                $exception->getMessage(),
+                'Start the Node WhatsApp Web bridge process and ensure the configured bridge URL is reachable from Laravel.',
+                'fail'
+            );
+        }
+
+        return $checks;
     }
 
     /**

@@ -1,7 +1,7 @@
 {
     "slug":  "chatbot",
     "name":  "Chatbot",
-    "description":  "Akun AI chatbot untuk automasi balasan.",
+    "description":  "Auto-reply AI untuk percakapan live dengan handoff aman ke tim.",
     "provider":  "App\\Modules\\Chatbot\\ChatbotServiceProvider",
     "version":  "1.0.0",
     "category":  "automation",
@@ -17,7 +17,7 @@
     "navigation":  [
                        {
                            "label":  "Chatbot",
-                           "route":  "chatbot.playground.index",
+                           "route":  "chatbot.accounts.index",
                            "role":  "Super-admin"
                        }
                    ],

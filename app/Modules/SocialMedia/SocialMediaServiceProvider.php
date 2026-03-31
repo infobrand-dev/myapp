@@ -11,10 +11,31 @@ use App\Support\RegistersModuleRoutes;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
 
 class SocialMediaServiceProvider extends ServiceProvider
 {
     use RegistersModuleRoutes;
+
+    public const PERMISSIONS = [
+        'social_media.view',
+        'social_media.reply',
+        'social_media.manage_accounts',
+    ];
+
+    public const DEFAULT_ROLE_PERMISSIONS = [
+        'Super-admin' => self::PERMISSIONS,
+        'Admin' => self::PERMISSIONS,
+        'Customer Service' => [
+            'social_media.view',
+            'social_media.reply',
+        ],
+        'Sales' => [
+            'social_media.view',
+            'social_media.reply',
+        ],
+    ];
 
     public const PLAN_LIMIT_MODELS = [
         \App\Support\PlanLimit::SOCIAL_ACCOUNTS => [
@@ -63,7 +84,32 @@ class SocialMediaServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'socialmedia');
         $this->loadTranslationsFrom(__DIR__ . '/resources/lang', 'socialmedia');
         $this->loadMigrationsFrom(__DIR__ . '/Database/Migrations');
+        $this->ensurePermissions();
         $this->registerDashboardHooks();
+    }
+
+    private function ensurePermissions(): void
+    {
+        if (!Schema::hasTable('permissions')) {
+            return;
+        }
+
+        $created = false;
+
+        foreach (self::PERMISSIONS as $permission) {
+            $record = Permission::query()->firstOrCreate([
+                'name' => $permission,
+                'guard_name' => 'web',
+            ]);
+
+            $created = $created || $record->wasRecentlyCreated;
+        }
+
+        if ($created) {
+            app(\App\Support\TenantRoleProvisioner::class)->ensureForAllTenants();
+        }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
     private function registerDashboardHooks(): void

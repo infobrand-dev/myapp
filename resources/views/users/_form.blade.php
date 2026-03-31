@@ -46,7 +46,16 @@
         @error('role')
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror
-        <div class="text-muted small mt-1">Hak akses user mengikuti role yang dipilih di sini dan bisa diubah lagi kapan saja dari halaman Users.</div>
+        <div class="text-muted small mt-1">Hak akses user mengikuti role yang dipilih di sini. Role standar seperti Customer Service, Sales, Cashier, Inventory Staff, dan Finance Staff sudah disiapkan agar tim bisa langsung dipakai.</div>
+        @if(!empty($roleDescriptions))
+            <div class="mt-2 small text-muted">
+                @foreach($roles as $role)
+                    @if(!empty($roleDescriptions[$role->name]))
+                        <div><span class="fw-semibold text-body">{{ $role->name }}:</span> {{ $roleDescriptions[$role->name] }}</div>
+                    @endif
+                @endforeach
+            </div>
+        @endif
     </div>
     <div class="col-12">
         <hr class="my-1">

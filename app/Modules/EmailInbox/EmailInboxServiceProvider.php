@@ -35,6 +35,14 @@ class EmailInboxServiceProvider extends ServiceProvider
             'email_inbox.send',
             'email_inbox.sync',
         ],
+        'Customer Service' => [
+            'email_inbox.view',
+            'email_inbox.send',
+        ],
+        'Sales' => [
+            'email_inbox.view',
+            'email_inbox.send',
+        ],
     ];
 
     public function register(): void

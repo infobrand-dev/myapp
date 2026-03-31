@@ -23,10 +23,25 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
 
 class ConversationsServiceProvider extends ServiceProvider
 {
     use RegistersModuleRoutes;
+
+    public const PERMISSIONS = [
+        'conversations.view',
+        'conversations.reply',
+        'conversations.manage',
+    ];
+
+    public const DEFAULT_ROLE_PERMISSIONS = [
+        'Super-admin' => self::PERMISSIONS,
+        'Admin' => self::PERMISSIONS,
+        'Customer Service' => self::PERMISSIONS,
+        'Sales' => self::PERMISSIONS,
+    ];
 
     public function register(): void
     {
@@ -48,6 +63,7 @@ class ConversationsServiceProvider extends ServiceProvider
         $this->registerDashboardHooks();
         $this->registerSidebarState();
         $this->registerConsoleHooks();
+        $this->ensurePermissions();
     }
 
     private function registerBroadcastChannels(): void
@@ -140,6 +156,30 @@ class ConversationsServiceProvider extends ServiceProvider
                 ->command('conversations:release-expired-locks')
                 ->everyFiveMinutes();
         });
+    }
+
+    private function ensurePermissions(): void
+    {
+        if (!Schema::hasTable('permissions')) {
+            return;
+        }
+
+        $created = false;
+
+        foreach (self::PERMISSIONS as $permission) {
+            $record = Permission::query()->firstOrCreate([
+                'name' => $permission,
+                'guard_name' => 'web',
+            ]);
+
+            $created = $created || $record->wasRecentlyCreated;
+        }
+
+        if ($created) {
+            app(\App\Support\TenantRoleProvisioner::class)->ensureForAllTenants();
+        }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
     private function conversationUnreadTotal(): int

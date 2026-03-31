@@ -46,6 +46,17 @@ class PointOfSaleServiceProvider extends ServiceProvider
             'pos.manage-all-shifts',
             'pos.print-receipt',
         ],
+        'Cashier' => [
+            'pos.use',
+            'pos.hold-cart',
+            'pos.resume-cart',
+            'pos.checkout',
+            'pos.open-shift',
+            'pos.close-shift',
+            'pos.view-shift',
+            'pos.record-cash-movement',
+            'pos.print-receipt',
+        ],
     ];
 
     public function register(): void

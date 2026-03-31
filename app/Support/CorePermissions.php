@@ -24,5 +24,10 @@ class CorePermissions
     public const DEFAULT_ROLE_PERMISSIONS = [
         'Super-admin' => self::PERMISSIONS,
         'Admin' => [],
+        'Customer Service' => [],
+        'Sales' => [],
+        'Cashier' => [],
+        'Inventory Staff' => [],
+        'Finance Staff' => [],
     ];
 }

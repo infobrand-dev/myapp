@@ -52,6 +52,16 @@ class InventoryServiceProvider extends ServiceProvider
             'inventory.finalize-stock-opname',
             'inventory.manage-stock-transfer',
         ],
+        'Inventory Staff' => [
+            'inventory.view-stock',
+            'inventory.view-movement',
+            'inventory.manage-opening-stock',
+            'inventory.manage-stock-adjustment',
+            'inventory.finalize-stock-adjustment',
+            'inventory.manage-stock-opname',
+            'inventory.finalize-stock-opname',
+            'inventory.manage-stock-transfer',
+        ],
     ];
 
     public function register(): void

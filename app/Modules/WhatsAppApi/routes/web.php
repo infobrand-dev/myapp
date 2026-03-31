@@ -23,7 +23,7 @@ Route::middleware(['web', 'auth', 'plan.feature:whatsapp_api'])
     ->prefix('whatsapp-api')
     ->name('whatsapp-api.')
     ->group(function () {
-        Route::middleware('role:Super-admin')->group(function () {
+        Route::middleware('permission:whatsapp_api.manage_settings')->group(function () {
             Route::post('instances/test-credentials', [InstanceController::class, 'testCredentials'])->name('instances.test-credentials');
             Route::post('instances/sync-templates', [InstanceController::class, 'syncTemplates'])->name('instances.sync-templates');
             Route::match(['post', 'put', 'patch'], 'instances/{instance}/save-and-test', [InstanceController::class, 'saveAndTest'])->name('instances.save-and-test');
@@ -50,9 +50,9 @@ Route::middleware(['web', 'auth', 'plan.feature:whatsapp_api'])
             Route::post('webhook-events/{event}/reprocess', [WebhookController::class, 'reprocessEvent'])->name('webhook-events.reprocess');
         });
 
-        Route::get('/', [ConversationController::class, 'index'])->name('inbox');
-        Route::post('/contact-actions/send-template', [ContactActionController::class, 'sendTemplate'])->name('contact-actions.send-template');
-        Route::post('/conversations/{conversation}/claim', [ConversationController::class, 'claim'])->name('conversations.claim');
-        Route::post('/conversations/{conversation}/release', [ConversationController::class, 'release'])->name('conversations.release');
-        Route::post('/conversations/{conversation}/invite', [ConversationController::class, 'invite'])->name('conversations.invite');
+        Route::get('/', [ConversationController::class, 'index'])->middleware('permission:whatsapp_api.view')->name('inbox');
+        Route::post('/contact-actions/send-template', [ContactActionController::class, 'sendTemplate'])->middleware('permission:whatsapp_api.reply')->name('contact-actions.send-template');
+        Route::post('/conversations/{conversation}/claim', [ConversationController::class, 'claim'])->middleware('permission:whatsapp_api.view')->name('conversations.claim');
+        Route::post('/conversations/{conversation}/release', [ConversationController::class, 'release'])->middleware('permission:whatsapp_api.view')->name('conversations.release');
+        Route::post('/conversations/{conversation}/invite', [ConversationController::class, 'invite'])->middleware('permission:whatsapp_api.view')->name('conversations.invite');
     });

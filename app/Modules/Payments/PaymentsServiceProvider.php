@@ -44,6 +44,13 @@ class PaymentsServiceProvider extends ServiceProvider
             'payments.void',
             'payments.print',
         ],
+        'Cashier' => [
+            'payments.view',
+            'payments.view_own',
+            'payments.create',
+            'payments.print',
+        ],
+        'Finance Staff' => self::PERMISSIONS,
     ];
 
     public function register(): void

@@ -79,6 +79,27 @@ class SalesServiceProvider extends ServiceProvider
             'sales_return.view_all',
             'sales_return.process_refund',
         ],
+        'Sales' => [
+            'sales.view',
+            'sales.create',
+            'sales.update-draft',
+            'sales.finalize',
+            'sales.cancel-draft',
+            'sales.print',
+            'sales_return.view',
+            'sales_return.create',
+            'sales_return.finalize',
+            'sales_return.cancel_draft',
+            'sales_return.print',
+            'sales_return.view_own',
+        ],
+        'Cashier' => [
+            'sales.view',
+            'sales.print',
+            'sales_return.view',
+            'sales_return.print',
+            'sales_return.view_own',
+        ],
     ];
 
     public function register(): void

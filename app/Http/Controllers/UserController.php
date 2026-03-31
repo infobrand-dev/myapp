@@ -10,6 +10,8 @@ use App\Support\CompanyContext;
 use App\Support\PlanLimit;
 use App\Support\TenantContext;
 use App\Support\TenantPlanManager;
+use App\Support\TenantRoleCatalog;
+use App\Support\TenantRoleProvisioner;
 use App\Support\UserAccessManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,10 +33,13 @@ class UserController extends Controller
 
     public function create()
     {
-        $roles = $this->tenantRolesQuery()->orderBy('name')->get();
+        $roles = $this->tenantRolesQuery()->get()->sortBy(function ($role) {
+            return sprintf('%04d-%s', TenantRoleCatalog::sortOrder($role->name), $role->name);
+        })->values();
         [$companies, $branchesByCompany] = $this->accessOptions();
+        $roleDescriptions = $this->roleDescriptions($roles);
 
-        return view('users.create', compact('roles', 'companies', 'branchesByCompany'));
+        return view('users.create', compact('roles', 'companies', 'branchesByCompany', 'roleDescriptions'));
     }
 
     public function store(Request $request, UserAccessManager $userAccessManager): RedirectResponse
@@ -68,13 +73,16 @@ class UserController extends Controller
 
     public function edit(User $user, UserAccessManager $userAccessManager)
     {
-        $roles = $this->tenantRolesQuery()->orderBy('name')->get();
+        $roles = $this->tenantRolesQuery()->get()->sortBy(function ($role) {
+            return sprintf('%04d-%s', TenantRoleCatalog::sortOrder($role->name), $role->name);
+        })->values();
         $currentRole = $user->roles->pluck('name')->first();
         [$companies, $branchesByCompany] = $this->accessOptions();
         $selectedCompanyIds = optional($userAccessManager->companyIdsFor($user))->all() ?: [];
         $selectedBranchIds = optional($userAccessManager->branchIdsFor($user))->all() ?: [];
         $defaultCompanyId = $userAccessManager->defaultCompanyIdFor($user);
         $defaultBranchId = $userAccessManager->defaultBranchIdFor($user);
+        $roleDescriptions = $this->roleDescriptions($roles);
 
         return view('users.edit', compact(
             'user',
@@ -85,7 +93,8 @@ class UserController extends Controller
             'selectedCompanyIds',
             'selectedBranchIds',
             'defaultCompanyId',
-            'defaultBranchId'
+            'defaultBranchId',
+            'roleDescriptions'
         ));
     }
 
@@ -149,6 +158,8 @@ class UserController extends Controller
 
     private function tenantRolesQuery()
     {
+        app(TenantRoleProvisioner::class)->ensureForTenant(TenantContext::currentId());
+
         return Role::query()
             ->where('tenant_id', TenantContext::currentId())
             ->where('guard_name', 'web');
@@ -189,5 +200,13 @@ class UserController extends Controller
             ->groupBy('company_id');
 
         return [$companies, $branchesByCompany];
+    }
+
+    private function roleDescriptions($roles): array
+    {
+        return collect($roles)
+            ->mapWithKeys(fn ($role) => [$role->name => TenantRoleCatalog::description($role->name)])
+            ->filter(fn (?string $description) => filled($description))
+            ->all();
     }
 }

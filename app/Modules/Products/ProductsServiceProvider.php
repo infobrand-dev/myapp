@@ -31,6 +31,12 @@ class ProductsServiceProvider extends ServiceProvider
             'products.update',
             'products.toggle-status',
         ],
+        'Inventory Staff' => [
+            'products.view',
+            'products.create',
+            'products.update',
+            'products.toggle-status',
+        ],
     ];
 
     public const PLAN_LIMIT_MODELS = [

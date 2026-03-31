@@ -55,6 +55,15 @@ class PurchasesServiceProvider extends ServiceProvider
             'purchases.view_all',
             'purchases.export',
         ],
+        'Inventory Staff' => [
+            'purchases.view',
+            'purchases.create',
+            'purchases.edit_draft',
+            'purchases.finalize',
+            'purchases.receive',
+            'purchases.print',
+            'purchases.view_own',
+        ],
     ];
 
     public function register(): void

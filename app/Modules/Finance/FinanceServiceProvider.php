@@ -21,6 +21,7 @@ class FinanceServiceProvider extends ServiceProvider
     public const DEFAULT_ROLE_PERMISSIONS = [
         'Super-admin' => self::PERMISSIONS,
         'Admin' => self::PERMISSIONS,
+        'Finance Staff' => self::PERMISSIONS,
     ];
 
     public function register(): void

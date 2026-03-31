@@ -41,17 +41,17 @@ Route::middleware(['web', 'auth', 'plan.feature:live_chat'])
             ->name('conversations.status');
     });
 
-Route::middleware(['web', 'auth', 'role:Super-admin|Admin', 'plan.feature:live_chat'])
+Route::middleware(['web', 'auth', 'plan.feature:live_chat', 'permission:live_chat.view'])
     ->prefix('live-chat')
     ->name('live-chat.')
     ->group(function () {
         Route::get('/inbox', [LiveChatInboxController::class, 'index'])->name('inbox.index');
         Route::get('/inbox/{conversation}', [LiveChatInboxController::class, 'show'])->name('inbox.show');
-        Route::post('/inbox/{conversation}/reply', [LiveChatInboxController::class, 'reply'])->name('inbox.reply');
-        Route::patch('/inbox/{conversation}/close', [LiveChatInboxController::class, 'close'])->name('inbox.close');
+        Route::post('/inbox/{conversation}/reply', [LiveChatInboxController::class, 'reply'])->middleware('permission:live_chat.reply')->name('inbox.reply');
+        Route::patch('/inbox/{conversation}/close', [LiveChatInboxController::class, 'close'])->middleware('permission:live_chat.reply')->name('inbox.close');
     });
 
-Route::middleware(['web', 'auth', 'role:Super-admin', 'plan.feature:live_chat'])
+Route::middleware(['web', 'auth', 'plan.feature:live_chat', 'permission:live_chat.manage_widgets'])
     ->prefix('live-chat')
     ->name('live-chat.')
     ->group(function () {

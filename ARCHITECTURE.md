@@ -55,7 +55,7 @@
 
 ## Roles and permissions
 - Core permissions include `users.*`, `roles.*`, and `modules.*`.
-- Core seeded roles are `Super-admin` and `Admin`.
+- Core seeded roles are `Super-admin`, `Admin`, `Customer Service`, `Sales`, `Cashier`, `Inventory Staff`, and `Finance Staff`. Module providers may extend these presets with module-specific permissions.
 - Role seeding also pulls default permission maps from some modules via their service providers.
 - Tenant subscription and plan enforcement foundation now lives in `subscription_plans`, `tenant_subscriptions`, `companies`, and `App\Support\TenantPlanManager`.
 - Platform billing for SaaS plans lives in dedicated `platform_*` tables (`platform_plan_orders`, `platform_invoices`, `platform_invoice_items`, `platform_payments`) and must stay separate from tenant-facing `sales` / `payments` domain tables.

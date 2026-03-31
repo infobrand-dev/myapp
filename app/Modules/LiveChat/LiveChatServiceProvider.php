@@ -13,11 +13,33 @@ use App\Support\RegistersModuleRoutes;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
 
 class LiveChatServiceProvider extends ServiceProvider
 {
     use RegistersModuleRoutes;
+
+    public const PERMISSIONS = [
+        'live_chat.view',
+        'live_chat.reply',
+        'live_chat.manage_widgets',
+    ];
+
+    public const DEFAULT_ROLE_PERMISSIONS = [
+        'Super-admin' => self::PERMISSIONS,
+        'Admin' => self::PERMISSIONS,
+        'Customer Service' => [
+            'live_chat.view',
+            'live_chat.reply',
+        ],
+        'Sales' => [
+            'live_chat.view',
+            'live_chat.reply',
+        ],
+    ];
 
     public const PLAN_LIMIT_MODELS = [
         \App\Support\PlanLimit::LIVE_CHAT_WIDGETS => [
@@ -46,13 +68,13 @@ class LiveChatServiceProvider extends ServiceProvider
 
         $this->app->afterResolving(ConversationAccessRegistry::class, function (ConversationAccessRegistry $access): void {
             $access->registerViewRule('live_chat_admin', function (Conversation $conversation, User $user): bool {
-                return $conversation->channel === 'live_chat' && $user->hasRole('Admin');
+                return $conversation->channel === 'live_chat' && $user->can('live_chat.view');
             });
             $access->registerParticipateRule('live_chat_admin', function (Conversation $conversation, User $user): bool {
-                return $conversation->channel === 'live_chat' && $user->hasRole('Admin');
+                return $conversation->channel === 'live_chat' && $user->can('live_chat.view');
             });
             $access->registerVisibilityScope('live_chat_admin', function ($query, User $user): void {
-                if ($user->hasRole('Admin')) {
+                if ($user->can('live_chat.view')) {
                     $query->orWhere('channel', 'live_chat');
                 }
             });
@@ -81,5 +103,30 @@ class LiveChatServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'livechat');
         $this->loadTranslationsFrom(__DIR__ . '/resources/lang', 'livechat');
         $this->loadMigrationsFrom(__DIR__ . '/Database/Migrations');
+        $this->ensurePermissions();
+    }
+
+    private function ensurePermissions(): void
+    {
+        if (!Schema::hasTable('permissions')) {
+            return;
+        }
+
+        $created = false;
+
+        foreach (self::PERMISSIONS as $permission) {
+            $record = Permission::query()->firstOrCreate([
+                'name' => $permission,
+                'guard_name' => 'web',
+            ]);
+
+            $created = $created || $record->wasRecentlyCreated;
+        }
+
+        if ($created) {
+            app(\App\Support\TenantRoleProvisioner::class)->ensureForAllTenants();
+        }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }

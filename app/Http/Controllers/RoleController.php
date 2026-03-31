@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Support\CorePermissions;
 use App\Support\ModuleManager;
 use App\Support\TenantContext;
+use App\Support\TenantRoleProvisioner;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -168,6 +169,8 @@ class RoleController extends Controller
 
     private function tenantRolesQuery()
     {
+        app(TenantRoleProvisioner::class)->ensureForTenant(TenantContext::currentId());
+
         return Role::query()
             ->where('tenant_id', TenantContext::currentId())
             ->where('guard_name', 'web');

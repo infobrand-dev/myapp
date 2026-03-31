@@ -15,11 +15,33 @@ use App\Support\RegistersModuleRoutes;
 use App\Modules\WhatsAppApi\Console\Commands\CheckWhatsAppInstances;
 use App\Modules\WhatsAppApi\Console\Commands\DispatchScheduledWABlasts;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
 
 class WhatsAppApiServiceProvider extends ServiceProvider
 {
     use RegistersModuleRoutes;
+
+    public const PERMISSIONS = [
+        'whatsapp_api.view',
+        'whatsapp_api.reply',
+        'whatsapp_api.manage_settings',
+    ];
+
+    public const DEFAULT_ROLE_PERMISSIONS = [
+        'Super-admin' => self::PERMISSIONS,
+        'Admin' => self::PERMISSIONS,
+        'Customer Service' => [
+            'whatsapp_api.view',
+            'whatsapp_api.reply',
+        ],
+        'Sales' => [
+            'whatsapp_api.view',
+            'whatsapp_api.reply',
+        ],
+    ];
 
     public const PLAN_LIMIT_MODELS = [
         \App\Support\PlanLimit::WHATSAPP_INSTANCES => [
@@ -287,6 +309,7 @@ class WhatsAppApiServiceProvider extends ServiceProvider
         $this->registerContactHooks();
         $this->registerConversationHooks();
         $this->registerDashboardHooks();
+        $this->ensurePermissions();
 
         if (!$this->app->runningInConsole()) {
             return;
@@ -302,6 +325,30 @@ class WhatsAppApiServiceProvider extends ServiceProvider
             $schedule->command('whatsapp:check-instances')->everyTenMinutes();
             $schedule->command('whatsapp:dispatch-scheduled-blasts')->everyMinute();
         });
+    }
+
+    private function ensurePermissions(): void
+    {
+        if (!Schema::hasTable('permissions')) {
+            return;
+        }
+
+        $created = false;
+
+        foreach (self::PERMISSIONS as $permission) {
+            $record = Permission::query()->firstOrCreate([
+                'name' => $permission,
+                'guard_name' => 'web',
+            ]);
+
+            $created = $created || $record->wasRecentlyCreated;
+        }
+
+        if ($created) {
+            app(\App\Support\TenantRoleProvisioner::class)->ensureForAllTenants();
+        }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
     private function registerContactHooks(): void

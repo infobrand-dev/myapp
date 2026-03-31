@@ -12,11 +12,37 @@ use App\Modules\WhatsAppWeb\Jobs\SendWhatsAppWebMessage;
 use App\Modules\WhatsAppWeb\Services\WhatsAppWebBridgeClient;
 use App\Modules\WhatsAppWeb\Services\WhatsAppWebConversationSyncService;
 use App\Support\RegistersModuleRoutes;
+use App\Support\TenantContext;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
 
 class WhatsAppWebServiceProvider extends ServiceProvider
 {
     use RegistersModuleRoutes;
+
+    public const PERMISSIONS = [
+        'whatsapp_web.view',
+        'whatsapp_web.send',
+        'whatsapp_web.sync',
+        'whatsapp_web.manage_settings',
+    ];
+
+    public const DEFAULT_ROLE_PERMISSIONS = [
+        'Super-admin' => self::PERMISSIONS,
+        'Admin' => self::PERMISSIONS,
+        'Customer Service' => [
+            'whatsapp_web.view',
+            'whatsapp_web.send',
+            'whatsapp_web.sync',
+        ],
+        'Sales' => [
+            'whatsapp_web.view',
+            'whatsapp_web.send',
+            'whatsapp_web.sync',
+        ],
+    ];
 
     public function register(): void
     {
@@ -41,13 +67,13 @@ class WhatsAppWebServiceProvider extends ServiceProvider
         });
         $this->app->afterResolving(ConversationAccessRegistry::class, function (ConversationAccessRegistry $access): void {
             $access->registerViewRule('whatsapp_web_admin', function (Conversation $conversation, User $user): bool {
-                return $conversation->channel === 'wa_web' && $user->hasRole('Admin');
+                return $conversation->channel === 'wa_web' && $user->can('whatsapp_web.view');
             });
             $access->registerParticipateRule('whatsapp_web_admin', function (Conversation $conversation, User $user): bool {
-                return $conversation->channel === 'wa_web' && $user->hasRole('Admin');
+                return $conversation->channel === 'wa_web' && $user->can('whatsapp_web.view');
             });
             $access->registerVisibilityScope('whatsapp_web_admin', function ($query, User $user): void {
-                if ($user->hasRole('Admin')) {
+                if ($user->can('whatsapp_web.view')) {
                     $query->orWhere('channel', 'wa_web');
                 }
             });
@@ -65,5 +91,50 @@ class WhatsAppWebServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'whatsappweb');
         $this->loadTranslationsFrom(__DIR__ . '/resources/lang', 'whatsappweb');
         $this->loadMigrationsFrom(__DIR__ . '/Database/Migrations');
+        $this->ensurePermissions();
+        $this->registerDashboardHooks();
+    }
+
+    private function ensurePermissions(): void
+    {
+        if (!Schema::hasTable('permissions')) {
+            return;
+        }
+
+        $created = false;
+
+        foreach (self::PERMISSIONS as $permission) {
+            $record = Permission::query()->firstOrCreate([
+                'name' => $permission,
+                'guard_name' => 'web',
+            ]);
+
+            $created = $created || $record->wasRecentlyCreated;
+        }
+
+        if ($created) {
+            app(\App\Support\TenantRoleProvisioner::class)->ensureForAllTenants();
+        }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    private function registerDashboardHooks(): void
+    {
+        $hooks = $this->app->make(\App\Support\HookManager::class);
+
+        $hooks->register('dashboard.overview.cards', 'whatsapp_web.dashboard.card', function (): string {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('whatsapp_web_settings')) {
+                return '';
+            }
+
+            $tenantId = \App\Support\TenantContext::currentId();
+            $total     = \App\Modules\WhatsAppWeb\Models\WhatsAppWebSetting::query()
+                ->where('tenant_id', $tenantId)->where('is_active', true)->count();
+            $connected = \App\Modules\WhatsAppWeb\Models\WhatsAppWebSetting::query()
+                ->where('tenant_id', $tenantId)->where('is_active', true)->where('last_test_status', 'ok')->count();
+
+            return view('whatsappweb::dashboard.card', compact('total', 'connected'))->render();
+        });
     }
 }

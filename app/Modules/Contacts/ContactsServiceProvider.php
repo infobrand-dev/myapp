@@ -9,10 +9,36 @@ use App\Support\RegistersModuleRoutes;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
 
 class ContactsServiceProvider extends ServiceProvider
 {
     use RegistersModuleRoutes;
+
+    public const PERMISSIONS = [
+        'contacts.view',
+        'contacts.create',
+        'contacts.update',
+        'contacts.delete',
+        'contacts.import',
+        'contacts.merge',
+    ];
+
+    public const DEFAULT_ROLE_PERMISSIONS = [
+        'Super-admin' => self::PERMISSIONS,
+        'Admin' => self::PERMISSIONS,
+        'Customer Service' => [
+            'contacts.view',
+            'contacts.create',
+            'contacts.update',
+        ],
+        'Sales' => [
+            'contacts.view',
+            'contacts.create',
+            'contacts.update',
+        ],
+    ];
 
     public const PLAN_LIMIT_MODELS = [
         \App\Support\PlanLimit::CONTACTS => [
@@ -32,8 +58,33 @@ class ContactsServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'contacts');
         $this->loadTranslationsFrom(__DIR__ . '/resources/lang', 'contacts');
         $this->loadMigrationsFrom(__DIR__ . '/Database/Migrations');
+        $this->ensurePermissions();
         $this->registerConversationHooks();
         $this->registerDashboardHooks();
+    }
+
+    private function ensurePermissions(): void
+    {
+        if (!Schema::hasTable('permissions')) {
+            return;
+        }
+
+        $created = false;
+
+        foreach (self::PERMISSIONS as $permission) {
+            $record = Permission::query()->firstOrCreate([
+                'name' => $permission,
+                'guard_name' => 'web',
+            ]);
+
+            $created = $created || $record->wasRecentlyCreated;
+        }
+
+        if ($created) {
+            app(\App\Support\TenantRoleProvisioner::class)->ensureForAllTenants();
+        }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
     private function registerDashboardHooks(): void

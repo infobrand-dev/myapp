@@ -2,6 +2,9 @@
     $isPlatformAdminHost = (bool) request()->attributes->get('platform_admin_host');
     $homeRoute = $isPlatformAdminHost ? 'platform.dashboard' : 'dashboard';
     $homeLabel = $isPlatformAdminHost ? 'Platform Dashboard' : 'Dashboard';
+    $showUsersLink = auth()->user()?->can('users.view') ?? false;
+    $showSettingsLink = auth()->user()?->can('settings.view') ?? false;
+    $showTenantAccountHeading = $showUsersLink || $showSettingsLink;
 @endphp
 <li class="nav-item">
     <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('dashboard') || request()->routeIs('platform.dashboard') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route($homeRoute) }}">
@@ -48,55 +51,9 @@
 </li>
 @endif
 
-@canany(['users.view', 'roles.view', 'modules.view', 'settings.view'])
-<li class="nav-item mt-2">
-    <div class="text-uppercase text-secondary fw-bold small px-3">Administrasi</div>
-</li>
-@endcanany
-
-<li class="nav-item">
-    <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('profile.edit') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('profile.edit') }}">
-        <span class="nav-link-icon"><i class="ti ti-user-circle"></i></span>
-        <span class="nav-link-title">Profil</span>
-    </a>
-</li>
-@can('settings.view')
-    <li class="nav-item">
-        <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('settings.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('settings.general') }}">
-            <span class="nav-link-icon"><i class="ti ti-settings"></i></span>
-            <span class="nav-link-title">Settings</span>
-        </a>
-    </li>
-@endcan
-
-@can('users.view')
-<li class="nav-item">
-    <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('users.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('users.index') }}">
-        <span class="nav-link-icon"><i class="ti ti-users"></i></span>
-        <span class="nav-link-title">Users</span>
-    </a>
-</li>
-@endcan
-@can('roles.view')
-<li class="nav-item">
-    <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('roles.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('roles.index') }}">
-        <span class="nav-link-icon"><i class="ti ti-shield-check"></i></span>
-        <span class="nav-link-title">Roles</span>
-    </a>
-</li>
-@endcan
-@can('modules.view')
-<li class="nav-item">
-    <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('modules.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('modules.index') }}">
-        <span class="nav-link-icon"><i class="ti ti-apps"></i></span>
-        <span class="nav-link-title">Modules</span>
-    </a>
-</li>
-@endcan
-
 @if($moduleMenus->isNotEmpty())
 <li class="nav-item mt-2">
-    <div class="text-uppercase text-secondary fw-bold small px-3">Fitur Aktif</div>
+    <div class="text-uppercase text-secondary fw-bold small px-3">Fitur</div>
 </li>
 @endif
 
@@ -158,3 +115,36 @@
         </li>
     @endif
 @endforeach
+
+@if(!$isPlatformAdminHost)
+    @if($showTenantAccountHeading)
+    <li class="nav-item mt-2">
+        <div class="text-uppercase text-secondary fw-bold small px-3">Akun & Settings</div>
+    </li>
+    @endif
+
+    @if($showUsersLink)
+    <li class="nav-item">
+        <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('users.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('users.index') }}">
+            <span class="nav-link-icon"><i class="ti ti-users"></i></span>
+            <span class="nav-link-title">Users</span>
+        </a>
+    </li>
+    @endif
+
+    @if($showSettingsLink)
+    <li class="nav-item">
+        <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('settings.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('settings.general') }}">
+            <span class="nav-link-icon"><i class="ti ti-settings"></i></span>
+            <span class="nav-link-title">Settings</span>
+        </a>
+    </li>
+    @endif
+
+    <li class="nav-item">
+        <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('profile.edit') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('profile.edit') }}">
+            <span class="nav-link-icon"><i class="ti ti-user-circle"></i></span>
+            <span class="nav-link-title">Profil</span>
+        </a>
+    </li>
+@endif

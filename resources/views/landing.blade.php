@@ -288,12 +288,30 @@
                 'semiannual' => ['label' => '6 Bulanan', 'desc' => 'Lebih hemat, cocok untuk bisnis yang sudah jalan.', 'badge' => 'Hemat ~10%'],
                 'yearly'     => ['label' => 'Tahunan',   'desc' => 'Paling efisien untuk tim yang sudah siap scale.',   'badge' => 'Hemat ~17%'],
             ];
+            $firstAvailableInterval = collect($intervalOrder)->first(fn($k) => $plansByInterval->has($k));
         @endphp
 
         <div class="text-center mb-5">
             <div class="landing-eyebrow mb-2">Paket & Harga</div>
             <h2 class="landing-section-title mb-3">Pilih paket sesuai kebutuhan tim.</h2>
-            <p class="landing-subtext mx-auto text-center">Semua paket sudah termasuk inbox tim, kontak, dan live chat. Pilih plan yang sesuai dengan channel dan kapasitas yang Anda butuhkan.</p>
+            <p class="landing-subtext mx-auto text-center mb-5">Semua paket sudah termasuk inbox tim, kontak, dan live chat. Pilih plan yang sesuai dengan channel dan kapasitas yang Anda butuhkan.</p>
+
+            {{-- Billing interval tab switcher --}}
+            <div class="d-flex justify-content-center">
+                <div class="pricing-tab-nav">
+                    @foreach ($intervalOrder as $iKey)
+                        @php $iMeta = $intervalMeta[$iKey] ?? null; @endphp
+                        @if($iMeta && $plansByInterval->has($iKey))
+                        <button type="button" class="pricing-tab-btn {{ $loop->first ? 'active' : '' }}" data-tab="{{ $iKey }}">
+                            {{ $iMeta['label'] }}
+                            @if($iMeta['badge'])
+                                <span class="pricing-tab-badge">{{ $iMeta['badge'] }}</span>
+                            @endif
+                        </button>
+                        @endif
+                    @endforeach
+                </div>
+            </div>
         </div>
 
         @foreach ($intervalOrder as $iKey)
@@ -302,14 +320,7 @@
                 $iMeta  = $intervalMeta[$iKey] ?? null;
             @endphp
             @if ($iMeta && $iPlans->isNotEmpty())
-            <div class="mb-5">
-                <div class="d-flex align-items-center gap-3 mb-4">
-                    <h3 class="h4 mb-0">{{ $iMeta['label'] }}</h3>
-                    @if($iMeta['badge'])
-                        <span class="badge" style="background:rgba(10,138,142,0.12);color:var(--landing-teal);font-size:0.75rem;">{{ $iMeta['badge'] }}</span>
-                    @endif
-                    <span class="text-muted small">{{ $iMeta['desc'] }}</span>
-                </div>
+            <div class="pricing-tab-pane {{ $loop->first ? 'active' : '' }}" data-pane="{{ $iKey }}">
                 <div class="row g-4">
                     @foreach ($iPlans as $plan)
                     @php
@@ -425,7 +436,7 @@
             @endif
         @endforeach
 
-        <div class="landing-pricing-footnote mt-2">
+        <div class="landing-pricing-footnote mt-4">
             <i class="ti ti-info-circle"></i>
             Semua harga belum termasuk PPN. Add-on yang tersedia: <strong>top up AI Credits</strong>. Penambahan kapasitas lain dilakukan dengan upgrade plan.
         </div>
@@ -629,23 +640,121 @@
 </main>
 
 {{-- ══ FOOTER ══════════════════════════════════════════════ --}}
-<footer class="py-5" style="border-top:1px solid var(--landing-line);">
+<footer class="landing-footer">
     <div class="container">
-        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-4">
-            <div class="d-flex align-items-center gap-2">
-                <x-app-logo variant="default" :height="28" />
-                <span class="text-muted small">&copy; {{ date('Y') }} {{ config('app.name') }}</span>
+        <div class="landing-footer-inner row g-5">
+            {{-- Brand + contact --}}
+            <div class="col-lg-4">
+                <div class="mb-3">
+                    <x-app-logo variant="default" :height="30" class="landing-footer-logo" />
+                </div>
+                <p class="landing-footer-tagline mb-4">Platform omnichannel untuk tim sales, support, dan marketing — semua percakapan pelanggan dalam satu workspace.</p>
+                <div class="landing-footer-contact">
+                    <a href="https://wa.me/6281222229815" target="_blank" rel="noopener" class="landing-footer-contact-item">
+                        <i class="ti ti-brand-whatsapp"></i>
+                        <span>+62 812-222-9815</span>
+                        <span class="landing-footer-contact-badge">Chat WhatsApp</span>
+                    </a>
+                    <a href="mailto:support@meetra.id" class="landing-footer-contact-item">
+                        <i class="ti ti-mail"></i>
+                        <span>support@meetra.id</span>
+                    </a>
+                    <div class="landing-footer-contact-item">
+                        <i class="ti ti-headset"></i>
+                        <span>Dukungan tersedia 24 jam</span>
+                    </div>
+                </div>
             </div>
-            <div class="d-flex flex-wrap gap-4">
-                <a href="{{ route('affiliate.program') }}" class="landing-footer-link">Info Partner</a>
-                <a href="#" class="landing-footer-link">Kebijakan Privasi</a>
-                <a href="#" class="landing-footer-link">Syarat &amp; Ketentuan</a>
-                <a href="mailto:{{ config('mail.from.address', 'hello@' . config('multitenancy.saas_domain', 'app.com')) }}" class="landing-footer-link">Hubungi Kami</a>
+
+            {{-- Produk --}}
+            <div class="col-6 col-lg-2">
+                <div class="landing-footer-heading">Produk</div>
+                <nav class="landing-footer-nav">
+                    <a href="#solutions">Fitur</a>
+                    <a href="#pricing">Harga</a>
+                    <a href="#ai-credits">AI Credits</a>
+                    <a href="#faq">FAQ</a>
+                    <a href="{{ route('workspace.finder') }}">Login Workspace</a>
+                    <a href="{{ route('onboarding.create') }}">Daftar Gratis</a>
+                </nav>
+            </div>
+
+            {{-- Perusahaan --}}
+            <div class="col-6 col-lg-2">
+                <div class="landing-footer-heading">Perusahaan</div>
+                <nav class="landing-footer-nav">
+                    <a href="{{ route('affiliate.program') }}">Program Partner</a>
+                    <a href="{{ route('security') }}">Keamanan Data</a>
+                    <a href="#" class="landing-footer-link-placeholder">Kebijakan Privasi</a>
+                    <a href="#" class="landing-footer-link-placeholder">Syarat &amp; Ketentuan</a>
+                </nav>
+            </div>
+
+            {{-- Trust --}}
+            <div class="col-lg-4">
+                <div class="landing-footer-heading">Infrastruktur &amp; Keamanan</div>
+                <div class="landing-footer-trust-cards">
+                    <div class="landing-footer-trust-card">
+                        <i class="ti ti-server-2"></i>
+                        <div>
+                            <div class="fw-semibold">Server di Indonesia</div>
+                            <div>Data tersimpan di data center berlokasi di Indonesia.</div>
+                        </div>
+                    </div>
+                    <div class="landing-footer-trust-card">
+                        <i class="ti ti-lock"></i>
+                        <div>
+                            <div class="fw-semibold">Enkripsi &amp; Isolasi</div>
+                            <div>Setiap workspace terisolasi. Koneksi dienkripsi TLS.</div>
+                        </div>
+                    </div>
+                    <div class="landing-footer-trust-card">
+                        <i class="ti ti-database-heart"></i>
+                        <div>
+                            <div class="fw-semibold">Database Kelas Enterprise</div>
+                            <div>Backup otomatis harian, high-availability, zero data loss.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="landing-footer-bottom">
+            <div class="landing-footer-copy">
+                &copy; {{ date('Y') }} {{ config('app.name') }}. Hak cipta dilindungi.
+            </div>
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                <span class="landing-footer-trust-pill"><i class="ti ti-shield-check"></i> Data Aman</span>
+                <span class="landing-footer-trust-pill"><i class="ti ti-brand-whatsapp"></i> WhatsApp API Resmi</span>
+                <span class="landing-footer-trust-pill"><i class="ti ti-credit-card"></i> Bayar Lokal</span>
             </div>
         </div>
     </div>
 </footer>
 
 </div>{{-- .landing-shell --}}
+
+<script>
+(function () {
+    // Pricing tab switcher
+    var tabBtns = document.querySelectorAll('.pricing-tab-btn');
+    var tabPanes = document.querySelectorAll('.pricing-tab-pane');
+
+    tabBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var target = btn.dataset.tab;
+            tabBtns.forEach(function (b) { b.classList.remove('active'); });
+            tabPanes.forEach(function (p) {
+                if (p.dataset.pane === target) {
+                    p.classList.add('active');
+                } else {
+                    p.classList.remove('active');
+                }
+            });
+            btn.classList.add('active');
+        });
+    });
+})();
+</script>
 </body>
 </html>

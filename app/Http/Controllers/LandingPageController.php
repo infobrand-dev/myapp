@@ -49,6 +49,11 @@ class LandingPageController extends Controller
         return view('workspace-finder');
     }
 
+    public function security(): View
+    {
+        return view('security');
+    }
+
     public function affiliateRedirect(Request $request, string $slug, PlatformAffiliateService $affiliateService): RedirectResponse
     {
         $affiliate = $affiliateService->findActiveBySlug($slug);

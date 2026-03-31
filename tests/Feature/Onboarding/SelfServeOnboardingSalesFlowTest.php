@@ -38,9 +38,10 @@ class SelfServeOnboardingSalesFlowTest extends TestCase
         $response = $this->get(route('onboarding.create'));
 
         $response->assertOk();
-        $response->assertSee('Starter');
-        $response->assertSee('Growth');
-        $response->assertSee('Scale');
+        $response->assertSee('Omnichannel Starter');
+        $response->assertSee('Omnichannel Growth');
+        $response->assertSee('Omnichannel Scale');
+        $response->assertSee('Hubungkan akun WhatsApp Anda sendiri');
         $response->assertSee('Lanjut ke Pembayaran');
     }
 
@@ -50,6 +51,30 @@ class SelfServeOnboardingSalesFlowTest extends TestCase
 
         $response->assertOk();
         $response->assertViewHas('preferredPlanId', SubscriptionPlan::query()->where('code', 'growth-v2')->value('id'));
+    }
+
+    public function test_onboarding_catalog_only_shows_omnichannel_public_plans(): void
+    {
+        SubscriptionPlan::query()->create([
+            'code' => 'crm-starter-v1',
+            'name' => 'Starter',
+            'billing_interval' => 'monthly',
+            'is_active' => true,
+            'is_public' => true,
+            'is_system' => false,
+            'sort_order' => 999,
+            'features' => [],
+            'limits' => [],
+            'meta' => [
+                'product_line' => 'crm',
+            ],
+        ]);
+
+        $response = $this->get(route('onboarding.create'));
+
+        $response->assertOk();
+        $response->assertDontSee('CRM Starter');
+        $response->assertSee('Omnichannel Growth');
     }
 
     public function test_self_serve_onboarding_creates_pending_workspace_invoice_and_redirects_to_midtrans(): void

@@ -225,30 +225,60 @@
                             <div class="text-uppercase text-muted small fw-bold mb-2">Paket</div>
                             <h2 class="landing-section-title mb-3">Pilih paket omnichannel yang sesuai tahap bisnis Anda.</h2>
                             <p class="landing-subtext mb-0">
-                                Mulai dari social inbox dan live chat dasar sampai stack omnichannel lengkap dengan AI, WhatsApp API, dan WhatsApp Web.
+                                Semua paket fokus ke Omnichannel untuk tim sales dan customer service. Mulai dari social inbox dan live chat dasar sampai paket lengkap dengan AI, WhatsApp API, dan WhatsApp Web.
                             </p>
                         </div>
                     </div>
                     <div class="row g-4">
-                            @foreach ($plans as $plan)
-                                @php
-                                    $sales = $plan->sales_meta ?? [];
-                                    $priceCurrency = strtoupper((string) ($sales['currency'] ?? 'IDR'));
-                                $fit = match(true) {
-                                    str_starts_with($plan->code, 'starter') => 'Cocok untuk tim kecil yang baru mulai omnichannel',
-                                    str_starts_with($plan->code, 'growth') => 'Cocok untuk tim yang mulai scale follow-up dan automasi',
-                                    str_starts_with($plan->code, 'scale') => 'Cocok untuk operasional multi-admin dengan channel lengkap',
-                                    default => 'Paket omnichannel',
-                                };
+                        @foreach ($plans as $plan)
+                            @php
+                                $sales = $plan->sales_meta ?? [];
+                                $features = (array) ($plan->features ?? []);
+                                $limits = (array) ($plan->limits ?? []);
+                                $priceCurrency = strtoupper((string) ($sales['currency'] ?? 'IDR'));
+                                $recommended = (bool) ($sales['recommended'] ?? false);
+                                $fit = (string) ($sales['audience'] ?? 'Paket omnichannel');
+                                $channels = [
+                                    'Social Inbox',
+                                    'Live Chat',
+                                    'CRM Lite',
+                                ];
+
+                                if (!empty($features[\App\Support\PlanFeature::CHATBOT_AI])) {
+                                    $channels[] = 'AI';
+                                }
+
+                                if (!empty($features[\App\Support\PlanFeature::WHATSAPP_API])) {
+                                    $channels[] = 'WhatsApp API';
+                                }
+
+                                if (!empty($features[\App\Support\PlanFeature::WHATSAPP_WEB])) {
+                                    $channels[] = 'WhatsApp Web';
+                                }
+
+                                $primaryLimits = [
+                                    'Users' => $limits[\App\Support\PlanLimit::USERS] ?? null,
+                                    'Contacts' => $limits[\App\Support\PlanLimit::CONTACTS] ?? null,
+                                    'Social Accounts' => $limits[\App\Support\PlanLimit::SOCIAL_ACCOUNTS] ?? null,
+                                    'Live Chat Widgets' => $limits[\App\Support\PlanLimit::LIVE_CHAT_WIDGETS] ?? null,
+                                ];
+
+                                if (!empty($features[\App\Support\PlanFeature::WHATSAPP_API]) || !empty($features[\App\Support\PlanFeature::WHATSAPP_WEB])) {
+                                    $primaryLimits['WhatsApp Connections'] = $limits[\App\Support\PlanLimit::WHATSAPP_INSTANCES] ?? null;
+                                }
+
+                                if (($limits[\App\Support\PlanLimit::AI_CREDITS_MONTHLY] ?? 0) > 0) {
+                                    $primaryLimits['AI Credits'] = $limits[\App\Support\PlanLimit::AI_CREDITS_MONTHLY] ?? 0;
+                                }
                             @endphp
                             <div class="col-lg-4">
-                                <div class="landing-plan-card p-4 {{ $plan->code === 'growth' ? 'featured' : '' }}">
+                                <div class="landing-plan-card p-4 {{ $recommended ? 'featured' : '' }}">
                                     <div class="d-flex justify-content-between align-items-start mb-3">
                                         <div>
                                             <div class="h3 mb-1">{{ $sales['display_name'] ?? $plan->display_name }}</div>
                                             <div class="text-muted small">{{ $sales['tagline'] ?? 'Paket omnichannel' }}</div>
                                         </div>
-                                        @if (str_starts_with($plan->code, 'growth'))
+                                        @if ($recommended)
                                             <span class="badge bg-primary-lt text-primary">Paling populer</span>
                                         @endif
                                     </div>
@@ -256,17 +286,45 @@
                                     <div class="text-muted small mb-3">/{{ $plan->billing_interval ?: 'sekali bayar' }}</div>
                                     <div class="landing-package-fit mb-3"><i class="ti ti-user-circle"></i>{{ $fit }}</div>
                                     <p class="text-muted">{{ $sales['description'] ?? 'Paket untuk tim omnichannel.' }}</p>
+                                    <div class="d-flex flex-wrap gap-2 mb-3">
+                                        @foreach ($channels as $channel)
+                                            <span class="badge bg-light text-dark border">{{ $channel }}</span>
+                                        @endforeach
+                                    </div>
+                                    <div class="rounded-3 border p-3 mb-3 small">
+                                        <div class="d-flex justify-content-between gap-3 mb-2">
+                                            <span class="text-muted">AI</span>
+                                            <span class="fw-semibold">{{ ($limits[\App\Support\PlanLimit::AI_CREDITS_MONTHLY] ?? 0) > 0 ? 'Termasuk kuota + top up tersedia' : 'Belum termasuk' }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between gap-3">
+                                            <span class="text-muted">WhatsApp</span>
+                                            <span class="fw-semibold">{{ !empty($features[\App\Support\PlanFeature::WHATSAPP_API]) || !empty($features[\App\Support\PlanFeature::WHATSAPP_WEB]) ? 'Hubungkan akun WhatsApp Anda sendiri' : 'Belum termasuk' }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="landing-highlight-list small text-muted mb-4">
+                                        @foreach ($primaryLimits as $label => $value)
+                                            @if ($value !== null)
+                                                <div class="mb-2 d-flex justify-content-between gap-3">
+                                                    <span>{{ $label }}</span>
+                                                    <span class="text-dark fw-semibold">{{ number_format((int) $value, 0, ',', '.') }}</span>
+                                                </div>
+                                            @endif
+                                        @endforeach
+                                    </div>
                                     <div class="landing-highlight-list small text-muted mb-4">
                                         @foreach (($sales['highlights'] ?? []) as $highlight)
                                             <div class="mb-2">{{ $highlight }}</div>
                                         @endforeach
                                     </div>
-                                    <a href="{{ route('onboarding.create') }}?plan={{ $plan->code }}" class="btn {{ str_starts_with($plan->code, 'growth') ? 'btn-dark' : 'btn-outline-dark' }} w-100">
+                                    <a href="{{ route('onboarding.create') }}?plan={{ $plan->code }}" class="btn {{ $recommended ? 'btn-dark' : 'btn-outline-dark' }} w-100">
                                         Pilih {{ $sales['display_name'] ?? $plan->display_name }}
                                     </a>
                                 </div>
                             </div>
                         @endforeach
+                    </div>
+                    <div class="small text-muted mt-3">
+                        Add-on yang tersedia untuk launch hanya <strong>AI Credits top up</strong>. Di luar itu, penambahan kapasitas dilakukan dengan upgrade plan atau penyesuaian internal oleh tim kami.
                     </div>
                 </div>
             </section>
@@ -396,7 +454,7 @@
                         <div class="col-lg-6">
                             <div class="landing-faq-card p-4">
                                 <h3 class="h5">Apa bedanya WhatsApp API dan WhatsApp Web?</h3>
-                                <p class="text-muted mb-0">WhatsApp API cocok untuk skala yang lebih resmi dan terintegrasi. WhatsApp Web cocok untuk operasional yang butuh koneksi lebih cepat dengan pola kerja seperti admin manual.</p>
+                                <p class="text-muted mb-0">WhatsApp API cocok untuk skala yang lebih resmi dan terintegrasi. WhatsApp Web cocok untuk operasional yang masih butuh pola kerja seperti admin manual. Untuk kedua opsi ini, tenant menghubungkan akun WhatsApp bisnisnya sendiri sesuai paket yang dipilih.</p>
                             </div>
                         </div>
                         <div class="col-lg-6">

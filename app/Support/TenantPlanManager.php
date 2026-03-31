@@ -153,21 +153,21 @@ class TenantPlanManager
             ],
             PlanLimit::WA_BLAST_RECIPIENTS_MONTHLY, PlanLimit::EMAIL_RECIPIENTS_MONTHLY => [
                 'title' => 'Naikkan kuota recipient bulanan',
-                'message' => 'Kuota recipient bulanan tidak bertambah otomatis. Tenant perlu upgrade plan atau dipindahkan ke paket dengan batas pengiriman yang lebih besar.',
+                'message' => 'Kuota recipient bulanan tidak bertambah otomatis. Tenant perlu upgrade plan atau penyesuaian internal dari tim platform.',
                 'tenant_cta' => 'Hubungi admin platform untuk upgrade plan atau penyesuaian kuota bulanan.',
-                'owner_cta' => 'Assign plan yang lebih tinggi atau revisi limit plan untuk tenant ini.',
+                'owner_cta' => 'Assign plan yang lebih tinggi atau lakukan penyesuaian internal untuk tenant ini.',
             ],
             PlanLimit::WHATSAPP_INSTANCES, PlanLimit::SOCIAL_ACCOUNTS, PlanLimit::LIVE_CHAT_WIDGETS, PlanLimit::CHATBOT_ACCOUNTS, PlanLimit::EMAIL_INBOX_ACCOUNTS => [
                 'title' => 'Aktifkan kapasitas channel yang lebih besar',
-                'message' => 'Batas channel atau connection perlu ditambah lewat upgrade plan atau add-on. Resource baru tidak bisa dibuat saat kapasitas sudah penuh.',
-                'tenant_cta' => 'Hubungi admin platform untuk upgrade plan atau aktivasi add-on channel.',
-                'owner_cta' => 'Naikkan plan tenant atau tambah limit connection/channel pada plan yang dipakai.',
+                'message' => 'Batas channel atau connection ditambah lewat upgrade plan. Resource baru tidak bisa dibuat saat kapasitas sudah penuh.',
+                'tenant_cta' => 'Hubungi admin platform untuk upgrade plan atau penyesuaian kapasitas channel.',
+                'owner_cta' => 'Naikkan plan tenant atau lakukan penyesuaian internal jika memang perlu exception.',
             ],
             default => [
                 'title' => 'Upgrade plan atau tambah limit',
                 'message' => 'Saat kapasitas mendekati habis, tenant tetap bisa memakai data yang ada tetapi tidak bisa menambah resource baru setelah batas tercapai.',
-                'tenant_cta' => 'Hubungi admin platform untuk upgrade plan atau penambahan limit.',
-                'owner_cta' => 'Assign plan yang lebih tinggi atau revisi limit pada plan tenant ini.',
+                'tenant_cta' => 'Hubungi admin platform untuk upgrade plan atau penyesuaian kapasitas.',
+                'owner_cta' => 'Assign plan yang lebih tinggi atau lakukan penyesuaian internal pada tenant ini.',
             ],
         };
     }

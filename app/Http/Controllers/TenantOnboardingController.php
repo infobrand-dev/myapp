@@ -7,6 +7,7 @@ use App\Services\PlatformAffiliateService;
 use App\Services\PlatformMidtransBillingService;
 use App\Services\TenantOnboardingSalesService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
@@ -75,6 +76,12 @@ class TenantOnboardingController extends Controller
             ->active()
             ->public()
             ->firstOrFail();
+
+        if ($plan->productLine() !== 'omnichannel') {
+            throw ValidationException::withMessages([
+                'subscription_plan_id' => 'Plan yang dipilih tidak tersedia di alur pendaftaran omnichannel saat ini.',
+            ]);
+        }
 
         $result = $sales->createPendingWorkspace($data, $plan);
         $affiliateService->attachReferralToOrder($request, $result['order'], $result['tenant'], $plan);

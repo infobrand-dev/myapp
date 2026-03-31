@@ -10,18 +10,24 @@ use App\Support\PlanFeature;
 use App\Support\PlanLimit;
 use App\Support\TenantContext;
 use App\Support\TenantPlanManager;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Contracts\View\View;
 use Spatie\Permission\Models\Role;
 
 class DashboardController extends Controller
 {
-    public function __invoke(ModuleManager $modules, TenantPlanManager $plans, AiUsageService $aiUsage, AiCreditPricingService $aiPricing)
+    public function __invoke(ModuleManager $modules, TenantPlanManager $plans, AiUsageService $aiUsage, AiCreditPricingService $aiPricing): View|RedirectResponse
     {
         if (request()->attributes->get('platform_admin_host')) {
             return redirect()->route('platform.dashboard');
         }
 
         $user = auth()->user();
+
+        if ($redirect = $this->redirectToExpectedHost()) {
+            return $redirect;
+        }
+
         $isPrivileged = $user->hasAnyRole(['Super-admin', 'Admin']);
         $allModules = collect($modules->all());
         $tenantId = TenantContext::currentId();
@@ -122,5 +128,45 @@ class DashboardController extends Controller
             ],
             'aiCreditPricing' => $aiPricing->snapshot(),
         ]);
+    }
+
+    private function redirectToExpectedHost(): ?RedirectResponse
+    {
+        if (config('multitenancy.mode') !== 'saas') {
+            return null;
+        }
+
+        $user = auth()->user();
+        if (!$user) {
+            return null;
+        }
+
+        $target = $this->workspaceUrlFor(request());
+        $targetHost = parse_url($target, PHP_URL_HOST);
+        $currentHost = request()->getHost();
+
+        if (!$targetHost || $targetHost === $currentHost) {
+            return null;
+        }
+
+        return redirect()->away($target);
+    }
+
+    private function workspaceUrlFor($request, bool $appendDashboard = true): string
+    {
+        $user = $request->user();
+        $appUrl = (string) config('app.url');
+        $scheme = parse_url($appUrl, PHP_URL_SCHEME) ?: ($request->isSecure() ? 'https' : 'http');
+        $path = $appendDashboard ? '/dashboard' : '/login';
+
+        if ($user && (int) $user->tenant_id === 1 && $user->hasRole('Super-admin')) {
+            return $scheme . '://' . config('multitenancy.platform_admin_subdomain', 'dash') . '.' . config('multitenancy.saas_domain') . '/platform';
+        }
+
+        if ($user && $user->tenant) {
+            return $scheme . '://' . $user->tenant->slug . '.' . config('multitenancy.saas_domain') . $path;
+        }
+
+        return route('workspace.finder');
     }
 }

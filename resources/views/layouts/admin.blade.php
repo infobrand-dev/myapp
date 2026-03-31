@@ -47,9 +47,6 @@
                 <div class="container-fluid">
                     <div class="d-flex align-items-center justify-content-between w-100 gap-3">
                         <div class="d-flex align-items-center gap-3 flex-wrap">
-                            <a href="{{ route(request()->attributes->get('platform_admin_host') ? 'platform.dashboard' : 'dashboard') }}" class="d-inline-flex align-items-center text-decoration-none" aria-label="{{ config('app.name') }}">
-                                <x-app-logo variant="default" :height="30" class="desktop-topbar-logo" />
-                            </a>
                             @include('shared.topbar-context-switcher', ['selectorId' => 'desktop-topbar'])
                         </div>
 

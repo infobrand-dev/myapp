@@ -26,13 +26,15 @@ class OmnichannelModuleAccessTest extends TestCase
         Route::middleware(['web', 'auth', 'plan.feature:chatbot_ai'])->get('/_feature-test/chatbot-ai', fn () => 'ok');
         Route::middleware(['web', 'auth', 'plan.feature:live_chat'])->get('/_feature-test/live-chat', fn () => 'ok');
         Route::middleware(['web', 'auth', 'plan.feature:crm'])->get('/_feature-test/crm', fn () => 'ok');
+        Route::middleware(['web', 'auth', 'plan.feature:whatsapp_api'])->get('/_feature-test/whatsapp-api', fn () => 'ok');
+        Route::middleware(['web', 'auth', 'plan.feature:whatsapp_web'])->get('/_feature-test/whatsapp-web', fn () => 'ok');
         Route::middleware(['web', 'auth', 'plan.feature:commerce'])->get('/_feature-test/commerce', fn () => 'ok');
         Route::middleware(['web', 'auth', 'plan.feature:project_management'])->get('/_feature-test/project-management', fn () => 'ok');
     }
 
-    public function test_tenant_without_feature_is_blocked(): void
+    public function test_starter_v2_is_limited_to_social_live_chat_and_crm(): void
     {
-        [$user] = $this->makeTenantWithPlan('starter');
+        [$user] = $this->makeTenantWithPlan('starter-v2');
 
         $this->actingAs($user)
             ->get('/_feature-test/social-media')
@@ -41,20 +43,36 @@ class OmnichannelModuleAccessTest extends TestCase
         $this->actingAs($user)
             ->get('/_feature-test/chatbot-ai')
             ->assertForbidden();
+
+        $this->actingAs($user)
+            ->get('/_feature-test/whatsapp-api')
+            ->assertForbidden();
+
+        $this->actingAs($user)
+            ->get('/_feature-test/whatsapp-web')
+            ->assertForbidden();
     }
 
-    public function test_tenant_with_plan_feature_can_access_module_route(): void
+    public function test_growth_v2_grants_ai_whatsapp_api_and_whatsapp_web(): void
     {
-        [$user] = $this->makeTenantWithPlan('growth');
+        [$user] = $this->makeTenantWithPlan('growth-v2');
 
         $this->actingAs($user)
             ->get('/_feature-test/chatbot-ai')
+            ->assertOk();
+
+        $this->actingAs($user)
+            ->get('/_feature-test/whatsapp-api')
+            ->assertOk();
+
+        $this->actingAs($user)
+            ->get('/_feature-test/whatsapp-web')
             ->assertOk();
     }
 
     public function test_live_chat_follows_plan_entitlement(): void
     {
-        [$starterUser] = $this->makeTenantWithPlan('starter');
+        [$starterUser] = $this->makeTenantWithPlan('starter-v2');
         [$disabledUser] = $this->makeTenantWithFeatureOverrides([
             PlanFeature::CONVERSATIONS => true,
             PlanFeature::LIVE_CHAT => false,
@@ -71,7 +89,7 @@ class OmnichannelModuleAccessTest extends TestCase
 
     public function test_crm_follows_plan_entitlement(): void
     {
-        [$starterUser] = $this->makeTenantWithPlan('starter');
+        [$starterUser] = $this->makeTenantWithPlan('starter-v2');
         [$freeUser] = $this->makeTenantWithPlan('free');
 
         $this->actingAs($starterUser)
@@ -85,7 +103,7 @@ class OmnichannelModuleAccessTest extends TestCase
 
     public function test_commerce_bundle_is_dynamic_and_opt_in(): void
     {
-        [$starterUser] = $this->makeTenantWithPlan('starter');
+        [$starterUser] = $this->makeTenantWithPlan('starter-v2');
         [$commerceUser] = $this->makeTenantWithFeatureOverrides([
             PlanFeature::CRM => true,
             PlanFeature::COMMERCE => true,
@@ -102,7 +120,7 @@ class OmnichannelModuleAccessTest extends TestCase
 
     public function test_project_management_bundle_is_dynamic_and_opt_in(): void
     {
-        [$growthUser] = $this->makeTenantWithPlan('growth');
+        [$growthUser] = $this->makeTenantWithPlan('growth-v2');
         [$projectUser] = $this->makeTenantWithFeatureOverrides([
             PlanFeature::PROJECT_MANAGEMENT => true,
         ]);

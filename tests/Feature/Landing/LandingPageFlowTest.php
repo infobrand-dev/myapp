@@ -25,9 +25,11 @@ class LandingPageFlowTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Satukan semua percakapan pelanggan');
-        $response->assertSee('Starter');
-        $response->assertSee('Growth');
-        $response->assertSee('Scale');
+        $response->assertSee('Omnichannel Starter');
+        $response->assertSee('Omnichannel Growth');
+        $response->assertSee('Omnichannel Scale');
+        $response->assertSee('Hubungkan akun WhatsApp Anda sendiri');
+        $response->assertSee('AI Credits top up');
     }
 
     public function test_tenant_root_redirects_guest_to_workspace_login(): void

@@ -406,10 +406,16 @@ h1, h2, h3, h4, h5, h6,
     margin-bottom: 1.75rem;
 }
 /* Logo display helpers */
-.auth-brand-logo {
+.auth-brand-logo .app-logo-light,
+.auth-brand-logo .app-logo-dark,
+.auth-brand-logo { /* fallback for explicit-variant img */
     display: block;
     margin: 0 auto;
 }
+
+/* Auto dark/light logo swap */
+[data-bs-theme="dark"] .app-logo-light { display: none !important; }
+[data-bs-theme="dark"] .app-logo-dark  { display: block !important; }
 .auth-brand-name {
     font-size: 1.375rem;
     font-weight: 800;

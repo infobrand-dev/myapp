@@ -50,7 +50,7 @@ class TenantRoleProvisioner
         }
 
         $tenantIds = Tenant::query()
-            ->where('is_active', true)
+            ->active()
             ->orderBy('id')
             ->pluck('id');
 

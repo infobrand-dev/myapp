@@ -43,7 +43,7 @@ class TenantsProvisionRoles extends Command
             return self::SUCCESS;
         }
 
-        $tenants = Tenant::query()->where('is_active', true)->orderBy('id')->get();
+        $tenants = Tenant::query()->active()->orderBy('id')->get();
 
         if ($tenants->isEmpty()) {
             $this->warn('No active tenants found.');

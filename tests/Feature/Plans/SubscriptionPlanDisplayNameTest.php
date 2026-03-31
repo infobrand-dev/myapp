@@ -41,4 +41,40 @@ class SubscriptionPlanDisplayNameTest extends TestCase
 
         $this->assertSame('CRM Pro', $plan->display_name);
     }
+
+    public function test_billing_interval_label_is_human_readable(): void
+    {
+        $semiannual = SubscriptionPlan::query()->create([
+            'code' => 'omnichannel-growth-6m',
+            'name' => 'Growth',
+            'billing_interval' => 'semiannual',
+            'is_active' => true,
+            'is_public' => false,
+            'is_system' => false,
+            'sort_order' => 10,
+            'features' => [],
+            'limits' => [],
+            'meta' => [
+                'product_line' => 'omnichannel',
+            ],
+        ]);
+
+        $yearly = SubscriptionPlan::query()->create([
+            'code' => 'omnichannel-growth-yearly',
+            'name' => 'Growth',
+            'billing_interval' => 'yearly',
+            'is_active' => true,
+            'is_public' => false,
+            'is_system' => false,
+            'sort_order' => 11,
+            'features' => [],
+            'limits' => [],
+            'meta' => [
+                'product_line' => 'omnichannel',
+            ],
+        ]);
+
+        $this->assertSame('6 Bulanan', $semiannual->billing_interval_label);
+        $this->assertSame('Tahunan', $yearly->billing_interval_label);
+    }
 }

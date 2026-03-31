@@ -283,7 +283,7 @@
                                         @endif
                                     </div>
                                     <div class="landing-price mb-1">{{ $money->format((float) ($sales['price'] ?? 0), $priceCurrency) }}</div>
-                                    <div class="text-muted small mb-3">/{{ $plan->billing_interval ?: 'sekali bayar' }}</div>
+                                    <div class="text-muted small mb-3">/{{ $plan->billing_interval_label }}</div>
                                     <div class="landing-package-fit mb-3"><i class="ti ti-user-circle"></i>{{ $fit }}</div>
                                     <p class="text-muted">{{ $sales['description'] ?? 'Paket untuk tim omnichannel.' }}</p>
                                     <div class="d-flex flex-wrap gap-2 mb-3">

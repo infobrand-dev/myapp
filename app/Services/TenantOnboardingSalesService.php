@@ -402,6 +402,7 @@ class TenantOnboardingSalesService
     private function resolveEndsAt(?string $billingInterval, Carbon $startsAt): ?Carbon
     {
         return match ($billingInterval) {
+            'semiannual', 'biannual', 'half_yearly', '6_months', '6-months' => $startsAt->copy()->addMonths(6),
             'yearly' => $startsAt->copy()->addYear(),
             'monthly' => $startsAt->copy()->addMonth(),
             default => null,

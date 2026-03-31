@@ -98,8 +98,24 @@ class SubscriptionPlan extends Model
         return trim($productLine . ' ' . $name);
     }
 
+    public function billingIntervalLabel(): string
+    {
+        return match ((string) $this->billing_interval) {
+            'monthly' => 'Bulanan',
+            'semiannual', 'biannual', 'half_yearly', '6_months', '6-months' => '6 Bulanan',
+            'yearly', 'annual' => 'Tahunan',
+            '' => 'Custom',
+            default => str((string) $this->billing_interval)->replace(['_', '-'], ' ')->title()->toString(),
+        };
+    }
+
     public function getDisplayNameAttribute(): string
     {
         return $this->displayName();
+    }
+
+    public function getBillingIntervalLabelAttribute(): string
+    {
+        return $this->billingIntervalLabel();
     }
 }

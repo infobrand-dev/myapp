@@ -57,7 +57,7 @@
                                         </div>
                                         <div class="text-end">
                                             <div class="fw-bold fs-5">{{ $money->format((float) ($sales['price'] ?? 0), $priceCurrency) }}</div>
-                                            <div class="text-muted small">/{{ $plan->billing_interval ?: 'sekali bayar' }}</div>
+                                            <div class="text-muted small">/{{ $plan->billing_interval_label }}</div>
                                         </div>
                                     </div>
 

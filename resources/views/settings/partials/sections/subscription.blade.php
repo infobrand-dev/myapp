@@ -7,7 +7,7 @@
             <div class="card-body">
                 <div class="text-secondary text-uppercase small fw-bold">Plan</div>
                 <div class="fs-2 fw-bold mt-2">{{ optional($plan)->display_name ?? optional($plan)->name ?? 'Belum ada langganan aktif' }}</div>
-                <div class="text-muted small mt-1">{{ optional($plan)->code ?? 'billing-ready foundation only' }}</div>
+                <div class="text-muted small mt-1">Paket aktif untuk workspace Anda.</div>
                 <div class="row g-3 mt-2">
                     <div class="col-sm-6">
                         <div class="text-secondary small text-uppercase fw-bold">Status</div>
@@ -15,7 +15,7 @@
                     </div>
                     <div class="col-sm-6">
                         <div class="text-secondary small text-uppercase fw-bold">Siklus Tagihan</div>
-                        <div class="fw-semibold mt-1">{{ optional($plan)->billing_interval ?: '-' }}</div>
+                        <div class="fw-semibold mt-1">{{ optional($plan)->billing_interval_label ?? '-' }}</div>
                     </div>
                     <div class="col-sm-6">
                         <div class="text-secondary small text-uppercase fw-bold">Mulai</div>
@@ -69,7 +69,7 @@
             @if(collect($limitSummaries)->contains(fn ($limit) => !empty($limit['advice'])))
                 <div class="card-body border-top">
                     <div class="alert alert-warning mb-0">
-                        Jika kapasitas hampir habis atau sudah habis, tenant tetap bisa memakai data yang sudah ada, tetapi penambahan resource baru akan diblokir. Hubungi admin platform untuk upgrade plan, penambahan limit, atau top up AI Credits.
+                        Jika kapasitas hampir habis atau sudah habis, tenant tetap bisa memakai data yang sudah ada, tetapi penambahan resource baru akan diblokir. Hubungi admin platform untuk upgrade plan, penyesuaian kapasitas, atau top up AI Credits.
                     </div>
                 </div>
             @endif
@@ -84,7 +84,7 @@
     <div class="card-body">
         @php($money = app(\App\Support\MoneyFormatter::class))
         <div class="text-muted small mb-3">
-            1 AI Credit dipakai saat fitur AI memproses permintaan. Jika kuota AI hampir habis, hubungi admin platform untuk top up atau upgrade plan.
+            AI Credits dipakai saat fitur AI membantu memproses percakapan. Jika kuota hampir habis, hubungi admin platform untuk top up atau upgrade plan.
         </div>
         <div class="row g-3">
             @foreach($aiCreditPricing['packs'] as $pack)
@@ -96,7 +96,7 @@
                 </div>
             @endforeach
         </div>
-        <div class="text-muted small mt-3">{{ $money->format($aiCreditPricing['price_per_credit'], $aiCreditPricing['currency']) }} / AI Credit · 1 AI Credit = {{ number_format($aiCreditPricing['unit_tokens']) }} tokens.</div>
+        <div class="text-muted small mt-3">{{ $money->format($aiCreditPricing['price_per_credit'], $aiCreditPricing['currency']) }} / AI Credit.</div>
     </div>
 </div>
 

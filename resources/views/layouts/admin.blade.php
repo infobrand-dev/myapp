@@ -38,6 +38,9 @@
 <body class="bg-body">
     <a class="skip-link" href="#main-content">Skip to content</a>
 
+    {{-- Mobile sidebar backdrop --}}
+    <div id="sidebar-backdrop" class="sidebar-backdrop" aria-hidden="true"></div>
+
     <div class="page app-shell">
         @include('shared.sidebar')
 
@@ -203,18 +206,59 @@
 
     <script src="{{ mix('js/app.js') }}" defer></script>
     <script>
-        // ── Mobile sidebar toggle ─────────────────────────────────
-        // sidebar-menu no longer uses Bootstrap collapse class, so we
-        // manually toggle the `show` class via our own click handler.
+        // ── Sidebar: mobile drawer + desktop collapse ─────────────
         document.addEventListener('DOMContentLoaded', function () {
-            const toggleBtn = document.getElementById('mobile-nav-toggle');
-            const sidebarEl = document.getElementById('sidebar-menu');
-            if (!toggleBtn || !sidebarEl) return;
+            var sidebar    = document.querySelector('.page > .navbar-vertical');
+            var backdrop   = document.getElementById('sidebar-backdrop');
+            var mobileBtn  = document.getElementById('mobile-nav-toggle');
+            var closeBtn   = document.getElementById('sidebar-close-btn');
+            var collapseBtn = document.getElementById('sidebar-collapse-toggle');
 
-            toggleBtn.addEventListener('click', function () {
-                const isOpen = sidebarEl.classList.toggle('show');
-                toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            // ── Restore desktop mini state ────────────────────────
+            if (localStorage.getItem('sidebar-mini') === '1') {
+                document.body.classList.add('sidebar-mini');
+            }
+
+            // ── Mobile: open drawer ───────────────────────────────
+            function openSidebar() {
+                if (!sidebar) return;
+                sidebar.classList.add('sidebar--open');
+                if (backdrop) backdrop.classList.add('show');
+                if (mobileBtn) mobileBtn.setAttribute('aria-expanded', 'true');
+                document.body.style.overflow = 'hidden'; // prevent scroll behind backdrop
+            }
+
+            // ── Mobile: close drawer ──────────────────────────────
+            function closeSidebar() {
+                if (!sidebar) return;
+                sidebar.classList.remove('sidebar--open');
+                if (backdrop) backdrop.classList.remove('show');
+                if (mobileBtn) mobileBtn.setAttribute('aria-expanded', 'false');
+                document.body.style.overflow = '';
+            }
+
+            // Mobile hamburger
+            if (mobileBtn) mobileBtn.addEventListener('click', openSidebar);
+
+            // Close button inside sidebar drawer
+            if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
+
+            // Backdrop click
+            if (backdrop) backdrop.addEventListener('click', closeSidebar);
+
+            // ESC key
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') closeSidebar();
             });
+
+            // ── Desktop: collapse/expand toggle ──────────────────
+            if (collapseBtn) {
+                collapseBtn.addEventListener('click', function () {
+                    var isMini = document.body.classList.toggle('sidebar-mini');
+                    localStorage.setItem('sidebar-mini', isMini ? '1' : '0');
+                    collapseBtn.setAttribute('aria-label', isMini ? 'Perluas sidebar' : 'Kecilkan sidebar');
+                });
+            }
         });
 
         // ── App Push Notifications ───────────────────────────────
@@ -297,14 +341,17 @@
         document.addEventListener('visibilitychange', handleVisibility);
         handleVisibility();
 
-        // ── Auto-close mobile sidebar on nav click ────────────────
-        const sidebarEl = document.getElementById('sidebar-menu');
-        const mobileToggleBtn = document.getElementById('mobile-nav-toggle');
-        sidebarEl?.querySelectorAll('a.nav-link, a.dropdown-item').forEach(a => {
-            a.addEventListener('click', () => {
+        // ── Auto-close mobile sidebar on nav link click ───────────
+        var _sidebar = document.querySelector('.page > .navbar-vertical');
+        var _backdrop = document.getElementById('sidebar-backdrop');
+        var _mobileToggle = document.getElementById('mobile-nav-toggle');
+        _sidebar && _sidebar.querySelectorAll('a.nav-link, a.dropdown-item').forEach(function (a) {
+            a.addEventListener('click', function () {
                 if (!window.matchMedia('(max-width: 991.98px)').matches) return;
-                sidebarEl.classList.remove('show');
-                mobileToggleBtn?.setAttribute('aria-expanded', 'false');
+                _sidebar.classList.remove('sidebar--open');
+                if (_backdrop) _backdrop.classList.remove('show');
+                if (_mobileToggle) _mobileToggle.setAttribute('aria-expanded', 'false');
+                document.body.style.overflow = '';
             });
         });
 

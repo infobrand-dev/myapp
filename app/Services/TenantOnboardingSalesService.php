@@ -111,8 +111,8 @@ class TenantOnboardingSalesService
     public function publicPlans(): Collection
     {
         return SubscriptionPlan::query()
-            ->where('is_active', true)
-            ->where('is_public', true)
+            ->active()
+            ->public()
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get()
@@ -134,8 +134,8 @@ class TenantOnboardingSalesService
 
         return SubscriptionPlan::query()
             ->where('code', $resolvedCode)
-            ->where('is_active', true)
-            ->where('is_public', true)
+            ->active()
+            ->public()
             ->value('id');
     }
 
@@ -149,7 +149,7 @@ class TenantOnboardingSalesService
 
         return SubscriptionPlan::query()
             ->where('code', $replacementCode)
-            ->where('is_active', true)
+            ->active()
             ->first() ?? $plan;
     }
 

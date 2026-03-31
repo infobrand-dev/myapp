@@ -92,7 +92,7 @@ class ResolveTenantContext
         if ($workspace !== '') {
             $tenant = Tenant::query()
                 ->where('slug', $workspace)
-                ->where('is_active', true)
+                ->active()
                 ->first();
 
             if ($tenant) {

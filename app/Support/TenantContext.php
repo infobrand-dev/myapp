@@ -95,7 +95,7 @@ class TenantContext
         foreach ($slugCandidates as $slug) {
             $tenantId = Tenant::query()
                 ->where('slug', $slug)
-                ->where('is_active', true)
+                ->active()
                 ->value('id');
 
             if ($tenantId) {
@@ -107,7 +107,7 @@ class TenantContext
             throw new RuntimeException('Tenant could not be resolved from the request.');
         }
 
-        return self::tenantExists(1) ? 1 : (int) (Tenant::query()->where('is_active', true)->value('id') ?: 1);
+        return self::tenantExists(1) ? 1 : (int) (Tenant::query()->active()->value('id') ?: 1);
     }
 
     public static function resolveIdFromUser(?User $user): ?int
@@ -130,7 +130,7 @@ class TenantContext
         try {
             return Tenant::query()
                 ->whereKey($tenantId)
-                ->where('is_active', true)
+                ->active()
                 ->exists();
         } catch (\Throwable $e) {
             return false;

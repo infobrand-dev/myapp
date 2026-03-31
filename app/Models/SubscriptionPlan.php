@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class SubscriptionPlan extends Model
 {
@@ -29,6 +31,28 @@ class SubscriptionPlan extends Model
         'limits' => 'array',
         'meta' => 'array',
     ];
+
+    public function scopeActive(Builder $query): Builder
+    {
+        $column = $query->qualifyColumn('is_active');
+
+        if (DB::connection($this->getConnectionName())->getDriverName() === 'pgsql') {
+            return $query->whereRaw($column . ' is true');
+        }
+
+        return $query->where('is_active', true);
+    }
+
+    public function scopePublic(Builder $query): Builder
+    {
+        $column = $query->qualifyColumn('is_public');
+
+        if (DB::connection($this->getConnectionName())->getDriverName() === 'pgsql') {
+            return $query->whereRaw($column . ' is true');
+        }
+
+        return $query->where('is_public', true);
+    }
 
     public function subscriptions(): HasMany
     {

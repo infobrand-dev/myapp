@@ -49,7 +49,7 @@ class RegisteredUserController extends Controller
         $tenantId = TenantContext::resolveIdFromRequest($request);
         $tenant = Tenant::query()
             ->whereKey($tenantId)
-            ->where('is_active', true)
+            ->active()
             ->firstOrFail();
 
         $user = User::create([

@@ -46,9 +46,11 @@ class TenantOnboardingController extends Controller
             'subscription_plan_id' => [
                 'required',
                 'integer',
-                Rule::exists('subscription_plans', 'id')->where(fn ($query) => $query
-                    ->where('is_active', true)
-                    ->where('is_public', true)),
+                Rule::exists('subscription_plans', 'id')->where(
+                    fn ($query) => $query->getConnection()->getDriverName() === 'pgsql'
+                        ? $query->whereRaw('is_active is true and is_public is true')
+                        : $query->where('is_active', true)->where('is_public', true)
+                ),
             ],
             'company_name' => ['required', 'string', 'max:100'],
             'slug' => [
@@ -70,8 +72,8 @@ class TenantOnboardingController extends Controller
 
         $plan = SubscriptionPlan::query()
             ->whereKey($data['subscription_plan_id'])
-            ->where('is_active', true)
-            ->where('is_public', true)
+            ->active()
+            ->public()
             ->firstOrFail();
 
         $result = $sales->createPendingWorkspace($data, $plan);

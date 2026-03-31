@@ -39,56 +39,60 @@ class DashboardController extends Controller
         $activeModules = $visibleModules->filter(fn ($module) => $module['installed'] && $module['active']);
         $installedModules = $visibleModules->filter(fn ($module) => $module['installed']);
 
+        $totalUsers = User::query()->where('tenant_id', $tenantId)->count();
+        $usersToday = User::query()->where('tenant_id', $tenantId)->whereDate('created_at', today())->count();
+        $roleCount = Role::query()->where('tenant_id', $tenantId)->where('guard_name', 'web')->count();
+
         $stats = $isPrivileged
             ? [
                 [
-                    'label' => 'Active Modules',
+                    'label' => 'Modul Aktif',
                     'value' => $activeModules->count(),
-                    'meta' => $visibleModules->count() . ' available',
+                    'meta' => $visibleModules->count() . ' tersedia di paket',
                     'tone' => 'primary',
                 ],
                 [
-                    'label' => 'Installed Modules',
-                    'value' => $installedModules->count(),
-                    'meta' => max($visibleModules->count() - $installedModules->count(), 0) . ' pending',
+                    'label' => 'Pengguna',
+                    'value' => $totalUsers,
+                    'meta' => $usersToday > 0 ? $usersToday . ' bergabung hari ini' : 'Tidak ada yang baru hari ini',
                     'tone' => 'azure',
                 ],
                 [
-                    'label' => 'Users',
-                    'value' => User::query()->where('tenant_id', TenantContext::currentId())->count(),
-                    'meta' => User::query()->where('tenant_id', TenantContext::currentId())->whereDate('created_at', today())->count() . ' joined today',
+                    'label' => 'Role',
+                    'value' => $roleCount,
+                    'meta' => 'role tersedia di workspace',
                     'tone' => 'green',
                 ],
                 [
-                    'label' => 'Roles',
-                    'value' => Role::query()->where('tenant_id', TenantContext::currentId())->where('guard_name', 'web')->count(),
-                    'meta' => $user->getRoleNames()->join(', ') ?: 'No role',
+                    'label' => 'Akun Anda',
+                    'value' => $user->getRoleNames()->first() ?: '—',
+                    'meta' => $user->email,
                     'tone' => 'orange',
                 ],
             ]
             : [
                 [
-                    'label' => 'Active Modules',
+                    'label' => 'Fitur Aktif',
                     'value' => $activeModules->count(),
-                    'meta' => 'Workspace features currently available',
+                    'meta' => 'fitur tersedia untuk Anda',
                     'tone' => 'primary',
                 ],
                 [
-                    'label' => 'Your Roles',
+                    'label' => 'Role Anda',
                     'value' => $user->getRoleNames()->count(),
-                    'meta' => $user->getRoleNames()->join(', ') ?: 'No role assigned',
+                    'meta' => $user->getRoleNames()->join(', ') ?: 'Belum ada role',
                     'tone' => 'azure',
                 ],
                 [
-                    'label' => 'Member Since',
+                    'label' => 'Bergabung',
                     'value' => optional($user->created_at)->diffInDays(now()) ?? 0,
-                    'meta' => optional($user->created_at)->format('d M Y') ?: 'Unknown',
+                    'meta' => 'hari yang lalu, ' . (optional($user->created_at)->format('d M Y') ?: '—'),
                     'tone' => 'green',
                 ],
                 [
-                    'label' => 'Email Status',
-                    'value' => $user->email_verified_at ? 'OK' : 'Pending',
-                    'meta' => $user->email_verified_at ? 'Email verified' : 'Verification still pending',
+                    'label' => 'Email',
+                    'value' => $user->email_verified_at ? 'Terverifikasi' : 'Belum',
+                    'meta' => $user->email_verified_at ? 'Akun aktif dan aman' : 'Cek kotak masuk email Anda',
                     'tone' => $user->email_verified_at ? 'orange' : 'red',
                 ],
             ];
@@ -102,12 +106,18 @@ class DashboardController extends Controller
             : collect([$user]);
 
         $moduleHighlights = $activeModules
-            ->map(fn ($module) => [
-                'name' => $module['name'],
-                'items' => count($module['navigation'] ?? []),
-                'description' => $module['description'] ?: 'Module active',
-            ])
-            ->take(5)
+            ->map(function ($module) {
+                $firstNav = collect($module['navigation'] ?? [])
+                    ->first(fn ($item) => !empty($item['route']));
+
+                return [
+                    'name'        => $module['name'],
+                    'description' => $module['description'] ?: 'Modul aktif',
+                    'icon'        => $module['icon'] ?? null,
+                    'route'       => $firstNav['route'] ?? null,
+                ];
+            })
+            ->take(6)
             ->values();
 
         $aiCredits = $aiUsage->summary($tenantId);

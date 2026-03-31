@@ -12,12 +12,12 @@
     <div class="dashboard-kpi p-3 p-lg-4 h-100 conversation-dashboard-card" data-conversation-dashboard-card>
         <div class="d-flex align-items-start justify-content-between gap-3">
             <div>
-                <div class="text-secondary text-uppercase small fw-bold">Conversations</div>
+                <div class="text-secondary text-uppercase small fw-bold">Percakapan</div>
                 <div class="mt-2 fw-bold" style="font-size: 2rem; line-height: 1; color: var(--db-ink);">{{ $metrics['unread'] ?? 0 }}</div>
-                <div class="text-muted small mt-2">
+                <div class="text-muted small mt-1">
                     {{ ($metrics['audience'] ?? 'global') === 'global'
-                        ? 'Unread items across active inbox data.'
-                        : 'Unread items in conversations assigned or shared with you.' }}
+                        ? 'pesan belum dibaca di inbox'
+                        : 'pesan belum dibaca milik Anda' }}
                 </div>
             </div>
             <span class="badge bg-red-lt text-red">Live</span>
@@ -26,7 +26,7 @@
         <div class="mt-3 d-grid gap-2">
             <div>
                 <div class="d-flex align-items-center justify-content-between small mb-1">
-                    <span>Open</span>
+                    <span class="text-muted">Terbuka</span>
                     <strong>{{ $metrics['open'] ?? 0 }}</strong>
                 </div>
                 <div class="progress progress-sm">
@@ -35,7 +35,7 @@
             </div>
             <div>
                 <div class="d-flex align-items-center justify-content-between small mb-1">
-                    <span>Claimed</span>
+                    <span class="text-muted">Diklaim</span>
                     <strong>{{ $metrics['claimed'] ?? 0 }}</strong>
                 </div>
                 <div class="progress progress-sm">

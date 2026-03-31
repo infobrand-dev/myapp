@@ -6,23 +6,24 @@
 
 <div class="dashboard-shell">
     <div class="row g-3">
+
+        {{-- ── Hero ── --}}
         <div class="col-12">
             <div class="dashboard-hero p-4 p-lg-5">
                 <div class="row align-items-center g-4">
                     <div class="col-lg-8">
                         <div class="d-flex flex-wrap gap-2 mb-3">
-                            <span class="dashboard-chip"><i class="ti ti-layout-dashboard"></i> Control Center</span>
                             <span class="dashboard-chip"><i class="ti ti-calendar"></i> {{ now()->translatedFormat('l, d F Y') }}</span>
+                            <span class="dashboard-chip"><i class="ti ti-clock"></i> {{ now()->translatedFormat('H:i') }}</span>
                         </div>
-                        <div class="text-secondary text-uppercase small fw-bold mb-2">Ringkasan Operasional</div>
-                        <h1 class="mb-2" style="font-size: clamp(1.9rem, 3vw, 2.7rem); color: var(--db-ink);">
+                        <h1 class="mb-2" style="font-size: clamp(1.8rem, 3vw, 2.5rem); color: var(--db-ink);">
                             Selamat datang, {{ auth()->user()->name }}.
                         </h1>
-                        <p class="mb-0" style="max-width: 46rem; color: var(--db-muted); font-size: 1rem;">
+                        <p class="mb-0" style="max-width: 44rem; color: var(--db-muted); font-size: 1rem;">
                             @if($isPrivileged)
-                                Pantau kondisi workspace, modul yang aktif, dan status tim Anda dari sini. Modul tambahan akan menampilkan data masing-masing di bawah.
+                                Pantau kondisi workspace, modul yang berjalan, dan aktivitas tim Anda dari sini.
                             @else
-                                Akses fitur yang tersedia untuk akun Anda, pantau status workspace, dan mulai bekerja dari sini.
+                                Akses fitur yang tersedia untuk akun Anda dan mulai bekerja dari sini.
                             @endif
                         </p>
                     </div>
@@ -31,36 +32,23 @@
                             <div class="col-6">
                                 <div class="dashboard-mini-stat">
                                     <div class="text-secondary small">Role Anda</div>
-                                    <div class="fw-bold mt-1">{{ auth()->user()->getRoleNames()->join(', ') ?: 'Belum ada role' }}</div>
+                                    <div class="fw-bold mt-1 text-truncate">{{ auth()->user()->getRoleNames()->first() ?: '—' }}</div>
                                 </div>
                             </div>
                             <div class="col-6">
                                 <div class="dashboard-mini-stat">
                                     <div class="text-secondary small">Modul Aktif</div>
-                                    <div class="fw-bold mt-1">{{ $activeModules->count() }}/{{ $totalModules }}</div>
+                                    <div class="fw-bold mt-1">{{ $activeModules->count() }}</div>
                                 </div>
                             </div>
                             <div class="col-12">
                                 <div class="dashboard-mini-stat">
                                     <div class="d-flex justify-content-between align-items-center gap-3">
-                                        <div>
-                                            <div class="text-secondary small">Status Sesi</div>
-                                            <div class="fw-semibold mt-1">Terautentikasi & terverifikasi</div>
+                                        <div class="min-w-0">
+                                            <div class="text-secondary small">Sesi aktif</div>
+                                            <div class="fw-semibold mt-1 text-truncate">{{ auth()->user()->email }}</div>
                                         </div>
-                                        <span class="badge bg-green-lt text-green">Online</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-12">
-                                <div class="dashboard-mini-stat">
-                                    <div class="d-flex justify-content-between align-items-center gap-3">
-                                        <div>
-                                            <div class="text-secondary small">Status Akun</div>
-                                            <div class="fw-semibold mt-1">{{ auth()->user()->email }}</div>
-                                        </div>
-                                        <span class="badge {{ ($aiCredits['enabled'] ?? false) ? 'bg-azure-lt text-azure' : 'bg-secondary-lt text-secondary' }}">
-                                            {{ ($aiCredits['enabled'] ?? false) ? 'AI Aktif' : 'AI Nonaktif' }}
-                                        </span>
+                                        <span class="badge bg-green-lt text-green flex-shrink-0">Online</span>
                                     </div>
                                 </div>
                             </div>
@@ -70,33 +58,91 @@
             </div>
         </div>
 
+        {{-- ── Stats dari controller ── --}}
         @foreach($stats as $stat)
             <div class="col-12 col-sm-6 col-xl-3">
                 <div class="dashboard-kpi p-3 p-lg-4 h-100">
                     <div class="d-flex align-items-start justify-content-between gap-3">
-                        <div>
+                        <div class="min-w-0">
                             <div class="text-secondary text-uppercase small fw-bold">{{ $stat['label'] }}</div>
-                            <div class="mt-2 fw-bold" style="font-size: 2rem; line-height: 1; color: var(--db-ink);">{{ $stat['value'] }}</div>
+                            <div class="mt-2 fw-bold text-truncate" style="font-size: 1.9rem; line-height: 1; color: var(--db-ink);">{{ $stat['value'] }}</div>
                             <div class="text-muted small mt-2">{{ $stat['meta'] }}</div>
                         </div>
-                        <span class="badge bg-{{ $stat['tone'] }}-lt text-{{ $stat['tone'] }}">{{ ucfirst($stat['tone']) }}</span>
+                        <span class="badge bg-{{ $stat['tone'] }}-lt text-{{ $stat['tone'] }} flex-shrink-0">{{ ucfirst($stat['tone']) }}</span>
                     </div>
                 </div>
             </div>
         @endforeach
 
+        {{-- ── Card dari modul (injected via hook) ── --}}
         @foreach($hooks->render('dashboard.overview.cards', ['user' => auth()->user()]) as $hookedCard)
             {!! $hookedCard !!}
         @endforeach
+
+        {{-- ── Kredit AI (compact card, hanya jika aktif di paket) ── --}}
+        @if($aiCredits['enabled'] ?? false)
+        @php
+            $aiStatus  = $aiCredits['status'] ?? 'ok';
+            $aiRemain  = $aiCredits['remaining'] ?? null;
+            $aiUsed    = $aiCredits['used'] ?? 0;
+            $aiAvail   = $aiCredits['available'] ?? null;
+            $aiTopUp   = $aiCredits['top_up'] ?? 0;
+            $aiPct     = ($aiAvail > 0) ? min(100, (int) round($aiUsed / $aiAvail * 100)) : ($aiAvail === 0 ? 100 : 0);
+            $aiBadge   = match(true) {
+                in_array($aiStatus, ['at_limit','over_limit']) => ['bg-red-lt text-red', 'Habis'],
+                $aiStatus === 'near_limit'                     => ['bg-orange-lt text-orange', 'Hampir habis'],
+                default                                        => ['bg-azure-lt text-azure', 'Normal'],
+            };
+            $aiBarColor = $aiPct >= 90 ? 'bg-red' : ($aiPct >= 70 ? 'bg-orange' : 'bg-azure');
+        @endphp
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="dashboard-kpi p-3 p-lg-4 h-100 d-flex flex-column">
+                <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
+                    <div class="text-secondary text-uppercase small fw-bold">Kredit AI</div>
+                    <span class="badge {{ $aiBadge[0] }} flex-shrink-0">{{ $aiBadge[1] }}</span>
+                </div>
+
+                @if($aiRemain === null)
+                    <div class="fw-bold" style="font-size:2rem; line-height:1; color:var(--db-ink);">∞</div>
+                    <div class="text-muted small mt-1">Tanpa batas bulan ini</div>
+                @else
+                    <div class="fw-bold" style="font-size:2rem; line-height:1; color:var(--db-ink);">{{ number_format($aiRemain) }}</div>
+                    <div class="text-muted small mt-1">tersisa dari {{ number_format($aiAvail) }}</div>
+                    <div class="progress progress-sm my-2">
+                        <div class="progress-bar {{ $aiBarColor }}" style="width:{{ $aiPct }}%"></div>
+                    </div>
+                    <div class="d-flex justify-content-between small text-muted">
+                        <span>Terpakai: {{ number_format($aiUsed) }}</span>
+                        @if($aiTopUp > 0)
+                            <span>Top up: +{{ number_format($aiTopUp) }}</span>
+                        @endif
+                    </div>
+                @endif
+
+                <div class="mt-auto pt-2">
+                    @if(!empty($aiCredits['advice']['tenant_cta']))
+                        <div class="text-muted small mb-2">{{ $aiCredits['advice']['tenant_cta'] }}</div>
+                    @endif
+                    @if(Route::has('settings.subscription'))
+                        <a href="{{ route('settings.subscription') }}" class="btn btn-sm btn-outline-azure w-100">Kelola Kredit</a>
+                    @endif
+                </div>
+            </div>
+        </div>
+        @endif
+
     </div>
 
+    {{-- ── Panel bawah ── --}}
     <div class="row g-3 mt-1">
+
+        {{-- Kiri: Pengguna terbaru / Ringkasan akun --}}
         <div class="col-12 col-xl-7">
             <div class="dashboard-panel p-3 p-lg-4 h-100">
                 <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
                     <div>
-                        <div class="text-secondary text-uppercase small fw-bold">{{ $isPrivileged ? 'User Terbaru' : 'Akun Anda' }}</div>
-                        <h3 class="mb-0">{{ $isPrivileged ? 'Aktivitas terkini' : 'Ringkasan workspace pribadi' }}</h3>
+                        <div class="text-secondary text-uppercase small fw-bold">{{ $isPrivileged ? 'Pengguna Terbaru' : 'Akun Anda' }}</div>
+                        <h3 class="mb-0">{{ $isPrivileged ? 'Bergabung belakangan ini' : 'Ringkasan akun' }}</h3>
                     </div>
                     <span class="dashboard-chip">{{ $isPrivileged ? $recentUsers->count() . ' data' : 'Pribadi' }}</span>
                 </div>
@@ -114,52 +160,60 @@
                                         <div class="text-muted small text-truncate">{{ $recentUser->email }}</div>
                                     </div>
                                 </div>
-                                <div class="text-muted small text-nowrap">
-                                    {{ $isPrivileged ? optional($recentUser->created_at)->diffForHumans() : (auth()->user()->email_verified_at ? 'Terverifikasi' : 'Belum verifikasi') }}
+                                <div class="text-muted small text-nowrap flex-shrink-0">
+                                    @if($isPrivileged)
+                                        {{ optional($recentUser->created_at)->diffForHumans() }}
+                                    @else
+                                        <span class="badge {{ $recentUser->email_verified_at ? 'bg-green-lt text-green' : 'bg-orange-lt text-orange' }}">
+                                            {{ $recentUser->email_verified_at ? 'Terverifikasi' : 'Belum verifikasi' }}
+                                        </span>
+                                    @endif
                                 </div>
                             </div>
                         </div>
                     @empty
-                        <div class="text-center py-4">
-                            <i class="ti ti-users text-muted" style="font-size: 2rem;"></i>
-                            <div class="text-muted mt-2">{{ $isPrivileged ? 'Belum ada data user.' : 'Data akun belum tersedia.' }}</div>
+                        <div class="text-center py-4 text-muted">
+                            <i class="ti ti-users" style="font-size: 2rem;"></i>
+                            <div class="mt-2 small">{{ $isPrivileged ? 'Belum ada data pengguna.' : 'Data akun tidak tersedia.' }}</div>
                         </div>
                     @endforelse
                 </div>
             </div>
         </div>
 
+        {{-- Kanan: Daftar modul aktif --}}
         <div class="col-12 col-xl-5">
             <div class="dashboard-panel p-3 p-lg-4 h-100">
                 <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
                     <div>
-                        <div class="text-secondary text-uppercase small fw-bold">{{ $isPrivileged ? 'Modul Aktif' : 'Modul Tersedia' }}</div>
-                        <h3 class="mb-0">{{ $isPrivileged ? 'Fitur yang sedang berjalan' : 'Fitur yang bisa Anda gunakan' }}</h3>
+                        <div class="text-secondary text-uppercase small fw-bold">{{ $isPrivileged ? 'Modul Berjalan' : 'Fitur Tersedia' }}</div>
+                        <h3 class="mb-0">{{ $isPrivileged ? 'Yang aktif di workspace' : 'Fitur yang bisa Anda gunakan' }}</h3>
                     </div>
-                    <span class="dashboard-chip">{{ $moduleHighlights->count() }} modul</span>
+                    <span class="dashboard-chip">{{ $moduleHighlights->count() }}</span>
                 </div>
 
                 <div class="d-grid gap-2">
                     @forelse($moduleHighlights as $module)
                         <div class="dashboard-mini-stat">
                             <div class="d-flex align-items-center justify-content-between gap-3">
-                                <div>
+                                <div class="min-w-0">
                                     <div class="fw-semibold">{{ $module['name'] }}</div>
-                                    <div class="text-muted small mt-1">{{ $module['description'] }}</div>
+                                    <div class="text-muted small mt-1 text-truncate">{{ $module['description'] }}</div>
                                 </div>
-                                <div class="text-end flex-shrink-0">
-                                    <div class="fw-bold">{{ $module['items'] }}</div>
-                                    <div class="text-muted small">menu</div>
-                                </div>
+                                @if(!empty($module['route']) && Route::has($module['route']))
+                                    <a href="{{ route($module['route']) }}"
+                                       class="btn btn-sm btn-ghost-secondary flex-shrink-0"
+                                       title="Buka {{ $module['name'] }}">
+                                        <i class="ti ti-arrow-right"></i>
+                                    </a>
+                                @endif
                             </div>
                         </div>
                     @empty
-                        <div class="text-center py-4">
-                            <i class="ti ti-apps text-muted" style="font-size: 2rem;"></i>
-                            <div class="text-muted mt-2">
-                                {{ $isPrivileged
-                                    ? 'Belum ada modul aktif. Aktifkan modul lewat menu Modules.'
-                                    : 'Belum ada modul aktif untuk akun ini.' }}
+                        <div class="text-center py-4 text-muted">
+                            <i class="ti ti-apps" style="font-size: 2rem;"></i>
+                            <div class="mt-2 small">
+                                {{ $isPrivileged ? 'Belum ada modul aktif.' : 'Belum ada fitur aktif untuk akun ini.' }}
                             </div>
                         </div>
                     @endforelse
@@ -167,71 +221,9 @@
             </div>
         </div>
 
-        <div class="col-12">
-            <div class="dashboard-panel p-3 p-lg-4">
-                <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
-                    <div>
-                        <div class="text-secondary text-uppercase small fw-bold">AI Credits</div>
-                        <h3 class="mb-0">Pemakaian AI bulan ini</h3>
-                    </div>
-                    <span class="dashboard-chip">
-                        @if(($aiCredits['available'] ?? null) === null)
-                            Unlimited
-                        @else
-                            {{ number_format($aiCredits['used'] ?? 0) }}/{{ number_format($aiCredits['available'] ?? 0) }}
-                        @endif
-                    </span>
-                </div>
-
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <div class="dashboard-mini-stat">
-                            <div class="text-secondary small">Dipakai Bulan Ini</div>
-                            <div class="fw-bold mt-1">{{ number_format($aiCredits['used'] ?? 0) }}</div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="dashboard-mini-stat">
-                            <div class="text-secondary small">Limit Paket</div>
-                            <div class="fw-bold mt-1">{{ ($aiCredits['included'] ?? null) === null ? 'Unlimited' : number_format($aiCredits['included']) }}</div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="dashboard-mini-stat">
-                            <div class="text-secondary small">Top Up / Tersisa</div>
-                            <div class="fw-bold mt-1">
-                                +{{ number_format($aiCredits['top_up'] ?? 0) }}
-                                @if(($aiCredits['remaining'] ?? null) !== null)
-                                    · {{ number_format($aiCredits['remaining']) }}
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                @if(!empty($aiCredits['advice']))
-                    @php($aiAdviceTone = in_array(($aiCredits['status'] ?? 'ok'), ['at_limit', 'over_limit'], true) ? 'danger' : (($aiCredits['status'] ?? 'ok') === 'near_limit' ? 'warning' : 'secondary'))
-                    <div class="alert alert-{{ $aiAdviceTone }} mt-3 mb-0">
-                        <div class="fw-semibold">{{ $aiCredits['advice']['title'] }}</div>
-                        <div class="small mt-1">{{ $aiCredits['advice']['tenant_cta'] }}</div>
-                    </div>
-                @endif
-
-                <div class="text-muted small mt-3">
-                    <div>{{ $money->format($aiCreditPricing['price_per_credit'], $aiCreditPricing['currency']) }} / AI Credit</div>
-                    <div>1 AI Credit dipakai saat fitur AI memproses permintaan.</div>
-                </div>
-                <div class="d-flex flex-wrap gap-2 mt-2">
-                    @foreach($aiCreditPricing['packs'] as $pack)
-                        <span class="badge bg-azure-lt text-azure">
-                            Top Up {{ number_format($pack['credits']) }} AI Credits · {{ $money->format($pack['price'], $aiCreditPricing['currency']) }}
-                        </span>
-                    @endforeach
-                </div>
-            </div>
-        </div>
     </div>
 
+    {{-- ── Seksi tambahan dari modul ── --}}
     @foreach($hooks->render('dashboard.sections', ['user' => auth()->user()]) as $hookedSection)
         {!! $hookedSection !!}
     @endforeach

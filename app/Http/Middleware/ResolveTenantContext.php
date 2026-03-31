@@ -131,7 +131,8 @@ class ResolveTenantContext
             || $request->is('aff/*')
             || $request->is('workspace')
             || $request->is('health')
-            || $request->is('locale/switch');
+            || $request->is('locale/switch')
+            || $request->is('keamanan-data');
     }
 
     private function shouldBypassTenantContext(Request $request): bool

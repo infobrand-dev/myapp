@@ -346,7 +346,7 @@
         <div class="landing-footer-inner row g-5">
             <div class="col-lg-4">
                 <div class="mb-3">
-                    <x-app-logo variant="default" :height="30" class="landing-footer-logo" />
+                    <x-app-logo variant="default" :height="30" />
                 </div>
                 <p class="landing-footer-tagline mb-4">Platform omnichannel untuk tim sales, support, dan marketing — semua percakapan pelanggan dalam satu workspace.</p>
                 <div class="landing-footer-contact">

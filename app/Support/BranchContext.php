@@ -84,7 +84,7 @@ class BranchContext
                 ->where('company_id', $companyId)
                 ->when($allowedBranchIds, fn ($query) => $query->whereIn('id', $allowedBranchIds->all()))
                 ->where('slug', $slug)
-                ->where('is_active', true)
+                ->active()
                 ->value('id');
 
             if ($branchId) {
@@ -108,7 +108,7 @@ class BranchContext
             ->where('tenant_id', $tenantId)
             ->where('company_id', $companyId)
             ->when($allowedBranchIds, fn ($query) => $query->whereIn('id', $allowedBranchIds->all()))
-            ->where('is_active', true)
+            ->active()
             ->exists();
     }
 

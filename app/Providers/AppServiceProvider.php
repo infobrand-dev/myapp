@@ -67,7 +67,7 @@ class AppServiceProvider extends ServiceProvider
                 $companies = Company::query()
                     ->where('tenant_id', TenantContext::currentId())
                     ->when($allowedCompanyIds, fn ($query) => $query->whereIn('id', $allowedCompanyIds->all()))
-                    ->where('is_active', true)
+                    ->active()
                     ->orderBy('name')
                     ->get(['id', 'name', 'slug', 'code']);
             }
@@ -77,7 +77,7 @@ class AppServiceProvider extends ServiceProvider
                     ->where('tenant_id', TenantContext::currentId())
                     ->where('company_id', $currentCompany->id)
                     ->when($allowedBranchIds, fn ($query) => $query->whereIn('id', $allowedBranchIds->all()))
-                    ->where('is_active', true)
+                    ->active()
                     ->orderBy('name')
                     ->get(['id', 'company_id', 'name', 'slug', 'code']);
             }

@@ -65,7 +65,7 @@ class LoginRequest extends FormRequest
         $user = Auth::user();
         $tenantIsActive = $user && Tenant::query()
             ->whereKey($user->tenant_id)
-            ->where('is_active', true)
+            ->active()
             ->exists();
 
         if (!$user || !$tenantIsActive) {

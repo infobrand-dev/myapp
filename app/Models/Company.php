@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use App\Support\TenantContext;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class Company extends Model
 {
@@ -22,6 +24,17 @@ class Company extends Model
         'is_active' => 'boolean',
         'meta' => 'array',
     ];
+
+    public function scopeActive(Builder $query): Builder
+    {
+        $column = $query->qualifyColumn('is_active');
+
+        if (DB::connection($this->getConnectionName())->getDriverName() === 'pgsql') {
+            return $query->whereRaw($column . ' is true');
+        }
+
+        return $query->where('is_active', true);
+    }
 
     public function tenant(): BelongsTo
     {

@@ -53,7 +53,7 @@ class SettingsController extends Controller
             ->when($allowedCompanyIds, fn ($query) => $query->whereIn('id', $allowedCompanyIds->all()))
             ->withCount([
                 'branches',
-                'branches as active_branches_count' => fn ($query) => $query->where('is_active', true),
+                'branches as active_branches_count' => fn ($query) => $query->active(),
             ])
             ->orderByDesc('is_active')
             ->orderBy('name')
@@ -505,7 +505,7 @@ class SettingsController extends Controller
     {
         return Company::query()
             ->where('tenant_id', TenantContext::currentId())
-            ->where('is_active', true)
+            ->active()
             ->count();
     }
 

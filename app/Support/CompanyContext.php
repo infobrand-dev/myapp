@@ -72,7 +72,7 @@ class CompanyContext
                 ->where('tenant_id', $tenantId)
                 ->when($allowedCompanyIds, fn ($query) => $query->whereIn('id', $allowedCompanyIds->all()))
                 ->where('slug', $slug)
-                ->where('is_active', true)
+                ->active()
                 ->value('id');
 
             if ($companyId) {
@@ -89,7 +89,7 @@ class CompanyContext
         return (int) (Company::query()
             ->where('tenant_id', $tenantId)
             ->when($allowedCompanyIds, fn ($query) => $query->whereIn('id', $allowedCompanyIds->all()))
-            ->where('is_active', true)
+            ->active()
             ->orderBy('id')
             ->value('id') ?: 0) ?: null;
     }
@@ -100,7 +100,7 @@ class CompanyContext
             ->whereKey($companyId)
             ->where('tenant_id', $tenantId)
             ->when($allowedCompanyIds, fn ($query) => $query->whereIn('id', $allowedCompanyIds->all()))
-            ->where('is_active', true)
+            ->active()
             ->exists();
     }
 

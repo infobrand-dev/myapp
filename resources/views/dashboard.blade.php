@@ -1,8 +1,10 @@
 @extends('layouts.admin')
 
 @section('content')
-@php($hooks = app(\App\Support\HookManager::class))
-@php($money = app(\App\Support\MoneyFormatter::class))
+@php
+    $hooks = app(\App\Support\HookManager::class);
+    $money = app(\App\Support\MoneyFormatter::class);
+@endphp
 
 <div class="dashboard-shell">
     <div class="row g-3">

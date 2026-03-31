@@ -11,12 +11,17 @@ use App\Support\TenantContext;
 use App\Support\TenantPlanManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class ChatbotAccountController extends Controller
 {
-    public function index(): View
+    public function index(): View|RedirectResponse
     {
+        if ($redirect = $this->redirectIfStorageMissing()) {
+            return $redirect;
+        }
+
         $accounts = ChatbotAccount::query()
             ->where('tenant_id', TenantContext::currentId())
             ->orderBy('name')
@@ -24,8 +29,12 @@ class ChatbotAccountController extends Controller
         return view('chatbot::accounts.index', compact('accounts'));
     }
 
-    public function create(): View
+    public function create(): View|RedirectResponse
     {
+        if ($redirect = $this->redirectIfStorageMissing()) {
+            return $redirect;
+        }
+
         $account = new ChatbotAccount([
             'provider' => 'openai',
             'status' => 'active',
@@ -40,6 +49,10 @@ class ChatbotAccountController extends Controller
 
     public function store(StoreChatbotAccountRequest $request): RedirectResponse
     {
+        if ($redirect = $this->redirectIfStorageMissing()) {
+            return $redirect;
+        }
+
         app(TenantPlanManager::class)->ensureWithinLimit(PlanLimit::CHATBOT_ACCOUNTS);
 
         $data = $this->validated($request);
@@ -85,5 +98,16 @@ class ChatbotAccountController extends Controller
         }
 
         return $data;
+    }
+
+    private function redirectIfStorageMissing(): ?RedirectResponse
+    {
+        if (Schema::hasTable('chatbot_accounts')) {
+            return null;
+        }
+
+        return redirect()
+            ->route('modules.index')
+            ->with('status', 'Storage modul Chatbot belum siap. Jalankan install atau aktivasi ulang modul Chatbot agar migration modul dijalankan.');
     }
 }

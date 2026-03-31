@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -32,8 +33,12 @@ class ChatbotPlaygroundController extends Controller
         $this->rag = $rag;
     }
 
-    public function index(Request $request): View
+    public function index(Request $request): View|RedirectResponse
     {
+        if ($redirect = $this->redirectIfStorageMissing()) {
+            return $redirect;
+        }
+
         $accounts = $this->activeAccounts();
         $sessions = $this->userSessions($request);
 
@@ -44,8 +49,12 @@ class ChatbotPlaygroundController extends Controller
         ]);
     }
 
-    public function show(Request $request, int $session): View
+    public function show(Request $request, int $session): View|RedirectResponse
     {
+        if ($redirect = $this->redirectIfStorageMissing()) {
+            return $redirect;
+        }
+
         $session = ChatbotSession::query()
             ->where('id', $session)
             ->where('user_id', $request->user()->id)
@@ -65,6 +74,10 @@ class ChatbotPlaygroundController extends Controller
 
     public function send(ChatbotPlaygroundSendRequest $request): RedirectResponse
     {
+        if ($redirect = $this->redirectIfStorageMissing()) {
+            return $redirect;
+        }
+
         $data = $request->validated();
 
         $user = $request->user();
@@ -354,5 +367,16 @@ class ChatbotPlaygroundController extends Controller
     private function responseCacheKey(int $accountId, array $payload): string
     {
         return 'chatbot_playground_cache:' . $accountId . ':' . sha1(json_encode($payload));
+    }
+
+    private function redirectIfStorageMissing(): ?RedirectResponse
+    {
+        if (Schema::hasTable('chatbot_accounts') && Schema::hasTable('chatbot_sessions')) {
+            return null;
+        }
+
+        return redirect()
+            ->route('modules.index')
+            ->with('status', 'Storage modul Chatbot belum siap. Jalankan install atau aktivasi ulang modul Chatbot agar migration modul dijalankan.');
     }
 }

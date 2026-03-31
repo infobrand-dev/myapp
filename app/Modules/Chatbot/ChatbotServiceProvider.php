@@ -9,6 +9,7 @@ use App\Modules\Conversations\Contracts\ConversationAiAssistantRegistry;
 use App\Support\TenantContext;
 use App\Support\HookManager;
 use App\Support\RegistersModuleRoutes;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 
 class ChatbotServiceProvider extends ServiceProvider
@@ -33,6 +34,10 @@ class ChatbotServiceProvider extends ServiceProvider
         $this->app->afterResolving(ConversationAiAssistantRegistry::class, function (ConversationAiAssistantRegistry $registry): void {
             $registry->registerAccountResolver(function (?int $accountId) {
                 if (!$accountId) {
+                    return null;
+                }
+
+                if (!Schema::hasTable('chatbot_accounts')) {
                     return null;
                 }
 

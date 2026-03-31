@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\SubscriptionPlan;
+use App\Support\ModuleFilesystemAudit;
 use App\Support\ModuleManager;
 use App\Support\PlanFeature;
 use App\Support\PlanLimit;
@@ -12,7 +13,8 @@ class GoliveAuditService
 {
     public function __construct(
         private readonly AiCreditPricingService $aiPricing,
-        private readonly ModuleManager $modules
+        private readonly ModuleManager $modules,
+        private readonly ModuleFilesystemAudit $moduleFilesystemAudit
     ) {
     }
 
@@ -70,7 +72,7 @@ class GoliveAuditService
             $this->check('meta_verify_token', 'Meta verify token changed', $this->isMeaningful((string) config('services.meta.verify_token'), ['changeme', '']), (string) config('services.meta.verify_token'), 'Replace default Meta webhook verify token.', 'fail'),
         ];
 
-        $checks = array_merge($checks, $this->planCatalogChecks(), $this->moduleDatabaseChecks());
+        $checks = array_merge($checks, $this->planCatalogChecks(), $this->moduleFilesystemChecks(), $this->moduleDatabaseChecks());
 
         $stats = [
             'pass' => count(array_filter($checks, fn (array $check) => $check['status'] === 'pass')),
@@ -284,6 +286,39 @@ class GoliveAuditService
         }
 
         return $checks;
+    }
+
+    private function moduleFilesystemChecks(): array
+    {
+        $issues = $this->moduleFilesystemAudit->activeInstalledIssues();
+
+        if (empty($issues)) {
+            return [
+                $this->check(
+                    'active_module_filesystem',
+                    'Installed active modules have expected filesystem structure',
+                    true,
+                    'all active module paths present',
+                    'Re-deploy app/Modules with exact casing if any module directory, migration path, resources, or routes are missing.',
+                    'fail'
+                ),
+            ];
+        }
+
+        $summary = collect($issues)
+            ->map(fn (array $module) => sprintf('%s: %s', $module['slug'], implode('; ', $module['issues'])))
+            ->implode(' | ');
+
+        return [
+            $this->check(
+                'active_module_filesystem',
+                'Installed active modules have expected filesystem structure',
+                false,
+                $summary,
+                'One or more active modules are missing exact paths like Database/Migrations, resources/views, or routes/web.php. Re-deploy app/Modules with exact Linux-safe casing.',
+                'fail'
+            ),
+        ];
     }
 
     /**

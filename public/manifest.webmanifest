@@ -1,6 +1,6 @@
 {
-  "name": "MyApp",
-  "short_name": "MyApp",
+  "name": "Meetra",
+  "short_name": "Meetra",
   "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
@@ -8,15 +8,15 @@
   "theme_color": "#206bc4",
   "icons": [
     {
-      "src": "/pwa-icon-192.svg",
+      "src": "/brand/favicon-192.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/pwa-icon-512.svg",
+      "src": "/brand/favicon-512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]

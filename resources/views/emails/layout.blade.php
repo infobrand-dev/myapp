@@ -10,7 +10,8 @@
         .wrapper { width: 100%; padding: 40px 16px; background: #f4f6fb; }
         .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
         .header { background: #206bc4; padding: 28px 40px; text-align: center; }
-        .header .app-name { color: #ffffff; font-size: 22px; font-weight: 700; letter-spacing: 0.02em; text-decoration: none; }
+        .header .app-logo { display: inline-block; }
+        .header .app-logo img { display: block; height: 42px; width: auto; margin: 0 auto; }
         .body { padding: 40px; color: #1a2030; font-size: 15px; line-height: 1.7; }
         .body h1 { font-size: 20px; font-weight: 700; margin: 0 0 16px; color: #1a2030; }
         .body p { margin: 0 0 16px; color: #374151; }
@@ -37,7 +38,9 @@
 <div class="wrapper">
     <div class="container">
         <div class="header">
-            <span class="app-name">{{ config('app.name') }}</span>
+            <span class="app-logo">
+                <img src="{{ asset('brand/logo-light.png') }}" alt="{{ config('app.name') }}">
+            </span>
         </div>
 
         <div class="body">

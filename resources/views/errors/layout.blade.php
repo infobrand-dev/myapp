@@ -60,10 +60,9 @@
         .divider { width: 48px; height: 3px; background: #206bc4; border-radius: 2px; margin: 1.5rem auto; opacity: .35; }
         .app-brand {
             margin-bottom: 2.5rem;
-            font-size: 1rem;
-            font-weight: 700;
-            color: #206bc4;
-            letter-spacing: 0.01em;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
         footer {
             margin-top: 3rem;
@@ -74,7 +73,9 @@
 </head>
 <body>
     <div class="error-wrap">
-        <div class="app-brand">{{ config('app.name') }}</div>
+        <div class="app-brand">
+            <img src="{{ asset('brand/logo-default.png') }}" alt="{{ config('app.name') }}" style="height:36px;width:auto;display:block;">
+        </div>
 
         <div class="error-code">@yield('code')</div>
         <div class="divider"></div>

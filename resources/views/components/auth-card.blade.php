@@ -2,7 +2,8 @@
     {{-- Brand header --}}
     <div class="auth-brand">
         {{ $logo }}
-        <div class="auth-brand-name">{{ config('app.name') }}</div>
+        <x-app-logo variant="default" :height="44" class="auth-brand-logo mb-2" />
+        <div class="auth-brand-name">Workspace {{ config('app.name') }}</div>
     </div>
 
     {{-- Auth card --}}

@@ -27,10 +27,14 @@ class EmailCampaignController extends Controller
 {
     protected static function defaultTemplate(): string
     {
+        $appName = config('app.name', 'Meetra');
+        $appUrl = rtrim((string) config('app.url', ''), '/');
+        $logoUrl = $appUrl !== '' ? $appUrl . '/brand/logo-default.png' : 'https://placehold.co/220x60?text=' . rawurlencode($appName);
+
         $content = <<<INNER
 <tr>
   <td style="padding:24px 24px 8px 24px;text-align:center;">
-    <img src="https://placehold.co/96x96?text=Logo" alt="Logo" width="96" height="96" style="border-radius:50%;display:block;Margin:0 auto 12px;">
+    <img src="{$logoUrl}" alt="{$appName}" width="180" style="display:block;Margin:0 auto 12px;width:180px;height:auto;">
     <h1 style="Margin:0;font-size:20px;line-height:28px;color:#111827;">Halo {{name}}</h1>
     <p style="Margin:8px 0 0;font-size:14px;line-height:22px;color:#6b7280;">Berikut update terbaru untuk Anda.</p>
   </td>
@@ -51,7 +55,7 @@ class EmailCampaignController extends Controller
 <tr>
   <td style="padding:0 24px 20px 24px;text-align:center;font-size:12px;line-height:18px;color:#9ca3af;">
     <div style="Margin-bottom:4px;">Jika tombol tidak berfungsi, salin link ini: {{track_click}}</div>
-    <div>&copy; 2026 MyApp. Semua hak dilindungi.</div>
+    <div>&copy; 2026 {$appName}. Semua hak dilindungi.</div>
   </td>
 </tr>
 INNER;

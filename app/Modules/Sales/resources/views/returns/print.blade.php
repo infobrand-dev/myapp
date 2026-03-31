@@ -19,7 +19,7 @@
     <div class="card-body">
         <div class="row g-4 mb-4">
             <div class="col-md-6">
-                <div class="fw-bold">MyApp</div>
+                <img src="{{ asset('brand/logo-default.png') }}" alt="{{ config('app.name') }}" style="height: 30px; width: auto; display: block; margin-bottom: 0.5rem;">
                 <div class="text-muted small">Sales return note</div>
             </div>
             <div class="col-md-6 text-md-end">

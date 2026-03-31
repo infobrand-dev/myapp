@@ -19,7 +19,7 @@
             text-align: center;
         }
         .wrap { max-width: 520px; width: 100%; }
-        .app-brand { margin-bottom: 2.5rem; font-size: 1rem; font-weight: 700; color: #206bc4; letter-spacing: 0.01em; }
+        .app-brand { margin-bottom: 2.5rem; display: inline-flex; align-items: center; justify-content: center; }
         .icon { font-size: 4rem; margin-bottom: 1rem; }
         .title { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.75rem; color: #1a2030; }
         .desc { color: #6b7280; font-size: 0.95rem; line-height: 1.7; margin-bottom: 2rem; }
@@ -48,7 +48,9 @@
 </head>
 <body>
     <div class="wrap">
-        <div class="app-brand">{{ config('app.name') }}</div>
+        <div class="app-brand">
+            <img src="{{ asset('brand/logo-default.png') }}" alt="{{ config('app.name') }}" style="height:36px;width:auto;display:block;">
+        </div>
 
         <div class="icon">⚠️</div>
         <div class="title">Akun Anda Dinonaktifkan</div>

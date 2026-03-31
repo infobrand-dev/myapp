@@ -4,6 +4,7 @@
     $currentRouteName = optional(request()->route())->getName();
     $moduleNavBadges = $moduleNavBadges ?? [];
     $platformAdminHost = request()->attributes->get('platform_admin_host');
+    $brandHomeRoute = $platformAdminHost ? 'platform.dashboard' : 'dashboard';
 
     $moduleMenus = collect($moduleManager->all())
         ->filter(function ($module) use ($planManager, $platformAdminHost) {
@@ -50,7 +51,9 @@
 <aside class="navbar navbar-vertical navbar-expand-lg border-end" role="navigation" aria-label="Main navigation">
     <div class="container-fluid">
         <div class="sidebar-brand-wrap d-none d-lg-flex align-items-center justify-content-between w-100 px-1 py-3 border-bottom">
-            <a href="{{ route('dashboard') }}" class="navbar-brand sidebar-brand mb-0 text-decoration-none">{{ config('app.name') }}</a>
+            <a href="{{ route($brandHomeRoute) }}" class="navbar-brand sidebar-brand mb-0 text-decoration-none d-inline-flex align-items-center" aria-label="{{ config('app.name') }}">
+                <x-app-logo variant="default" :height="34" class="sidebar-brand-logo" />
+            </a>
         </div>
         <div class="navbar-collapse" id="sidebar-menu">
             @can('settings.view')

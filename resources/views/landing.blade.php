@@ -20,11 +20,8 @@
             <div class="container py-3">
                 <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
                     <div class="d-flex align-items-center gap-3">
-                        <div class="landing-brand-mark">
-                            <i class="ti ti-message-2-heart"></i>
-                        </div>
                         <div>
-                            <div class="landing-brand">{{ config('app.name') }}</div>
+                            <x-app-logo variant="default" :height="40" class="mb-2" />
                             <div class="text-muted small">Omnichannel workspace untuk sales, support, dan marketing</div>
                         </div>
                     </div>
@@ -466,10 +463,7 @@
             <div class="container">
                 <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
                     <div class="d-flex align-items-center gap-2">
-                        <div class="landing-brand-mark" style="width:1.75rem;height:1.75rem;font-size:0.75rem;border-radius:0.5rem;">
-                            <i class="ti ti-message-2-heart" style="font-size:0.85rem;"></i>
-                        </div>
-                        <span class="fw-bold" style="font-size:0.9rem;">{{ config('app.name') }}</span>
+                        <x-app-logo variant="default" :height="28" />
                         <span class="text-muted small">&copy; {{ date('Y') }}</span>
                     </div>
                     <div class="d-flex flex-wrap gap-4">

@@ -19,7 +19,7 @@
     <div class="card-body">
         <div class="row g-4 mb-4">
             <div class="col-md-6">
-                <div class="fw-bold">MyApp</div>
+                <img src="{{ asset('brand/logo-default.png') }}" alt="{{ config('app.name') }}" style="height: 30px; width: auto; display: block; margin-bottom: 0.5rem;">
                 <div class="text-muted small">Sales invoice backoffice</div>
                 @if(!empty($documentSettings['document_header']))
                     <div class="text-muted small mt-2">{!! nl2br(e($documentSettings['document_header'])) !!}</div>

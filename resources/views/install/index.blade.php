@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Installer - {{ config('app.name', 'MyApp') }}</title>
+    <title>Installer - {{ config('app.name', 'Meetra') }}</title>
     <link rel="stylesheet" href="{{ mix('css/app.css') }}">
 </head>
 <body class="bg-body">

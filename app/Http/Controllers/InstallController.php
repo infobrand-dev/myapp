@@ -176,7 +176,7 @@ class InstallController extends Controller
 
         return view('install.index', [
             'defaults' => array_merge([
-                'app_name' => env('APP_NAME', 'MyApp'),
+                'app_name' => env('APP_NAME', 'Meetra'),
                 'app_url' => env('APP_URL', 'http://127.0.0.1:8000'),
                 'db_connection' => env('DB_CONNECTION', 'mysql'),
                 'db_host' => env('DB_HOST', '127.0.0.1'),

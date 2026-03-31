@@ -18,11 +18,8 @@
         <header class="landing-topbar sticky-top">
             <div class="container py-3 d-flex align-items-center justify-content-between gap-3">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="landing-brand-mark">
-                        <i class="ti ti-share-2"></i>
-                    </div>
                     <div>
-                        <div class="landing-brand">{{ config('app.name') }}</div>
+                        <x-app-logo variant="default" :height="40" class="mb-2" />
                         <div class="text-muted small">Informasi Partner</div>
                     </div>
                 </div>

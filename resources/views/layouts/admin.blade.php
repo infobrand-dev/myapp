@@ -11,8 +11,9 @@
     <meta name="apple-mobile-web-app-title" content="{{ config('app.name') }}">
     <title>@yield('title', config('app.name'))</title>
     <link rel="manifest" href="/manifest.webmanifest">
-    <link rel="apple-touch-icon" href="/pwa-icon-192.svg">
-    <link id="dynamic-favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='30' fill='%232D47CC'/></svg>">
+    <link rel="apple-touch-icon" href="{{ asset('brand/apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('brand/favicon-32.png') }}">
+    <link id="dynamic-favicon" rel="icon" type="image/png" href="{{ asset('brand/favicon-32.png') }}">
     <script>
         // Early apply saved theme to avoid FOUC
         (function() {
@@ -46,7 +47,9 @@
                 <div class="container-fluid">
                     <div class="d-flex align-items-center justify-content-between w-100 gap-3">
                         <div class="d-flex align-items-center gap-3 flex-wrap">
-                            <span class="desktop-topbar-title">{{ config('app.name') }}</span>
+                            <a href="{{ route(request()->attributes->get('platform_admin_host') ? 'platform.dashboard' : 'dashboard') }}" class="d-inline-flex align-items-center text-decoration-none" aria-label="{{ config('app.name') }}">
+                                <x-app-logo variant="default" :height="30" class="desktop-topbar-logo" />
+                            </a>
                             @include('shared.topbar-context-switcher', ['selectorId' => 'desktop-topbar'])
                         </div>
 
@@ -107,8 +110,8 @@
                             <i class="ti ti-menu-2" aria-hidden="true"></i>
                         </button>
 
-                        <a href="{{ route('dashboard') }}" class="mobile-topbar-brand">
-                            {{ config('app.name') }}
+                        <a href="{{ route(request()->attributes->get('platform_admin_host') ? 'platform.dashboard' : 'dashboard') }}" class="mobile-topbar-brand d-inline-flex align-items-center" aria-label="{{ config('app.name') }}">
+                            <x-app-logo variant="default" :height="28" class="mobile-topbar-logo" />
                         </a>
 
                         <div class="ms-auto">
@@ -217,7 +220,7 @@
             });
         });
 
-        // ── MyApp Push Notifications ─────────────────────────────
+        // ── App Push Notifications ───────────────────────────────
         window.MyAppNotifier = (() => {
             let swRegistrationPromise = null;
 
@@ -257,8 +260,8 @@
                     body: (body || '').toString().slice(0, 180),
                     tag,
                     data: { url: url || window.location.href },
-                    icon: '/pwa-icon-192.svg',
-                    badge: '/pwa-icon-192.svg',
+                    icon: '{{ asset('brand/favicon-192.png') }}',
+                    badge: '{{ asset('brand/favicon-192.png') }}',
                 };
 
                 const reg = await registerServiceWorker();
@@ -279,20 +282,19 @@
             return { registerServiceWorker, supportsNotifications, supportsServiceWorker, permission, ensurePermission, show };
         })();
 
-        // ── Dynamic favicon: green → red after 30 min idle ───────
+        // ── Keep brand favicon active across idle state ──────────
         const faviconEl = document.getElementById('dynamic-favicon');
-        const faviconGreen = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='30' fill='%2314b8a6'/></svg>";
-        const faviconRed   = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='30' fill='%23ef4444'/></svg>";
+        const faviconDefault = '{{ asset('brand/favicon-32.png') }}';
         let hideTimer = null;
         const IDLE_THRESHOLD = 30 * 60 * 1000;
 
         function setFavicon(uri) { if (faviconEl) faviconEl.setAttribute('href', uri); }
         function handleVisibility() {
             if (document.hidden) {
-                hideTimer = setTimeout(() => setFavicon(faviconRed), IDLE_THRESHOLD);
+                hideTimer = setTimeout(() => setFavicon(faviconDefault), IDLE_THRESHOLD);
             } else {
                 if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
-                setFavicon(faviconGreen);
+                setFavicon(faviconDefault);
             }
         }
         document.addEventListener('visibilitychange', handleVisibility);

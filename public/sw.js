@@ -14,15 +14,15 @@ self.addEventListener('push', (event) => {
         payload = {};
     }
 
-    const title = (payload.title || 'MyApp').toString();
+    const title = (payload.title || 'Meetra').toString();
     const options = {
         body: (payload.body || '').toString().slice(0, 180),
-        tag: (payload.tag || 'myapp-notify').toString(),
+        tag: (payload.tag || 'meetra-notify').toString(),
         data: {
             url: payload.url || '/',
         },
-        icon: '/pwa-icon-192.svg',
-        badge: '/pwa-icon-192.svg',
+        icon: '/brand/favicon-192.png',
+        badge: '/brand/favicon-192.png',
     };
 
     event.waitUntil(self.registration.showNotification(title, options));

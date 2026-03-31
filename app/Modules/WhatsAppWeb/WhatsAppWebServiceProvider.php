@@ -90,7 +90,7 @@ class WhatsAppWebServiceProvider extends ServiceProvider
         $this->registerModuleRoutes([__DIR__ . '/routes/web.php']);
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'whatsappweb');
         $this->loadTranslationsFrom(__DIR__ . '/resources/lang', 'whatsappweb');
-        $this->loadMigrationsFrom(__DIR__ . '/Database/Migrations');
+        $this->loadMigrationsFrom(\App\Support\ModulePath::migrationDirectory(__DIR__) ?? (__DIR__ . '/Database/Migrations'));
         $this->ensurePermissions();
         $this->registerDashboardHooks();
     }

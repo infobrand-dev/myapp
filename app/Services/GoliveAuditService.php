@@ -315,7 +315,7 @@ class GoliveAuditService
                 'Installed active modules have expected filesystem structure',
                 false,
                 $summary,
-                'One or more active modules are missing exact paths like Database/Migrations, resources/views, or routes/web.php. Re-deploy app/Modules with exact Linux-safe casing.',
+                'One or more active modules are missing required module folders or files such as migrations, resources/views, or routes/web.php. Re-deploy app/Modules and verify the Linux server casing matches the app structure.',
                 'fail'
             ),
         ];

@@ -19,6 +19,6 @@ class ShortlinkServiceProvider extends ServiceProvider
         $this->registerModuleRoutes([__DIR__ . '/routes/web.php']);
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'shortlink');
         $this->loadTranslationsFrom(__DIR__ . '/resources/lang', 'shortlink');
-        $this->loadMigrationsFrom(__DIR__ . '/Database/Migrations');
+        $this->loadMigrationsFrom(\App\Support\ModulePath::migrationDirectory(__DIR__) ?? (__DIR__ . '/Database/Migrations'));
     }
 }

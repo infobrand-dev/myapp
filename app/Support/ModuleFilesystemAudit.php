@@ -61,8 +61,8 @@ class ModuleFilesystemAudit
             $issues[] = 'module.json missing';
         }
 
-        if (!$this->hasAnyMigrationFiles($base)) {
-            $issues[] = 'Database/Migrations missing or empty';
+        if (!ModulePath::hasMigrationFiles($base)) {
+            $issues[] = 'module migrations missing or empty';
         }
 
         if (!File::isDirectory($base . '/resources/views')) {
@@ -74,17 +74,5 @@ class ModuleFilesystemAudit
         }
 
         return $issues;
-    }
-
-    private function hasAnyMigrationFiles(string $base): bool
-    {
-        $migrationDir = $base . '/Database/Migrations';
-
-        if (!File::isDirectory($migrationDir)) {
-            return false;
-        }
-
-        return collect(File::files($migrationDir))
-            ->contains(fn ($file) => str_ends_with(strtolower($file->getFilename()), '.php'));
     }
 }

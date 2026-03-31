@@ -138,7 +138,7 @@ class SalesServiceProvider extends ServiceProvider
         $this->registerRoutes();
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'sales');
         $this->loadTranslationsFrom(__DIR__ . '/resources/lang', 'sales');
-        $this->loadMigrationsFrom(__DIR__ . '/Database/Migrations');
+        $this->loadMigrationsFrom(\App\Support\ModulePath::migrationDirectory(__DIR__) ?? (__DIR__ . '/Database/Migrations'));
 
         Event::listen(SaleFinalized::class, DispatchFinalizedSaleHooks::class);
         Event::listen(SaleVoided::class, DispatchVoidedSaleHooks::class);

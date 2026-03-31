@@ -3,7 +3,6 @@
 namespace App\Support;
 
 use App\Models\Module;
-use App\Support\TenantRoleProvisioner;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
@@ -40,12 +39,14 @@ class ModuleManager
         }
 
         ksort($modules);
+
         return $modules;
     }
 
     public function isActive(string $slug): bool
     {
         $all = $this->all();
+
         return isset($all[$slug]) && $all[$slug]['installed'] && $all[$slug]['active'];
     }
 
@@ -79,8 +80,10 @@ class ModuleManager
             }
         }
 
-        $migrationPath = base_path('app/Modules/' . $this->manifestDirName($slug) . '/Database/Migrations');
-        if (File::isDirectory($migrationPath)) {
+        $migrationPath = ModulePath::migrationDirectory(
+            base_path('app/Modules/' . $this->manifestDirName($slug))
+        );
+        if ($migrationPath !== null) {
             $relativePath = str_replace(base_path() . DIRECTORY_SEPARATOR, '', $migrationPath);
             $this->callArtisanOrFail('migrate', ['--path' => $relativePath, '--force' => true]);
         }
@@ -125,8 +128,10 @@ class ModuleManager
             }
         }
 
-        $migrationPath = base_path('app/Modules/' . $this->manifestDirName($slug) . '/Database/Migrations');
-        if (File::isDirectory($migrationPath)) {
+        $migrationPath = ModulePath::migrationDirectory(
+            base_path('app/Modules/' . $this->manifestDirName($slug))
+        );
+        if ($migrationPath !== null) {
             $relativePath = str_replace(base_path() . DIRECTORY_SEPARATOR, '', $migrationPath);
             $this->callArtisanOrFail('migrate', ['--path' => $relativePath, '--force' => true]);
         }

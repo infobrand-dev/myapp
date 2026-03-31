@@ -10,6 +10,7 @@ use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationParticipant;
 use App\Modules\WhatsAppApi\Http\Requests\InviteConversationRequest;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
+use App\Support\BooleanQuery;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -41,8 +42,8 @@ class ConversationController extends Controller
         ]);
 
         $instancesQuery = WhatsAppInstance::query()
-            ->where('tenant_id', $this->tenantId())
-            ->where('is_active', true);
+            ->where('tenant_id', $this->tenantId());
+        BooleanQuery::apply($instancesQuery, 'is_active', true);
         if (!$user->hasRole('Super-admin')) {
             $instancesQuery->whereHas('users', fn ($q) => $q->where('users.id', $user->id));
         }
@@ -70,7 +71,7 @@ class ConversationController extends Controller
                 $q->whereNull('locked_until')
                     ->orWhere('locked_until', '>', now());
             }))
-            ->when($assignment === 'bot_paused', fn ($query) => $query->where('metadata->auto_reply_paused', true))
+            ->when($assignment === 'bot_paused', fn ($query) => BooleanQuery::jsonFlag($query, 'metadata', 'auto_reply_paused', true))
             ->when(in_array($presence, [UserPresence::STATUS_ONLINE, UserPresence::STATUS_AWAY, UserPresence::STATUS_BUSY], true), function ($query) use ($presenceIds) {
                 if (empty($presenceIds)) {
                     return $query->whereRaw('1 = 0');
@@ -228,4 +229,3 @@ class ConversationController extends Controller
         return TenantContext::currentId();
     }
 }
-

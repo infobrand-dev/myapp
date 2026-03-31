@@ -12,6 +12,7 @@ use App\Modules\WhatsAppApi\Models\WAContactPhoneStatus;
 use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use App\Modules\WhatsAppApi\Support\TemplateVariableResolver;
+use App\Support\BooleanQuery;
 use App\Support\PlanLimit;
 use App\Support\TenantContext;
 use App\Support\TenantPlanManager;
@@ -47,11 +48,11 @@ class BlastCampaignController extends Controller
 
     public function create(): View
     {
-        $instances = WhatsAppInstance::query()
+        $instancesQuery = WhatsAppInstance::query()
             ->where('tenant_id', $this->tenantId())
             ->where('provider', 'cloud')
-            ->where('is_active', true)
-            ->orderBy('name')
+            ->orderBy('name');
+        $instances = BooleanQuery::apply($instancesQuery, 'is_active', true)
             ->get(['id', 'name', 'cloud_business_account_id', 'status']);
 
         $templates = WATemplate::query()
@@ -422,8 +423,8 @@ class BlastCampaignController extends Controller
         $query = Contact::query()
             ->where('contacts.tenant_id', $this->tenantId())
             ->leftJoin('contacts as company', 'company.id', '=', 'contacts.company_id')
-            ->where('contacts.is_active', true)
             ->whereRaw($this->recipientPhoneExpression() . ' IS NOT NULL');
+        BooleanQuery::apply($query, 'contacts.is_active', true);
 
         $this->applyBlockedPhoneScope($query);
 

@@ -11,6 +11,7 @@ use App\Modules\WhatsAppApi\Jobs\SendWhatsAppMessage;
 use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use App\Modules\WhatsAppApi\Support\TemplateVariableResolver;
+use App\Support\BooleanQuery;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -148,8 +149,8 @@ class ContactActionController extends Controller
 
         $instanceQuery = WhatsAppInstance::query()
             ->where('tenant_id', $this->tenantId())
-            ->where('is_active', true)
             ->orderBy('name');
+        BooleanQuery::apply($instanceQuery, 'is_active', true);
 
         if (method_exists($user, 'hasRole') && !$user->hasRole('Super-admin') && Schema::hasTable('whatsapp_instance_user')) {
             $instanceQuery->whereHas('users', fn ($query) => $query->where('user_id', $user->id));
@@ -195,8 +196,8 @@ class ContactActionController extends Controller
     {
         $query = WhatsAppInstance::query()
             ->where('tenant_id', $this->tenantId())
-            ->where('id', $instanceId)
-            ->where('is_active', true);
+            ->where('id', $instanceId);
+        BooleanQuery::apply($query, 'is_active', true);
 
         if (method_exists($user, 'hasRole') && !$user->hasRole('Super-admin') && Schema::hasTable('whatsapp_instance_user')) {
             $query->whereHas('users', fn ($builder) => $builder->where('user_id', $user->id));

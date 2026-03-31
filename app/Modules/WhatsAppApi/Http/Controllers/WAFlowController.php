@@ -7,6 +7,7 @@ use App\Modules\WhatsAppApi\Http\Requests\StoreWAFlowRequest;
 use App\Modules\WhatsAppApi\Http\Requests\UpdateWAFlowRequest;
 use App\Modules\WhatsAppApi\Models\WAFlow;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
+use App\Support\BooleanQuery;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -315,12 +316,12 @@ class WAFlowController extends Controller
 
     private function cloudInstances()
     {
-        return WhatsAppInstance::query()
+        $query = WhatsAppInstance::query()
             ->where('tenant_id', $this->tenantId())
             ->where('provider', 'cloud')
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get();
+            ->orderBy('name');
+
+        return BooleanQuery::apply($query, 'is_active', true)->get();
     }
 
     private function assertCloudInstanceReady(WAFlow $flow): WhatsAppInstance

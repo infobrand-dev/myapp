@@ -11,6 +11,7 @@ use App\Modules\Crm\Http\Requests\UpdateCrmLeadRequest;
 use App\Modules\Crm\Models\CrmLead;
 use App\Modules\Crm\Support\CrmLeadScope;
 use App\Modules\Crm\Support\CrmStageCatalog;
+use App\Support\BooleanQuery;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\CurrencySettingsResolver;
@@ -36,7 +37,7 @@ class CrmLeadController extends Controller
             ->with(['contact', 'owner', 'company', 'branch']);
 
         if (!$filters['show_archived']) {
-            $baseQuery->where('is_archived', false);
+            BooleanQuery::apply($baseQuery, 'is_archived', false);
         }
 
         if ($filters['stage'] !== '') {

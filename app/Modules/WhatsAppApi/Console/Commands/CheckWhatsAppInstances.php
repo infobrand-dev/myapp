@@ -3,6 +3,7 @@
 namespace App\Modules\WhatsAppApi\Console\Commands;
 
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
+use App\Support\BooleanQuery;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 
@@ -13,7 +14,7 @@ class CheckWhatsAppInstances extends Command
 
     public function handle(): int
     {
-        $instances = WhatsAppInstance::where('is_active', true)->get();
+        $instances = BooleanQuery::apply(WhatsAppInstance::query(), 'is_active', true)->get();
         $success = 0;
         $fail = 0;
 

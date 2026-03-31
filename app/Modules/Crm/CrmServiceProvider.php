@@ -4,6 +4,7 @@ namespace App\Modules\Crm;
 
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Crm\Models\CrmLead;
+use App\Support\BooleanQuery;
 use App\Support\HookManager;
 use App\Support\RegistersModuleRoutes;
 use Illuminate\Support\Facades\Schema;
@@ -90,7 +91,7 @@ class CrmServiceProvider extends ServiceProvider
 
             $baseQuery = CrmLead::query()
                 ->where('tenant_id', \App\Support\TenantContext::currentId())
-                ->where('is_archived', false);
+                BooleanQuery::apply($baseQuery, 'is_archived', false);
 
             if (!$user->hasAnyRole(['Super-admin', 'Admin'])) {
                 $baseQuery->where('owner_user_id', $user->id);

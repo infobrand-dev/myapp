@@ -4,6 +4,7 @@ namespace App\Modules\WhatsAppApi\Models;
 
 use App\Models\User;
 use App\Modules\Conversations\Models\Conversation;
+use App\Support\NormalizesPgsqlBooleanAttributes;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Crypt;
 class WhatsAppInstance extends Model
 {
     use HasFactory;
+    use NormalizesPgsqlBooleanAttributes;
 
     protected $table = 'whatsapp_instances';
 

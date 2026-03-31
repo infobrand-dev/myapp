@@ -2,6 +2,7 @@
 
 namespace App\Modules\SocialMedia\Models;
 
+use App\Support\NormalizesPgsqlBooleanAttributes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class SocialAccountChatbotIntegration extends Model
 {
     use HasFactory;
+    use NormalizesPgsqlBooleanAttributes;
 
     protected $table = 'social_account_chatbot_integrations';
 
@@ -29,4 +31,3 @@ class SocialAccountChatbotIntegration extends Model
         return $this->belongsTo(SocialAccount::class, 'social_account_id');
     }
 }
-

@@ -258,7 +258,7 @@ class LiveChatPublicController extends Controller
     {
         $widget = LiveChatWidget::query()
             ->where('widget_token', $token)
-            ->where('is_active', true)
+            ->active()
             ->firstOrFail();
 
         abort_unless($this->plans->hasFeature(PlanFeature::LIVE_CHAT, (int) $widget->tenant_id), 403);

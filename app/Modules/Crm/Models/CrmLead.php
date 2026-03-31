@@ -7,12 +7,15 @@ use App\Models\Company;
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Crm\Support\CrmLeadScope;
+use App\Support\NormalizesPgsqlBooleanAttributes;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CrmLead extends Model
 {
+    use NormalizesPgsqlBooleanAttributes;
+
     protected $fillable = [
         'tenant_id',
         'company_id',

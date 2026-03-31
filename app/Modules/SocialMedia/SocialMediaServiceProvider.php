@@ -6,6 +6,7 @@ use App\Modules\Conversations\Contracts\ConversationOutboundDispatcher;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\SocialMedia\Jobs\SendSocialMessage;
+use App\Support\BooleanQuery;
 use App\Support\PlanLimit;
 use App\Support\RegistersModuleRoutes;
 use Illuminate\Support\Facades\DB;
@@ -124,8 +125,9 @@ class SocialMediaServiceProvider extends ServiceProvider
             $tenantId = \App\Support\TenantContext::currentId();
             $total = \App\Modules\SocialMedia\Models\SocialAccount::query()
                 ->where('tenant_id', $tenantId)->count();
-            $connected = \App\Modules\SocialMedia\Models\SocialAccount::query()
-                ->where('tenant_id', $tenantId)->where('is_active', true)->count();
+            $connectedQuery = \App\Modules\SocialMedia\Models\SocialAccount::query()
+                ->where('tenant_id', $tenantId);
+            $connected = BooleanQuery::apply($connectedQuery, 'is_active', true)->count();
 
             $plans = app(\App\Support\TenantPlanManager::class);
             $limit = $plans->limit(\App\Support\PlanLimit::SOCIAL_ACCOUNTS, $tenantId);

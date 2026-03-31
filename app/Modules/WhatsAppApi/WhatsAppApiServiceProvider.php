@@ -10,6 +10,7 @@ use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\WhatsAppApi\Http\Controllers\ContactActionController;
 use App\Modules\WhatsAppApi\Jobs\SendWhatsAppMessage;
+use App\Support\BooleanQuery;
 use App\Support\HookManager;
 use App\Support\RegistersModuleRoutes;
 use App\Modules\WhatsAppApi\Console\Commands\CheckWhatsAppInstances;
@@ -448,10 +449,13 @@ class WhatsAppApiServiceProvider extends ServiceProvider
             }
 
             $tenantId = \App\Support\TenantContext::currentId();
-            $total = \App\Modules\WhatsAppApi\Models\WhatsAppInstance::query()
-                ->where('tenant_id', $tenantId)->where('is_active', true)->count();
-            $connected = \App\Modules\WhatsAppApi\Models\WhatsAppInstance::query()
-                ->where('tenant_id', $tenantId)->where('is_active', true)->where('status', 'connected')->count();
+            $totalQuery = \App\Modules\WhatsAppApi\Models\WhatsAppInstance::query()
+                ->where('tenant_id', $tenantId);
+            $connectedQuery = \App\Modules\WhatsAppApi\Models\WhatsAppInstance::query()
+                ->where('tenant_id', $tenantId)
+                ->where('status', 'connected');
+            $total = BooleanQuery::apply($totalQuery, 'is_active', true)->count();
+            $connected = BooleanQuery::apply($connectedQuery, 'is_active', true)->count();
 
             $plans = app(\App\Support\TenantPlanManager::class);
             $limit = $plans->limit(\App\Support\PlanLimit::WHATSAPP_INSTANCES, $tenantId);

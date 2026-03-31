@@ -3,8 +3,10 @@
 namespace App\Modules\LiveChat\Models;
 
 use App\Support\TenantContext;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class LiveChatWidget extends Model
@@ -46,6 +48,31 @@ class LiveChatWidget extends Model
                 $widget->widget_token = Str::random(40);
             }
         });
+    }
+
+    public function scopeActive(Builder $query): Builder
+    {
+        $column = $query->qualifyColumn('is_active');
+
+        if (DB::connection($this->getConnectionName())->getDriverName() === 'pgsql') {
+            return $query->whereRaw($column . ' is true');
+        }
+
+        return $query->where('is_active', true);
+    }
+
+    public function setIsActiveAttribute(mixed $value): void
+    {
+        $booleanValue = filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
+        $booleanValue = $booleanValue ?? false;
+
+        if (DB::connection($this->getConnectionName())->getDriverName() === 'pgsql') {
+            $this->attributes['is_active'] = $booleanValue ? 'true' : 'false';
+
+            return;
+        }
+
+        $this->attributes['is_active'] = $booleanValue;
     }
 
     public function embedScriptUrl(): string

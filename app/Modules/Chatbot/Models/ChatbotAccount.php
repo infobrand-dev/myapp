@@ -3,6 +3,7 @@
 namespace App\Modules\Chatbot\Models;
 
 use App\Models\User;
+use App\Support\NormalizesPgsqlBooleanAttributes;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,6 +14,7 @@ use Illuminate\Support\Facades\Crypt;
 class ChatbotAccount extends Model
 {
     use HasFactory;
+    use NormalizesPgsqlBooleanAttributes;
 
     protected $table = 'chatbot_accounts';
 

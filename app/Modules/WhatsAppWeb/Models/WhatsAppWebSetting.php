@@ -2,11 +2,14 @@
 
 namespace App\Modules\WhatsAppWeb\Models;
 
+use App\Support\NormalizesPgsqlBooleanAttributes;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 
 class WhatsAppWebSetting extends Model
 {
+    use NormalizesPgsqlBooleanAttributes;
+
     protected $table = 'whatsapp_web_settings';
     protected $fillable = [
         'tenant_id',

@@ -3,6 +3,7 @@
 namespace App\Modules\WhatsAppApi\Models;
 
 use App\Support\TenantContext;
+use App\Support\NormalizesPgsqlBooleanAttributes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class WhatsAppWebhookEvent extends Model
 {
     use HasFactory;
+    use NormalizesPgsqlBooleanAttributes;
 
     protected $table = 'whatsapp_webhook_events';
 

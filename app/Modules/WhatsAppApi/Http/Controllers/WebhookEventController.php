@@ -5,6 +5,7 @@ namespace App\Modules\WhatsAppApi\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use App\Modules\WhatsAppApi\Models\WhatsAppWebhookEvent;
+use App\Support\BooleanQuery;
 use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -43,7 +44,7 @@ class WebhookEventController extends Controller
             'failed' => (clone $baseQuery)->where('process_status', 'failed')->count(),
             'ignored' => (clone $baseQuery)->where('process_status', 'ignored')->count(),
             'pending' => (clone $baseQuery)->where('process_status', 'pending')->count(),
-            'invalid_signature' => (clone $baseQuery)->where('signature_valid', false)->count(),
+            'invalid_signature' => BooleanQuery::apply(clone $baseQuery, 'signature_valid', false)->count(),
             'retryable' => (clone $baseQuery)->whereIn('process_status', ['failed', 'pending'])->count(),
         ];
 
@@ -62,7 +63,7 @@ class WebhookEventController extends Controller
             ->when($filters['provider'], fn ($q, $provider) => $q->where('provider', $provider))
             ->when($filters['process_status'], fn ($q, $processStatus) => $q->where('process_status', $processStatus))
             ->when($filters['signature_valid'] !== null && $filters['signature_valid'] !== '', function ($q) use ($filters) {
-                $q->where('signature_valid', $filters['signature_valid'] === '1');
+                BooleanQuery::apply($q, 'signature_valid', $filters['signature_valid'] === '1');
             })
             ->when($filters['date_from'], fn ($q, $from) => $q->where('received_at', '>=', $from . ' 00:00:00'))
             ->when($filters['date_to'], fn ($q, $to) => $q->where('received_at', '<=', $to . ' 23:59:59'));

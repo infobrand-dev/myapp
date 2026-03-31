@@ -16,6 +16,7 @@ use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstanceChatbotIntegration;
 use App\Modules\WhatsAppApi\Models\WhatsAppWebhookEvent;
 use App\Modules\WhatsAppApi\Support\ConversationAutoAssigner;
+use App\Support\BooleanQuery;
 use App\Support\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -51,9 +52,9 @@ class WebhookController extends Controller
             return response('Invalid mode', Response::HTTP_FORBIDDEN);
         }
 
-        $instance = WhatsAppInstance::query()
-            ->where('provider', 'cloud')
-            ->where('is_active', true)
+        $instanceQuery = WhatsAppInstance::query()
+            ->where('provider', 'cloud');
+        $instance = BooleanQuery::apply($instanceQuery, 'is_active', true)
             ->get()
             ->first(function (WhatsAppInstance $instance) use ($token): bool {
                 $verifyToken = $this->instanceSettingValue($instance, ['wa_cloud_verify_token', 'verify_token']);
@@ -416,18 +417,18 @@ class WebhookController extends Controller
                 return $request ? $this->resolveCloudInstanceBySignature($request) : null;
             }
 
-            $instance = WhatsAppInstance::where('provider', 'cloud')
-                ->where('is_active', true)
-                ->where('cloud_business_account_id', $businessId)
-                ->first();
+            $instanceQuery = WhatsAppInstance::query()
+                ->where('provider', 'cloud')
+                ->where('cloud_business_account_id', $businessId);
+            $instance = BooleanQuery::apply($instanceQuery, 'is_active', true)->first();
 
             return $instance ?: ($request ? $this->resolveCloudInstanceBySignature($request) : null);
         }
 
-        $instance = WhatsAppInstance::where('provider', 'cloud')
-            ->where('is_active', true)
-            ->where('phone_number_id', $phoneNumberId)
-            ->first();
+        $instanceQuery = WhatsAppInstance::query()
+            ->where('provider', 'cloud')
+            ->where('phone_number_id', $phoneNumberId);
+        $instance = BooleanQuery::apply($instanceQuery, 'is_active', true)->first();
 
         return $instance ?: ($request ? $this->resolveCloudInstanceBySignature($request) : null);
     }
@@ -439,9 +440,9 @@ class WebhookController extends Controller
             return null;
         }
 
-        $matches = WhatsAppInstance::query()
-            ->where('provider', 'cloud')
-            ->where('is_active', true)
+        $matchesQuery = WhatsAppInstance::query()
+            ->where('provider', 'cloud');
+        $matches = BooleanQuery::apply($matchesQuery, 'is_active', true)
             ->get()
             ->filter(fn (WhatsAppInstance $instance) => $this->isValidCloudSignature($request, $instance))
             ->values();
@@ -492,13 +493,15 @@ class WebhookController extends Controller
         $instanceKey = trim((string) ($payload['instance_key'] ?? ''));
         $tokenHash = hash('sha256', $token);
 
-        return WhatsAppInstance::query()
-            ->where('is_active', true)
+        $query = WhatsAppInstance::query()
             ->where(function ($query) use ($token, $tokenHash) {
                 $query->where('api_token_hash', $tokenHash)
                     ->orWhere('api_token', $token);
             })
             ->when($instanceKey !== '', fn ($query) => $query->where('id', $instanceKey))
+            ;
+
+        return BooleanQuery::apply($query, 'is_active', true)
             ->get()
             ->first(fn (WhatsAppInstance $instance) => hash_equals((string) $instance->api_token, $token));
     }

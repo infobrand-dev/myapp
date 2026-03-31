@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\Company;
 use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Contacts\Support\ContactPhoneNormalizer;
+use App\Support\NormalizesPgsqlBooleanAttributes;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Contact extends Model
 {
+    use NormalizesPgsqlBooleanAttributes;
+
     protected $fillable = [
         'tenant_id',
         'company_id',

@@ -2,6 +2,7 @@
 
 namespace App\Modules\WhatsAppApi\Models;
 
+use App\Support\NormalizesPgsqlBooleanAttributes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class WhatsAppInstanceChatbotIntegration extends Model
 {
     use HasFactory;
+    use NormalizesPgsqlBooleanAttributes;
 
     protected $table = 'whatsapp_instance_chatbot_integrations';
 
@@ -29,4 +31,3 @@ class WhatsAppInstanceChatbotIntegration extends Model
         return $this->belongsTo(WhatsAppInstance::class, 'instance_id');
     }
 }
-

@@ -11,6 +11,7 @@ use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\WhatsAppWeb\Jobs\SendWhatsAppWebMessage;
 use App\Modules\WhatsAppWeb\Services\WhatsAppWebBridgeClient;
 use App\Modules\WhatsAppWeb\Services\WhatsAppWebConversationSyncService;
+use App\Support\BooleanQuery;
 use App\Support\RegistersModuleRoutes;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\Schema;
@@ -129,10 +130,13 @@ class WhatsAppWebServiceProvider extends ServiceProvider
             }
 
             $tenantId = \App\Support\TenantContext::currentId();
-            $total     = \App\Modules\WhatsAppWeb\Models\WhatsAppWebSetting::query()
-                ->where('tenant_id', $tenantId)->where('is_active', true)->count();
-            $connected = \App\Modules\WhatsAppWeb\Models\WhatsAppWebSetting::query()
-                ->where('tenant_id', $tenantId)->where('is_active', true)->where('last_test_status', 'ok')->count();
+            $totalQuery = \App\Modules\WhatsAppWeb\Models\WhatsAppWebSetting::query()
+                ->where('tenant_id', $tenantId);
+            $connectedQuery = \App\Modules\WhatsAppWeb\Models\WhatsAppWebSetting::query()
+                ->where('tenant_id', $tenantId)
+                ->where('last_test_status', 'ok');
+            $total = BooleanQuery::apply($totalQuery, 'is_active', true)->count();
+            $connected = BooleanQuery::apply($connectedQuery, 'is_active', true)->count();
 
             return view('whatsappweb::dashboard.card', compact('total', 'connected'))->render();
         });

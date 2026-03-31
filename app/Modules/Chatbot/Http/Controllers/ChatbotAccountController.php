@@ -11,8 +11,10 @@ use App\Modules\Chatbot\Models\ChatbotKnowledgeDocument;
 use App\Support\PlanLimit;
 use App\Support\TenantContext;
 use App\Support\TenantPlanManager;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
@@ -157,6 +159,50 @@ class ChatbotAccountController extends Controller
     {
         $account->delete();
         return back()->with('status', 'Akun chatbot dihapus.');
+    }
+
+    public function testApiKey(Request $request): JsonResponse
+    {
+        $provider = $request->input('provider', 'openai');
+        $apiKey = trim((string) $request->input('api_key', ''));
+
+        if ($apiKey === '') {
+            return response()->json(['ok' => false, 'message' => 'API key tidak boleh kosong.']);
+        }
+
+        try {
+            if ($provider === 'openai') {
+                $response = Http::withToken($apiKey)->timeout(8)->get('https://api.openai.com/v1/models');
+                return $response->successful()
+                    ? response()->json(['ok' => true, 'message' => 'API key OpenAI valid.'])
+                    : response()->json(['ok' => false, 'message' => 'API key ditolak oleh OpenAI. Periksa kembali key Anda.']);
+            }
+
+            if ($provider === 'anthropic') {
+                $response = Http::withHeaders([
+                    'x-api-key' => $apiKey,
+                    'anthropic-version' => '2023-06-01',
+                ])->timeout(8)->post('https://api.anthropic.com/v1/messages', [
+                    'model' => 'claude-haiku-4-5-20251001',
+                    'max_tokens' => 1,
+                    'messages' => [['role' => 'user', 'content' => 'Hi']],
+                ]);
+                return ($response->status() !== 401)
+                    ? response()->json(['ok' => true, 'message' => 'API key Anthropic valid.'])
+                    : response()->json(['ok' => false, 'message' => 'API key ditolak oleh Anthropic. Periksa kembali key Anda.']);
+            }
+
+            if ($provider === 'groq') {
+                $response = Http::withToken($apiKey)->timeout(8)->get('https://api.groq.com/openai/v1/models');
+                return $response->successful()
+                    ? response()->json(['ok' => true, 'message' => 'API key Groq valid.'])
+                    : response()->json(['ok' => false, 'message' => 'API key ditolak oleh Groq. Periksa kembali key Anda.']);
+            }
+
+            return response()->json(['ok' => false, 'message' => 'Provider tidak didukung untuk verifikasi.']);
+        } catch (\Throwable $e) {
+            return response()->json(['ok' => false, 'message' => 'Tidak dapat terhubung ke server provider. Coba lagi.']);
+        }
     }
 
     private function validated(Request $request, bool $isEdit = false): array

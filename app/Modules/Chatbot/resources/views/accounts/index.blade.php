@@ -15,7 +15,7 @@
 <div class="row g-3 mb-3">
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Balasan bot</div><div class="h2 mb-0">{{ $decisionStats['reply_sent'] ?? 0 }}</div></div></div></div>
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Diteruskan ke tim</div><div class="h2 mb-0">{{ $decisionStats['handoff'] ?? 0 }}</div></div></div></div>
-    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">No context</div><div class="h2 mb-0">{{ $decisionStats['no_context'] ?? 0 }}</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Tidak ada konteks</div><div class="h2 mb-0">{{ $decisionStats['no_context'] ?? 0 }}</div></div></div></div>
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Error AI</div><div class="h2 mb-0">{{ $decisionStats['error'] ?? 0 }}</div></div></div></div>
 </div>
 
@@ -25,12 +25,12 @@
             <thead>
                 <tr>
                     <th>Nama</th>
-                    <th>Automation</th>
+                    <th>Mode Bot</th>
                     <th>Provider</th>
                     <th>Model</th>
-                    <th>Mode</th>
-                    <th>RAG</th>
-                    <th>Mirror</th>
+                    <th>Operasi</th>
+                    <th>Dokumen AI</th>
+                    <th>Rekam Inbox</th>
                     <th>Status</th>
                     <th class="w-1"></th>
                 </tr>
@@ -48,11 +48,11 @@
                                 } }}
                             </span>
                         </td>
-                        <td>{{ strtoupper($acc->provider) }}</td>
+                        <td>{{ match($acc->provider ?? 'openai') { 'openai' => 'OpenAI', 'anthropic' => 'Anthropic', 'groq' => 'Groq', default => strtoupper($acc->provider ?? '-') } }}</td>
                         <td>{{ $acc->model ?? '-' }}</td>
                         <td>
                             <span class="badge {{ $acc->operation_mode === 'ai_then_human' ? 'text-bg-warning' : 'text-bg-primary' }}">
-                                {{ $acc->operation_mode === 'ai_then_human' ? 'AI->Human' : 'AI Only' }}
+                                {{ $acc->operation_mode === 'ai_then_human' ? 'AI → Tim' : 'AI Penuh' }}
                             </span>
                         </td>
                         <td>
@@ -68,7 +68,7 @@
                         <td><span class="badge {{ $acc->status === 'active' ? 'text-bg-success' : 'text-bg-secondary' }}">{{ $acc->status }}</span></td>
                         <td class="text-end align-middle">
                             <div class="table-actions">
-                                <a href="{{ route('chatbot.knowledge.index', $acc) }}" class="btn btn-outline-primary btn-sm">Knowledge</a>
+                                <a href="{{ route('chatbot.knowledge.index', $acc) }}" class="btn btn-outline-primary btn-sm">Dokumen</a>
                                 <a href="{{ route('chatbot.accounts.edit', $acc) }}" class="btn btn-outline-secondary btn-sm">Edit</a>
                                 <form class="d-inline-block m-0" method="POST" action="{{ route('chatbot.accounts.destroy', $acc) }}">
                                     @csrf
@@ -79,7 +79,20 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="9" class="text-muted">Belum ada akun.</td></tr>
+                    <tr>
+                        <td colspan="9">
+                            <div class="text-center py-5">
+                                <div class="mb-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-muted">
+                                        <path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2M20 14h2M15 13v2M9 13v2"/>
+                                    </svg>
+                                </div>
+                                <div class="fw-semibold mb-1">Belum ada chatbot yang dibuat</div>
+                                <div class="text-muted small mb-3">Tambahkan chatbot pertama Anda untuk mulai mengotomasi balasan pesan masuk.</div>
+                                <a href="{{ route('chatbot.accounts.create') }}" class="btn btn-primary btn-sm">+ Tambah Chatbot Pertama</a>
+                            </div>
+                        </td>
+                    </tr>
                 @endforelse
             </tbody>
         </table>

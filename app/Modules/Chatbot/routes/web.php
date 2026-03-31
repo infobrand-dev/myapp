@@ -11,6 +11,7 @@ Route::middleware(['web', 'auth', 'plan.feature:chatbot_ai'])
     ->name('chatbot.')
     ->group(function () {
         Route::middleware('role:Super-admin')->group(function () {
+            Route::post('accounts/test-api-key', [ChatbotAccountController::class, 'testApiKey'])->name('accounts.test-api-key');
             Route::resource('accounts', ChatbotAccountController::class)->except(['show']);
             Route::get('accounts/{account}/knowledge', [ChatbotKnowledgeController::class, 'index'])->name('knowledge.index');
             Route::get('accounts/{account}/knowledge/create', [ChatbotKnowledgeController::class, 'create'])->name('knowledge.create');

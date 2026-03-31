@@ -13,7 +13,7 @@
         <h2 class="mb-0">Chatbot Playground</h2>
         <div class="text-muted small">Uji langsung akun chatbot tanpa integrasi channel lain.</div>
     </div>
-    <a href="{{ route('chatbot.accounts.index') }}" class="btn btn-outline-secondary">Kelola Accounts</a>
+    <a href="{{ route('chatbot.accounts.index') }}" class="btn btn-outline-secondary">Kelola Chatbot</a>
 </div>
 
 <div class="row g-3">
@@ -51,10 +51,11 @@
                             </div>
                         @endforeach
                     </div>
-                @else
-                    <div class="text-muted mb-3">Mulai chat untuk membuat sesi baru.</div>
+                @elseif($accounts->isNotEmpty())
+                    <div class="text-muted mb-3 small">Pilih chatbot dan ketik pesan untuk memulai sesi baru.</div>
                 @endif
 
+                @if($accounts->isNotEmpty())
                 <form method="POST" action="{{ route('chatbot.playground.send') }}">
                     @csrf
                     @if($activeSession)
@@ -74,13 +75,22 @@
                             <input type="text" name="message" class="form-control" placeholder="Ketik pesan..." required>
                         </div>
                     </div>
-                    <div class="mt-3 d-flex justify-content-end">
-                        <button type="submit" class="btn btn-primary" {{ $accounts->isEmpty() ? 'disabled' : '' }}>Kirim</button>
-                    </div>
                     @if($accounts->isEmpty())
-                        <div class="form-hint text-danger mt-2">Belum ada chatbot account aktif.</div>
+                        <div class="text-center py-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-muted mb-2">
+                                <path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2M20 14h2M15 13v2M9 13v2"/>
+                            </svg>
+                            <div class="fw-semibold mb-1">Belum ada chatbot aktif</div>
+                            <div class="text-muted small mb-3">Tambahkan dan aktifkan setidaknya satu chatbot sebelum bisa mencoba Playground.</div>
+                            <a href="{{ route('chatbot.accounts.create') }}" class="btn btn-primary btn-sm">+ Tambah Chatbot</a>
+                        </div>
+                    @else
+                        <div class="mt-3 d-flex justify-content-end">
+                            <button type="submit" class="btn btn-primary">Kirim</button>
+                        </div>
                     @endif
                 </form>
+                @endif
             </div>
         </div>
     </div>

@@ -12,7 +12,6 @@ use App\Support\TenantContext;
 use App\Support\TenantPlanManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Contracts\View\View;
-use Spatie\Permission\Models\Role;
 
 class DashboardController extends Controller
 {
@@ -39,63 +38,6 @@ class DashboardController extends Controller
         $activeModules = $visibleModules->filter(fn ($module) => $module['installed'] && $module['active']);
         $installedModules = $visibleModules->filter(fn ($module) => $module['installed']);
 
-        $totalUsers = User::query()->where('tenant_id', $tenantId)->count();
-        $usersToday = User::query()->where('tenant_id', $tenantId)->whereDate('created_at', today())->count();
-        $roleCount = Role::query()->where('tenant_id', $tenantId)->where('guard_name', 'web')->count();
-
-        $stats = $isPrivileged
-            ? [
-                [
-                    'label' => 'Modul Aktif',
-                    'value' => $activeModules->count(),
-                    'meta' => $visibleModules->count() . ' tersedia di paket',
-                    'tone' => 'primary',
-                ],
-                [
-                    'label' => 'Pengguna',
-                    'value' => $totalUsers,
-                    'meta' => $usersToday > 0 ? $usersToday . ' bergabung hari ini' : 'Tidak ada yang baru hari ini',
-                    'tone' => 'azure',
-                ],
-                [
-                    'label' => 'Role',
-                    'value' => $roleCount,
-                    'meta' => 'role tersedia di workspace',
-                    'tone' => 'green',
-                ],
-                [
-                    'label' => 'Akun Anda',
-                    'value' => $user->getRoleNames()->first() ?: '—',
-                    'meta' => $user->email,
-                    'tone' => 'orange',
-                ],
-            ]
-            : [
-                [
-                    'label' => 'Fitur Aktif',
-                    'value' => $activeModules->count(),
-                    'meta' => 'fitur tersedia untuk Anda',
-                    'tone' => 'primary',
-                ],
-                [
-                    'label' => 'Role Anda',
-                    'value' => $user->getRoleNames()->count(),
-                    'meta' => $user->getRoleNames()->join(', ') ?: 'Belum ada role',
-                    'tone' => 'azure',
-                ],
-                [
-                    'label' => 'Bergabung',
-                    'value' => optional($user->created_at)->diffInDays(now()) ?? 0,
-                    'meta' => 'hari yang lalu, ' . (optional($user->created_at)->format('d M Y') ?: '—'),
-                    'tone' => 'green',
-                ],
-                [
-                    'label' => 'Email',
-                    'value' => $user->email_verified_at ? 'Terverifikasi' : 'Belum',
-                    'meta' => $user->email_verified_at ? 'Akun aktif dan aman' : 'Cek kotak masuk email Anda',
-                    'tone' => $user->email_verified_at ? 'orange' : 'red',
-                ],
-            ];
 
         $recentUsers = $isPrivileged
             ? User::query()
@@ -126,7 +68,6 @@ class DashboardController extends Controller
 
         return view('dashboard', [
             'isPrivileged' => $isPrivileged,
-            'stats' => $stats,
             'recentUsers' => $recentUsers,
             'moduleHighlights' => $moduleHighlights,
             'activeModules' => $activeModules,

@@ -6,6 +6,7 @@ use App\Modules\Conversations\Contracts\ConversationOutboundDispatcher;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\SocialMedia\Jobs\SendSocialMessage;
+use App\Support\PlanLimit;
 use App\Support\RegistersModuleRoutes;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -62,5 +63,28 @@ class SocialMediaServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'socialmedia');
         $this->loadTranslationsFrom(__DIR__ . '/resources/lang', 'socialmedia');
         $this->loadMigrationsFrom(__DIR__ . '/Database/Migrations');
+        $this->registerDashboardHooks();
+    }
+
+    private function registerDashboardHooks(): void
+    {
+        $hooks = $this->app->make(\App\Support\HookManager::class);
+
+        $hooks->register('dashboard.overview.cards', 'socialmedia.dashboard.card', function (): string {
+            if (!Schema::hasTable('social_accounts')) {
+                return '';
+            }
+
+            $tenantId = \App\Support\TenantContext::currentId();
+            $total = \App\Modules\SocialMedia\Models\SocialAccount::query()
+                ->where('tenant_id', $tenantId)->count();
+            $connected = \App\Modules\SocialMedia\Models\SocialAccount::query()
+                ->where('tenant_id', $tenantId)->where('is_active', true)->count();
+
+            $plans = app(\App\Support\TenantPlanManager::class);
+            $limit = $plans->limit(\App\Support\PlanLimit::SOCIAL_ACCOUNTS, $tenantId);
+
+            return view('socialmedia::dashboard.card', compact('total', 'connected', 'limit'))->render();
+        });
     }
 }

@@ -834,19 +834,86 @@ h1, h2, h3, h4, h5, h6,
     overflow: hidden;
     border: 1px solid var(--db-line);
     border-radius: 1.35rem;
+    transition: background 0.6s ease;
+    /* default (fallback) */
     background:
         radial-gradient(circle at top left, rgba(var(--tblr-primary-rgb), 0.14), transparent 32rem),
         linear-gradient(135deg, var(--tblr-bg-surface, #fff) 0%, var(--brand-gray-50) 100%);
 }
-.dashboard-hero::after {
-    content: "";
-    position: absolute;
-    inset: auto -4rem -5rem auto;
-    width: 16rem;
-    height: 16rem;
-    border-radius: 999px;
-    background: radial-gradient(circle, rgba(22, 163, 74, 0.12), transparent 65%);
-    pointer-events: none;
+/* ── Time-of-day themes ── */
+.dashboard-hero--pagi {
+    background:
+        radial-gradient(ellipse at 15% 50%, rgba(251,191,36,.18), transparent 55%),
+        linear-gradient(135deg, #fffbeb 0%, #fef3c7 55%, #fde68a 100%);
+    border-color: rgba(251,191,36,.25);
+}
+.dashboard-hero--siang {
+    background:
+        radial-gradient(ellipse at 20% 40%, rgba(59,130,246,.12), transparent 50%),
+        radial-gradient(ellipse at 80% 20%, rgba(251,191,36,.2), transparent 45%),
+        linear-gradient(135deg, #eff6ff 0%, #dbeafe 50%, #fef9c3 100%);
+    border-color: rgba(59,130,246,.2);
+}
+.dashboard-hero--sore {
+    background:
+        radial-gradient(ellipse at 70% 60%, rgba(249,115,22,.2), transparent 50%),
+        radial-gradient(ellipse at 10% 30%, rgba(168,85,247,.12), transparent 45%),
+        linear-gradient(135deg, #fff7ed 0%, #ffedd5 50%, #fae8ff 100%);
+    border-color: rgba(249,115,22,.22);
+}
+.dashboard-hero--malam {
+    background:
+        radial-gradient(ellipse at 75% 30%, rgba(99,102,241,.22), transparent 50%),
+        radial-gradient(ellipse at 15% 70%, rgba(15,23,42,.5), transparent 55%),
+        linear-gradient(135deg, #1e293b 0%, #0f172a 60%, #1e1b4b 100%);
+    border-color: rgba(99,102,241,.3);
+    --db-moon-cutout: #0f172a;
+}
+.dashboard-hero--malam .dashboard-hero-title { color: #e2e8f0 !important; }
+.dashboard-hero--malam .dashboard-hero-sub   { color: #94a3b8 !important; }
+.dashboard-hero--malam .dashboard-chip {
+    background: rgba(255,255,255,.08);
+    color: #a5b4fc;
+    border: 1px solid rgba(255,255,255,.1);
+}
+.dashboard-hero--malam .dashboard-mini-stat {
+    background: rgba(255,255,255,.06);
+    border-color: rgba(255,255,255,.1);
+}
+.dashboard-hero--malam .dashboard-mini-stat .text-secondary { color: #94a3b8 !important; }
+.dashboard-hero--malam .dashboard-mini-stat .fw-bold,
+.dashboard-hero--malam .dashboard-mini-stat .fw-semibold    { color: #e2e8f0 !important; }
+
+/* ── Hero text helpers ── */
+.dashboard-hero-title {
+    font-size: clamp(1.8rem, 3vw, 2.5rem);
+    color: var(--db-ink);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+}
+.dashboard-hero-sub {
+    max-width: 44rem;
+    color: var(--db-muted);
+    font-size: 1rem;
+}
+
+/* ── SVG illustration ── */
+.dashboard-hero-illustration {
+    width: clamp(140px, 22vw, 220px);
+    height: auto;
+    opacity: .92;
+    flex-shrink: 0;
+    filter: drop-shadow(0 8px 24px rgba(0,0,0,.08));
+}
+@media (max-width: 575.98px) {
+    .dashboard-hero-illustration { display: none; }
+}
+
+/* ── Time chip icon alignment ── */
+.dashboard-time-icon {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
 }
 .dashboard-kpi {
     border: 1px solid var(--db-line);

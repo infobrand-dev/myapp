@@ -33,6 +33,32 @@ class ContactsServiceProvider extends ServiceProvider
         $this->loadTranslationsFrom(__DIR__ . '/resources/lang', 'contacts');
         $this->loadMigrationsFrom(__DIR__ . '/Database/Migrations');
         $this->registerConversationHooks();
+        $this->registerDashboardHooks();
+    }
+
+    private function registerDashboardHooks(): void
+    {
+        /** @var HookManager $hooks */
+        $hooks = $this->app->make(HookManager::class);
+
+        $hooks->register('dashboard.overview.cards', 'contacts.dashboard.card', function (): string {
+            if (!Schema::hasTable('contacts')) {
+                return '';
+            }
+
+            $tenantId = TenantContext::currentId();
+            $total = Contact::query()->where('tenant_id', $tenantId)->count();
+            $newThisMonth = Contact::query()
+                ->where('tenant_id', $tenantId)
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->count();
+
+            $plans = app(\App\Support\TenantPlanManager::class);
+            $limit = $plans->limit(\App\Support\PlanLimit::CONTACTS, $tenantId);
+
+            return view('contacts::dashboard.card', compact('total', 'newThisMonth', 'limit'))->render();
+        });
     }
 
     private function registerConversationHooks(): void

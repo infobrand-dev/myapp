@@ -286,6 +286,7 @@ class WhatsAppApiServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__ . '/Database/Migrations');
         $this->registerContactHooks();
         $this->registerConversationHooks();
+        $this->registerDashboardHooks();
 
         if (!$this->app->runningInConsole()) {
             return;
@@ -387,6 +388,29 @@ class WhatsAppApiServiceProvider extends ServiceProvider
             ->where('tenant_id', \App\Support\TenantContext::currentId())
             ->where('id', (int) $conversation->instance_id)
             ->first(['name', 'status']);
+    }
+
+    private function registerDashboardHooks(): void
+    {
+        /** @var HookManager $hooks */
+        $hooks = $this->app->make(HookManager::class);
+
+        $hooks->register('dashboard.overview.cards', 'whatsapp_api.dashboard.card', function (): string {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('whatsapp_instances')) {
+                return '';
+            }
+
+            $tenantId = \App\Support\TenantContext::currentId();
+            $total = \App\Modules\WhatsAppApi\Models\WhatsAppInstance::query()
+                ->where('tenant_id', $tenantId)->where('is_active', true)->count();
+            $connected = \App\Modules\WhatsAppApi\Models\WhatsAppInstance::query()
+                ->where('tenant_id', $tenantId)->where('is_active', true)->where('status', 'connected')->count();
+
+            $plans = app(\App\Support\TenantPlanManager::class);
+            $limit = $plans->limit(\App\Support\PlanLimit::WHATSAPP_INSTANCES, $tenantId);
+
+            return view('whatsappapi::dashboard.card', compact('total', 'connected', 'limit'))->render();
+        });
     }
 
     private function placeholderIndexes(?string $text): array

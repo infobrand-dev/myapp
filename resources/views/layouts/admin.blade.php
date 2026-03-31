@@ -251,13 +251,69 @@
                 if (e.key === 'Escape') closeSidebar();
             });
 
+            // ── Sidebar inline dropdown (normal mode) ────────────
+            sidebar && sidebar.querySelectorAll('.sidebar-dropdown-toggle').forEach(function (toggle) {
+                toggle.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    if (document.body.classList.contains('sidebar-mini')) return;
+                    var li = toggle.closest('.sidebar-dropdown');
+                    var menu = li && li.querySelector('.sidebar-dropdown-menu');
+                    if (!menu) return;
+                    var isOpen = menu.classList.toggle('open');
+                    toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                    li.classList.toggle('open', isOpen);
+                });
+            });
+
+            // ── Mini flyout: position flyout next to the hovered item ──
+            function positionFlyouts() {
+                sidebar && sidebar.querySelectorAll('.sidebar-dropdown').forEach(function (li) {
+                    li.addEventListener('mouseenter', function () {
+                        if (!document.body.classList.contains('sidebar-mini')) return;
+                        var flyout = li.querySelector('.sidebar-flyout');
+                        if (!flyout) return;
+                        var rect = li.getBoundingClientRect();
+                        flyout.style.top = rect.top + 'px';
+                    });
+                });
+            }
+            positionFlyouts();
+
+            // ── Desktop tooltips for single nav items in mini mode ──
+            function enableMiniTooltips() {
+                if (!window.bootstrap || !bootstrap.Tooltip) return;
+                sidebar && sidebar.querySelectorAll('.nav-link[data-sidebar-label]:not(.sidebar-dropdown-toggle)').forEach(function (link) {
+                    var existing = bootstrap.Tooltip.getInstance(link);
+                    if (existing) existing.dispose();
+                    link.setAttribute('data-bs-toggle', 'tooltip');
+                    link.setAttribute('data-bs-placement', 'right');
+                    link.setAttribute('title', link.getAttribute('data-sidebar-label'));
+                    new bootstrap.Tooltip(link, { trigger: 'hover', boundary: 'window' });
+                });
+            }
+            function disableMiniTooltips() {
+                if (!window.bootstrap || !bootstrap.Tooltip) return;
+                sidebar && sidebar.querySelectorAll('.nav-link[data-sidebar-label]').forEach(function (link) {
+                    var tt = bootstrap.Tooltip.getInstance(link);
+                    if (tt) { tt.dispose(); }
+                    link.removeAttribute('data-bs-toggle');
+                    link.removeAttribute('title');
+                });
+            }
+
             // ── Desktop: collapse/expand toggle ──────────────────
             if (collapseBtn) {
                 collapseBtn.addEventListener('click', function () {
                     var isMini = document.body.classList.toggle('sidebar-mini');
                     localStorage.setItem('sidebar-mini', isMini ? '1' : '0');
                     collapseBtn.setAttribute('aria-label', isMini ? 'Perluas sidebar' : 'Kecilkan sidebar');
+                    if (isMini) { enableMiniTooltips(); } else { disableMiniTooltips(); }
                 });
+            }
+
+            // Apply tooltips immediately if already in mini mode on load
+            if (localStorage.getItem('sidebar-mini') === '1') {
+                enableMiniTooltips();
             }
         });
 

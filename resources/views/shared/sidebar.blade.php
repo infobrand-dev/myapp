@@ -56,7 +56,10 @@
                 <i class="ti ti-x" style="font-size:1.1rem;" aria-hidden="true"></i>
             </button>
             <a href="{{ route($brandHomeRoute) }}" class="navbar-brand sidebar-brand mb-0 text-decoration-none d-inline-flex align-items-center" aria-label="{{ config('app.name') }}">
+                {{-- Full logo — hidden in mini mode --}}
                 <x-app-logo variant="default" :height="34" class="sidebar-brand-logo" />
+                {{-- Icon-only logo — shown in mini mode --}}
+                <img src="{{ asset('brand/logo-icon.png') }}" alt="{{ config('app.name') }}" height="32" class="sidebar-brand-icon" />
             </a>
         </div>
         <div class="navbar-collapse" id="sidebar-menu">

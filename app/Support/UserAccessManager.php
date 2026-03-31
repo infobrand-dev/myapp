@@ -97,11 +97,11 @@ class UserAccessManager
             return null;
         }
 
-        return UserCompany::query()
+        return $this->applyTrueConstraint(
+            UserCompany::query()
             ->where('tenant_id', (int) $user->tenant_id)
             ->where('user_id', $user->id)
-            ->where('is_default', true)
-            ->value('company_id');
+        , 'is_default')->value('company_id');
     }
 
     public function defaultBranchIdFor(?User $user, ?int $companyId = null): ?int
@@ -110,12 +110,24 @@ class UserAccessManager
             return null;
         }
 
-        return UserBranch::query()
+        return $this->applyTrueConstraint(
+            UserBranch::query()
             ->where('tenant_id', (int) $user->tenant_id)
             ->where('user_id', $user->id)
             ->when($companyId, fn ($query) => $query->where('company_id', $companyId))
-            ->where('is_default', true)
-            ->value('branch_id');
+        , 'is_default')->value('branch_id');
+    }
+
+    private function applyTrueConstraint($query, string $column)
+    {
+        $driver = $query->getModel()->getConnection()->getDriverName();
+        $qualifiedColumn = $query->qualifyColumn($column);
+
+        if ($driver === 'pgsql') {
+            return $query->whereRaw($qualifiedColumn . ' is true');
+        }
+
+        return $query->where($column, true);
     }
 
     private function allowedCompanyIds(int $tenantId, array $companyIds): Collection

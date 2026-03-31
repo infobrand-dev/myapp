@@ -50,20 +50,14 @@
 
 <aside class="navbar navbar-vertical navbar-expand-lg border-end" role="navigation" aria-label="Main navigation">
     <div class="container-fluid">
-        <div class="sidebar-brand-wrap d-flex align-items-center justify-content-between w-100 px-1 py-3 border-bottom">
+        <div class="sidebar-brand-wrap d-flex align-items-center w-100 px-1 py-3 border-bottom">
+            {{-- Mobile: close button on the left --}}
+            <button type="button" class="sidebar-close-btn d-lg-none me-2" id="sidebar-close-btn" aria-label="Tutup menu">
+                <i class="ti ti-x" style="font-size:1.1rem;" aria-hidden="true"></i>
+            </button>
             <a href="{{ route($brandHomeRoute) }}" class="navbar-brand sidebar-brand mb-0 text-decoration-none d-inline-flex align-items-center" aria-label="{{ config('app.name') }}">
                 <x-app-logo variant="default" :height="34" class="sidebar-brand-logo" />
             </a>
-            <div class="d-flex align-items-center gap-1">
-                {{-- Mobile: close sidebar button --}}
-                <button type="button" class="sidebar-close-btn d-lg-none" id="sidebar-close-btn" aria-label="Tutup menu">
-                    <i class="ti ti-x" style="font-size:1.1rem;" aria-hidden="true"></i>
-                </button>
-                {{-- Desktop: collapse/expand sidebar --}}
-                <button type="button" class="sidebar-collapse-btn d-none d-lg-inline-flex" id="sidebar-collapse-toggle" aria-label="Kecilkan sidebar">
-                    <i class="ti ti-layout-sidebar-left-collapse" style="font-size:1rem;" aria-hidden="true"></i>
-                </button>
-            </div>
         </div>
         <div class="navbar-collapse" id="sidebar-menu">
             @can('settings.view')
@@ -122,6 +116,14 @@
                 @php $moduleBadgeRendered = false; @endphp
                 @include('shared.sidebar-menu')
             </ul>
+
+            {{-- Desktop: collapse toggle — pinned at the bottom of the sidebar --}}
+            <div class="sidebar-footer d-none d-lg-flex">
+                <button type="button" class="sidebar-collapse-btn" id="sidebar-collapse-toggle" aria-label="Kecilkan sidebar">
+                    <i class="ti ti-layout-sidebar-left-collapse" style="font-size:1rem;" aria-hidden="true"></i>
+                    <span class="sidebar-collapse-label">Kecilkan</span>
+                </button>
+            </div>
         </div>
     </div>
 </aside>

@@ -14,7 +14,7 @@ return new class extends Migration
             return;
         }
 
-        $now = now();
+        $now = now()->toDateTimeString();
 
         $plans = [
             [
@@ -383,24 +383,39 @@ return new class extends Migration
             ],
         ];
 
-        foreach ($plans as $plan) {
-            DB::table('subscription_plans')->updateOrInsert(
-                ['code' => $plan['code']],
-                [
-                    'name' => $plan['name'],
-                    'billing_interval' => $plan['billing_interval'],
-                    'is_active' => $plan['is_active'],
-                    'is_public' => $plan['is_public'],
-                    'is_system' => $plan['is_system'],
-                    'sort_order' => $plan['sort_order'],
-                    'features' => json_encode($plan['features']),
-                    'limits' => json_encode($plan['limits']),
-                    'meta' => json_encode($plan['meta']),
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]
-            );
-        }
+        $rows = array_map(function (array $plan) use ($now): array {
+            return [
+                'code' => $plan['code'],
+                'name' => $plan['name'],
+                'billing_interval' => $plan['billing_interval'],
+                'is_active' => $plan['is_active'] ? 'true' : 'false',
+                'is_public' => $plan['is_public'] ? 'true' : 'false',
+                'is_system' => $plan['is_system'] ? 'true' : 'false',
+                'sort_order' => $plan['sort_order'],
+                'features' => json_encode($plan['features'], JSON_UNESCAPED_UNICODE),
+                'limits' => json_encode($plan['limits'], JSON_UNESCAPED_UNICODE),
+                'meta' => json_encode($plan['meta'], JSON_UNESCAPED_UNICODE),
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }, $plans);
+
+        DB::table('subscription_plans')->upsert(
+            $rows,
+            ['code'],
+            [
+                'name',
+                'billing_interval',
+                'is_active',
+                'is_public',
+                'is_system',
+                'sort_order',
+                'features',
+                'limits',
+                'meta',
+                'updated_at',
+            ]
+        );
     }
 
     public function down(): void

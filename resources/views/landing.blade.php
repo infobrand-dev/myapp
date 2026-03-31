@@ -4,572 +4,648 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ config('app.name') }} | Omnichannel Inbox, Live Chat, Chatbot AI, WhatsApp API & WhatsApp Web</title>
-    <meta name="description" content="Satukan percakapan live chat website, WhatsApp, sosial media, dan chatbot AI dalam satu workspace untuk tim sales, support, dan marketing.">
+    <title>{{ config('app.name') }} — Omnichannel Inbox untuk Tim Sales & Support</title>
+    <meta name="description" content="Satukan percakapan WhatsApp, sosial media, live chat, dan chatbot AI dalam satu workspace. Balas lebih cepat, lead tidak tercecer, tim lebih fokus.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.1/dist/tabler-icons.min.css">
     <link rel="stylesheet" href="{{ mix('css/app.css') }}">
 </head>
 <body class="landing-page">
-    @php
-        $money = app(\App\Support\MoneyFormatter::class);
-    @endphp
-    <div class="landing-shell">
-        <header class="landing-topbar sticky-top">
-            <div class="container py-3">
-                <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-                    <div class="d-flex align-items-center gap-3">
-                        <div>
-                            <x-app-logo variant="default" :height="40" />
-                            <div class="text-muted small">Omnichannel workspace untuk sales, support, dan marketing</div>
-                        </div>
-                    </div>
-                    <div class="d-flex flex-wrap align-items-center gap-2">
-                        <a href="#results" class="btn btn-link text-decoration-none text-dark">Fitur</a>
-                        <a href="#pricing" class="btn btn-link text-decoration-none text-dark">Paket & Harga</a>
-                        <a href="#faq" class="btn btn-link text-decoration-none text-dark">FAQ</a>
-                        <a href="{{ route('workspace.finder') }}" class="btn btn-outline-dark">Login Workspace</a>
-                        <a href="{{ route('onboarding.create') }}" class="btn btn-dark">Daftar Sekarang</a>
-                    </div>
-                </div>
+@php $money = app(\App\Support\MoneyFormatter::class); @endphp
+<div class="landing-shell">
+
+{{-- ══ TOPBAR ══════════════════════════════════════════════ --}}
+<header class="landing-topbar sticky-top">
+    <div class="container py-3">
+        <div class="d-flex align-items-center justify-content-between gap-3">
+            <a href="/" class="text-decoration-none d-inline-flex align-items-center gap-2">
+                <x-app-logo variant="default" :height="36" />
+            </a>
+            <nav class="d-none d-lg-flex align-items-center gap-1">
+                <a href="#solutions" class="landing-nav-link">Fitur</a>
+                <a href="#pricing"   class="landing-nav-link">Harga</a>
+                <a href="#ai-credits" class="landing-nav-link">AI Credits</a>
+                <a href="#faq"       class="landing-nav-link">FAQ</a>
+            </nav>
+            <div class="d-flex align-items-center gap-2">
+                <a href="{{ route('workspace.finder') }}" class="btn btn-outline-dark btn-sm d-none d-md-inline-flex">Login Workspace</a>
+                <a href="{{ route('onboarding.create') }}" class="btn btn-dark btn-sm">Daftar Gratis</a>
             </div>
-        </header>
-
-        <main>
-            @if(!empty($affiliate))
-                <section class="py-3">
-                    <div class="container">
-                        <div class="alert alert-info border-0 shadow-sm mb-0">
-                            Anda masuk dari link affiliate <strong>{{ $affiliate->name }}</strong>. Referral akan tercatat otomatis saat Anda melanjutkan pendaftaran.
-                        </div>
-                    </div>
-                </section>
-            @endif
-            <section class="landing-hero py-5 py-lg-6">
-                <div class="container py-lg-5">
-                    <div class="row g-4 align-items-center">
-                        <div class="col-lg-7">
-                            <div class="landing-badge mb-4">
-                                <i class="ti ti-bolt"></i>
-                                Fokus launch untuk omnichannel: live chat, sosial media, AI chatbot, WhatsApp API, dan WhatsApp Web
-                            </div>
-                            <h1 class="landing-headline mb-4">
-                                Satukan semua percakapan pelanggan dalam <span>satu workspace</span>.
-                            </h1>
-                            <p class="landing-subtext mb-4">
-                                {{ config('app.name') }} membantu tim Anda mengubah chat yang tercecer jadi alur kerja yang lebih rapi untuk closing, follow-up, dan support. Satu tim, satu inbox, banyak channel.
-                            </p>
-                            <div class="d-flex flex-wrap gap-3 mb-4">
-                                <a href="{{ route('onboarding.create') }}" class="btn btn-lg btn-dark">Aktifkan Workspace</a>
-                                <a href="#pricing" class="btn btn-lg btn-outline-dark">Bandingkan Paket</a>
-                            </div>
-                            <div class="small text-muted mb-4">Beli paket, buat workspace, bayar, dan tenant aktif otomatis setelah pembayaran settle.</div>
-                            <div class="d-flex flex-wrap gap-2 text-muted small">
-                                <span class="landing-pill text-dark"><i class="ti ti-message-circle"></i> Social media inbox</span>
-                                <span class="landing-pill text-dark"><i class="ti ti-message-chatbot"></i> Live chat widget</span>
-                                <span class="landing-pill text-dark"><i class="ti ti-brand-openai"></i> Chatbot AI</span>
-                                <span class="landing-pill text-dark"><i class="ti ti-brand-whatsapp"></i> WhatsApp API & Web</span>
-                            </div>
-                        </div>
-                        <div class="col-lg-5">
-                            <div class="landing-panel landing-hero-card p-4 p-lg-5">
-                                <div class="d-flex justify-content-between align-items-center mb-4">
-                                    <div>
-                                        <div class="text-uppercase text-muted small fw-bold">Omnichannel Control</div>
-                                        <div class="fw-bold fs-3">Siap launch tanpa flow manual</div>
-                                    </div>
-                                    <span class="badge bg-success-lt text-success">Launch-ready</span>
-                                </div>
-                                <div class="row g-3 mb-4">
-                                    <div class="col-6">
-                                        <div class="landing-metric p-3">
-                                            <div class="text-muted small">Channel utama</div>
-                                            <div class="fw-bold fs-2">4</div>
-                                            <div class="small text-muted">Social, AI, WA API, WA Web</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="landing-metric p-3">
-                                            <div class="text-muted small">Flow jualan</div>
-                                            <div class="fw-bold fs-2">1</div>
-                                            <div class="small text-muted">Pilih paket, bayar, aktif</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="landing-highlight-list small text-muted">
-                                    <div class="mb-2">Paket publik langsung terhubung ke entitlement modul</div>
-                                    <div class="mb-2">Workspace aktif otomatis setelah pembayaran settle</div>
-                                    <div class="mb-2">Email invoice, payment received, dan welcome email sudah masuk flow</div>
-                                    <div>Tenant tidak aktif prematur sebelum customer benar-benar bayar</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section id="results" class="py-5">
-                <div class="container">
-                    <div class="row g-4 align-items-end mb-4">
-                        <div class="col-lg-7">
-                            <div class="text-uppercase text-muted small fw-bold mb-2">Hasil yang dijual</div>
-                            <h2 class="landing-section-title mb-3">Bukan cuma dashboard baru. Ini tentang response time, follow-up, dan closing.</h2>
-                            <p class="landing-subtext mb-0">
-                                Saat orang buka homepage Anda, mereka perlu langsung paham hasil akhirnya: tim tidak lagi kehilangan lead, admin lebih cepat membalas, dan channel yang dibayar langsung bisa dipakai.
-                            </p>
-                        </div>
-                    </div>
-                    <div class="row g-4">
-                        <div class="col-lg-4">
-                            <div class="landing-result-card p-4">
-                                <div class="text-uppercase text-muted small fw-bold mb-2">Lead handling</div>
-                                <h3 class="h4">Lead yang masuk tidak nyasar ke akun pribadi admin</h3>
-                                <p class="text-muted mb-0">Percakapan masuk ke inbox tim, bisa di-claim, dipantau, dan dilanjutkan tanpa kehilangan konteks.</p>
-                            </div>
-                        </div>
-                        <div class="col-lg-4">
-                            <div class="landing-result-card p-4">
-                                <div class="text-uppercase text-muted small fw-bold mb-2">Response speed</div>
-                                <h3 class="h4">Customer dijawab lebih cepat dengan kombinasi tim + AI</h3>
-                                <p class="text-muted mb-0">Chatbot AI bantu jawab awal, sementara tim fokus ke percakapan yang benar-benar perlu ditangani manusia.</p>
-                            </div>
-                        </div>
-                        <div class="col-lg-4">
-                            <div class="landing-result-card p-4">
-                                <div class="text-uppercase text-muted small fw-bold mb-2">Operational scale</div>
-                                <h3 class="h4">Channel bertambah tanpa bikin operasional makin berantakan</h3>
-                                <p class="text-muted mb-0">Live chat website, social media, WhatsApp API, dan WhatsApp Web berjalan dari satu workspace dengan plan yang jelas.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section id="solutions" class="py-5">
-                <div class="container">
-                    <div class="row g-4 align-items-end mb-4">
-                        <div class="col-lg-7">
-                            <div class="text-uppercase text-muted small fw-bold mb-2">Solusi utama</div>
-                            <h2 class="landing-section-title mb-3">Jangan cuma sukses transaksi. Pastikan tim benar-benar bisa jualan.</h2>
-                            <p class="landing-subtext mb-0">
-                                Homepage ini fokus ke masalah nyata saat launch: chat tercecer, admin lambat merespons, WhatsApp belum terhubung, dan AI belum dipakai untuk bantu closing dan support.
-                            </p>
-                        </div>
-                    </div>
-                    <div class="row g-4">
-                        <div class="col-md-6 col-xl-3">
-                            <div class="landing-feature-card p-4">
-                                <div class="landing-feature-icon mb-3"><i class="ti ti-messages"></i></div>
-                                <h3 class="h4">Conversation Inbox</h3>
-                                <p class="text-muted mb-0">Satukan percakapan tim dalam satu inbox bersama untuk assignment, follow up, dan histori customer.</p>
-                            </div>
-                        </div>
-                        <div class="col-md-6 col-xl-3">
-                            <div class="landing-feature-card p-4">
-                                <div class="landing-feature-icon mb-3"><i class="ti ti-brand-instagram"></i></div>
-                                <h3 class="h4">Social Media Inbox</h3>
-                                <p class="text-muted mb-0">Kelola DM dan percakapan sosial media dari satu dashboard, bukan pindah-pindah aplikasi admin.</p>
-                            </div>
-                        </div>
-                        <div class="col-md-6 col-xl-3">
-                            <div class="landing-feature-card p-4">
-                                <div class="landing-feature-icon mb-3"><i class="ti ti-brand-openai"></i></div>
-                                <h3 class="h4">Chatbot AI</h3>
-                                <p class="text-muted mb-0">Bantu jawab cepat, saring lead, dan otomatisasi percakapan awal sebelum masuk ke tim manusia.</p>
-                            </div>
-                        </div>
-                        <div class="col-md-6 col-xl-3">
-                            <div class="landing-feature-card p-4">
-                                <div class="landing-feature-icon mb-3"><i class="ti ti-brand-whatsapp"></i></div>
-                                <h3 class="h4">WhatsApp API & Web</h3>
-                                <p class="text-muted mb-0">Aktifkan channel WhatsApp sesuai kesiapan bisnis, dari API resmi sampai operasional WhatsApp Web.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="py-5">
-                <div class="container">
-                    <div class="row g-4">
-                        <div class="col-lg-4">
-                            <div class="landing-usecase-card p-4">
-                                <div class="text-uppercase text-muted small fw-bold mb-2">Sales</div>
-                                <h3 class="h4">Lead masuk tidak lagi tercecer</h3>
-                                <p class="text-muted mb-0">Semua lead dari sosial media, chatbot, live chat, dan WhatsApp bisa masuk ke CRM pipeline untuk follow up yang lebih rapi.</p>
-                            </div>
-                        </div>
-                        <div class="col-lg-4">
-                            <div class="landing-usecase-card p-4">
-                                <div class="text-uppercase text-muted small fw-bold mb-2">Customer Support</div>
-                                <h3 class="h4">Respon lebih cepat dan terukur</h3>
-                                <p class="text-muted mb-0">Tim support dapat inbox bersama, claim conversation, dan histori percakapan yang konsisten.</p>
-                            </div>
-                        </div>
-                        <div class="col-lg-4">
-                            <div class="landing-usecase-card p-4">
-                                <div class="text-uppercase text-muted small fw-bold mb-2">Marketing Ops</div>
-                                <h3 class="h4">Channel aktif sesuai paket</h3>
-                                <p class="text-muted mb-0">Plan menentukan modul yang aktif, jadi apa yang dibeli customer langsung sama dengan apa yang bisa dipakai.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section id="pricing" class="py-5">
-                <div class="container">
-                    @php
-                        $plansByInterval = $plans->groupBy(fn ($plan) => $plan->billing_interval);
-                        $intervalOrder = ['monthly', 'semiannual', 'yearly'];
-                        $intervalHeadings = [
-                            'monthly' => [
-                                'title' => 'Bulanan',
-                                'description' => 'Paling fleksibel untuk mulai jalan dan evaluasi kebutuhan tim Anda dari bulan ke bulan.',
-                            ],
-                            'semiannual' => [
-                                'title' => '6 Bulanan',
-                                'description' => 'Cocok untuk bisnis yang ingin lebih tenang beberapa bulan ke depan tanpa repot perpanjang setiap bulan.',
-                            ],
-                            'yearly' => [
-                                'title' => 'Tahunan',
-                                'description' => 'Pilihan paling stabil untuk tim yang sudah siap menjalankan omnichannel sepanjang tahun.',
-                            ],
-                        ];
-                    @endphp
-                    <div class="row g-4 align-items-end mb-4">
-                        <div class="col-lg-7">
-                            <div class="text-uppercase text-muted small fw-bold mb-2">Paket</div>
-                            <h2 class="landing-section-title mb-3">Pilih paket omnichannel yang sesuai tahap bisnis Anda.</h2>
-                            <p class="landing-subtext mb-0">
-                                Semua paket fokus ke Omnichannel untuk tim sales dan customer service. Mulai dari social inbox dan live chat dasar sampai paket lengkap dengan AI, WhatsApp API, dan WhatsApp Web.
-                            </p>
-                        </div>
-                    </div>
-                    @foreach ($intervalOrder as $intervalKey)
-                        @php
-                            $intervalPlans = $plansByInterval->get($intervalKey, collect())->sortBy('sort_order')->values();
-                            $intervalMeta = $intervalHeadings[$intervalKey] ?? null;
-                        @endphp
-                        @if ($intervalMeta && $intervalPlans->isNotEmpty())
-                            <div class="mb-4">
-                                <div class="d-flex flex-column flex-lg-row align-items-lg-end justify-content-between gap-2 mb-3">
-                                    <div>
-                                        <h3 class="h4 mb-1">{{ $intervalMeta['title'] }}</h3>
-                                        <p class="text-muted mb-0">{{ $intervalMeta['description'] }}</p>
-                                    </div>
-                                </div>
-                                <div class="row g-4">
-                                    @foreach ($intervalPlans as $plan)
-                                        @php
-                                            $sales = $plan->sales_meta ?? [];
-                                            $features = (array) ($plan->features ?? []);
-                                            $limits = (array) ($plan->limits ?? []);
-                                            $priceCurrency = strtoupper((string) ($sales['currency'] ?? 'IDR'));
-                                            $recommended = (bool) ($sales['recommended'] ?? false);
-                                            $fit = (string) ($sales['audience'] ?? 'Paket omnichannel');
-                                            $channels = [
-                                                'Social Inbox',
-                                                'Live Chat',
-                                                'CRM Lite',
-                                            ];
-
-                                            if (!empty($features[\App\Support\PlanFeature::CHATBOT_AI])) {
-                                                $channels[] = 'AI';
-                                            }
-
-                                            if (!empty($features[\App\Support\PlanFeature::WHATSAPP_API])) {
-                                                $channels[] = 'WhatsApp API';
-                                            }
-
-                                            if (!empty($features[\App\Support\PlanFeature::WHATSAPP_WEB])) {
-                                                $channels[] = 'WhatsApp Web';
-                                            }
-
-                                            $primaryLimits = [
-                                                'Users' => $limits[\App\Support\PlanLimit::USERS] ?? null,
-                                                'Contacts' => $limits[\App\Support\PlanLimit::CONTACTS] ?? null,
-                                                'Social Accounts' => $limits[\App\Support\PlanLimit::SOCIAL_ACCOUNTS] ?? null,
-                                                'Live Chat Widgets' => $limits[\App\Support\PlanLimit::LIVE_CHAT_WIDGETS] ?? null,
-                                            ];
-
-                                            if (!empty($features[\App\Support\PlanFeature::WHATSAPP_API]) || !empty($features[\App\Support\PlanFeature::WHATSAPP_WEB])) {
-                                                $primaryLimits['WhatsApp Connections'] = $limits[\App\Support\PlanLimit::WHATSAPP_INSTANCES] ?? null;
-                                            }
-
-                                            if (($limits[\App\Support\PlanLimit::AI_CREDITS_MONTHLY] ?? 0) > 0) {
-                                                $primaryLimits['AI Credits'] = $limits[\App\Support\PlanLimit::AI_CREDITS_MONTHLY] ?? 0;
-                                            }
-                                        @endphp
-                                        <div class="col-lg-4">
-                                            <div class="landing-plan-card p-4 {{ $recommended ? 'featured' : '' }}">
-                                                <div class="d-flex justify-content-between align-items-start mb-3">
-                                                    <div>
-                                                        <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
-                                                            <div class="h3 mb-0">{{ $sales['display_name'] ?? $plan->display_name }}</div>
-                                                            <span class="badge bg-light text-dark border">{{ $plan->billing_interval_label }}</span>
-                                                        </div>
-                                                        <div class="text-muted small">{{ $sales['tagline'] ?? 'Paket omnichannel' }}</div>
-                                                    </div>
-                                                    @if ($recommended)
-                                                        <span class="badge bg-primary-lt text-primary">Paling populer</span>
-                                                    @endif
-                                                </div>
-                                                <div class="landing-price mb-1">{{ $money->format((float) ($sales['price'] ?? 0), $priceCurrency) }}</div>
-                                                <div class="text-muted small mb-3">Paket {{ strtolower($plan->billing_interval_label) }}</div>
-                                                <div class="landing-package-fit mb-3"><i class="ti ti-user-circle"></i>{{ $fit }}</div>
-                                                <p class="text-muted">{{ $sales['description'] ?? 'Paket untuk tim omnichannel.' }}</p>
-                                                <div class="d-flex flex-wrap gap-2 mb-3">
-                                                    @foreach ($channels as $channel)
-                                                        <span class="badge bg-light text-dark border">{{ $channel }}</span>
-                                                    @endforeach
-                                                </div>
-                                                <div class="rounded-3 border p-3 mb-3 small">
-                                                    <div class="d-flex justify-content-between gap-3 mb-2">
-                                                        <span class="text-muted">AI</span>
-                                                        <span class="fw-semibold">{{ ($limits[\App\Support\PlanLimit::AI_CREDITS_MONTHLY] ?? 0) > 0 ? 'Termasuk kuota + top up tersedia' : 'Belum termasuk' }}</span>
-                                                    </div>
-                                                    <div class="d-flex justify-content-between gap-3">
-                                                        <span class="text-muted">WhatsApp</span>
-                                                        <span class="fw-semibold">{{ !empty($features[\App\Support\PlanFeature::WHATSAPP_API]) || !empty($features[\App\Support\PlanFeature::WHATSAPP_WEB]) ? 'Hubungkan akun WhatsApp Anda sendiri' : 'Belum termasuk' }}</span>
-                                                    </div>
-                                                </div>
-                                                <div class="landing-highlight-list small text-muted mb-4">
-                                                    @foreach ($primaryLimits as $label => $value)
-                                                        @if ($value !== null)
-                                                            <div class="mb-2 d-flex justify-content-between gap-3">
-                                                                <span>{{ $label }}</span>
-                                                                <span class="text-dark fw-semibold">{{ number_format((int) $value, 0, ',', '.') }}</span>
-                                                            </div>
-                                                        @endif
-                                                    @endforeach
-                                                </div>
-                                                <div class="landing-highlight-list small text-muted mb-4">
-                                                    @foreach (($sales['highlights'] ?? []) as $highlight)
-                                                        <div class="mb-2">{{ $highlight }}</div>
-                                                    @endforeach
-                                                </div>
-                                                <a href="{{ route('onboarding.create') }}?plan={{ $plan->code }}" class="btn {{ $recommended ? 'btn-dark' : 'btn-outline-dark' }} w-100">
-                                                    Pilih {{ $sales['display_name'] ?? $plan->display_name }}
-                                                </a>
-                                            </div>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endif
-                    @endforeach
-                    <div class="small text-muted mt-3">
-                        Add-on yang tersedia untuk launch hanya <strong>AI Credits top up</strong>. Di luar itu, penambahan kapasitas dilakukan dengan upgrade plan atau penyesuaian internal oleh tim kami.
-                    </div>
-                </div>
-            </section>
-
-            <section class="py-5">
-                <div class="container">
-                    <div class="row g-4 align-items-start">
-                        <div class="col-lg-5">
-                            <div class="text-uppercase text-muted small fw-bold mb-2">Cara kerja</div>
-                            <h2 class="landing-section-title mb-3">Beli paket, aktifkan workspace, langsung pakai modul.</h2>
-                            <p class="landing-subtext mb-0">
-                                Fokus kita sekarang bukan cuma payment sukses, tapi memastikan tenant aktif dan modul yang dibeli langsung siap dipakai setelah pembayaran settle.
-                            </p>
-                        </div>
-                        <div class="col-lg-7">
-                            <div class="landing-panel p-4 p-lg-5 rounded-4">
-                                <div class="row g-4">
-                                    <div class="col-md-6">
-                                        <div class="landing-step">
-                                            <div class="landing-step-number">1</div>
-                                            <h3 class="h5">Pilih paket</h3>
-                                            <p class="text-muted mb-0">Pilih Starter, Growth, atau Scale sesuai channel dan kapasitas tim Anda.</p>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="landing-step">
-                                            <div class="landing-step-number">2</div>
-                                            <h3 class="h5">Buat workspace</h3>
-                                            <p class="text-muted mb-0">Tentukan nama bisnis, subdomain, dan admin utama untuk tenant Anda.</p>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="landing-step">
-                                            <div class="landing-step-number">3</div>
-                                            <h3 class="h5">Bayar invoice</h3>
-                                            <p class="text-muted mb-0">Sistem otomatis membuat invoice dan mengarahkan Anda ke Midtrans checkout.</p>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="landing-step">
-                                            <div class="landing-step-number">4</div>
-                                            <h3 class="h5">Tenant aktif otomatis</h3>
-                                            <p class="text-muted mb-0">Saat payment settle, subscription aktif, welcome email terkirim, dan modul sesuai paket siap dipakai.</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="py-5">
-                <div class="container">
-                    <div class="text-center mb-4">
-                        <div class="text-uppercase text-muted small fw-bold mb-2">Kenapa pilih kami</div>
-                        <h2 class="landing-section-title mb-0">Dibangun untuk tim bisnis Indonesia.</h2>
-                    </div>
-                    <div class="row g-3 justify-content-center">
-                        <div class="col-6 col-md-4 col-lg-2">
-                            <div class="text-center p-3">
-                                <div class="fw-bold mb-1" style="font-size:2rem;color:var(--landing-blue);">
-                                    <i class="ti ti-brand-whatsapp" style="font-size:2.2rem;"></i>
-                                </div>
-                                <div class="small fw-semibold">WhatsApp API</div>
-                                <div class="text-muted" style="font-size:0.78rem;">Resmi & terverifikasi</div>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-4 col-lg-2">
-                            <div class="text-center p-3">
-                                <div class="fw-bold mb-1" style="color:var(--landing-blue);">
-                                    <i class="ti ti-lock" style="font-size:2.2rem;"></i>
-                                </div>
-                                <div class="small fw-semibold">Data Aman</div>
-                                <div class="text-muted" style="font-size:0.78rem;">Tiap tenant terisolasi</div>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-4 col-lg-2">
-                            <div class="text-center p-3">
-                                <div class="fw-bold mb-1" style="color:var(--landing-blue);">
-                                    <i class="ti ti-bolt" style="font-size:2.2rem;"></i>
-                                </div>
-                                <div class="small fw-semibold">Aktif Otomatis</div>
-                                <div class="text-muted" style="font-size:0.78rem;">Setelah bayar langsung pakai</div>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-4 col-lg-2">
-                            <div class="text-center p-3">
-                                <div class="fw-bold mb-1" style="color:var(--landing-blue);">
-                                    <i class="ti ti-headset" style="font-size:2.2rem;"></i>
-                                </div>
-                                <div class="small fw-semibold">Support Lokal</div>
-                                <div class="text-muted" style="font-size:0.78rem;">Tim berbahasa Indonesia</div>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-4 col-lg-2">
-                            <div class="text-center p-3">
-                                <div class="fw-bold mb-1" style="color:var(--landing-blue);">
-                                    <i class="ti ti-credit-card" style="font-size:2.2rem;"></i>
-                                </div>
-                                <div class="small fw-semibold">Bayar Lokal</div>
-                                <div class="text-muted" style="font-size:0.78rem;">Transfer, VA, QRIS</div>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-4 col-lg-2">
-                            <div class="text-center p-3">
-                                <div class="fw-bold mb-1" style="color:var(--landing-blue);">
-                                    <i class="ti ti-building-store" style="font-size:2.2rem;"></i>
-                                </div>
-                                <div class="small fw-semibold">Multi-Branch</div>
-                                <div class="text-muted" style="font-size:0.78rem;">Satu akun, banyak lokasi</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section id="faq" class="py-5">
-                <div class="container">
-                    <div class="row g-4 align-items-end mb-4">
-                        <div class="col-lg-7">
-                            <div class="text-uppercase text-muted small fw-bold mb-2">FAQ</div>
-                            <h2 class="landing-section-title mb-3">Pertanyaan yang paling sering muncul sebelum mulai.</h2>
-                        </div>
-                    </div>
-                    <div class="row g-4">
-                        <div class="col-lg-6">
-                            <div class="landing-faq-card p-4">
-                                <h3 class="h5">Apa bedanya WhatsApp API dan WhatsApp Web?</h3>
-                                <p class="text-muted mb-0">WhatsApp API cocok untuk skala yang lebih resmi dan terintegrasi. WhatsApp Web cocok untuk operasional yang masih butuh pola kerja seperti admin manual. Untuk kedua opsi ini, tenant menghubungkan akun WhatsApp bisnisnya sendiri sesuai paket yang dipilih.</p>
-                            </div>
-                        </div>
-                        <div class="col-lg-6">
-                            <div class="landing-faq-card p-4">
-                                <h3 class="h5">Apakah tiap tenant dapat subdomain sendiri?</h3>
-                                <p class="text-muted mb-0">Ya. Setelah daftar, tenant Anda memakai workspace terpisah seperti `bisnisanda.{{ config('multitenancy.saas_domain') }}`.</p>
-                            </div>
-                        </div>
-                        <div class="col-lg-6">
-                            <div class="landing-faq-card p-4">
-                                <h3 class="h5">Apakah modul langsung aktif setelah bayar?</h3>
-                                <p class="text-muted mb-0">Ya. Setelah payment settle, tenant aktif dan entitlement modul mengikuti plan yang dibeli.</p>
-                            </div>
-                        </div>
-                        <div class="col-lg-6">
-                            <div class="landing-faq-card p-4">
-                                <h3 class="h5">Kalau sudah punya workspace, masuk dari mana?</h3>
-                                <p class="text-muted mb-0">Masuk lewat URL workspace Anda sendiri, misalnya `subdomain.{{ config('multitenancy.saas_domain') }}/login`.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section id="workspace" class="py-5">
-                <div class="container">
-                    <div class="landing-panel p-4 p-lg-5 rounded-4">
-                        <div class="row g-4 align-items-center">
-                            <div class="col-lg-8">
-                                <div class="text-uppercase text-muted small fw-bold mb-2">Sudah punya workspace?</div>
-                                <h2 class="landing-section-title mb-3">Masuk lewat subdomain workspace Anda.</h2>
-                                <p class="landing-subtext mb-0">
-                                    Login tenant tidak memakai apex domain. Jika workspace Anda sudah aktif, masuk langsung lewat URL seperti <strong>`subdomain.{{ config('multitenancy.saas_domain') }}/login`</strong>.
-                                </p>
-                            </div>
-                            <div class="col-lg-4 text-lg-end">
-                                <a href="{{ route('workspace.finder') }}" class="btn btn-dark btn-lg">Buka Login Workspace</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="py-5">
-                <div class="container">
-                    <div class="landing-cta-band p-4 p-lg-5">
-                        <div class="row g-4 align-items-center">
-                            <div class="col-lg-8">
-                                <div class="text-uppercase small fw-bold mb-2 opacity-75">Siap mulai</div>
-                                <h2 class="landing-section-title text-white mb-3">Mulai jualan dengan workspace omnichannel yang langsung bisa dipakai.</h2>
-                                <p class="mb-0 opacity-75">Pilih paket, buat tenant, lanjutkan ke pembayaran, dan aktifkan modul sesuai kebutuhan tim Anda.</p>
-                            </div>
-                            <div class="col-lg-4 text-lg-end">
-                                <a href="{{ route('onboarding.create') }}" class="btn btn-light btn-lg me-2 mb-2">Mulai Sekarang</a>
-                                <a href="{{ route('workspace.finder') }}" class="btn btn-outline-light btn-lg mb-2">Masuk Workspace</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </main>
-
-        <footer class="py-4 mt-2" style="border-top: 1px solid var(--landing-line);">
-            <div class="container">
-                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <x-app-logo variant="default" :height="28" />
-                        <span class="text-muted small">&copy; {{ date('Y') }}</span>
-                    </div>
-                    <div class="d-flex flex-wrap gap-4">
-                        <a href="{{ route('affiliate.program') }}" class="text-muted small text-decoration-none" style="transition: color 0.15s;" onmouseover="this.style.color='var(--landing-blue)'" onmouseout="this.style.color=''">Info Partner</a>
-                        <a href="#" class="text-muted small text-decoration-none" style="transition: color 0.15s;" onmouseover="this.style.color='var(--landing-blue)'" onmouseout="this.style.color=''">Kebijakan Privasi</a>
-                        <a href="#" class="text-muted small text-decoration-none" style="transition: color 0.15s;" onmouseover="this.style.color='var(--landing-blue)'" onmouseout="this.style.color=''">Syarat & Ketentuan</a>
-                        <a href="mailto:{{ config('mail.from.address', 'hello@' . config('multitenancy.saas_domain', 'app.com')) }}" class="text-muted small text-decoration-none" style="transition: color 0.15s;" onmouseover="this.style.color='var(--landing-blue)'" onmouseout="this.style.color=''">Hubungi Kami</a>
-                    </div>
-                </div>
-            </div>
-        </footer>
+        </div>
     </div>
+</header>
+
+<main>
+
+{{-- ══ AFFILIATE BANNER ════════════════════════════════════ --}}
+@if(!empty($affiliate))
+<section class="pt-4">
+    <div class="container">
+        <div class="alert alert-info border-0 rounded-3 mb-0 d-flex align-items-center gap-3">
+            <i class="ti ti-link fs-4 flex-shrink-0"></i>
+            <div>Anda masuk dari link referral <strong>{{ $affiliate->name }}</strong>. Referral akan tercatat otomatis saat melanjutkan pendaftaran.</div>
+        </div>
+    </div>
+</section>
+@endif
+
+{{-- ══ HERO ════════════════════════════════════════════════ --}}
+<section class="landing-hero py-5 py-lg-6">
+    <div class="container py-lg-4">
+        <div class="row g-5 align-items-center">
+            <div class="col-lg-6">
+                <div class="landing-badge mb-4">
+                    <i class="ti ti-bolt"></i> Untuk tim sales, support, dan marketing
+                </div>
+                <h1 class="landing-headline mb-4">
+                    Semua percakapan pelanggan, <span>satu inbox</span>.
+                </h1>
+                <p class="landing-subtext mb-5">
+                    WhatsApp, sosial media, live chat, dan chatbot AI — dikelola dari satu tempat. Tim lebih cepat merespons, lead tidak nyasar, dan closing jadi lebih terukur.
+                </p>
+                <div class="d-flex flex-wrap gap-3 mb-5">
+                    <a href="{{ route('onboarding.create') }}" class="btn btn-lg btn-dark">Coba Sekarang</a>
+                    <a href="#pricing" class="btn btn-lg btn-outline-dark">Lihat Paket</a>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <span class="landing-pill"><i class="ti ti-brand-whatsapp"></i> WhatsApp API & Web</span>
+                    <span class="landing-pill"><i class="ti ti-brand-instagram"></i> Social Inbox</span>
+                    <span class="landing-pill"><i class="ti ti-message-chatbot"></i> Chatbot AI</span>
+                    <span class="landing-pill"><i class="ti ti-live-view"></i> Live Chat</span>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="landing-panel landing-hero-card p-4 p-lg-5">
+                    <div class="mb-4">
+                        <div class="text-uppercase text-muted small fw-bold mb-1">Apa yang didapat</div>
+                        <div class="fw-bold fs-4 lh-sm">Tim Anda fokus jualan,<br>bukan pindah-pindah aplikasi.</div>
+                    </div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-6">
+                            <div class="landing-metric p-3 text-center">
+                                <div class="fw-bold mb-1" style="font-size:2.2rem;line-height:1;color:var(--landing-blue);">4+</div>
+                                <div class="small text-muted">Channel dalam satu inbox</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="landing-metric p-3 text-center">
+                                <div class="fw-bold mb-1" style="font-size:2.2rem;line-height:1;color:var(--landing-teal);">24/7</div>
+                                <div class="small text-muted">Chatbot AI siap menjawab</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="landing-checklist small">
+                        <div><i class="ti ti-check text-success"></i> Percakapan masuk ke inbox tim, bisa di-assign ke CS</div>
+                        <div><i class="ti ti-check text-success"></i> Chatbot jawab otomatis, tim fokus ke percakapan penting</div>
+                        <div><i class="ti ti-check text-success"></i> Aktif setelah bayar — tidak perlu setup teknis manual</div>
+                        <div><i class="ti ti-check text-success"></i> Bayar pakai transfer, VA, atau QRIS</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{{-- ══ SOCIAL PROOF / TRUST STRIP ═════════════════════════ --}}
+<section class="py-4">
+    <div class="container">
+        <div class="landing-trust-strip">
+            <div class="landing-trust-item">
+                <i class="ti ti-brand-whatsapp"></i>
+                <div class="small">WhatsApp API Resmi</div>
+            </div>
+            <div class="landing-trust-sep"></div>
+            <div class="landing-trust-item">
+                <i class="ti ti-lock"></i>
+                <div class="small">Data tiap tenant terisolasi</div>
+            </div>
+            <div class="landing-trust-sep"></div>
+            <div class="landing-trust-item">
+                <i class="ti ti-credit-card"></i>
+                <div class="small">Bayar lokal — VA, QRIS, transfer</div>
+            </div>
+            <div class="landing-trust-sep"></div>
+            <div class="landing-trust-item">
+                <i class="ti ti-headset"></i>
+                <div class="small">Support berbahasa Indonesia</div>
+            </div>
+            <div class="landing-trust-sep"></div>
+            <div class="landing-trust-item">
+                <i class="ti ti-building-store"></i>
+                <div class="small">Multi-branch & multi-company</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{{-- ══ PROBLEMS / WHY ══════════════════════════════════════ --}}
+<section class="py-5 py-lg-6" id="why">
+    <div class="container">
+        <div class="text-center mb-5">
+            <div class="landing-eyebrow mb-2">Masalah yang kami selesaikan</div>
+            <h2 class="landing-section-title">Tim Anda seharusnya tidak menghabiskan waktu<br class="d-none d-lg-block"> untuk hal-hal ini.</h2>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="landing-problem-card p-4 h-100">
+                    <div class="landing-problem-icon mb-3"><i class="ti ti-alert-triangle"></i></div>
+                    <h3 class="h5 mb-2">Lead nyasar ke HP pribadi admin</h3>
+                    <p class="text-muted mb-0 small">Pesan dari pelanggan masuk ke akun WhatsApp atau DM pribadi admin — tidak bisa dipantau, tidak bisa di-handover.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="landing-problem-card p-4 h-100">
+                    <div class="landing-problem-icon mb-3"><i class="ti ti-clock"></i></div>
+                    <h3 class="h5 mb-2">Respon lambat karena pindah-pindah app</h3>
+                    <p class="text-muted mb-0 small">Admin harus cek Instagram, WhatsApp, email, dan website secara bergantian — waktu habis, respon lambat, lead tidak ditangani.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="landing-problem-card p-4 h-100">
+                    <div class="landing-problem-icon mb-3"><i class="ti ti-robot-off"></i></div>
+                    <h3 class="h5 mb-2">Di luar jam kerja tidak ada yang jawab</h3>
+                    <p class="text-muted mb-0 small">Pelanggan tanya malam hari atau weekend — tidak ada yang balas, padahal banyak pertanyaan bisa dijawab otomatis oleh bot.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{{-- ══ SOLUTIONS / FEATURES ════════════════════════════════ --}}
+<section id="solutions" class="py-5 py-lg-6">
+    <div class="container">
+        <div class="row g-5 align-items-center mb-6">
+            <div class="col-lg-5">
+                <div class="landing-eyebrow mb-2">Solusi</div>
+                <h2 class="landing-section-title mb-3">Satu workspace untuk semua channel percakapan tim Anda.</h2>
+                <p class="landing-subtext">Tidak perlu banyak tools. Semua channel terhubung, semua percakapan bisa dipantau tim, dan bot AI siap bantu di luar jam kerja.</p>
+            </div>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-6 col-xl-3">
+                <div class="landing-feature-card p-4 h-100">
+                    <div class="landing-feature-icon mb-3"><i class="ti ti-messages"></i></div>
+                    <h3 class="h5 mb-2">Conversation Inbox</h3>
+                    <p class="text-muted small mb-0">Satu inbox tim untuk semua percakapan masuk. Bisa di-assign ke CS, dipantau supervisor, dan punya riwayat lengkap per pelanggan.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="landing-feature-card p-4 h-100">
+                    <div class="landing-feature-icon mb-3"><i class="ti ti-brand-instagram"></i></div>
+                    <h3 class="h5 mb-2">Social Media Inbox</h3>
+                    <p class="text-muted small mb-0">Kelola DM Instagram, Facebook, dan channel sosial lainnya dari satu dashboard — tidak perlu login ke masing-masing akun.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="landing-feature-card p-4 h-100">
+                    <div class="landing-feature-icon mb-3"><i class="ti ti-brand-whatsapp"></i></div>
+                    <h3 class="h5 mb-2">WhatsApp API & Web</h3>
+                    <p class="text-muted small mb-0">Hubungkan nomor WhatsApp bisnis Anda sendiri. Pilih WhatsApp API untuk volume tinggi, atau WhatsApp Web untuk operasional harian.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="landing-feature-card p-4 h-100">
+                    <div class="landing-feature-icon mb-3"><i class="ti ti-message-chatbot"></i></div>
+                    <h3 class="h5 mb-2">Chatbot AI</h3>
+                    <p class="text-muted small mb-0">Bot menjawab otomatis 24/7, menyaring pertanyaan umum, dan meneruskan ke tim hanya saat benar-benar dibutuhkan.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="landing-feature-card p-4 h-100">
+                    <div class="landing-feature-icon mb-3"><i class="ti ti-live-view"></i></div>
+                    <h3 class="h5 mb-2">Live Chat Widget</h3>
+                    <p class="text-muted small mb-0">Tambahkan widget chat ke website Anda dalam hitungan menit. Pengunjung website bisa langsung terhubung ke tim tanpa meninggalkan halaman.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="landing-feature-card p-4 h-100">
+                    <div class="landing-feature-icon mb-3"><i class="ti ti-chart-bar"></i></div>
+                    <h3 class="h5 mb-2">CRM & Pipeline</h3>
+                    <p class="text-muted small mb-0">Lead dari semua channel bisa masuk ke pipeline CRM untuk follow-up terstruktur — tidak ada yang terlewat.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="landing-feature-card p-4 h-100">
+                    <div class="landing-feature-icon mb-3"><i class="ti ti-users"></i></div>
+                    <h3 class="h5 mb-2">Manajemen Kontak</h3>
+                    <p class="text-muted small mb-0">Semua kontak pelanggan tersimpan terpusat lengkap dengan riwayat percakapan, tag, dan informasi bisnis relevan.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="landing-feature-card p-4 h-100">
+                    <div class="landing-feature-icon mb-3"><i class="ti ti-building-store"></i></div>
+                    <h3 class="h5 mb-2">Multi-Branch</h3>
+                    <p class="text-muted small mb-0">Satu workspace untuk beberapa cabang atau departemen. Akses bisa dibatasi per lokasi atau tim sesuai kebutuhan.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{{-- ══ USE CASES ════════════════════════════════════════════ --}}
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <div class="landing-eyebrow mb-2">Cocok untuk</div>
+            <h2 class="landing-section-title">Dirancang untuk tim yang menangani pelanggan setiap hari.</h2>
+        </div>
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="landing-usecase-card p-4 h-100">
+                    <div class="landing-usecase-label mb-3">Sales</div>
+                    <h3 class="h5 mb-2">Tidak ada lead yang terlewat lagi</h3>
+                    <p class="text-muted small mb-0">Semua lead dari WhatsApp, sosmed, dan live chat masuk ke satu pipeline. Follow-up bisa dijadwal, dan histori percakapan tidak hilang saat ganti admin.</p>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="landing-usecase-card p-4 h-100">
+                    <div class="landing-usecase-label mb-3">Customer Support</div>
+                    <h3 class="h5 mb-2">Respon lebih cepat, pelanggan lebih puas</h3>
+                    <p class="text-muted small mb-0">Tim CS punya inbox bersama dengan assignment dan prioritas. Bot AI tangani pertanyaan berulang, tim fokus ke kasus yang butuh penanganan manusia.</p>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="landing-usecase-card p-4 h-100">
+                    <div class="landing-usecase-label mb-3">Marketing & Ops</div>
+                    <h3 class="h5 mb-2">Semua channel aktif, satu tempat kelola</h3>
+                    <p class="text-muted small mb-0">Dari social inbox sampai WhatsApp API — semua dikelola dari satu workspace sesuai paket yang diambil. Tidak perlu integrasi manual.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{{-- ══ PRICING ══════════════════════════════════════════════ --}}
+<section id="pricing" class="py-5 py-lg-6">
+    <div class="container">
+        @php
+            $plansByInterval = $plans->groupBy(fn ($plan) => $plan->billing_interval);
+            $intervalOrder = ['monthly', 'semiannual', 'yearly'];
+            $intervalMeta = [
+                'monthly'    => ['label' => 'Bulanan',   'desc' => 'Fleksibel, bisa evaluasi setiap bulan.',            'badge' => null],
+                'semiannual' => ['label' => '6 Bulanan', 'desc' => 'Lebih hemat, cocok untuk bisnis yang sudah jalan.', 'badge' => 'Hemat ~10%'],
+                'yearly'     => ['label' => 'Tahunan',   'desc' => 'Paling efisien untuk tim yang sudah siap scale.',   'badge' => 'Hemat ~17%'],
+            ];
+        @endphp
+
+        <div class="text-center mb-5">
+            <div class="landing-eyebrow mb-2">Paket & Harga</div>
+            <h2 class="landing-section-title mb-3">Pilih paket sesuai kebutuhan tim.</h2>
+            <p class="landing-subtext mx-auto text-center">Semua paket sudah termasuk inbox tim, kontak, dan live chat. Pilih plan yang sesuai dengan channel dan kapasitas yang Anda butuhkan.</p>
+        </div>
+
+        @foreach ($intervalOrder as $iKey)
+            @php
+                $iPlans = $plansByInterval->get($iKey, collect())->sortBy('sort_order')->values();
+                $iMeta  = $intervalMeta[$iKey] ?? null;
+            @endphp
+            @if ($iMeta && $iPlans->isNotEmpty())
+            <div class="mb-5">
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <h3 class="h4 mb-0">{{ $iMeta['label'] }}</h3>
+                    @if($iMeta['badge'])
+                        <span class="badge" style="background:rgba(10,138,142,0.12);color:var(--landing-teal);font-size:0.75rem;">{{ $iMeta['badge'] }}</span>
+                    @endif
+                    <span class="text-muted small">{{ $iMeta['desc'] }}</span>
+                </div>
+                <div class="row g-4">
+                    @foreach ($iPlans as $plan)
+                    @php
+                        $sales     = $plan->sales_meta ?? [];
+                        $features  = (array) ($plan->features ?? []);
+                        $limits    = (array) ($plan->limits ?? []);
+                        $currency  = strtoupper((string) ($sales['currency'] ?? 'IDR'));
+                        $recommended = (bool) ($sales['recommended'] ?? false);
+                        $fit       = (string) ($sales['audience'] ?? '');
+                        $hasAi     = !empty($features[\App\Support\PlanFeature::CHATBOT_AI]);
+                        $hasWaApi  = !empty($features[\App\Support\PlanFeature::WHATSAPP_API]);
+                        $hasWaWeb  = !empty($features[\App\Support\PlanFeature::WHATSAPP_WEB]);
+                        $aiCredits = (int) ($limits[\App\Support\PlanLimit::AI_CREDITS_MONTHLY] ?? 0);
+                        $users     = $limits[\App\Support\PlanLimit::USERS] ?? null;
+                        $contacts  = $limits[\App\Support\PlanLimit::CONTACTS] ?? null;
+                        $socialAcc = $limits[\App\Support\PlanLimit::SOCIAL_ACCOUNTS] ?? null;
+                        $waInst    = $limits[\App\Support\PlanLimit::WHATSAPP_INSTANCES] ?? null;
+                        $widgets   = $limits[\App\Support\PlanLimit::LIVE_CHAT_WIDGETS] ?? null;
+                    @endphp
+                    <div class="col-lg-4">
+                        <div class="landing-plan-card p-4 p-lg-5 {{ $recommended ? 'featured' : '' }}">
+                            @if($recommended)
+                                <div class="landing-plan-popular">Paling populer</div>
+                            @endif
+                            <div class="mb-1 d-flex align-items-center gap-2 flex-wrap">
+                                <div class="h3 mb-0 fw-800">{{ $sales['display_name'] ?? $plan->display_name }}</div>
+                            </div>
+                            <div class="text-muted small mb-4">{{ $sales['tagline'] ?? '' }}</div>
+
+                            <div class="landing-price mb-1">{{ $money->format((float) ($sales['price'] ?? 0), $currency) }}</div>
+                            <div class="text-muted small mb-4">per bulan · tagihan {{ strtolower($plan->billing_interval_label) }}</div>
+
+                            @if($fit)
+                            <div class="landing-package-fit mb-4"><i class="ti ti-user-circle"></i>{{ $fit }}</div>
+                            @endif
+
+                            <a href="{{ route('onboarding.create') }}?plan={{ $plan->code }}" class="btn {{ $recommended ? 'btn-dark' : 'btn-outline-dark' }} w-100 mb-4">
+                                Mulai dengan {{ $sales['display_name'] ?? $plan->display_name }}
+                            </a>
+
+                            {{-- Channel Badges --}}
+                            <div class="mb-4">
+                                <div class="text-uppercase text-muted mb-2" style="font-size:0.68rem;font-weight:700;letter-spacing:0.06em;">Channel yang aktif</div>
+                                <div class="d-flex flex-wrap gap-1">
+                                    <span class="landing-channel-badge"><i class="ti ti-messages"></i> Conversation</span>
+                                    <span class="landing-channel-badge"><i class="ti ti-live-view"></i> Live Chat</span>
+                                    <span class="landing-channel-badge"><i class="ti ti-brand-instagram"></i> Social</span>
+                                    @if($hasAi)<span class="landing-channel-badge active"><i class="ti ti-message-chatbot"></i> Chatbot AI</span>@endif
+                                    @if($hasWaApi)<span class="landing-channel-badge active"><i class="ti ti-brand-whatsapp"></i> WA API</span>@endif
+                                    @if($hasWaWeb)<span class="landing-channel-badge active"><i class="ti ti-brand-whatsapp"></i> WA Web</span>@endif
+                                </div>
+                            </div>
+
+                            {{-- Limits --}}
+                            <div class="landing-limit-table mb-4">
+                                @if($users !== null)
+                                <div class="landing-limit-row">
+                                    <span>Pengguna (CS, Admin)</span>
+                                    <span class="fw-semibold">{{ number_format((int)$users, 0, ',', '.') }}</span>
+                                </div>
+                                @endif
+                                @if($contacts !== null)
+                                <div class="landing-limit-row">
+                                    <span>Kontak</span>
+                                    <span class="fw-semibold">{{ number_format((int)$contacts, 0, ',', '.') }}</span>
+                                </div>
+                                @endif
+                                @if($socialAcc !== null)
+                                <div class="landing-limit-row">
+                                    <span>Akun sosial media</span>
+                                    <span class="fw-semibold">{{ number_format((int)$socialAcc, 0, ',', '.') }}</span>
+                                </div>
+                                @endif
+                                @if($widgets !== null)
+                                <div class="landing-limit-row">
+                                    <span>Widget live chat</span>
+                                    <span class="fw-semibold">{{ number_format((int)$widgets, 0, ',', '.') }}</span>
+                                </div>
+                                @endif
+                                @if(($hasWaApi || $hasWaWeb) && $waInst !== null)
+                                <div class="landing-limit-row">
+                                    <span>Koneksi WhatsApp</span>
+                                    <span class="fw-semibold">{{ number_format((int)$waInst, 0, ',', '.') }}</span>
+                                </div>
+                                @endif
+                                @if($hasAi && $aiCredits > 0)
+                                <div class="landing-limit-row">
+                                    <span>AI Credits / bulan <a href="#ai-credits" class="landing-credit-hint">Apa ini?</a></span>
+                                    <span class="fw-semibold">{{ number_format($aiCredits, 0, ',', '.') }}</span>
+                                </div>
+                                @endif
+                            </div>
+
+                            {{-- Highlights --}}
+                            @if(!empty($sales['highlights']))
+                            <div class="landing-checklist small text-muted">
+                                @foreach ($sales['highlights'] as $hl)
+                                <div><i class="ti ti-check text-success"></i> {{ $hl }}</div>
+                                @endforeach
+                            </div>
+                            @endif
+
+                            @if(!$hasAi)
+                            <div class="landing-plan-note mt-3">
+                                <i class="ti ti-info-circle"></i> Chatbot AI tersedia mulai paket Growth ke atas.
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+        @endforeach
+
+        <div class="landing-pricing-footnote mt-2">
+            <i class="ti ti-info-circle"></i>
+            Semua harga belum termasuk PPN. Add-on yang tersedia: <strong>top up AI Credits</strong>. Penambahan kapasitas lain dilakukan dengan upgrade plan.
+        </div>
+    </div>
+</section>
+
+{{-- ══ AI CREDITS EXPLAINER ════════════════════════════════ --}}
+<section id="ai-credits" class="py-5 py-lg-6">
+    <div class="container">
+        <div class="landing-panel rounded-4 p-4 p-lg-5">
+            <div class="row g-5 align-items-start">
+                <div class="col-lg-5">
+                    <div class="landing-eyebrow mb-2">AI Credits</div>
+                    <h2 class="landing-section-title mb-3">1 AI Credit itu setara dengan apa?</h2>
+                    <p class="landing-subtext mb-4">
+                        AI Credits adalah satuan penggunaan fitur kecerdasan buatan di workspace Anda. Setiap kali bot AI menjawab pesan atau mencari referensi dari dokumen, kredit berkurang sesuai pemakaian.
+                    </p>
+                    <p class="text-muted small">
+                        Credits direset setiap bulan sesuai paket. Jika habis, Anda bisa top up kapan saja dari halaman subscription tanpa perlu upgrade paket.
+                    </p>
+                </div>
+                <div class="col-lg-7">
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <div class="landing-credit-card p-3">
+                                <div class="landing-credit-icon"><i class="ti ti-message-reply"></i></div>
+                                <div class="fw-semibold mb-1">Balasan chatbot</div>
+                                <div class="landing-credit-cost">≈ 1 kredit</div>
+                                <div class="text-muted small mt-1">Per percakapan singkat bot menjawab pertanyaan pelanggan (~100–200 kata).</div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="landing-credit-card p-3">
+                                <div class="landing-credit-icon"><i class="ti ti-file-search"></i></div>
+                                <div class="fw-semibold mb-1">Cari dokumen (RAG)</div>
+                                <div class="landing-credit-cost">≈ 1–2 kredit</div>
+                                <div class="text-muted small mt-1">Saat bot mencari referensi dari knowledge base sebelum menjawab.</div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="landing-credit-card p-3">
+                                <div class="landing-credit-icon"><i class="ti ti-messages"></i></div>
+                                <div class="fw-semibold mb-1">Percakapan panjang</div>
+                                <div class="landing-credit-cost">≈ 2–5 kredit</div>
+                                <div class="text-muted small mt-1">Percakapan lebih panjang dengan konteks berlapis atau pertanyaan kompleks.</div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="landing-credit-card p-3">
+                                <div class="landing-credit-icon"><i class="ti ti-robot"></i></div>
+                                <div class="fw-semibold mb-1">Paket Growth (~500 kredit)</div>
+                                <div class="landing-credit-cost">≈ 300–500 balasan</div>
+                                <div class="text-muted small mt-1">Cukup untuk ribuan pesan pelanggan per bulan dengan pertanyaan-pertanyaan umum sehari-hari.</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="landing-credit-note mt-3">
+                        <i class="ti ti-bulb"></i>
+                        <div>
+                            <strong>Tips:</strong> Chatbot dengan mode "Berbasis Aturan" (rule-only) <em>tidak menggunakan</em> AI Credits sama sekali. Credits hanya terpakai saat bot benar-benar memanggil model AI untuk menjawab.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{{-- ══ HOW IT WORKS ════════════════════════════════════════ --}}
+<section class="py-5">
+    <div class="container">
+        <div class="row g-5 align-items-center">
+            <div class="col-lg-5">
+                <div class="landing-eyebrow mb-2">Cara kerja</div>
+                <h2 class="landing-section-title mb-3">Dari daftar sampai aktif dalam satu alur.</h2>
+                <p class="landing-subtext">Tidak perlu hubungi tim kami untuk aktivasi. Semua berjalan otomatis setelah pembayaran dikonfirmasi.</p>
+            </div>
+            <div class="col-lg-7">
+                <div class="landing-steps-grid">
+                    <div class="landing-step">
+                        <div class="landing-step-number">1</div>
+                        <div>
+                            <h3 class="h6 mb-1">Pilih paket</h3>
+                            <p class="text-muted small mb-0">Pilih Starter, Growth, atau Scale sesuai channel dan kapasitas tim Anda.</p>
+                        </div>
+                    </div>
+                    <div class="landing-step">
+                        <div class="landing-step-number">2</div>
+                        <div>
+                            <h3 class="h6 mb-1">Buat workspace</h3>
+                            <p class="text-muted small mb-0">Isi nama bisnis, subdomain, dan informasi admin utama. Selesai dalam 2 menit.</p>
+                        </div>
+                    </div>
+                    <div class="landing-step">
+                        <div class="landing-step-number">3</div>
+                        <div>
+                            <h3 class="h6 mb-1">Bayar invoice</h3>
+                            <p class="text-muted small mb-0">Pilih metode pembayaran lokal — transfer bank, virtual account, atau QRIS.</p>
+                        </div>
+                    </div>
+                    <div class="landing-step">
+                        <div class="landing-step-number">4</div>
+                        <div>
+                            <h3 class="h6 mb-1">Langsung bisa dipakai</h3>
+                            <p class="text-muted small mb-0">Setelah pembayaran dikonfirmasi, workspace aktif dan semua modul sesuai paket siap digunakan.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{{-- ══ FAQ ══════════════════════════════════════════════════ --}}
+<section id="faq" class="py-5 py-lg-6">
+    <div class="container">
+        <div class="text-center mb-5">
+            <div class="landing-eyebrow mb-2">FAQ</div>
+            <h2 class="landing-section-title">Pertanyaan yang paling sering muncul.</h2>
+        </div>
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="landing-faq-card p-4 h-100">
+                    <h3 class="h5 mb-2">Apa bedanya WhatsApp API dan WhatsApp Web?</h3>
+                    <p class="text-muted small mb-0">WhatsApp API cocok untuk volume tinggi dan integrasi resmi dengan Business API Meta. WhatsApp Web cocok untuk operasional yang masih butuh pola kerja seperti admin manual biasa. Keduanya menggunakan nomor WhatsApp Anda sendiri — tidak disediakan oleh kami.</p>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="landing-faq-card p-4 h-100">
+                    <h3 class="h5 mb-2">AI Credits itu apa dan bagaimana hitungannya?</h3>
+                    <p class="text-muted small mb-0">AI Credits adalah satuan pemakaian chatbot AI. Setiap balasan bot menghabiskan ≈1 kredit. Jika bot juga mencari dokumen referensi, bisa 1–2 kredit ekstra. Kredit direset tiap bulan, dan bisa di-top up kapan saja tanpa upgrade paket.</p>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="landing-faq-card p-4 h-100">
+                    <h3 class="h5 mb-2">Apakah modul langsung aktif setelah bayar?</h3>
+                    <p class="text-muted small mb-0">Ya. Tidak perlu konfirmasi manual ke tim kami. Setelah pembayaran dikonfirmasi oleh sistem, workspace aktif dan semua modul sesuai paket yang dipilih langsung bisa digunakan.</p>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="landing-faq-card p-4 h-100">
+                    <h3 class="h5 mb-2">Apakah tiap tenant dapat subdomain sendiri?</h3>
+                    <p class="text-muted small mb-0">Ya. Setelah daftar, workspace Anda memakai subdomain terpisah seperti <code>bisnisanda.{{ config('multitenancy.saas_domain') }}</code>. Login tenant dilakukan lewat URL workspace Anda, bukan lewat halaman ini.</p>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="landing-faq-card p-4 h-100">
+                    <h3 class="h5 mb-2">Bisa upgrade paket di tengah periode?</h3>
+                    <p class="text-muted small mb-0">Bisa. Upgrade paket bisa dilakukan kapan saja dari halaman subscription di dalam workspace. Modul tambahan akan langsung aktif setelah pembayaran selisihnya dikonfirmasi.</p>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="landing-faq-card p-4 h-100">
+                    <h3 class="h5 mb-2">Sudah punya workspace, masuk dari mana?</h3>
+                    <p class="text-muted small mb-0">Masuk langsung lewat URL workspace Anda, misalnya <code>namaworkspace.{{ config('multitenancy.saas_domain') }}/login</code>. Bisa juga gunakan tombol "Login Workspace" di atas untuk mencari workspace berdasarkan subdomain atau email.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{{-- ══ WORKSPACE FINDER ════════════════════════════════════ --}}
+<section id="workspace" class="py-5">
+    <div class="container">
+        <div class="landing-panel p-4 p-lg-5 rounded-4">
+            <div class="row g-4 align-items-center">
+                <div class="col-lg-8">
+                    <div class="landing-eyebrow mb-2">Sudah punya workspace?</div>
+                    <h2 class="landing-section-title mb-2">Masuk lewat subdomain workspace Anda.</h2>
+                    <p class="landing-subtext mb-0">
+                        Gunakan URL seperti <strong>namaworkspace.{{ config('multitenancy.saas_domain') }}/login</strong>, atau klik tombol di samping untuk mencari workspace berdasarkan email atau subdomain.
+                    </p>
+                </div>
+                <div class="col-lg-4 text-lg-end">
+                    <a href="{{ route('workspace.finder') }}" class="btn btn-dark btn-lg">Buka Login Workspace</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{{-- ══ CTA BAND ═════════════════════════════════════════════ --}}
+<section class="py-5">
+    <div class="container">
+        <div class="landing-cta-band p-4 p-lg-5">
+            <div class="row g-4 align-items-center">
+                <div class="col-lg-8">
+                    <div class="text-uppercase small fw-bold mb-2 opacity-75">Siap mulai?</div>
+                    <h2 class="landing-section-title text-white mb-3">Aktifkan workspace omnichannel Anda hari ini.</h2>
+                    <p class="mb-0 opacity-75">Pilih paket, buat workspace, bayar, dan semua modul langsung aktif. Tidak perlu setup teknis.</p>
+                </div>
+                <div class="col-lg-4 text-lg-end">
+                    <a href="{{ route('onboarding.create') }}" class="btn btn-light btn-lg me-2 mb-2">Mulai Sekarang</a>
+                    <a href="{{ route('workspace.finder') }}" class="btn btn-outline-light btn-lg mb-2">Masuk Workspace</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+</main>
+
+{{-- ══ FOOTER ══════════════════════════════════════════════ --}}
+<footer class="py-5" style="border-top:1px solid var(--landing-line);">
+    <div class="container">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-4">
+            <div class="d-flex align-items-center gap-2">
+                <x-app-logo variant="default" :height="28" />
+                <span class="text-muted small">&copy; {{ date('Y') }} {{ config('app.name') }}</span>
+            </div>
+            <div class="d-flex flex-wrap gap-4">
+                <a href="{{ route('affiliate.program') }}" class="landing-footer-link">Info Partner</a>
+                <a href="#" class="landing-footer-link">Kebijakan Privasi</a>
+                <a href="#" class="landing-footer-link">Syarat &amp; Ketentuan</a>
+                <a href="mailto:{{ config('mail.from.address', 'hello@' . config('multitenancy.saas_domain', 'app.com')) }}" class="landing-footer-link">Hubungi Kami</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+</div>{{-- .landing-shell --}}
 </body>
 </html>

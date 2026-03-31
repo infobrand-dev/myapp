@@ -2,14 +2,7 @@
     <x-auth-card>
         @php
             $money = app(\App\Support\MoneyFormatter::class);
-        @endphp
-        <x-slot name="logo">
-            <a href="/">
-                <x-application-logo />
-            </a>
-        </x-slot>
-
-        <x-auth-validation-errors class="mb-4" :errors="$errors" />
+        @endphp<x-auth-validation-errors class="mb-4" :errors="$errors" />
 
         <h2 class="h4 mb-1">Jualan omnichannel mulai dari sini</h2>
         <p class="text-muted small mb-4">Pilih paket, buat workspace, lalu lanjutkan ke pembayaran untuk mengaktifkan modul yang Anda beli.</p>

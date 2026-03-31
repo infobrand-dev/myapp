@@ -44,6 +44,12 @@ class AuthenticatedSessionController extends Controller
 
         $this->syncTenantSession($request);
 
+        if ($request->attributes->get('platform_admin_host')) {
+            $request->session()->forget('url.intended');
+
+            return redirect()->route('platform.dashboard');
+        }
+
         return redirect()->intended(RouteServiceProvider::HOME);
     }
 

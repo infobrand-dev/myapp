@@ -1,11 +1,5 @@
 <x-guest-layout>
     <x-auth-card>
-        <x-slot name="logo">
-            <a href="/">
-                <x-application-logo />
-            </a>
-        </x-slot>
-
         <h2 class="h4 mb-1">Verifikasi email Anda</h2>
         <p class="text-muted small mb-4">
             Terima kasih sudah mendaftar. Silakan klik link verifikasi yang sudah kami kirim ke email Anda sebelum mulai menggunakan aplikasi.

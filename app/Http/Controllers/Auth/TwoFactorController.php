@@ -94,6 +94,12 @@ class TwoFactorController extends Controller
         $request->session()->put('tenant_id', $tenantId);
         $request->session()->put('tenant_slug', $tenant?->slug);
 
+        if ($request->attributes->get('platform_admin_host')) {
+            $request->session()->forget('url.intended');
+
+            return redirect()->route('platform.dashboard');
+        }
+
         return redirect()->intended(RouteServiceProvider::HOME);
     }
 

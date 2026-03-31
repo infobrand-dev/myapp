@@ -23,6 +23,10 @@ class RedirectIfAuthenticated
 
         foreach ($guards as $guard) {
             if (Auth::guard($guard)->check()) {
+                if ($request->attributes->get('platform_admin_host')) {
+                    return redirect()->route('platform.dashboard');
+                }
+
                 return redirect(RouteServiceProvider::HOME);
             }
         }

@@ -1,11 +1,5 @@
 <x-guest-layout>
     <x-auth-card>
-        <x-slot name="logo">
-            <a href="/">
-                <x-application-logo />
-            </a>
-        </x-slot>
-
         <h2 class="h4 mb-1">Lupa password?</h2>
         <p class="text-muted small mb-4">
             Masukkan email Anda dan kami akan mengirimkan link untuk membuat password baru.

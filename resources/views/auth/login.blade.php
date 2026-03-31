@@ -1,11 +1,5 @@
 <x-guest-layout>
     <x-auth-card>
-        <x-slot name="logo">
-            <a href="/">
-                <x-application-logo />
-            </a>
-        </x-slot>
-
         @if (config('multitenancy.mode') === 'saas' && ($saasLoginTenant = \App\Support\TenantContext::currentTenant()))
             <div class="alert alert-info mb-3 py-2 px-3 small">
                 <i class="ti ti-building me-1"></i>

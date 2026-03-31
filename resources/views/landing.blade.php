@@ -21,7 +21,7 @@
                 <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
                     <div class="d-flex align-items-center gap-3">
                         <div>
-                            <x-app-logo variant="default" :height="40" class="mb-2" />
+                            <x-app-logo variant="default" :height="40" />
                             <div class="text-muted small">Omnichannel workspace untuk sales, support, dan marketing</div>
                         </div>
                     </div>

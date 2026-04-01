@@ -144,68 +144,47 @@
 {{-- ══ DATA SECURITY ════════════════════════════════════════ --}}
 <section class="py-5 py-lg-6" style="background: #f8fafc; border-top: 1px solid var(--landing-line); border-bottom: 1px solid var(--landing-line);">
     <div class="container">
-        <div class="row g-5 align-items-center">
+        <div class="row g-5 align-items-start">
             <div class="col-lg-5">
                 <div class="landing-eyebrow mb-2">Keamanan Data</div>
-                <h2 class="landing-section-title mb-3">Data Anda tidak pernah bercampur.</h2>
-                <p class="landing-subtext mb-4">Setiap workspace di Meetra berjalan dalam ruang data yang sepenuhnya terisolasi. Data bisnis Anda tidak bisa diakses oleh workspace lain dalam kondisi apapun — dijamin di level sistem, bukan hanya tampilan.</p>
+                <h2 class="landing-section-title mb-3">Data Anda tidak bisa dilihat siapapun selain tim Anda.</h2>
+                <p class="landing-subtext mb-4">Setiap workspace berjalan dalam ruang data yang sepenuhnya terisolasi. Tidak ada bisnis lain yang bisa mengakses data Anda — dan tim kami pun tidak bisa membacanya tanpa izin eksplisit dari Anda.</p>
                 <div class="landing-checklist">
-                    <div><i class="ti ti-check text-success"></i> Isolasi data penuh antar workspace di level sistem</div>
-                    <div><i class="ti ti-check text-success"></i> Setiap percakapan, kontak, dan file tersimpan terpisah per workspace</div>
-                    <div><i class="ti ti-check text-success"></i> Semua traffic dienkripsi dengan TLS — koneksi tidak pernah terbuka</div>
-                    <div><i class="ti ti-check text-success"></i> API key dan credential disimpan terenkripsi, tidak pernah dalam plaintext</div>
-                    <div><i class="ti ti-check text-success"></i> Password di-hash dengan bcrypt — tim kami tidak bisa membacanya</div>
-                    <div><i class="ti ti-check text-success"></i> Data tidak dijual, tidak dipinjamkan, tidak digunakan untuk iklan</div>
+                    <div><i class="ti ti-check text-success"></i> Percakapan, kontak, dan data pelanggan hanya bisa dilihat oleh tim di workspace Anda</div>
+                    <div><i class="ti ti-check text-success"></i> Workspace bisnis lain tidak bisa mengakses data Anda dalam kondisi apapun</div>
+                    <div><i class="ti ti-check text-success"></i> Semua koneksi ke platform dienkripsi — data tidak bisa disadap di perjalanan</div>
+                    <div><i class="ti ti-check text-success"></i> Password tidak bisa dibaca oleh siapapun, termasuk tim kami</div>
+                    <div><i class="ti ti-check text-success"></i> Data Anda tidak dijual, tidak dipinjamkan, tidak digunakan untuk keperluan lain</div>
                 </div>
             </div>
             <div class="col-lg-7">
-                <div class="security-diagram p-4 p-lg-5 rounded-4">
-                    <div class="text-center mb-4">
-                        <div class="security-diagram-title">Bagaimana isolasi data bekerja</div>
-                    </div>
-                    <div class="security-isolation-visual">
-                        <div class="security-isolation-db">
-                            <div class="security-isolation-db-label"><i class="ti ti-database"></i> Database Aman</div>
-                            <div class="row g-2 mt-2">
-                                <div class="col-4">
-                                    <div class="security-tenant-box text-center p-2">
-                                        <div class="security-tenant-label">Workspace A</div>
-                                        <div class="security-tenant-rows mt-1">
-                                            <div class="security-tenant-row"></div>
-                                            <div class="security-tenant-row"></div>
-                                            <div class="security-tenant-row"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-4">
-                                    <div class="security-tenant-box text-center p-2 active">
-                                        <div class="security-tenant-label">Workspace B</div>
-                                        <div class="security-tenant-rows mt-1">
-                                            <div class="security-tenant-row active"></div>
-                                            <div class="security-tenant-row active"></div>
-                                            <div class="security-tenant-row active"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-4">
-                                    <div class="security-tenant-box text-center p-2">
-                                        <div class="security-tenant-label">Workspace C</div>
-                                        <div class="security-tenant-rows mt-1">
-                                            <div class="security-tenant-row"></div>
-                                            <div class="security-tenant-row"></div>
-                                            <div class="security-tenant-row"></div>
-                                        </div>
-                                    </div>
-                                </div>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <div class="security-trust-card p-4 d-flex align-items-start gap-4">
+                            <div class="security-trust-icon"><i class="ti ti-building-community"></i></div>
+                            <div>
+                                <div class="fw-bold mb-1" style="font-size:1.05rem;">Aman dari workspace lain</div>
+                                <div class="text-muted">Data bisnis Anda sepenuhnya terisolasi. Tidak ada pengguna dari workspace lain — baik sengaja maupun tidak — yang bisa melihat percakapan, kontak, atau pengaturan Anda.</div>
                             </div>
                         </div>
-                        <div class="security-isolation-dividers">
-                            <div class="security-isolation-divider"><i class="ti ti-lock-square"></i></div>
-                            <div class="security-isolation-divider"><i class="ti ti-lock-square"></i></div>
+                    </div>
+                    <div class="col-12">
+                        <div class="security-trust-card p-4 d-flex align-items-start gap-4">
+                            <div class="security-trust-icon"><i class="ti ti-lock-bolt"></i></div>
+                            <div>
+                                <div class="fw-bold mb-1" style="font-size:1.05rem;">Aman saat berpindah</div>
+                                <div class="text-muted">Setiap data yang bergerak antara perangkat Anda dan server kami dienkripsi penuh. Tidak ada celah untuk disadap di tengah perjalanan, dari manapun Anda mengakses.</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="text-center mt-3">
-                        <div class="security-isolation-label"><i class="ti ti-shield-check"></i> Setiap workspace hanya bisa melihat datanya sendiri</div>
+                    <div class="col-12">
+                        <div class="security-trust-card p-4 d-flex align-items-start gap-4">
+                            <div class="security-trust-icon"><i class="ti ti-eye-off"></i></div>
+                            <div>
+                                <div class="fw-bold mb-1" style="font-size:1.05rem;">Aman dari kami sendiri</div>
+                                <div class="text-muted">Tim Meetra tidak memantau isi percakapan Anda. Akses ke data pengguna sangat dibatasi, tercatat, dan hanya dilakukan jika Anda meminta bantuan teknis secara langsung.</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

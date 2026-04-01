@@ -2066,6 +2066,52 @@ body.landing-page {
     margin-top: 0.35rem;
 }
 
+/* Isolation diagram */
+.security-diagram {
+    background: linear-gradient(135deg, #f1f5ff 0%, #e8f4ff 100%);
+    border: 1px solid rgba(45,71,204,0.12);
+}
+.security-diagram-title { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--landing-muted); }
+.security-isolation-db {
+    background: #fff;
+    border-radius: 12px;
+    border: 1.5px solid rgba(45,71,204,0.15);
+    padding: 1rem;
+}
+.security-isolation-db-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--landing-blue);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.security-tenant-box {
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1.5px solid var(--landing-line);
+}
+.security-tenant-box.active {
+    background: rgba(45,71,204,0.05);
+    border-color: var(--landing-blue);
+    box-shadow: 0 0 0 3px rgba(45,71,204,0.08);
+}
+.security-tenant-label { font-size: 0.7rem; font-weight: 700; color: var(--landing-ink); }
+.security-tenant-rows { display: flex; flex-direction: column; gap: 3px; }
+.security-tenant-row { height: 6px; border-radius: 3px; background: #e2e6ef; }
+.security-tenant-row.active { background: rgba(45,71,204,0.35); }
+.security-isolation-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    color: var(--landing-muted);
+    padding: 0.4rem 0.75rem;
+    background: rgba(255,255,255,0.8);
+    border-radius: 100px;
+    border: 1px solid var(--landing-line);
+}
+
 /* Contact buttons */
 .security-contact-btn {
     display: flex;

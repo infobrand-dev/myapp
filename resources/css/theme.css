@@ -2002,81 +2002,96 @@ body.landing-page {
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 .security-stat-icon { font-size: 1.25rem; color: var(--landing-blue); }
-.security-card {
+
+/* Q&A cards */
+.security-qa-card {
     background: #fff;
-    border-radius: 12px;
+    border-radius: 14px;
     border: 1px solid var(--landing-line);
     transition: box-shadow 0.2s, border-color 0.2s;
 }
-.security-card:hover {
-    box-shadow: 0 4px 16px rgba(45,71,204,0.08);
-    border-color: rgba(45,71,204,0.25);
+.security-qa-card:hover {
+    box-shadow: 0 4px 16px rgba(45,71,204,0.07);
+    border-color: rgba(45,71,204,0.2);
 }
-.security-card-icon {
-    width: 44px; height: 44px;
+.security-qa-icon {
+    width: 42px; height: 42px;
     border-radius: 10px;
-    background: rgba(45,71,204,0.08);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.2rem;
-    color: var(--landing-blue);
-}
-.security-practice {
-    background: #fff;
-    border-radius: 12px;
-    border: 1px solid var(--landing-line);
-}
-.security-practice-icon {
-    width: 40px; height: 40px;
-    border-radius: 10px;
-    background: rgba(10,138,142,0.08);
+    background: rgba(45,71,204,0.07);
     display: flex; align-items: center; justify-content: center;
     font-size: 1.1rem;
-    color: var(--landing-teal);
-    flex-shrink: 0;
+    color: var(--landing-blue);
 }
-.security-diagram {
-    background: linear-gradient(135deg, #f1f5ff 0%, #e8f4ff 100%);
-    border: 1px solid rgba(45,71,204,0.12);
-}
-.security-diagram-title { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--landing-muted); }
-.security-tenant-box {
+
+/* Infra cards */
+.security-infra-card {
     background: #fff;
-    border-radius: 10px;
-    border: 1.5px solid var(--landing-line);
-}
-.security-tenant-box.active {
-    border-color: var(--landing-blue);
-    box-shadow: 0 0 0 3px rgba(45,71,204,0.1);
-}
-.security-tenant-label { font-size: 0.75rem; font-weight: 700; color: var(--landing-ink); }
-.security-tenant-db { font-size: 0.8rem; color: var(--landing-blue); font-weight: 600; }
-.security-tenant-files { color: var(--landing-muted); font-size: 0.65rem; }
-.security-isolation-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.75rem;
-    color: var(--landing-muted);
-    padding: 0.4rem 0.75rem;
-    background: rgba(255,255,255,0.7);
-    border-radius: 100px;
-    border: 1px solid var(--landing-line);
-}
-.security-contact-card {
-    background: #fff;
-    border-radius: 12px;
+    border-radius: 14px;
     border: 1px solid var(--landing-line);
     transition: box-shadow 0.2s;
 }
-.security-contact-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
-.security-contact-icon {
+.security-infra-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+.security-infra-icon {
     width: 52px; height: 52px;
     border-radius: 14px;
     background: rgba(45,71,204,0.08);
     display: flex; align-items: center; justify-content: center;
     font-size: 1.4rem;
     color: var(--landing-blue);
-    margin: 0 auto;
+}
+.security-infra-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--landing-muted);
+}
+
+/* Commit list */
+.security-commit-list { display: flex; flex-direction: column; gap: 1.25rem; }
+.security-commit-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid var(--landing-line);
+}
+.security-commit-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--landing-teal);
+    flex-shrink: 0;
+    margin-top: 0.35rem;
+}
+
+/* Contact buttons */
+.security-contact-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.9rem 1.1rem;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid var(--landing-line);
+    text-decoration: none;
+    color: var(--landing-ink);
+    transition: box-shadow 0.2s, border-color 0.2s;
+}
+.security-contact-btn:hover {
+    box-shadow: 0 3px 12px rgba(45,71,204,0.1);
+    border-color: rgba(45,71,204,0.25);
+    color: var(--landing-ink);
+}
+.security-contact-btn-icon {
+    width: 42px; height: 42px;
+    border-radius: 10px;
+    background: rgba(45,71,204,0.08);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+    color: var(--landing-blue);
+    flex-shrink: 0;
 }
 
 /* ============================================================

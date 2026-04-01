@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Keamanan Data — {{ config('app.name') }}</title>
-    <meta name="description" content="Bagaimana Meetra melindungi data bisnis dan pelanggan Anda — infrastruktur, enkripsi, isolasi tenant, dan praktik keamanan yang kami terapkan.">
+    <meta name="description" content="Bagaimana Meetra melindungi data bisnis dan pelanggan Anda. Server Indonesia, database enterprise, enkripsi, dan isolasi data per workspace.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
@@ -23,8 +23,8 @@
             </a>
             <nav class="d-none d-lg-flex align-items-center gap-1">
                 <a href="{{ route('landing') }}#solutions" class="landing-nav-link">Fitur</a>
-                <a href="{{ route('landing') }}#pricing" class="landing-nav-link">Harga</a>
-                <a href="{{ route('landing') }}#faq" class="landing-nav-link">FAQ</a>
+                <a href="{{ route('landing') }}#pricing"   class="landing-nav-link">Harga</a>
+                <a href="{{ route('landing') }}#faq"       class="landing-nav-link">FAQ</a>
             </nav>
             <div class="d-flex align-items-center gap-2">
                 <a href="{{ route('workspace.finder') }}" class="btn btn-outline-dark btn-sm d-none d-md-inline-flex">Login Workspace</a>
@@ -42,45 +42,100 @@
         <div class="row g-5 align-items-center">
             <div class="col-lg-7">
                 <div class="landing-badge mb-4">
-                    <i class="ti ti-shield-check"></i> Keamanan &amp; Privasi Data
+                    <i class="ti ti-shield-check"></i> Keamanan &amp; Privasi
                 </div>
                 <h1 class="landing-headline mb-4">
-                    Data bisnis Anda <span>dilindungi</span> dengan serius.
+                    Data bisnis Anda adalah <span>milik Anda</span> sepenuhnya.
                 </h1>
                 <p class="landing-subtext mb-0">
-                    Kami membangun Meetra di atas infrastruktur kelas enterprise dengan isolasi data penuh antar tenant, enkripsi end-to-end, dan pemantauan aktif 24 jam. Tidak ada kompromi untuk keamanan.
+                    Kami tidak menjual, meminjamkan, atau mengakses data percakapan dan pelanggan Anda tanpa izin. Data Anda tersimpan di server Indonesia, dan Anda bisa memintanya kapan saja.
                 </p>
             </div>
             <div class="col-lg-5">
                 <div class="row g-3">
                     <div class="col-6">
                         <div class="security-stat-card p-3 text-center">
-                            <div class="security-stat-icon mb-2"><i class="ti ti-lock"></i></div>
-                            <div class="fw-bold mb-1" style="font-size:1.5rem;color:var(--landing-blue);">TLS 1.3</div>
-                            <div class="small text-muted">Semua koneksi dienkripsi</div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="security-stat-card p-3 text-center">
-                            <div class="security-stat-icon mb-2"><i class="ti ti-building-bank"></i></div>
-                            <div class="fw-bold mb-1" style="font-size:1.5rem;color:var(--landing-teal);">100%</div>
-                            <div class="small text-muted">Isolasi data per workspace</div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="security-stat-card p-3 text-center">
                             <div class="security-stat-icon mb-2"><i class="ti ti-map-pin"></i></div>
-                            <div class="fw-bold mb-1" style="font-size:1.5rem;color:var(--landing-blue);">🇮🇩</div>
-                            <div class="small text-muted">Server di Indonesia</div>
+                            <div class="fw-bold mb-1" style="font-size:1.3rem;color:var(--landing-blue);">Indonesia</div>
+                            <div class="small text-muted">Lokasi server & data</div>
                         </div>
                     </div>
                     <div class="col-6">
                         <div class="security-stat-card p-3 text-center">
-                            <div class="security-stat-icon mb-2"><i class="ti ti-clock-24"></i></div>
-                            <div class="fw-bold mb-1" style="font-size:1.5rem;color:var(--landing-teal);">24/7</div>
-                            <div class="small text-muted">Monitoring &amp; dukungan</div>
+                            <div class="security-stat-icon mb-2"><i class="ti ti-lock"></i></div>
+                            <div class="fw-bold mb-1" style="font-size:1.3rem;color:var(--landing-teal);">TLS + enkripsi</div>
+                            <div class="small text-muted">Semua koneksi aman</div>
                         </div>
                     </div>
+                    <div class="col-6">
+                        <div class="security-stat-card p-3 text-center">
+                            <div class="security-stat-icon mb-2"><i class="ti ti-building-community"></i></div>
+                            <div class="fw-bold mb-1" style="font-size:1.3rem;color:var(--landing-blue);">Terisolasi</div>
+                            <div class="small text-muted">Data tidak bercampur</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="security-stat-card p-3 text-center">
+                            <div class="security-stat-icon mb-2"><i class="ti ti-headset"></i></div>
+                            <div class="fw-bold mb-1" style="font-size:1.3rem;color:var(--landing-teal);">24 jam</div>
+                            <div class="small text-muted">Dukungan tersedia</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{{-- ══ PERTANYAAN NYATA ═════════════════════════════════════ --}}
+<section class="py-5 py-lg-6">
+    <div class="container">
+        <div class="text-center mb-5">
+            <div class="landing-eyebrow mb-2">Yang sering ditanyakan</div>
+            <h2 class="landing-section-title">Hal-hal yang wajar Anda khawatirkan.</h2>
+            <p class="landing-subtext mx-auto">Bukan basa-basi. Berikut jawaban jujur untuk pertanyaan yang sebenarnya paling penting.</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="security-qa-card p-4 h-100">
+                    <div class="security-qa-icon mb-3"><i class="ti ti-eye-off"></i></div>
+                    <h3 class="h5 mb-2">Apakah bisnis lain bisa melihat data saya?</h3>
+                    <p class="text-muted small mb-0">Tidak. Setiap workspace benar-benar terisolasi satu sama lain di level sistem. Percakapan, kontak, dan data pelanggan Anda hanya bisa diakses oleh pengguna di workspace Anda sendiri — tidak ada yang lain, termasuk kami, kecuali Anda mengizinkan.</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="security-qa-card p-4 h-100">
+                    <div class="security-qa-icon mb-3"><i class="ti ti-map-pin"></i></div>
+                    <h3 class="h5 mb-2">Data saya disimpan di mana?</h3>
+                    <p class="text-muted small mb-0">Seluruh data tersimpan di Indonesia — di atas infrastruktur <strong>Biznet Gio</strong>, penyedia cloud lokal Tier-1 yang digunakan banyak perusahaan besar Indonesia. Database kami menggunakan <strong>PostgreSQL</strong> managed via Supabase dengan replikasi otomatis dan backup harian.</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="security-qa-card p-4 h-100">
+                    <div class="security-qa-icon mb-3"><i class="ti ti-database-off"></i></div>
+                    <h3 class="h5 mb-2">Kalau saya berhenti berlangganan, data saya hilang?</h3>
+                    <p class="text-muted small mb-0">Data Anda tidak langsung dihapus. Kami memberikan masa grace period setelah langganan berakhir. Dalam masa itu Anda bisa menghubungi tim kami untuk mengekspor data sebelum workspace dinonaktifkan. Data adalah milik Anda — kami hanya menyimpannya.</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="security-qa-card p-4 h-100">
+                    <div class="security-qa-icon mb-3"><i class="ti ti-spy"></i></div>
+                    <h3 class="h5 mb-2">Apakah tim Meetra bisa membaca percakapan saya?</h3>
+                    <p class="text-muted small mb-0">Secara teknis, akses ke data produksi sangat dibatasi dan hanya untuk keperluan dukungan teknis bila Anda memintanya. Kami tidak memantau isi percakapan secara aktif. Tidak ada anggota tim yang mengakses data workspace tanpa alasan yang jelas dan tercatat.</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="security-qa-card p-4 h-100">
+                    <div class="security-qa-icon mb-3"><i class="ti ti-whisk"></i></div>
+                    <h3 class="h5 mb-2">Apakah data saya dipakai untuk melatih AI?</h3>
+                    <p class="text-muted small mb-0">Tidak. Data percakapan di workspace Anda tidak kami gunakan untuk melatih model AI kami atau pihak ketiga manapun. Fitur chatbot AI di Meetra menggunakan provider AI eksternal (seperti OpenAI atau Anthropic) dengan API key yang Anda pasang sendiri — data dikirim langsung ke provider pilihan Anda, bukan melalui sistem kami sebagai perantara penyimpanan.</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="security-qa-card p-4 h-100">
+                    <div class="security-qa-icon mb-3"><i class="ti ti-alert-triangle"></i></div>
+                    <h3 class="h5 mb-2">Kalau ada masalah atau kebocoran data, saya akan tahu?</h3>
+                    <p class="text-muted small mb-0">Ya. Jika terjadi insiden yang berdampak pada data Anda, kami berkomitmen untuk memberi tahu Anda sesegera mungkin — dengan penjelasan yang jelas, bukan pernyataan PR yang abu-abu. Anda berhak tahu apa yang terjadi dengan data Anda.</p>
                 </div>
             </div>
         </div>
@@ -88,197 +143,87 @@
 </section>
 
 {{-- ══ INFRASTRUCTURE ══════════════════════════════════════ --}}
-<section class="py-5 py-lg-6">
+<section class="py-5 py-lg-6" style="background: #f8fafc; border-top: 1px solid var(--landing-line); border-bottom: 1px solid var(--landing-line);">
     <div class="container">
         <div class="text-center mb-5">
             <div class="landing-eyebrow mb-2">Infrastruktur</div>
-            <h2 class="landing-section-title">Dibangun di atas fondasi yang kokoh.</h2>
+            <h2 class="landing-section-title">Dibangun di atas teknologi yang sudah terbukti.</h2>
+            <p class="landing-subtext mx-auto">Kami tidak membangun data center sendiri — kami menggunakan infrastruktur terbaik yang tersedia agar Anda tidak perlu khawatir soal uptime dan keandalan.</p>
         </div>
-        <div class="row g-4">
+        <div class="row g-4 justify-content-center">
             <div class="col-md-6 col-lg-4">
-                <div class="security-card p-4 h-100">
-                    <div class="security-card-icon mb-3"><i class="ti ti-server-2"></i></div>
-                    <h3 class="h5 mb-2">Data Center di Indonesia</h3>
-                    <p class="text-muted small mb-0">Seluruh data Anda disimpan di data center yang berlokasi di wilayah Indonesia — mematuhi regulasi penyimpanan data lokal dan memastikan latensi rendah untuk pengguna di Indonesia.</p>
+                <div class="security-infra-card p-4 h-100 text-center">
+                    <div class="security-infra-icon mx-auto mb-3"><i class="ti ti-server-2"></i></div>
+                    <div class="fw-bold mb-1">Biznet Gio Cloud</div>
+                    <div class="security-infra-label mb-3">Server & Jaringan</div>
+                    <p class="text-muted small mb-0">Infrastruktur server kami berjalan di Biznet Gio, cloud provider lokal Tier-1 Indonesia dengan data center bersertifikat, redundansi jaringan, dan perlindungan DDoS aktif.</p>
                 </div>
             </div>
             <div class="col-md-6 col-lg-4">
-                <div class="security-card p-4 h-100">
-                    <div class="security-card-icon mb-3"><i class="ti ti-database-heart"></i></div>
-                    <h3 class="h5 mb-2">Database Kelas Enterprise</h3>
-                    <p class="text-muted small mb-0">Kami menggunakan layanan database terkelola kelas enterprise dengan replikasi otomatis, high-availability built-in, dan point-in-time recovery. Data tidak pernah berjalan di server tunggal.</p>
+                <div class="security-infra-card p-4 h-100 text-center">
+                    <div class="security-infra-icon mx-auto mb-3"><i class="ti ti-database"></i></div>
+                    <div class="fw-bold mb-1">Supabase + PostgreSQL</div>
+                    <div class="security-infra-label mb-3">Database</div>
+                    <p class="text-muted small mb-0">Database menggunakan PostgreSQL yang dikelola oleh Supabase — platform database enterprise-grade dengan replikasi otomatis, point-in-time recovery, dan backup harian yang tersimpan aman.</p>
                 </div>
             </div>
             <div class="col-md-6 col-lg-4">
-                <div class="security-card p-4 h-100">
-                    <div class="security-card-icon mb-3"><i class="ti ti-world-check"></i></div>
-                    <h3 class="h5 mb-2">Jaringan Tier-1 Indonesia</h3>
-                    <p class="text-muted small mb-0">Infrastruktur jaringan kami dioperasikan oleh penyedia konektivitas Tier-1 di Indonesia dengan jaminan uptime tinggi, redundansi jalur, dan perlindungan DDoS aktif.</p>
-                </div>
-            </div>
-            <div class="col-md-6 col-lg-4">
-                <div class="security-card p-4 h-100">
-                    <div class="security-card-icon mb-3"><i class="ti ti-refresh"></i></div>
-                    <h3 class="h5 mb-2">Backup Harian Otomatis</h3>
-                    <p class="text-muted small mb-0">Backup dilakukan secara otomatis setiap hari. Kami menyimpan riwayat backup hingga 30 hari ke belakang sehingga data dapat dipulihkan kapan saja bila terjadi insiden.</p>
-                </div>
-            </div>
-            <div class="col-md-6 col-lg-4">
-                <div class="security-card p-4 h-100">
-                    <div class="security-card-icon mb-3"><i class="ti ti-activity"></i></div>
-                    <h3 class="h5 mb-2">Monitoring 24/7</h3>
-                    <p class="text-muted small mb-0">Sistem pemantauan berjalan sepanjang waktu untuk mendeteksi anomali, lonjakan traffic tidak wajar, dan potensi insiden keamanan — dengan eskalasi otomatis ke tim kami.</p>
-                </div>
-            </div>
-            <div class="col-md-6 col-lg-4">
-                <div class="security-card p-4 h-100">
-                    <div class="security-card-icon mb-3"><i class="ti ti-lock-access"></i></div>
-                    <h3 class="h5 mb-2">Akses Terkontrol</h3>
-                    <p class="text-muted small mb-0">Akses ke infrastruktur produksi dibatasi dengan prinsip least-privilege. Audit log tersimpan untuk setiap akses ke sistem dan database produksi.</p>
+                <div class="security-infra-card p-4 h-100 text-center">
+                    <div class="security-infra-icon mx-auto mb-3"><i class="ti ti-lock"></i></div>
+                    <div class="fw-bold mb-1">Enkripsi TLS</div>
+                    <div class="security-infra-label mb-3">Keamanan Koneksi</div>
+                    <p class="text-muted small mb-0">Semua koneksi antara browser Anda dan server kami dienkripsi menggunakan TLS. Data tidak pernah berpindah dalam kondisi tidak terenkripsi, baik dari sisi klien maupun antar-layanan internal.</p>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-{{-- ══ DATA SECURITY ════════════════════════════════════════ --}}
-<section class="py-5 py-lg-6" style="background: #f8fafc; border-top: 1px solid var(--landing-line); border-bottom: 1px solid var(--landing-line);">
-    <div class="container">
-        <div class="row g-5 align-items-center">
-            <div class="col-lg-5">
-                <div class="landing-eyebrow mb-2">Keamanan Data</div>
-                <h2 class="landing-section-title mb-3">Data Anda tidak pernah bercampur.</h2>
-                <p class="landing-subtext mb-4">Setiap workspace di Meetra berjalan dalam ruang data yang sepenuhnya terisolasi. Data tenant A tidak bisa diakses oleh tenant B dalam kondisi apapun.</p>
-                <div class="landing-checklist">
-                    <div><i class="ti ti-check text-success"></i> Multi-tenant dengan isolasi penuh di level database</div>
-                    <div><i class="ti ti-check text-success"></i> Setiap percakapan, kontak, dan file tersimpan terpisah per workspace</div>
-                    <div><i class="ti ti-check text-success"></i> Enkripsi data at-rest menggunakan AES-256</div>
-                    <div><i class="ti ti-check text-success"></i> Semua traffic dienkripsi dengan TLS 1.2 minimum (TLS 1.3 preferred)</div>
-                    <div><i class="ti ti-check text-success"></i> API key dan credential disimpan terenkripsi, tidak pernah dalam plaintext</div>
-                    <div><i class="ti ti-check text-success"></i> Password di-hash menggunakan bcrypt — tim kami tidak bisa membacanya</div>
-                </div>
-            </div>
-            <div class="col-lg-7">
-                <div class="security-diagram p-4 p-lg-5 rounded-4">
-                    <div class="text-center mb-4">
-                        <div class="security-diagram-title">Arsitektur Isolasi Data</div>
-                    </div>
-                    <div class="row g-3">
-                        <div class="col-4">
-                            <div class="security-tenant-box text-center p-3">
-                                <div class="security-tenant-label mb-2">Workspace A</div>
-                                <div class="security-tenant-db"><i class="ti ti-database"></i> DB A</div>
-                                <div class="security-tenant-files small mt-1">Files • Contacts • Chats</div>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div class="security-tenant-box text-center p-3 active">
-                                <div class="security-tenant-label mb-2">Workspace B</div>
-                                <div class="security-tenant-db"><i class="ti ti-database"></i> DB B</div>
-                                <div class="security-tenant-files small mt-1">Files • Contacts • Chats</div>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div class="security-tenant-box text-center p-3">
-                                <div class="security-tenant-label mb-2">Workspace C</div>
-                                <div class="security-tenant-db"><i class="ti ti-database"></i> DB C</div>
-                                <div class="security-tenant-files small mt-1">Files • Contacts • Chats</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="text-center mt-3">
-                        <div class="security-isolation-label"><i class="ti ti-arrows-left-right"></i> Sepenuhnya terisolasi — tidak ada data yang bercampur</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-{{-- ══ PRACTICES ════════════════════════════════════════════ --}}
+{{-- ══ KOMITMEN ═════════════════════════════════════════════ --}}
 <section class="py-5 py-lg-6">
     <div class="container">
-        <div class="text-center mb-5">
-            <div class="landing-eyebrow mb-2">Praktik Keamanan</div>
-            <h2 class="landing-section-title">Apa yang kami lakukan setiap hari.</h2>
-        </div>
-        <div class="row g-4">
-            <div class="col-md-6">
-                <div class="security-practice p-4 d-flex gap-3">
-                    <div class="security-practice-icon flex-shrink-0"><i class="ti ti-shield-lock"></i></div>
-                    <div>
-                        <h3 class="h6 mb-1">Dependency Scanning</h3>
-                        <p class="text-muted small mb-0">Library dan dependensi proyek dipindai secara rutin untuk mendeteksi kerentanan yang diketahui. Patch keamanan diaplikasikan sesegera mungkin.</p>
-                    </div>
-                </div>
+        <div class="row g-5 align-items-start">
+            <div class="col-lg-5">
+                <div class="landing-eyebrow mb-2">Komitmen kami</div>
+                <h2 class="landing-section-title mb-3">Yang kami janjikan dan pegang.</h2>
+                <p class="landing-subtext">Kami platform kecil yang tumbuh bersama bisnis-bisnis yang mempercayai kami. Reputasi kami bergantung pada kepercayaan Anda — bukan sekadar slogan.</p>
             </div>
-            <div class="col-md-6">
-                <div class="security-practice p-4 d-flex gap-3">
-                    <div class="security-practice-icon flex-shrink-0"><i class="ti ti-eye-off"></i></div>
-                    <div>
-                        <h3 class="h6 mb-1">Prinsip Need-to-Know</h3>
-                        <p class="text-muted small mb-0">Tidak ada anggota tim yang memiliki akses lebih dari yang dibutuhkan. Akses ke data produksi diaudit secara berkala dan dicabut saat tidak diperlukan.</p>
+            <div class="col-lg-7">
+                <div class="security-commit-list">
+                    <div class="security-commit-item">
+                        <div class="security-commit-dot"></div>
+                        <div>
+                            <div class="fw-semibold mb-1">Data Anda tidak dijual atau dipinjamkan ke siapapun</div>
+                            <div class="text-muted small">Kami tidak memiliki bisnis iklan atau data brokering. Satu-satunya pendapatan kami adalah dari langganan Anda.</div>
+                        </div>
                     </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="security-practice p-4 d-flex gap-3">
-                    <div class="security-practice-icon flex-shrink-0"><i class="ti ti-git-branch"></i></div>
-                    <div>
-                        <h3 class="h6 mb-1">Code Review Wajib</h3>
-                        <p class="text-muted small mb-0">Setiap perubahan kode yang masuk ke produksi melalui proses review. Tidak ada deployment langsung ke server produksi tanpa melalui pipeline standar.</p>
+                    <div class="security-commit-item">
+                        <div class="security-commit-dot"></div>
+                        <div>
+                            <div class="fw-semibold mb-1">Password Anda tidak bisa dibaca siapapun, termasuk kami</div>
+                            <div class="text-muted small">Password disimpan dalam bentuk hash bcrypt — sistem satu arah yang tidak bisa dibalik. Tim kami tidak bisa melihat password Anda.</div>
+                        </div>
                     </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="security-practice p-4 d-flex gap-3">
-                    <div class="security-practice-icon flex-shrink-0"><i class="ti ti-file-alert"></i></div>
-                    <div>
-                        <h3 class="h6 mb-1">Incident Response</h3>
-                        <p class="text-muted small mb-0">Kami memiliki prosedur respons insiden yang terdokumentasi. Jika terjadi insiden keamanan, pengguna yang terdampak akan diberitahu sesuai ketentuan yang berlaku.</p>
+                    <div class="security-commit-item">
+                        <div class="security-commit-dot"></div>
+                        <div>
+                            <div class="fw-semibold mb-1">Backup otomatis setiap hari</div>
+                            <div class="text-muted small">Data di-backup setiap hari secara otomatis. Riwayat backup disimpan sehingga data bisa dipulihkan ke titik waktu tertentu bila diperlukan.</div>
+                        </div>
                     </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="security-practice p-4 d-flex gap-3">
-                    <div class="security-practice-icon flex-shrink-0"><i class="ti ti-key"></i></div>
-                    <div>
-                        <h3 class="h6 mb-1">Rotasi Credential Rutin</h3>
-                        <p class="text-muted small mb-0">Secret key, API token, dan kredensial layanan dirotasi secara berkala. Credential tidak pernah di-commit ke repository kode.</p>
+                    <div class="security-commit-item">
+                        <div class="security-commit-dot"></div>
+                        <div>
+                            <div class="fw-semibold mb-1">Akses internal sangat dibatasi</div>
+                            <div class="text-muted small">Tidak ada anggota tim Meetra yang memiliki akses bebas ke data produksi. Semua akses ke sistem dicatat dan dibatasi sesuai kebutuhan tugasnya.</div>
+                        </div>
                     </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="security-practice p-4 d-flex gap-3">
-                    <div class="security-practice-icon flex-shrink-0"><i class="ti ti-logs"></i></div>
-                    <div>
-                        <h3 class="h6 mb-1">Audit Trail Lengkap</h3>
-                        <p class="text-muted small mb-0">Setiap aksi penting dalam sistem tercatat — dari login, perubahan konfigurasi, hingga akses data sensitif. Log disimpan aman dan tidak bisa dihapus oleh pengguna biasa.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-{{-- ══ YOUR RESPONSIBILITY ══════════════════════════════════ --}}
-<section class="py-5" style="background: #f8fafc; border-top: 1px solid var(--landing-line);">
-    <div class="container">
-        <div class="landing-panel p-4 p-lg-5 rounded-4">
-            <div class="row g-4 align-items-start">
-                <div class="col-lg-6">
-                    <div class="landing-eyebrow mb-2">Yang bisa Anda lakukan</div>
-                    <h2 class="h4 mb-3">Keamanan adalah tanggung jawab bersama.</h2>
-                    <p class="text-muted small mb-0">Selain langkah-langkah yang kami ambil, ada hal-hal yang bisa Anda lakukan sebagai admin workspace untuk memperkuat keamanan tim Anda.</p>
-                </div>
-                <div class="col-lg-6">
-                    <div class="landing-checklist">
-                        <div><i class="ti ti-check text-success"></i> Gunakan password yang kuat dan unik untuk setiap akun pengguna</div>
-                        <div><i class="ti ti-check text-success"></i> Aktifkan verifikasi dua langkah (jika tersedia) untuk akun admin</div>
-                        <div><i class="ti ti-check text-success"></i> Hapus atau nonaktifkan akun pengguna yang sudah tidak aktif</div>
-                        <div><i class="ti ti-check text-success"></i> Batasi role pengguna sesuai kebutuhan — jangan berikan akses admin sembarangan</div>
-                        <div><i class="ti ti-check text-success"></i> Jangan bagikan credential API WhatsApp atau platform lain ke pihak tidak dikenal</div>
-                        <div><i class="ti ti-check text-success"></i> Laporkan segera jika mencurigai aktivitas tidak wajar di workspace Anda</div>
+                    <div class="security-commit-item">
+                        <div class="security-commit-dot"></div>
+                        <div>
+                            <div class="fw-semibold mb-1">Notifikasi jujur bila terjadi insiden</div>
+                            <div class="text-muted small">Bila ada insiden yang berdampak pada data Anda, kami akan memberi tahu Anda dengan cepat, jelas, dan jujur tentang apa yang terjadi dan apa yang kami lakukan.</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -287,33 +232,32 @@
 </section>
 
 {{-- ══ CONTACT ══════════════════════════════════════════════ --}}
-<section class="py-5 py-lg-6">
+<section class="py-5" style="background: #f8fafc; border-top: 1px solid var(--landing-line);">
     <div class="container">
-        <div class="text-center mb-5">
-            <div class="landing-eyebrow mb-2">Laporan Keamanan</div>
-            <h2 class="landing-section-title">Temukan celah keamanan? Hubungi kami.</h2>
-            <p class="landing-subtext mx-auto">Jika Anda menemukan potensi kerentanan atau masalah keamanan di platform kami, kami sangat menghargai laporan yang bertanggung jawab. Kami akan merespons dalam waktu 24 jam.</p>
-        </div>
-        <div class="row g-4 justify-content-center">
-            <div class="col-md-4">
-                <div class="security-contact-card p-4 text-center">
-                    <div class="security-contact-icon mb-3"><i class="ti ti-mail"></i></div>
-                    <h3 class="h6 mb-1">Email</h3>
-                    <a href="mailto:support@meetra.id" class="text-muted small text-decoration-none">support@meetra.id</a>
+        <div class="landing-panel p-4 p-lg-5 rounded-4">
+            <div class="row g-4 align-items-center">
+                <div class="col-lg-7">
+                    <div class="landing-eyebrow mb-2">Ada pertanyaan?</div>
+                    <h2 class="h4 mb-2">Hubungi kami langsung.</h2>
+                    <p class="text-muted mb-0">Jika Anda punya pertanyaan soal keamanan data, ingin tahu lebih detail tentang cara kami mengelola data Anda, atau menemukan potensi masalah — kami siap menjawab dalam waktu 24 jam.</p>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="security-contact-card p-4 text-center">
-                    <div class="security-contact-icon mb-3"><i class="ti ti-brand-whatsapp"></i></div>
-                    <h3 class="h6 mb-1">WhatsApp</h3>
-                    <a href="https://wa.me/6281222229815" target="_blank" rel="noopener" class="text-muted small text-decoration-none">+62 812-222-9815</a>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="security-contact-card p-4 text-center">
-                    <div class="security-contact-icon mb-3"><i class="ti ti-clock-24"></i></div>
-                    <h3 class="h6 mb-1">Waktu Respons</h3>
-                    <span class="text-muted small">Kurang dari 24 jam</span>
+                <div class="col-lg-5">
+                    <div class="d-flex flex-column gap-3">
+                        <a href="https://wa.me/6281222229815" target="_blank" rel="noopener" class="security-contact-btn">
+                            <span class="security-contact-btn-icon"><i class="ti ti-brand-whatsapp"></i></span>
+                            <div>
+                                <div class="fw-semibold">WhatsApp</div>
+                                <div class="small text-muted">+62 812-222-9815 · Respons cepat</div>
+                            </div>
+                        </a>
+                        <a href="mailto:support@meetra.id" class="security-contact-btn">
+                            <span class="security-contact-btn-icon"><i class="ti ti-mail"></i></span>
+                            <div>
+                                <div class="fw-semibold">Email</div>
+                                <div class="small text-muted">support@meetra.id · Maks. 24 jam</div>
+                            </div>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -321,13 +265,13 @@
 </section>
 
 {{-- ══ CTA ══════════════════════════════════════════════════ --}}
-<section class="py-5">
+<section class="py-5 py-lg-6">
     <div class="container">
         <div class="landing-cta-band p-4 p-lg-5">
             <div class="row g-4 align-items-center">
                 <div class="col-lg-8">
-                    <h2 class="landing-section-title text-white mb-2">Siap mulai dengan platform yang aman?</h2>
-                    <p class="mb-0 opacity-75">Daftar workspace dan rasakan sendiri infrastruktur omnichannel yang dibangun dengan standar keamanan enterprise.</p>
+                    <h2 class="landing-section-title text-white mb-2">Siap mulai dengan platform yang bisa dipercaya?</h2>
+                    <p class="mb-0 opacity-75">Ribuan percakapan dikelola setiap hari oleh tim bisnis yang mempercayakan datanya ke Meetra.</p>
                 </div>
                 <div class="col-lg-4 text-lg-end">
                     <a href="{{ route('onboarding.create') }}" class="btn btn-light btn-lg me-2 mb-2">Mulai Sekarang</a>
@@ -392,21 +336,21 @@
                         <i class="ti ti-server-2"></i>
                         <div>
                             <div class="fw-semibold">Server di Indonesia</div>
-                            <div>Data tersimpan di data center berlokasi di Indonesia.</div>
+                            <div>Biznet Gio Cloud · Data center lokal Tier-1.</div>
                         </div>
                     </div>
                     <div class="landing-footer-trust-card">
                         <i class="ti ti-lock"></i>
                         <div>
-                            <div class="fw-semibold">Enkripsi &amp; Isolasi</div>
-                            <div>Setiap workspace terisolasi. Koneksi dienkripsi TLS.</div>
+                            <div class="fw-semibold">Koneksi Terenkripsi</div>
+                            <div>TLS aktif di semua koneksi. Data tidak berpindah tanpa enkripsi.</div>
                         </div>
                     </div>
                     <div class="landing-footer-trust-card">
                         <i class="ti ti-database-heart"></i>
                         <div>
-                            <div class="fw-semibold">Database Kelas Enterprise</div>
-                            <div>Backup otomatis harian, high-availability, zero data loss.</div>
+                            <div class="fw-semibold">Database PostgreSQL</div>
+                            <div>Supabase managed · Backup harian otomatis.</div>
                         </div>
                     </div>
                 </div>

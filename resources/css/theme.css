@@ -1430,6 +1430,13 @@ body.sidebar-mini .sidebar-footer .ti-layout-sidebar-left-collapse::before {
 
 .landing-shell { min-height: 100vh; }
 
+body.landing-page a {
+    text-decoration: none;
+}
+body.landing-page a:hover {
+    text-decoration: none;
+}
+
 html:has(body.landing-page) {
     margin: 0 !important;
     padding: 0 !important;

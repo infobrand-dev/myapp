@@ -132,7 +132,9 @@ class ResolveTenantContext
             || $request->is('workspace')
             || $request->is('health')
             || $request->is('locale/switch')
-            || $request->is('keamanan-data');
+            || $request->is('keamanan-data')
+            || $request->is('kebijakan-privasi')
+            || $request->is('syarat-ketentuan');
     }
 
     private function shouldBypassTenantContext(Request $request): bool

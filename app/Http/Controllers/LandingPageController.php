@@ -54,6 +54,16 @@ class LandingPageController extends Controller
         return view('security');
     }
 
+    public function privacy(): View
+    {
+        return view('privacy');
+    }
+
+    public function terms(): View
+    {
+        return view('terms');
+    }
+
     public function affiliateRedirect(Request $request, string $slug, PlatformAffiliateService $affiliateService): RedirectResponse
     {
         $affiliate = $affiliateService->findActiveBySlug($slug);

@@ -685,8 +685,8 @@
                 <nav class="landing-footer-nav">
                     <a href="{{ route('affiliate.program') }}">Program Partner</a>
                     <a href="{{ route('security') }}">Keamanan Data</a>
-                    <a href="#" class="landing-footer-link-placeholder">Kebijakan Privasi</a>
-                    <a href="#" class="landing-footer-link-placeholder">Syarat &amp; Ketentuan</a>
+                    <a href="{{ route('privacy') }}">Kebijakan Privasi</a>
+                    <a href="{{ route('terms') }}">Syarat &amp; Ketentuan</a>
                 </nav>
             </div>
 

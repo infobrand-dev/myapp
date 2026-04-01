@@ -32,6 +32,8 @@ Route::get('/affiliate-program', AffiliateProgramController::class)->name('affil
 Route::get('/aff/{slug}', [LandingPageController::class, 'affiliateRedirect'])->name('affiliate.redirect');
 Route::get('/workspace', [LandingPageController::class, 'workspaceFinder'])->name('workspace.finder');
 Route::get('/keamanan-data', [LandingPageController::class, 'security'])->name('security');
+Route::get('/kebijakan-privasi', [LandingPageController::class, 'privacy'])->name('privacy');
+Route::get('/syarat-ketentuan', [LandingPageController::class, 'terms'])->name('terms');
 Route::post('/workspace', [LandingPageController::class, 'redirectToWorkspaceLogin'])->name('workspace.redirect');
 
 // Health check — no auth, no session, no CSRF. Used by uptime monitors and load balancers.

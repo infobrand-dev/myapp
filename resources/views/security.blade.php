@@ -217,16 +217,26 @@
 <section class="py-5 py-lg-6">
     <div class="container">
         <div class="text-center mb-5">
-            <div class="landing-eyebrow mb-2">Praktik Keamanan</div>
-            <h2 class="landing-section-title">Apa yang kami lakukan setiap hari.</h2>
+            <div class="landing-eyebrow mb-2">Perlindungan Aktif</div>
+            <h2 class="landing-section-title">Lapisan keamanan yang bekerja terus-menerus.</h2>
+            <p class="landing-subtext mx-auto">Kami tidak hanya mengandalkan satu lapisan perlindungan. Server dan data Anda dijaga oleh beberapa teknologi keamanan yang berjalan bersamaan.</p>
         </div>
         <div class="row g-4">
             <div class="col-md-6">
                 <div class="security-practice p-4 d-flex gap-3">
-                    <div class="security-practice-icon flex-shrink-0"><i class="ti ti-shield-lock"></i></div>
+                    <div class="security-practice-icon flex-shrink-0"><i class="ti ti-cloud-lock"></i></div>
                     <div>
-                        <h3 class="h6 mb-1">Pemindaian Kerentanan Rutin</h3>
-                        <p class="text-muted small mb-0">Library dan dependensi proyek dipindai secara rutin untuk mendeteksi kerentanan yang diketahui. Patch keamanan diaplikasikan sesegera mungkin.</p>
+                        <h3 class="mb-1">Proteksi Jaringan Global</h3>
+                        <p class="text-muted mb-0">Seluruh traffic ke platform Meetra melewati lapisan proteksi jaringan global. Serangan DDoS, bot berbahaya, dan ancaman jaringan diblokir secara otomatis sebelum menyentuh server kami.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="security-practice p-4 d-flex gap-3">
+                    <div class="security-practice-icon flex-shrink-0"><i class="ti ti-virus-search"></i></div>
+                    <div>
+                        <h3 class="mb-1">Keamanan Server Real-time Berbasis AI</h3>
+                        <p class="text-muted mb-0">Server kami dilindungi oleh sistem keamanan berbasis kecerdasan buatan yang memindai, mendeteksi, dan memblokir ancaman secara real-time — mulai dari malware, brute force, hingga eksploitasi celah keamanan.</p>
                     </div>
                 </div>
             </div>
@@ -234,17 +244,8 @@
                 <div class="security-practice p-4 d-flex gap-3">
                     <div class="security-practice-icon flex-shrink-0"><i class="ti ti-eye-off"></i></div>
                     <div>
-                        <h3 class="h6 mb-1">Prinsip Akses Minimal</h3>
-                        <p class="text-muted small mb-0">Tidak ada anggota tim yang memiliki akses lebih dari yang dibutuhkan. Akses ke data produksi diaudit secara berkala dan dicabut saat tidak diperlukan.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="security-practice p-4 d-flex gap-3">
-                    <div class="security-practice-icon flex-shrink-0"><i class="ti ti-git-branch"></i></div>
-                    <div>
-                        <h3 class="h6 mb-1">Review Kode Wajib</h3>
-                        <p class="text-muted small mb-0">Setiap perubahan kode yang masuk ke produksi melalui proses review. Tidak ada deployment langsung ke server produksi tanpa melalui pipeline standar.</p>
+                        <h3 class="mb-1">Akses Internal yang Sangat Terbatas</h3>
+                        <p class="text-muted mb-0">Tidak ada anggota tim yang memiliki akses bebas ke data pengguna. Setiap akses ke sistem produksi tercatat, dibatasi sesuai kebutuhan, dan diaudit secara berkala.</p>
                     </div>
                 </div>
             </div>
@@ -252,17 +253,17 @@
                 <div class="security-practice p-4 d-flex gap-3">
                     <div class="security-practice-icon flex-shrink-0"><i class="ti ti-file-alert"></i></div>
                     <div>
-                        <h3 class="h6 mb-1">Prosedur Respons Insiden</h3>
-                        <p class="text-muted small mb-0">Kami memiliki prosedur respons insiden yang terdokumentasi. Jika terjadi insiden keamanan, pengguna yang terdampak akan diberitahu sesuai ketentuan yang berlaku.</p>
+                        <h3 class="mb-1">Respons Insiden yang Jelas</h3>
+                        <p class="text-muted mb-0">Jika terjadi insiden yang berdampak pada data Anda, kami berkomitmen untuk memberi tahu Anda dengan cepat dan transparan — bukan pernyataan abu-abu. Anda berhak tahu apa yang terjadi.</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-6">
                 <div class="security-practice p-4 d-flex gap-3">
-                    <div class="security-practice-icon flex-shrink-0"><i class="ti ti-key"></i></div>
+                    <div class="security-practice-icon flex-shrink-0"><i class="ti ti-activity"></i></div>
                     <div>
-                        <h3 class="h6 mb-1">Rotasi Credential Rutin</h3>
-                        <p class="text-muted small mb-0">Secret key, API token, dan kredensial layanan dirotasi secara berkala. Credential tidak pernah di-commit ke repository kode.</p>
+                        <h3 class="mb-1">Pemantauan 24/7 Tanpa Jeda</h3>
+                        <p class="text-muted mb-0">Sistem monitoring berjalan sepanjang waktu memantau kesehatan server, aktivitas tidak wajar, dan potensi ancaman — dengan notifikasi otomatis ke tim kami bila ada yang perlu ditangani.</p>
                     </div>
                 </div>
             </div>
@@ -270,8 +271,8 @@
                 <div class="security-practice p-4 d-flex gap-3">
                     <div class="security-practice-icon flex-shrink-0"><i class="ti ti-logs"></i></div>
                     <div>
-                        <h3 class="h6 mb-1">Audit Trail Lengkap</h3>
-                        <p class="text-muted small mb-0">Setiap aksi penting dalam sistem tercatat — dari login, perubahan konfigurasi, hingga akses data sensitif. Log disimpan aman dan tidak bisa dihapus oleh pengguna biasa.</p>
+                        <h3 class="mb-1">Rekaman Aktivitas Lengkap</h3>
+                        <p class="text-muted mb-0">Setiap aksi penting di dalam workspace tercatat — dari login, perubahan pengaturan, hingga akses ke data. Log ini disimpan aman dan tidak bisa dihapus oleh siapapun sembarangan.</p>
                     </div>
                 </div>
             </div>
@@ -398,8 +399,8 @@
                 <nav class="landing-footer-nav">
                     <a href="{{ route('affiliate.program') }}">Program Partner</a>
                     <a href="{{ route('security') }}">Keamanan Data</a>
-                    <a href="#">Kebijakan Privasi</a>
-                    <a href="#">Syarat &amp; Ketentuan</a>
+                    <a href="{{ route('privacy') }}">Kebijakan Privasi</a>
+                    <a href="{{ route('terms') }}">Syarat &amp; Ketentuan</a>
                 </nav>
             </div>
             <div class="col-lg-4">

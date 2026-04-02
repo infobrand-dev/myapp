@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Crypt;
 
 class SocialAccount extends Model
@@ -75,6 +76,57 @@ class SocialAccount extends Model
     public function chatbotIntegration(): HasOne
     {
         return $this->hasOne(SocialAccountChatbotIntegration::class, 'social_account_id');
+    }
+
+    public function updateOperationalMetadata(array $attributes): void
+    {
+        $metadata = is_array($this->metadata) ? $this->metadata : [];
+
+        foreach ($attributes as $key => $value) {
+            if ($value === null) {
+                unset($metadata[$key]);
+                continue;
+            }
+
+            $metadata[$key] = $value;
+        }
+
+        $this->forceFill(['metadata' => $metadata])->save();
+    }
+
+    public function lastInboundAt(): ?Carbon
+    {
+        $value = data_get($this->metadata, 'last_inbound_at');
+
+        return filled($value) ? Carbon::parse((string) $value) : null;
+    }
+
+    public function lastOutboundAt(): ?Carbon
+    {
+        $value = data_get($this->metadata, 'last_outbound_at');
+
+        return filled($value) ? Carbon::parse((string) $value) : null;
+    }
+
+    public function lastOutboundErrorAt(): ?Carbon
+    {
+        $value = data_get($this->metadata, 'last_outbound_error_at');
+
+        return filled($value) ? Carbon::parse((string) $value) : null;
+    }
+
+    public function lastOutboundErrorMessage(): ?string
+    {
+        $value = trim((string) data_get($this->metadata, 'last_outbound_error_message', ''));
+
+        return $value !== '' ? $value : null;
+    }
+
+    public function lastInboundSummary(): ?string
+    {
+        $value = trim((string) data_get($this->metadata, 'last_inbound_summary', ''));
+
+        return $value !== '' ? $value : null;
     }
 
     public function resolveRouteBinding($value, $field = null)

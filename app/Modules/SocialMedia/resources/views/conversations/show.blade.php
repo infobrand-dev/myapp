@@ -1,36 +1,40 @@
 @extends('layouts.admin')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h2 class="mb-0">{{ $conversation->contact_name ?: 'Unknown Contact' }}</h2>
-        <div class="text-muted small">
-            {{ $conversation->metadata['platform'] ?? 'Social DM' }}
-            &mdash; {{ $conversation->contact_external_id }}
-            &mdash;
-            @if($conversation->status === 'open')
-                <span class="badge bg-success-lt">Open</span>
-            @else
-                <span class="badge bg-secondary-lt">{{ ucfirst($conversation->status) }}</span>
-            @endif
-            @if($botPaused)
-                <span class="badge bg-warning-lt ms-1">Bot Paused</span>
-            @endif
+<div class="page-header mb-3">
+    <div class="row align-items-center w-100">
+        <div class="col">
+            <h2 class="mb-0">{{ $conversation->contact_name ?: 'Unknown Contact' }}</h2>
+            <div class="text-muted small">
+                {{ $conversation->metadata['platform'] ?? 'Social DM' }}
+                &mdash; {{ $conversation->contact_external_id }}
+                &mdash;
+                @if($conversation->status === 'open')
+                    <span class="badge bg-success-lt">Open</span>
+                @else
+                    <span class="badge bg-secondary-lt">{{ ucfirst($conversation->status) }}</span>
+                @endif
+                @if($botPaused)
+                    <span class="badge bg-warning-lt ms-1">Bot Paused</span>
+                @endif
+            </div>
         </div>
-    </div>
-    <div class="d-flex gap-2">
-        @if($botPaused)
-            <form method="POST" action="{{ route('social-media.conversations.resume-bot', $conversation) }}">
-                @csrf
-                <button type="submit" class="btn btn-outline-success btn-sm">Resume Bot</button>
-            </form>
-        @else
-            <form method="POST" action="{{ route('social-media.conversations.pause-bot', $conversation) }}">
-                @csrf
-                <button type="submit" class="btn btn-outline-warning btn-sm">Pause Bot</button>
-            </form>
-        @endif
-        <a href="{{ route('social-media.index') }}" class="btn btn-outline-secondary">Back</a>
+        <div class="col-auto">
+            <div class="d-flex gap-2">
+                @if($botPaused)
+                    <form method="POST" action="{{ route('social-media.conversations.resume-bot', $conversation) }}">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-success btn-sm">Resume Bot</button>
+                    </form>
+                @else
+                    <form method="POST" action="{{ route('social-media.conversations.pause-bot', $conversation) }}">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-warning btn-sm">Pause Bot</button>
+                    </form>
+                @endif
+                <a href="{{ route('social-media.index') }}" class="btn btn-outline-secondary">Back</a>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -54,6 +58,23 @@
                     @elseif($message->direction === 'in')
                         <div class="small fw-semibold mb-1 text-muted">{{ $conversation->contact_name ?: 'Contact' }}</div>
                     @endif
+                    @php
+                        $messageMediaUrl = $message->media_url;
+                        $messageMime = strtolower((string) ($message->media_mime ?? ''));
+                    @endphp
+                    @if($messageMediaUrl)
+                        @if(str_starts_with($messageMime, 'image/'))
+                            <div class="mb-2">
+                                <img src="{{ $messageMediaUrl }}" alt="Attachment" class="img-fluid rounded" style="max-height: 260px;">
+                            </div>
+                        @else
+                            <div class="mb-2">
+                                <a href="{{ $messageMediaUrl }}" target="_blank" rel="noopener" class="btn btn-sm {{ $message->direction === 'out' ? 'btn-light' : 'btn-outline-secondary' }}">
+                                    Lihat Attachment
+                                </a>
+                            </div>
+                        @endif
+                    @endif
                     <div>{{ $message->body }}</div>
                     <div class="small mt-1 {{ $message->direction === 'out' ? 'text-white-50' : 'text-muted' }}">
                         {{ $message->created_at->format('d/m H:i') }}
@@ -72,7 +93,7 @@
 <div class="card">
     <div class="card-header"><h3 class="card-title">Balas</h3></div>
     <div class="card-body">
-        <form method="POST" action="{{ route('social-media.conversations.reply', $conversation) }}">
+        <form method="POST" action="{{ route('social-media.conversations.reply', $conversation) }}" enctype="multipart/form-data">
             @csrf
             @if($errors->any())
                 <div class="alert alert-danger mb-2">
@@ -84,7 +105,11 @@
                 </div>
             @endif
             <div class="mb-2">
-                <textarea name="body" class="form-control" rows="3" placeholder="Ketik pesan..." required>{{ old('body') }}</textarea>
+                <textarea name="body" class="form-control" rows="3" placeholder="Ketik pesan...">{{ old('body') }}</textarea>
+            </div>
+            <div class="mb-3">
+                <input type="file" name="media_file" class="form-control" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip">
+                <div class="form-hint">Opsional. Bisa kirim teks, file, atau keduanya.</div>
             </div>
             <button class="btn btn-primary">Kirim</button>
         </form>

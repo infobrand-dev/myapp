@@ -52,6 +52,10 @@ class SendSocialMessage implements ShouldQueue
 
         if (!$account || !$pageToken) {
             $message->update(['status' => 'error', 'error_message' => 'Social account token is not connected for this tenant.']);
+            $account?->updateOperationalMetadata([
+                'last_outbound_error_at' => now()->toDateTimeString(),
+                'last_outbound_error_message' => 'Social account token is not connected for this tenant.',
+            ]);
             return;
         }
 
@@ -59,28 +63,31 @@ class SendSocialMessage implements ShouldQueue
             if ($platform === 'instagram') {
                 if (!$igBusinessId) {
                     $message->update(['status' => 'error', 'error_message' => 'META_IG_BUSINESS_ID not set']);
+                    $account->updateOperationalMetadata([
+                        'last_outbound_error_at' => now()->toDateTimeString(),
+                        'last_outbound_error_message' => 'META_IG_BUSINESS_ID not set',
+                    ]);
                     return;
                 }
                 $url = "https://graph.facebook.com/{$graphVersion}/{$igBusinessId}/messages";
-                $payload = [
-                    'messaging_type' => 'RESPONSE',
-                    'recipient' => ['id' => $recipient],
-                    'message' => ['text' => $message->body],
-                    'access_token' => $pageToken,
-                ];
             } else { // facebook page
                 if (!$pageId) {
                     $message->update(['status' => 'error', 'error_message' => 'META_PAGE_ID not set']);
+                    $account->updateOperationalMetadata([
+                        'last_outbound_error_at' => now()->toDateTimeString(),
+                        'last_outbound_error_message' => 'META_PAGE_ID not set',
+                    ]);
                     return;
                 }
                 $url = "https://graph.facebook.com/{$graphVersion}/{$pageId}/messages";
-                $payload = [
-                    'messaging_type' => 'RESPONSE',
-                    'recipient' => ['id' => $recipient],
-                    'message' => ['text' => $message->body],
-                    'access_token' => $pageToken,
-                ];
             }
+
+            $payload = [
+                'messaging_type' => 'RESPONSE',
+                'recipient' => ['id' => $recipient],
+                'message' => $this->buildMessagePayload($message),
+                'access_token' => $pageToken,
+            ];
 
             $resp = Http::timeout(10)->post($url, $payload);
             if ($resp->successful()) {
@@ -89,16 +96,55 @@ class SendSocialMessage implements ShouldQueue
                     'sent_at' => now(),
                     'external_message_id' => $resp->json('message_id') ?? $resp->json('id') ?? $message->external_message_id,
                 ]);
+                $account->updateOperationalMetadata([
+                    'last_outbound_at' => now()->toDateTimeString(),
+                    'last_outbound_error_at' => null,
+                    'last_outbound_error_message' => null,
+                ]);
             } else {
+                $errorMessage = $resp->body();
                 $message->update([
                     'status' => 'error',
-                    'error_message' => $resp->body(),
+                    'error_message' => $errorMessage,
+                ]);
+                $account->updateOperationalMetadata([
+                    'last_outbound_error_at' => now()->toDateTimeString(),
+                    'last_outbound_error_message' => mb_substr($errorMessage, 0, 500),
                 ]);
             }
         } catch (\Throwable $e) {
             Log::error('SendSocialMessage failed', ['message_id' => $message->id, 'error' => $e->getMessage()]);
             $message->update(['status' => 'error', 'error_message' => $e->getMessage()]);
+            $account->updateOperationalMetadata([
+                'last_outbound_error_at' => now()->toDateTimeString(),
+                'last_outbound_error_message' => mb_substr($e->getMessage(), 0, 500),
+            ]);
         }
+    }
+
+    private function buildMessagePayload(ConversationMessage $message): array
+    {
+        if ($message->type === 'text' || !$message->media_url) {
+            return ['text' => (string) $message->body];
+        }
+
+        return [
+            'attachment' => [
+                'type' => $this->resolveAttachmentType((string) $message->type),
+                'payload' => [
+                    'url' => (string) $message->media_url,
+                ],
+            ],
+        ];
+    }
+
+    private function resolveAttachmentType(string $type): string
+    {
+        return match ($type) {
+            'document' => 'file',
+            'image', 'video', 'audio' => $type,
+            default => 'file',
+        };
     }
 }
 

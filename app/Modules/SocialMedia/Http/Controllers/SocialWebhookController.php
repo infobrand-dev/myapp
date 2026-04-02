@@ -9,8 +9,8 @@ use App\Modules\Conversations\Data\InboxMessageEnvelope;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\SocialMedia\Models\SocialAccount;
 use App\Modules\SocialMedia\Models\SocialAccountChatbotIntegration;
+use App\Modules\SocialMedia\Services\MetaWebhookPayloadParser;
 use App\Modules\Conversations\Jobs\GenerateAiReply;
-use App\Modules\SocialMedia\Http\Requests\InboundSocialWebhookRequest;
 use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,68 +21,75 @@ class SocialWebhookController extends Controller
 {
     public function __construct(
         private readonly InboxMessageIngester $ingester,
-        private readonly ConversationBotPolicy $botPolicy
+        private readonly ConversationBotPolicy $botPolicy,
+        private readonly MetaWebhookPayloadParser $payloadParser
     ) {
     }
 
-    public function inbound(InboundSocialWebhookRequest $request): JsonResponse
+    public function inbound(Request $request): JsonResponse
     {
-        $data = $request->validated();
-
-        $token = trim((string) ($data['token'] ?? ''));
-        $account = SocialAccount::query()
-            ->where('status', 'active')
-            ->where('platform', $data['platform'])
-            ->when($data['account_id'] ?? null, fn ($q) => $q->where('id', $data['account_id']))
-            ->where(function ($query) use ($token) {
-                $query->where('access_token_hash', hash('sha256', $token))
-                    ->orWhere('access_token', $token);
-            })
-            ->get()
-            ->first(fn (SocialAccount $candidate) => hash_equals((string) $candidate->access_token, $token));
-
-        if (!$account) {
-            return response()->json(['message' => 'Invalid token/account'], Response::HTTP_UNAUTHORIZED);
+        if (!$this->payloadParser->verifySignature($request)) {
+            return response()->json(['message' => 'Invalid webhook signature'], Response::HTTP_UNAUTHORIZED);
         }
 
-        TenantContext::setCurrentId((int) $account->tenant_id);
+        $events = $this->payloadParser->parse($request);
+        $processed = 0;
+        $deduplicated = 0;
 
-        $result = $this->ingester->ingest(new InboxMessageEnvelope(
-            channel: 'social_dm',
-            instanceId: (int) $account->id,
-            conversationExternalId: null,
-            contactExternalId: $data['contact_id'],
-            contactName: $data['contact_name'] ?? null,
-            direction: $data['direction'] ?? 'in',
-            type: 'text',
-            body: $data['message'],
-            externalMessageId: $data['external_message_id'] ?? null,
-            payload: $this->sanitizeWebhookPayload($request->all()),
-            conversationMetadata: ['platform' => $data['platform']],
-            messageStatus: (($data['direction'] ?? 'in') === 'out') ? 'sent' : 'delivered',
-            ingestionMode: InboxMessageEnvelope::MODE_REALTIME,
-            incrementUnread: ($data['direction'] ?? 'in') !== 'out',
-            writeActivityLog: false,
-            broadcast: false,
-        ));
-        $conversation = $result->conversation;
-        $message = $result->message;
+        foreach ($events as $event) {
+            /** @var SocialAccount $account */
+            $account = $event['account'];
+            TenantContext::setCurrentId((int) $account->tenant_id);
 
-        if ($result->deduplicated) {
-            return response()->json(['stored' => true, 'deduplicated' => true]);
-        }
+            $result = $this->ingester->ingest(new InboxMessageEnvelope(
+                channel: 'social_dm',
+                instanceId: (int) $account->id,
+                conversationExternalId: null,
+                contactExternalId: $event['contact_id'],
+                contactName: $event['contact_name'],
+                direction: $event['direction'],
+                type: 'text',
+                body: $event['message'],
+                externalMessageId: $event['external_message_id'],
+                payload: $this->sanitizeWebhookPayload($event['payload']),
+                conversationMetadata: ['platform' => $event['platform']],
+                messageStatus: $event['direction'] === 'out' ? 'sent' : 'delivered',
+                ingestionMode: InboxMessageEnvelope::MODE_REALTIME,
+                incrementUnread: $event['direction'] !== 'out',
+                writeActivityLog: false,
+                broadcast: false,
+            ));
+            $processed++;
 
-        $chatbot = $this->chatbotIntegration($account);
-        if ($chatbot['auto_reply'] && (($data['direction'] ?? 'in') === 'in')) {
-            $decision = $this->evaluateAutoReplyDecision($conversation, $chatbot['chatbot_account_id'], (string) ($message->body ?? ''));
-            if (($decision['action'] ?? null) === 'reply') {
-                GenerateAiReply::dispatch($conversation->id, $message->id, $chatbot['chatbot_account_id']);
-            } elseif (($decision['action'] ?? null) === 'handoff') {
-                $this->markConversationHandoff($conversation, (string) ($decision['reason'] ?? 'user_requested_human'), $chatbot['chatbot_account_id']);
+            if ($result->deduplicated) {
+                $deduplicated++;
+                continue;
+            }
+
+            $chatbot = $this->chatbotIntegration($account);
+            if ($chatbot['auto_reply'] && $event['direction'] === 'in') {
+                $decision = $this->evaluateAutoReplyDecision($result->conversation, $chatbot['chatbot_account_id'], (string) ($result->message->body ?? ''));
+                if (($decision['action'] ?? null) === 'reply') {
+                    GenerateAiReply::dispatch($result->conversation->id, $result->message->id, $chatbot['chatbot_account_id']);
+                } elseif (($decision['action'] ?? null) === 'handoff') {
+                    $this->markConversationHandoff($result->conversation, (string) ($decision['reason'] ?? 'user_requested_human'), $chatbot['chatbot_account_id']);
+                }
+            }
+
+            if ($event['direction'] === 'in') {
+                $account->updateOperationalMetadata([
+                    'last_inbound_at' => now()->toDateTimeString(),
+                    'last_inbound_summary' => mb_substr(trim((string) $event['message']), 0, 160),
+                ]);
             }
         }
 
-        return response()->json(['stored' => true, 'deduplicated' => $result->deduplicated]);
+        return response()->json([
+            'stored' => true,
+            'processed' => $processed,
+            'deduplicated' => $deduplicated > 0,
+            'deduplicated_count' => $deduplicated,
+        ]);
     }
 
     // Meta challenge verify

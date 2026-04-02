@@ -2,7 +2,7 @@
     <div class="dashboard-kpi p-3 p-lg-4 h-100 d-flex flex-column">
         <div class="d-flex align-items-start justify-content-between gap-3">
             <div>
-                <div class="text-secondary text-uppercase small fw-bold">Social Media</div>
+                <div class="text-secondary text-uppercase small fw-bold">Instagram / Facebook DM</div>
                 <div class="mt-2 fw-bold" style="font-size: 2rem; line-height: 1; color: var(--db-ink);">{{ $connected }}</div>
                 <div class="text-muted small mt-1">
                     akun terhubung

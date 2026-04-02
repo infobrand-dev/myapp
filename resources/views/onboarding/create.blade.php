@@ -97,7 +97,7 @@
                                             <div class="small mb-2 text-dark">{{ $fit }}</div>
 
                                             <div class="d-flex flex-wrap gap-2 small mb-3">
-                                                <span class="badge bg-light text-dark border">Social Inbox</span>
+                                                <span class="badge bg-light text-dark border">Instagram / Facebook DM</span>
                                                 <span class="badge bg-light text-dark border">Live Chat</span>
                                                 <span class="badge bg-light text-dark border">CRM Lite</span>
                                                 @if(!empty($features[\App\Support\PlanFeature::CHATBOT_AI]))

@@ -7,12 +7,16 @@
     $chatbotEnabled = $chatbotEnabled ?? false;
     $metaOAuthReady = $metaOAuthReady ?? false;
 @endphp
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h2 class="mb-0">Pengaturan Social Account</h2>
-        <div class="text-muted small">Kredensial dihubungkan melalui Meta OAuth platform. Tenant hanya mengatur status dan AI auto-reply.</div>
+<div class="page-header mb-3">
+    <div class="row align-items-center w-100">
+        <div class="col">
+            <h2 class="mb-0">Pengaturan Social Account</h2>
+            <div class="text-muted small">Kredensial dihubungkan melalui Meta OAuth platform. Tenant hanya mengatur status dan AI auto-reply.</div>
+        </div>
+        <div class="col-auto">
+            <a href="{{ route('social-media.accounts.index') }}" class="btn btn-outline-secondary">Kembali</a>
+        </div>
     </div>
-    <a href="{{ route('social-media.accounts.index') }}" class="btn btn-outline-secondary">Kembali</a>
 </div>
 
 @if(!$metaOAuthReady)
@@ -85,6 +89,37 @@
                 <button class="btn btn-primary" type="submit">Simpan</button>
             </div>
         </form>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-header">
+        <h3 class="card-title">Health</h3>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="text-muted small">Inbound terakhir</div>
+                <div>{{ optional($account->lastInboundAt())->diffForHumans() ?? '—' }}</div>
+                @if($account->lastInboundSummary())
+                    <div class="small text-body mt-1">“{{ $account->lastInboundSummary() }}”</div>
+                @endif
+            </div>
+            <div class="col-md-4">
+                <div class="text-muted small">Outbound terakhir</div>
+                <div>{{ optional($account->lastOutboundAt())->diffForHumans() ?? '—' }}</div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-muted small">Error terakhir</div>
+                <div>{{ optional($account->lastOutboundErrorAt())->diffForHumans() ?? '—' }}</div>
+            </div>
+            @if($account->lastOutboundErrorMessage())
+                <div class="col-12">
+                    <div class="text-muted small">Pesan error terakhir</div>
+                    <div class="small text-danger">{{ $account->lastOutboundErrorMessage() }}</div>
+                </div>
+            @endif
+        </div>
     </div>
 </div>
 @endsection

@@ -2,13 +2,16 @@
 
 namespace App\Modules\SocialMedia;
 
+use App\Modules\Conversations\Contracts\ConversationChannelManager;
 use App\Modules\Conversations\Contracts\ConversationOutboundDispatcher;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\SocialMedia\Jobs\SendSocialMessage;
+use App\Modules\SocialMedia\Services\SocialPlatformRegistry;
 use App\Support\BooleanQuery;
 use App\Support\PlanLimit;
 use App\Support\RegistersModuleRoutes;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
@@ -47,6 +50,8 @@ class SocialMediaServiceProvider extends ServiceProvider
 
     public function register(): void
     {
+        $this->app->singleton(SocialPlatformRegistry::class, fn () => new SocialPlatformRegistry());
+
         $chatbotRegistry = \App\Modules\Chatbot\Contracts\ConversationBotIntegrationRegistry::class;
 
         $this->app->afterResolving($chatbotRegistry, function ($registry): void {
@@ -70,6 +75,36 @@ class SocialMediaServiceProvider extends ServiceProvider
                     'chatbot_account_id' => (int) $integration->chatbot_account_id,
                 ];
             });
+        });
+
+        $this->app->afterResolving(ConversationChannelManager::class, function (ConversationChannelManager $channels): void {
+            $channels->register('social_dm', [
+                'default_message_type' => 'text',
+                'validate_media_send' => function (Conversation $conversation, string $publicUrl): ?string {
+                    if (!filter_var($publicUrl, FILTER_VALIDATE_URL)) {
+                        return 'Upload file untuk Social DM membutuhkan APP_URL publik HTTPS dan folder public/storage yang bisa diakses dari internet.';
+                    }
+
+                    $scheme = strtolower((string) parse_url($publicUrl, PHP_URL_SCHEME));
+                    $host = strtolower((string) parse_url($publicUrl, PHP_URL_HOST));
+                    $isValidHost = $host !== '' && !in_array($host, ['localhost', '127.0.0.1', '::1'], true);
+
+                    if ($scheme !== 'https' || !$isValidHost || !is_dir(public_path('storage'))) {
+                        return 'Upload file untuk Social DM membutuhkan APP_URL publik HTTPS dan folder public/storage yang bisa diakses dari internet.';
+                    }
+
+                    if (filter_var($host, FILTER_VALIDATE_IP)
+                        && filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+                        return 'Upload file untuk Social DM membutuhkan APP_URL publik HTTPS dan folder public/storage yang bisa diakses dari internet.';
+                    }
+
+                    return null;
+                },
+                'ui_features' => [
+                    'show_ai_bot' => true,
+                    'show_contact_crm' => false,
+                ],
+            ]);
         });
 
         $this->app->afterResolving(ConversationOutboundDispatcher::class, function (ConversationOutboundDispatcher $dispatcher): void {

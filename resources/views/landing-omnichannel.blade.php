@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('app.name') }} Omnichannel — Inbox untuk Tim Sales & Support</title>
-    <meta name="description" content="Satukan percakapan WhatsApp, sosial media, live chat, dan chatbot AI dalam satu workspace. Balas lebih cepat, lead tidak tercecer, tim lebih fokus.">
+    <meta name="description" content="Satukan percakapan WhatsApp, Instagram/Facebook DM, live chat, dan chatbot AI dalam satu workspace. Balas lebih cepat, lead tidak tercecer, tim lebih fokus.">
     <meta name="robots" content="noindex, nofollow">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -64,7 +64,7 @@
                     Semua percakapan pelanggan, <span>satu inbox</span>.
                 </h1>
                 <p class="landing-subtext mb-5">
-                    WhatsApp, sosial media, live chat, dan chatbot AI — dikelola dari satu tempat. Tim lebih cepat merespons, lead tidak nyasar, dan closing jadi lebih terukur.
+                    WhatsApp, Instagram/Facebook DM, live chat, dan chatbot AI — dikelola dari satu tempat. Tim lebih cepat merespons, lead tidak nyasar, dan closing jadi lebih terukur.
                 </p>
                 <div class="d-flex flex-wrap gap-3 mb-5">
                     <a href="{{ route('onboarding.create') }}" class="btn btn-lg btn-dark">Coba Sekarang</a>
@@ -72,7 +72,7 @@
                 </div>
                 <div class="d-flex flex-wrap gap-2">
                     <span class="landing-pill"><i class="ti ti-brand-whatsapp"></i> WhatsApp API & Web</span>
-                    <span class="landing-pill"><i class="ti ti-brand-instagram"></i> Social Inbox</span>
+                    <span class="landing-pill"><i class="ti ti-brand-instagram"></i> Instagram / Facebook DM</span>
                     <span class="landing-pill"><i class="ti ti-message-chatbot"></i> Chatbot AI</span>
                     <span class="landing-pill"><i class="ti ti-live-view"></i> Live Chat</span>
                 </div>
@@ -195,7 +195,7 @@
             <div class="col-md-6 col-xl-3">
                 <div class="landing-feature-card p-4 h-100">
                     <div class="landing-feature-icon mb-3"><i class="ti ti-brand-instagram"></i></div>
-                    <h3 class="h5 mb-2">Social Media Inbox</h3>
+                    <h3 class="h5 mb-2">Instagram / Facebook DM Inbox</h3>
                     <p class="text-muted small mb-0">Kelola DM Instagram, Facebook, dan channel sosial lainnya dari satu dashboard — tidak perlu login ke masing-masing akun.</p>
                 </div>
             </div>

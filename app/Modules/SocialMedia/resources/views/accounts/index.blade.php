@@ -1,12 +1,16 @@
 @extends('layouts.admin')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h2 class="mb-0">Social Accounts</h2>
-        <div class="text-muted small">Hubungkan Facebook Page dan Instagram Business Account tenant melalui Meta OAuth platform.</div>
+<div class="page-header mb-3">
+    <div class="row align-items-center w-100">
+        <div class="col">
+            <h2 class="mb-0">Social Accounts</h2>
+            <div class="text-muted small">Hubungkan Facebook Page dan Instagram Business Account tenant melalui Meta OAuth platform.</div>
+        </div>
+        <div class="col-auto">
+            <a href="{{ route('social-media.accounts.connect.meta') }}" class="btn btn-primary {{ ($metaOAuthReady ?? false) ? '' : 'disabled' }}">Hubungkan Meta</a>
+        </div>
     </div>
-    <a href="{{ route('social-media.accounts.connect.meta') }}" class="btn btn-primary {{ ($metaOAuthReady ?? false) ? '' : 'disabled' }}">Hubungkan Meta</a>
 </div>
 
 @if(!($metaOAuthReady ?? false))
@@ -28,6 +32,7 @@
                     <th>Nama</th>
                     <th>ID</th>
                     <th>Status</th>
+                    <th>Health</th>
                     <th class="w-1"></th>
                 </tr>
             </thead>
@@ -35,9 +40,19 @@
                 @forelse($accounts as $acc)
                     <tr>
                         <td>{{ strtoupper($acc->platform) }}</td>
-                        <td>{{ $acc->name ?? '—' }}</td>
+                        <td>{{ $acc->name ?: '-' }}</td>
                         <td>{{ $acc->platform === 'instagram' ? $acc->ig_business_id : $acc->page_id }}</td>
                         <td><span class="badge {{ $acc->status === 'active' ? 'text-bg-success' : 'text-bg-secondary' }}">{{ $acc->status }}</span></td>
+                        <td class="small text-muted">
+                            <div>Inbound: {{ optional($acc->lastInboundAt())->diffForHumans() ?? '—' }}</div>
+                            @if($acc->lastInboundSummary())
+                                <div class="text-body">“{{ $acc->lastInboundSummary() }}”</div>
+                            @endif
+                            <div>Outbound: {{ optional($acc->lastOutboundAt())->diffForHumans() ?? '—' }}</div>
+                            @if($acc->lastOutboundErrorAt())
+                                <div class="text-danger">Error: {{ $acc->lastOutboundErrorAt()->diffForHumans() }}</div>
+                            @endif
+                        </td>
                         <td class="text-end align-middle">
                             <div class="table-actions">
                                 <a href="{{ route('social-media.accounts.edit', $acc) }}" class="btn btn-outline-secondary btn-sm">Pengaturan</a>
@@ -50,7 +65,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="text-muted">Belum ada akun.</td></tr>
+                    <tr><td colspan="6" class="text-muted">Belum ada akun.</td></tr>
                 @endforelse
             </tbody>
         </table>

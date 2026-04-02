@@ -14,7 +14,8 @@ class ReplySocialConversationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'body' => ['required', 'string', 'max:4000'],
+            'body' => ['nullable', 'string', 'max:4000', 'required_without:media_file'],
+            'media_file' => ['nullable', 'file', 'max:20480', 'required_without:body'],
         ];
     }
 }

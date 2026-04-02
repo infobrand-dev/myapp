@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('locale/switch', [App\Http\Controllers\LocaleController::class, 'switch'])->name('locale.switch');
 
 Route::get('/', LandingPageController::class)->name('landing');
+Route::get('/omnichannel', [LandingPageController::class, 'omnichannel'])->name('landing.omnichannel');
 Route::get('/affiliate-program', AffiliateProgramController::class)->name('affiliate.program');
 Route::get('/aff/{slug}', [LandingPageController::class, 'affiliateRedirect'])->name('affiliate.redirect');
 Route::get('/workspace', [LandingPageController::class, 'workspaceFinder'])->name('workspace.finder');

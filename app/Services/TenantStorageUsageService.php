@@ -30,6 +30,14 @@ class TenantStorageUsageService
             $paths[$this->referenceKey($reference['disk'], $reference['path'])] = $reference;
         }
 
+        foreach ($this->conversationMediaReferences($tenantId) as $reference) {
+            $paths[$this->referenceKey($reference['disk'], $reference['path'])] = $reference;
+        }
+
+        foreach ($this->liveChatWidgetLogoReferences($tenantId) as $reference) {
+            $paths[$this->referenceKey($reference['disk'], $reference['path'])] = $reference;
+        }
+
         $total = 0;
 
         foreach ($paths as $reference) {
@@ -178,6 +186,54 @@ class TenantStorageUsageService
         return $references;
     }
 
+    /**
+     * @return array<int, array{disk:string, path:string}>
+     */
+    private function conversationMediaReferences(int $tenantId): array
+    {
+        if (!Schema::hasTable('conversation_messages')) {
+            return [];
+        }
+
+        return DB::table('conversation_messages')
+            ->where('tenant_id', $tenantId)
+            ->whereNotNull('media_url')
+            ->where('media_url', '!=', '')
+            ->pluck('media_url')
+            ->map(function ($url) {
+                $path = $this->publicDiskPathFromUrl((string) $url);
+
+                return $path === null ? null : ['disk' => 'public', 'path' => $path];
+            })
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int, array{disk:string, path:string}>
+     */
+    private function liveChatWidgetLogoReferences(int $tenantId): array
+    {
+        if (!Schema::hasTable('live_chat_widgets')) {
+            return [];
+        }
+
+        return DB::table('live_chat_widgets')
+            ->where('tenant_id', $tenantId)
+            ->whereNotNull('logo_url')
+            ->where('logo_url', '!=', '')
+            ->pluck('logo_url')
+            ->map(function ($url) {
+                $path = $this->publicDiskPathFromUrl((string) $url);
+
+                return $path === null ? null : ['disk' => 'public', 'path' => $path];
+            })
+            ->filter()
+            ->values()
+            ->all();
+    }
+
     private function referenceKey(string $disk, string $path): string
     {
         return $disk . '::' . ltrim(str_replace('\\', '/', $path), '/');
@@ -192,5 +248,31 @@ class TenantStorageUsageService
         $path = ltrim(str_replace('\\', '/', trim($path)), '/');
 
         return $path === '' ? null : $path;
+    }
+
+    private function publicDiskPathFromUrl(string $url): ?string
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return null;
+        }
+
+        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+            return null;
+        }
+
+        $path = (string) parse_url($url, PHP_URL_PATH);
+        if ($path === '') {
+            return null;
+        }
+
+        $publicPrefix = parse_url((string) Storage::disk('public')->url(''), PHP_URL_PATH) ?: '/storage';
+        $publicPrefix = '/' . trim((string) $publicPrefix, '/');
+
+        if (!str_starts_with($path, $publicPrefix . '/')) {
+            return null;
+        }
+
+        return $this->normalizePath(substr($path, strlen($publicPrefix) + 1));
     }
 }

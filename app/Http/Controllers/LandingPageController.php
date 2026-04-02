@@ -38,6 +38,21 @@ class LandingPageController extends Controller
         ]);
     }
 
+    public function omnichannel(Request $request, TenantOnboardingSalesService $sales, PlatformAffiliateService $affiliateService): View|RedirectResponse
+    {
+        $affiliate = $affiliateService->captureFromRequest($request);
+
+        if (auth()->check()) {
+            return redirect()->away($this->workspaceUrlFor($request));
+        }
+
+        return view('landing-omnichannel', [
+            'plans' => $sales->publicPlans(),
+            'workspaceUrl' => $this->workspaceUrlFor($request, false),
+            'affiliate' => $affiliate,
+        ]);
+    }
+
     public function workspaceFinder(Request $request, PlatformAffiliateService $affiliateService): View|RedirectResponse
     {
         $affiliateService->captureFromRequest($request);

@@ -15,6 +15,7 @@ use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\Conversations\Models\ConversationParticipant;
 use App\Modules\Conversations\Models\ConversationActivityLog;
 use App\Modules\Conversations\Events\ConversationMessageCreated;
+use App\Services\TenantStorageUsageService;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
@@ -565,6 +566,12 @@ class ConversationHubController extends Controller
             if (!$mediaType) {
                 return $this->sendErrorResponse($request, 'Tipe file tidak didukung untuk WhatsApp.');
             }
+
+            app(TenantStorageUsageService::class)->ensureCanStoreUpload(
+                $uploaded,
+                $this->tenantId(),
+                'Storage workspace tidak cukup untuk upload media percakapan baru.'
+            );
 
             $path = $uploaded->store('wa_messages/' . now()->format('Y/m'), 'public');
             $publicUrl = $this->publicStorageUrl($path);

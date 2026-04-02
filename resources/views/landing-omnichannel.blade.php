@@ -4,8 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ config('app.name') }} — Omnichannel Inbox untuk Tim Sales & Support</title>
+    <title>{{ config('app.name') }} Omnichannel — Inbox untuk Tim Sales & Support</title>
     <meta name="description" content="Satukan percakapan WhatsApp, sosial media, live chat, dan chatbot AI dalam satu workspace. Balas lebih cepat, lead tidak tercecer, tim lebih fokus.">
+    <meta name="robots" content="noindex, nofollow">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
@@ -648,7 +649,7 @@
                 <div class="mb-3">
                     <x-app-logo variant="default" :height="30" />
                 </div>
-                <p class="landing-footer-tagline mb-4">Platform bisnis terpadu per industri — omnichannel, penjualan, inventori, dan pembayaran dalam satu workspace.</p>
+                <p class="landing-footer-tagline mb-4">Platform omnichannel untuk tim sales, support, dan marketing — semua percakapan pelanggan dalam satu workspace.</p>
                 <div class="landing-footer-contact">
                     <a href="https://wa.me/6281222229815" target="_blank" rel="noopener" class="landing-footer-contact-item">
                         <i class="ti ti-brand-whatsapp"></i>

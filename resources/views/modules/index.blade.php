@@ -10,6 +10,10 @@
         'filesystem_issues' => collect($modules)->where('has_filesystem_issues', true)->count(),
         'total' => count($modules),
     ];
+    $canManageModules = (auth()->user()?->hasRole('Super-admin') ?? false)
+        || (auth()->user()?->can('modules.activate') ?? false)
+        || (auth()->user()?->can('modules.install') ?? false)
+        || (auth()->user()?->can('modules.deactivate') ?? false);
 @endphp
 
 <div class="page-header">
@@ -208,7 +212,7 @@
                         <td class="text-end">
                             <div class="d-inline-flex flex-column align-items-end gap-2">
                                 @if($module['installed'] && $module['has_pending_db_update'] && !$module['has_filesystem_issues'])
-                                    @can('modules.activate')
+                                    @if($canManageModules)
                                         <form method="POST" action="{{ route('modules.db-update', $module['slug']) }}" class="module-action-form">
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-orange"
@@ -217,13 +221,13 @@
                                                 Run DB Update
                                             </button>
                                         </form>
-                                    @endcan
+                                    @endif
                                 @elseif($module['installed'] && $module['has_filesystem_issues'])
                                     <span class="text-danger small text-end">Perbaiki path/casing dulu sebelum DB update.</span>
                                 @endif
 
                                 @if(!$module['installed'])
-                                    @can('modules.install')
+                                    @if($canManageModules)
                                         <form method="POST" action="{{ route('modules.install', $module['slug']) }}" class="module-action-form">
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-primary"
@@ -234,9 +238,9 @@
                                         </form>
                                     @else
                                         <span class="text-muted small">Tidak ada akses</span>
-                                    @endcan
+                                    @endif
                                 @elseif(!$module['active'])
-                                    @can('modules.activate')
+                                    @if($canManageModules)
                                         <form method="POST" action="{{ route('modules.activate', $module['slug']) }}" class="module-action-form">
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-success"
@@ -247,9 +251,9 @@
                                         </form>
                                     @else
                                         <span class="text-muted small">Tidak ada akses</span>
-                                    @endcan
+                                    @endif
                                 @else
-                                    @can('modules.deactivate')
+                                    @if($canManageModules)
                                         <form method="POST" action="{{ route('modules.deactivate', $module['slug']) }}" class="module-action-form">
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-outline-danger"
@@ -260,7 +264,7 @@
                                         </form>
                                     @else
                                         <span class="text-muted small">Tidak ada akses</span>
-                                    @endcan
+                                    @endif
                                 @endif
 
                                 @if(!empty($module['dependents']))

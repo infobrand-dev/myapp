@@ -13,8 +13,19 @@ use RuntimeException;
 
 class ModuleManager
 {
+    private ?array $allModulesCache = null;
+    private ?array $manifestCache = null;
+    private ?array $statesBySlugCache = null;
+    private ?array $ranMigrationsCache = null;
+    private ?bool $moduleTableReadyCache = null;
+    private ?bool $migrationsTableReadyCache = null;
+
     public function all(): array
     {
+        if ($this->allModulesCache !== null) {
+            return $this->allModulesCache;
+        }
+
         $manifests = $this->discover();
         $states = $this->statesBySlug();
 
@@ -52,7 +63,7 @@ class ModuleManager
 
         ksort($modules);
 
-        return $modules;
+        return $this->allModulesCache = $modules;
     }
 
     public function isActive(string $slug): bool
@@ -80,6 +91,7 @@ class ModuleManager
 
     public function install(string $slug): void
     {
+        $this->forgetRuntimeCaches();
         $all = $this->all();
         if (!isset($all[$slug])) {
             throw new RuntimeException("Module '{$slug}' tidak ditemukan.");
@@ -120,10 +132,12 @@ class ModuleManager
             $record->is_active = false;
         }
         $record->saveOrFail();
+        $this->forgetRuntimeCaches();
     }
 
     public function activate(string $slug): void
     {
+        $this->forgetRuntimeCaches();
         $all = $this->all();
         if (empty($all[$slug])) {
             throw new RuntimeException("Module '{$slug}' tidak ditemukan.");
@@ -157,10 +171,12 @@ class ModuleManager
         }
 
         app(TenantRoleProvisioner::class)->ensureForAllTenants();
+        $this->forgetRuntimeCaches();
     }
 
     public function deactivate(string $slug): void
     {
+        $this->forgetRuntimeCaches();
         $all = $this->all();
         if (empty($all[$slug]) || !$all[$slug]['installed']) {
             throw new RuntimeException("Module '{$slug}' belum di-install.");
@@ -181,10 +197,12 @@ class ModuleManager
         $record = Module::query()->where('slug', $slug)->firstOrFail();
         $record->is_active = false;
         $record->saveOrFail();
+        $this->forgetRuntimeCaches();
     }
 
     public function runPendingDbUpdate(string $slug, ?int $ranBy = null): int
     {
+        $this->forgetRuntimeCaches();
         $all = $this->all();
         if (empty($all[$slug])) {
             throw new RuntimeException("Module '{$slug}' tidak ditemukan.");
@@ -220,10 +238,12 @@ class ModuleManager
             $this->callArtisanOrFail('migrate', ['--path' => $relativePath, '--force' => true]);
 
             $this->recordDbUpdateStatus($slug, 'success', null, $ranBy, count($pendingMigrations));
+            $this->forgetRuntimeCaches();
 
             return count($pendingMigrations);
         } catch (\Throwable $e) {
             $this->recordDbUpdateStatus($slug, 'failed', $e->getMessage(), $ranBy);
+            $this->forgetRuntimeCaches();
             throw $e;
         } finally {
             optional($lock)->release();
@@ -244,12 +264,11 @@ class ModuleManager
             base_path('app/Modules/' . ($manifest['_dir'] ?? $this->manifestDirName($slug)))
         );
 
-        if ($migrationPath === null || !Schema::hasTable('migrations')) {
+        if ($migrationPath === null || !$this->migrationsTableReady()) {
             return [];
         }
 
-        $ran = DB::table('migrations')->pluck('migration')->all();
-        $ranLookup = array_fill_keys(array_map('strtolower', $ran), true);
+        $ranLookup = array_fill_keys(array_map('strtolower', $this->ranMigrations()), true);
 
         return collect(File::files($migrationPath))
             ->filter(fn ($file) => str_ends_with(strtolower($file->getFilename()), '.php'))
@@ -261,6 +280,10 @@ class ModuleManager
 
     private function discover(): array
     {
+        if ($this->manifestCache !== null) {
+            return $this->manifestCache;
+        }
+
         $root = app_path('Modules');
         if (!File::isDirectory($root)) {
             return [];
@@ -285,25 +308,68 @@ class ModuleManager
             $data[$slug] = $manifest;
         }
 
-        return $data;
+        return $this->manifestCache = $data;
     }
 
     private function statesBySlug(): array
     {
+        if ($this->statesBySlugCache !== null) {
+            return $this->statesBySlugCache;
+        }
+
         if (!$this->moduleTableReady()) {
             return [];
         }
 
-        return Module::query()->get()->keyBy('slug')->all();
+        return $this->statesBySlugCache = Module::query()->get()->keyBy('slug')->all();
     }
 
     private function moduleTableReady(): bool
     {
+        if ($this->moduleTableReadyCache !== null) {
+            return $this->moduleTableReadyCache;
+        }
+
         try {
-            return Schema::hasTable('modules');
+            return $this->moduleTableReadyCache = Schema::hasTable('modules');
         } catch (\Throwable $e) {
             return false;
         }
+    }
+
+    private function migrationsTableReady(): bool
+    {
+        if ($this->migrationsTableReadyCache !== null) {
+            return $this->migrationsTableReadyCache;
+        }
+
+        try {
+            return $this->migrationsTableReadyCache = Schema::hasTable('migrations');
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function ranMigrations(): array
+    {
+        if ($this->ranMigrationsCache !== null) {
+            return $this->ranMigrationsCache;
+        }
+
+        return $this->ranMigrationsCache = DB::table('migrations')->pluck('migration')->all();
+    }
+
+    private function forgetRuntimeCaches(): void
+    {
+        $this->allModulesCache = null;
+        $this->manifestCache = null;
+        $this->statesBySlugCache = null;
+        $this->ranMigrationsCache = null;
+        $this->moduleTableReadyCache = null;
+        $this->migrationsTableReadyCache = null;
     }
 
     private function dependentsOf(string $slug, array $manifests): array

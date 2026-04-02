@@ -61,9 +61,6 @@
                 {{-- Icon-only logo — shown in mini mode --}}
                 <img src="{{ asset('brand/logo-icon.png') }}" alt="{{ config('app.name') }}" height="32" class="sidebar-brand-icon" />
             </a>
-            @if($platformAdminHost)
-                <span class="sidebar-platform-badge ms-auto d-none d-lg-inline-flex">Platform</span>
-            @endif
         </div>
         <div class="navbar-collapse" id="sidebar-menu">
             @can('settings.view')

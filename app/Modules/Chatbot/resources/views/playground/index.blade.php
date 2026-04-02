@@ -10,15 +10,19 @@
     );
 @endphp
 
-<div class="page-header d-flex align-items-center justify-content-between">
-    <div>
-        <div class="page-pretitle">Chatbot</div>
-        <h2 class="page-title">Playground</h2>
-        <div class="text-muted small mt-1">Uji langsung respons chatbot tanpa integrasi channel lain.</div>
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Chatbot</div>
+            <h2 class="page-title">Playground</h2>
+            <p class="text-muted mb-0">Uji langsung respons chatbot tanpa integrasi channel lain.</p>
+        </div>
+        <div class="col-auto">
+            <a href="{{ route('chatbot.accounts.index') }}" class="btn btn-outline-secondary">
+                <i class="ti ti-settings me-1"></i>Kelola Chatbot
+            </a>
+        </div>
     </div>
-    <a href="{{ route('chatbot.accounts.index') }}" class="btn btn-outline-secondary">
-        <i class="ti ti-settings me-1"></i>Kelola Chatbot
-    </a>
 </div>
 
 @if($accounts->isEmpty())

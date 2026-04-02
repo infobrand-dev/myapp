@@ -60,6 +60,7 @@
 - Tenant subscription and plan enforcement foundation now lives in `subscription_plans`, `tenant_subscriptions`, `companies`, and `App\Support\TenantPlanManager`.
 - Platform billing for SaaS plans lives in dedicated `platform_*` tables (`platform_plan_orders`, `platform_invoices`, `platform_invoice_items`, `platform_payments`) and must stay separate from tenant-facing `sales` / `payments` domain tables.
 - Platform invoice payments may flow through Midtrans or manual bank transfer verification, while `platform_*` tables remain the internal source of truth for invoice, payment, and subscription activation.
+- Chatbot knowledge retrieval currently uses a hardened keyword-first RAG path, but knowledge chunks are now prepared for future Supabase/Postgres `pgvector` rollout via embedding lifecycle columns on `chatbot_knowledge_chunks`. Treat vector retrieval as the next phase, not as a hidden runtime dependency for go-live.
 - Platform-owned affiliate tracking for SaaS sales also lives in dedicated `platform_*` tables and attaches to platform plan orders; affiliate accounts are separate from tenant `users` and do not participate in tenant authentication.
 - Successful self-serve payment must also finalize onboarding by activating the tenant and sending the post-payment welcome email; welcome mail should not be sent before payment settles.
 - For go-live, platform-owner Midtrans credentials may be sourced directly from `.env` via `config/services.php` when no persisted `midtrans_settings` row exists for tenant `id = 1`.

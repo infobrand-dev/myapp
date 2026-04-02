@@ -5,15 +5,19 @@
 @section('content')
 @php $isEdit = $document->exists; @endphp
 
-<div class="page-header d-flex align-items-center justify-content-between">
-    <div>
-        <div class="page-pretitle">Chatbot · {{ $account->name }}</div>
-        <h2 class="page-title">{{ $isEdit ? 'Edit' : 'Tambah' }} Dokumen Referensi</h2>
-        <div class="text-muted small mt-1">Dokumen ini akan digunakan bot sebagai referensi saat menjawab pertanyaan.</div>
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Chatbot · {{ $account->name }}</div>
+            <h2 class="page-title">{{ $isEdit ? 'Edit' : 'Tambah' }} Dokumen Referensi</h2>
+            <p class="text-muted mb-0">Dokumen ini akan digunakan bot sebagai referensi saat menjawab pertanyaan.</p>
+        </div>
+        <div class="col-auto">
+            <a href="{{ route('chatbot.knowledge.index', $account) }}" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left me-1"></i>Kembali
+            </a>
+        </div>
     </div>
-    <a href="{{ route('chatbot.knowledge.index', $account) }}" class="btn btn-outline-secondary">
-        <i class="ti ti-arrow-left me-1"></i>Kembali
-    </a>
 </div>
 
 <form method="POST"

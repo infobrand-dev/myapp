@@ -1,1 +1,35 @@
-document.addEventListener("DOMContentLoaded",function(){var e=document.querySelectorAll("[data-conversation-dashboard-card]"),a=document.querySelectorAll("[data-conversation-dashboard-config]");e.forEach(function(e,t){var n=a[t];if(n){var r={openShare:0,claimedShare:0};try{r=JSON.parse(n.textContent||"{}")}catch(e){return}var o=e.querySelector("[data-conversation-open]"),c=e.querySelector("[data-conversation-claimed]");requestAnimationFrame(function(){o&&(o.style.width="".concat(Math.max(0,Math.min(100,Number(r.openShare||0))),"%")),c&&(c.style.width="".concat(Math.max(0,Math.min(100,Number(r.claimedShare||0))),"%"))})}})});
+/******/ (() => { // webpackBootstrap
+/*!******************************************************************!*\
+  !*** ./app/Modules/Conversations/resources/js/dashboard-card.js ***!
+  \******************************************************************/
+document.addEventListener('DOMContentLoaded', function () {
+  var cards = document.querySelectorAll('[data-conversation-dashboard-card]');
+  var configs = document.querySelectorAll('[data-conversation-dashboard-config]');
+  cards.forEach(function (card, index) {
+    var configEl = configs[index];
+    if (!configEl) {
+      return;
+    }
+    var config = {
+      openShare: 0,
+      claimedShare: 0
+    };
+    try {
+      config = JSON.parse(configEl.textContent || '{}');
+    } catch (_) {
+      return;
+    }
+    var openBar = card.querySelector('[data-conversation-open]');
+    var claimedBar = card.querySelector('[data-conversation-claimed]');
+    requestAnimationFrame(function () {
+      if (openBar) {
+        openBar.style.width = "".concat(Math.max(0, Math.min(100, Number(config.openShare || 0))), "%");
+      }
+      if (claimedBar) {
+        claimedBar.style.width = "".concat(Math.max(0, Math.min(100, Number(config.claimedShare || 0))), "%");
+      }
+    });
+  });
+});
+/******/ })()
+;

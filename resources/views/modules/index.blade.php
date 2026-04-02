@@ -12,28 +12,30 @@
     ];
 @endphp
 
-<div class="page-header d-flex align-items-start align-items-md-center justify-content-between flex-column flex-md-row gap-3">
-    <div>
-        <div class="page-pretitle">Administrasi</div>
-        <h2 class="page-title">Modules</h2>
-        <div class="text-muted small mt-1">Kelola instalasi dan aktivasi modul. Dependency dicek otomatis sebelum aktivasi atau deaktivasi.</div>
-    </div>
-    <div class="d-flex flex-wrap gap-2 flex-shrink-0">
-        <span class="badge bg-success-lt text-success px-3 py-2">
-            <i class="ti ti-circle-check me-1"></i>Aktif: {{ $moduleStats['active'] }}
-        </span>
-        <span class="badge bg-warning-lt text-warning px-3 py-2">
-            <i class="ti ti-package me-1"></i>Terpasang: {{ $moduleStats['installed'] }}
-        </span>
-        <span class="badge bg-orange-lt text-orange px-3 py-2">
-            <i class="ti ti-database-exclamation me-1"></i>Pending DB: {{ $moduleStats['pending_db_update'] }}
-        </span>
-        <span class="badge bg-red-lt text-red px-3 py-2">
-            <i class="ti ti-folder-x me-1"></i>Path Issue: {{ $moduleStats['filesystem_issues'] }}
-        </span>
-        <span class="badge bg-secondary-lt text-secondary px-3 py-2">
-            <i class="ti ti-package-off me-1"></i>Belum pasang: {{ $moduleStats['not_installed'] }}
-        </span>
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Administrasi</div>
+            <h2 class="page-title">Modules</h2>
+            <p class="text-muted mb-0">Kelola instalasi dan aktivasi modul. Dependency dicek otomatis sebelum aktivasi atau deaktivasi.</p>
+        </div>
+        <div class="col-auto d-flex flex-wrap gap-2">
+            <span class="badge bg-green-lt text-green px-3 py-2">
+                <i class="ti ti-circle-check me-1"></i>Aktif: {{ $moduleStats['active'] }}
+            </span>
+            <span class="badge bg-orange-lt text-orange px-3 py-2">
+                <i class="ti ti-package me-1"></i>Terpasang: {{ $moduleStats['installed'] }}
+            </span>
+            <span class="badge bg-yellow-lt text-yellow px-3 py-2">
+                <i class="ti ti-database-exclamation me-1"></i>Pending DB: {{ $moduleStats['pending_db_update'] }}
+            </span>
+            <span class="badge bg-red-lt text-red px-3 py-2">
+                <i class="ti ti-folder-x me-1"></i>Path Issue: {{ $moduleStats['filesystem_issues'] }}
+            </span>
+            <span class="badge bg-secondary-lt text-secondary px-3 py-2">
+                <i class="ti ti-package-off me-1"></i>Belum pasang: {{ $moduleStats['not_installed'] }}
+            </span>
+        </div>
     </div>
 </div>
 

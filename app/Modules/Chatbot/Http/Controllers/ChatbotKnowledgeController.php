@@ -8,6 +8,7 @@ use App\Modules\Chatbot\Http\Requests\UpdateChatbotKnowledgeRequest;
 use App\Modules\Chatbot\Models\ChatbotAccount;
 use App\Modules\Chatbot\Models\ChatbotDecisionLog;
 use App\Modules\Chatbot\Models\ChatbotKnowledgeDocument;
+use App\Modules\Chatbot\Services\ChatbotEmbeddingLifecycle;
 use App\Support\PlanLimit;
 use App\Support\TenantPlanManager;
 use Illuminate\Http\RedirectResponse;
@@ -17,6 +18,10 @@ use Illuminate\View\View;
 
 class ChatbotKnowledgeController extends Controller
 {
+    public function __construct(private readonly ChatbotEmbeddingLifecycle $embeddingLifecycle)
+    {
+    }
+
     public function index(ChatbotAccount $account): View
     {
         $documents = ChatbotKnowledgeDocument::query()
@@ -145,6 +150,7 @@ class ChatbotKnowledgeController extends Controller
                 'chunk_index' => $index,
                 'content' => $part,
                 'content_length' => strlen($part),
+                ...$this->embeddingLifecycle->pendingAttributesForContent($part),
             ]);
         }
     }

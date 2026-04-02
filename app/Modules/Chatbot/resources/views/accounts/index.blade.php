@@ -4,19 +4,21 @@
 
 @section('content')
 
-<div class="page-header d-flex align-items-center justify-content-between">
-    <div>
-        <div class="page-pretitle">Modul</div>
-        <h2 class="page-title">Chatbot</h2>
-        <div class="text-muted small mt-1">Auto-reply AI untuk WhatsApp dan social inbox, dengan handoff aman ke tim saat perlu.</div>
-    </div>
-    <div class="d-flex gap-2 flex-shrink-0">
-        <a href="{{ route('chatbot.playground.index') }}" class="btn btn-outline-secondary">
-            <i class="ti ti-player-play me-1"></i>Playground
-        </a>
-        <a href="{{ route('chatbot.accounts.create') }}" class="btn btn-primary">
-            <i class="ti ti-plus me-1"></i>Tambah Chatbot
-        </a>
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Modul</div>
+            <h2 class="page-title">Chatbot</h2>
+            <p class="text-muted mb-0">Auto-reply AI untuk WhatsApp dan social inbox, dengan handoff aman ke tim saat perlu.</p>
+        </div>
+        <div class="col-auto d-flex gap-2">
+            <a href="{{ route('chatbot.playground.index') }}" class="btn btn-outline-secondary">
+                <i class="ti ti-player-play me-1"></i>Playground
+            </a>
+            <a href="{{ route('chatbot.accounts.create') }}" class="btn btn-primary">
+                <i class="ti ti-plus me-1"></i>Tambah Chatbot
+            </a>
+        </div>
     </div>
 </div>
 
@@ -27,7 +29,7 @@
             <div class="card-body">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <div class="text-secondary text-uppercase small fw-bold">Balasan Bot</div>
-                    <span class="text-green"><i class="ti ti-message-check" style="font-size:1.3rem;"></i></span>
+                    <i class="ti ti-message-check" style="font-size:1.3rem; color:var(--tblr-green);"></i>
                 </div>
                 <div class="fs-1 fw-bold">{{ $decisionStats['reply_sent'] ?? 0 }}</div>
                 <div class="text-muted small mt-1">Bot menjawab otomatis</div>
@@ -39,7 +41,7 @@
             <div class="card-body">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <div class="text-secondary text-uppercase small fw-bold">Diteruskan ke Tim</div>
-                    <span class="text-blue"><i class="ti ti-users" style="font-size:1.3rem;"></i></span>
+                    <i class="ti ti-users" style="font-size:1.3rem; color:var(--tblr-blue);"></i>
                 </div>
                 <div class="fs-1 fw-bold">{{ $decisionStats['handoff'] ?? 0 }}</div>
                 <div class="text-muted small mt-1">Handoff ke manusia</div>
@@ -51,7 +53,7 @@
             <div class="card-body">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <div class="text-secondary text-uppercase small fw-bold">Tanpa Konteks</div>
-                    <span class="text-orange"><i class="ti ti-help" style="font-size:1.3rem;"></i></span>
+                    <i class="ti ti-help" style="font-size:1.3rem; color:var(--tblr-orange);"></i>
                 </div>
                 <div class="fs-1 fw-bold">{{ $decisionStats['no_context'] ?? 0 }}</div>
                 <div class="text-muted small mt-1">Tidak ada referensi ditemukan</div>
@@ -63,7 +65,7 @@
             <div class="card-body">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <div class="text-secondary text-uppercase small fw-bold">Error AI</div>
-                    <span class="text-red"><i class="ti ti-alert-triangle" style="font-size:1.3rem;"></i></span>
+                    <i class="ti ti-alert-triangle" style="font-size:1.3rem; color:var(--tblr-red);"></i>
                 </div>
                 <div class="fs-1 fw-bold">{{ $decisionStats['error'] ?? 0 }}</div>
                 <div class="text-muted small mt-1">Gagal diproses AI</div>

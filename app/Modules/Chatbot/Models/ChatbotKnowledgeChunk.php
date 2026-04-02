@@ -19,10 +19,20 @@ class ChatbotKnowledgeChunk extends Model
         'content',
         'content_length',
         'metadata',
+        'embedding_status',
+        'embedding_provider',
+        'embedding_model',
+        'embedding_source_hash',
+        'embedding_generated_at',
+        'embedding_dimensions',
+        'embedding_error',
+        'embedding_metadata',
     ];
 
     protected $casts = [
         'metadata' => 'array',
+        'embedding_generated_at' => 'datetime',
+        'embedding_metadata' => 'array',
     ];
 
     public function document(): BelongsTo
@@ -35,4 +45,3 @@ class ChatbotKnowledgeChunk extends Model
         return $this->belongsTo(ChatbotAccount::class, 'chatbot_account_id');
     }
 }
-

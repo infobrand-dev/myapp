@@ -48,6 +48,8 @@ return [
     'openai' => [
         'api_key' => env('OPENAI_API_KEY'),
         'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
+        'embeddings_model' => env('OPENAI_EMBEDDINGS_MODEL', 'text-embedding-3-small'),
+        'embeddings_dimensions' => (int) env('OPENAI_EMBEDDINGS_DIMENSIONS', 1536),
         'credit_token_unit' => (int) env('OPENAI_CREDIT_TOKEN_UNIT', 1000),
         'input_rate_per_million_tokens' => (float) env('OPENAI_INPUT_RATE_PER_MILLION_TOKENS', 0),
         'output_rate_per_million_tokens' => (float) env('OPENAI_OUTPUT_RATE_PER_MILLION_TOKENS', 0),

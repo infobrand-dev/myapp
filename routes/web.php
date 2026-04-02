@@ -201,11 +201,11 @@ Route::middleware(['auth', '2fa', 'platform.admin', \App\Http\Middleware\Resolve
     Route::put('/roles/{role}', [RoleController::class, 'update'])->middleware('permission:roles.update')->name('roles.update');
     Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->middleware('permission:roles.delete')->name('roles.destroy');
 
-    Route::get('/modules', [ModuleController::class, 'index'])->middleware('permission:modules.view')->name('modules.index');
-    Route::post('/modules/{slug}/install', [ModuleController::class, 'install'])->middleware('permission:modules.install')->name('modules.install');
-    Route::post('/modules/{slug}/activate', [ModuleController::class, 'activate'])->middleware('permission:modules.activate')->name('modules.activate');
-    Route::post('/modules/{slug}/db-update', [ModuleController::class, 'runDbUpdate'])->middleware('permission:modules.activate')->name('modules.db-update');
-    Route::post('/modules/{slug}/deactivate', [ModuleController::class, 'deactivate'])->middleware('permission:modules.deactivate')->name('modules.deactivate');
+    Route::get('/modules', [ModuleController::class, 'index'])->middleware('role:Super-admin')->name('modules.index');
+    Route::post('/modules/{slug}/install', [ModuleController::class, 'install'])->middleware('role:Super-admin')->name('modules.install');
+    Route::post('/modules/{slug}/activate', [ModuleController::class, 'activate'])->middleware('role:Super-admin')->name('modules.activate');
+    Route::post('/modules/{slug}/db-update', [ModuleController::class, 'runDbUpdate'])->middleware('role:Super-admin')->name('modules.db-update');
+    Route::post('/modules/{slug}/deactivate', [ModuleController::class, 'deactivate'])->middleware('role:Super-admin')->name('modules.deactivate');
 });
 
 require __DIR__ . '/auth.php';

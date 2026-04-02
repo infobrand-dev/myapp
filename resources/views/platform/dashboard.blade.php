@@ -6,19 +6,21 @@
     @php
         $money = app(\App\Support\MoneyFormatter::class);
     @endphp
-    <div class="page-header d-flex align-items-start align-items-md-center justify-content-between flex-column flex-md-row gap-3">
-        <div>
-            <div class="page-pretitle">Platform Owner</div>
-            <h1 class="page-title">Control Plane</h1>
-            <div class="text-muted small mt-1">Pantau pertumbuhan tenant, distribusi plan, dan workspace yang butuh perhatian.</div>
-        </div>
-        <div class="d-flex gap-2 flex-wrap flex-shrink-0">
-            <a href="{{ route('platform.tenants.index') }}" class="btn btn-primary">
-                <i class="ti ti-buildings me-1"></i>Tenants
-            </a>
-            <a href="{{ route('platform.plans.index') }}" class="btn btn-outline-secondary">
-                <i class="ti ti-badge-dollar-sign me-1"></i>Plans
-            </a>
+    <div class="page-header">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle">Platform Owner</div>
+                <h1 class="page-title">Control Plane</h1>
+                <p class="text-muted mb-0">Pantau pertumbuhan tenant, distribusi plan, dan workspace yang butuh perhatian.</p>
+            </div>
+            <div class="col-auto d-flex gap-2 flex-wrap">
+                <a href="{{ route('platform.tenants.index') }}" class="btn btn-primary">
+                    <i class="ti ti-buildings me-1"></i>Tenants
+                </a>
+                <a href="{{ route('platform.plans.index') }}" class="btn btn-outline-secondary">
+                    <i class="ti ti-badge-dollar-sign me-1"></i>Plans
+                </a>
+            </div>
         </div>
     </div>
 
@@ -29,7 +31,7 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <div class="text-secondary text-uppercase small fw-bold">Tenants</div>
-                        <span class="text-primary"><i class="ti ti-buildings" style="font-size:1.3rem;"></i></span>
+                        <i class="ti ti-buildings" style="font-size:1.3rem; color:var(--tblr-primary);"></i>
                     </div>
                     <div class="fs-1 fw-bold">{{ $stats['total_tenants'] }}</div>
                     <div class="text-muted small mt-1">
@@ -43,7 +45,7 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <div class="text-secondary text-uppercase small fw-bold">Akuisisi</div>
-                        <span class="text-success"><i class="ti ti-user-plus" style="font-size:1.3rem;"></i></span>
+                        <i class="ti ti-user-plus" style="font-size:1.3rem; color:var(--tblr-success);"></i>
                     </div>
                     <div class="fs-1 fw-bold">{{ $stats['new_this_month'] }}</div>
                     <div class="text-muted small mt-1">
@@ -57,7 +59,7 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <div class="text-secondary text-uppercase small fw-bold">Users</div>
-                        <span class="text-azure"><i class="ti ti-users" style="font-size:1.3rem;"></i></span>
+                        <i class="ti ti-users" style="font-size:1.3rem; color:var(--tblr-azure);"></i>
                     </div>
                     <div class="fs-1 fw-bold">{{ $stats['total_users'] }}</div>
                     <div class="text-muted small mt-1">
@@ -71,7 +73,7 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <div class="text-secondary text-uppercase small fw-bold">Branches</div>
-                        <span class="text-cyan"><i class="ti ti-git-branch" style="font-size:1.3rem;"></i></span>
+                        <i class="ti ti-git-branch" style="font-size:1.3rem; color:var(--tblr-cyan);"></i>
                     </div>
                     <div class="fs-1 fw-bold">{{ $stats['total_branches'] }}</div>
                     <div class="text-muted small mt-1">Di semua tenant</div>
@@ -83,7 +85,7 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <div class="text-secondary text-uppercase small fw-bold">Revenue</div>
-                        <span class="text-green"><i class="ti ti-currency-dollar" style="font-size:1.3rem;"></i></span>
+                        <i class="ti ti-currency-dollar" style="font-size:1.3rem; color:var(--tblr-green);"></i>
                     </div>
                     <div class="fs-1 fw-bold">{{ $money->format((float) $stats['paid_revenue'], 'IDR') }}</div>
                     <div class="text-muted small mt-1">
@@ -97,7 +99,7 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <div class="text-secondary text-uppercase small fw-bold">Orders</div>
-                        <span class="text-yellow"><i class="ti ti-receipt-2" style="font-size:1.3rem;"></i></span>
+                        <i class="ti ti-receipt-2" style="font-size:1.3rem; color:var(--tblr-yellow);"></i>
                     </div>
                     <div class="fs-1 fw-bold">{{ $stats['paid_orders'] }}</div>
                     <div class="text-muted small mt-1">Order terbayar</div>
@@ -109,7 +111,7 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <div class="text-secondary text-uppercase small fw-bold">AI Credits</div>
-                        <span class="text-purple"><i class="ti ti-brain" style="font-size:1.3rem;"></i></span>
+                        <i class="ti ti-brain" style="font-size:1.3rem; color:var(--tblr-purple);"></i>
                     </div>
                     <div class="fs-1 fw-bold">{{ number_format($stats['ai_credits_this_month']) }}</div>
                     <div class="text-muted small mt-1">Dipakai bulan ini</div>

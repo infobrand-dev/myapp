@@ -35,7 +35,7 @@
     <link rel="stylesheet" href="{{ mix('css/app.css') }}">
     @stack('styles')
 </head>
-<body class="bg-body">
+<body class="bg-body {{ request()->attributes->get('platform_admin_host') ? 'platform-admin-host' : '' }}">
     <a class="skip-link" href="#main-content">Skip to content</a>
 
     {{-- Mobile sidebar backdrop --}}

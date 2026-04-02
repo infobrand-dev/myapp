@@ -27,17 +27,23 @@ Setiap halaman admin mengikuti pola ini:
 @section('content')
 
 {{-- 1. Page Header --}}
-<div class="page-header d-flex align-items-center justify-content-between">
-    <div>
-        <div class="page-pretitle">Kategori / Breadcrumb</div>
-        <h2 class="page-title">Judul Halaman</h2>
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Kategori / Breadcrumb</div>
+            <h2 class="page-title">Judul Halaman</h2>
+            {{-- Deskripsi opsional — pakai <p> bukan <div>, mb-0 WAJIB --}}
+            <p class="text-muted mb-0">Deskripsi singkat halaman ini.</p>
+        </div>
+        {{-- Tombol aksi (jika ada) --}}
+        <div class="col-auto">
+            @can('resource.create')
+                <a href="{{ route('resource.create') }}" class="btn btn-primary">
+                    <i class="ti ti-plus me-1"></i>Tambah X
+                </a>
+            @endcan
+        </div>
     </div>
-    {{-- Tombol aksi utama (jika ada) --}}
-    @can('resource.create')
-        <a href="{{ route('resource.create') }}" class="btn btn-primary">
-            <i class="ti ti-plus me-1"></i>Tambah X
-        </a>
-    @endcan
 </div>
 
 {{-- 2. Konten utama --}}
@@ -46,12 +52,14 @@ Setiap halaman admin mengikuti pola ini:
 ```
 
 **Aturan page-header:**
-- `page-pretitle` = konteks/kategori (misal: "Administrasi", "Konfigurasi", "Platform Owner")
-- `page-title` menggunakan `<h2>`, bukan `<h1>` — kecuali halaman platform/landing yang memang `<h1>`
-- Jika ada deskripsi tambahan, gunakan `<div class="text-muted small mt-1">` di bawah `page-title`
-- Tombol aksi di sisi kanan: primary action = `btn btn-primary`, secondary = `btn btn-outline-secondary`
-- Jika ada banyak tombol, wrap dengan `<div class="d-flex gap-2 flex-wrap flex-shrink-0">`
-- Untuk page-header di halaman dengan filter/responsif mobile, tambahkan: `flex-column flex-md-row gap-3 align-items-start align-items-md-center`
+- WAJIB gunakan `<div class="page-header">` + `<div class="row align-items-center">` + `<div class="col">` + `<div class="col-auto">`.
+- **JANGAN** pakai `d-flex justify-content-between` langsung di `.page-header` — Tabler sudah punya `flex-wrap: wrap` di `.page-header`, sehingga button bisa turun ke bawah jika ada deskripsi 3 baris.
+- `page-pretitle` = konteks/kategori (misal: "Administrasi", "Konfigurasi", "Modul")
+- `page-title` menggunakan `<h2>`, bukan `<h1>` — kecuali halaman platform yang memang `<h1>`
+- Deskripsi di bawah title: gunakan `<p class="text-muted mb-0">` — bukan `<div class="text-muted small mt-1">`. `mb-0` wajib agar tidak ada gap berlebih.
+- Tombol aksi: primary = `btn btn-primary`, secondary = `btn btn-outline-secondary`
+- Jika ada banyak tombol: `<div class="col-auto d-flex gap-2 flex-wrap">`
+- Jika tidak ada tombol: hapus `<div class="col-auto">` sama sekali
 
 ---
 
@@ -259,6 +267,10 @@ Dashboard **platform** (`/platform/dashboard`) menggunakan standard Tabler `card
 - Jangan gunakan standard `card` di dashboard tenant — gunakan custom classes yang sudah ada.
 - KPI card pattern: label uppercase small muted di atas + angka besar `fs-1 fw-bold` + subtitle muted kecil di bawah.
 - Jika menambah KPI card baru di dashboard tenant, gunakan `col-12 col-sm-6 col-xl-3` dan class `dashboard-kpi`.
+- **Icon di KPI card**: JANGAN pakai `<span class="text-{color}"><i class="ti ti-..."></i></span>` — Tabler v2 menyuntikkan `--tblr-text-opacity` sebagai CSS custom property yang bisa bleed ke sibling elements dan mengubah warna subtitle. Gunakan inline style langsung di elemen icon:
+  ```blade
+  <i class="ti ti-{icon}" style="font-size:1.3rem; color:var(--tblr-{color});"></i>
+  ```
 
 ---
 

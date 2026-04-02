@@ -24,15 +24,19 @@
     ];
 @endphp
 
-<div class="page-header d-flex align-items-center justify-content-between">
-    <div>
-        <div class="page-pretitle">Chatbot</div>
-        <h2 class="page-title">{{ $isEdit ? 'Edit' : 'Tambah' }} Chatbot</h2>
-        <div class="text-muted small mt-1">Utamakan chatbot ini untuk auto-reply live channel, lalu teruskan ke tim saat bot tidak yakin.</div>
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Chatbot</div>
+            <h2 class="page-title">{{ $isEdit ? 'Edit' : 'Tambah' }} Chatbot</h2>
+            <p class="text-muted mb-0">Utamakan chatbot ini untuk auto-reply live channel, lalu teruskan ke tim saat bot tidak yakin.</p>
+        </div>
+        <div class="col-auto">
+            <a href="{{ route('chatbot.accounts.index') }}" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left me-1"></i>Kembali
+            </a>
+        </div>
     </div>
-    <a href="{{ route('chatbot.accounts.index') }}" class="btn btn-outline-secondary">
-        <i class="ti ti-arrow-left me-1"></i>Kembali
-    </a>
 </div>
 
 <form method="POST" id="chatbot-account-form"

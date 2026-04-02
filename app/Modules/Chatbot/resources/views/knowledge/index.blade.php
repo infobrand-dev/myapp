@@ -4,19 +4,21 @@
 
 @section('content')
 
-<div class="page-header d-flex align-items-center justify-content-between">
-    <div>
-        <div class="page-pretitle">Chatbot · {{ $account->name }}</div>
-        <h2 class="page-title">Knowledge Base</h2>
-        <div class="text-muted small mt-1">Dokumen referensi yang digunakan bot saat menjawab pertanyaan.</div>
-    </div>
-    <div class="d-flex gap-2 flex-shrink-0">
-        <a href="{{ route('chatbot.accounts.index') }}" class="btn btn-outline-secondary">
-            <i class="ti ti-arrow-left me-1"></i>Kembali
-        </a>
-        <a href="{{ route('chatbot.knowledge.create', $account) }}" class="btn btn-primary">
-            <i class="ti ti-plus me-1"></i>Tambah Dokumen
-        </a>
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Chatbot · {{ $account->name }}</div>
+            <h2 class="page-title">Knowledge Base</h2>
+            <p class="text-muted mb-0">Dokumen referensi yang digunakan bot saat menjawab pertanyaan.</p>
+        </div>
+        <div class="col-auto d-flex gap-2">
+            <a href="{{ route('chatbot.accounts.index') }}" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left me-1"></i>Kembali
+            </a>
+            <a href="{{ route('chatbot.knowledge.create', $account) }}" class="btn btn-primary">
+                <i class="ti ti-plus me-1"></i>Tambah Dokumen
+            </a>
+        </div>
     </div>
 </div>
 

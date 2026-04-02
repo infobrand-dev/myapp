@@ -3,15 +3,19 @@
 @section('title', 'Platform Affiliates')
 
 @section('content')
-    <div class="page-header d-flex align-items-center justify-content-between">
-        <div>
+    <div class="page-header">
+        <div class="row align-items-center">
+            <div class="col">
             <div class="page-pretitle">Platform Owner</div>
             <h1 class="page-title">Affiliates</h1>
             <div class="text-muted small mt-1">Kelola akun affiliate platform, link referral, dan hasil penjualan yang masuk.</div>
-        </div>
+            </div>
+            <div class="col-auto">
         <a href="{{ route('platform.dashboard') }}" class="btn btn-outline-secondary">
             <i class="ti ti-arrow-left me-1"></i>Dashboard
         </a>
+            </div>
+        </div>
     </div>
 
     @if(!$ready)

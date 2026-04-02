@@ -3,16 +3,22 @@
 @section('title', 'Plan Catalog')
 
 @section('content')
-    @php($storageFormatter = app(\App\Support\StorageSizeFormatter::class))
-    <div class="page-header d-flex align-items-center justify-content-between">
-        <div>
+    @php
+        $storageFormatter = app(\App\Support\StorageSizeFormatter::class);
+    @endphp
+    <div class="page-header">
+        <div class="row align-items-center">
+            <div class="col">
             <div class="page-pretitle">Platform Owner</div>
             <h1 class="page-title">Katalog Plan</h1>
             <div class="text-muted small mt-1">Lihat produk SaaS, feature flag, kuota, dan distribusi subscription.</div>
-        </div>
+            </div>
+            <div class="col-auto">
         <a href="{{ route('platform.dashboard') }}" class="btn btn-outline-secondary">
             <i class="ti ti-arrow-left me-1"></i>Dashboard
         </a>
+            </div>
+        </div>
     </div>
 
     <div class="row g-3">

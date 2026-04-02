@@ -3,16 +3,22 @@
 @section('title', 'Edit Plan')
 
 @section('content')
-    @php($storageFormatter = app(\App\Support\StorageSizeFormatter::class))
-    <div class="page-header d-flex align-items-center justify-content-between">
-        <div>
+    @php
+        $storageFormatter = app(\App\Support\StorageSizeFormatter::class);
+    @endphp
+    <div class="page-header">
+        <div class="row align-items-center">
+            <div class="col">
             <div class="page-pretitle">Platform Owner</div>
             <h1 class="page-title">Edit Plan</h1>
             <div class="text-muted small mt-1">{{ $plan->display_name }} · {{ $plan->code }}</div>
-        </div>
+            </div>
+            <div class="col-auto">
         <a href="{{ route('platform.plans.index') }}" class="btn btn-outline-secondary">
             <i class="ti ti-arrow-left me-1"></i>Katalog Plan
         </a>
+            </div>
+        </div>
     </div>
 
     <form method="POST" action="{{ route('platform.plans.update', $plan) }}">

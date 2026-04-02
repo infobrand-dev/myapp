@@ -6,15 +6,19 @@
     @php
         $money = app(\App\Support\MoneyFormatter::class);
     @endphp
-    <div class="page-header d-flex align-items-center justify-content-between">
-        <div>
+    <div class="page-header">
+        <div class="row align-items-center">
+            <div class="col">
             <div class="page-pretitle">Platform Owner</div>
             <h1 class="page-title">Plan Orders</h1>
             <div class="text-muted small mt-1">Kelola order pembelian plan tenant dan tandai pembayaran secara manual.</div>
-        </div>
+            </div>
+            <div class="col-auto">
         <a href="{{ route('platform.dashboard') }}" class="btn btn-outline-secondary">
             <i class="ti ti-arrow-left me-1"></i>Dashboard
         </a>
+            </div>
+        </div>
     </div>
 
     @if(!$ordersReady)

@@ -15,15 +15,19 @@
         ];
     @endphp
 
-    <div class="page-header d-flex align-items-center justify-content-between">
-        <div>
+    <div class="page-header">
+        <div class="row align-items-center">
+            <div class="col">
             <div class="page-pretitle">Platform Owner</div>
             <h1 class="page-title">{{ $affiliate->name }}</h1>
             <div class="text-muted small mt-1">{{ $affiliate->email }} · {{ $affiliate->status }}</div>
-        </div>
+            </div>
+            <div class="col-auto">
         <a href="{{ route('platform.affiliates.index', $affiliate) }}" class="btn btn-outline-secondary">
             <i class="ti ti-arrow-left me-1"></i>Affiliates
         </a>
+            </div>
+        </div>
     </div>
 
     <div class="row g-3">

@@ -1,16 +1,20 @@
 @extends('layouts.admin')
 
 @section('content')
-<div class="page-header d-flex align-items-center justify-content-between">
-    <div>
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
         <div class="page-pretitle">Administrasi</div>
         <h2 class="page-title">Roles</h2>
-    </div>
+        </div>
+        <div class="col-auto">
     @can('roles.create')
         <a href="{{ route('roles.create') }}" class="btn btn-primary">
             <i class="ti ti-shield-plus me-1"></i>Tambah Role
         </a>
     @endcan
+        </div>
+    </div>
 </div>
 
 <div class="card">

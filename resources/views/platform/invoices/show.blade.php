@@ -6,13 +6,15 @@
     @php
         $money = app(\App\Support\MoneyFormatter::class);
     @endphp
-    <div class="page-header d-flex align-items-center justify-content-between">
-        <div>
+    <div class="page-header">
+        <div class="row align-items-center">
+            <div class="col">
             <div class="page-pretitle">Platform Owner</div>
             <h1 class="page-title">{{ $invoice->invoice_number }}</h1>
             <div class="text-muted small mt-1">{{ optional($invoice->tenant)->name }} · {{ optional($invoice->issued_at)->format('d M Y H:i') ?: '-' }}</div>
         </div>
-        <div class="d-flex gap-2 flex-wrap">
+            <div class="col-auto">
+        <div class="d-flex gap-2 flex-wrap justify-content-lg-end">
             <a href="{{ route('platform.tenants.show', $invoice->tenant) }}" class="btn btn-outline-secondary">
                 <i class="ti ti-arrow-left me-1"></i>Detail Tenant
             </a>
@@ -30,6 +32,8 @@
                     <i class="ti ti-send me-1"></i>Kirim Ulang Email
                 </button>
             </form>
+        </div>
+            </div>
         </div>
     </div>
 

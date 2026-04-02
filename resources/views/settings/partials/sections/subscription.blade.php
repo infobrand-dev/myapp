@@ -97,7 +97,9 @@
         <h3 class="card-title mb-0">Top Up AI Credits</h3>
     </div>
     <div class="card-body">
-        @php($money = app(\App\Support\MoneyFormatter::class))
+        @php
+            $money = app(\App\Support\MoneyFormatter::class);
+        @endphp
         <div class="text-muted small mb-3">
             AI Credits dipakai saat Managed AI membantu memproses percakapan. Jika kuota hampir habis, hubungi admin platform untuk top up atau upgrade plan.
         </div>

@@ -6,19 +6,23 @@
     @php
         $money = app(\App\Support\MoneyFormatter::class);
     @endphp
-    <div class="page-header d-flex align-items-center justify-content-between">
-        <div>
+    <div class="page-header">
+        <div class="row align-items-center">
+            <div class="col">
             <div class="page-pretitle">Platform Owner</div>
             <h1 class="page-title">{{ $tenant->name }}</h1>
             <div class="text-muted small mt-1">{{ $tenant->slug }} · {{ optional($tenant->created_at)->format('d M Y H:i') }}</div>
         </div>
-        <div class="d-flex gap-2">
+            <div class="col-auto">
+        <div class="d-flex gap-2 flex-wrap justify-content-lg-end">
             <a href="{{ route('platform.tenants.index') }}" class="btn btn-outline-secondary">
                 <i class="ti ti-arrow-left me-1"></i>Tenants
             </a>
             <a href="{{ route('platform.plans.index') }}" class="btn btn-outline-secondary">
                 <i class="ti ti-clipboard-list me-1"></i>Katalog Plan
             </a>
+        </div>
+            </div>
         </div>
     </div>
 
@@ -245,7 +249,9 @@
                     <table class="table table-vcenter card-table">
                         <thead><tr><th>Metrik</th><th>Penggunaan</th><th>Batas</th><th>Status</th><th>Tindakan</th></tr></thead>
                         <tbody>
-@php($storageFormatter = app(\App\Support\StorageSizeFormatter::class))
+                        @php
+                            $storageFormatter = app(\App\Support\StorageSizeFormatter::class);
+                        @endphp
                             @foreach($usageRows as $row)
                                 @php
                                     $statusMap = [

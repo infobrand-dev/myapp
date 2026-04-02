@@ -15,15 +15,19 @@
         ];
     @endphp
 
-    <div class="page-header d-flex align-items-center justify-content-between">
-        <div>
+    <div class="page-header">
+        <div class="row align-items-center">
+            <div class="col">
             <div class="page-pretitle">Platform Owner</div>
             <h1 class="page-title">Affiliate Payouts</h1>
             <div class="text-muted small mt-1">Kelola komisi affiliate yang menunggu approval atau pembayaran.</div>
-        </div>
+            </div>
+            <div class="col-auto">
         <a href="{{ route('platform.affiliates.index') }}" class="btn btn-outline-secondary">
             <i class="ti ti-share-2 me-1"></i>Affiliates
         </a>
+            </div>
+        </div>
     </div>
 
     @if(!$ready)

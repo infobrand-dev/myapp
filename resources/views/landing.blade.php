@@ -618,24 +618,6 @@
     </div>
 </section>
 
-{{-- ══ CTA BAND ═════════════════════════════════════════════ --}}
-<section class="py-5">
-    <div class="container">
-        <div class="landing-cta-band p-4 p-lg-5">
-            <div class="row g-4 align-items-center">
-                <div class="col-lg-8">
-                    <div class="text-uppercase small fw-bold mb-2 opacity-75">Siap mulai?</div>
-                    <h2 class="landing-section-title text-white mb-3">Aktifkan workspace omnichannel Anda hari ini.</h2>
-                    <p class="mb-0 opacity-75">Pilih paket, buat workspace, bayar, dan semua modul langsung aktif. Tidak perlu setup teknis.</p>
-                </div>
-                <div class="col-lg-4 text-lg-end">
-                    <a href="{{ route('onboarding.create') }}" class="btn btn-light btn-lg me-2 mb-2">Mulai Sekarang</a>
-                    <a href="{{ route('workspace.finder') }}" class="btn btn-outline-light btn-lg mb-2">Masuk Workspace</a>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
 
 </main>
 
@@ -648,7 +630,7 @@
                 <div class="mb-3">
                     <x-app-logo variant="default" :height="30" />
                 </div>
-                <p class="landing-footer-tagline mb-4">Platform bisnis terpadu per industri — omnichannel, penjualan, inventori, dan pembayaran dalam satu workspace.</p>
+                <p class="landing-footer-tagline mb-4">Satu workspace untuk jalankan bisnis Anda. Semua terhubung, semua terkendali.</p>
                 <div class="landing-footer-contact">
                     <a href="https://wa.me/6281222229815" target="_blank" rel="noopener" class="landing-footer-contact-item">
                         <i class="ti ti-brand-whatsapp"></i>

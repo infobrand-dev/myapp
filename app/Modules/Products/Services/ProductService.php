@@ -9,6 +9,7 @@ use App\Modules\Products\Models\ProductOptionGroup;
 use App\Modules\Products\Models\ProductOptionValue;
 use App\Modules\Products\Models\ProductPriceLevel;
 use App\Modules\Products\Models\ProductVariant;
+use App\Services\TenantStorageUsageService;
 use App\Support\PlanLimit;
 use App\Support\TenantContext;
 use App\Support\TenantPlanManager;
@@ -162,6 +163,44 @@ class ProductService
 
     private function syncProductMedia(Product $product, array $data): void
     {
+        $releasedBytes = 0;
+        $incomingBytes = 0;
+
+        if (!empty($data['remove_gallery_media_ids'])) {
+            $mediaItems = ProductMedia::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('product_id', $product->id)
+                ->whereIn('id', $data['remove_gallery_media_ids'])
+                ->get();
+
+            foreach ($mediaItems as $media) {
+                $releasedBytes += app(TenantStorageUsageService::class)->fileSize($media->disk, $media->path);
+            }
+        }
+
+        if (!empty($data['featured_image']) && $data['featured_image'] instanceof UploadedFile) {
+            $incomingBytes += (int) ($data['featured_image']->getSize() ?? 0);
+
+            if ($product->featured_image_path) {
+                $releasedBytes += app(TenantStorageUsageService::class)->fileSize('public', $product->featured_image_path);
+            }
+        }
+
+        foreach (($data['gallery_images'] ?? []) as $image) {
+            if ($image instanceof UploadedFile) {
+                $incomingBytes += (int) ($image->getSize() ?? 0);
+            }
+        }
+
+        if ($incomingBytes > 0) {
+            app(TenantStorageUsageService::class)->ensureCanStoreBytes(
+                $incomingBytes,
+                TenantContext::currentId(),
+                null,
+                $releasedBytes
+            );
+        }
+
         if (!empty($data['remove_gallery_media_ids'])) {
             $mediaItems = ProductMedia::query()
                 ->where('tenant_id', TenantContext::currentId())

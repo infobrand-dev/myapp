@@ -2,9 +2,11 @@
 
 namespace App\Modules\Chatbot\Models;
 
+use App\Models\TenantSubscription;
 use App\Models\User;
 use App\Support\NormalizesPgsqlBooleanAttributes;
 use App\Support\TenantContext;
+use Illuminate\Support\Arr;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,8 +23,10 @@ class ChatbotAccount extends Model
     protected $fillable = [
         'tenant_id',
         'name',
+        'access_scope',
         'provider',
         'model',
+        'ai_source',
         'automation_mode',
         'system_prompt',
         'focus_scope',
@@ -40,6 +44,8 @@ class ChatbotAccount extends Model
     protected $casts = [
         'tenant_id' => 'integer',
         'metadata' => 'array',
+        'ai_source' => 'string',
+        'access_scope' => 'string',
         'mirror_to_conversations' => 'boolean',
         'rag_enabled' => 'boolean',
     ];
@@ -92,14 +98,111 @@ class ChatbotAccount extends Model
         return strtolower((string) ($this->automation_mode ?: 'ai_first'));
     }
 
+    public function accessScope(): string
+    {
+        return strtolower((string) ($this->access_scope ?: 'public'));
+    }
+
+    public function isPrivate(): bool
+    {
+        return $this->accessScope() === 'private';
+    }
+
+    public function isPublic(): bool
+    {
+        return !$this->isPrivate();
+    }
+
+    public function availableForExternalChannels(): bool
+    {
+        return $this->isPublic() && strtolower((string) ($this->status ?: 'inactive')) === 'active';
+    }
+
+    public function behaviorMode(): string
+    {
+        if ($this->isRuleOnly()) {
+            return 'rule_only';
+        }
+
+        if (strtolower((string) ($this->operation_mode ?: 'ai_only')) === 'ai_then_human') {
+            return 'ai_then_human';
+        }
+
+        return 'ai_only';
+    }
+
     public function usesAi(): bool
     {
-        return in_array($this->automationMode(), ['ai_assisted', 'ai_first'], true);
+        return $this->behaviorMode() !== 'rule_only';
     }
 
     public function isRuleOnly(): bool
     {
         return $this->automationMode() === 'rule_only';
+    }
+
+    public function aiSource(): string
+    {
+        return strtolower((string) ($this->ai_source ?: 'managed'));
+    }
+
+    public function isByoAi(): bool
+    {
+        return $this->aiSource() === 'byo';
+    }
+
+    public function isManagedAi(): bool
+    {
+        return !$this->isByoAi();
+    }
+
+    public function runtimeProvider(): string
+    {
+        if ($this->isManagedAi()) {
+            return 'openai';
+        }
+
+        return strtolower((string) ($this->provider ?: 'openai'));
+    }
+
+    public function runtimeApiKey(): ?string
+    {
+        if ($this->isManagedAi()) {
+            return trim((string) config('services.openai.api_key')) ?: ($this->api_key ?: null);
+        }
+
+        return $this->api_key ?: null;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function byoAllowedProviders(): array
+    {
+        $subscription = TenantSubscription::query()
+            ->where('tenant_id', $this->tenant_id ?: TenantContext::currentId())
+            ->where('status', 'active')
+            ->latest('id')
+            ->first();
+        $providers = Arr::get(is_array($subscription?->meta) ? $subscription->meta : [], 'byo_ai.allowed_providers');
+
+        return array_values(array_filter((array) $providers, fn ($provider) => is_string($provider) && trim($provider) !== ''));
+    }
+
+    public function byoProviderAllowed(?string $provider = null): bool
+    {
+        if ($this->isManagedAi()) {
+            return true;
+        }
+
+        $provider = strtolower((string) ($provider ?: $this->runtimeProvider()));
+        $allowedProviders = $this->byoAllowedProviders();
+
+        if ($allowedProviders === []) {
+            return false;
+        }
+
+        return in_array($provider, $allowedProviders, true);
     }
 
     public function botConfig(): array
@@ -113,6 +216,7 @@ class ChatbotAccount extends Model
             'human_handoff_ack_enabled' => true,
             'minimum_context_score' => 4,
             'reply_cooldown_seconds' => 30,
+            'max_bot_replies_per_conversation' => 0,
             'knowledge_usage_mode' => $this->rag_enabled ? 'required' : 'optional',
         ], is_array($metadata['bot_config'] ?? null) ? $metadata['bot_config'] : []);
     }
@@ -149,9 +253,14 @@ class ChatbotAccount extends Model
         return (int) ($this->botConfig()['reply_cooldown_seconds'] ?? 30);
     }
 
+    public function maxBotRepliesPerConversation(): int
+    {
+        return max(0, (int) ($this->botConfig()['max_bot_replies_per_conversation'] ?? 0));
+    }
+
     public function prefersHumanHandoff(): bool
     {
-        return strtolower((string) ($this->operation_mode ?: 'ai_only')) === 'ai_then_human';
+        return $this->behaviorMode() === 'ai_then_human';
     }
 
     public function resolveRouteBinding($value, $field = null)

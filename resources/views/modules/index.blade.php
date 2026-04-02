@@ -6,6 +6,8 @@
         'active' => collect($modules)->where('active', true)->where('installed', true)->count(),
         'installed' => collect($modules)->where('installed', true)->where('active', false)->count(),
         'not_installed' => collect($modules)->where('installed', false)->count(),
+        'pending_db_update' => collect($modules)->where('has_pending_db_update', true)->count(),
+        'filesystem_issues' => collect($modules)->where('has_filesystem_issues', true)->count(),
         'total' => count($modules),
     ];
 @endphp
@@ -22,6 +24,12 @@
         </span>
         <span class="badge bg-warning-lt text-warning px-3 py-2">
             <i class="ti ti-package me-1"></i>Terpasang: {{ $moduleStats['installed'] }}
+        </span>
+        <span class="badge bg-orange-lt text-orange px-3 py-2">
+            <i class="ti ti-database-exclamation me-1"></i>Pending DB: {{ $moduleStats['pending_db_update'] }}
+        </span>
+        <span class="badge bg-red-lt text-red px-3 py-2">
+            <i class="ti ti-folder-x me-1"></i>Path Issue: {{ $moduleStats['filesystem_issues'] }}
         </span>
         <span class="badge bg-secondary-lt text-secondary px-3 py-2">
             <i class="ti ti-package-off me-1"></i>Belum pasang: {{ $moduleStats['not_installed'] }}
@@ -60,9 +68,9 @@
     <div class="col-sm-6 col-xl-3">
         <div class="card h-100">
             <div class="card-body">
-                <div class="text-secondary text-uppercase small fw-bold">Pending Install</div>
-                <div class="fs-1 fw-bold mt-2 text-secondary">{{ $moduleStats['not_installed'] }}</div>
-                <div class="text-muted small mt-2">Masih berupa manifest dan belum dipasang.</div>
+                <div class="text-secondary text-uppercase small fw-bold">Path Issue</div>
+                <div class="fs-1 fw-bold mt-2 text-red">{{ $moduleStats['filesystem_issues'] }}</div>
+                <div class="text-muted small mt-2">Mismatch path/casing yang berisiko saat deploy ke Linux.</div>
             </div>
         </div>
     </div>
@@ -90,6 +98,8 @@
                     <option value="">All status</option>
                     <option value="active" @selected($filters['status'] === 'active')>Active</option>
                     <option value="installed" @selected($filters['status'] === 'installed')>Installed</option>
+                    <option value="pending-db-update" @selected($filters['status'] === 'pending-db-update')>Pending DB Update</option>
+                    <option value="filesystem-issue" @selected($filters['status'] === 'filesystem-issue')>Filesystem Issue</option>
                     <option value="not-installed" @selected($filters['status'] === 'not-installed')>Not Installed</option>
                 </select>
             </div>
@@ -116,6 +126,7 @@
                     <th>Category</th>
                     <th>Version</th>
                     <th>Status</th>
+                    <th>DB Status</th>
                     <th style="min-width: 14rem;">Dependencies</th>
                     <th class="text-end" style="min-width: 12rem;">Action</th>
                 </tr>
@@ -128,6 +139,13 @@
                             : ($module['active']
                                 ? ['label' => 'Active', 'class' => 'success']
                                 : ['label' => 'Installed', 'class' => 'warning']);
+                        $dbStatus = !$module['installed']
+                            ? ['label' => '-', 'class' => 'secondary']
+                            : ($module['has_filesystem_issues']
+                                ? ['label' => 'Filesystem Issue', 'class' => 'red']
+                            : ($module['has_pending_db_update']
+                                ? ['label' => 'Pending DB Update', 'class' => 'orange']
+                                : ['label' => 'Up to Date', 'class' => 'success']));
                     @endphp
                     <tr>
                         <td>
@@ -154,6 +172,27 @@
                             <span class="badge bg-{{ $statusLabel['class'] }}-lt text-{{ $statusLabel['class'] }}">{{ $statusLabel['label'] }}</span>
                         </td>
                         <td>
+                            <div class="d-flex flex-column gap-1">
+                                <span class="badge bg-{{ $dbStatus['class'] }}-lt text-{{ $dbStatus['class'] }}">{{ $dbStatus['label'] }}</span>
+                                @if($module['has_filesystem_issues'])
+                                    <div class="text-danger small">
+                                        {{ implode('; ', $module['filesystem_issues']) }}
+                                    </div>
+                                @elseif($module['has_pending_db_update'])
+                                    <div class="text-muted small">
+                                        {{ count($module['pending_migrations']) }} migration pending
+                                    </div>
+                                    <div class="text-muted small">
+                                        {{ implode(', ', array_slice($module['pending_migrations'], 0, 2)) }}{{ count($module['pending_migrations']) > 2 ? ' ...' : '' }}
+                                    </div>
+                                @elseif($module['last_db_update_status'] === 'failed')
+                                    <div class="text-danger small">{{ $module['last_db_update_error'] }}</div>
+                                @elseif($module['last_db_update_at'])
+                                    <div class="text-muted small">Last run: {{ \Illuminate\Support\Carbon::parse($module['last_db_update_at'])->format('d M Y H:i') }}</div>
+                                @endif
+                            </div>
+                        </td>
+                        <td>
                             @if(empty($module['requires']))
                                 <span class="text-muted small">No dependency</span>
                             @else
@@ -166,6 +205,21 @@
                         </td>
                         <td class="text-end">
                             <div class="d-inline-flex flex-column align-items-end gap-2">
+                                @if($module['installed'] && $module['has_pending_db_update'] && !$module['has_filesystem_issues'])
+                                    @can('modules.activate')
+                                        <form method="POST" action="{{ route('modules.db-update', $module['slug']) }}" class="module-action-form">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-orange"
+                                                data-confirm="Jalankan pending DB update untuk modul {{ $module['name'] }}? Hanya migration modul ini yang akan dijalankan."
+                                                data-loading="Running DB Update...">
+                                                Run DB Update
+                                            </button>
+                                        </form>
+                                    @endcan
+                                @elseif($module['installed'] && $module['has_filesystem_issues'])
+                                    <span class="text-danger small text-end">Perbaiki path/casing dulu sebelum DB update.</span>
+                                @endif
+
                                 @if(!$module['installed'])
                                     @can('modules.install')
                                         <form method="POST" action="{{ route('modules.install', $module['slug']) }}" class="module-action-form">
@@ -217,7 +271,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-5">
+                        <td colspan="7" class="text-center text-muted py-5">
                             Tidak ada module yang cocok dengan filter saat ini.
                         </td>
                     </tr>

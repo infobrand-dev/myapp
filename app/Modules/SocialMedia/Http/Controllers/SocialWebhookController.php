@@ -144,9 +144,11 @@ class SocialWebhookController extends Controller
             return null;
         }
 
+        $hasAccessScope = Schema::hasColumn('chatbot_accounts', 'access_scope');
         return $chatbotClass::query()
             ->where('tenant_id', TenantContext::currentId())
             ->where('status', 'active')
+            ->when($hasAccessScope, fn ($query) => $query->where('access_scope', 'public'))
             ->find($chatbotAccountId);
     }
 

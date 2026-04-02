@@ -12,6 +12,7 @@ class PlanFeature
     public const LIVE_CHAT = 'live_chat';
     public const SOCIAL_MEDIA = 'social_media';
     public const CHATBOT_AI = 'chatbot_ai';
+    public const CHATBOT_BYO_AI = 'chatbot_byo_ai';
     public const EMAIL_MARKETING = 'email_marketing';
     public const WHATSAPP_API = 'whatsapp_api';
     public const WHATSAPP_WEB = 'whatsapp_web';

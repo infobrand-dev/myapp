@@ -172,9 +172,9 @@ class TenantOnboardingSalesService
             ->first() ?? $plan;
     }
 
-    public function createPendingWorkspace(array $data, SubscriptionPlan $plan): array
+    public function createPendingWorkspace(array $data, SubscriptionPlan $plan, string $paymentChannel = 'midtrans'): array
     {
-        return DB::transaction(function () use ($data, $plan): array {
+        return DB::transaction(function () use ($data, $plan, $paymentChannel): array {
             $salesMeta = $this->salesMeta($plan);
             $startsAt = now();
             $tenant = Tenant::query()->create([
@@ -221,7 +221,7 @@ class TenantOnboardingSalesService
                 'currency' => (string) ($salesMeta['currency'] ?? 'IDR'),
                 'billing_period' => $plan->billing_interval ?: 'monthly',
                 'buyer_email' => $data['email'],
-                'payment_channel' => 'midtrans',
+                'payment_channel' => $paymentChannel,
                 'starts_at' => $startsAt,
                 'ends_at' => $this->resolveEndsAt($plan->billing_interval, $startsAt),
                 'meta' => [
@@ -230,6 +230,7 @@ class TenantOnboardingSalesService
                     'admin_email' => $data['email'],
                     'tenant_slug' => $tenant->slug,
                     'plan_code' => $plan->code,
+                    'selected_payment_method' => $paymentChannel,
                     'sales_meta_snapshot' => $salesMeta,
                 ],
             ]);
@@ -247,6 +248,7 @@ class TenantOnboardingSalesService
                 'meta' => [
                     'source_order_id' => $order->id,
                     'created_from' => 'self_serve_onboarding',
+                    'selected_payment_method' => $paymentChannel,
                 ],
             ]);
 

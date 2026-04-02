@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\SubscriptionPlan;
 use App\Services\PlatformAffiliateService;
+use App\Services\PlatformManualPaymentService;
 use App\Services\PlatformMidtransBillingService;
 use App\Services\TenantOnboardingSalesService;
 use Illuminate\Http\Request;
@@ -17,7 +18,7 @@ class TenantOnboardingController extends Controller
      * Show the new-tenant registration form.
      * Only accessible in SaaS mode.
      */
-    public function create(Request $request, TenantOnboardingSalesService $sales, PlatformAffiliateService $affiliateService)
+    public function create(Request $request, TenantOnboardingSalesService $sales, PlatformAffiliateService $affiliateService, PlatformManualPaymentService $manualPayment, PlatformMidtransBillingService $midtrans)
     {
         abort_unless(config('multitenancy.mode') === 'saas', 404);
 
@@ -29,13 +30,15 @@ class TenantOnboardingController extends Controller
             'plans' => $sales->publicPlans(),
             'preferredPlanId' => $preferredPlanId,
             'affiliate' => $affiliate,
+            'manualPaymentReady' => $manualPayment->isConfigured(),
+            'midtransReady' => $midtrans->isConfigured(),
         ]);
     }
 
     /**
      * Validate, create the pending tenant sale, then redirect to checkout.
      */
-    public function store(Request $request, TenantOnboardingSalesService $sales, PlatformMidtransBillingService $midtrans, PlatformAffiliateService $affiliateService)
+    public function store(Request $request, TenantOnboardingSalesService $sales, PlatformMidtransBillingService $midtrans, PlatformAffiliateService $affiliateService, PlatformManualPaymentService $manualPayment)
     {
         abort_unless(config('multitenancy.mode') === 'saas', 404);
 
@@ -48,9 +51,7 @@ class TenantOnboardingController extends Controller
                 'required',
                 'integer',
                 Rule::exists('subscription_plans', 'id')->where(
-                    fn ($query) => $query->getConnection()->getDriverName() === 'pgsql'
-                        ? $query->whereRaw('is_active is true and is_public is true')
-                        : $query->active()->public()
+                    fn ($query) => $query->where('is_active', true)->where('is_public', true)
                 ),
             ],
             'company_name' => ['required', 'string', 'max:100'],
@@ -65,11 +66,24 @@ class TenantOnboardingController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
             'password' => ['required', 'confirmed', Password::defaults()],
+            'payment_method' => ['required', 'string', Rule::in(['midtrans', 'bank_transfer'])],
         ], [
             'slug.regex' => 'Subdomain hanya boleh huruf kecil, angka, dan tanda hubung, dan tidak boleh diawali/diakhiri tanda hubung.',
             'slug.not_in' => 'Subdomain tersebut tidak tersedia. Pilih nama lain.',
             'slug.unique' => 'Subdomain tersebut sudah dipakai. Pilih nama lain.',
         ]);
+
+        if ($data['payment_method'] === 'bank_transfer' && !$manualPayment->isConfigured()) {
+            throw ValidationException::withMessages([
+                'payment_method' => 'Transfer bank manual belum tersedia saat ini.',
+            ]);
+        }
+
+        if ($data['payment_method'] === 'midtrans' && !$midtrans->isConfigured()) {
+            throw ValidationException::withMessages([
+                'payment_method' => 'Pembayaran Midtrans belum tersedia saat ini.',
+            ]);
+        }
 
         $plan = SubscriptionPlan::query()
             ->whereKey($data['subscription_plan_id'])
@@ -83,11 +97,19 @@ class TenantOnboardingController extends Controller
             ]);
         }
 
-        $result = $sales->createPendingWorkspace($data, $plan);
+        $result = $sales->createPendingWorkspace($data, $plan, $data['payment_method']);
         $affiliateService->attachReferralToOrder($request, $result['order'], $result['tenant'], $plan);
         $invoice = $result['invoice']->fresh(['tenant', 'plan', 'order']);
 
+        if ($data['payment_method'] === 'bank_transfer') {
+            $invoice = $manualPayment->attachQuote($invoice);
+        }
+
         $sales->queueInvoiceMail($invoice);
+
+        if ($data['payment_method'] === 'bank_transfer') {
+            return redirect()->away($sales->publicInvoiceUrl($invoice));
+        }
 
         try {
             $checkout = $midtrans->createOrReuseCheckout($invoice);

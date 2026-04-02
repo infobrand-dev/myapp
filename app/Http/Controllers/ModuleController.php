@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Support\ModuleManager;
+use App\Support\ModuleFilesystemAudit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -10,9 +11,17 @@ use Throwable;
 
 class ModuleController extends Controller
 {
-    public function index(ModuleManager $modules): View
+    public function index(ModuleManager $modules, ModuleFilesystemAudit $filesystemAudit): View
     {
-        $allModules = $modules->all();
+        $allModules = collect($modules->all())
+            ->map(function (array $module) use ($filesystemAudit): array {
+                $issues = $filesystemAudit->issuesForModule($module);
+                $module['filesystem_issues'] = $issues;
+                $module['has_filesystem_issues'] = !empty($issues);
+
+                return $module;
+            })
+            ->all();
         $filters = [
             'category' => trim((string) request('category', '')),
             'status' => trim((string) request('status', '')),
@@ -36,7 +45,11 @@ class ModuleController extends Controller
                 if ($filters['status'] !== '') {
                     $status = !$module['installed']
                         ? 'not-installed'
-                        : ($module['active'] ? 'active' : 'installed');
+                        : ($module['has_filesystem_issues']
+                            ? 'filesystem-issue'
+                        : ($module['has_pending_db_update']
+                            ? 'pending-db-update'
+                            : ($module['active'] ? 'active' : 'installed')));
 
                     if ($status !== $filters['status']) {
                         return false;
@@ -95,6 +108,20 @@ class ModuleController extends Controller
             return back()->with('status', "Module '{$slug}' berhasil dinonaktifkan.");
         } catch (Throwable $e) {
             return back()->with('status', "Gagal nonaktifkan module '{$slug}': " . $e->getMessage());
+        }
+    }
+
+    public function runDbUpdate(string $slug, Request $request, ModuleManager $modules): RedirectResponse
+    {
+        try {
+            $count = $modules->runPendingDbUpdate($slug, $request->user()?->id);
+            $message = $count > 0
+                ? "DB update module '{$slug}' berhasil. {$count} migration dijalankan."
+                : "Module '{$slug}' tidak memiliki pending DB update.";
+
+            return back()->with('status', $message);
+        } catch (Throwable $e) {
+            return back()->with('status', "Gagal DB update module '{$slug}': " . $e->getMessage());
         }
     }
 }

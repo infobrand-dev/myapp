@@ -71,6 +71,13 @@
                         <div class="text-secondary small text-uppercase fw-bold">Payment Gateway</div>
                         <div class="fw-semibold mt-1">{{ $midtransReady ? 'Midtrans siap' : 'Midtrans belum dikonfigurasi' }}</div>
                     </div>
+                    @if($manualPaymentReady)
+                        <div class="mb-3">
+                            <div class="text-secondary small text-uppercase fw-bold">Transfer Bank</div>
+                            <div class="fw-semibold mt-1">{{ $manualPaymentQuote['bank_name'] }} · {{ $manualPaymentQuote['account_number'] }}</div>
+                            <div class="text-muted small">Nominal unik: {{ $money->format((float) $manualPaymentQuote['transfer_amount'], $invoice->currency) }}</div>
+                        </div>
+                    @endif
                     <div class="mb-3">
                         <label class="form-label">URL Invoice Publik</label>
                         <input type="text" class="form-control" readonly value="{{ $publicInvoiceUrl }}">

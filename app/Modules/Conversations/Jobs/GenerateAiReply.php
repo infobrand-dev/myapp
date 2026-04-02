@@ -9,9 +9,12 @@ use App\Modules\Conversations\Contracts\ConversationChannelManager;
 use App\Modules\Conversations\Contracts\ConversationOutboundDispatcher;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
+use App\Services\AiProviderClient;
 use App\Services\AiUsageService;
+use App\Services\ByoAiGuardService;
+use App\Support\PlanFeature;
+use App\Support\PlanLimit;
 use App\Support\TenantContext;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -65,7 +68,7 @@ class GenerateAiReply implements ShouldQueue
             return;
         }
 
-        if (!$aiAccount || !$aiAccount->api_key) {
+        if (!$aiAccount || !method_exists($aiAccount, 'runtimeApiKey') || !$aiAccount->runtimeApiKey()) {
             Log::warning('AI reply skipped: no active chatbot account', ['conversation_id' => $this->conversationId]);
             return;
         }
@@ -78,13 +81,58 @@ class GenerateAiReply implements ShouldQueue
             return;
         }
 
-        if (!app(AiUsageService::class)->hasCreditsRemaining($this->tenantId())) {
+        if (method_exists($aiAccount, 'isManagedAi') && $aiAccount->isManagedAi() && !app(AiUsageService::class)->hasCreditsRemaining($this->tenantId())) {
             Log::info('AI reply skipped: tenant AI credits exhausted', [
                 'conversation_id' => $this->conversationId,
                 'tenant_id' => $this->tenantId(),
             ]);
             app(ConversationBotPolicy::class)->markSkipped($conversation, $aiAccount, 'ai_credits_exhausted');
             return;
+        }
+
+        if (method_exists($aiAccount, 'isByoAi') && $aiAccount->isByoAi()) {
+            $planManager = app(\App\Support\TenantPlanManager::class);
+
+            if (!$planManager->hasFeature(PlanFeature::CHATBOT_BYO_AI, $this->tenantId())) {
+                Log::info('AI reply skipped: BYO AI add-on disabled', [
+                    'conversation_id' => $this->conversationId,
+                    'tenant_id' => $this->tenantId(),
+                ]);
+                app(ConversationBotPolicy::class)->markSkipped($conversation, $aiAccount, 'byo_addon_disabled');
+
+                return;
+            }
+
+            if (method_exists($aiAccount, 'byoProviderAllowed') && !$aiAccount->byoProviderAllowed()) {
+                Log::info('AI reply skipped: BYO AI provider not allowed', [
+                    'conversation_id' => $this->conversationId,
+                    'tenant_id' => $this->tenantId(),
+                    'provider' => method_exists($aiAccount, 'runtimeProvider') ? $aiAccount->runtimeProvider() : null,
+                ]);
+                app(ConversationBotPolicy::class)->markSkipped($conversation, $aiAccount, 'byo_provider_not_allowed');
+
+                return;
+            }
+
+            if (!$planManager->hasCapacity(PlanLimit::BYO_AI_REQUESTS_MONTHLY, 1, $this->tenantId())) {
+                Log::info('AI reply skipped: BYO AI request quota exhausted', [
+                    'conversation_id' => $this->conversationId,
+                    'tenant_id' => $this->tenantId(),
+                ]);
+                app(ConversationBotPolicy::class)->markSkipped($conversation, $aiAccount, 'byo_requests_exhausted');
+
+                return;
+            }
+
+            if (($planManager->remaining(PlanLimit::BYO_AI_TOKENS_MONTHLY, $this->tenantId()) ?? 1) <= 0) {
+                Log::info('AI reply skipped: BYO AI token quota exhausted', [
+                    'conversation_id' => $this->conversationId,
+                    'tenant_id' => $this->tenantId(),
+                ]);
+                app(ConversationBotPolicy::class)->markSkipped($conversation, $aiAccount, 'byo_tokens_exhausted');
+
+                return;
+            }
         }
 
         $policy = app(ConversationBotPolicy::class);
@@ -135,20 +183,41 @@ class GenerateAiReply implements ShouldQueue
 
         $cacheKey = $this->responseCacheKey((int) $aiAccount->id, $payload);
         $usage = null;
+        $raw = null;
+        $byoGuardAcquired = false;
         try {
-            $reply = Cache::get($cacheKey);
+            $cached = Cache::get($cacheKey);
 
-            if ($reply === null) {
-                $response = Http::withToken($aiAccount->api_key)
-                    ->timeout(10)
-                    ->post('https://api.openai.com/v1/chat/completions', $payload);
-                $reply = $response->successful()
-                    ? ($response->json('choices.0.message.content') ?? null)
-                    : null;
-                $usage = $response->successful() ? $response->json('usage') : null;
+            if (is_array($cached)) {
+                $reply = trim((string) ($cached['reply'] ?? ''));
+                $usage = is_array($cached['usage'] ?? null) ? $cached['usage'] : null;
+                $raw = is_array($cached['raw'] ?? null) ? $cached['raw'] : null;
+            } else {
+                if (method_exists($aiAccount, 'isByoAi') && $aiAccount->isByoAi()) {
+                    app(ByoAiGuardService::class)->acquire($this->tenantId());
+                    $byoGuardAcquired = true;
+                }
+
+                $result = app(AiProviderClient::class)->chat(
+                    $aiAccount->runtimeProvider(),
+                    (string) $aiAccount->runtimeApiKey(),
+                    $aiAccount->model ?: config('services.openai.model', 'gpt-4o-mini'),
+                    $payload['messages'],
+                    (float) $payload['temperature'],
+                    (int) $payload['max_tokens'],
+                    10,
+                );
+
+                $reply = $result['reply'];
+                $usage = $result['usage'];
+                $raw = $result['raw'];
 
                 if (is_string($reply) && trim($reply) !== '') {
-                    Cache::put($cacheKey, $reply, now()->addSeconds(self::RESPONSE_CACHE_TTL_SECONDS));
+                    Cache::put($cacheKey, [
+                        'reply' => trim($reply),
+                        'usage' => is_array($usage) ? $usage : null,
+                        'raw' => is_array($raw) ? $raw : null,
+                    ], now()->addSeconds(self::RESPONSE_CACHE_TTL_SECONDS));
                 }
             }
         } catch (\Throwable $e) {
@@ -158,6 +227,10 @@ class GenerateAiReply implements ShouldQueue
                 'channel' => $conversation->channel,
             ]);
             $reply = null;
+        } finally {
+            if ($byoGuardAcquired) {
+                app(ByoAiGuardService::class)->release($this->tenantId());
+            }
         }
 
         $evaluation = $policy->evaluateReplyCandidate($conversation, $aiAccount, (string) $reply, $ragContexts);
@@ -216,8 +289,9 @@ class GenerateAiReply implements ShouldQueue
                 'source_type' => 'auto_reply',
                 'source_id' => $conversation->id,
                 'chatbot_account_id' => $aiAccount->id,
-                'provider' => $aiAccount->provider,
+                'provider' => $aiAccount->runtimeProvider(),
                 'model' => $aiAccount->model ?: config('services.openai.model', 'gpt-4o-mini'),
+                'billing_mode' => method_exists($aiAccount, 'isByoAi') && $aiAccount->isByoAi() ? 'byo' : 'managed',
                 'prompt_tokens' => (int) ($usage['prompt_tokens'] ?? 0),
                 'completion_tokens' => (int) ($usage['completion_tokens'] ?? 0),
                 'total_tokens' => (int) ($usage['total_tokens'] ?? 0),

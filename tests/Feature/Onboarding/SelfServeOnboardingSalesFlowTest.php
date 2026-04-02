@@ -99,6 +99,7 @@ class SelfServeOnboardingSalesFlowTest extends TestCase
             'email' => 'owner@acme.test',
             'password' => 'Secret123!!',
             'password_confirmation' => 'Secret123!!',
+            'payment_method' => 'midtrans',
         ]);
 
         $response->assertRedirect('https://app.sandbox.midtrans.com/snap/v2/vtweb/onboarding-checkout');
@@ -114,6 +115,44 @@ class SelfServeOnboardingSalesFlowTest extends TestCase
         $this->assertSame('pending', $invoice->status);
         $this->assertSame('owner@acme.test', $order->buyer_email);
         $this->assertNotEmpty($invoice->meta['midtrans']['redirect_url']);
+
+        Mail::assertQueued(PlatformInvoiceIssuedMail::class);
+        Mail::assertNotQueued(TenantWelcomeMail::class);
+    }
+
+    public function test_self_serve_onboarding_can_choose_manual_bank_transfer_with_unique_code(): void
+    {
+        Mail::fake();
+
+        config()->set('services.platform_manual_payment.enabled', true);
+        config()->set('services.platform_manual_payment.bank_name', 'BCA');
+        config()->set('services.platform_manual_payment.account_name', 'PT Platform Demo');
+        config()->set('services.platform_manual_payment.account_number', '1234567890');
+        config()->set('services.platform_manual_payment.review_sla_hours', 24);
+
+        $response = $this->post(route('onboarding.store'), [
+            'subscription_plan_id' => SubscriptionPlan::query()->where('code', 'growth-v2')->value('id'),
+            'company_name' => 'Gamma Omnichannel',
+            'slug' => 'gamma',
+            'name' => 'Owner Gamma',
+            'email' => 'owner@gamma.test',
+            'password' => 'Secret123!!',
+            'password_confirmation' => 'Secret123!!',
+            'payment_method' => 'bank_transfer',
+        ]);
+
+        $tenant = Tenant::query()->where('slug', 'gamma')->firstOrFail();
+        $order = PlatformPlanOrder::query()->where('tenant_id', $tenant->id)->firstOrFail();
+        $invoice = PlatformInvoice::query()->where('platform_plan_order_id', $order->id)->firstOrFail();
+
+        $response->assertStatus(302);
+        $this->assertStringContainsString('/platform/public/invoices/' . $invoice->id, (string) $response->headers->get('Location'));
+
+        $this->assertSame('bank_transfer', $order->payment_channel);
+        $this->assertSame('bank_transfer', $invoice->meta['selected_payment_method']);
+        $this->assertSame('bank_transfer', $invoice->meta['manual_transfer']['payment_method']);
+        $this->assertGreaterThan((int) $invoice->amount, (int) $invoice->meta['manual_transfer']['transfer_amount']);
+        $this->assertSame('BCA', $invoice->meta['manual_transfer']['bank_name']);
 
         Mail::assertQueued(PlatformInvoiceIssuedMail::class);
         Mail::assertNotQueued(TenantWelcomeMail::class);
@@ -138,6 +177,7 @@ class SelfServeOnboardingSalesFlowTest extends TestCase
             'email' => 'owner@beta.test',
             'password' => 'Secret123!!',
             'password_confirmation' => 'Secret123!!',
+            'payment_method' => 'midtrans',
         ])->assertRedirect();
 
         $invoice = PlatformInvoice::query()->latest('id')->firstOrFail();

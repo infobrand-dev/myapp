@@ -18,7 +18,11 @@ class SocialAccountRequest extends FormRequest
     {
         $chatbotRule = ['nullable'];
         if (class_exists(\App\Modules\Chatbot\Models\ChatbotAccount::class) && Schema::hasTable('chatbot_accounts')) {
-            $chatbotRule[] = Rule::exists('chatbot_accounts', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()));
+            $hasAccessScope = Schema::hasColumn('chatbot_accounts', 'access_scope');
+            $chatbotRule[] = Rule::exists('chatbot_accounts', 'id')->where(fn ($query) => $query
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('status', 'active')
+                ->when($hasAccessScope, fn ($builder) => $builder->where('access_scope', 'public')));
         } else {
             $chatbotRule[] = 'integer';
         }

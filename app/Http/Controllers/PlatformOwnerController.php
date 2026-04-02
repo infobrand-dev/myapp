@@ -11,13 +11,16 @@ use App\Models\PlatformPlanOrder;
 use App\Models\PlatformPayment;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
+use App\Models\TenantByoAiRequest;
 use App\Models\TenantSubscription;
 use App\Services\GoliveAuditService;
 use App\Services\AiCreditPricingService;
 use App\Services\AiUsageService;
 use App\Services\PlatformAffiliateService;
+use App\Services\PlatformManualPaymentService;
 use App\Services\PlatformMidtransBillingService;
 use App\Services\TenantOnboardingSalesService;
+use App\Support\ByoAiAddon;
 use App\Support\PlanFeature;
 use App\Support\PlanLimit;
 use App\Support\TenantPlanManager;
@@ -36,6 +39,7 @@ class PlatformOwnerController extends Controller
         PlanLimit::COMPANIES => 'Companies',
         PlanLimit::BRANCHES => 'Branches',
         PlanLimit::USERS => 'Users',
+        PlanLimit::TOTAL_STORAGE_BYTES => 'Total Storage (bytes)',
         PlanLimit::PRODUCTS => 'Products',
         PlanLimit::CONTACTS => 'Contacts',
         PlanLimit::WHATSAPP_INSTANCES => 'WhatsApp Instances',
@@ -48,6 +52,9 @@ class PlatformOwnerController extends Controller
         PlanLimit::EMAIL_RECIPIENTS_MONTHLY => 'Email Recipients / Month',
         PlanLimit::AI_CREDITS_MONTHLY => 'AI Credits / Month',
         PlanLimit::CHATBOT_KNOWLEDGE_DOCUMENTS => 'Chatbot Knowledge Documents',
+        PlanLimit::BYO_CHATBOT_ACCOUNTS => 'BYO Chatbot Accounts',
+        PlanLimit::BYO_AI_REQUESTS_MONTHLY => 'BYO AI Requests / Month',
+        PlanLimit::BYO_AI_TOKENS_MONTHLY => 'BYO AI Tokens / Month',
         PlanLimit::AUTOMATION_WORKFLOWS => 'Automation Workflows',
         PlanLimit::AUTOMATION_EXECUTIONS_MONTHLY => 'Automation Executions / Month',
     ];
@@ -211,6 +218,11 @@ class PlatformOwnerController extends Controller
             $relations[] = 'aiCreditTransactions.creator';
         }
 
+        if (class_exists(TenantByoAiRequest::class) && Schema::hasTable('tenant_byo_ai_requests')) {
+            $relations[] = 'byoAiRequests.requester';
+            $relations[] = 'byoAiRequests.reviewer';
+        }
+
         $tenant->load($relations);
 
         $plans = SubscriptionPlan::query()
@@ -230,6 +242,17 @@ class PlatformOwnerController extends Controller
                 'transactions_ready' => $this->aiCreditTransactionsTableReady(),
             ],
             'aiPricing' => $aiPricing->snapshot(),
+            'byoAiSummary' => [
+                'enabled' => $planManager->hasFeature(PlanFeature::CHATBOT_BYO_AI, $tenant->id),
+                'requests_ready' => Schema::hasTable('tenant_byo_ai_requests'),
+                'latest_request' => Schema::hasTable('tenant_byo_ai_requests') ? $tenant->byoAiRequests->sortByDesc('id')->first() : null,
+                'providers' => ByoAiAddon::providers(),
+                'usage_states' => [
+                    'accounts' => $planManager->usageState(PlanLimit::BYO_CHATBOT_ACCOUNTS, $tenant->id),
+                    'requests' => $planManager->usageState(PlanLimit::BYO_AI_REQUESTS_MONTHLY, $tenant->id),
+                    'tokens' => $planManager->usageState(PlanLimit::BYO_AI_TOKENS_MONTHLY, $tenant->id),
+                ],
+            ],
         ]);
     }
 
@@ -307,7 +330,7 @@ class PlatformOwnerController extends Controller
         ]);
     }
 
-    public function invoice(PlatformInvoice $invoice, PlatformMidtransBillingService $midtrans): View
+    public function invoice(PlatformInvoice $invoice, PlatformMidtransBillingService $midtrans, PlatformManualPaymentService $manualPayment): View
     {
         $invoice->load(['tenant', 'plan', 'order', 'payments', 'items']);
 
@@ -316,10 +339,12 @@ class PlatformOwnerController extends Controller
             'publicInvoiceUrl' => $this->publicInvoiceUrl($invoice),
             'publicCheckoutUrl' => $this->publicCheckoutUrl($invoice),
             'midtransReady' => $midtrans->isConfigured(),
+            'manualPaymentReady' => $manualPayment->isConfigured(),
+            'manualPaymentQuote' => $manualPayment->quoteForInvoice($invoice),
         ]);
     }
 
-    public function publicInvoice(PlatformInvoice $invoice, PlatformMidtransBillingService $midtrans): View
+    public function publicInvoice(PlatformInvoice $invoice, PlatformMidtransBillingService $midtrans, PlatformManualPaymentService $manualPayment): View
     {
         $invoice->load(['tenant', 'plan', 'order', 'payments', 'items']);
 
@@ -327,6 +352,8 @@ class PlatformOwnerController extends Controller
             'invoice' => $invoice,
             'publicCheckoutUrl' => $this->publicCheckoutUrl($invoice),
             'midtransReady' => $midtrans->isConfigured(),
+            'manualPaymentReady' => $manualPayment->isConfigured(),
+            'manualPaymentQuote' => $manualPayment->quoteForInvoice($invoice),
         ]);
     }
 
@@ -459,6 +486,13 @@ class PlatformOwnerController extends Controller
         ]);
 
         DB::transaction(function () use ($tenant, $data): void {
+            $activeSubscription = TenantSubscription::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('status', 'active')
+                ->latest('id')
+                ->first();
+            $byoOverrides = $this->preserveByoOverrides($activeSubscription);
+
             TenantSubscription::query()
                 ->where('tenant_id', $tenant->id)
                 ->where('status', 'active')
@@ -478,6 +512,8 @@ class PlatformOwnerController extends Controller
                 'ends_at' => $this->nullableCarbon($data['ends_at'] ?? null),
                 'trial_ends_at' => $this->nullableCarbon($data['trial_ends_at'] ?? null),
                 'auto_renews' => (bool) ($data['auto_renews'] ?? false),
+                'feature_overrides' => $byoOverrides['feature_overrides'],
+                'limit_overrides' => $byoOverrides['limit_overrides'],
                 'meta' => [
                     'assigned_from' => 'platform_owner',
                     'assigned_by_user_id' => auth()->id(),
@@ -486,6 +522,81 @@ class PlatformOwnerController extends Controller
         });
 
         return back()->with('status', 'Plan tenant berhasil diperbarui.');
+    }
+
+    public function updateByoAiAddon(Request $request, Tenant $tenant): RedirectResponse
+    {
+        $data = $request->validate([
+            'enabled' => ['required', 'boolean'],
+            'allowed_providers' => ['nullable', 'array'],
+            'allowed_providers.*' => ['string', 'in:openai,anthropic,groq'],
+            'max_byo_chatbot_accounts' => ['nullable', 'integer', 'min:0'],
+            'max_byo_ai_requests_monthly' => ['nullable', 'integer', 'min:0'],
+            'max_byo_ai_tokens_monthly' => ['nullable', 'integer', 'min:0'],
+            'review_notes' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        $subscription = TenantSubscription::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('status', 'active')
+            ->latest('id')
+            ->first();
+
+        if (!$subscription) {
+            return back()->with('error', 'Tenant belum memiliki subscription aktif untuk diberi add-on BYO AI.');
+        }
+
+        $featureOverrides = is_array($subscription->feature_overrides) ? $subscription->feature_overrides : [];
+        $limitOverrides = is_array($subscription->limit_overrides) ? $subscription->limit_overrides : [];
+        $featureOverrides[PlanFeature::CHATBOT_BYO_AI] = (bool) $data['enabled'];
+        $limitOverrides[PlanLimit::BYO_CHATBOT_ACCOUNTS] = $this->nullableLimit($data['max_byo_chatbot_accounts'] ?? null);
+        $limitOverrides[PlanLimit::BYO_AI_REQUESTS_MONTHLY] = $this->nullableLimit($data['max_byo_ai_requests_monthly'] ?? null);
+        $limitOverrides[PlanLimit::BYO_AI_TOKENS_MONTHLY] = $this->nullableLimit($data['max_byo_ai_tokens_monthly'] ?? null);
+
+        $meta = is_array($subscription->meta) ? $subscription->meta : [];
+        $meta['byo_ai'] = [
+            'allowed_providers' => array_values(array_unique(array_filter((array) ($data['allowed_providers'] ?? [])))),
+            'review_notes' => $data['review_notes'] ?: null,
+            'updated_by_user_id' => auth()->id(),
+            'updated_at' => now()->toIso8601String(),
+        ];
+
+        $subscription->forceFill([
+            'feature_overrides' => $featureOverrides,
+            'limit_overrides' => $limitOverrides,
+            'meta' => $meta,
+        ])->save();
+
+        return back()->with('status', 'Add-on BYO AI tenant berhasil diperbarui.');
+    }
+
+    public function reviewByoAiRequest(Request $request, Tenant $tenant, TenantByoAiRequest $requestModel): RedirectResponse
+    {
+        abort_unless($requestModel->tenant_id === $tenant->id, 404);
+
+        $data = $request->validate([
+            'status' => ['required', 'string', 'in:' . implode(',', ByoAiAddon::requestStatuses())],
+            'review_notes' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        $requestModel->forceFill([
+            'status' => $data['status'],
+            'review_notes' => $data['review_notes'] ?: null,
+            'reviewed_by' => auth()->id(),
+            'reviewed_at' => now(),
+        ])->save();
+
+        $subscription = TenantSubscription::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('status', 'active')
+            ->latest('id')
+            ->first();
+
+        if ($subscription && in_array($data['status'], [ByoAiAddon::REQUEST_STATUS_APPROVED, ByoAiAddon::REQUEST_STATUS_REJECTED, ByoAiAddon::REQUEST_STATUS_NOT_ELIGIBLE], true)) {
+            $this->syncByoAddonFromRequestReview($subscription, $requestModel, $data['status'], $data['review_notes'] ?? null);
+        }
+
+        return back()->with('status', 'Status permintaan BYO AI berhasil diperbarui.');
     }
 
     public function createOrder(Request $request, Tenant $tenant): RedirectResponse
@@ -809,6 +920,7 @@ class PlatformOwnerController extends Controller
             PlanFeature::LIVE_CHAT => 'Live chat widget',
             PlanFeature::SOCIAL_MEDIA => 'Social media conversations',
             PlanFeature::CHATBOT_AI => 'Chatbot AI',
+            PlanFeature::CHATBOT_BYO_AI => 'Chatbot BYO AI add-on',
             PlanFeature::WHATSAPP_API => 'WhatsApp API',
             PlanFeature::WHATSAPP_WEB => 'WhatsApp Web',
             'multi_branch' => 'Multi branch',
@@ -847,6 +959,7 @@ class PlatformOwnerController extends Controller
                     PlanFeature::LIVE_CHAT => true,
                     PlanFeature::SOCIAL_MEDIA => true,
                     PlanFeature::CHATBOT_AI => false,
+                    PlanFeature::CHATBOT_BYO_AI => false,
                     PlanFeature::WHATSAPP_API => false,
                     PlanFeature::WHATSAPP_WEB => false,
                     PlanFeature::EMAIL_MARKETING => false,
@@ -860,6 +973,7 @@ class PlatformOwnerController extends Controller
                     PlanLimit::COMPANIES => 1,
                     PlanLimit::BRANCHES => 1,
                     PlanLimit::USERS => 5,
+                    PlanLimit::TOTAL_STORAGE_BYTES => 1073741824,
                     PlanLimit::PRODUCTS => 100,
                     PlanLimit::CONTACTS => 2000,
                     PlanLimit::WHATSAPP_INSTANCES => 0,
@@ -872,6 +986,9 @@ class PlatformOwnerController extends Controller
                     PlanLimit::EMAIL_RECIPIENTS_MONTHLY => 0,
                     PlanLimit::AI_CREDITS_MONTHLY => 0,
                     PlanLimit::CHATBOT_KNOWLEDGE_DOCUMENTS => 0,
+                    PlanLimit::BYO_CHATBOT_ACCOUNTS => 0,
+                    PlanLimit::BYO_AI_REQUESTS_MONTHLY => 0,
+                    PlanLimit::BYO_AI_TOKENS_MONTHLY => 0,
                     PlanLimit::AUTOMATION_WORKFLOWS => 0,
                     PlanLimit::AUTOMATION_EXECUTIONS_MONTHLY => 0,
                 ],
@@ -889,6 +1006,7 @@ class PlatformOwnerController extends Controller
                     PlanFeature::LIVE_CHAT => true,
                     PlanFeature::SOCIAL_MEDIA => true,
                     PlanFeature::CHATBOT_AI => true,
+                    PlanFeature::CHATBOT_BYO_AI => false,
                     PlanFeature::WHATSAPP_API => true,
                     PlanFeature::WHATSAPP_WEB => true,
                     PlanFeature::EMAIL_MARKETING => false,
@@ -902,6 +1020,7 @@ class PlatformOwnerController extends Controller
                     PlanLimit::COMPANIES => 1,
                     PlanLimit::BRANCHES => 3,
                     PlanLimit::USERS => 15,
+                    PlanLimit::TOTAL_STORAGE_BYTES => 5368709120,
                     PlanLimit::PRODUCTS => 1000,
                     PlanLimit::CONTACTS => 10000,
                     PlanLimit::WHATSAPP_INSTANCES => 1,
@@ -914,6 +1033,9 @@ class PlatformOwnerController extends Controller
                     PlanLimit::EMAIL_RECIPIENTS_MONTHLY => 0,
                     PlanLimit::AI_CREDITS_MONTHLY => 500,
                     PlanLimit::CHATBOT_KNOWLEDGE_DOCUMENTS => 25,
+                    PlanLimit::BYO_CHATBOT_ACCOUNTS => 0,
+                    PlanLimit::BYO_AI_REQUESTS_MONTHLY => 0,
+                    PlanLimit::BYO_AI_TOKENS_MONTHLY => 0,
                     PlanLimit::AUTOMATION_WORKFLOWS => 0,
                     PlanLimit::AUTOMATION_EXECUTIONS_MONTHLY => 0,
                 ],
@@ -931,6 +1053,7 @@ class PlatformOwnerController extends Controller
                     PlanFeature::LIVE_CHAT => true,
                     PlanFeature::SOCIAL_MEDIA => true,
                     PlanFeature::CHATBOT_AI => true,
+                    PlanFeature::CHATBOT_BYO_AI => false,
                     PlanFeature::WHATSAPP_API => true,
                     PlanFeature::WHATSAPP_WEB => true,
                     PlanFeature::EMAIL_MARKETING => false,
@@ -944,6 +1067,7 @@ class PlatformOwnerController extends Controller
                     PlanLimit::COMPANIES => 3,
                     PlanLimit::BRANCHES => 10,
                     PlanLimit::USERS => 50,
+                    PlanLimit::TOTAL_STORAGE_BYTES => 21474836480,
                     PlanLimit::PRODUCTS => 5000,
                     PlanLimit::CONTACTS => 50000,
                     PlanLimit::WHATSAPP_INSTANCES => 5,
@@ -956,6 +1080,9 @@ class PlatformOwnerController extends Controller
                     PlanLimit::EMAIL_RECIPIENTS_MONTHLY => 0,
                     PlanLimit::AI_CREDITS_MONTHLY => 2500,
                     PlanLimit::CHATBOT_KNOWLEDGE_DOCUMENTS => 200,
+                    PlanLimit::BYO_CHATBOT_ACCOUNTS => 0,
+                    PlanLimit::BYO_AI_REQUESTS_MONTHLY => 0,
+                    PlanLimit::BYO_AI_TOKENS_MONTHLY => 0,
                     PlanLimit::AUTOMATION_WORKFLOWS => 0,
                     PlanLimit::AUTOMATION_EXECUTIONS_MONTHLY => 0,
                 ],
@@ -986,6 +1113,7 @@ class PlatformOwnerController extends Controller
                     PlanLimit::COMPANIES => 1,
                     PlanLimit::BRANCHES => 1,
                     PlanLimit::USERS => 5,
+                    PlanLimit::TOTAL_STORAGE_BYTES => 1073741824,
                     PlanLimit::PRODUCTS => 0,
                     PlanLimit::CONTACTS => 5000,
                     PlanLimit::WHATSAPP_INSTANCES => 0,
@@ -1028,6 +1156,7 @@ class PlatformOwnerController extends Controller
                     PlanLimit::COMPANIES => 1,
                     PlanLimit::BRANCHES => 3,
                     PlanLimit::USERS => 10,
+                    PlanLimit::TOTAL_STORAGE_BYTES => 5368709120,
                     PlanLimit::PRODUCTS => 1000,
                     PlanLimit::CONTACTS => 3000,
                     PlanLimit::WHATSAPP_INSTANCES => 0,
@@ -1070,6 +1199,7 @@ class PlatformOwnerController extends Controller
                     PlanLimit::COMPANIES => 1,
                     PlanLimit::BRANCHES => 3,
                     PlanLimit::USERS => 10,
+                    PlanLimit::TOTAL_STORAGE_BYTES => 5368709120,
                     PlanLimit::PRODUCTS => 0,
                     PlanLimit::CONTACTS => 1000,
                     PlanLimit::WHATSAPP_INSTANCES => 0,
@@ -1129,6 +1259,92 @@ class PlatformOwnerController extends Controller
     private function nullableCarbon(?string $value): ?Carbon
     {
         return $value ? Carbon::parse($value) : null;
+    }
+
+    private function nullableLimit(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return max(0, (int) $value);
+    }
+
+    private function syncByoAddonFromRequestReview(TenantSubscription $subscription, TenantByoAiRequest $requestModel, string $status, ?string $reviewNotes = null): void
+    {
+        $featureOverrides = is_array($subscription->feature_overrides) ? $subscription->feature_overrides : [];
+        $limitOverrides = is_array($subscription->limit_overrides) ? $subscription->limit_overrides : [];
+        $meta = is_array($subscription->meta) ? $subscription->meta : [];
+        $currentAllowedProviders = array_values(array_unique(array_filter((array) data_get($meta, 'byo_ai.allowed_providers', []))));
+
+        if ($status === ByoAiAddon::REQUEST_STATUS_APPROVED) {
+            $featureOverrides[PlanFeature::CHATBOT_BYO_AI] = true;
+            $defaults = $this->defaultByoAddonLimits($requestModel);
+
+            foreach ($defaults as $key => $value) {
+                if (!array_key_exists($key, $limitOverrides) || $limitOverrides[$key] === null || (int) $limitOverrides[$key] <= 0) {
+                    $limitOverrides[$key] = $value;
+                }
+            }
+
+            if ($currentAllowedProviders === []) {
+                $preferredProvider = strtolower((string) ($requestModel->preferred_provider ?: 'openai'));
+                $currentAllowedProviders = in_array($preferredProvider, ByoAiAddon::providers(), true)
+                    ? [$preferredProvider]
+                    : ['openai'];
+            }
+        }
+
+        if (in_array($status, [ByoAiAddon::REQUEST_STATUS_REJECTED, ByoAiAddon::REQUEST_STATUS_NOT_ELIGIBLE], true)) {
+            $featureOverrides[PlanFeature::CHATBOT_BYO_AI] = false;
+        }
+
+        $meta['byo_ai'] = array_merge((array) ($meta['byo_ai'] ?? []), [
+            'allowed_providers' => $currentAllowedProviders,
+            'review_notes' => $reviewNotes ?: ($requestModel->review_notes ?: null),
+            'updated_by_user_id' => auth()->id(),
+            'updated_at' => now()->toIso8601String(),
+            'synced_from_request_id' => $requestModel->id,
+            'synced_from_request_status' => $status,
+        ]);
+
+        $subscription->forceFill([
+            'feature_overrides' => $featureOverrides,
+            'limit_overrides' => $limitOverrides,
+            'meta' => $meta,
+        ])->save();
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function defaultByoAddonLimits(TenantByoAiRequest $requestModel): array
+    {
+        $requestedAccounts = max(1, min(10, (int) ($requestModel->chatbot_account_count ?: 1)));
+
+        return [
+            PlanLimit::BYO_CHATBOT_ACCOUNTS => $requestedAccounts,
+            PlanLimit::BYO_AI_REQUESTS_MONTHLY => max(1000, $requestedAccounts * 1000),
+            PlanLimit::BYO_AI_TOKENS_MONTHLY => max(500000, $requestedAccounts * 500000),
+        ];
+    }
+
+    /**
+     * @return array{feature_overrides: array<string, mixed>, limit_overrides: array<string, mixed>}
+     */
+    private function preserveByoOverrides(?TenantSubscription $subscription): array
+    {
+        if (!$subscription) {
+            return [
+                'feature_overrides' => [],
+                'limit_overrides' => [],
+            ];
+        }
+
+        return ByoAiAddon::extractOverrideSubset(
+            is_array($subscription->feature_overrides) ? $subscription->feature_overrides : [],
+            is_array($subscription->limit_overrides) ? $subscription->limit_overrides : [],
+        );
     }
 
     private function nextOrderNumber(): string
@@ -1243,6 +1459,13 @@ class PlatformOwnerController extends Controller
 
     private function activateSubscriptionFromBilling(int $tenantId, int $planId, string $billingProvider, string $billingReference, $startsAt, $endsAt): TenantSubscription
     {
+        $activeSubscription = TenantSubscription::query()
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'active')
+            ->latest('id')
+            ->first();
+        $byoOverrides = $this->preserveByoOverrides($activeSubscription);
+
         TenantSubscription::query()
             ->where('tenant_id', $tenantId)
             ->where('status', 'active')
@@ -1261,6 +1484,8 @@ class PlatformOwnerController extends Controller
             'starts_at' => $startsAt,
             'ends_at' => $endsAt,
             'auto_renews' => false,
+            'feature_overrides' => $byoOverrides['feature_overrides'],
+            'limit_overrides' => $byoOverrides['limit_overrides'],
             'meta' => [
                 'assigned_from' => 'platform_billing',
                 'assigned_by_user_id' => auth()->id(),

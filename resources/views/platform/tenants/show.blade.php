@@ -68,7 +68,7 @@
                         </div>
                         <div class="text-muted small mt-2">
                             {{ $money->format($aiPricing['price_per_credit'], $aiPricing['currency']) }} / AI Credit
-                            Â· 1 AI Credit = {{ number_format($aiPricing['unit_tokens']) }} tokens
+                            · 1 AI Credit = {{ number_format($aiPricing['unit_tokens']) }} tokens
                         </div>
                         <div class="d-flex flex-wrap gap-2 mt-2">
                             @foreach($aiPricing['packs'] as $pack)
@@ -80,12 +80,12 @@
                         {{--
                         <div class="text-muted small mt-2">
                             {{ $money->format($aiPricing['price_per_credit'], $aiPricing['currency']) }} / AI Credit
-                            Ã‚Â· 1 AI Credit = {{ number_format($aiPricing['unit_tokens']) }} tokens
+                            · 1 AI Credit = {{ number_format($aiPricing['unit_tokens']) }} tokens
                         </div>
                         <div class="d-flex flex-wrap gap-2 mt-2">
                             @foreach($aiPricing['packs'] as $pack)
                                 <span class="badge bg-azure-lt text-azure">
-                                    {{ number_format($pack['credits']) }} AI Credits Â· {{ $money->format($pack['price'], $aiPricing['currency']) }}
+                                    {{ number_format($pack['credits']) }} AI Credits · {{ $money->format($pack['price'], $aiPricing['currency']) }}
                                 </span>
                             @endforeach
                         </div>
@@ -102,6 +102,110 @@
                             @endforeach
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header"><h3 class="card-title mb-0">BYO AI Add-on</h3></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="text-secondary text-uppercase small fw-bold">Status Add-on</div>
+                        <div class="fw-semibold mt-1">{{ ($byoAiSummary['enabled'] ?? false) ? 'Aktif' : 'Nonaktif' }}</div>
+                        <div class="text-muted small mt-1">BYO AI memakai API key provider milik tenant. Tagihan token dibayar tenant ke provider, sedangkan platform tetap membatasi orkestrasi dan storage.</div>
+                    </div>
+
+                    <div class="small mb-3">
+                        <div>Chatbot BYO: {{ $byoAiSummary['usage_states']['accounts']['usage'] ?? 0 }} / {{ $byoAiSummary['usage_states']['accounts']['limit'] ?? 'Unlimited' }}</div>
+                        <div>Request BYO / bulan: {{ $byoAiSummary['usage_states']['requests']['usage'] ?? 0 }} / {{ $byoAiSummary['usage_states']['requests']['limit'] ?? 'Unlimited' }}</div>
+                        <div>Token BYO / bulan: {{ number_format((int) ($byoAiSummary['usage_states']['tokens']['usage'] ?? 0)) }} / {{ ($byoAiSummary['usage_states']['tokens']['limit'] ?? null) !== null ? number_format((int) $byoAiSummary['usage_states']['tokens']['limit']) : 'Unlimited' }}</div>
+                    </div>
+
+                    <form method="POST" action="{{ route('platform.tenants.byo-ai-addon.update', $tenant) }}">
+                        @csrf
+                        <input type="hidden" name="enabled" value="0">
+                        <label class="form-check form-switch mb-3">
+                            <input type="checkbox" class="form-check-input" name="enabled" value="1" @checked($byoAiSummary['enabled'] ?? false)>
+                            <span class="form-check-label">Aktifkan add-on BYO AI untuk tenant ini</span>
+                        </label>
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <label class="form-label">Provider yang diizinkan</label>
+                                <div class="d-flex flex-wrap gap-3">
+                                    @php($allowedProviders = (array) data_get(optional($tenant->activeSubscription)->meta, 'byo_ai.allowed_providers', []))
+                                    @foreach($byoAiSummary['providers'] as $provider)
+                                        <label class="form-check">
+                                            <input type="checkbox" class="form-check-input" name="allowed_providers[]" value="{{ $provider }}" @checked(in_array($provider, old('allowed_providers', $allowedProviders), true))>
+                                            <span class="form-check-label">{{ strtoupper($provider) }}</span>
+                                        </label>
+                                    @endforeach
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Max chatbot BYO</label>
+                                <input type="number" class="form-control" name="max_byo_chatbot_accounts" min="0" value="{{ old('max_byo_chatbot_accounts', data_get(optional($tenant->activeSubscription)->limit_overrides, 'max_byo_chatbot_accounts')) }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Max request / bulan</label>
+                                <input type="number" class="form-control" name="max_byo_ai_requests_monthly" min="0" value="{{ old('max_byo_ai_requests_monthly', data_get(optional($tenant->activeSubscription)->limit_overrides, 'max_byo_ai_requests_monthly')) }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Max token / bulan</label>
+                                <input type="number" class="form-control" name="max_byo_ai_tokens_monthly" min="0" value="{{ old('max_byo_ai_tokens_monthly', data_get(optional($tenant->activeSubscription)->limit_overrides, 'max_byo_ai_tokens_monthly')) }}">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Catatan Review</label>
+                                <textarea class="form-control" name="review_notes" rows="3" placeholder="Catatan internal approval atau alasan pembatasan">{{ old('review_notes', data_get(optional($tenant->activeSubscription)->meta, 'byo_ai.review_notes')) }}</textarea>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-outline-primary">Simpan Add-on BYO AI</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header"><h3 class="card-title mb-0">Request BYO AI</h3></div>
+                <div class="card-body">
+                    @php($latestByoRequest = $byoAiSummary['latest_request'] ?? null)
+                    @if(!$byoAiSummary['requests_ready'])
+                        <div class="text-muted small">Table request BYO AI belum tersedia.</div>
+                    @elseif(!$latestByoRequest)
+                        <div class="text-muted small">Tenant ini belum pernah mengajukan add-on BYO AI.</div>
+                    @else
+                        <div class="mb-3">
+                            <div class="fw-semibold">{{ strtoupper((string) ($latestByoRequest->preferred_provider ?: '-')) }} · {{ $latestByoRequest->intended_volume ?: '-' }}</div>
+                            <div class="text-muted small mt-1">
+                                Status: {{ $latestByoRequest->status }}
+                                · Diajukan {{ optional($latestByoRequest->created_at)->format('d M Y H:i') }}
+                            </div>
+                            @if($latestByoRequest->notes)
+                                <div class="small mt-2">{{ $latestByoRequest->notes }}</div>
+                            @endif
+                        </div>
+                        <form method="POST" action="{{ route('platform.tenants.byo-ai-requests.review', [$tenant, $latestByoRequest]) }}">
+                            @csrf
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Review</label>
+                                    <select class="form-select" name="status" required>
+                                        <option value="pending_review" @selected($latestByoRequest->status === 'pending_review')>Pending review</option>
+                                        <option value="contacting_tenant" @selected($latestByoRequest->status === 'contacting_tenant')>Contacting tenant</option>
+                                        <option value="approved" @selected($latestByoRequest->status === 'approved')>Approved</option>
+                                        <option value="rejected" @selected($latestByoRequest->status === 'rejected')>Rejected</option>
+                                        <option value="not_eligible" @selected($latestByoRequest->status === 'not_eligible')>Not eligible</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-8">
+                                    <label class="form-label">Catatan Review</label>
+                                    <input type="text" class="form-control" name="review_notes" value="{{ old('review_notes', $latestByoRequest->review_notes) }}" placeholder="Catatan untuk approval atau rejection">
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <button type="submit" class="btn btn-outline-secondary">Simpan Review Request</button>
+                            </div>
+                        </form>
+                    @endif
                 </div>
             </div>
 
@@ -141,6 +245,7 @@
                     <table class="table table-vcenter card-table">
                         <thead><tr><th>Metrik</th><th>Penggunaan</th><th>Batas</th><th>Status</th><th>Tindakan</th></tr></thead>
                         <tbody>
+@php($storageFormatter = app(\App\Support\StorageSizeFormatter::class))
                             @foreach($usageRows as $row)
                                 @php
                                     $statusMap = [
@@ -150,11 +255,16 @@
                                         'over_limit' => ['label' => 'Over limit', 'class' => 'bg-danger-lt text-danger'],
                                     ];
                                     $statusInfo = $statusMap[$row['status']] ?? $statusMap['ok'];
+                                    $isStorage = $row['key'] === \App\Support\PlanLimit::TOTAL_STORAGE_BYTES;
+                                    $usageValue = $isStorage ? $storageFormatter->format((int) $row['usage']) : number_format((int) $row['usage']);
+                                    $limitValue = $row['limit'] === null
+                                        ? 'Tidak terbatas'
+                                        : ($isStorage ? $storageFormatter->format((int) $row['limit']) : number_format((int) $row['limit']));
                                 @endphp
                                 <tr>
                                     <td>{{ $row['label'] }}</td>
-                                    <td>{{ $row['usage'] }}</td>
-                                    <td>{{ $row['limit'] ?? 'Tidak terbatas' }}</td>
+                                    <td>{{ $usageValue }}</td>
+                                    <td>{{ $limitValue }}</td>
                                     <td><span class="badge {{ $statusInfo['class'] }}">{{ $statusInfo['label'] }}</span></td>
                                     <td class="small text-muted">{{ $row['advice']['owner_cta'] ?? 'Tidak perlu tindakan saat ini.' }}</td>
                                 </tr>
@@ -358,7 +468,7 @@
                                     <td><span class="badge {{ $subInfo['class'] }}">{{ $subInfo['label'] }}</span></td>
                                     <td>{{ $subscription->billing_provider ?: '-' }}</td>
                                     <td>{{ $subscription->billing_reference ?: '-' }}</td>
-                                    <td>{{ optional($subscription->starts_at)->format('d M Y') ?: '-' }} – {{ optional($subscription->ends_at)->format('d M Y') ?: '∞' }}</td>
+                                    <td>{{ optional($subscription->starts_at)->format('d M Y') ?: '-' }} - {{ optional($subscription->ends_at)->format('d M Y') ?: 'Unlimited' }}</td>
                                 </tr>
                             @empty
                                 <tr><td colspan="5" class="text-muted text-center py-3">Belum ada riwayat langganan.</td></tr>

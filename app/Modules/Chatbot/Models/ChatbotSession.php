@@ -15,6 +15,7 @@ class ChatbotSession extends Model
     protected $table = 'chatbot_sessions';
 
     protected $fillable = [
+        'tenant_id',
         'chatbot_account_id',
         'user_id',
         'title',
@@ -23,6 +24,7 @@ class ChatbotSession extends Model
     ];
 
     protected $casts = [
+        'tenant_id' => 'integer',
         'metadata' => 'array',
         'last_message_at' => 'datetime',
     ];
@@ -42,4 +44,3 @@ class ChatbotSession extends Model
         return $this->hasMany(ChatbotMessage::class, 'session_id');
     }
 }
-

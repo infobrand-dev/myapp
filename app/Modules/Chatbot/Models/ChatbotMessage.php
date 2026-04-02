@@ -13,6 +13,7 @@ class ChatbotMessage extends Model
     protected $table = 'chatbot_messages';
 
     protected $fillable = [
+        'tenant_id',
         'session_id',
         'role',
         'content',
@@ -23,6 +24,7 @@ class ChatbotMessage extends Model
     ];
 
     protected $casts = [
+        'tenant_id' => 'integer',
         'provider_response' => 'array',
     ];
 
@@ -31,4 +33,3 @@ class ChatbotMessage extends Model
         return $this->belongsTo(ChatbotSession::class, 'session_id');
     }
 }
-

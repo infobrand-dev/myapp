@@ -1,5 +1,7 @@
 @extends('layouts.admin')
 
+@section('title', 'Chatbot Playground')
+
 @section('content')
 @php
     $selectedAccountId = old(
@@ -8,91 +10,164 @@
     );
 @endphp
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="page-header d-flex align-items-center justify-content-between">
     <div>
-        <h2 class="mb-0">Chatbot Playground</h2>
-        <div class="text-muted small">Uji langsung akun chatbot tanpa integrasi channel lain.</div>
+        <div class="page-pretitle">Chatbot</div>
+        <h2 class="page-title">Playground</h2>
+        <div class="text-muted small mt-1">Uji langsung respons chatbot tanpa integrasi channel lain.</div>
     </div>
-    <a href="{{ route('chatbot.accounts.index') }}" class="btn btn-outline-secondary">Kelola Chatbot</a>
+    <a href="{{ route('chatbot.accounts.index') }}" class="btn btn-outline-secondary">
+        <i class="ti ti-settings me-1"></i>Kelola Chatbot
+    </a>
 </div>
 
-<div class="row g-3">
-    <div class="col-lg-4">
-        <div class="card">
-            <div class="card-header"><h3 class="card-title mb-0">Sesi Saya</h3></div>
-            <div class="list-group list-group-flush">
+@if($accounts->isEmpty())
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="ti ti-robot text-muted d-block mb-2" style="font-size:2.5rem;"></i>
+            <div class="fw-semibold mb-1">Belum ada chatbot aktif</div>
+            <div class="text-muted small mb-3">Tambahkan dan aktifkan setidaknya satu chatbot sebelum bisa mencoba Playground.</div>
+            <a href="{{ route('chatbot.accounts.create') }}" class="btn btn-primary">
+                <i class="ti ti-plus me-1"></i>Tambah Chatbot
+            </a>
+        </div>
+    </div>
+@else
+<div class="row g-3" style="min-height: 600px;">
+
+    {{-- Kiri: Daftar Sesi --}}
+    <div class="col-lg-4 d-flex flex-column">
+        <div class="card flex-grow-1">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <h3 class="card-title mb-0">Sesi Saya</h3>
+                <a href="{{ route('chatbot.playground.index') }}" class="btn btn-sm btn-ghost-secondary" title="Mulai sesi baru">
+                    <i class="ti ti-plus"></i>
+                </a>
+            </div>
+            <div class="list-group list-group-flush overflow-auto" style="max-height: 520px;">
                 @forelse($sessions as $session)
                     <a href="{{ route('chatbot.playground.show', $session) }}"
                        class="list-group-item list-group-item-action {{ (string) data_get($activeSession, 'id') === (string) $session->id ? 'active' : '' }}">
-                        <div class="d-flex justify-content-between">
-                            <span>{{ $session->title ?: 'Sesi #' . $session->id }}</span>
-                            <small>{{ optional($session->last_message_at)->format('d M H:i') }}</small>
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <span class="fw-semibold text-truncate">{{ $session->title ?: 'Sesi #' . $session->id }}</span>
+                            <small class="text-nowrap flex-shrink-0 opacity-75">{{ optional($session->last_message_at)->format('d M H:i') }}</small>
                         </div>
-                        <div class="small opacity-75">{{ data_get($session, 'chatbotAccount.name', '-') }}</div>
+                        <div class="small opacity-75 mt-1">{{ data_get($session, 'chatbotAccount.name', '-') }}</div>
                     </a>
                 @empty
-                    <div class="list-group-item text-muted">Belum ada sesi.</div>
+                    <div class="list-group-item text-center py-4">
+                        <i class="ti ti-messages text-muted d-block mb-1" style="font-size:1.5rem;"></i>
+                        <span class="text-muted small">Belum ada sesi. Mulai dengan mengirim pesan pertama.</span>
+                    </div>
                 @endforelse
             </div>
         </div>
     </div>
 
-    <div class="col-lg-8">
-        <div class="card">
-            <div class="card-body">
-                @if($activeSession && $activeSession->messages->count())
-                    <div class="mb-3" style="max-height: 420px; overflow-y: auto;">
-                        @foreach($activeSession->messages as $msg)
-                            <div class="mb-2 {{ $msg->role === 'assistant' ? '' : 'text-end' }}">
-                                <div class="badge {{ $msg->role === 'assistant' ? 'text-bg-primary' : 'text-bg-secondary' }}">
-                                    {{ strtoupper($msg->role) }}
-                                </div>
-                                <div class="border rounded p-2 mt-1" style="white-space: pre-wrap; line-height: 1.5;">{{ $msg->content }}</div>
-                            </div>
-                        @endforeach
-                    </div>
-                @elseif($accounts->isNotEmpty())
-                    <div class="text-muted mb-3 small">Pilih chatbot dan ketik pesan untuk memulai sesi baru.</div>
-                @endif
+    {{-- Kanan: Area Chat --}}
+    <div class="col-lg-8 d-flex flex-column">
+        <div class="card flex-grow-1 d-flex flex-column" style="min-height: 560px;">
 
-                @if($accounts->isNotEmpty())
-                <form method="POST" action="{{ route('chatbot.playground.send') }}">
+            {{-- Header: Pilih Chatbot --}}
+            <div class="card-header">
+                <form method="POST" action="{{ route('chatbot.playground.send') }}" id="chatbot-selector-form">
                     @csrf
                     @if($activeSession)
                         <input type="hidden" name="session_id" value="{{ $activeSession->id }}">
                     @endif
-                    <div class="row g-2">
-                        <div class="col-md-5">
-                            <select name="chatbot_account_id" class="form-select" required>
-                                @foreach($accounts as $acc)
-                                    <option value="{{ $acc->id }}" {{ (string) $selectedAccountId === (string) $acc->id ? 'selected' : '' }}>
-                                        {{ $acc->name }} ({{ $acc->model ?: 'default' }})
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-7">
-                            <input type="text" name="message" class="form-control" placeholder="Ketik pesan..." required>
-                        </div>
+                    <div class="d-flex align-items-center gap-3 w-100">
+                        <i class="ti ti-robot text-muted flex-shrink-0" style="font-size:1.2rem;"></i>
+                        <select name="chatbot_account_id" id="chatbot_account_id" class="form-select form-select-sm" required>
+                            @foreach($accounts as $acc)
+                                <option value="{{ $acc->id }}" {{ (string) $selectedAccountId === (string) $acc->id ? 'selected' : '' }}>
+                                    {{ $acc->name }}
+                                    @if($acc->model) · {{ $acc->model }} @endif
+                                </option>
+                            @endforeach
+                        </select>
+                        @if($activeSession)
+                            <span class="badge bg-green-lt text-green flex-shrink-0">Sesi aktif</span>
+                        @endif
                     </div>
-                    @if($accounts->isEmpty())
-                        <div class="text-center py-4">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-muted mb-2">
-                                <path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2M20 14h2M15 13v2M9 13v2"/>
-                            </svg>
-                            <div class="fw-semibold mb-1">Belum ada chatbot aktif</div>
-                            <div class="text-muted small mb-3">Tambahkan dan aktifkan setidaknya satu chatbot sebelum bisa mencoba Playground.</div>
-                            <a href="{{ route('chatbot.accounts.create') }}" class="btn btn-primary btn-sm">+ Tambah Chatbot</a>
-                        </div>
-                    @else
-                        <div class="mt-3 d-flex justify-content-end">
-                            <button type="submit" class="btn btn-primary">Kirim</button>
-                        </div>
-                    @endif
                 </form>
+            </div>
+
+            {{-- Body: Percakapan --}}
+            <div class="card-body flex-grow-1 overflow-auto playground-chat-messages" id="chat-messages">
+                @if($activeSession && $activeSession->messages->count())
+                    @foreach($activeSession->messages as $msg)
+                        <div class="d-flex {{ $msg->role === 'user' ? 'justify-content-end' : 'justify-content-start' }} mb-3">
+                            @if($msg->role !== 'user')
+                                <div class="avatar avatar-sm me-2 flex-shrink-0"
+                                     style="background:var(--tblr-azure-lt,#dbe9f7); color:var(--tblr-azure,#4299e1);">
+                                    <i class="ti ti-robot"></i>
+                                </div>
+                            @endif
+                            <div class="playground-bubble playground-bubble--{{ $msg->role === 'user' ? 'user' : 'bot' }}">
+                                {{ $msg->content }}
+                            </div>
+                            @if($msg->role === 'user')
+                                <div class="avatar avatar-sm ms-2 flex-shrink-0"
+                                     style="background:var(--tblr-primary-lt,#e8f0fe); color:var(--tblr-primary);">
+                                    {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+                @else
+                    <div class="text-center py-5 text-muted" id="chat-empty-state">
+                        <i class="ti ti-message-chatbot d-block mb-2" style="font-size:2rem;"></i>
+                        <div class="small">Pilih chatbot di atas dan ketik pesan untuk memulai percakapan.</div>
+                    </div>
                 @endif
             </div>
+
+            {{-- Footer: Input Pesan --}}
+            <div class="card-footer">
+                <form method="POST" action="{{ route('chatbot.playground.send') }}" id="playground-send-form">
+                    @csrf
+                    @if($activeSession)
+                        <input type="hidden" name="session_id" value="{{ $activeSession->id }}">
+                    @endif
+                    <input type="hidden" name="chatbot_account_id" id="hidden_account_id" value="{{ $selectedAccountId }}">
+                    <div class="d-flex gap-2">
+                        <input type="text" name="message"
+                               class="form-control"
+                               placeholder="Ketik pesan..."
+                               autocomplete="off"
+                               required>
+                        <button type="submit" class="btn btn-primary flex-shrink-0">
+                            <i class="ti ti-send me-1"></i>Kirim
+                        </button>
+                    </div>
+                </form>
+            </div>
+
         </div>
     </div>
+
 </div>
+@endif
+
+@push('scripts')
+<script>
+(function () {
+    // Scroll chat to bottom on load
+    var chatMessages = document.getElementById('chat-messages');
+    if (chatMessages) {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // Sync chatbot selector → hidden input in send form
+    var selectorEl = document.getElementById('chatbot_account_id');
+    var hiddenInput = document.getElementById('hidden_account_id');
+    if (selectorEl && hiddenInput) {
+        selectorEl.addEventListener('change', function () {
+            hiddenInput.value = selectorEl.value;
+        });
+    }
+})();
+</script>
+@endpush
+
 @endsection

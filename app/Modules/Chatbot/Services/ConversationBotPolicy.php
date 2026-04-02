@@ -35,6 +35,12 @@ class ConversationBotPolicy
             return $this->decision('skip', 'cooldown_window');
         }
 
+        if ($this->reachedBotReplyLimit($conversation, $account)) {
+            return $this->decision('handoff', 'max_replies_reached', null, [
+                'send_handoff_ack' => $account->humanHandoffAckEnabled(),
+            ]);
+        }
+
         $handoffReason = $this->detectHandoffReason($incomingBody, $incomingPayload);
         if ($handoffReason !== null && $account->prefersHumanHandoff()) {
             return $this->decision('handoff', $handoffReason, null, [
@@ -109,6 +115,7 @@ class ConversationBotPolicy
         array $metadata = []
     ): void {
         $state = is_array($conversation->metadata) ? $conversation->metadata : [];
+        $state['bot_reply_count'] = max(0, (int) ($state['bot_reply_count'] ?? 0)) + 1;
         $state['bot_last_decision'] = 'reply_sent';
         $state['bot_last_decision_at'] = now()->toDateTimeString();
         $state['bot_last_reason'] = 'reply_ready';
@@ -226,6 +233,19 @@ class ConversationBotPolicy
         }
 
         return null;
+    }
+
+    private function reachedBotReplyLimit(Conversation $conversation, ChatbotAccount $account): bool
+    {
+        $limit = $account->maxBotRepliesPerConversation();
+        if ($limit <= 0) {
+            return false;
+        }
+
+        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
+        $count = max(0, (int) ($metadata['bot_reply_count'] ?? 0));
+
+        return $count >= $limit;
     }
 
     private function isHumanHandoffInteractiveReply(array $payload): bool

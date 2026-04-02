@@ -2620,3 +2620,46 @@ body.landing-page {
         margin-left: 0 !important;
     }
 }
+
+/* ============================================================
+   CHATBOT PLAYGROUND — CHAT BUBBLES
+   ============================================================ */
+.playground-chat-messages {
+    padding: 1.25rem;
+    background: var(--tblr-bg-surface-secondary, var(--tblr-body-bg));
+}
+
+.playground-bubble {
+    max-width: 72%;
+    padding: .5rem .875rem;
+    border-radius: 1rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: .9rem;
+}
+
+.playground-bubble--user {
+    background: var(--tblr-primary);
+    color: #fff;
+    border-bottom-right-radius: .25rem;
+}
+
+.playground-bubble--bot {
+    background: var(--tblr-card-bg, #fff);
+    color: var(--tblr-body-color);
+    border: 1px solid var(--tblr-border-color);
+    border-bottom-left-radius: .25rem;
+}
+
+@media (prefers-color-scheme: dark) {
+    .playground-bubble--bot {
+        background: var(--tblr-bg-surface-secondary);
+        border-color: var(--tblr-border-color-translucent);
+    }
+}
+
+[data-bs-theme="dark"] .playground-bubble--bot {
+    background: var(--tblr-bg-surface-secondary);
+    border-color: var(--tblr-border-color-translucent);
+}

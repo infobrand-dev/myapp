@@ -73,6 +73,11 @@ class Tenant extends Model
         return $this->hasMany(AiCreditTransaction::class);
     }
 
+    public function byoAiRequests(): HasMany
+    {
+        return $this->hasMany(TenantByoAiRequest::class);
+    }
+
     public function affiliateReferrals(): HasMany
     {
         return $this->hasMany(PlatformAffiliateReferral::class);

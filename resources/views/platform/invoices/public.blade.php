@@ -9,6 +9,9 @@
 <body class="bg-light">
     @php
         $money = app(\App\Support\MoneyFormatter::class);
+        $selectedPaymentMethod = (string) (data_get($invoice->meta, 'selected_payment_method')
+            ?: data_get($invoice->order, 'payment_channel')
+            ?: 'midtrans');
     @endphp
     <div class="container py-5">
         <div class="row justify-content-center">
@@ -43,6 +46,9 @@
                                 <div class="border rounded p-3 h-100">
                                     <div class="text-secondary text-uppercase fw-bold small">Amount</div>
                                     <div class="fw-semibold mt-1">{{ $money->format((float) $invoice->amount, $invoice->currency) }}</div>
+                                    @if($manualPaymentReady)
+                                        <div class="text-muted small mt-1">Transfer manual memakai nominal unik.</div>
+                                    @endif
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -93,23 +99,70 @@
                         </div>
 
                         @if($invoice->status !== 'paid')
-                            <div class="border rounded p-4 mb-4 bg-white">
-                                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
-                                    <div>
-                                        <div class="fw-semibold">Pembayaran online</div>
-                                        <div class="text-muted small">
-                                            Bayar invoice digital ini melalui Midtrans. Setelah pembayaran sukses, langganan akan aktif otomatis.
+                            <div class="vstack gap-3 mb-4">
+                                @if($midtransReady)
+                                    <div class="border rounded p-4 bg-white {{ $selectedPaymentMethod === 'midtrans' ? 'border-primary' : '' }}">
+                                        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                                            <div>
+                                                <div class="fw-semibold">Midtrans</div>
+                                                <div class="text-muted small">
+                                                    Pembayaran online. Langganan aktif otomatis setelah pembayaran sukses.
+                                                </div>
+                                            </div>
+                                            <form method="POST" action="{{ $publicCheckoutUrl }}">
+                                                @csrf
+                                                <button type="submit" class="btn btn-primary">Bayar via Midtrans</button>
+                                            </form>
                                         </div>
                                     </div>
-                                    @if($midtransReady)
-                                        <form method="POST" action="{{ $publicCheckoutUrl }}">
-                                            @csrf
-                                            <button type="submit" class="btn btn-primary">Bayar via Midtrans</button>
-                                        </form>
-                                    @else
-                                        <div class="text-muted small">Midtrans belum tersedia untuk invoice ini.</div>
-                                    @endif
-                                </div>
+                                @endif
+
+                                @if($manualPaymentReady)
+                                    <div class="border rounded p-4 bg-white {{ $selectedPaymentMethod === 'bank_transfer' ? 'border-primary' : '' }}">
+                                        <div class="d-flex flex-column flex-md-row align-items-md-start justify-content-between gap-3 mb-3">
+                                            <div>
+                                                <div class="fw-semibold">Transfer Bank</div>
+                                                <div class="text-muted small">Aktivasi maksimal {{ $manualPaymentQuote['review_sla_hours'] }} jam setelah pembayaran diverifikasi.</div>
+                                            </div>
+                                            <div class="text-md-end">
+                                                <div class="text-secondary text-uppercase fw-bold small">Total Transfer</div>
+                                                <div class="fw-bold fs-4">{{ $money->format((float) $manualPaymentQuote['transfer_amount'], $invoice->currency) }}</div>
+                                                <div class="text-muted small">Kode unik {{ str_pad((string) $manualPaymentQuote['unique_code'], 3, '0', STR_PAD_LEFT) }}</div>
+                                            </div>
+                                        </div>
+
+                                        <div class="row g-3 small">
+                                            <div class="col-md-4">
+                                                <div class="border rounded p-3 h-100">
+                                                    <div class="text-secondary text-uppercase fw-bold small">Bank</div>
+                                                    <div class="fw-semibold mt-1">{{ $manualPaymentQuote['bank_name'] }}</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="border rounded p-3 h-100">
+                                                    <div class="text-secondary text-uppercase fw-bold small">No. Rekening</div>
+                                                    <div class="fw-semibold mt-1">{{ $manualPaymentQuote['account_number'] }}</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="border rounded p-3 h-100">
+                                                    <div class="text-secondary text-uppercase fw-bold small">Atas Nama</div>
+                                                    <div class="fw-semibold mt-1">{{ $manualPaymentQuote['account_name'] }}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="alert alert-warning mt-3 mb-0 py-2 px-3 small">
+                                            Transfer sesuai nominal unik agar verifikasi lebih cepat. Setelah transfer, tim kami akan memproses aktivasi maksimal 1x24 jam.
+                                        </div>
+                                    </div>
+                                @endif
+
+                                @if(!$midtransReady && !$manualPaymentReady)
+                                    <div class="border rounded p-4 bg-white">
+                                        <div class="text-muted small">Belum ada metode pembayaran yang tersedia untuk invoice ini. Hubungi tim support.</div>
+                                    </div>
+                                @endif
                             </div>
                         @endif
 

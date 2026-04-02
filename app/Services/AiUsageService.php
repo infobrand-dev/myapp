@@ -31,8 +31,38 @@ class AiUsageService
 
         return (int) AiUsageLog::query()
             ->where('tenant_id', $tenantId)
+            ->where(function ($query) {
+                $query->whereNull('billing_mode')
+                    ->orWhere('billing_mode', 'managed');
+            })
             ->whereBetween('used_at', [now()->startOfMonth(), now()->endOfMonth()])
             ->sum('credits_used');
+    }
+
+    public function byoRequestsUsedThisMonth(int $tenantId): int
+    {
+        if (!Schema::hasTable('ai_usage_logs')) {
+            return 0;
+        }
+
+        return (int) AiUsageLog::query()
+            ->where('tenant_id', $tenantId)
+            ->where('billing_mode', 'byo')
+            ->whereBetween('used_at', [now()->startOfMonth(), now()->endOfMonth()])
+            ->count();
+    }
+
+    public function byoTokensUsedThisMonth(int $tenantId): int
+    {
+        if (!Schema::hasTable('ai_usage_logs')) {
+            return 0;
+        }
+
+        return (int) AiUsageLog::query()
+            ->where('tenant_id', $tenantId)
+            ->where('billing_mode', 'byo')
+            ->whereBetween('used_at', [now()->startOfMonth(), now()->endOfMonth()])
+            ->sum('total_tokens');
     }
 
     public function topUpCreditsAvailable(int $tenantId): int
@@ -93,6 +123,7 @@ class AiUsageService
             'chatbot_account_id' => isset($attributes['chatbot_account_id']) ? (int) $attributes['chatbot_account_id'] : null,
             'provider' => (string) ($attributes['provider'] ?? 'openai'),
             'model' => (string) ($attributes['model'] ?? ''),
+            'billing_mode' => (string) ($attributes['billing_mode'] ?? 'managed'),
             'prompt_tokens' => $promptTokens,
             'completion_tokens' => $completionTokens,
             'total_tokens' => $totalTokens,

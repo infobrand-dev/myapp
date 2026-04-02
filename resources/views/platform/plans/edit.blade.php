@@ -3,6 +3,7 @@
 @section('title', 'Edit Plan')
 
 @section('content')
+    @php($storageFormatter = app(\App\Support\StorageSizeFormatter::class))
     <div class="page-header d-flex align-items-center justify-content-between">
         <div>
             <div class="page-pretitle">Platform Owner</div>
@@ -112,6 +113,9 @@
                                     <div class="mb-2">
                                         <label class="form-label">{{ $label }}</label>
                                         <input type="number" class="form-control" name="limits[{{ $key }}]" value="{{ old('limits.' . $key, ($plan->limits ?? [])[$key] ?? null) }}" placeholder="Kosong = tidak terbatas">
+                                        @if($key === \App\Support\PlanLimit::TOTAL_STORAGE_BYTES)
+                                            <div class="form-hint">Contoh: 1073741824 = {{ $storageFormatter->format(1073741824) }}, 5368709120 = {{ $storageFormatter->format(5368709120) }}.</div>
+                                        @endif
                                     </div>
                                 @endforeach
                             </div>

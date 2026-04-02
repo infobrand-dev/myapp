@@ -57,22 +57,72 @@ class ModuleFilesystemAudit
             return $issues;
         }
 
-        if (!File::exists($base . '/module.json')) {
-            $issues[] = 'module.json missing';
+        if (!$this->hasExactCasePath(base_path('app/Modules'), $dir)) {
+            $issues[] = 'module directory casing mismatch: app/Modules/' . $dir;
         }
 
-        if (!ModulePath::hasMigrationFiles($base)) {
+        if (!File::exists($base . '/module.json')) {
+            $issues[] = 'module.json missing';
+        } elseif (!$this->hasExactCasePath($base, 'module.json')) {
+            $issues[] = 'module.json casing mismatch';
+        }
+
+        $migrationDir = ModulePath::migrationDirectory($base);
+        if ($migrationDir === null || !ModulePath::hasMigrationFiles($base)) {
             $issues[] = 'module migrations missing or empty';
+        } else {
+            $expectedMigrationDir = str_starts_with(str_replace('\\', '/', $migrationDir), str_replace('\\', '/', $base . '/Database/Migrations'))
+                ? 'Database/Migrations'
+                : 'database/migrations';
+
+            if (!$this->hasExactNestedPath($base, $expectedMigrationDir)) {
+                $issues[] = 'module migration directory casing mismatch: ' . $expectedMigrationDir;
+            }
         }
 
         if (!File::isDirectory($base . '/resources/views')) {
             $issues[] = 'resources/views missing';
+        } elseif (!$this->hasExactNestedPath($base, 'resources/views')) {
+            $issues[] = 'resources/views casing mismatch';
         }
 
         if (!File::exists($base . '/routes/web.php')) {
             $issues[] = 'routes/web.php missing';
+        } elseif (!$this->hasExactNestedPath($base, 'routes/web.php')) {
+            $issues[] = 'routes/web.php casing mismatch';
         }
 
         return $issues;
+    }
+
+    private function hasExactNestedPath(string $base, string $relativePath): bool
+    {
+        $current = rtrim($base, DIRECTORY_SEPARATOR);
+        $segments = array_values(array_filter(preg_split('/[\\\\\/]+/', $relativePath) ?: []));
+
+        foreach ($segments as $segment) {
+            if (!$this->hasExactCasePath($current, $segment)) {
+                return false;
+            }
+
+            $current .= DIRECTORY_SEPARATOR . $segment;
+        }
+
+        return true;
+    }
+
+    private function hasExactCasePath(string $parent, string $expectedName): bool
+    {
+        if (!File::isDirectory($parent)) {
+            return false;
+        }
+
+        foreach (File::glob($parent . DIRECTORY_SEPARATOR . '*') as $entry) {
+            if (basename($entry) === $expectedName) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

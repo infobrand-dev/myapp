@@ -15,6 +15,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class SocialAccountController extends Controller
@@ -289,6 +290,8 @@ class SocialAccountController extends Controller
             $chatbotAccountId = null;
         }
 
+        $chatbotAccountId = $this->resolveChannelReadyChatbotAccountId($chatbotAccountId);
+
         if (!$autoReply && !$chatbotAccountId) {
             SocialAccountChatbotIntegration::query()
                 ->where('social_account_id', $account->id)
@@ -319,12 +322,37 @@ class SocialAccountController extends Controller
         }
 
         $chatbotClass = \App\Modules\Chatbot\Models\ChatbotAccount::class;
+        $hasAccessScope = Schema::hasColumn('chatbot_accounts', 'access_scope');
 
         return $chatbotClass::query()
             ->where('tenant_id', TenantContext::currentId())
             ->where('status', 'active')
+            ->when($hasAccessScope, fn ($query) => $query->where('access_scope', 'public'))
             ->orderBy('name')
             ->get();
+    }
+
+    private function resolveChannelReadyChatbotAccountId(?int $chatbotAccountId): ?int
+    {
+        if (!$chatbotAccountId || !$this->isChatbotModuleReady()) {
+            return null;
+        }
+
+        $chatbotClass = \App\Modules\Chatbot\Models\ChatbotAccount::class;
+        $hasAccessScope = Schema::hasColumn('chatbot_accounts', 'access_scope');
+        $account = $chatbotClass::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('status', 'active')
+            ->when($hasAccessScope, fn ($query) => $query->where('access_scope', 'public'))
+            ->find($chatbotAccountId);
+
+        if (!$account) {
+            throw ValidationException::withMessages([
+                'chatbot_account_id' => 'Chatbot private tidak bisa dihubungkan ke channel.',
+            ]);
+        }
+
+        return (int) $account->id;
     }
 
     private function metaOauthReady(): bool

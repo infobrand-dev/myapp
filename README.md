@@ -96,8 +96,8 @@ php artisan optimize:clear
 - Resolver tenant membaca slug dari subdomain lebih dulu lalu mengautentikasi user dalam scope `tenant_id` tersebut.
 
 ## SaaS self-serve sales flow
-- Flow jualan publik saat ini berjalan lewat `/onboarding`: pilih paket, daftar workspace, sistem membuat `platform_plan_orders` + `platform_invoices` + `platform_invoice_items`, lalu redirect ke checkout Midtrans.
-- Tenant hasil self-serve onboarding dibuat dalam status `pending_payment` dan baru aktif setelah payment platform settle.
+- Flow jualan publik saat ini berjalan lewat `/onboarding`: pilih paket, daftar workspace, sistem membuat `platform_plan_orders` + `platform_invoices` + `platform_invoice_items`, lalu tenant memilih pembayaran via Midtrans atau transfer bank manual dengan nominal unik.
+- Tenant hasil self-serve onboarding dibuat dalam status `pending_payment` dan baru aktif setelah payment platform settle atau pembayaran manual diverifikasi.
 - Welcome email tenant dikirim setelah payment sukses, sedangkan email invoice platform dikirim saat invoice diterbitkan.
 - Paket omnichannel publik saat ini mengontrol entitlement modul inti seperti `conversations`, `social_media`, `chatbot`, `whatsapp_api`, dan `whatsapp_web` melalui middleware plan feature.
 

@@ -93,6 +93,8 @@ Route::middleware(['auth', 'verified', '2fa', 'platform.admin', \App\Http\Middle
         Route::post('/tenants/{tenant}/status', [PlatformOwnerController::class, 'updateTenantStatus'])->name('tenants.status');
         Route::post('/tenants/{tenant}/notes', [PlatformOwnerController::class, 'updateTenantNotes'])->name('tenants.notes');
         Route::post('/tenants/{tenant}/ai-credits', [PlatformOwnerController::class, 'topUpAiCredits'])->name('tenants.ai-credits.store');
+        Route::post('/tenants/{tenant}/byo-ai-addon', [PlatformOwnerController::class, 'updateByoAiAddon'])->name('tenants.byo-ai-addon.update');
+        Route::post('/tenants/{tenant}/byo-ai-requests/{requestModel}', [PlatformOwnerController::class, 'reviewByoAiRequest'])->name('tenants.byo-ai-requests.review');
         Route::post('/ai-credit-pricing', [PlatformOwnerController::class, 'updateAiCreditPricing'])->name('ai-credit-pricing.update');
         Route::post('/tenants/{tenant}/assign-plan', [PlatformOwnerController::class, 'assignPlan'])->name('tenants.assign-plan');
         Route::post('/tenants/{tenant}/orders', [PlatformOwnerController::class, 'createOrder'])->name('tenants.orders.store');
@@ -123,6 +125,7 @@ Route::middleware(['auth', 'verified', '2fa', 'platform.admin', \App\Http\Middle
         Route::get('/settings/branch', [SettingsController::class, 'show'])->defaults('section', 'branch')->name('settings.branch');
         Route::get('/settings/documents', [SettingsController::class, 'show'])->defaults('section', 'documents')->name('settings.documents');
         Route::get('/settings/subscription', [SettingsController::class, 'show'])->defaults('section', 'subscription')->name('settings.subscription');
+        Route::get('/settings/addons', [SettingsController::class, 'show'])->defaults('section', 'addons')->name('settings.addons');
         Route::get('/settings/access', [SettingsController::class, 'show'])->defaults('section', 'access')->name('settings.access');
         Route::get('/settings/modules', [SettingsController::class, 'show'])->defaults('section', 'modules')->name('settings.modules');
 
@@ -142,6 +145,7 @@ Route::middleware(['auth', 'verified', '2fa', 'platform.admin', \App\Http\Middle
 
         Route::put('/settings/documents', [SettingsController::class, 'saveDocuments'])->name('settings.documents.save');
         Route::put('/settings/general', [SettingsController::class, 'saveGeneral'])->name('settings.general.save');
+        Route::post('/settings/addons/byo-ai-request', [SettingsController::class, 'requestByoAi'])->name('settings.addons.byo-ai-request');
     });
 });
 
@@ -199,6 +203,7 @@ Route::middleware(['auth', '2fa', 'platform.admin', \App\Http\Middleware\Resolve
     Route::get('/modules', [ModuleController::class, 'index'])->middleware('permission:modules.view')->name('modules.index');
     Route::post('/modules/{slug}/install', [ModuleController::class, 'install'])->middleware('permission:modules.install')->name('modules.install');
     Route::post('/modules/{slug}/activate', [ModuleController::class, 'activate'])->middleware('permission:modules.activate')->name('modules.activate');
+    Route::post('/modules/{slug}/db-update', [ModuleController::class, 'runDbUpdate'])->middleware('permission:modules.activate')->name('modules.db-update');
     Route::post('/modules/{slug}/deactivate', [ModuleController::class, 'deactivate'])->middleware('permission:modules.deactivate')->name('modules.deactivate');
 });
 

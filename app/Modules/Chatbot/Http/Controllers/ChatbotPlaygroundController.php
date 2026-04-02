@@ -9,12 +9,15 @@ use App\Modules\Chatbot\Models\ChatbotAccount;
 use App\Modules\Chatbot\Models\ChatbotMessage;
 use App\Modules\Chatbot\Models\ChatbotSession;
 use App\Modules\Chatbot\Services\RagContextBuilder;
+use App\Services\AiProviderClient;
 use App\Services\AiUsageService;
+use App\Services\ByoAiGuardService;
+use App\Support\PlanFeature;
+use App\Support\PlanLimit;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -57,6 +60,7 @@ class ChatbotPlaygroundController extends Controller
 
         $session = ChatbotSession::query()
             ->where('id', $session)
+            ->where('tenant_id', TenantContext::currentId())
             ->where('user_id', $request->user()->id)
             ->firstOrFail();
 
@@ -91,13 +95,33 @@ class ChatbotPlaygroundController extends Controller
             return redirect('/chatbot/playground')->with('status', 'Chatbot mode Rule-only tidak memakai AI Playground. Siapkan rule/automation di modul automation saat modul itu aktif.');
         }
 
-        if (!app(AiUsageService::class)->hasCreditsRemaining(TenantContext::currentId())) {
+        $planManager = app(\App\Support\TenantPlanManager::class);
+        $tenantId = TenantContext::currentId();
+
+        if ($account->isManagedAi() && !app(AiUsageService::class)->hasCreditsRemaining($tenantId)) {
             return redirect('/chatbot/playground')->with('status', 'AI Credits tenant bulan ini sudah habis.');
+        }
+
+        if ($account->isByoAi()) {
+            if (!$planManager->hasFeature(PlanFeature::CHATBOT_BYO_AI, $tenantId)) {
+                return redirect('/chatbot/playground')->with('status', 'Add-on BYO AI belum aktif untuk tenant ini.');
+            }
+
+            if (method_exists($account, 'byoProviderAllowed') && !$account->byoProviderAllowed()) {
+                return redirect('/chatbot/playground')->with('status', 'Provider BYO AI chatbot ini tidak diizinkan untuk tenant Anda.');
+            }
+
+            $planManager->ensureWithinLimit(PlanLimit::BYO_AI_REQUESTS_MONTHLY, 1, 'Kapasitas request BYO AI bulanan tenant sudah habis.', $tenantId);
+            if (($planManager->usageState(PlanLimit::BYO_AI_TOKENS_MONTHLY, $tenantId)['status'] ?? 'ok') !== 'ok'
+                && ($planManager->remaining(PlanLimit::BYO_AI_TOKENS_MONTHLY, $tenantId) ?? 1) <= 0) {
+                return redirect('/chatbot/playground')->with('status', 'Kapasitas token BYO AI bulanan tenant sudah habis.');
+            }
         }
 
         $session = $this->resolveSession($user->id, $account->id, $data);
 
         $userMessage = ChatbotMessage::create([
+            'tenant_id' => $tenantId,
             'session_id' => $session->id,
             'role' => 'user',
             'content' => $data['message'],
@@ -135,6 +159,7 @@ class ChatbotPlaygroundController extends Controller
         $usage = null;
         $raw = null;
         $error = null;
+        $byoGuardAcquired = false;
 
         try {
             $cacheKey = $this->responseCacheKey((int) $account->id, $payload);
@@ -145,43 +170,46 @@ class ChatbotPlaygroundController extends Controller
                 $usage = is_array($cached['usage'] ?? null) ? $cached['usage'] : null;
                 $raw = is_array($cached['raw'] ?? null) ? $cached['raw'] : null;
             } else {
-                $response = Http::withToken($account->api_key)
-                    ->timeout(30)
-                    ->post('https://api.openai.com/v1/chat/completions', $payload);
+                if ($account->isByoAi()) {
+                    app(ByoAiGuardService::class)->acquire($tenantId);
+                    $byoGuardAcquired = true;
+                }
 
-                $raw = $response->json();
-                if ($response->successful()) {
-                    $reply = trim((string) ($response->json('choices.0.message.content') ?? ''));
-                    $usage = $response->json('usage');
+                $result = app(AiProviderClient::class)->chat(
+                    $account->runtimeProvider(),
+                    (string) $account->runtimeApiKey(),
+                    $account->model ?: config('services.openai.model', 'gpt-4o-mini'),
+                    $payload['messages'],
+                    (float) $payload['temperature'],
+                    (int) $payload['max_tokens'],
+                    30,
+                );
 
-                    if ($reply !== '') {
-                        Cache::put($cacheKey, [
-                            'reply' => $reply,
-                            'usage' => is_array($usage) ? $usage : null,
-                            'raw' => is_array($raw) ? $raw : null,
-                        ], now()->addSeconds(self::RESPONSE_CACHE_TTL_SECONDS));
-                    }
-                } else {
-                    $error = (string) ($response->json('error.message') ?: $response->body() ?: 'Unknown error');
-                    Log::warning('chatbot.playground.openai_failed', [
-                        'user_id' => $user->id,
-                        'session_id' => $session->id,
-                        'chatbot_account_id' => $account->id,
-                        'http_status' => $response->status(),
-                        'request_id' => $response->header('x-request-id'),
-                        'error' => Str::limit($error, 300),
-                    ]);
+                $reply = $result['reply'];
+                $usage = $result['usage'];
+                $raw = $result['raw'];
+
+                if ($reply !== '') {
+                    Cache::put($cacheKey, [
+                        'reply' => $reply,
+                        'usage' => is_array($usage) ? $usage : null,
+                        'raw' => is_array($raw) ? $raw : null,
+                    ], now()->addSeconds(self::RESPONSE_CACHE_TTL_SECONDS));
                 }
             }
         } catch (\Throwable $e) {
             $error = $e->getMessage();
-            Log::error('chatbot.playground.openai_exception', [
+            Log::error('chatbot.playground.ai_exception', [
                 'user_id' => $user->id,
                 'session_id' => $session->id,
                 'chatbot_account_id' => $account->id,
                 'exception' => get_class($e),
                 'error' => Str::limit($error, 300),
             ]);
+        } finally {
+            if ($byoGuardAcquired) {
+                app(ByoAiGuardService::class)->release($tenantId);
+            }
         }
 
         if ($reply === null || $reply === '') {
@@ -189,6 +217,7 @@ class ChatbotPlaygroundController extends Controller
         }
 
         $assistantMessage = ChatbotMessage::create([
+            'tenant_id' => $tenantId,
             'session_id' => $session->id,
             'role' => 'assistant',
             'content' => $reply,
@@ -209,13 +238,14 @@ class ChatbotPlaygroundController extends Controller
 
         if (is_array($usage ?? null) && (int) ($usage['total_tokens'] ?? 0) > 0) {
             app(AiUsageService::class)->recordUsage([
-                'tenant_id' => TenantContext::currentId(),
+                'tenant_id' => $tenantId,
                 'source_module' => 'chatbot',
                 'source_type' => 'playground',
                 'source_id' => $session->id,
                 'chatbot_account_id' => $account->id,
-                'provider' => $account->provider,
+                'provider' => $account->runtimeProvider(),
                 'model' => $account->model ?: config('services.openai.model', 'gpt-4o-mini'),
+                'billing_mode' => $account->isByoAi() ? 'byo' : 'managed',
                 'prompt_tokens' => (int) ($usage['prompt_tokens'] ?? 0),
                 'completion_tokens' => (int) ($usage['completion_tokens'] ?? 0),
                 'total_tokens' => (int) ($usage['total_tokens'] ?? 0),
@@ -261,6 +291,7 @@ class ChatbotPlaygroundController extends Controller
     {
         return ChatbotSession::query()
             ->with('chatbotAccount')
+            ->where('tenant_id', TenantContext::currentId())
             ->where('user_id', $request->user()->id)
             ->orderByDesc('last_message_at')
             ->orderByDesc('id')
@@ -274,6 +305,7 @@ class ChatbotPlaygroundController extends Controller
         if ($sessionId > 0) {
             $session = ChatbotSession::query()
                 ->where('id', $sessionId)
+                ->where('tenant_id', TenantContext::currentId())
                 ->where('user_id', $userId)
                 ->where('chatbot_account_id', $accountId)
                 ->firstOrFail();
@@ -282,6 +314,7 @@ class ChatbotPlaygroundController extends Controller
         }
 
         return ChatbotSession::create([
+            'tenant_id' => TenantContext::currentId(),
             'chatbot_account_id' => $accountId,
             'user_id' => $userId,
             'last_message_at' => now(),
@@ -291,6 +324,7 @@ class ChatbotPlaygroundController extends Controller
     private function buildPromptHistory(ChatbotSession $session): array
     {
         $history = ChatbotMessage::query()
+            ->where('tenant_id', TenantContext::currentId())
             ->where('session_id', $session->id)
             ->orderByDesc('id')
             ->limit(self::HISTORY_LIMIT)
@@ -306,6 +340,7 @@ class ChatbotPlaygroundController extends Controller
             ->all();
 
         $total = ChatbotMessage::query()
+            ->where('tenant_id', TenantContext::currentId())
             ->where('session_id', $session->id)
             ->count();
 
@@ -314,6 +349,7 @@ class ChatbotPlaygroundController extends Controller
 
         if ($total > self::HISTORY_LIMIT) {
             $olderLines = ChatbotMessage::query()
+                ->where('tenant_id', TenantContext::currentId())
                 ->where('session_id', $session->id)
                 ->orderByDesc('id')
                 ->skip(self::HISTORY_LIMIT)

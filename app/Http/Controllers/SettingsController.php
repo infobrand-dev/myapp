@@ -5,13 +5,16 @@ namespace App\Http\Controllers;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\DocumentSetting;
+use App\Models\TenantByoAiRequest;
 use App\Services\AiCreditPricingService;
 use App\Models\User;
+use App\Support\ByoAiAddon;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\DocumentSettingsResolver;
 use App\Support\CurrencySettingsResolver;
 use App\Support\ModuleManager;
+use App\Support\PlanFeature;
 use App\Support\PlanLimit;
 use App\Support\TenantContext;
 use App\Support\TenantPlanManager;
@@ -86,10 +89,15 @@ class SettingsController extends Controller
         $allModules = collect($modules->all());
         $activeModules = $allModules->where('installed', true)->where('active', true)->values();
         $installedModules = $allModules->where('installed', true)->values();
-        $availableFeatures = collect(($plan && is_array($plan->features)) ? $plan->features : [])
-            ->map(fn ($enabled, $key) => [
+        $featureKeys = collect(array_keys((array) ($plan?->features ?? [])))
+            ->merge(array_keys((array) ($subscription?->feature_overrides ?? [])))
+            ->unique()
+            ->values();
+        $availableFeatures = $featureKeys
+            ->reject(fn ($key) => (string) $key === PlanFeature::CHATBOT_BYO_AI)
+            ->map(fn ($key) => [
                 'key' => $key,
-                'enabled' => (bool) $enabled,
+                'enabled' => $planManager->hasFeature((string) $key, $tenantId),
             ])
             ->values();
 
@@ -97,6 +105,7 @@ class SettingsController extends Controller
             ['key' => PlanLimit::COMPANIES, 'label' => 'Companies'],
             ['key' => PlanLimit::BRANCHES, 'label' => 'Branches'],
             ['key' => PlanLimit::USERS, 'label' => 'Users'],
+            ['key' => PlanLimit::TOTAL_STORAGE_BYTES, 'label' => 'Total Storage'],
             ['key' => PlanLimit::PRODUCTS, 'label' => 'Products'],
             ['key' => PlanLimit::CONTACTS, 'label' => 'Contacts'],
             ['key' => PlanLimit::WHATSAPP_INSTANCES, 'label' => 'WhatsApp Instances'],
@@ -195,6 +204,17 @@ class SettingsController extends Controller
             'documentPreview' => $documentPreview,
             'settingsStats' => $this->stats($companies, $branches, $users, $activeModules, $currentCompanyId, $currentBranchId),
             'aiCreditPricing' => $aiPricing->snapshot(),
+            'byoAiEnabled' => $planManager->hasFeature(PlanFeature::CHATBOT_BYO_AI, $tenantId),
+            'byoAiRequest' => TenantByoAiRequest::query()
+                ->where('tenant_id', $tenantId)
+                ->latest('id')
+                ->first(),
+            'byoAiProviders' => ByoAiAddon::providers(),
+            'byoAiUsageStates' => [
+                'accounts' => $planManager->usageState(PlanLimit::BYO_CHATBOT_ACCOUNTS, $tenantId),
+                'requests' => $planManager->usageState(PlanLimit::BYO_AI_REQUESTS_MONTHLY, $tenantId),
+                'tokens' => $planManager->usageState(PlanLimit::BYO_AI_TOKENS_MONTHLY, $tenantId),
+            ],
         ]);
     }
 
@@ -398,8 +418,13 @@ class SettingsController extends Controller
         abort_unless($tenant, 404);
 
         $data = $request->validate([
+            'workspace_name' => ['required', 'string', 'max:255'],
             'default_currency' => ['required', Rule::in(array_keys(app(CurrencySettingsResolver::class)->options()))],
             'company_default_currency' => ['nullable', Rule::in(array_keys(app(CurrencySettingsResolver::class)->options()))],
+        ]);
+
+        $tenant->update([
+            'name' => trim((string) $data['workspace_name']),
         ]);
 
         $tenantMeta = $tenant->meta ?? [];
@@ -424,6 +449,49 @@ class SettingsController extends Controller
         }
 
         return redirect()->route('settings.general')->with('status', 'General settings berhasil disimpan.');
+    }
+
+    public function requestByoAi(Request $request): RedirectResponse
+    {
+        $tenantId = TenantContext::currentId();
+        $user = $request->user();
+
+        $data = $request->validate([
+            'preferred_provider' => ['required', Rule::in(ByoAiAddon::providers())],
+            'intended_volume' => ['required', 'string', 'max:100'],
+            'chatbot_account_count' => ['nullable', 'integer', 'min:1', 'max:1000'],
+            'channel_count' => ['nullable', 'integer', 'min:1', 'max:1000'],
+            'technical_contact_name' => ['nullable', 'string', 'max:255'],
+            'technical_contact_email' => ['nullable', 'email', 'max:255'],
+            'notes' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        $latest = TenantByoAiRequest::query()
+            ->where('tenant_id', $tenantId)
+            ->latest('id')
+            ->first();
+
+        if ($latest && $latest->status === ByoAiAddon::REQUEST_STATUS_PENDING) {
+            return redirect()->route('settings.addons')->with('status', 'Permintaan BYO AI Anda masih menunggu review platform.');
+        }
+
+        TenantByoAiRequest::query()->create([
+            'tenant_id' => $tenantId,
+            'requested_by' => $user?->id,
+            'status' => ByoAiAddon::REQUEST_STATUS_PENDING,
+            'preferred_provider' => $data['preferred_provider'],
+            'intended_volume' => $data['intended_volume'],
+            'chatbot_account_count' => $data['chatbot_account_count'] ?? null,
+            'channel_count' => $data['channel_count'] ?? null,
+            'technical_contact_name' => $data['technical_contact_name'] ?: ($user?->name ?: null),
+            'technical_contact_email' => $data['technical_contact_email'] ?: ($user?->email ?: null),
+            'notes' => $data['notes'] ?: null,
+            'meta' => [
+                'requested_from' => 'settings_addons',
+            ],
+        ]);
+
+        return redirect()->route('settings.addons')->with('status', 'Permintaan add-on BYO AI berhasil dikirim. Tim kami akan meninjau kebutuhan Anda dan menghubungi Anda jika tenant memenuhi syarat aktivasi.');
     }
 
     private function validateCompany(Request $request, ?Company $company = null): array
@@ -562,6 +630,12 @@ class SettingsController extends Controller
                 'route' => 'settings.subscription',
                 'icon' => 'ti ti-credit-card',
                 'description' => 'Plan aktif, fitur, dan quota tenant.',
+            ],
+            'addons' => [
+                'label' => 'Add-ons',
+                'route' => 'settings.addons',
+                'icon' => 'ti ti-puzzle-2',
+                'description' => 'Add-on premium, request fitur tambahan, dan status review.',
             ],
             'access' => [
                 'label' => 'Users & Access',

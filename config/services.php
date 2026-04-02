@@ -69,6 +69,14 @@ return [
         'enabled_payments' => array_values(array_filter(array_map('trim', explode(',', (string) env('MIDTRANS_ENABLED_PAYMENTS', ''))))),
     ],
 
+    'platform_manual_payment' => [
+        'enabled' => env('PLATFORM_MANUAL_PAYMENT_ENABLED', false),
+        'bank_name' => env('PLATFORM_MANUAL_PAYMENT_BANK_NAME'),
+        'account_name' => env('PLATFORM_MANUAL_PAYMENT_ACCOUNT_NAME'),
+        'account_number' => env('PLATFORM_MANUAL_PAYMENT_ACCOUNT_NUMBER'),
+        'review_sla_hours' => (int) env('PLATFORM_MANUAL_PAYMENT_REVIEW_SLA_HOURS', 24),
+    ],
+
     'wa_cloud' => [
         'base_url' => env('WA_CLOUD_BASE_URL', 'https://graph.facebook.com/v22.0'),
         'app_id' => env('WA_CLOUD_APP_ID', env('META_APP_ID')),

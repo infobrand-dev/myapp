@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\TenantStorageUsageService;
 use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -37,6 +38,14 @@ class ProfileController extends Controller
 
         // Handle avatar upload
         if ($request->hasFile('avatar')) {
+            $releasedBytes = $user->avatar ? app(TenantStorageUsageService::class)->fileSize('public', $user->avatar) : 0;
+            app(TenantStorageUsageService::class)->ensureCanStoreUpload(
+                $request->file('avatar'),
+                $tenantId,
+                null,
+                $releasedBytes
+            );
+
             // Delete the old avatar file if it exists
             if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
                 Storage::disk('public')->delete($user->avatar);

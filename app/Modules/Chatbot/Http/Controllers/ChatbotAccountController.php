@@ -8,15 +8,18 @@ use App\Modules\Chatbot\Http\Requests\UpdateChatbotAccountRequest;
 use App\Modules\Chatbot\Models\ChatbotAccount;
 use App\Modules\Chatbot\Models\ChatbotDecisionLog;
 use App\Modules\Chatbot\Models\ChatbotKnowledgeDocument;
+use App\Services\AiProviderClient;
+use App\Support\ByoAiAddon;
+use App\Support\PlanFeature;
 use App\Support\PlanLimit;
 use App\Support\TenantContext;
 use App\Support\TenantPlanManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
+use Illuminate\Validation\ValidationException;
 
 class ChatbotAccountController extends Controller
 {
@@ -100,25 +103,28 @@ class ChatbotAccountController extends Controller
         }
 
         $account = new ChatbotAccount([
+            'access_scope' => 'public',
+            'ai_source' => 'managed',
             'provider' => 'openai',
             'status' => 'active',
             'model' => 'gpt-4o-mini',
             'automation_mode' => 'ai_first',
             'response_style' => 'balanced',
-            'operation_mode' => 'ai_only',
+            'operation_mode' => 'ai_then_human',
             'rag_top_k' => 3,
             'metadata' => [
                 'bot_config' => [
                     'auto_reply_enabled' => true,
-                    'allowed_channels' => ['wa_api', 'social_dm'],
+                    'allowed_channels' => ['wa_api', 'wa_web', 'social_dm'],
                     'allow_interactive_buttons' => true,
                     'human_handoff_ack_enabled' => true,
                     'minimum_context_score' => 4,
                     'reply_cooldown_seconds' => 30,
+                    'max_bot_replies_per_conversation' => 0,
                 ],
             ],
         ]);
-        return view('chatbot::accounts.form', compact('account'));
+        return view('chatbot::accounts.form', $this->formViewData($account));
     }
 
     public function store(StoreChatbotAccountRequest $request): RedirectResponse
@@ -127,9 +133,11 @@ class ChatbotAccountController extends Controller
             return $redirect;
         }
 
-        app(TenantPlanManager::class)->ensureWithinLimit(PlanLimit::CHATBOT_ACCOUNTS);
+        $plans = app(TenantPlanManager::class);
+        $plans->ensureWithinLimit(PlanLimit::CHATBOT_ACCOUNTS);
 
         $data = $this->validated($request);
+        $this->ensureByoEligibility($data);
         $user = $request->user();
         $data['tenant_id'] = TenantContext::currentId();
         $data['created_by'] = $user ? $user->id : null;
@@ -142,12 +150,13 @@ class ChatbotAccountController extends Controller
 
     public function edit(ChatbotAccount $account): View
     {
-        return view('chatbot::accounts.form', ['account' => $account]);
+        return view('chatbot::accounts.form', $this->formViewData($account));
     }
 
     public function update(UpdateChatbotAccountRequest $request, ChatbotAccount $account): RedirectResponse
     {
         $data = $this->validated($request, true);
+        $this->ensureByoEligibility($data, $account);
         $data['mirror_to_conversations'] = $request->boolean('mirror_to_conversations');
         $data['rag_enabled'] = $request->boolean('rag_enabled');
         $data['metadata'] = $this->buildMetadata($request, is_array($account->metadata) ? $account->metadata : []);
@@ -170,36 +179,20 @@ class ChatbotAccountController extends Controller
             return response()->json(['ok' => false, 'message' => 'API key tidak boleh kosong.']);
         }
 
+        $allowedProviders = $this->allowedByoProvidersForTenant();
+        if (!in_array((string) $provider, $allowedProviders, true)) {
+            return response()->json(['ok' => false, 'message' => 'Provider ini belum diizinkan untuk add-on BYO AI tenant Anda.']);
+        }
+
         try {
-            if ($provider === 'openai') {
-                $response = Http::withToken($apiKey)->timeout(8)->get('https://api.openai.com/v1/models');
-                return $response->successful()
-                    ? response()->json(['ok' => true, 'message' => 'API key OpenAI valid.'])
-                    : response()->json(['ok' => false, 'message' => 'API key ditolak oleh OpenAI. Periksa kembali key Anda.']);
-            }
+            $ok = app(AiProviderClient::class)->verifyApiKey((string) $provider, $apiKey);
 
-            if ($provider === 'anthropic') {
-                $response = Http::withHeaders([
-                    'x-api-key' => $apiKey,
-                    'anthropic-version' => '2023-06-01',
-                ])->timeout(8)->post('https://api.anthropic.com/v1/messages', [
-                    'model' => 'claude-haiku-4-5-20251001',
-                    'max_tokens' => 1,
-                    'messages' => [['role' => 'user', 'content' => 'Hi']],
-                ]);
-                return ($response->status() !== 401)
-                    ? response()->json(['ok' => true, 'message' => 'API key Anthropic valid.'])
-                    : response()->json(['ok' => false, 'message' => 'API key ditolak oleh Anthropic. Periksa kembali key Anda.']);
-            }
-
-            if ($provider === 'groq') {
-                $response = Http::withToken($apiKey)->timeout(8)->get('https://api.groq.com/openai/v1/models');
-                return $response->successful()
-                    ? response()->json(['ok' => true, 'message' => 'API key Groq valid.'])
-                    : response()->json(['ok' => false, 'message' => 'API key ditolak oleh Groq. Periksa kembali key Anda.']);
-            }
-
-            return response()->json(['ok' => false, 'message' => 'Provider tidak didukung untuk verifikasi.']);
+            return response()->json([
+                'ok' => $ok,
+                'message' => $ok
+                    ? 'API key provider valid.'
+                    : 'API key ditolak oleh provider. Periksa kembali key Anda.',
+            ]);
         } catch (\Throwable $e) {
             return response()->json(['ok' => false, 'message' => 'Tidak dapat terhubung ke server provider. Coba lagi.']);
         }
@@ -208,6 +201,16 @@ class ChatbotAccountController extends Controller
     private function validated(Request $request, bool $isEdit = false): array
     {
         $data = $request->validated();
+        $behaviorMode = strtolower((string) ($data['behavior_mode'] ?? $request->input('behavior_mode', 'ai_then_human')));
+        [$automationMode, $operationMode] = $this->mapBehaviorMode($behaviorMode);
+        $data['automation_mode'] = $automationMode;
+        $data['operation_mode'] = $operationMode;
+        $data['ai_source'] = strtolower((string) ($data['ai_source'] ?? $request->input('ai_source', 'managed')));
+        $data['access_scope'] = strtolower((string) ($data['access_scope'] ?? $request->input('access_scope', 'public')));
+
+        if ($data['ai_source'] !== 'byo') {
+            $data['provider'] = 'openai';
+        }
 
         if ($isEdit && !$request->filled('api_key')) {
             unset($data['api_key']);
@@ -215,6 +218,10 @@ class ChatbotAccountController extends Controller
 
         if (($data['automation_mode'] ?? $request->input('automation_mode')) === 'rule_only' && !array_key_exists('api_key', $data)) {
             $data['api_key'] = 'rule-only-disabled';
+        }
+
+        if (($data['ai_source'] ?? 'managed') === 'managed' && !array_key_exists('api_key', $data)) {
+            $data['api_key'] = 'managed-platform-key';
         }
 
         return $data;
@@ -236,13 +243,83 @@ class ChatbotAccountController extends Controller
         $metadata = $existing ?? [];
         $metadata['bot_config'] = [
             'auto_reply_enabled' => $request->boolean('auto_reply_enabled', true),
-            'allowed_channels' => array_values(array_filter((array) $request->input('allowed_channels', ['wa_api', 'social_dm']))),
+            'allowed_channels' => array_values(array_filter((array) $request->input('allowed_channels', ['wa_api', 'wa_web', 'social_dm']))),
             'allow_interactive_buttons' => $request->boolean('allow_interactive_buttons', true),
             'human_handoff_ack_enabled' => $request->boolean('human_handoff_ack_enabled', true),
             'minimum_context_score' => (float) $request->input('minimum_context_score', 4),
             'reply_cooldown_seconds' => (int) $request->input('reply_cooldown_seconds', 30),
+            'max_bot_replies_per_conversation' => (int) $request->input('max_bot_replies_per_conversation', 0),
         ];
 
         return $metadata;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function formViewData(ChatbotAccount $account): array
+    {
+        $planManager = app(TenantPlanManager::class);
+        $tenantId = TenantContext::currentId();
+
+        return [
+            'account' => $account,
+            'byoEnabled' => $planManager->hasFeature(PlanFeature::CHATBOT_BYO_AI, $tenantId),
+            'byoUsageStates' => [
+                'accounts' => $planManager->usageState(PlanLimit::BYO_CHATBOT_ACCOUNTS, $tenantId),
+                'requests' => $planManager->usageState(PlanLimit::BYO_AI_REQUESTS_MONTHLY, $tenantId),
+                'tokens' => $planManager->usageState(PlanLimit::BYO_AI_TOKENS_MONTHLY, $tenantId),
+            ],
+            'byoProviders' => ByoAiAddon::providers(),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function ensureByoEligibility(array $data, ?ChatbotAccount $existing = null): void
+    {
+        if (($data['ai_source'] ?? 'managed') !== 'byo') {
+            return;
+        }
+
+        $plans = app(TenantPlanManager::class);
+        $tenantId = TenantContext::currentId();
+        $plans->ensureFeature(PlanFeature::CHATBOT_BYO_AI, 'Add-on BYO AI belum aktif untuk tenant ini.', $tenantId);
+
+        $isNewByo = !$existing || !$existing->isByoAi();
+        if ($isNewByo) {
+            $plans->ensureWithinLimit(PlanLimit::BYO_CHATBOT_ACCOUNTS, 1, null, $tenantId);
+        }
+
+        $provider = strtolower((string) ($data['provider'] ?? 'openai'));
+        if (!in_array($provider, $this->allowedByoProvidersForTenant(), true)) {
+            throw ValidationException::withMessages([
+                'provider' => 'Provider BYO AI ini belum diizinkan untuk tenant Anda. Hubungi tim platform untuk penyesuaian add-on.',
+            ]);
+        }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function allowedByoProvidersForTenant(): array
+    {
+        $subscription = app(TenantPlanManager::class)->currentSubscription(TenantContext::currentId());
+        $allowed = data_get($subscription?->meta, 'byo_ai.allowed_providers', []);
+
+        return array_values(array_filter((array) $allowed, fn ($provider) => is_string($provider) && trim($provider) !== ''));
+    }
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    private function mapBehaviorMode(string $behaviorMode): array
+    {
+        return match ($behaviorMode) {
+            'rule_only' => ['rule_only', 'ai_only'],
+            'ai_only' => ['ai_first', 'ai_only'],
+            default => ['ai_first', 'ai_then_human'],
+        };
     }
 }

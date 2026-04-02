@@ -179,6 +179,45 @@ class PlatformBillingHappyPathTest extends TestCase
         $this->assertSame(1, PlatformPlanOrder::query()->whereKey($invoice->platform_plan_order_id)->where('status', 'paid')->count());
     }
 
+    public function test_public_invoice_can_render_manual_bank_transfer_instructions(): void
+    {
+        config()->set('services.platform_manual_payment.enabled', true);
+        config()->set('services.platform_manual_payment.bank_name', 'BCA');
+        config()->set('services.platform_manual_payment.account_name', 'PT Platform Demo');
+        config()->set('services.platform_manual_payment.account_number', '1234567890');
+        config()->set('services.platform_manual_payment.review_sla_hours', 24);
+
+        $invoice = $this->makePlatformInvoice();
+        $invoice->forceFill([
+            'meta' => [
+                'selected_payment_method' => 'bank_transfer',
+                'manual_transfer' => [
+                    'payment_method' => 'bank_transfer',
+                    'unique_code' => 321,
+                    'transfer_amount' => 150321,
+                    'bank_name' => 'BCA',
+                    'account_name' => 'PT Platform Demo',
+                    'account_number' => '1234567890',
+                    'review_sla_hours' => 24,
+                ],
+            ],
+        ])->save();
+
+        $signedInvoiceUrl = URL::temporarySignedRoute(
+            'platform.invoices.public',
+            now()->addMinutes(30),
+            ['invoice' => $invoice->id]
+        );
+
+        $response = $this->get($signedInvoiceUrl);
+
+        $response->assertOk();
+        $response->assertSee('Transfer Bank');
+        $response->assertSee('PT Platform Demo');
+        $response->assertSee('1234567890');
+        $response->assertSee('Kode unik 321');
+    }
+
     private function makePlatformInvoice(): PlatformInvoice
     {
         $tenant = Tenant::query()->create([

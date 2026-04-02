@@ -268,4 +268,131 @@ class ChatbotAutoReplyHardeningTest extends TestCase
             'reason' => 'user_requested_human',
         ]);
     }
+
+    public function test_social_webhook_handoffs_when_max_bot_reply_limit_is_reached(): void
+    {
+        Queue::fake();
+
+        $account = ChatbotAccount::query()->create([
+            'tenant_id' => 1,
+            'name' => 'Limited Bot',
+            'access_scope' => 'public',
+            'provider' => 'openai',
+            'model' => 'gpt-4o-mini',
+            'api_key' => 'sk-test',
+            'status' => 'active',
+            'operation_mode' => 'ai_then_human',
+            'metadata' => [
+                'bot_config' => [
+                    'human_handoff_ack_enabled' => false,
+                    'allowed_channels' => ['social_dm'],
+                    'max_bot_replies_per_conversation' => 1,
+                ],
+            ],
+        ]);
+
+        $socialAccount = SocialAccount::query()->create([
+            'tenant_id' => 1,
+            'platform' => 'facebook',
+            'name' => 'Page B',
+            'access_token' => 'valid-token-limit',
+            'status' => 'active',
+        ]);
+
+        SocialAccountChatbotIntegration::query()->create([
+            'tenant_id' => 1,
+            'social_account_id' => $socialAccount->id,
+            'auto_reply' => true,
+            'chatbot_account_id' => $account->id,
+        ]);
+
+        $conversation = Conversation::query()->create([
+            'tenant_id' => 1,
+            'channel' => 'social_dm',
+            'instance_id' => $socialAccount->id,
+            'contact_external_id' => 'user-limit',
+            'contact_name' => 'Customer Limit',
+            'status' => 'open',
+            'metadata' => [
+                'bot_reply_count' => 1,
+            ],
+        ]);
+
+        $this->postJson('/social-media/webhook', [
+            'token' => 'valid-token-limit',
+            'platform' => 'facebook',
+            'contact_id' => 'user-limit',
+            'message' => 'masih ada orang di sana?',
+            'direction' => 'in',
+        ])->assertStatus(200);
+
+        $conversation->refresh();
+        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
+
+        $this->assertSame('max_replies_reached', $metadata['handoff_reason'] ?? null);
+        $this->assertTrue((bool) ($metadata['auto_reply_paused'] ?? false));
+        Queue::assertNotPushed(GenerateAiReply::class);
+        $this->assertDatabaseHas('chatbot_decision_logs', [
+            'conversation_id' => $conversation->id,
+            'chatbot_account_id' => $account->id,
+            'action' => 'handoff',
+            'reason' => 'max_replies_reached',
+        ]);
+    }
+
+    public function test_social_webhook_skips_private_chatbot_even_if_integration_exists(): void
+    {
+        Queue::fake();
+
+        $account = ChatbotAccount::query()->create([
+            'tenant_id' => 1,
+            'name' => 'Internal Bot',
+            'access_scope' => 'private',
+            'provider' => 'openai',
+            'model' => 'gpt-4o-mini',
+            'api_key' => 'sk-test',
+            'status' => 'active',
+            'metadata' => [
+                'bot_config' => [
+                    'human_handoff_ack_enabled' => false,
+                    'allowed_channels' => ['social_dm'],
+                ],
+            ],
+        ]);
+
+        $socialAccount = SocialAccount::query()->create([
+            'tenant_id' => 1,
+            'platform' => 'facebook',
+            'name' => 'Page Internal',
+            'access_token' => 'valid-private-token',
+            'status' => 'active',
+        ]);
+
+        SocialAccountChatbotIntegration::query()->create([
+            'tenant_id' => 1,
+            'social_account_id' => $socialAccount->id,
+            'auto_reply' => true,
+            'chatbot_account_id' => $account->id,
+        ]);
+
+        $this->postJson('/social-media/webhook', [
+            'token' => 'valid-private-token',
+            'platform' => 'facebook',
+            'contact_id' => 'user-private',
+            'message' => 'halo bot internal',
+            'direction' => 'in',
+        ])->assertStatus(200);
+
+        $conversation = Conversation::query()
+            ->where('channel', 'social_dm')
+            ->where('contact_external_id', 'user-private')
+            ->first();
+
+        $this->assertNotNull($conversation);
+        Queue::assertNotPushed(GenerateAiReply::class);
+        $this->assertDatabaseMissing('chatbot_decision_logs', [
+            'conversation_id' => $conversation->id,
+            'chatbot_account_id' => $account->id,
+        ]);
+    }
 }

@@ -1,3 +1,9 @@
+@php
+    $storageFormatter = app(\App\Support\StorageSizeFormatter::class);
+    $hasLimitAdvice = collect($limitSummaries)->contains(function ($limit) {
+        return !empty($limit['advice']);
+    });
+@endphp
 <div class="row g-3 mb-3">
     <div class="col-lg-5">
         <div class="card h-100">
@@ -48,17 +54,26 @@
                     <tbody>
                         @foreach($limitSummaries as $limit)
                             @php
-                                $statusInfo = match($limit['status']) {
+                                $statusMap = [
+                                    'ok' => [
+                                        'label' => $limit['limit'] === null ? 'Tidak terbatas' : 'OK',
+                                        'class' => $limit['limit'] === null ? 'bg-azure-lt text-azure' : 'bg-success-lt text-success',
+                                    ],
                                     'near_limit' => ['label' => 'Near limit', 'class' => 'bg-warning-lt text-warning'],
                                     'at_limit' => ['label' => 'At limit', 'class' => 'bg-danger-lt text-danger'],
                                     'over_limit' => ['label' => 'Over limit', 'class' => 'bg-danger-lt text-danger'],
-                                    default => ['label' => $limit['limit'] === null ? 'Tidak terbatas' : 'OK', 'class' => $limit['limit'] === null ? 'bg-azure-lt text-azure' : 'bg-success-lt text-success'],
-                                };
+                                ];
+                                $statusInfo = $statusMap[$limit['status']] ?? $statusMap['ok'];
+                                $isStorage = $limit['key'] === \App\Support\PlanLimit::TOTAL_STORAGE_BYTES;
+                                $usageValue = $isStorage ? $storageFormatter->format((int) $limit['usage']) : (is_numeric($limit['usage']) ? number_format((int) $limit['usage']) : $limit['usage']);
+                                $limitValue = $limit['limit'] === null
+                                    ? 'Tidak terbatas'
+                                    : ($isStorage ? $storageFormatter->format((int) $limit['limit']) : number_format((int) $limit['limit']));
                             @endphp
                             <tr>
                                 <td>{{ $limit['label'] }}</td>
-                                <td>{{ $limit['usage'] }}</td>
-                                <td>{{ $limit['limit'] ?? 'Tidak terbatas' }}</td>
+                                <td>{{ $usageValue }}</td>
+                                <td>{{ $limitValue }}</td>
                                 <td><span class="badge {{ $statusInfo['class'] }}">{{ $statusInfo['label'] }}</span></td>
                                 <td class="small text-muted">{{ $limit['advice']['tenant_cta'] ?? 'Tidak perlu tindakan saat ini.' }}</td>
                             </tr>
@@ -66,7 +81,7 @@
                     </tbody>
                 </table>
             </div>
-            @if(collect($limitSummaries)->contains(fn ($limit) => !empty($limit['advice'])))
+            @if($hasLimitAdvice)
                 <div class="card-body border-top">
                     <div class="alert alert-warning mb-0">
                         Jika kapasitas hampir habis atau sudah habis, tenant tetap bisa memakai data yang sudah ada, tetapi penambahan resource baru akan diblokir. Hubungi admin platform untuk upgrade plan, penyesuaian kapasitas, atau top up AI Credits.
@@ -84,7 +99,7 @@
     <div class="card-body">
         @php($money = app(\App\Support\MoneyFormatter::class))
         <div class="text-muted small mb-3">
-            AI Credits dipakai saat fitur AI membantu memproses percakapan. Jika kuota hampir habis, hubungi admin platform untuk top up atau upgrade plan.
+            AI Credits dipakai saat Managed AI membantu memproses percakapan. Jika kuota hampir habis, hubungi admin platform untuk top up atau upgrade plan.
         </div>
         <div class="row g-3">
             @foreach($aiCreditPricing['packs'] as $pack)

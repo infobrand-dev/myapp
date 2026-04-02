@@ -3,8 +3,11 @@
 namespace App\Support;
 
 use App\Models\Module;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
@@ -20,6 +23,10 @@ class ModuleManager
             $state = $states[$slug] ?? null;
             $requires = $manifest['requires'] ?? [];
             $navigation = $this->normalizeNavigation((array) ($manifest['navigation'] ?? []));
+            $pendingMigrations = $state && $state->installed_at !== null
+                ? $this->pendingMigrationNamesForSlug($slug, $manifest)
+                : [];
+            $meta = is_array($state?->meta) ? $state->meta : [];
             $modules[$slug] = [
                 'slug' => $slug,
                 '_dir' => $manifest['_dir'] ?? null,
@@ -34,6 +41,11 @@ class ModuleManager
                 'installed' => $state ? ($state->installed_at !== null) : false,
                 'active' => $state ? (bool) $state->is_active : false,
                 'installed_at' => $state ? $state->installed_at : null,
+                'pending_migrations' => $pendingMigrations,
+                'has_pending_db_update' => !empty($pendingMigrations),
+                'last_db_update_status' => Arr::get($meta, 'db_update.status'),
+                'last_db_update_at' => Arr::get($meta, 'db_update.finished_at'),
+                'last_db_update_error' => Arr::get($meta, 'db_update.error'),
                 'dependents' => $this->dependentsOf($slug, $manifests),
             ];
         }
@@ -171,6 +183,82 @@ class ModuleManager
         $record->saveOrFail();
     }
 
+    public function runPendingDbUpdate(string $slug, ?int $ranBy = null): int
+    {
+        $all = $this->all();
+        if (empty($all[$slug])) {
+            throw new RuntimeException("Module '{$slug}' tidak ditemukan.");
+        }
+
+        if (!$all[$slug]['installed']) {
+            throw new RuntimeException("Module '{$slug}' belum di-install.");
+        }
+
+        $lock = Cache::lock('module-db-update:' . $slug, 120);
+        if (!$lock->get()) {
+            throw new RuntimeException("DB update untuk module '{$slug}' sedang berjalan.");
+        }
+
+        try {
+            $pendingMigrations = $this->pendingMigrationNamesForSlug($slug);
+            if ($pendingMigrations === []) {
+                $this->recordDbUpdateStatus($slug, 'noop', null, $ranBy);
+                return 0;
+            }
+
+            $this->recordDbUpdateStatus($slug, 'running', null, $ranBy);
+
+            $migrationPath = ModulePath::migrationDirectory(
+                base_path('app/Modules/' . $this->manifestDirName($slug))
+            );
+
+            if ($migrationPath === null) {
+                throw new RuntimeException("Module '{$slug}' tidak memiliki folder migration.");
+            }
+
+            $relativePath = str_replace(base_path() . DIRECTORY_SEPARATOR, '', $migrationPath);
+            $this->callArtisanOrFail('migrate', ['--path' => $relativePath, '--force' => true]);
+
+            $this->recordDbUpdateStatus($slug, 'success', null, $ranBy, count($pendingMigrations));
+
+            return count($pendingMigrations);
+        } catch (\Throwable $e) {
+            $this->recordDbUpdateStatus($slug, 'failed', $e->getMessage(), $ranBy);
+            throw $e;
+        } finally {
+            optional($lock)->release();
+        }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function pendingMigrationNamesForSlug(string $slug, ?array $manifest = null): array
+    {
+        $manifest ??= $this->discover()[$slug] ?? null;
+        if (!$manifest) {
+            throw new RuntimeException("Manifest module '{$slug}' tidak ditemukan.");
+        }
+
+        $migrationPath = ModulePath::migrationDirectory(
+            base_path('app/Modules/' . ($manifest['_dir'] ?? $this->manifestDirName($slug)))
+        );
+
+        if ($migrationPath === null || !Schema::hasTable('migrations')) {
+            return [];
+        }
+
+        $ran = DB::table('migrations')->pluck('migration')->all();
+        $ranLookup = array_fill_keys(array_map('strtolower', $ran), true);
+
+        return collect(File::files($migrationPath))
+            ->filter(fn ($file) => str_ends_with(strtolower($file->getFilename()), '.php'))
+            ->map(fn ($file) => pathinfo($file->getFilename(), PATHINFO_FILENAME))
+            ->filter(fn (string $migration) => !isset($ranLookup[strtolower($migration)]))
+            ->values()
+            ->all();
+    }
+
     private function discover(): array
     {
         $root = app_path('Modules');
@@ -248,6 +336,33 @@ class ModuleManager
             $output = trim((string) Artisan::output());
             throw new RuntimeException("Command '{$command}' gagal dijalankan. {$output}");
         }
+    }
+
+    private function recordDbUpdateStatus(string $slug, string $status, ?string $error = null, ?int $ranBy = null, ?int $appliedCount = null): void
+    {
+        if (!$this->moduleTableReady()) {
+            return;
+        }
+
+        $record = Module::query()->where('slug', $slug)->first();
+        if (!$record) {
+            return;
+        }
+
+        $meta = is_array($record->meta) ? $record->meta : [];
+        $meta['db_update'] = array_filter([
+            'status' => $status,
+            'error' => $error ? mb_substr($error, 0, 65535) : null,
+            'ran_by' => $ranBy,
+            'applied_count' => $appliedCount,
+            'finished_at' => in_array($status, ['success', 'failed', 'noop'], true) ? now()->toDateTimeString() : null,
+            'started_at' => $status === 'running'
+                ? now()->toDateTimeString()
+                : Arr::get($meta, 'db_update.started_at'),
+        ], fn ($value) => $value !== null);
+
+        $record->meta = $meta;
+        $record->saveOrFail();
     }
 
     private function normalizeNavigation(array $navigation): array

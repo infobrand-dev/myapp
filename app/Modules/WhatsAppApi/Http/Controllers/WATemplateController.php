@@ -3,6 +3,7 @@
 namespace App\Modules\WhatsAppApi\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Services\TenantStorageUsageService;
 use App\Modules\WhatsAppApi\Http\Requests\StoreWATemplateRequest;
 use App\Modules\WhatsAppApi\Http\Requests\UpdateWATemplateRequest;
 use App\Modules\WhatsAppApi\Jobs\SubmitTemplateToMeta;
@@ -15,6 +16,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -112,12 +114,14 @@ class WATemplateController extends Controller
             return $redirect;
         }
 
+        $previousStoredHeader = $this->extractStoredHeaderMediaReference($template->components);
         $data = $this->validated($request);
         $instance = $this->requireInstance($request);
         $data['namespace'] = $instance->cloud_business_account_id;
         $action = $request->input('action');
-        $data['components'] = $this->buildComponents($request);
+        $data['components'] = $this->buildComponents($request, $previousStoredHeader);
         $template->update($data);
+        $this->deleteStoredHeaderMediaIfReplaced($previousStoredHeader, $data['components']);
 
         if ($action === 'submit') {
             if ($this->isMetaManagedTemplate($template)) {
@@ -380,7 +384,7 @@ class WATemplateController extends Controller
         }
     }
 
-    private function buildComponents(Request $request): ?array
+    private function buildComponents(Request $request, ?array $existingStoredHeader = null): ?array
     {
         $components = [];
 
@@ -394,15 +398,29 @@ class WATemplateController extends Controller
             ];
         } elseif (in_array($headerType, ['image', 'document', 'video'], true)) {
             $mediaParam = [];
-            $storedPath = $this->resolveStoredHeaderMediaPath($request);
-            $mediaUrl = $storedPath ? asset('storage/' . ltrim($storedPath, '/')) : $this->resolveHeaderMediaUrl($request);
+            $storedMedia = $this->storeHeaderMediaFile($request, $existingStoredHeader);
+            $existingUrl = trim((string) $request->input('header_media_url', ''));
+            if (!$storedMedia && $existingStoredHeader) {
+                $storedPath = ltrim(str_replace('\\', '/', (string) ($existingStoredHeader['path'] ?? '')), '/');
+                $storedUrl = $storedPath !== '' ? asset('storage/' . $storedPath) : '';
+
+                if ($existingUrl === '' || $existingUrl === $storedUrl) {
+                    $storedMedia = [
+                        'disk' => (string) ($existingStoredHeader['disk'] ?? 'public'),
+                        'path' => $storedPath,
+                        'url' => $storedUrl,
+                    ];
+                }
+            }
+
+            $mediaUrl = $storedMedia['url'] ?? $existingUrl;
             /** @var UploadedFile|null $uploadedFile */
             $uploadedFile = $request->hasFile('header_media_file') ? $request->file('header_media_file') : null;
             if ($mediaUrl) {
                 $param = ['type' => $headerType, 'link' => $mediaUrl];
-                if ($storedPath) {
-                    $param['storage_disk'] = 'public';
-                    $param['storage_path'] = $storedPath;
+                if ($storedMedia) {
+                    $param['storage_disk'] = $storedMedia['disk'];
+                    $param['storage_path'] = $storedMedia['path'];
                 }
                 if ($uploadedFile) {
                     $param['original_name'] = $uploadedFile->getClientOriginalName();
@@ -436,20 +454,7 @@ class WATemplateController extends Controller
         return $components ?: null;
     }
 
-    private function resolveHeaderMediaUrl(Request $request): ?string
-    {
-        if ($request->hasFile('header_media_file')) {
-            /** @var UploadedFile $file */
-            $file = $request->file('header_media_file');
-            $path = $file->store('wa_templates/headers/' . now()->format('Y/m'), 'public');
-            return asset('storage/' . ltrim($path, '/'));
-        }
-
-        $existingUrl = trim((string) $request->input('header_media_url', ''));
-        return $existingUrl !== '' ? $existingUrl : null;
-    }
-
-    private function resolveStoredHeaderMediaPath(Request $request): ?string
+    private function storeHeaderMediaFile(Request $request, ?array $existingStoredHeader = null): ?array
     {
         if (!$request->hasFile('header_media_file')) {
             return null;
@@ -457,9 +462,32 @@ class WATemplateController extends Controller
 
         /** @var UploadedFile $file */
         $file = $request->file('header_media_file');
-        $path = $file->store('wa_templates/headers/' . now()->format('Y/m'), 'public');
+        $releasedBytes = $existingStoredHeader
+            ? app(TenantStorageUsageService::class)->fileSize(
+                (string) ($existingStoredHeader['disk'] ?? 'public'),
+                (string) ($existingStoredHeader['path'] ?? '')
+            )
+            : 0;
 
-        return $path !== '' ? ltrim(str_replace('\\', '/', $path), '/') : null;
+        app(TenantStorageUsageService::class)->ensureCanStoreUpload(
+            $file,
+            $this->tenantId(),
+            null,
+            $releasedBytes
+        );
+
+        $path = $file->store('wa_templates/headers/' . now()->format('Y/m'), 'public');
+        $path = ltrim(str_replace('\\', '/', $path), '/');
+
+        if ($path === '') {
+            return null;
+        }
+
+        return [
+            'disk' => 'public',
+            'path' => $path,
+            'url' => asset('storage/' . $path),
+        ];
     }
 
     private function validateHeaderMediaFile(UploadedFile $file, string $headerType): void
@@ -899,5 +927,58 @@ class WATemplateController extends Controller
     private function tenantId(): int
     {
         return TenantContext::currentId();
+    }
+
+    private function extractStoredHeaderMediaReference($components): ?array
+    {
+        if (!is_array($components)) {
+            return null;
+        }
+
+        foreach ($components as $component) {
+            if (strtolower((string) ($component['type'] ?? '')) !== 'header') {
+                continue;
+            }
+
+            foreach ((array) ($component['parameters'] ?? []) as $parameter) {
+                $disk = $parameter['storage_disk'] ?? null;
+                $path = $parameter['storage_path'] ?? null;
+
+                if (!is_string($disk) || $disk === '' || !is_string($path) || trim($path) === '') {
+                    continue;
+                }
+
+                return [
+                    'disk' => $disk,
+                    'path' => ltrim(str_replace('\\', '/', $path), '/'),
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    private function deleteStoredHeaderMediaIfReplaced(?array $previousStoredHeader, ?array $updatedComponents): void
+    {
+        if (!$previousStoredHeader) {
+            return;
+        }
+
+        $currentStoredHeader = $this->extractStoredHeaderMediaReference($updatedComponents);
+
+        if (
+            $currentStoredHeader
+            && ($currentStoredHeader['disk'] ?? null) === ($previousStoredHeader['disk'] ?? null)
+            && ($currentStoredHeader['path'] ?? null) === ($previousStoredHeader['path'] ?? null)
+        ) {
+            return;
+        }
+
+        $disk = (string) ($previousStoredHeader['disk'] ?? 'public');
+        $path = (string) ($previousStoredHeader['path'] ?? '');
+
+        if ($path !== '' && Storage::disk($disk)->exists($path)) {
+            Storage::disk($disk)->delete($path);
+        }
     }
 }

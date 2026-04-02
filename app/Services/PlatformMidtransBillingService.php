@@ -8,6 +8,7 @@ use App\Models\PlatformPayment;
 use App\Models\Tenant;
 use App\Models\TenantSubscription;
 use App\Modules\Midtrans\Models\MidtransSetting;
+use App\Support\ByoAiAddon;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -425,6 +426,15 @@ class PlatformMidtransBillingService
 
     private function activateSubscriptionFromBilling(int $tenantId, int $planId, string $billingProvider, string $billingReference, $startsAt, $endsAt): TenantSubscription
     {
+        $activeSubscription = TenantSubscription::query()
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'active')
+            ->latest('id')
+            ->first();
+        $featureOverrides = is_array($activeSubscription?->feature_overrides) ? $activeSubscription->feature_overrides : [];
+        $limitOverrides = is_array($activeSubscription?->limit_overrides) ? $activeSubscription->limit_overrides : [];
+        $byoOverrides = ByoAiAddon::extractOverrideSubset($featureOverrides, $limitOverrides);
+
         TenantSubscription::query()
             ->where('tenant_id', $tenantId)
             ->where('status', 'active')
@@ -443,6 +453,8 @@ class PlatformMidtransBillingService
             'starts_at' => $startsAt,
             'ends_at' => $endsAt,
             'auto_renews' => false,
+            'feature_overrides' => $byoOverrides['feature_overrides'],
+            'limit_overrides' => $byoOverrides['limit_overrides'],
             'meta' => [
                 'assigned_from' => 'platform_billing_midtrans',
             ],

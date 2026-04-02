@@ -750,6 +750,8 @@ class InstanceController extends Controller
             $autoReply = false;
         }
 
+        $chatbotAccountId = $this->resolveChannelReadyChatbotAccountId($chatbotAccountId);
+
         if (!$autoReply && !$chatbotAccountId) {
             WhatsAppInstanceChatbotIntegration::query()
                 ->where('instance_id', $instance->id)
@@ -779,7 +781,36 @@ class InstanceController extends Controller
         }
 
         $chatbotClass = \App\Modules\Chatbot\Models\ChatbotAccount::class;
-        return $chatbotClass::query()->where('status', 'active')->orderBy('name')->get();
+        $hasAccessScope = Schema::hasColumn('chatbot_accounts', 'access_scope');
+        return $chatbotClass::query()
+            ->where('tenant_id', $this->tenantId())
+            ->where('status', 'active')
+            ->when($hasAccessScope, fn ($query) => $query->where('access_scope', 'public'))
+            ->orderBy('name')
+            ->get();
+    }
+
+    private function resolveChannelReadyChatbotAccountId(?int $chatbotAccountId): ?int
+    {
+        if (!$chatbotAccountId || !$this->isChatbotModuleReady()) {
+            return null;
+        }
+
+        $chatbotClass = \App\Modules\Chatbot\Models\ChatbotAccount::class;
+        $hasAccessScope = Schema::hasColumn('chatbot_accounts', 'access_scope');
+        $account = $chatbotClass::query()
+            ->where('tenant_id', $this->tenantId())
+            ->where('status', 'active')
+            ->when($hasAccessScope, fn ($query) => $query->where('access_scope', 'public'))
+            ->find($chatbotAccountId);
+
+        if (!$account) {
+            throw ValidationException::withMessages([
+                'chatbot_account_id' => 'Chatbot private tidak bisa dihubungkan ke channel.',
+            ]);
+        }
+
+        return (int) $account->id;
     }
 
     private function resolveCloudCredentials(Request $request): array

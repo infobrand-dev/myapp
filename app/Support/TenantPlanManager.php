@@ -9,6 +9,7 @@ use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Models\TenantSubscription;
 use App\Models\User;
+use App\Services\TenantStorageUsageService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -71,6 +72,31 @@ class TenantPlanManager
 
         if ($key === PlanLimit::AI_CREDITS_MONTHLY) {
             return $this->aiCreditsUsage($tenantId);
+        }
+
+        if ($key === PlanLimit::TOTAL_STORAGE_BYTES) {
+            return app(TenantStorageUsageService::class)->usedBytes($tenantId);
+        }
+
+        if ($key === PlanLimit::BYO_AI_REQUESTS_MONTHLY) {
+            return app(\App\Services\AiUsageService::class)->byoRequestsUsedThisMonth($tenantId);
+        }
+
+        if ($key === PlanLimit::BYO_AI_TOKENS_MONTHLY) {
+            return app(\App\Services\AiUsageService::class)->byoTokensUsedThisMonth($tenantId);
+        }
+
+        if ($key === PlanLimit::BYO_CHATBOT_ACCOUNTS) {
+            $modelClass = \App\Modules\Chatbot\Models\ChatbotAccount::class;
+
+            if (!class_exists($modelClass) || !Schema::hasTable('chatbot_accounts')) {
+                return 0;
+            }
+
+            return (int) $modelClass::query()
+                ->where('tenant_id', $tenantId)
+                ->where('ai_source', 'byo')
+                ->count();
         }
 
         if ($key === PlanLimit::EMAIL_RECIPIENTS_MONTHLY) {
@@ -151,6 +177,18 @@ class TenantPlanManager
                 'tenant_cta' => 'Hubungi admin platform untuk top up AI Credits atau upgrade plan.',
                 'owner_cta' => 'Gunakan Top Up AI Credits atau assign plan yang lebih tinggi.',
             ],
+            PlanLimit::TOTAL_STORAGE_BYTES => [
+                'title' => 'Tambah storage total workspace',
+                'message' => 'Storage tenant dihitung sebagai satu kuota total lintas modul. Saat hampir penuh atau sudah penuh, upload file baru akan diblokir sampai plan dinaikkan atau file lama dibersihkan.',
+                'tenant_cta' => 'Hubungi admin platform untuk upgrade storage workspace atau bersihkan file lama.',
+                'owner_cta' => 'Naikkan limit total storage tenant atau bantu tenant membersihkan file lama yang tidak dipakai.',
+            ],
+            PlanLimit::BYO_CHATBOT_ACCOUNTS, PlanLimit::BYO_AI_REQUESTS_MONTHLY, PlanLimit::BYO_AI_TOKENS_MONTHLY => [
+                'title' => 'Tingkatkan kapasitas BYO AI',
+                'message' => 'Add-on BYO AI tenant ini sudah mendekati atau mencapai batas orkestrasi platform. Naikkan limit add-on atau arahkan tenant memakai Managed AI.',
+                'tenant_cta' => 'Hubungi admin platform untuk menaikkan kapasitas add-on BYO AI.',
+                'owner_cta' => 'Naikkan limit override BYO AI atau arahkan tenant kembali ke Managed AI.',
+            ],
             PlanLimit::WA_BLAST_RECIPIENTS_MONTHLY, PlanLimit::EMAIL_RECIPIENTS_MONTHLY => [
                 'title' => 'Naikkan kuota recipient bulanan',
                 'message' => 'Kuota recipient bulanan tidak bertambah otomatis. Tenant perlu upgrade plan atau penyesuaian internal dari tim platform.',
@@ -189,7 +227,7 @@ class TenantPlanManager
         }
 
         throw ValidationException::withMessages([
-            'plan' => $message ?: $this->defaultLimitMessage($key, $tenantId),
+            'plan' => $message ?: $this->defaultLimitMessageFor($key, $tenantId),
         ]);
     }
 
@@ -226,7 +264,7 @@ class TenantPlanManager
         return $limit < 0 ? null : $limit;
     }
 
-    private function defaultLimitMessage(string $key, ?int $tenantId = null): string
+    public function defaultLimitMessageFor(string $key, ?int $tenantId = null): string
     {
         $limit = $this->limit($key, $tenantId);
 
@@ -245,7 +283,11 @@ class TenantPlanManager
             PlanLimit::WA_BLAST_RECIPIENTS_MONTHLY => "Kuota recipient WhatsApp blast bulanan tenant hanya {$limit} recipient.",
             PlanLimit::EMAIL_RECIPIENTS_MONTHLY => "Kuota recipient email bulanan tenant hanya {$limit} recipient.",
             PlanLimit::AI_CREDITS_MONTHLY => "Kuota AI Credits bulanan tenant hanya {$limit} credit.",
+            PlanLimit::TOTAL_STORAGE_BYTES => 'Storage total workspace tenant sudah penuh. Hapus file lama atau upgrade plan untuk menambah kapasitas.',
             PlanLimit::CHATBOT_KNOWLEDGE_DOCUMENTS => "Plan tenant hanya mengizinkan maksimal {$limit} dokumen knowledge chatbot.",
+            PlanLimit::BYO_CHATBOT_ACCOUNTS => "Add-on BYO AI tenant hanya mengizinkan maksimal {$limit} chatbot BYO.",
+            PlanLimit::BYO_AI_REQUESTS_MONTHLY => "Add-on BYO AI tenant hanya mengizinkan maksimal {$limit} request AI per bulan.",
+            PlanLimit::BYO_AI_TOKENS_MONTHLY => "Add-on BYO AI tenant hanya mengizinkan maksimal {$limit} token AI per bulan.",
             PlanLimit::AUTOMATION_WORKFLOWS => "Plan tenant hanya mengizinkan maksimal {$limit} workflow automation.",
             PlanLimit::AUTOMATION_EXECUTIONS_MONTHLY => "Kuota eksekusi automation bulanan tenant hanya {$limit} eksekusi.",
             default => 'Batas plan tenant sudah tercapai.',

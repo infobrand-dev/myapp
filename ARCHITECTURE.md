@@ -21,7 +21,7 @@
 - Core runtime tenant resolution now flows through `App\Support\TenantContext` and `App\Http\Middleware\ResolveTenantContext`.
 - Current resolver order is: explicit request attribute/header/query, session, authenticated user `tenant_id`, then fallback to tenant `id = 1` only for standalone/bootstrap-safe flows. In SaaS mode, unresolved tenant context should fail closed instead of silently falling back to tenant `1`.
 - In SaaS mode, guest auth pages must be reached from the tenant subdomain. Apex/root domain is for onboarding or workspace discovery, not shared tenant login.
-- Public self-serve sales now starts from the apex onboarding flow. Buyer selects a public subscription plan, creates a tenant in `pending_payment`, receives a platform invoice, and is redirected to Midtrans checkout before the tenant is activated.
+- Public self-serve sales now starts from the apex onboarding flow. Buyer selects a public subscription plan, creates a tenant in `pending_payment`, receives a platform invoice, and then pays either through Midtrans checkout or manual bank transfer with a unique amount before the tenant is activated.
 - Platform owner access is separated onto the reserved `dash` subdomain, which binds to tenant `id = 1` for control-plane work.
 - Core runtime company resolution now flows through `App\Support\CompanyContext` and `App\Http\Middleware\ResolveCompanyContext`.
 - Current company resolver order is: explicit request attribute/header/query, session, then first active company under the active tenant.
@@ -59,7 +59,7 @@
 - Role seeding also pulls default permission maps from some modules via their service providers.
 - Tenant subscription and plan enforcement foundation now lives in `subscription_plans`, `tenant_subscriptions`, `companies`, and `App\Support\TenantPlanManager`.
 - Platform billing for SaaS plans lives in dedicated `platform_*` tables (`platform_plan_orders`, `platform_invoices`, `platform_invoice_items`, `platform_payments`) and must stay separate from tenant-facing `sales` / `payments` domain tables.
-- Current online payment flow for platform invoices uses Midtrans against the platform owner account, while `platform_*` tables remain the internal source of truth for invoice, payment, and subscription activation.
+- Platform invoice payments may flow through Midtrans or manual bank transfer verification, while `platform_*` tables remain the internal source of truth for invoice, payment, and subscription activation.
 - Platform-owned affiliate tracking for SaaS sales also lives in dedicated `platform_*` tables and attaches to platform plan orders; affiliate accounts are separate from tenant `users` and do not participate in tenant authentication.
 - Successful self-serve payment must also finalize onboarding by activating the tenant and sending the post-payment welcome email; welcome mail should not be sent before payment settles.
 - For go-live, platform-owner Midtrans credentials may be sourced directly from `.env` via `config/services.php` when no persisted `midtrans_settings` row exists for tenant `id = 1`.
@@ -96,5 +96,6 @@
 ## Related docs
 - `README.md`: setup, install, and runtime commands
 - `MODULES.md`: module catalog and high-level module notes
+- `docs/product/pricing.md`: pricing model, quota policy, and storage positioning
 - `SAAS_TENANCY.md`: target SaaS tenancy model, tenant lifecycle, plan gating, and multi-company direction
 - `SAAS_PRODUCT_MODEL.md`: target product model for tenant, company, branch, industry presets, module entitlement, and rollout order

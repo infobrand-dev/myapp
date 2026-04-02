@@ -3,6 +3,7 @@
 @section('title', 'Plan Catalog')
 
 @section('content')
+    @php($storageFormatter = app(\App\Support\StorageSizeFormatter::class))
     <div class="page-header d-flex align-items-center justify-content-between">
         <div>
             <div class="page-pretitle">Platform Owner</div>
@@ -57,9 +58,15 @@
                                 <div class="text-secondary text-uppercase small fw-bold mb-2">Batas Kuota</div>
                                 <div class="d-flex flex-column gap-2">
                                     @foreach($limitLabels as $key => $label)
+                                        @php
+                                            $limitValue = ($plan->limits ?? [])[$key] ?? null;
+                                            $displayValue = $limitValue === null
+                                                ? 'Unlimited'
+                                                : ($key === \App\Support\PlanLimit::TOTAL_STORAGE_BYTES ? $storageFormatter->format((int) $limitValue) : $limitValue);
+                                        @endphp
                                         <div class="d-flex justify-content-between small">
                                             <span>{{ $label }}</span>
-                                            <span>{{ ($plan->limits ?? [])[$key] ?? 'Unlimited' }}</span>
+                                            <span>{{ $displayValue }}</span>
                                         </div>
                                     @endforeach
                                 </div>

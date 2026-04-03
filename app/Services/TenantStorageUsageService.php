@@ -15,28 +15,7 @@ class TenantStorageUsageService
 {
     public function usedBytes(?int $tenantId = null): int
     {
-        $tenantId ??= TenantContext::currentId();
-        $paths = [];
-
-        foreach ($this->userAvatarReferences($tenantId) as $reference) {
-            $paths[$this->referenceKey($reference['disk'], $reference['path'])] = $reference;
-        }
-
-        foreach ($this->productMediaReferences($tenantId) as $reference) {
-            $paths[$this->referenceKey($reference['disk'], $reference['path'])] = $reference;
-        }
-
-        foreach ($this->waTemplateMediaReferences($tenantId) as $reference) {
-            $paths[$this->referenceKey($reference['disk'], $reference['path'])] = $reference;
-        }
-
-        foreach ($this->conversationMediaReferences($tenantId) as $reference) {
-            $paths[$this->referenceKey($reference['disk'], $reference['path'])] = $reference;
-        }
-
-        foreach ($this->liveChatWidgetLogoReferences($tenantId) as $reference) {
-            $paths[$this->referenceKey($reference['disk'], $reference['path'])] = $reference;
-        }
+        $paths = $this->referencedFiles($tenantId);
 
         $total = 0;
 
@@ -83,6 +62,80 @@ class TenantStorageUsageService
         ]);
     }
 
+    /**
+     * @return array<int, array{disk:string, path:string}>
+     */
+    public function referencedFiles(?int $tenantId = null): array
+    {
+        $tenantId ??= TenantContext::currentId();
+        $paths = [];
+
+        foreach ($this->userAvatarReferences($tenantId) as $reference) {
+            $paths[$this->referenceKey($reference['disk'], $reference['path'])] = $reference;
+        }
+
+        foreach ($this->productMediaReferences($tenantId) as $reference) {
+            $paths[$this->referenceKey($reference['disk'], $reference['path'])] = $reference;
+        }
+
+        foreach ($this->waTemplateMediaReferences($tenantId) as $reference) {
+            $paths[$this->referenceKey($reference['disk'], $reference['path'])] = $reference;
+        }
+
+        foreach ($this->conversationMediaReferences($tenantId) as $reference) {
+            $paths[$this->referenceKey($reference['disk'], $reference['path'])] = $reference;
+        }
+
+        foreach ($this->liveChatWidgetLogoReferences($tenantId) as $reference) {
+            $paths[$this->referenceKey($reference['disk'], $reference['path'])] = $reference;
+        }
+
+        return array_values($paths);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function publicReferencedPaths(?int $tenantId = null): array
+    {
+        return collect($this->referencedFiles($tenantId))
+            ->filter(static fn ($reference) => (string) ($reference['disk'] ?? '') === 'public')
+            ->map(static fn ($reference) => ltrim(str_replace('\\', '/', (string) ($reference['path'] ?? '')), '/'))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function publicReferencedPathsForAllTenants(): array
+    {
+        $paths = [];
+
+        foreach ($this->userAvatarReferences(null) as $reference) {
+            $paths[$this->referenceKey($reference['disk'], $reference['path'])] = ltrim(str_replace('\\', '/', (string) $reference['path']), '/');
+        }
+
+        foreach ($this->productMediaReferences(null) as $reference) {
+            $paths[$this->referenceKey($reference['disk'], $reference['path'])] = ltrim(str_replace('\\', '/', (string) $reference['path']), '/');
+        }
+
+        foreach ($this->waTemplateMediaReferences(null) as $reference) {
+            $paths[$this->referenceKey($reference['disk'], $reference['path'])] = ltrim(str_replace('\\', '/', (string) $reference['path']), '/');
+        }
+
+        foreach ($this->conversationMediaReferences(null) as $reference) {
+            $paths[$this->referenceKey($reference['disk'], $reference['path'])] = ltrim(str_replace('\\', '/', (string) $reference['path']), '/');
+        }
+
+        foreach ($this->liveChatWidgetLogoReferences(null) as $reference) {
+            $paths[$this->referenceKey($reference['disk'], $reference['path'])] = ltrim(str_replace('\\', '/', (string) $reference['path']), '/');
+        }
+
+        return array_values(array_filter($paths));
+    }
+
     public function fileSize(string $disk, ?string $path): int
     {
         $path = $this->normalizePath($path);
@@ -106,14 +159,14 @@ class TenantStorageUsageService
     /**
      * @return array<int, array{disk:string, path:string}>
      */
-    private function userAvatarReferences(int $tenantId): array
+    private function userAvatarReferences(?int $tenantId): array
     {
         if (!Schema::hasTable('users')) {
             return [];
         }
 
         return DB::table('users')
-            ->where('tenant_id', $tenantId)
+            ->when($tenantId !== null, fn ($query) => $query->where('tenant_id', $tenantId))
             ->whereNotNull('avatar')
             ->where('avatar', '!=', '')
             ->pluck('avatar')
@@ -124,14 +177,14 @@ class TenantStorageUsageService
     /**
      * @return array<int, array{disk:string, path:string}>
      */
-    private function productMediaReferences(int $tenantId): array
+    private function productMediaReferences(?int $tenantId): array
     {
         if (!Schema::hasTable('product_media')) {
             return [];
         }
 
         return DB::table('product_media')
-            ->where('tenant_id', $tenantId)
+            ->when($tenantId !== null, fn ($query) => $query->where('tenant_id', $tenantId))
             ->whereNotNull('disk')
             ->where('disk', '!=', '')
             ->whereNotNull('path')
@@ -144,7 +197,7 @@ class TenantStorageUsageService
     /**
      * @return array<int, array{disk:string, path:string}>
      */
-    private function waTemplateMediaReferences(int $tenantId): array
+    private function waTemplateMediaReferences(?int $tenantId): array
     {
         if (!Schema::hasTable('wa_templates')) {
             return [];
@@ -153,7 +206,7 @@ class TenantStorageUsageService
         $references = [];
 
         DB::table('wa_templates')
-            ->where('tenant_id', $tenantId)
+            ->when($tenantId !== null, fn ($query) => $query->where('tenant_id', $tenantId))
             ->whereNotNull('components')
             ->orderBy('id')
             ->select(['id', 'components'])
@@ -189,14 +242,14 @@ class TenantStorageUsageService
     /**
      * @return array<int, array{disk:string, path:string}>
      */
-    private function conversationMediaReferences(int $tenantId): array
+    private function conversationMediaReferences(?int $tenantId): array
     {
         if (!Schema::hasTable('conversation_messages')) {
             return [];
         }
 
         return DB::table('conversation_messages')
-            ->where('tenant_id', $tenantId)
+            ->when($tenantId !== null, fn ($query) => $query->where('tenant_id', $tenantId))
             ->whereNotNull('media_url')
             ->where('media_url', '!=', '')
             ->pluck('media_url')
@@ -213,14 +266,14 @@ class TenantStorageUsageService
     /**
      * @return array<int, array{disk:string, path:string}>
      */
-    private function liveChatWidgetLogoReferences(int $tenantId): array
+    private function liveChatWidgetLogoReferences(?int $tenantId): array
     {
         if (!Schema::hasTable('live_chat_widgets')) {
             return [];
         }
 
         return DB::table('live_chat_widgets')
-            ->where('tenant_id', $tenantId)
+            ->when($tenantId !== null, fn ($query) => $query->where('tenant_id', $tenantId))
             ->whereNotNull('logo_url')
             ->where('logo_url', '!=', '')
             ->pluck('logo_url')

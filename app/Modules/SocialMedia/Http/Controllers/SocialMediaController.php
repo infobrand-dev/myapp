@@ -10,6 +10,7 @@ use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\SocialMedia\Http\Requests\ReplySocialConversationRequest;
 use App\Modules\SocialMedia\Jobs\SendSocialMessage;
 use App\Services\TenantStorageUsageService;
+use App\Services\WorkspaceMediaStorageService;
 use App\Support\TenantContext;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -65,12 +66,15 @@ class SocialMediaController extends Controller
                 'Storage workspace tidak cukup untuk upload media social baru.'
             );
 
-            $path = $uploaded->store('social_messages/' . now()->format('Y/m'), 'public');
-            $publicUrl = $this->publicStorageUrl($path);
+            $storedMedia = app(WorkspaceMediaStorageService::class)->storeUploadedFile($uploaded, 'social_messages', 'public');
+            $path = $storedMedia['path'];
+            $publicUrl = $storedMedia['url'];
 
             $mediaValidationError = app(ConversationChannelManager::class)->validateMediaSend($conversation, $publicUrl);
             if ($mediaValidationError !== null) {
-                Storage::disk('public')->delete($path);
+                if (!$storedMedia['deduplicated']) {
+                    Storage::disk('public')->delete($path);
+                }
 
                 return back()->withErrors([
                     'media_file' => $mediaValidationError,
@@ -93,6 +97,9 @@ class SocialMediaController extends Controller
                 'payload' => [
                     'link' => $publicUrl,
                     'filename' => $filename,
+                    'storage_disk' => 'public',
+                    'storage_path' => $path,
+                    'content_hash' => $storedMedia['content_hash'],
                 ],
                 'status' => 'pending',
             ]);

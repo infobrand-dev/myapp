@@ -8,6 +8,7 @@ use App\Modules\Conversations\Contracts\ConversationChannelManager;
 use App\Modules\Conversations\Contracts\ConversationOutboundDispatcher;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
+use App\Modules\WhatsAppApi\Console\Commands\PruneWebhookPayloads;
 use App\Modules\WhatsAppApi\Http\Controllers\ContactActionController;
 use App\Modules\WhatsAppApi\Jobs\SendWhatsAppMessage;
 use App\Support\BooleanQuery;
@@ -319,12 +320,17 @@ class WhatsAppApiServiceProvider extends ServiceProvider
         $this->commands([
             CheckWhatsAppInstances::class,
             DispatchScheduledWABlasts::class,
+            PruneWebhookPayloads::class,
         ]);
 
         $this->app->booted(function (): void {
             $schedule = $this->app->make(Schedule::class);
             $schedule->command('whatsapp:check-instances')->everyTenMinutes();
             $schedule->command('whatsapp:dispatch-scheduled-blasts')->everyMinute();
+            $schedule->command('whatsapp:prune-webhook-payloads --days=' . (int) config('modules.storage_efficiency.whatsapp_webhook_payload_retention_days', 14))
+                ->dailyAt('02:30')
+                ->withoutOverlapping()
+                ->runInBackground();
         });
     }
 

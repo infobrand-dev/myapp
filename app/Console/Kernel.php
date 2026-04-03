@@ -21,6 +21,11 @@ class Kernel extends ConsoleKernel
             ->dailyAt('01:00')
             ->withoutOverlapping()
             ->runInBackground();
+
+        $schedule->command('media:cleanup-orphans')
+            ->dailyAt('02:00')
+            ->withoutOverlapping()
+            ->runInBackground();
     }
 
     /**

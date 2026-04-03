@@ -4,6 +4,7 @@ namespace App\Modules\WhatsAppApi\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Services\TenantStorageUsageService;
+use App\Services\WorkspaceMediaStorageService;
 use App\Modules\WhatsAppApi\Http\Requests\StoreWATemplateRequest;
 use App\Modules\WhatsAppApi\Http\Requests\UpdateWATemplateRequest;
 use App\Modules\WhatsAppApi\Jobs\SubmitTemplateToMeta;
@@ -476,8 +477,8 @@ class WATemplateController extends Controller
             $releasedBytes
         );
 
-        $path = $file->store('wa_templates/headers/' . now()->format('Y/m'), 'public');
-        $path = ltrim(str_replace('\\', '/', $path), '/');
+        $storedMedia = app(WorkspaceMediaStorageService::class)->storeUploadedFile($file, 'wa_templates/headers', 'public');
+        $path = ltrim(str_replace('\\', '/', $storedMedia['path']), '/');
 
         if ($path === '') {
             return null;
@@ -486,7 +487,7 @@ class WATemplateController extends Controller
         return [
             'disk' => 'public',
             'path' => $path,
-            'url' => asset('storage/' . $path),
+            'url' => $storedMedia['url'],
         ];
     }
 

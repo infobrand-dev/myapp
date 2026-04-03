@@ -5,6 +5,7 @@
     $showUsersLink = auth()->user()?->can('users.view') ?? false;
     $showSettingsLink = auth()->user()?->can('settings.view') ?? false;
     $showModulesLink = (auth()->user()?->hasRole('Super-admin') ?? false);
+    $showOmnichannelOverviewLink = auth()->user()?->hasAnyRole(['Super-admin', 'Admin']) ?? false;
     $showTenantAccountHeading = $showUsersLink || $showSettingsLink;
 @endphp
 <li class="nav-item">
@@ -158,6 +159,15 @@
         <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('settings.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('settings.general') }}" data-sidebar-label="Settings">
             <span class="nav-link-icon"><i class="ti ti-settings"></i></span>
             <span class="nav-link-title">Settings</span>
+        </a>
+    </li>
+    @endif
+
+    @if($showOmnichannelOverviewLink)
+    <li class="nav-item">
+        <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('omnichannel.overview') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('omnichannel.overview') }}" data-sidebar-label="Omnichannel Overview">
+            <span class="nav-link-icon"><i class="ti ti-chart-pie-3"></i></span>
+            <span class="nav-link-title">Omnichannel Overview</span>
         </a>
     </li>
     @endif

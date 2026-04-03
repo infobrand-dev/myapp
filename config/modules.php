@@ -32,4 +32,7 @@ return [
     'chatbot' => [
         'enabled' => true,
     ],
+    'storage_efficiency' => [
+        'whatsapp_webhook_payload_retention_days' => env('WHATSAPP_WEBHOOK_PAYLOAD_RETENTION_DAYS', 14),
+    ],
 ];

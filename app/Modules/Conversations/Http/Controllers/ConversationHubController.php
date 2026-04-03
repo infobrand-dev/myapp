@@ -16,6 +16,7 @@ use App\Modules\Conversations\Models\ConversationParticipant;
 use App\Modules\Conversations\Models\ConversationActivityLog;
 use App\Modules\Conversations\Events\ConversationMessageCreated;
 use App\Services\TenantStorageUsageService;
+use App\Services\WorkspaceMediaStorageService;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
@@ -569,12 +570,15 @@ class ConversationHubController extends Controller
                 'Storage workspace tidak cukup untuk upload media percakapan baru.'
             );
 
-            $path = $uploaded->store('wa_messages/' . now()->format('Y/m'), 'public');
-            $publicUrl = $this->publicStorageUrl($path);
+            $storedMedia = app(WorkspaceMediaStorageService::class)->storeUploadedFile($uploaded, 'wa_messages', 'public');
+            $path = $storedMedia['path'];
+            $publicUrl = $storedMedia['url'];
 
             $mediaValidationError = app(ConversationChannelManager::class)->validateMediaSend($conversation, $publicUrl);
             if ($mediaValidationError !== null) {
-                Storage::disk('public')->delete($path);
+                if (!$storedMedia['deduplicated']) {
+                    Storage::disk('public')->delete($path);
+                }
 
                 return $this->sendErrorResponse($request, $mediaValidationError);
             }
@@ -596,6 +600,9 @@ class ConversationHubController extends Controller
                 'payload' => [
                     'link' => $publicUrl,
                     'filename' => $filename,
+                    'storage_disk' => 'public',
+                    'storage_path' => $path,
+                    'content_hash' => $storedMedia['content_hash'],
                 ],
                 'status' => $outboundDefaults['status'],
                 'sent_at' => $outboundDefaults['sent_at'],

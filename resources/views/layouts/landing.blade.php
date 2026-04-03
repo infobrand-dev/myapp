@@ -54,7 +54,7 @@
                 <div class="mb-3">
                     <x-app-logo variant="default" :height="30" />
                 </div>
-                <p class="landing-footer-tagline mb-4">Platform omnichannel untuk tim sales, support, dan marketing — semua percakapan pelanggan dalam satu workspace.</p>
+                <p class="landing-footer-tagline mb-4">Satu workspace untuk jalankan bisnis Anda. Semua terhubung, semua terkendali.</p>
                 <div class="landing-footer-contact">
                     <a href="https://wa.me/6281222229815" target="_blank" rel="noopener" class="landing-footer-contact-item">
                         <i class="ti ti-brand-whatsapp"></i>

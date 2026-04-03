@@ -511,7 +511,7 @@ class PlatformOwnerController extends Controller
                 'starts_at' => $this->nullableCarbon($data['starts_at'] ?? null) ?? now(),
                 'ends_at' => $this->nullableCarbon($data['ends_at'] ?? null),
                 'trial_ends_at' => $this->nullableCarbon($data['trial_ends_at'] ?? null),
-                'auto_renews' => $this->databaseBoolean($request->boolean('auto_renews')),
+                'auto_renews' => $this->databaseBoolean(!empty($data['auto_renews'])),
                 'feature_overrides' => $byoOverrides['feature_overrides'],
                 'limit_overrides' => $byoOverrides['limit_overrides'],
                 'meta' => [

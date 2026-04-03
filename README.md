@@ -183,7 +183,7 @@ Ringkasan modul tersedia di `MODULES.md`.
 
 Kategori saat ini:
 - commerce: `products`, `inventory`, `discounts`, `sales`, `payments`, `purchases`, `finance`, `point-of-sale`
-- accounting (planned): `accounting_core`, `accounting_receivables`, `accounting_payables`, `accounting_cashbank`, `accounting_assets`, `accounting_tax`, `accounting_reports`, `accounting_integrations`
+- accounting (product line pricing): bundle existing `sales`, `payments`, `purchases`, `finance`, `point-of-sale`, `reports`
 - reporting: `reports`
 - communication: `conversations`, `live_chat`, `whatsapp_api`, `whatsapp_web`, `social_media`, `email_marketing`, `email_inbox`
 - automation: `chatbot`

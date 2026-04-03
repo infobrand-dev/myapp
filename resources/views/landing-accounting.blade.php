@@ -1,7 +1,7 @@
 @extends('layouts.landing')
 
-@section('head_title', config('app.name') . ' Accounting - Akuntansi, Closing, dan Integrasi Software Keuangan')
-@section('head_description', 'Lini produk accounting untuk pembukuan formal, buku besar, rekonsiliasi, laporan keuangan, dan integrasi ke Accurate, Zahir, Jurnal, serta software akuntansi lain.')
+@section('head_title', config('app.name') . ' Accounting - Paket Sales, Payments, Purchases, Finance, POS, dan Reports')
+@section('head_description', 'Product line Accounting untuk operasional transaksi existing: sales, payments, purchases, finance ringan, point of sale, dan reports dengan tier Starter, Growth, dan Scale.')
 
 @section('topbar')
 <header class="landing-topbar sticky-top">
@@ -11,14 +11,14 @@
                 <x-app-logo variant="default" :height="36" />
             </a>
             <nav class="d-none d-lg-flex align-items-center gap-1">
-                <a href="#modules" class="landing-nav-link">Modul</a>
-                <a href="#roadmap" class="landing-nav-link">Roadmap</a>
-                <a href="#integrations" class="landing-nav-link">Integrasi</a>
+                <a href="#bundle" class="landing-nav-link">Bundle</a>
+                <a href="#tiers" class="landing-nav-link">Paket</a>
+                <a href="#notes" class="landing-nav-link">Catatan</a>
                 <a href="#faq" class="landing-nav-link">FAQ</a>
             </nav>
             <div class="d-flex align-items-center gap-2">
                 <a href="{{ route('landing') }}" class="btn btn-outline-dark btn-sm d-none d-md-inline-flex">Omnichannel</a>
-                <a href="#cta" class="btn btn-dark btn-sm">Buka Plan</a>
+                <a href="#tiers" class="btn btn-dark btn-sm">Lihat Paket</a>
             </div>
         </div>
     </div>
@@ -31,50 +31,52 @@
         <div class="row g-5 align-items-center">
             <div class="col-lg-6">
                 <div class="landing-badge mb-4">
-                    <i class="ti ti-building-bank"></i> Product Line Baru: Accounting
+                    <i class="ti ti-report-money"></i> Product Line: Accounting
                 </div>
                 <h1 class="landing-headline mb-4">
-                    Dari transaksi operasional ke <span>pembukuan yang rapi</span>.
+                    Bundle transaksi internal untuk <span>sales sampai reporting</span>.
                 </h1>
                 <p class="landing-subtext mb-5">
-                    Section ini disiapkan untuk bisnis yang sudah jalan dan butuh akuntansi formal: COA, jurnal, buku besar, piutang, hutang, rekonsiliasi bank, laporan keuangan, sampai integrasi ke Accurate, Zahir, dan Jurnal.
+                    Product line ini menggantikan family `commerce` lama di layer plan dan billing. Fase pertama tidak membuka modul akuntansi formal baru, tetapi merapikan paket existing menjadi tiga tier: Starter, Growth, dan Scale.
                 </p>
                 <div class="d-flex flex-wrap gap-3 mb-5">
-                    <a href="#modules" class="btn btn-lg btn-dark">Lihat Modul</a>
-                    <a href="#roadmap" class="btn btn-lg btn-outline-dark">Lihat Roadmap</a>
+                    <a href="#bundle" class="btn btn-lg btn-dark">Lihat Bundle</a>
+                    <a href="#tiers" class="btn btn-lg btn-outline-dark">Lihat Tier</a>
                 </div>
                 <div class="d-flex flex-wrap gap-2">
-                    <span class="landing-pill"><i class="ti ti-book-2"></i> General Ledger</span>
-                    <span class="landing-pill"><i class="ti ti-scale"></i> Trial Balance</span>
-                    <span class="landing-pill"><i class="ti ti-receipt-tax"></i> Tax Layer</span>
-                    <span class="landing-pill"><i class="ti ti-arrows-exchange"></i> External Sync</span>
+                    <span class="landing-pill"><i class="ti ti-shopping-cart"></i> Sales</span>
+                    <span class="landing-pill"><i class="ti ti-credit-card"></i> Payments</span>
+                    <span class="landing-pill"><i class="ti ti-package"></i> Purchases</span>
+                    <span class="landing-pill"><i class="ti ti-cash"></i> Finance</span>
+                    <span class="landing-pill"><i class="ti ti-device-desktop"></i> POS</span>
+                    <span class="landing-pill"><i class="ti ti-chart-bar"></i> Reports</span>
                 </div>
             </div>
             <div class="col-lg-6">
                 <div class="landing-panel landing-hero-card p-4 p-lg-5">
                     <div class="mb-4">
-                        <div class="text-uppercase text-muted small fw-bold mb-1">Apa yang dibuka</div>
-                        <div class="fw-bold fs-4 lh-sm">Accounting berdiri terpisah dari commerce, tetapi tetap terhubung.</div>
+                        <div class="text-uppercase text-muted small fw-bold mb-1">Fase pertama</div>
+                        <div class="fw-bold fs-4 lh-sm">Rename product line, siapkan harga, dan jaga kompatibilitas data lama.</div>
                     </div>
                     <div class="row g-3 mb-4">
                         <div class="col-6">
                             <div class="landing-metric p-3 text-center">
-                                <div class="fw-bold mb-1" style="font-size:2.2rem;line-height:1;color:var(--landing-blue);">8</div>
-                                <div class="small text-muted">Module scope awal</div>
+                                <div class="fw-bold mb-1" style="font-size:2.2rem;line-height:1;color:var(--landing-blue);">3</div>
+                                <div class="small text-muted">Tier utama</div>
                             </div>
                         </div>
                         <div class="col-6">
                             <div class="landing-metric p-3 text-center">
-                                <div class="fw-bold mb-1" style="font-size:2.2rem;line-height:1;color:var(--landing-teal);">3</div>
-                                <div class="small text-muted">Target adapter integrasi</div>
+                                <div class="fw-bold mb-1" style="font-size:2.2rem;line-height:1;color:var(--landing-teal);">6</div>
+                                <div class="small text-muted">Module inti existing</div>
                             </div>
                         </div>
                     </div>
                     <div class="landing-checklist small">
-                        <div><i class="ti ti-check text-success"></i> `commerce` tetap fokus ke transaksi operasional</div>
-                        <div><i class="ti ti-check text-success"></i> `finance` tetap ringan, tidak dipaksa jadi ledger formal</div>
-                        <div><i class="ti ti-check text-success"></i> `accounting` fokus ke closing, auditability, dan laporan keuangan</div>
-                        <div><i class="ti ti-check text-success"></i> Integrasi external diposisikan sebagai adapter, bukan source of truth transaksi operasional</div>
+                        <div><i class="ti ti-check text-success"></i> `commerce` di-bundle ulang menjadi `accounting` pada plan dan billing</div>
+                        <div><i class="ti ti-check text-success"></i> Semua tier membawa core bundle yang sama</div>
+                        <div><i class="ti ti-check text-success"></i> Pembeda tier fokus ke limit dan kapasitas</div>
+                        <div><i class="ti ti-check text-success"></i> Onboarding public tetap omnichannel-only</div>
                     </div>
                 </div>
             </div>
@@ -82,112 +84,128 @@
     </div>
 </section>
 
-<section class="py-4">
-    <div class="container">
-        <div class="landing-trust-strip">
-            <div class="landing-trust-item"><i class="ti ti-package"></i><div class="small">Dipisah dari commerce</div></div>
-            <div class="landing-trust-sep"></div>
-            <div class="landing-trust-item"><i class="ti ti-building-bank"></i><div class="small">Siap multi-company</div></div>
-            <div class="landing-trust-sep"></div>
-            <div class="landing-trust-item"><i class="ti ti-file-invoice"></i><div class="small">Piutang & hutang formal</div></div>
-            <div class="landing-trust-sep"></div>
-            <div class="landing-trust-item"><i class="ti ti-report-money"></i><div class="small">P&amp;L, Neraca, Arus Kas</div></div>
-            <div class="landing-trust-sep"></div>
-            <div class="landing-trust-item"><i class="ti ti-link"></i><div class="small">Adapter ke Accurate, Zahir, Jurnal</div></div>
-        </div>
-    </div>
-</section>
-
-<section id="modules" class="py-5 py-lg-6">
+<section id="bundle" class="py-5 py-lg-6">
     <div class="container">
         <div class="text-center mb-5">
-            <div class="landing-eyebrow mb-2">Module Scope</div>
-            <h2 class="landing-section-title">Modul yang masuk ke section accounting.</h2>
-            <p class="landing-subtext mx-auto">Strukturnya dipisah per domain akuntansi supaya activation, dependency, dan rollout tetap rapi.</p>
+            <div class="landing-eyebrow mb-2">Bundle Inti</div>
+            <h2 class="landing-section-title">Modul existing yang dijual di product line Accounting.</h2>
+            <p class="landing-subtext mx-auto">Fase pertama tidak menunggu modul baru. Bundle ini memakai capability yang sudah ada di repo dan sudah masuk alur transaksi harian.</p>
         </div>
         <div class="row g-4">
-            <div class="col-md-6 col-xl-3">
+            <div class="col-md-6 col-xl-4">
                 <div class="landing-feature-card p-4 h-100">
-                    <div class="landing-feature-icon mb-3"><i class="ti ti-book-2"></i></div>
-                    <h3 class="h5 mb-2">Accounting Core</h3>
-                    <p class="text-muted small mb-0">COA, fiscal period, jurnal manual, ledger, trial balance, dan lock period sebagai fondasi pembukuan formal.</p>
+                    <div class="landing-feature-icon mb-3"><i class="ti ti-shopping-cart"></i></div>
+                    <h3 class="h5 mb-2">Sales</h3>
+                    <p class="text-muted small mb-0">Transaksi penjualan, retur, dan workflow operasional penjualan yang sudah ada di sistem.</p>
                 </div>
             </div>
-            <div class="col-md-6 col-xl-3">
+            <div class="col-md-6 col-xl-4">
                 <div class="landing-feature-card p-4 h-100">
-                    <div class="landing-feature-icon mb-3"><i class="ti ti-receipt-2"></i></div>
-                    <h3 class="h5 mb-2">Receivables</h3>
-                    <p class="text-muted small mb-0">Invoice customer, aging piutang, allocation pembayaran, dan statement account.</p>
+                    <div class="landing-feature-icon mb-3"><i class="ti ti-credit-card"></i></div>
+                    <h3 class="h5 mb-2">Payments</h3>
+                    <p class="text-muted small mb-0">Pencatatan payment dan alokasi pembayaran lintas transaksi existing.</p>
                 </div>
             </div>
-            <div class="col-md-6 col-xl-3">
+            <div class="col-md-6 col-xl-4">
                 <div class="landing-feature-card p-4 h-100">
-                    <div class="landing-feature-icon mb-3"><i class="ti ti-file-dollar"></i></div>
-                    <h3 class="h5 mb-2">Payables</h3>
-                    <p class="text-muted small mb-0">Vendor bill, aging hutang, allocation pembayaran, dan adjustment dasar vendor.</p>
+                    <div class="landing-feature-icon mb-3"><i class="ti ti-package"></i></div>
+                    <h3 class="h5 mb-2">Purchases</h3>
+                    <p class="text-muted small mb-0">Draft, finalize, receiving, dan pembelian supplier yang sudah berjalan di modul existing.</p>
                 </div>
             </div>
-            <div class="col-md-6 col-xl-3">
+            <div class="col-md-6 col-xl-4">
                 <div class="landing-feature-card p-4 h-100">
-                    <div class="landing-feature-icon mb-3"><i class="ti ti-building-bank"></i></div>
-                    <h3 class="h5 mb-2">Cash &amp; Bank</h3>
-                    <p class="text-muted small mb-0">Register kas/bank, transfer antar akun, mutasi, dan bank reconciliation.</p>
+                    <div class="landing-feature-icon mb-3"><i class="ti ti-cash"></i></div>
+                    <h3 class="h5 mb-2">Finance</h3>
+                    <p class="text-muted small mb-0">Cashflow operasional ringan untuk kas masuk dan kas keluar non-sales.</p>
                 </div>
             </div>
-            <div class="col-md-6 col-xl-3">
+            <div class="col-md-6 col-xl-4">
                 <div class="landing-feature-card p-4 h-100">
-                    <div class="landing-feature-icon mb-3"><i class="ti ti-building-warehouse"></i></div>
-                    <h3 class="h5 mb-2">Fixed Assets</h3>
-                    <p class="text-muted small mb-0">Register aset, perolehan, depresiasi, disposal, dan write-off dasar.</p>
+                    <div class="landing-feature-icon mb-3"><i class="ti ti-device-desktop"></i></div>
+                    <h3 class="h5 mb-2">Point of Sale</h3>
+                    <p class="text-muted small mb-0">Checkout kasir, cash session, dan alur operasional outlet yang sudah ada.</p>
                 </div>
             </div>
-            <div class="col-md-6 col-xl-3">
+            <div class="col-md-6 col-xl-4">
                 <div class="landing-feature-card p-4 h-100">
-                    <div class="landing-feature-icon mb-3"><i class="ti ti-receipt-tax"></i></div>
-                    <h3 class="h5 mb-2">Tax Layer</h3>
-                    <p class="text-muted small mb-0">Tax code, mapping transaksi, summary export-ready, dan perluasan pajak bertahap tanpa hardcode berlebih.</p>
-                </div>
-            </div>
-            <div class="col-md-6 col-xl-3">
-                <div class="landing-feature-card p-4 h-100">
-                    <div class="landing-feature-icon mb-3"><i class="ti ti-report-analytics"></i></div>
-                    <h3 class="h5 mb-2">Accounting Reports</h3>
-                    <p class="text-muted small mb-0">Laba rugi, neraca, arus kas, journal report, ledger report, dan aging report.</p>
-                </div>
-            </div>
-            <div class="col-md-6 col-xl-3">
-                <div class="landing-feature-card p-4 h-100">
-                    <div class="landing-feature-icon mb-3"><i class="ti ti-arrows-exchange"></i></div>
-                    <h3 class="h5 mb-2">Integrations</h3>
-                    <p class="text-muted small mb-0">Mapping account, job sync, export/import queue, error log, dan adapter provider-specific.</p>
+                    <div class="landing-feature-icon mb-3"><i class="ti ti-chart-bar"></i></div>
+                    <h3 class="h5 mb-2">Reports</h3>
+                    <p class="text-muted small mb-0">Layer reporting read-only untuk membaca data transaksi yang sudah aktif di bundle ini.</p>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<section class="py-5" style="background:#f8fafc; border-top:1px solid var(--landing-line); border-bottom:1px solid var(--landing-line);">
+<section id="tiers" class="py-5" style="background:#f8fafc; border-top:1px solid var(--landing-line); border-bottom:1px solid var(--landing-line);">
+    <div class="container">
+        <div class="text-center mb-5">
+            <div class="landing-eyebrow mb-2">Tier Struktur</div>
+            <h2 class="landing-section-title">Starter, Growth, dan Scale dengan core bundle yang sama.</h2>
+            <p class="landing-subtext mx-auto">Perbedaan paket ada pada kapasitas users, branches, storage, products, dan contacts. Fase pertama tidak memakai unlock module antar tier.</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="landing-plan-card p-4 h-100">
+                    <div class="h3 mb-2 fw-800">Accounting Starter</div>
+                    <div class="text-muted small mb-4">Untuk tim awal yang baru merapikan operasional transaksi.</div>
+                    <div class="landing-checklist small text-muted">
+                        <div><i class="ti ti-check text-success"></i> 1 company, 1 branch, 5 users</div>
+                        <div><i class="ti ti-check text-success"></i> Storage awal 1 GB</div>
+                        <div><i class="ti ti-check text-success"></i> Bundle inti sales, payments, purchases, finance, POS, reports</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="landing-plan-card p-4 h-100 featured">
+                    <div class="landing-plan-popular">Paket rekomendasi</div>
+                    <div class="h3 mb-2 fw-800">Accounting Growth</div>
+                    <div class="text-muted small mb-4">Untuk tim yang sudah aktif menangani transaksi harian dan butuh kapasitas lebih longgar.</div>
+                    <div class="landing-checklist small text-muted">
+                        <div><i class="ti ti-check text-success"></i> 1 company, 3 branches, 15 users</div>
+                        <div><i class="ti ti-check text-success"></i> Storage 5 GB</div>
+                        <div><i class="ti ti-check text-success"></i> Core bundle tetap sama, limit operasional naik</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="landing-plan-card p-4 h-100">
+                    <div class="h3 mb-2 fw-800">Accounting Scale</div>
+                    <div class="text-muted small mb-4">Untuk operasional multi-user dan multi-branch yang lebih padat.</div>
+                    <div class="landing-checklist small text-muted">
+                        <div><i class="ti ti-check text-success"></i> 3 companies, 10 branches, 50 users</div>
+                        <div><i class="ti ti-check text-success"></i> Storage 20 GB</div>
+                        <div><i class="ti ti-check text-success"></i> Kapasitas produk dan kontak jauh lebih besar</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="notes" class="py-5 py-lg-6">
     <div class="container">
         <div class="row g-4">
             <div class="col-lg-6">
                 <div class="landing-panel p-4 h-100">
-                    <div class="landing-eyebrow mb-2">Boundary</div>
-                    <h2 class="landing-section-title mb-3">Yang tetap ada di commerce.</h2>
+                    <div class="landing-eyebrow mb-2">Catatan Teknis</div>
+                    <h2 class="landing-section-title mb-3">Core bundle dijual dulu, dependency dijaga tetap aman.</h2>
                     <div class="landing-checklist text-muted">
-                        <div><i class="ti ti-check text-success"></i> Products, inventory, discounts, sales, purchases, payments, point-of-sale</div>
-                        <div><i class="ti ti-check text-success"></i> Transaksi operasional tetap dibuat di modul asalnya</div>
-                        <div><i class="ti ti-check text-success"></i> Accounting menerima posting dan reconciliation, bukan menduplikasi source transaksi</div>
+                        <div><i class="ti ti-check text-success"></i> `products`, `inventory`, `contacts`, dan `discounts` bisa tetap ikut sebagai dependency teknis bila runtime membutuhkannya</div>
+                        <div><i class="ti ti-check text-success"></i> Dependency teknis tidak dijadikan pesan utama pricing</div>
+                        <div><i class="ti ti-check text-success"></i> Rename family plan tidak boleh memutus tenant lama yang masih membaca `commerce` di data historis</div>
                     </div>
                 </div>
             </div>
             <div class="col-lg-6">
                 <div class="landing-panel p-4 h-100">
-                    <div class="landing-eyebrow mb-2">Positioning</div>
-                    <h2 class="landing-section-title mb-3">Yang dibuka di accounting.</h2>
+                    <div class="landing-eyebrow mb-2">Catatan Produk</div>
+                    <h2 class="landing-section-title mb-3">Belum menjual akuntansi formal penuh.</h2>
                     <div class="landing-checklist text-muted">
-                        <div><i class="ti ti-check text-success"></i> Closing period, jurnal, ledger, trial balance, laporan keuangan</div>
-                        <div><i class="ti ti-check text-success"></i> Piutang, hutang, cash/bank, rekonsiliasi, fixed asset</div>
-                        <div><i class="ti ti-check text-success"></i> Integrasi ke software akuntansi eksternal sebagai adapter terpisah</div>
+                        <div><i class="ti ti-check text-success"></i> Jangan klaim COA, ledger, atau closing formal bila modulnya belum ada</div>
+                        <div><i class="ti ti-check text-success"></i> Jangan buka self-serve checkout accounting di fase ini</div>
+                        <div><i class="ti ti-check text-success"></i> Landing ini hanya untuk positioning sampai katalog public dibuka</div>
                     </div>
                 </div>
             </div>
@@ -195,134 +213,35 @@
     </div>
 </section>
 
-<section id="roadmap" class="py-5 py-lg-6">
-    <div class="container">
-        <div class="text-center mb-5">
-            <div class="landing-eyebrow mb-2">Rollout Plan</div>
-            <h2 class="landing-section-title">Urutan implementasi yang paling aman.</h2>
-        </div>
-        <div class="row g-4">
-            <div class="col-lg-6">
-                <div class="landing-usecase-card p-4 h-100">
-                    <div class="landing-usecase-label mb-3">Phase 1</div>
-                    <h3 class="h5 mb-2">Accounting foundation</h3>
-                    <p class="text-muted small mb-0">Bangun `accounting_core`, `accounting_cashbank`, dan `accounting_reports` lebih dulu supaya tenant sudah punya fondasi jurnal dan laporan.</p>
-                </div>
-            </div>
-            <div class="col-lg-6">
-                <div class="landing-usecase-card p-4 h-100">
-                    <div class="landing-usecase-label mb-3">Phase 2</div>
-                    <h3 class="h5 mb-2">Receivables &amp; payables</h3>
-                    <p class="text-muted small mb-0">Buka invoice/bill formal, aging, payment allocation, dan statement tanpa menunggu integrasi commerce penuh.</p>
-                </div>
-            </div>
-            <div class="col-lg-6">
-                <div class="landing-usecase-card p-4 h-100">
-                    <div class="landing-usecase-label mb-3">Phase 3</div>
-                    <h3 class="h5 mb-2">Posting adapter dari commerce</h3>
-                    <p class="text-muted small mb-0">Tambahkan adapter dari `sales`, `purchases`, `payments`, dan `point-of-sale` agar transaksi operasional dapat menghasilkan jurnal yang konsisten.</p>
-                </div>
-            </div>
-            <div class="col-lg-6">
-                <div class="landing-usecase-card p-4 h-100">
-                    <div class="landing-usecase-label mb-3">Phase 4</div>
-                    <h3 class="h5 mb-2">External accounting integrations</h3>
-                    <p class="text-muted small mb-0">Buka adapter ke Accurate, Zahir, dan Jurnal setelah mapping, queue, observability, dan error handling siap.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section id="integrations" class="py-5">
-    <div class="container">
-        <div class="landing-panel rounded-4 p-4 p-lg-5">
-            <div class="row g-5 align-items-center">
-                <div class="col-lg-5">
-                    <div class="landing-eyebrow mb-2">Target Integrasi</div>
-                    <h2 class="landing-section-title mb-3">Provider yang jadi target awal.</h2>
-                    <p class="landing-subtext mb-0">Halaman ini menampilkan target adapter yang akan dibuka. Bukan klaim semua integrasi sudah live di runtime saat ini.</p>
-                </div>
-                <div class="col-lg-7">
-                    <div class="row g-3">
-                        <div class="col-sm-4">
-                            <div class="landing-credit-card p-3 h-100">
-                                <div class="landing-credit-icon"><i class="ti ti-building-bank"></i></div>
-                                <div class="fw-semibold mb-1">Accurate</div>
-                                <div class="text-muted small">Mapping account, customer/vendor, invoice/bill export, dan sync status.</div>
-                            </div>
-                        </div>
-                        <div class="col-sm-4">
-                            <div class="landing-credit-card p-3 h-100">
-                                <div class="landing-credit-icon"><i class="ti ti-building-store"></i></div>
-                                <div class="fw-semibold mb-1">Zahir</div>
-                                <div class="text-muted small">Adapter export/import transaksi, mapping COA, dan observability job.</div>
-                            </div>
-                        </div>
-                        <div class="col-sm-4">
-                            <div class="landing-credit-card p-3 h-100">
-                                <div class="landing-credit-icon"><i class="ti ti-file-invoice"></i></div>
-                                <div class="fw-semibold mb-1">Jurnal</div>
-                                <div class="text-muted small">Sync transaksi dan laporan dasar melalui layer integrasi yang terisolasi.</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="landing-credit-note mt-3">
-                        <i class="ti ti-info-circle"></i>
-                        <div>Setiap integrasi akan dipasang sebagai adapter provider-specific di atas `accounting_integrations`, supaya domain accounting inti tetap bersih dan tidak tergantung ke satu vendor.</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section id="faq" class="py-5 py-lg-6">
+<section id="faq" class="py-5">
     <div class="container">
         <div class="text-center mb-5">
             <div class="landing-eyebrow mb-2">FAQ</div>
-            <h2 class="landing-section-title">Pertanyaan dasar untuk section accounting.</h2>
+            <h2 class="landing-section-title">Pertanyaan dasar untuk fase pertama Accounting.</h2>
         </div>
         <div class="row g-4">
             <div class="col-lg-6">
                 <div class="landing-faq-card p-4 h-100">
-                    <h3 class="h5 mb-2">Apakah ini menggantikan commerce?</h3>
-                    <p class="text-muted small mb-0">Tidak. `commerce` tetap menjadi domain transaksi operasional. `accounting` dipakai untuk pembukuan formal, closing, dan reporting keuangan.</p>
+                    <h3 class="h5 mb-2">Apakah ini modul baru?</h3>
+                    <p class="text-muted small mb-0">Bukan. `accounting` adalah product line dan bundle pricing untuk modul existing yang sudah ada di repo.</p>
                 </div>
             </div>
             <div class="col-lg-6">
                 <div class="landing-faq-card p-4 h-100">
-                    <h3 class="h5 mb-2">Apakah finance yang sekarang langsung dipindah?</h3>
-                    <p class="text-muted small mb-0">Belum. `finance` saat ini tetap diposisikan sebagai cash flow operasional ringan. Sebagian capability bisa nanti diambil alih bertahap oleh `accounting_cashbank` bila dibutuhkan.</p>
+                    <h3 class="h5 mb-2">Apakah ini menggantikan commerce lama?</h3>
+                    <p class="text-muted small mb-0">Ya, di layer plan dan billing family `commerce` digeser menjadi `accounting` dengan tetap menjaga kompatibilitas data lama.</p>
                 </div>
             </div>
             <div class="col-lg-6">
                 <div class="landing-faq-card p-4 h-100">
-                    <h3 class="h5 mb-2">Accurate, Zahir, dan Jurnal sudah live?</h3>
-                    <p class="text-muted small mb-0">Belum diasumsikan live. Di plan ini ketiganya diposisikan sebagai target adapter awal dan akan dibuka setelah fondasi accounting inti stabil.</p>
+                    <h3 class="h5 mb-2">Apakah tiap tier membuka modul berbeda?</h3>
+                    <p class="text-muted small mb-0">Tidak pada fase pertama. Semua tier membawa core bundle yang sama, pembeda utamanya ada di limit dan kapasitas.</p>
                 </div>
             </div>
             <div class="col-lg-6">
                 <div class="landing-faq-card p-4 h-100">
-                    <h3 class="h5 mb-2">Kenapa tidak semua dijadikan satu modul besar?</h3>
-                    <p class="text-muted small mb-0">Karena dependency, activation, migration, dan integrasi akan lebih mudah dikelola jika dipisah per domain: core, AR, AP, cash/bank, reports, dan integrations.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section id="cta" class="py-5">
-    <div class="container">
-        <div class="landing-panel p-4 p-lg-5 rounded-4">
-            <div class="row g-4 align-items-center">
-                <div class="col-lg-8">
-                    <div class="landing-eyebrow mb-2">Deliverable</div>
-                    <h2 class="landing-section-title mb-2">Plan accounting sudah dibuka sebagai product line baru.</h2>
-                    <p class="landing-subtext mb-0">Dokumen detail modul dan rollout disimpan di <code>docs/product/accounting-plan.md</code>. Halaman ini menjadi landing awal untuk positioning, module scope, dan target integrasi.</p>
-                </div>
-                <div class="col-lg-4 text-lg-end">
-                    <a href="{{ route('landing') }}" class="btn btn-outline-dark btn-lg">Kembali ke Produk Utama</a>
+                    <h3 class="h5 mb-2">Apakah sudah dijual publik?</h3>
+                    <p class="text-muted small mb-0">Belum. Onboarding public tetap fokus ke Omnichannel, sedangkan Accounting disiapkan lebih dulu di control plane dan pricing internal.</p>
                 </div>
             </div>
         </div>

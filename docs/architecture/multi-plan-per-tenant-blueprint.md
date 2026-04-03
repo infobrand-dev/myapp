@@ -4,8 +4,8 @@
 - Allow one tenant to hold multiple active subscriptions in parallel.
 - Primary target shape:
   - `omnichannel`
-  - `commerce`
-  - `productivity`
+  - `accounting`
+  - `project_management`
   - future product lines without redesigning billing again
 - Preserve current platform billing tables and platform-owner workflow as much as possible.
 
@@ -29,8 +29,8 @@
 - Only one active subscription is allowed per `product_line`.
 - Example:
   - one active `omnichannel`
-  - one active `commerce`
-  - one active `productivity`
+  - one active `accounting`
+  - one active `project_management`
 - This keeps plan conflict resolution simple.
 
 ### 2. Product line source of truth
@@ -103,8 +103,8 @@ Add helpers:
 - Every feature must map to one owning `product_line`.
 - Example:
   - omnichannel features -> `omnichannel`
-  - commerce features -> `commerce`
-  - productivity features -> `productivity`
+  - accounting features -> `accounting`
+  - project management features -> `project_management`
 - Add a central map in code, for example:
   - `App\Support\PlanProductLineMap`
 
@@ -130,7 +130,7 @@ Add helpers:
   - live chat widgets
   - chatbot accounts
   - AI credits
-  - commerce/productivity future limits
+  - accounting/project-management future limits
 
 ## Shared limit rule
 - Avoid implicit summing by default.
@@ -164,8 +164,8 @@ Add helpers:
 Replace single plan block with:
 - `Active Plans`
   - Omnichannel
-  - Commerce
-  - Productivity
+  - Accounting
+  - Project Management
 - each card shows:
   - plan tier
   - status
@@ -178,8 +178,8 @@ Replace single plan block with:
 - Require product line visibility in the selector.
 - UX should read like:
   - `Assign Omnichannel Plan`
-  - `Assign Commerce Plan`
-  - `Assign Productivity Plan`
+  - `Assign Accounting Plan`
+  - `Assign Project Management Plan`
 
 ### Orders and invoices
 - Show `product_line` column.

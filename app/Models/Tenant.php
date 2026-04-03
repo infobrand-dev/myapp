@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\PlanProductLineMap;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -114,7 +115,7 @@ class Tenant extends Model
         }
 
         return $this->activeSubscriptions()
-            ->where('product_line', $productLine)
+            ->whereIn('product_line', PlanProductLineMap::productLineCandidates($productLine))
             ->first();
     }
 }

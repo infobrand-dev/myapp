@@ -4,6 +4,31 @@ namespace App\Support;
 
 class PlanProductLineMap
 {
+    public static function canonicalProductLine(?string $productLine): ?string
+    {
+        if (!is_string($productLine) || trim($productLine) === '') {
+            return $productLine;
+        }
+
+        return match (trim($productLine)) {
+            'commerce', 'accounting' => 'accounting',
+            default => trim($productLine),
+        };
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function productLineCandidates(string $productLine): array
+    {
+        $canonical = self::canonicalProductLine($productLine) ?: $productLine;
+
+        return match ($canonical) {
+            'accounting' => ['accounting', 'commerce'],
+            default => [$canonical],
+        };
+    }
+
     /**
      * Limits that apply to the workspace globally.
      * In phase 1 multi-plan, use the highest active entitlement.
@@ -40,7 +65,7 @@ class PlanProductLineMap
             PlanFeature::CRM,
             PlanFeature::EMAIL_MARKETING => 'crm',
 
-            PlanFeature::COMMERCE => 'commerce',
+            PlanFeature::COMMERCE => 'accounting',
             PlanFeature::PROJECT_MANAGEMENT => 'project_management',
 
             default => null,
@@ -50,7 +75,7 @@ class PlanProductLineMap
     public static function limitProductLine(string $key): ?string
     {
         return match ($key) {
-            PlanLimit::PRODUCTS => 'commerce',
+            PlanLimit::PRODUCTS => 'accounting',
             PlanLimit::CONTACTS => 'crm',
 
             PlanLimit::WHATSAPP_INSTANCES,

@@ -17,17 +17,21 @@ Planned boundary note:
 - `finance` saat ini tetap berada di `commerce` karena fungsinya masih cash flow operasional ringan, bukan akuntansi formal.
 
 ## Accounting
-Planned product line untuk pembukuan formal dan integrasi software akuntansi.
+Saat ini `accounting` diposisikan sebagai product line pricing yang memakai modul existing, bukan katalog modul baru.
 
-Planned modules:
-- `accounting_core`: COA, fiscal period, journal entry, ledger, trial balance, dan lock period.
-- `accounting_receivables`: customer invoice, aging piutang, payment allocation, statement customer.
-- `accounting_payables`: vendor bill, aging hutang, payment allocation, statement vendor.
-- `accounting_cashbank`: register kas/bank, transfer, mutasi, dan bank reconciliation.
-- `accounting_assets`: fixed asset register dan depreciation schedule.
-- `accounting_tax`: tax code dan tax mapping layer yang configurable.
-- `accounting_reports`: laba rugi, neraca, arus kas, ledger, jurnal, aging.
-- `accounting_integrations`: adapter ke provider seperti Accurate, Zahir, dan Jurnal.
+Bundle inti:
+- `sales`
+- `payments`
+- `purchases`
+- `finance`
+- `point-of-sale`
+- `reports`
+
+Dependency teknis yang bisa ikut terpakai:
+- `products`
+- `inventory`
+- `contacts`
+- `discounts`
 
 ## Reporting
 - `reports`: dashboard and module-level reports for sales, payments, inventory, purchases, finance, POS, and products.

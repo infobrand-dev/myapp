@@ -73,7 +73,7 @@ class TenantPlanManager
         return TenantSubscription::query()
             ->with('plan')
             ->where('tenant_id', $tenantId ?? TenantContext::currentId())
-            ->where('product_line', $productLine)
+            ->whereIn('product_line', PlanProductLineMap::productLineCandidates($productLine))
             ->active()
             ->latest('starts_at')
             ->latest('id')
@@ -449,7 +449,7 @@ class TenantPlanManager
         }
 
         return $subscriptions
-            ->groupBy(fn (TenantSubscription $subscription) => $subscription->productLine() ?: 'default')
+            ->groupBy(fn (TenantSubscription $subscription) => PlanProductLineMap::canonicalProductLine($subscription->productLine() ?: 'default') ?: 'default')
             ->map(fn (Collection $group) => $group->first())
             ->values();
     }
@@ -460,8 +460,10 @@ class TenantPlanManager
             return $subscriptions->first();
         }
 
+        $candidates = PlanProductLineMap::productLineCandidates($productLine);
+
         return $subscriptions->first(
-            fn (TenantSubscription $subscription) => ($subscription->productLine() ?: 'default') === $productLine
+            fn (TenantSubscription $subscription) => in_array(($subscription->productLine() ?: 'default'), $candidates, true)
         );
     }
 

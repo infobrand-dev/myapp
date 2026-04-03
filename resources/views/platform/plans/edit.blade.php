@@ -59,7 +59,7 @@
                                     <option value="{{ $key }}" @selected(old('product_line', $plan->productLine()) === $key)>{{ $label }}</option>
                                 @endforeach
                             </select>
-                            <div class="form-hint">Gunakan ini untuk membedakan lini produk seperti Omnichannel, CRM, Commerce, atau Project Management.</div>
+                            <div class="form-hint">Gunakan ini untuk membedakan lini produk seperti Omnichannel, CRM, Accounting, atau Project Management.</div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Siklus Tagihan</label>

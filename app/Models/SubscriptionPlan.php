@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\PlanProductLineMap;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -67,7 +68,7 @@ class SubscriptionPlan extends Model
             return null;
         }
 
-        return trim($value);
+        return PlanProductLineMap::canonicalProductLine(trim($value));
     }
 
     public function productLineLabel(): ?string
@@ -75,7 +76,7 @@ class SubscriptionPlan extends Model
         return match ($this->productLine()) {
             'omnichannel' => 'Omnichannel',
             'crm' => 'CRM',
-            'commerce' => 'Commerce',
+            'accounting', 'commerce' => 'Accounting',
             'project_management' => 'Project Management',
             'internal' => 'Internal',
             default => $this->productLine() ? str($this->productLine())->replace('_', ' ')->title()->toString() : null,

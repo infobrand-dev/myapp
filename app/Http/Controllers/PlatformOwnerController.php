@@ -23,6 +23,7 @@ use App\Services\TenantOnboardingSalesService;
 use App\Support\ByoAiAddon;
 use App\Support\PlanFeature;
 use App\Support\PlanLimit;
+use App\Support\PlanProductLineMap;
 use App\Support\TenantPlanManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -1002,7 +1003,7 @@ class PlatformOwnerController extends Controller
             PlanFeature::MULTI_COMPANY => 'Multi company',
             PlanFeature::CONVERSATIONS => 'Conversations inbox',
             PlanFeature::CRM => 'CRM pipeline',
-            PlanFeature::COMMERCE => 'Commerce suite',
+            PlanFeature::COMMERCE => 'Accounting suite',
             PlanFeature::PROJECT_MANAGEMENT => 'Project management',
             PlanFeature::LIVE_CHAT => 'Live chat widget',
             PlanFeature::SOCIAL_MEDIA => 'Social media conversations',
@@ -1024,7 +1025,7 @@ class PlatformOwnerController extends Controller
         return [
             'omnichannel' => 'Omnichannel',
             'crm' => 'CRM',
-            'commerce' => 'Commerce',
+            'accounting' => 'Accounting',
             'project_management' => 'Project Management',
             'internal' => 'Internal',
         ];
@@ -1217,12 +1218,12 @@ class PlatformOwnerController extends Controller
                     PlanLimit::AUTOMATION_EXECUTIONS_MONTHLY => 0,
                 ],
             ],
-            'commerce' => [
-                'label' => 'Commerce',
-                'description' => 'Sales, payments, products, inventory, purchases, finance, discounts, dan POS.',
-                'product_line' => 'commerce',
+            'accounting_starter' => [
+                'label' => 'Accounting Starter',
+                'description' => 'Paket awal untuk operasional penjualan, pembelian, pembayaran, finance ringan, POS, dan reporting dasar.',
+                'product_line' => 'accounting',
                 'features' => [
-                    PlanFeature::MULTI_COMPANY => true,
+                    PlanFeature::MULTI_COMPANY => false,
                     PlanFeature::CONVERSATIONS => false,
                     PlanFeature::CRM => false,
                     PlanFeature::COMMERCE => true,
@@ -1230,22 +1231,23 @@ class PlatformOwnerController extends Controller
                     PlanFeature::LIVE_CHAT => false,
                     PlanFeature::SOCIAL_MEDIA => false,
                     PlanFeature::CHATBOT_AI => false,
+                    PlanFeature::CHATBOT_BYO_AI => false,
                     PlanFeature::WHATSAPP_API => false,
                     PlanFeature::WHATSAPP_WEB => false,
                     PlanFeature::EMAIL_MARKETING => false,
                     PlanFeature::ADVANCED_REPORTS => true,
-                    'multi_branch' => true,
-                    'inventory' => true,
+                    'multi_branch' => false,
+                    'inventory' => false,
                     'finance' => true,
                     'pos' => true,
                 ],
                 'limits' => [
                     PlanLimit::COMPANIES => 1,
-                    PlanLimit::BRANCHES => 3,
-                    PlanLimit::USERS => 10,
-                    PlanLimit::TOTAL_STORAGE_BYTES => 5368709120,
-                    PlanLimit::PRODUCTS => 1000,
-                    PlanLimit::CONTACTS => 3000,
+                    PlanLimit::BRANCHES => 1,
+                    PlanLimit::USERS => 5,
+                    PlanLimit::TOTAL_STORAGE_BYTES => 1073741824,
+                    PlanLimit::PRODUCTS => 250,
+                    PlanLimit::CONTACTS => 1000,
                     PlanLimit::WHATSAPP_INSTANCES => 0,
                     PlanLimit::SOCIAL_ACCOUNTS => 0,
                     PlanLimit::LIVE_CHAT_WIDGETS => 0,
@@ -1256,13 +1258,110 @@ class PlatformOwnerController extends Controller
                     PlanLimit::EMAIL_RECIPIENTS_MONTHLY => 0,
                     PlanLimit::AI_CREDITS_MONTHLY => 0,
                     PlanLimit::CHATBOT_KNOWLEDGE_DOCUMENTS => 0,
+                    PlanLimit::BYO_CHATBOT_ACCOUNTS => 0,
+                    PlanLimit::BYO_AI_REQUESTS_MONTHLY => 0,
+                    PlanLimit::BYO_AI_TOKENS_MONTHLY => 0,
+                    PlanLimit::AUTOMATION_WORKFLOWS => 0,
+                    PlanLimit::AUTOMATION_EXECUTIONS_MONTHLY => 0,
+                ],
+            ],
+            'accounting_growth' => [
+                'label' => 'Accounting Growth',
+                'description' => 'Paket rekomendasi untuk tim yang sudah aktif menangani transaksi harian lintas penjualan, pembelian, pembayaran, finance, POS, dan reporting.',
+                'product_line' => 'accounting',
+                'features' => [
+                    PlanFeature::MULTI_COMPANY => true,
+                    PlanFeature::CONVERSATIONS => false,
+                    PlanFeature::CRM => false,
+                    PlanFeature::COMMERCE => true,
+                    PlanFeature::PROJECT_MANAGEMENT => false,
+                    PlanFeature::LIVE_CHAT => false,
+                    PlanFeature::SOCIAL_MEDIA => false,
+                    PlanFeature::CHATBOT_AI => false,
+                    PlanFeature::CHATBOT_BYO_AI => false,
+                    PlanFeature::WHATSAPP_API => false,
+                    PlanFeature::WHATSAPP_WEB => false,
+                    PlanFeature::EMAIL_MARKETING => false,
+                    PlanFeature::ADVANCED_REPORTS => true,
+                    'multi_branch' => true,
+                    'inventory' => false,
+                    'finance' => true,
+                    'pos' => true,
+                ],
+                'limits' => [
+                    PlanLimit::COMPANIES => 1,
+                    PlanLimit::BRANCHES => 3,
+                    PlanLimit::USERS => 15,
+                    PlanLimit::TOTAL_STORAGE_BYTES => 5368709120,
+                    PlanLimit::PRODUCTS => 2000,
+                    PlanLimit::CONTACTS => 5000,
+                    PlanLimit::WHATSAPP_INSTANCES => 0,
+                    PlanLimit::SOCIAL_ACCOUNTS => 0,
+                    PlanLimit::LIVE_CHAT_WIDGETS => 0,
+                    PlanLimit::CHATBOT_ACCOUNTS => 0,
+                    PlanLimit::EMAIL_INBOX_ACCOUNTS => 0,
+                    PlanLimit::EMAIL_CAMPAIGNS => 0,
+                    PlanLimit::WA_BLAST_RECIPIENTS_MONTHLY => 0,
+                    PlanLimit::EMAIL_RECIPIENTS_MONTHLY => 0,
+                    PlanLimit::AI_CREDITS_MONTHLY => 0,
+                    PlanLimit::CHATBOT_KNOWLEDGE_DOCUMENTS => 0,
+                    PlanLimit::BYO_CHATBOT_ACCOUNTS => 0,
+                    PlanLimit::BYO_AI_REQUESTS_MONTHLY => 0,
+                    PlanLimit::BYO_AI_TOKENS_MONTHLY => 0,
+                    PlanLimit::AUTOMATION_WORKFLOWS => 0,
+                    PlanLimit::AUTOMATION_EXECUTIONS_MONTHLY => 0,
+                ],
+            ],
+            'accounting_scale' => [
+                'label' => 'Accounting Scale',
+                'description' => 'Kapasitas besar untuk tim multi-user dan multi-branch yang menjalankan operasional transaksi lebih padat.',
+                'product_line' => 'accounting',
+                'features' => [
+                    PlanFeature::MULTI_COMPANY => true,
+                    PlanFeature::CONVERSATIONS => false,
+                    PlanFeature::CRM => false,
+                    PlanFeature::COMMERCE => true,
+                    PlanFeature::PROJECT_MANAGEMENT => false,
+                    PlanFeature::LIVE_CHAT => false,
+                    PlanFeature::SOCIAL_MEDIA => false,
+                    PlanFeature::CHATBOT_AI => false,
+                    PlanFeature::CHATBOT_BYO_AI => false,
+                    PlanFeature::WHATSAPP_API => false,
+                    PlanFeature::WHATSAPP_WEB => false,
+                    PlanFeature::EMAIL_MARKETING => false,
+                    PlanFeature::ADVANCED_REPORTS => true,
+                    'multi_branch' => true,
+                    'inventory' => false,
+                    'finance' => true,
+                    'pos' => true,
+                ],
+                'limits' => [
+                    PlanLimit::COMPANIES => 3,
+                    PlanLimit::BRANCHES => 10,
+                    PlanLimit::USERS => 50,
+                    PlanLimit::TOTAL_STORAGE_BYTES => 21474836480,
+                    PlanLimit::PRODUCTS => 10000,
+                    PlanLimit::CONTACTS => 20000,
+                    PlanLimit::WHATSAPP_INSTANCES => 0,
+                    PlanLimit::SOCIAL_ACCOUNTS => 0,
+                    PlanLimit::LIVE_CHAT_WIDGETS => 0,
+                    PlanLimit::CHATBOT_ACCOUNTS => 0,
+                    PlanLimit::EMAIL_INBOX_ACCOUNTS => 0,
+                    PlanLimit::EMAIL_CAMPAIGNS => 0,
+                    PlanLimit::WA_BLAST_RECIPIENTS_MONTHLY => 0,
+                    PlanLimit::EMAIL_RECIPIENTS_MONTHLY => 0,
+                    PlanLimit::AI_CREDITS_MONTHLY => 0,
+                    PlanLimit::CHATBOT_KNOWLEDGE_DOCUMENTS => 0,
+                    PlanLimit::BYO_CHATBOT_ACCOUNTS => 0,
+                    PlanLimit::BYO_AI_REQUESTS_MONTHLY => 0,
+                    PlanLimit::BYO_AI_TOKENS_MONTHLY => 0,
                     PlanLimit::AUTOMATION_WORKFLOWS => 0,
                     PlanLimit::AUTOMATION_EXECUTIONS_MONTHLY => 0,
                 ],
             ],
             'project_management' => [
                 'label' => 'Project Management',
-                'description' => 'Task, workflow, dan kolaborasi proyek tanpa membuka bundle commerce atau omnichannel.',
+                'description' => 'Task, workflow, dan kolaborasi proyek tanpa membuka bundle accounting atau omnichannel.',
                 'product_line' => 'project_management',
                 'features' => [
                     PlanFeature::MULTI_COMPANY => true,
@@ -1580,7 +1679,7 @@ class PlatformOwnerController extends Controller
             ->where('status', 'active');
 
         if (Schema::hasColumn('tenant_subscriptions', 'product_line')) {
-            $query->where('product_line', $productLine);
+            $query->whereIn('product_line', PlanProductLineMap::productLineCandidates($productLine));
         }
 
         $query->update([
@@ -1597,7 +1696,7 @@ class PlatformOwnerController extends Controller
             ->where('status', 'active');
 
         if (Schema::hasColumn('tenant_subscriptions', 'product_line')) {
-            $query->where('product_line', $productLine);
+            $query->whereIn('product_line', PlanProductLineMap::productLineCandidates($productLine));
         }
 
         return $query

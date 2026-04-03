@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\PlanProductLineMap;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -48,7 +49,7 @@ class TenantSubscription extends Model
     {
         $value = $this->product_line;
         if (is_string($value) && trim($value) !== '') {
-            return trim($value);
+            return PlanProductLineMap::canonicalProductLine(trim($value)) ?: trim($value);
         }
 
         return $this->plan?->productLine() ?: 'default';
@@ -56,7 +57,7 @@ class TenantSubscription extends Model
 
     public function scopeForProductLine(Builder $query, string $productLine): Builder
     {
-        return $query->where('product_line', $productLine);
+        return $query->whereIn('product_line', PlanProductLineMap::productLineCandidates($productLine));
     }
 
     public function scopeCurrentForProductLine(Builder $query, int $tenantId, string $productLine): Builder

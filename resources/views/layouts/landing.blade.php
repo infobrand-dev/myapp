@@ -26,14 +26,14 @@
                 <x-app-logo variant="default" :height="36" />
             </a>
             <nav class="d-none d-lg-flex align-items-center gap-1">
-                <a href="{{ route('landing') }}#solutions"  class="landing-nav-link">Fitur</a>
-                <a href="{{ route('landing') }}#pricing"    class="landing-nav-link">Harga</a>
-                <a href="{{ route('landing') }}#ai-credits" class="landing-nav-link">AI Credits</a>
-                <a href="{{ route('landing') }}#faq"        class="landing-nav-link">FAQ</a>
+                <a href="{{ route('landing') }}#platform" class="landing-nav-link">Platform</a>
+                <a href="{{ route('landing') }}#products" class="landing-nav-link">Product Line</a>
+                <a href="{{ route('landing') }}#modules" class="landing-nav-link">Module</a>
+                <a href="{{ route('landing') }}#why" class="landing-nav-link">Kenapa Meetra</a>
             </nav>
             <div class="d-flex align-items-center gap-2">
                 <a href="{{ route('workspace.finder') }}" class="btn btn-outline-dark btn-sm d-none d-md-inline-flex">Login Workspace</a>
-                <a href="{{ route('onboarding.create') }}" class="btn btn-dark btn-sm">Daftar Gratis</a>
+                <a href="{{ route('landing.accounting') }}" class="btn btn-dark btn-sm">Lihat Accounting</a>
             </div>
         </div>
     </div>
@@ -76,15 +76,14 @@
             <div class="col-6 col-lg-2">
                 <div class="landing-footer-heading">Produk</div>
                 <nav class="landing-footer-nav">
-                    <a href="{{ route('landing.meetra') }}">Meetra</a>
+                    <a href="{{ route('landing') }}">Meetra</a>
                     <a href="{{ route('landing.omnichannel') }}">Omnichannel</a>
                     <a href="{{ route('landing.accounting') }}">Accounting</a>
-                    <a href="{{ route('landing') }}#solutions">Fitur</a>
-                    <a href="{{ route('landing') }}#pricing">Harga</a>
-                    <a href="{{ route('landing') }}#ai-credits">AI Credits</a>
-                    <a href="{{ route('landing') }}#faq">FAQ</a>
+                    <a href="{{ route('landing') }}#platform">Platform</a>
+                    <a href="{{ route('landing') }}#products">Product Line</a>
+                    <a href="{{ route('landing') }}#modules">Module</a>
+                    <a href="{{ route('landing') }}#why">Kenapa Meetra</a>
                     <a href="{{ route('workspace.finder') }}">Login Workspace</a>
-                    <a href="{{ route('onboarding.create') }}">Daftar Gratis</a>
                 </nav>
             </div>
 

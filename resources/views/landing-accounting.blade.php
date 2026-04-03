@@ -7,7 +7,7 @@
 <header class="landing-topbar sticky-top">
     <div class="container py-3">
         <div class="d-flex align-items-center justify-content-between gap-3">
-            <a href="{{ route('landing.meetra') }}" class="text-decoration-none d-inline-flex align-items-center gap-2">
+            <a href="{{ route('landing') }}" class="text-decoration-none d-inline-flex align-items-center gap-2">
                 <x-app-logo variant="default" :height="36" />
             </a>
             <nav class="d-none d-lg-flex align-items-center gap-1">
@@ -17,7 +17,7 @@
                 <a href="#workflow" class="landing-nav-link">Workflow</a>
             </nav>
             <div class="d-flex align-items-center gap-2">
-                <a href="{{ route('landing.meetra') }}" class="btn btn-outline-dark btn-sm d-none d-md-inline-flex">Tentang Meetra</a>
+                <a href="{{ route('landing') }}" class="btn btn-outline-dark btn-sm d-none d-md-inline-flex">Tentang Meetra</a>
                 <a href="#tiers" class="btn btn-dark btn-sm">Lihat Paket</a>
             </div>
         </div>
@@ -252,7 +252,7 @@
             <h2 class="landing-section-title mb-3">Bangun ritme operasional yang lebih rapi tanpa memecah workflow tim.</h2>
             <p class="landing-subtext mx-auto mb-4" style="max-width:760px;">Jika Anda ingin penjualan, pembelian, pembayaran, kas, dan laporan tetap nyambung dalam satu workspace, product line Accounting adalah jalur yang paling pas untuk mulai.</p>
             <div class="d-flex flex-wrap justify-content-center gap-3">
-                <a href="{{ route('landing.meetra') }}" class="btn btn-outline-dark btn-lg">Lihat Semua Product</a>
+                <a href="{{ route('landing') }}" class="btn btn-outline-dark btn-lg">Lihat Semua Product</a>
                 <a href="{{ route('landing.omnichannel') }}" class="btn btn-dark btn-lg">Lihat Omnichannel</a>
             </div>
         </div>

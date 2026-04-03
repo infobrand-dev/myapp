@@ -7,7 +7,7 @@
 <header class="landing-topbar sticky-top">
     <div class="container py-3">
         <div class="d-flex align-items-center justify-content-between gap-3">
-            <a href="{{ route('landing.meetra') }}" class="text-decoration-none d-inline-flex align-items-center gap-2">
+            <a href="{{ route('landing') }}" class="text-decoration-none d-inline-flex align-items-center gap-2">
                 <x-app-logo variant="default" :height="36" />
             </a>
             <nav class="d-none d-lg-flex align-items-center gap-1">

@@ -28,8 +28,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('locale/switch', [App\Http\Controllers\LocaleController::class, 'switch'])->name('locale.switch');
 
-Route::get('/', LandingPageController::class)->name('landing');
-Route::get('/meetra', [LandingPageController::class, 'meetra'])->name('landing.meetra');
+Route::get('/', [LandingPageController::class, 'meetra'])->name('landing');
+Route::get('/meetra', fn () => redirect()->route('landing'))->name('landing.meetra');
 Route::get('/omnichannel', [LandingPageController::class, 'omnichannel'])->name('landing.omnichannel');
 Route::get('/accounting', [LandingPageController::class, 'accounting'])->name('landing.accounting');
 Route::get('/affiliate-program', AffiliateProgramController::class)->name('affiliate.program');

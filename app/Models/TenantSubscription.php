@@ -11,6 +11,7 @@ class TenantSubscription extends Model
     protected $fillable = [
         'tenant_id',
         'subscription_plan_id',
+        'product_line',
         'status',
         'billing_provider',
         'billing_reference',
@@ -41,6 +42,31 @@ class TenantSubscription extends Model
     public function plan(): BelongsTo
     {
         return $this->belongsTo(SubscriptionPlan::class, 'subscription_plan_id');
+    }
+
+    public function productLine(): string
+    {
+        $value = $this->product_line;
+        if (is_string($value) && trim($value) !== '') {
+            return trim($value);
+        }
+
+        return $this->plan?->productLine() ?: 'default';
+    }
+
+    public function scopeForProductLine(Builder $query, string $productLine): Builder
+    {
+        return $query->where('product_line', $productLine);
+    }
+
+    public function scopeCurrentForProductLine(Builder $query, int $tenantId, string $productLine): Builder
+    {
+        return $query
+            ->where('tenant_id', $tenantId)
+            ->forProductLine($productLine)
+            ->active()
+            ->latest('starts_at')
+            ->latest('id');
     }
 
     public function scopeActive(Builder $query): Builder

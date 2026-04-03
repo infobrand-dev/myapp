@@ -53,6 +53,15 @@ class LandingPageController extends Controller
         ]);
     }
 
+    public function accounting(Request $request): View|RedirectResponse
+    {
+        if (auth()->check()) {
+            return redirect()->away($this->workspaceUrlFor($request));
+        }
+
+        return view('landing-accounting');
+    }
+
     public function workspaceFinder(Request $request, PlatformAffiliateService $affiliateService): View|RedirectResponse
     {
         $affiliateService->captureFromRequest($request);

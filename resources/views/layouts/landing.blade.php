@@ -76,6 +76,8 @@
             <div class="col-6 col-lg-2">
                 <div class="landing-footer-heading">Produk</div>
                 <nav class="landing-footer-nav">
+                    <a href="{{ route('landing.omnichannel') }}">Omnichannel</a>
+                    <a href="{{ route('landing.accounting') }}">Accounting</a>
                     <a href="{{ route('landing') }}#solutions">Fitur</a>
                     <a href="{{ route('landing') }}#pricing">Harga</a>
                     <a href="{{ route('landing') }}#ai-credits">AI Credits</a>

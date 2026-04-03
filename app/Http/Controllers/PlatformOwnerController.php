@@ -225,14 +225,34 @@ class PlatformOwnerController extends Controller
 
         $tenant->load($relations);
 
+        $activePlans = $tenant->subscriptions
+            ->filter(fn (TenantSubscription $subscription) => $subscription->status === 'active')
+            ->filter(function (TenantSubscription $subscription): bool {
+                if ($subscription->starts_at && $subscription->starts_at->isFuture()) {
+                    return false;
+                }
+
+                return !$subscription->ends_at || $subscription->ends_at->isFuture();
+            })
+            ->sortByDesc(fn (TenantSubscription $subscription) => optional($subscription->starts_at)->timestamp ?? 0)
+            ->groupBy(fn (TenantSubscription $subscription) => $subscription->productLine())
+            ->map(fn ($group) => $group->first())
+            ->sortKeys();
+
         $plans = SubscriptionPlan::query()
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
 
+        $plansByProductLine = $plans
+            ->groupBy(fn (SubscriptionPlan $plan) => $plan->productLineLabel() ?: 'Default')
+            ->sortKeys();
+
         return view('platform.tenants.show', [
             'tenant' => $tenant,
             'plans' => $plans,
+            'plansByProductLine' => $plansByProductLine,
+            'activePlans' => $activePlans,
             'ordersReady' => $this->orderTableReady(),
             'invoicesReady' => $this->invoiceTableReady(),
             'paymentsReady' => $this->paymentTableReady(),
@@ -485,26 +505,19 @@ class PlatformOwnerController extends Controller
             'auto_renews' => ['nullable', 'boolean'],
         ]);
 
-        DB::transaction(function () use ($tenant, $data): void {
-            $activeSubscription = TenantSubscription::query()
-                ->where('tenant_id', $tenant->id)
-                ->where('status', 'active')
-                ->latest('id')
-                ->first();
+        $selectedPlan = SubscriptionPlan::query()->findOrFail((int) $data['subscription_plan_id']);
+        $productLine = $this->resolvedProductLine($selectedPlan);
+
+        DB::transaction(function () use ($tenant, $data, $selectedPlan, $productLine): void {
+            $activeSubscription = $this->activeSubscriptionForProductLine($tenant->id, $productLine);
             $byoOverrides = $this->preserveByoOverrides($activeSubscription);
 
-            TenantSubscription::query()
-                ->where('tenant_id', $tenant->id)
-                ->where('status', 'active')
-                ->update([
-                    'status' => 'expired',
-                    'ends_at' => now(),
-                    'updated_at' => now(),
-                ]);
+            $this->expireActiveSubscriptionsForProductLine($tenant->id, $productLine);
 
             TenantSubscription::create([
                 'tenant_id' => $tenant->id,
-                'subscription_plan_id' => (int) $data['subscription_plan_id'],
+                'subscription_plan_id' => $selectedPlan->id,
+                'product_line' => $productLine,
                 'status' => $data['status'],
                 'billing_provider' => $data['billing_provider'] ?: 'manual',
                 'billing_reference' => $data['billing_reference'] ?: ('manual-' . $tenant->id . '-' . now()->timestamp),
@@ -517,6 +530,7 @@ class PlatformOwnerController extends Controller
                 'meta' => [
                     'assigned_from' => 'platform_owner',
                     'assigned_by_user_id' => auth()->id(),
+                    'product_line_label' => $selectedPlan->productLineLabel(),
                 ],
             ]);
         });
@@ -618,10 +632,12 @@ class PlatformOwnerController extends Controller
 
         $selectedPlan = SubscriptionPlan::query()->findOrFail((int) $data['subscription_plan_id']);
         $sellablePlan = app(TenantOnboardingSalesService::class)->resolvePlanForNewSale($selectedPlan);
+        $productLine = $this->resolvedProductLine($sellablePlan);
 
         PlatformPlanOrder::create([
             'tenant_id' => $tenant->id,
             'subscription_plan_id' => $sellablePlan->id,
+            'product_line' => $productLine,
             'order_number' => $this->nextOrderNumber(),
             'status' => 'pending',
             'amount' => $data['amount'],
@@ -638,6 +654,7 @@ class PlatformOwnerController extends Controller
                 'requested_plan_code' => $selectedPlan->code,
                 'resolved_plan_id' => $sellablePlan->id,
                 'resolved_plan_code' => $sellablePlan->code,
+                'product_line' => $productLine,
             ],
         ]);
 
@@ -663,18 +680,13 @@ class PlatformOwnerController extends Controller
         $paymentMailQueue = [];
 
         DB::transaction(function () use ($order, $onboardingSales, &$welcomePayload, &$paymentMailQueue): void {
-            TenantSubscription::query()
-                ->where('tenant_id', $order->tenant_id)
-                ->where('status', 'active')
-                ->update([
-                    'status' => 'expired',
-                    'ends_at' => now(),
-                    'updated_at' => now(),
-                ]);
+            $productLine = $order->product_line ?: $this->resolvedProductLine($order->plan);
+            $this->expireActiveSubscriptionsForProductLine($order->tenant_id, $productLine);
 
             $subscription = TenantSubscription::create([
                 'tenant_id' => $order->tenant_id,
                 'subscription_plan_id' => $order->subscription_plan_id,
+                'product_line' => $productLine,
                 'status' => 'active',
                 'billing_provider' => $order->payment_channel ?: 'manual',
                 'billing_reference' => $order->order_number,
@@ -685,6 +697,7 @@ class PlatformOwnerController extends Controller
                     'source_order_id' => $order->id,
                     'assigned_from' => 'platform_owner_order',
                     'assigned_by_user_id' => auth()->id(),
+                    'product_line_label' => optional($order->plan)->productLineLabel(),
                 ],
             ]);
 
@@ -758,6 +771,7 @@ class PlatformOwnerController extends Controller
             'tenant_id' => $order->tenant_id,
             'platform_plan_order_id' => $order->id,
             'subscription_plan_id' => $order->subscription_plan_id,
+            'product_line' => $order->product_line ?: $this->resolvedProductLine($order->plan),
             'invoice_number' => $this->nextInvoiceNumber(),
             'status' => 'issued',
             'amount' => $order->amount,
@@ -1532,25 +1546,17 @@ class PlatformOwnerController extends Controller
 
     private function activateSubscriptionFromBilling(int $tenantId, int $planId, string $billingProvider, string $billingReference, $startsAt, $endsAt): TenantSubscription
     {
-        $activeSubscription = TenantSubscription::query()
-            ->where('tenant_id', $tenantId)
-            ->where('status', 'active')
-            ->latest('id')
-            ->first();
+        $plan = SubscriptionPlan::query()->findOrFail($planId);
+        $productLine = $this->resolvedProductLine($plan);
+        $activeSubscription = $this->activeSubscriptionForProductLine($tenantId, $productLine);
         $byoOverrides = $this->preserveByoOverrides($activeSubscription);
 
-        TenantSubscription::query()
-            ->where('tenant_id', $tenantId)
-            ->where('status', 'active')
-            ->update([
-                'status' => 'expired',
-                'ends_at' => now(),
-                'updated_at' => now(),
-            ]);
+        $this->expireActiveSubscriptionsForProductLine($tenantId, $productLine);
 
         return TenantSubscription::create([
             'tenant_id' => $tenantId,
             'subscription_plan_id' => $planId,
+            'product_line' => $productLine,
             'status' => 'active',
             'billing_provider' => $billingProvider,
             'billing_reference' => $billingReference,
@@ -1562,8 +1568,47 @@ class PlatformOwnerController extends Controller
             'meta' => [
                 'assigned_from' => 'platform_billing',
                 'assigned_by_user_id' => auth()->id(),
+                'product_line_label' => $plan->productLineLabel(),
             ],
         ]);
+    }
+
+    private function expireActiveSubscriptionsForProductLine(int $tenantId, string $productLine): void
+    {
+        $query = TenantSubscription::query()
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'active');
+
+        if (Schema::hasColumn('tenant_subscriptions', 'product_line')) {
+            $query->where('product_line', $productLine);
+        }
+
+        $query->update([
+            'status' => 'expired',
+            'ends_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    private function activeSubscriptionForProductLine(int $tenantId, string $productLine): ?TenantSubscription
+    {
+        $query = TenantSubscription::query()
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'active');
+
+        if (Schema::hasColumn('tenant_subscriptions', 'product_line')) {
+            $query->where('product_line', $productLine);
+        }
+
+        return $query
+            ->latest('starts_at')
+            ->latest('id')
+            ->first();
+    }
+
+    private function resolvedProductLine(?SubscriptionPlan $plan): string
+    {
+        return $plan?->productLine() ?: 'default';
     }
 
     private function databaseBoolean(bool $value): bool|string

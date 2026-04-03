@@ -13,6 +13,22 @@ This file is a quick catalog. The authoritative metadata for each module lives i
 - `point-of-sale`: POS cart, checkout, cash session, receipt flow. Requires `products`, `contacts`, `sales`, `payments`, `discounts`.
 - `midtrans`: Midtrans payment gateway integration for online payment flow. Requires `payments`, `sales`, `point-of-sale`.
 
+Planned boundary note:
+- `finance` saat ini tetap berada di `commerce` karena fungsinya masih cash flow operasional ringan, bukan akuntansi formal.
+
+## Accounting
+Planned product line untuk pembukuan formal dan integrasi software akuntansi.
+
+Planned modules:
+- `accounting_core`: COA, fiscal period, journal entry, ledger, trial balance, dan lock period.
+- `accounting_receivables`: customer invoice, aging piutang, payment allocation, statement customer.
+- `accounting_payables`: vendor bill, aging hutang, payment allocation, statement vendor.
+- `accounting_cashbank`: register kas/bank, transfer, mutasi, dan bank reconciliation.
+- `accounting_assets`: fixed asset register dan depreciation schedule.
+- `accounting_tax`: tax code dan tax mapping layer yang configurable.
+- `accounting_reports`: laba rugi, neraca, arus kas, ledger, jurnal, aging.
+- `accounting_integrations`: adapter ke provider seperti Accurate, Zahir, dan Jurnal.
+
 ## Reporting
 - `reports`: dashboard and module-level reports for sales, payments, inventory, purchases, finance, POS, and products.
 

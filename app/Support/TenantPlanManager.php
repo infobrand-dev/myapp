@@ -10,6 +10,7 @@ use App\Models\Tenant;
 use App\Models\TenantSubscription;
 use App\Models\User;
 use App\Services\TenantStorageUsageService;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -22,9 +23,57 @@ class TenantPlanManager
             return null;
         }
 
+        $tenantId ??= TenantContext::currentId();
+
+        $omnichannel = $this->currentSubscriptionFor('omnichannel', $tenantId);
+        if ($omnichannel) {
+            return $omnichannel;
+        }
+
+        return TenantSubscription::query()
+            ->with('plan')
+            ->where('tenant_id', $tenantId)
+            ->active()
+            ->latest('starts_at')
+            ->latest('id')
+            ->first();
+    }
+
+    public function currentSubscriptions(?int $tenantId = null)
+    {
+        if (!Schema::hasTable('tenant_subscriptions')) {
+            return collect();
+        }
+
         return TenantSubscription::query()
             ->with('plan')
             ->where('tenant_id', $tenantId ?? TenantContext::currentId())
+            ->active()
+            ->orderByDesc('starts_at')
+            ->orderByDesc('id')
+            ->get();
+    }
+
+    public function currentSubscriptionFor(string $productLine, ?int $tenantId = null): ?TenantSubscription
+    {
+        if (!Schema::hasTable('tenant_subscriptions')) {
+            return null;
+        }
+
+        if (!Schema::hasColumn('tenant_subscriptions', 'product_line')) {
+            return TenantSubscription::query()
+                ->with('plan')
+                ->where('tenant_id', $tenantId ?? TenantContext::currentId())
+                ->active()
+                ->latest('starts_at')
+                ->latest('id')
+                ->first();
+        }
+
+        return TenantSubscription::query()
+            ->with('plan')
+            ->where('tenant_id', $tenantId ?? TenantContext::currentId())
+            ->where('product_line', $productLine)
             ->active()
             ->latest('starts_at')
             ->latest('id')
@@ -38,32 +87,71 @@ class TenantPlanManager
 
     public function hasFeature(string $feature, ?int $tenantId = null): bool
     {
-        $subscription = $this->currentSubscription($tenantId);
-        if (!$subscription) {
+        $subscriptions = $this->effectiveSubscriptions($tenantId);
+
+        if ($subscriptions->isEmpty()) {
             return true;
         }
 
-        $overrides = $subscription->feature_overrides ?? [];
-        if (array_key_exists($feature, $overrides)) {
-            return (bool) $overrides[$feature];
+        $productLine = PlanProductLineMap::featureProductLine($feature);
+        if ($productLine) {
+            $subscription = $this->effectiveSubscriptionFor($subscriptions, $productLine);
+
+            if (!$subscription) {
+                return false;
+            }
+
+            return $this->featureValueForSubscription($subscription, $feature, false);
         }
 
-        return (bool) (($subscription->plan?->features ?? [])[$feature] ?? false);
+        foreach ($subscriptions as $subscription) {
+            $overrides = $subscription->feature_overrides ?? [];
+
+            if (array_key_exists($feature, $overrides)) {
+                return (bool) $overrides[$feature];
+            }
+        }
+
+        foreach ($subscriptions as $subscription) {
+            if ($this->featureValueForSubscription($subscription, $feature, false)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function limit(string $key, ?int $tenantId = null): ?int
     {
-        $subscription = $this->currentSubscription($tenantId);
-        if (!$subscription) {
+        $subscriptions = $this->effectiveSubscriptions($tenantId);
+
+        if ($subscriptions->isEmpty()) {
             return null;
         }
 
-        $overrides = $subscription->limit_overrides ?? [];
-        if (array_key_exists($key, $overrides)) {
-            return $this->normalizeLimit($overrides[$key]);
+        if (PlanProductLineMap::isSharedLimit($key)) {
+            return $subscriptions
+                ->map(fn (TenantSubscription $subscription) => $this->limitValueForSubscription($subscription, $key))
+                ->filter(fn ($value) => $value !== null)
+                ->max();
         }
 
-        return $this->normalizeLimit(($subscription->plan?->limits ?? [])[$key] ?? null);
+        $productLine = PlanProductLineMap::limitProductLine($key);
+        if ($productLine) {
+            $subscription = $this->effectiveSubscriptionFor($subscriptions, $productLine);
+
+            return $subscription ? $this->limitValueForSubscription($subscription, $key) : null;
+        }
+
+        foreach ($subscriptions as $subscription) {
+            $overrides = $subscription->limit_overrides ?? [];
+
+            if (array_key_exists($key, $overrides)) {
+                return $this->normalizeLimit($overrides[$key]);
+            }
+        }
+
+        return $this->limitValueForSubscription($subscriptions->first(), $key);
     }
 
     public function usage(string $key, ?int $tenantId = null): int
@@ -346,5 +434,56 @@ class TenantPlanManager
         }
 
         return $sources;
+    }
+
+    private function effectiveSubscriptions(?int $tenantId = null): Collection
+    {
+        $subscriptions = $this->currentSubscriptions($tenantId);
+
+        if ($subscriptions->isEmpty()) {
+            return collect();
+        }
+
+        if (!Schema::hasColumn('tenant_subscriptions', 'product_line')) {
+            return collect([$subscriptions->first()]);
+        }
+
+        return $subscriptions
+            ->groupBy(fn (TenantSubscription $subscription) => $subscription->productLine() ?: 'default')
+            ->map(fn (Collection $group) => $group->first())
+            ->values();
+    }
+
+    private function effectiveSubscriptionFor(Collection $subscriptions, string $productLine): ?TenantSubscription
+    {
+        if (!Schema::hasColumn('tenant_subscriptions', 'product_line')) {
+            return $subscriptions->first();
+        }
+
+        return $subscriptions->first(
+            fn (TenantSubscription $subscription) => ($subscription->productLine() ?: 'default') === $productLine
+        );
+    }
+
+    private function featureValueForSubscription(TenantSubscription $subscription, string $feature, bool $default = false): bool
+    {
+        $overrides = $subscription->feature_overrides ?? [];
+
+        if (array_key_exists($feature, $overrides)) {
+            return (bool) $overrides[$feature];
+        }
+
+        return (bool) (($subscription->plan?->features ?? [])[$feature] ?? $default);
+    }
+
+    private function limitValueForSubscription(TenantSubscription $subscription, string $key): ?int
+    {
+        $overrides = $subscription->limit_overrides ?? [];
+
+        if (array_key_exists($key, $overrides)) {
+            return $this->normalizeLimit($overrides[$key]);
+        }
+
+        return $this->normalizeLimit(($subscription->plan?->limits ?? [])[$key] ?? null);
     }
 }

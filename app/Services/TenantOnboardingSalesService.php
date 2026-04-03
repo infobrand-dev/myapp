@@ -215,6 +215,7 @@ class TenantOnboardingSalesService
             $order = PlatformPlanOrder::query()->create([
                 'tenant_id' => $tenant->id,
                 'subscription_plan_id' => $plan->id,
+                'product_line' => $plan->productLine() ?: 'default',
                 'order_number' => $this->nextOrderNumber(),
                 'status' => 'pending',
                 'amount' => (float) ($salesMeta['price'] ?? 0),
@@ -239,6 +240,7 @@ class TenantOnboardingSalesService
                 'tenant_id' => $tenant->id,
                 'platform_plan_order_id' => $order->id,
                 'subscription_plan_id' => $plan->id,
+                'product_line' => $order->product_line,
                 'invoice_number' => $this->nextInvoiceNumber(),
                 'status' => 'issued',
                 'amount' => $order->amount,

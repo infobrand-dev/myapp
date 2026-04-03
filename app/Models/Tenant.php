@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class Tenant extends Model
 {
@@ -53,6 +54,14 @@ class Tenant extends Model
         return $this->hasMany(TenantSubscription::class);
     }
 
+    public function activeSubscriptions(): HasMany
+    {
+        return $this->hasMany(TenantSubscription::class)
+            ->active()
+            ->orderByDesc('starts_at')
+            ->orderByDesc('id');
+    }
+
     public function planOrders(): HasMany
     {
         return $this->hasMany(PlatformPlanOrder::class);
@@ -96,5 +105,16 @@ class Tenant extends Model
                     ->orWhere('ends_at', '>', now());
             })
             ->latestOfMany('starts_at');
+    }
+
+    public function activeSubscriptionFor(string $productLine): ?TenantSubscription
+    {
+        if (!Schema::hasTable('tenant_subscriptions') || !Schema::hasColumn('tenant_subscriptions', 'product_line')) {
+            return $this->activeSubscriptions()->first();
+        }
+
+        return $this->activeSubscriptions()
+            ->where('product_line', $productLine)
+            ->first();
     }
 }

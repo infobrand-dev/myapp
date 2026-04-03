@@ -12,6 +12,7 @@ class PlatformPlanOrder extends Model
     protected $fillable = [
         'tenant_id',
         'subscription_plan_id',
+        'product_line',
         'tenant_subscription_id',
         'order_number',
         'status',

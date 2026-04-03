@@ -35,6 +35,28 @@
                         <div class="text-secondary text-uppercase small fw-bold">Plan Aktif</div>
                         <div class="fw-semibold mt-1">{{ optional(optional($tenant->activeSubscription)->plan)->display_name ?? optional(optional($tenant->activeSubscription)->plan)->name ?? 'Belum ada plan' }}</div>
                     </div>
+                    <div class="mb-3">
+                        <div class="text-secondary text-uppercase small fw-bold">Active Plans</div>
+                        <div class="d-flex flex-column gap-2 mt-2">
+                            @forelse($activePlans as $productLine => $subscription)
+                                <div class="border rounded px-3 py-2">
+                                    <div class="d-flex align-items-center justify-content-between gap-2">
+                                        <div class="fw-semibold">{{ optional($subscription->plan)->productLineLabel() ?? \Illuminate\Support\Str::headline($productLine) }}</div>
+                                        <span class="badge bg-success-lt text-success">{{ optional($subscription->plan)->name ?? 'Active' }}</span>
+                                    </div>
+                                    <div class="text-muted small mt-1">
+                                        {{ optional($subscription->plan)->display_name ?? optional($subscription->plan)->name ?? '-' }}
+                                        · {{ optional($subscription->starts_at)->format('d M Y') ?: '-' }}
+                                        @if($subscription->ends_at)
+                                            sampai {{ $subscription->ends_at->format('d M Y') }}
+                                        @endif
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="text-muted small">Belum ada active plan.</div>
+                            @endforelse
+                        </div>
+                    </div>
                     <form method="POST" action="{{ route('platform.tenants.status', $tenant) }}" class="mb-3">
                         @csrf
                         <input type="hidden" name="is_active" value="{{ $tenant->is_active ? 0 : 1 }}">
@@ -300,10 +322,21 @@
                             <div class="col-md-6">
                                 <label class="form-label">Plan</label>
                                 <select class="form-select" name="subscription_plan_id" required>
+                                    @if(false)
                                     @foreach($plans as $plan)
-                                        <option value="{{ $plan->id }}" @selected(optional(optional($tenant->activeSubscription)->plan)->id === $plan->id)>{{ $plan->display_name }} ({{ $plan->code }})</option>
+                                        <option value="{{ $plan->id }}" @selected(optional(optional($tenant->activeSubscription)->plan)->id === $plan->id)>{{ $plan->display_name }} · {{ $plan->productLineLabel() ?: 'Default' }} ({{ $plan->code }})</option>
                                     @endforeach
+                                    @else
+                                    @foreach($plansByProductLine as $productLineLabel => $groupedPlans)
+                                        <optgroup label="{{ $productLineLabel }}">
+                                            @foreach($groupedPlans as $plan)
+                                                <option value="{{ $plan->id }}" @selected(optional($activePlans->get($plan->productLine() ?: 'default'))?->subscription_plan_id === $plan->id)>{{ $plan->display_name }} ({{ $plan->code }})</option>
+                                            @endforeach
+                                        </optgroup>
+                                    @endforeach
+                                    @endif
                                 </select>
+                                <div class="form-hint">Assign plan hanya akan mengganti active subscription pada product line yang sama.</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Status</label>
@@ -363,9 +396,19 @@
                             <div class="col-md-6">
                                 <label class="form-label">Plan</label>
                                 <select class="form-select" name="subscription_plan_id" required>
+                                    @if(false)
                                     @foreach($plans as $plan)
-                                        <option value="{{ $plan->id }}">{{ $plan->display_name }} ({{ $plan->code }})</option>
+                                        <option value="{{ $plan->id }}">{{ $plan->display_name }} · {{ $plan->productLineLabel() ?: 'Default' }} ({{ $plan->code }})</option>
                                     @endforeach
+                                    @else
+                                    @foreach($plansByProductLine as $productLineLabel => $groupedPlans)
+                                        <optgroup label="{{ $productLineLabel }}">
+                                            @foreach($groupedPlans as $plan)
+                                                <option value="{{ $plan->id }}">{{ $plan->display_name }} ({{ $plan->code }})</option>
+                                            @endforeach
+                                        </optgroup>
+                                    @endforeach
+                                    @endif
                                 </select>
                             </div>
                             <div class="col-md-3">

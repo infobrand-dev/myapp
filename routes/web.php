@@ -30,6 +30,7 @@ Route::post('locale/switch', [App\Http\Controllers\LocaleController::class, 'swi
 
 Route::get('/', LandingPageController::class)->name('landing');
 Route::get('/omnichannel', [LandingPageController::class, 'omnichannel'])->name('landing.omnichannel');
+Route::get('/accounting', [LandingPageController::class, 'accounting'])->name('landing.accounting');
 Route::get('/affiliate-program', AffiliateProgramController::class)->name('affiliate.program');
 Route::get('/aff/{slug}', [LandingPageController::class, 'affiliateRedirect'])->name('affiliate.redirect');
 Route::get('/workspace', [LandingPageController::class, 'workspaceFinder'])->name('workspace.finder');

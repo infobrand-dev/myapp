@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Mail\PlatformPaymentReceivedMail;
 use App\Models\PlatformInvoice;
 use App\Models\PlatformPayment;
+use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Models\TenantSubscription;
 use App\Modules\Midtrans\Models\MidtransSetting;
@@ -426,11 +427,9 @@ class PlatformMidtransBillingService
 
     private function activateSubscriptionFromBilling(int $tenantId, int $planId, string $billingProvider, string $billingReference, $startsAt, $endsAt): TenantSubscription
     {
-        $activeSubscription = TenantSubscription::query()
-            ->where('tenant_id', $tenantId)
-            ->where('status', 'active')
-            ->latest('id')
-            ->first();
+        $plan = SubscriptionPlan::query()->findOrFail($planId);
+        $productLine = $plan->productLine() ?: 'default';
+        $activeSubscription = $this->activeSubscriptionForProductLine($tenantId, $productLine);
         $featureOverrides = is_array($activeSubscription?->feature_overrides) ? $activeSubscription->feature_overrides : [];
         $limitOverrides = is_array($activeSubscription?->limit_overrides) ? $activeSubscription->limit_overrides : [];
         $byoOverrides = ByoAiAddon::extractOverrideSubset($featureOverrides, $limitOverrides);
@@ -438,6 +437,10 @@ class PlatformMidtransBillingService
         TenantSubscription::query()
             ->where('tenant_id', $tenantId)
             ->where('status', 'active')
+            ->when(
+                Schema::hasColumn('tenant_subscriptions', 'product_line'),
+                fn ($query) => $query->where('product_line', $productLine)
+            )
             ->update([
                 'status' => 'expired',
                 'ends_at' => now(),
@@ -447,6 +450,7 @@ class PlatformMidtransBillingService
         return TenantSubscription::create([
             'tenant_id' => $tenantId,
             'subscription_plan_id' => $planId,
+            'product_line' => $productLine,
             'status' => 'active',
             'billing_provider' => $billingProvider,
             'billing_reference' => $billingReference,
@@ -457,6 +461,7 @@ class PlatformMidtransBillingService
             'limit_overrides' => $byoOverrides['limit_overrides'],
             'meta' => [
                 'assigned_from' => 'platform_billing_midtrans',
+                'product_line_label' => $plan->productLineLabel(),
             ],
         ]);
     }
@@ -466,6 +471,20 @@ class PlatformMidtransBillingService
         return DB::connection()->getDriverName() === 'pgsql'
             ? ($value ? 'true' : 'false')
             : $value;
+    }
+
+    private function activeSubscriptionForProductLine(int $tenantId, string $productLine): ?TenantSubscription
+    {
+        return TenantSubscription::query()
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'active')
+            ->when(
+                Schema::hasColumn('tenant_subscriptions', 'product_line'),
+                fn ($query) => $query->where('product_line', $productLine)
+            )
+            ->latest('starts_at')
+            ->latest('id')
+            ->first();
     }
 
     private function sendPlatformPaymentReceivedMail(PlatformInvoice $invoice, PlatformPayment $payment): void

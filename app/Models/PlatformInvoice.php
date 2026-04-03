@@ -12,6 +12,7 @@ class PlatformInvoice extends Model
         'tenant_id',
         'platform_plan_order_id',
         'subscription_plan_id',
+        'product_line',
         'invoice_number',
         'status',
         'amount',

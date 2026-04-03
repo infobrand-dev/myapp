@@ -135,7 +135,9 @@
                             <div class="col-md-12">
                                 <label class="form-label">Provider yang diizinkan</label>
                                 <div class="d-flex flex-wrap gap-3">
-                                    @php($allowedProviders = (array) data_get(optional($tenant->activeSubscription)->meta, 'byo_ai.allowed_providers', []))
+                                    @php
+                                        $allowedProviders = (array) data_get(optional($tenant->activeSubscription)->meta, 'byo_ai.allowed_providers', []);
+                                    @endphp
                                     @foreach($byoAiSummary['providers'] as $provider)
                                         <label class="form-check">
                                             <input type="checkbox" class="form-check-input" name="allowed_providers[]" value="{{ $provider }}" @checked(in_array($provider, old('allowed_providers', $allowedProviders), true))>
@@ -171,7 +173,9 @@
             <div class="card mt-3">
                 <div class="card-header"><h3 class="card-title mb-0">Request BYO AI</h3></div>
                 <div class="card-body">
-                    @php($latestByoRequest = $byoAiSummary['latest_request'] ?? null)
+                    @php
+                        $latestByoRequest = $byoAiSummary['latest_request'] ?? null;
+                    @endphp
                     @if(!$byoAiSummary['requests_ready'])
                         <div class="text-muted small">Table request BYO AI belum tersedia.</div>
                     @elseif(!$latestByoRequest)

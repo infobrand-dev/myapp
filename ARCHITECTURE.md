@@ -98,5 +98,6 @@
 - `README.md`: setup, install, and runtime commands
 - `MODULES.md`: module catalog and high-level module notes
 - `docs/product/pricing.md`: pricing model, quota policy, and storage positioning
+- `docs/architecture/multi-plan-per-tenant-blueprint.md`: target refactor from single active subscription to product-line-scoped multi-plan subscriptions
 - `SAAS_TENANCY.md`: target SaaS tenancy model, tenant lifecycle, plan gating, and multi-company direction
 - `SAAS_PRODUCT_MODEL.md`: target product model for tenant, company, branch, industry presets, module entitlement, and rollout order

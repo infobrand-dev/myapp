@@ -86,7 +86,7 @@
                         <label class="form-label">URL Invoice Publik</label>
                         <input type="text" class="form-control" readonly value="{{ $publicInvoiceUrl }}">
                     </div>
-                    @if($midtransReady && $invoice->status !== 'paid')
+                    @if($midtransReady && !in_array($invoice->status, ['paid', 'void'], true))
                         <div>
                             <label class="form-label">URL Checkout Midtrans</label>
                             <input type="text" class="form-control" readonly value="{{ $publicCheckoutUrl }}">

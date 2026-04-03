@@ -524,6 +524,7 @@
                                         'paid'      => ['label' => 'Lunas',     'class' => 'bg-success-lt text-success'],
                                         'pending'   => ['label' => 'Menunggu',  'class' => 'bg-warning-lt text-warning'],
                                         'draft'     => ['label' => 'Draft',     'class' => 'bg-secondary-lt text-secondary'],
+                                        'void'      => ['label' => 'Void',      'class' => 'bg-secondary-lt text-secondary'],
                                         'cancelled' => ['label' => 'Dibatalkan','class' => 'bg-danger-lt text-danger'],
                                         'expired'   => ['label' => 'Kedaluwarsa','class' => 'bg-danger-lt text-danger'],
                                     ];
@@ -555,6 +556,16 @@
                                                     data-confirm="Tandai order {{ $order->order_number }} sebagai lunas?"
                                                     data-loading="Menyimpan...">
                                                     Tandai Lunas
+                                                </button>
+                                            </form>
+                                        @endif
+                                        @if($order->status === 'paid')
+                                            <form method="POST" action="{{ route('platform.orders.void', $order) }}" class="d-inline">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                    data-confirm="Void order {{ $order->order_number }}? Order, invoice, dan pembayaran akan keluar dari omset platform."
+                                                    data-loading="Memproses...">
+                                                    Void
                                                 </button>
                                             </form>
                                         @endif
@@ -605,7 +616,7 @@
                                     <td>
                                         @if(!$paymentsReady)
                                             <div class="text-muted small">Payment table belum tersedia.</div>
-                                        @elseif($invoice->status !== 'paid')
+                                        @elseif(!in_array($invoice->status, ['paid', 'void'], true))
                                             <form method="POST" action="{{ route('platform.invoices.payments.store', $invoice) }}" class="row g-2">
                                                 @csrf
                                                 <div class="col-md-4"><input type="number" name="amount" min="0" step="0.01" value="{{ (float) $invoice->amount }}" class="form-control form-control-sm" required></div>

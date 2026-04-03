@@ -49,6 +49,7 @@
                                 'paid'      => ['label' => 'Lunas',     'class' => 'bg-success-lt text-success'],
                                 'pending'   => ['label' => 'Menunggu',  'class' => 'bg-warning-lt text-warning'],
                                 'draft'     => ['label' => 'Draft',     'class' => 'bg-secondary-lt text-secondary'],
+                                'void'      => ['label' => 'Void',      'class' => 'bg-secondary-lt text-secondary'],
                                 'cancelled' => ['label' => 'Dibatalkan','class' => 'bg-danger-lt text-danger'],
                                 'expired'   => ['label' => 'Kedaluwarsa','class' => 'bg-danger-lt text-danger'],
                             ];
@@ -99,6 +100,16 @@
                                             data-confirm="Tandai order {{ $order->order_number }} sebagai lunas?"
                                             data-loading="Menyimpan...">
                                             Tandai Lunas
+                                        </button>
+                                    </form>
+                                @endif
+                                @if($order->status === 'paid')
+                                    <form method="POST" action="{{ route('platform.orders.void', $order) }}" class="d-inline">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"
+                                            data-confirm="Void order {{ $order->order_number }}? Order, invoice, dan pembayaran akan keluar dari omset platform."
+                                            data-loading="Memproses...">
+                                            Void
                                         </button>
                                     </form>
                                 @endif

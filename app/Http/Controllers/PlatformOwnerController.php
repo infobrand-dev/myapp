@@ -889,6 +889,79 @@ class PlatformOwnerController extends Controller
         return back()->with('status', 'Order berhasil dibatalkan.');
     }
 
+    public function voidOrder(PlatformPlanOrder $order, PlatformAffiliateService $affiliates): RedirectResponse
+    {
+        if (!$this->orderTableReady() || !$this->invoiceTableReady() || !$this->paymentTableReady()) {
+            return back()->with('error', 'Table billing platform belum lengkap. Jalankan migration terlebih dahulu.');
+        }
+
+        if ($order->status !== 'paid') {
+            return back()->with('error', 'Hanya order yang sudah paid yang bisa di-void.');
+        }
+
+        DB::transaction(function () use ($order, $affiliates): void {
+            $order->loadMissing(['invoices.payments', 'subscription', 'affiliateReferral']);
+
+            $subscription = $order->subscription;
+            if ($subscription && (int) $subscription->tenant_id === (int) $order->tenant_id) {
+                $meta = (array) ($subscription->meta ?? []);
+                if ((int) ($meta['source_order_id'] ?? 0) === (int) $order->id) {
+                    $meta['voided_from_order_id'] = $order->id;
+                    $meta['voided_by_user_id'] = auth()->id();
+                    $meta['voided_at'] = now()->toIso8601String();
+
+                    $subscription->forceFill([
+                        'status' => 'cancelled',
+                        'ends_at' => now(),
+                        'auto_renews' => false,
+                        'meta' => $meta,
+                    ])->save();
+                }
+            }
+
+            foreach ($order->invoices as $invoice) {
+                $invoiceMeta = (array) ($invoice->meta ?? []);
+                $invoiceMeta['voided_by_user_id'] = auth()->id();
+                $invoiceMeta['voided_at'] = now()->toIso8601String();
+                $invoiceMeta['voided_from_order_id'] = $order->id;
+
+                $invoice->forceFill([
+                    'status' => 'void',
+                    'paid_at' => null,
+                    'meta' => $invoiceMeta,
+                ])->save();
+
+                foreach ($invoice->payments as $payment) {
+                    $paymentMeta = (array) ($payment->meta ?? []);
+                    $paymentMeta['voided_by_user_id'] = auth()->id();
+                    $paymentMeta['voided_at'] = now()->toIso8601String();
+                    $paymentMeta['voided_from_order_id'] = $order->id;
+
+                    $payment->forceFill([
+                        'status' => 'void',
+                        'paid_at' => null,
+                        'meta' => $paymentMeta,
+                    ])->save();
+                }
+            }
+
+            $orderMeta = (array) ($order->meta ?? []);
+            $orderMeta['voided_by_user_id'] = auth()->id();
+            $orderMeta['voided_at'] = now()->toIso8601String();
+
+            $order->forceFill([
+                'status' => 'void',
+                'paid_at' => null,
+                'tenant_subscription_id' => null,
+                'meta' => $orderMeta,
+            ])->save();
+
+            $affiliates->voidSale($order, 'platform_owner_void');
+        });
+
+        return back()->with('status', 'Order paid berhasil di-void dan tidak lagi dihitung sebagai omset.');
+    }
+
     private function limitUsageRows(TenantPlanManager $planManager, int $tenantId): array
     {
         $rows = [];

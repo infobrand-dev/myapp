@@ -247,6 +247,37 @@ class PlatformAffiliateService
         return $referral;
     }
 
+    public function voidSale(PlatformPlanOrder $order, ?string $reason = null): ?PlatformAffiliateReferral
+    {
+        if (!$this->tablesReady()) {
+            return null;
+        }
+
+        $order->loadMissing(['affiliateReferral.affiliate']);
+
+        $referral = $order->affiliateReferral;
+        if (!$referral) {
+            return null;
+        }
+
+        $meta = (array) ($referral->meta ?? []);
+        $meta['voided_at'] = now()->toIso8601String();
+        $meta['voided_by_user_id'] = auth()->id();
+        $meta['void_reason'] = $reason ?: 'platform_owner_void';
+
+        $referral->forceFill([
+            'status' => 'void',
+            'commission_amount' => 0,
+            'payout_status' => 'void',
+            'converted_at' => null,
+            'approved_at' => null,
+            'paid_at' => null,
+            'meta' => $meta,
+        ])->save();
+
+        return $referral;
+    }
+
     public function referralLink(PlatformAffiliate $affiliate): string
     {
         return rtrim((string) config('app.url'), '/') . '/aff/' . $affiliate->slug;

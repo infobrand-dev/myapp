@@ -115,6 +115,7 @@ Route::middleware(['auth', 'verified', '2fa', 'platform.admin', \App\Http\Middle
         Route::post('/affiliates/{affiliate}/referrals/{referral}/payout', [PlatformAffiliateController::class, 'updatePayoutStatus'])->name('affiliates.referrals.payout');
         Route::get('/orders', [PlatformOwnerController::class, 'orders'])->name('orders.index');
         Route::post('/orders/{order}/mark-paid', [PlatformOwnerController::class, 'markOrderPaid'])->name('orders.mark-paid');
+        Route::post('/orders/{order}/void', [PlatformOwnerController::class, 'voidOrder'])->name('orders.void');
         Route::post('/orders/{order}/cancel', [PlatformOwnerController::class, 'cancelOrder'])->name('orders.cancel');
         Route::post('/orders/{order}/invoice', [PlatformOwnerController::class, 'createInvoice'])->name('orders.invoice');
         Route::get('/invoices/{invoice}', [PlatformOwnerController::class, 'invoice'])->name('invoices.show');

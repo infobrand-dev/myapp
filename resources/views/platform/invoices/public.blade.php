@@ -30,7 +30,11 @@
                                 <h1 class="h3 mb-1">{{ $invoice->invoice_number }}</h1>
                                 <div class="text-muted">{{ optional($invoice->tenant)->name }}</div>
                             </div>
-                            <span class="badge {{ $invoice->status === 'paid' ? 'bg-success-lt text-success' : 'bg-warning-lt text-warning' }}">
+                            <span class="badge {{
+                                $invoice->status === 'paid'
+                                    ? 'bg-success-lt text-success'
+                                    : ($invoice->status === 'void' ? 'bg-secondary-lt text-secondary' : 'bg-warning-lt text-warning')
+                            }}">
                                 {{ strtoupper($invoice->status) }}
                             </span>
                         </div>
@@ -98,7 +102,7 @@
                             </div>
                         </div>
 
-                        @if($invoice->status !== 'paid')
+                        @if(!in_array($invoice->status, ['paid', 'void'], true))
                             <div class="vstack gap-3 mb-4">
                                 @if($midtransReady)
                                     <div class="border rounded p-4 bg-white {{ $selectedPaymentMethod === 'midtrans' ? 'border-primary' : '' }}">

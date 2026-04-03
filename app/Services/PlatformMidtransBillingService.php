@@ -452,13 +452,20 @@ class PlatformMidtransBillingService
             'billing_reference' => $billingReference,
             'starts_at' => $startsAt,
             'ends_at' => $endsAt,
-            'auto_renews' => false,
+            'auto_renews' => $this->databaseBoolean(false),
             'feature_overrides' => $byoOverrides['feature_overrides'],
             'limit_overrides' => $byoOverrides['limit_overrides'],
             'meta' => [
                 'assigned_from' => 'platform_billing_midtrans',
             ],
         ]);
+    }
+
+    private function databaseBoolean(bool $value): bool|string
+    {
+        return DB::connection()->getDriverName() === 'pgsql'
+            ? ($value ? 'true' : 'false')
+            : $value;
     }
 
     private function sendPlatformPaymentReceivedMail(PlatformInvoice $invoice, PlatformPayment $payment): void

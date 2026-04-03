@@ -511,7 +511,7 @@ class PlatformOwnerController extends Controller
                 'starts_at' => $this->nullableCarbon($data['starts_at'] ?? null) ?? now(),
                 'ends_at' => $this->nullableCarbon($data['ends_at'] ?? null),
                 'trial_ends_at' => $this->nullableCarbon($data['trial_ends_at'] ?? null),
-                'auto_renews' => (bool) ($data['auto_renews'] ?? false),
+                'auto_renews' => $this->databaseBoolean($request->boolean('auto_renews')),
                 'feature_overrides' => $byoOverrides['feature_overrides'],
                 'limit_overrides' => $byoOverrides['limit_overrides'],
                 'meta' => [
@@ -680,7 +680,7 @@ class PlatformOwnerController extends Controller
                 'billing_reference' => $order->order_number,
                 'starts_at' => $order->starts_at ?: now(),
                 'ends_at' => $order->ends_at,
-                'auto_renews' => false,
+                'auto_renews' => $this->databaseBoolean(false),
                 'meta' => [
                     'source_order_id' => $order->id,
                     'assigned_from' => 'platform_owner_order',
@@ -913,7 +913,7 @@ class PlatformOwnerController extends Controller
                     $subscription->forceFill([
                         'status' => 'cancelled',
                         'ends_at' => now(),
-                        'auto_renews' => false,
+                        'auto_renews' => $this->databaseBoolean(false),
                         'meta' => $meta,
                     ])->save();
                 }
@@ -1556,7 +1556,7 @@ class PlatformOwnerController extends Controller
             'billing_reference' => $billingReference,
             'starts_at' => $startsAt,
             'ends_at' => $endsAt,
-            'auto_renews' => false,
+            'auto_renews' => $this->databaseBoolean(false),
             'feature_overrides' => $byoOverrides['feature_overrides'],
             'limit_overrides' => $byoOverrides['limit_overrides'],
             'meta' => [
@@ -1564,5 +1564,12 @@ class PlatformOwnerController extends Controller
                 'assigned_by_user_id' => auth()->id(),
             ],
         ]);
+    }
+
+    private function databaseBoolean(bool $value): bool|string
+    {
+        return DB::connection()->getDriverName() === 'pgsql'
+            ? ($value ? 'true' : 'false')
+            : $value;
     }
 }

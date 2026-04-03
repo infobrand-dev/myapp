@@ -93,21 +93,23 @@ return new class extends Migration
             return;
         }
 
+        $now = now();
+
         foreach ($this->accountingPlans() as $plan) {
             DB::table('subscription_plans')->updateOrInsert(
                 ['code' => $plan['code']],
                 [
                     'name' => $plan['name'],
                     'billing_interval' => $plan['billing_interval'],
-                    'is_active' => $plan['is_active'],
-                    'is_public' => $plan['is_public'],
-                    'is_system' => $plan['is_system'],
+                    'is_active' => $this->databaseBoolean($plan['is_active']),
+                    'is_public' => $this->databaseBoolean($plan['is_public']),
+                    'is_system' => $this->databaseBoolean($plan['is_system']),
                     'sort_order' => $plan['sort_order'],
                     'features' => json_encode($plan['features'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                     'limits' => json_encode($plan['limits'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                     'meta' => json_encode($plan['meta'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'created_at' => $now,
+                    'updated_at' => $now,
                 ]
             );
         }
@@ -125,6 +127,13 @@ return new class extends Migration
                 'product_line' => $to,
                 'updated_at' => now(),
             ]);
+    }
+
+    private function databaseBoolean(bool $value): bool|string
+    {
+        return DB::connection()->getDriverName() === 'pgsql'
+            ? ($value ? 'true' : 'false')
+            : $value;
     }
 
     /**

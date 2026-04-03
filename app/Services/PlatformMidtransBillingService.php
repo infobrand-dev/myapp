@@ -10,6 +10,7 @@ use App\Models\Tenant;
 use App\Models\TenantSubscription;
 use App\Modules\Midtrans\Models\MidtransSetting;
 use App\Support\ByoAiAddon;
+use App\Support\PlanProductLineMap;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -428,7 +429,7 @@ class PlatformMidtransBillingService
     private function activateSubscriptionFromBilling(int $tenantId, int $planId, string $billingProvider, string $billingReference, $startsAt, $endsAt): TenantSubscription
     {
         $plan = SubscriptionPlan::query()->findOrFail($planId);
-        $productLine = $plan->productLine() ?: 'default';
+        $productLine = PlanProductLineMap::canonicalProductLine($plan->productLine() ?: 'default') ?: 'default';
         $activeSubscription = $this->activeSubscriptionForProductLine($tenantId, $productLine);
         $featureOverrides = is_array($activeSubscription?->feature_overrides) ? $activeSubscription->feature_overrides : [];
         $limitOverrides = is_array($activeSubscription?->limit_overrides) ? $activeSubscription->limit_overrides : [];
@@ -439,7 +440,7 @@ class PlatformMidtransBillingService
             ->where('status', 'active')
             ->when(
                 Schema::hasColumn('tenant_subscriptions', 'product_line'),
-                fn ($query) => $query->where('product_line', $productLine)
+                fn ($query) => $query->whereIn('product_line', PlanProductLineMap::productLineCandidates($productLine))
             )
             ->update([
                 'status' => 'expired',
@@ -480,7 +481,7 @@ class PlatformMidtransBillingService
             ->where('status', 'active')
             ->when(
                 Schema::hasColumn('tenant_subscriptions', 'product_line'),
-                fn ($query) => $query->where('product_line', $productLine)
+                fn ($query) => $query->whereIn('product_line', PlanProductLineMap::productLineCandidates($productLine))
             )
             ->latest('starts_at')
             ->latest('id')

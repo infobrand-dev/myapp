@@ -136,11 +136,14 @@ class TenantPlanManager
                 ->max();
         }
 
-        $productLine = PlanProductLineMap::limitProductLine($key);
-        if ($productLine) {
-            $subscription = $this->effectiveSubscriptionFor($subscriptions, $productLine);
-
-            return $subscription ? $this->limitValueForSubscription($subscription, $key) : null;
+        $productLines = PlanProductLineMap::limitProductLineCandidates($key);
+        if (!empty($productLines)) {
+            return collect($productLines)
+                ->map(fn (string $productLine) => $this->effectiveSubscriptionFor($subscriptions, $productLine))
+                ->filter()
+                ->map(fn (TenantSubscription $subscription) => $this->limitValueForSubscription($subscription, $key))
+                ->filter(fn ($value) => $value !== null)
+                ->max();
         }
 
         foreach ($subscriptions as $subscription) {

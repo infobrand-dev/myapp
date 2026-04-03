@@ -76,7 +76,6 @@ class PlanProductLineMap
     {
         return match ($key) {
             PlanLimit::PRODUCTS => 'accounting',
-            PlanLimit::CONTACTS => 'crm',
 
             PlanLimit::WHATSAPP_INSTANCES,
             PlanLimit::SOCIAL_ACCOUNTS,
@@ -95,6 +94,17 @@ class PlanProductLineMap
             PlanLimit::EMAIL_RECIPIENTS_MONTHLY => 'crm',
 
             default => null,
+        };
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function limitProductLineCandidates(string $key): array
+    {
+        return match ($key) {
+            PlanLimit::CONTACTS => ['accounting', 'commerce', 'crm'],
+            default => array_values(array_filter([self::limitProductLine($key)])),
         };
     }
 }

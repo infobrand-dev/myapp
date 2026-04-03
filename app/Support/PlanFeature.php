@@ -20,25 +20,33 @@ class PlanFeature
 
     public static function moduleFeatureForSlug(string $slug): ?string
     {
+        return self::moduleFeaturesForSlug($slug)[0] ?? null;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function moduleFeaturesForSlug(string $slug): array
+    {
         return [
-            'conversations' => self::CONVERSATIONS,
-            'contacts' => self::CRM,
-            'crm' => self::CRM,
-            'sales' => self::COMMERCE,
-            'payments' => self::COMMERCE,
-            'products' => self::COMMERCE,
-            'inventory' => self::COMMERCE,
-            'purchases' => self::COMMERCE,
-            'discounts' => self::COMMERCE,
-            'finance' => self::COMMERCE,
-            'point-of-sale' => self::COMMERCE,
-            'task_management' => self::PROJECT_MANAGEMENT,
-            'live_chat' => self::LIVE_CHAT,
-            'social_media' => self::SOCIAL_MEDIA,
-            'chatbot' => self::CHATBOT_AI,
-            'whatsapp_api' => self::WHATSAPP_API,
-            'whatsapp_web' => self::WHATSAPP_WEB,
-            'reports' => self::ADVANCED_REPORTS,
-        ][$slug] ?? null;
+            'conversations' => [self::CONVERSATIONS],
+            'contacts' => [self::CRM, self::COMMERCE],
+            'crm' => [self::CRM],
+            'sales' => [self::COMMERCE],
+            'payments' => [self::COMMERCE],
+            'products' => [self::COMMERCE],
+            'inventory' => [self::COMMERCE],
+            'purchases' => [self::COMMERCE],
+            'discounts' => [self::COMMERCE],
+            'finance' => [self::COMMERCE],
+            'point-of-sale' => [self::COMMERCE],
+            'task_management' => [self::PROJECT_MANAGEMENT],
+            'live_chat' => [self::LIVE_CHAT],
+            'social_media' => [self::SOCIAL_MEDIA],
+            'chatbot' => [self::CHATBOT_AI],
+            'whatsapp_api' => [self::WHATSAPP_API],
+            'whatsapp_web' => [self::WHATSAPP_WEB],
+            'reports' => [self::ADVANCED_REPORTS],
+        ][$slug] ?? [];
     }
 }

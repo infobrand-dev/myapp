@@ -3,7 +3,7 @@
 use App\Modules\Contacts\Http\Controllers\ContactController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['web', 'auth', 'plan.feature:crm', 'permission:contacts.view'])
+Route::middleware(['web', 'auth', 'plan.feature:crm,commerce', 'permission:contacts.view'])
     ->prefix('contacts')
     ->name('contacts.')
     ->group(function () {

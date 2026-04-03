@@ -124,4 +124,15 @@ class ModuleController extends Controller
             return back()->with('status', "Gagal DB update module '{$slug}': " . $e->getMessage());
         }
     }
+
+    public function runSingleMigration(string $slug, string $migration, Request $request, ModuleManager $modules): RedirectResponse
+    {
+        try {
+            $modules->runSingleMigration($slug, $migration, $request->user()?->id);
+
+            return back()->with('status', "Migration '{$migration}' untuk module '{$slug}' berhasil dijalankan.");
+        } catch (Throwable $e) {
+            return back()->with('status', "Gagal menjalankan migration '{$migration}' untuk module '{$slug}': " . $e->getMessage());
+        }
+    }
 }

@@ -188,8 +188,22 @@
                                     <div class="text-muted small">
                                         {{ count($module['pending_migrations']) }} migration pending
                                     </div>
-                                    <div class="text-muted small">
-                                        {{ implode(', ', array_slice($module['pending_migrations'], 0, 2)) }}{{ count($module['pending_migrations']) > 2 ? ' ...' : '' }}
+                                    <div class="d-flex flex-column gap-1 mt-1">
+                                        @foreach($module['pending_migration_files'] as $migration)
+                                            <div class="d-flex align-items-center justify-content-between gap-2">
+                                                <code class="small text-muted">{{ $migration['name'] }}</code>
+                                                @if($canManageModules)
+                                                    <form method="POST" action="{{ route('modules.migrations.run', ['slug' => $module['slug'], 'migration' => $migration['name']]) }}" class="module-action-form">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-sm btn-outline-secondary"
+                                                            data-confirm="Jalankan migration {{ $migration['name'] }} untuk modul {{ $module['name'] }}?"
+                                                            data-loading="Running...">
+                                                            Run
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                            </div>
+                                        @endforeach
                                     </div>
                                 @elseif($module['last_db_update_status'] === 'failed')
                                     <div class="text-danger small">{{ $module['last_db_update_error'] }}</div>

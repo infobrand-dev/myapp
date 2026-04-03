@@ -211,6 +211,7 @@ Route::middleware(['auth', '2fa', 'platform.admin', \App\Http\Middleware\Resolve
     Route::post('/modules/{slug}/install', [ModuleController::class, 'install'])->middleware('role:Super-admin')->name('modules.install');
     Route::post('/modules/{slug}/activate', [ModuleController::class, 'activate'])->middleware('role:Super-admin')->name('modules.activate');
     Route::post('/modules/{slug}/db-update', [ModuleController::class, 'runDbUpdate'])->middleware('role:Super-admin')->name('modules.db-update');
+    Route::post('/modules/{slug}/migrations/{migration}', [ModuleController::class, 'runSingleMigration'])->middleware('role:Super-admin')->name('modules.migrations.run');
     Route::post('/modules/{slug}/deactivate', [ModuleController::class, 'deactivate'])->middleware('role:Super-admin')->name('modules.deactivate');
 });
 

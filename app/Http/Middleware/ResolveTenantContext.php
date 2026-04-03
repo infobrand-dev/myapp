@@ -126,6 +126,9 @@ class ResolveTenantContext
     private function isApexAllowedRoute(Request $request): bool
     {
         return $request->path() === '/'
+            || $request->is('meetra')
+            || $request->is('omnichannel')
+            || $request->is('accounting')
             || $request->is('affiliate-program')
             || $request->is('onboarding')
             || $request->is('aff/*')

@@ -26,6 +26,8 @@ Route::middleware(['web', 'auth', 'plan.feature:social_media', 'permission:socia
         Route::post('/conversations/{conversation}/resume-bot', [SocialMediaController::class, 'resumeBot'])->middleware('permission:social_media.reply')->name('conversations.resume-bot');
         Route::get('/accounts/connect/meta', [SocialAccountController::class, 'redirectToMeta'])->middleware('permission:social_media.manage_accounts')->name('accounts.connect.meta');
         Route::get('/accounts/connect/meta/callback', [SocialAccountController::class, 'handleMetaCallback'])->middleware('permission:social_media.manage_accounts')->name('accounts.connect.meta.callback');
+        Route::get('/accounts/connect/tiktok', [SocialAccountController::class, 'redirectToTikTok'])->middleware('permission:social_media.manage_accounts')->name('accounts.connect.tiktok');
+        Route::get('/accounts/connect/tiktok/callback', [SocialAccountController::class, 'handleTikTokCallback'])->middleware('permission:social_media.manage_accounts')->name('accounts.connect.tiktok.callback');
         Route::get('/accounts/connect/x', [SocialAccountController::class, 'redirectToX'])->middleware('permission:social_media.manage_accounts')->name('accounts.connect.x');
         Route::get('/accounts/connect/x/callback', [SocialAccountController::class, 'handleXCallback'])->middleware('permission:social_media.manage_accounts')->name('accounts.connect.x.callback');
         Route::post('/accounts/{account}/test-connection', [SocialAccountController::class, 'testConnection'])->middleware('permission:social_media.manage_accounts')->name('accounts.test-connection');

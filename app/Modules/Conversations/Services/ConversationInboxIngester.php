@@ -91,6 +91,7 @@ class ConversationInboxIngester implements InboxMessageIngester
                     ['tenant_id' => $this->tenantId(), 'conversation_id' => $conversation->id, 'user_id' => $envelope->ownerUserId],
                     [
                         'role' => 'owner',
+                        'unread_count' => 0,
                         'invited_at' => $occurredAt,
                         'invited_by' => $envelope->actorUserId ?: $envelope->ownerUserId,
                     ]
@@ -114,6 +115,19 @@ class ConversationInboxIngester implements InboxMessageIngester
             }
 
             $conversation->update($updates);
+        }
+
+        if ($direction === 'in' && $envelope->incrementUnread) {
+            $participantQuery = ConversationParticipant::query()
+                ->where('tenant_id', $this->tenantId())
+                ->where('conversation_id', $conversation->id)
+                ->whereNull('left_at');
+
+            if ($envelope->actorUserId) {
+                $participantQuery->where('user_id', '!=', $envelope->actorUserId);
+            }
+
+            $participantQuery->increment('unread_count');
         }
 
         $message = new ConversationMessage([

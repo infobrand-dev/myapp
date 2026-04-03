@@ -21,12 +21,12 @@ class TikTokPlatformAdapter extends AbstractSocialPlatformAdapter
 
     public function status(): string
     {
-        return 'research';
+        return 'active';
     }
 
     public function supportsOAuthConnect(): bool
     {
-        return false;
+        return true;
     }
 
     public function supportsInboundWebhook(): bool
@@ -41,16 +41,16 @@ class TikTokPlatformAdapter extends AbstractSocialPlatformAdapter
 
     public function publicEnabled(): bool
     {
-        return false;
+        return true;
     }
 
     public function capabilities(): array
     {
-        return [];
+        return ['oauth_connect', 'profile_sync', 'stats_sync', 'video_list'];
     }
 
     public function note(): ?string
     {
-        return 'Scaffold internal. Prioritas bisnis tinggi, tapi channel DM/business messaging belum dibuka ke tenant.';
+        return 'TikTok saat ini mendukung OAuth account connect, profile sync, stats, dan video list. Belum untuk inbox pesan.';
     }
 }

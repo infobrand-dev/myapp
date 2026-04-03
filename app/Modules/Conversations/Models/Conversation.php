@@ -41,6 +41,10 @@ class Conversation extends Model
         'metadata' => 'array',
     ];
 
+    protected $appends = [
+        'effective_unread_count',
+    ];
+
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
@@ -73,6 +77,15 @@ class Conversation extends Model
         return $this->where($field ?? $this->getRouteKeyName(), $value)
             ->where('tenant_id', TenantContext::currentId())
             ->firstOrFail();
+    }
+
+    public function getEffectiveUnreadCountAttribute(): int
+    {
+        if (array_key_exists('viewer_unread_count', $this->attributes)) {
+            return (int) ($this->attributes['viewer_unread_count'] ?? 0);
+        }
+
+        return (int) ($this->attributes['unread_count'] ?? 0);
     }
 }
 

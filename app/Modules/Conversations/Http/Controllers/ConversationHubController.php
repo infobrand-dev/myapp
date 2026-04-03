@@ -76,11 +76,11 @@ class ConversationHubController extends Controller
 
         ConversationParticipant::firstOrCreate(
             ['tenant_id' => $this->tenantId(), 'conversation_id' => $conversation->id, 'user_id' => $me->id],
-            ['role' => 'owner', 'invited_at' => now(), 'invited_by' => $me->id]
+            ['role' => 'owner', 'unread_count' => 0, 'last_read_at' => now(), 'invited_at' => now(), 'invited_by' => $me->id]
         );
         ConversationParticipant::firstOrCreate(
             ['tenant_id' => $this->tenantId(), 'conversation_id' => $conversation->id, 'user_id' => $otherId],
-            ['role' => 'collaborator', 'invited_at' => now(), 'invited_by' => $me->id]
+            ['role' => 'collaborator', 'unread_count' => 0, 'invited_at' => now(), 'invited_by' => $me->id]
         );
 
         $conversation->update([
@@ -117,7 +117,7 @@ class ConversationHubController extends Controller
         $summaryBase = $this->baseQuery($user);
         $summary = [
             'total' => (clone $summaryBase)->count(),
-            'unread' => (clone $summaryBase)->where('unread_count', '>', 0)->count(),
+            'unread' => (clone $summaryBase)->whereRaw($this->viewerUnreadSelectSql($user) . ' > 0')->count(),
             'unassigned' => (clone $summaryBase)->whereNull('owner_id')->count(),
             'mine' => (clone $summaryBase)->where('owner_id', $user->id)->count(),
             'locked' => (clone $summaryBase)->whereNotNull('locked_until')->where('locked_until', '>', now())->count(),
@@ -131,10 +131,8 @@ class ConversationHubController extends Controller
         $user = $request->user();
         $this->authorizeView($conversation, $user);
 
-        if ((int) ($conversation->unread_count ?? 0) > 0) {
-            $conversation->update(['unread_count' => 0]);
-            $conversation->refresh();
-        }
+        $this->markConversationReadForUser($conversation, $user->id);
+        $conversation->refresh();
 
         $conversation->load(['owner', 'participants.user']);
 
@@ -226,9 +224,7 @@ class ConversationHubController extends Controller
         $user = $request->user();
         $this->authorizeView($conversation, $user);
 
-        if ((int) ($conversation->unread_count ?? 0) > 0) {
-            $conversation->update(['unread_count' => 0]);
-        }
+        $this->markConversationReadForUser($conversation, $user->id);
 
         return response()->json(['ok' => true]);
     }
@@ -278,19 +274,8 @@ class ConversationHubController extends Controller
         $hasMore = $oldestId ? $this->hasOlderMessages($conversation, $oldestId) : false;
 
         $payload = $messages->map(function (ConversationMessage $msg) {
-            return [
-                'id' => $msg->id,
-                'direction' => $msg->direction,
-                'type' => $msg->type,
-                'body' => $msg->body,
-                'status' => $msg->status,
-                'created_at' => optional($msg->created_at)->format('d M H:i') ?? '',
-                'user' => $msg->user ? [
-                    'name' => $msg->user->name,
-                    'avatar' => $msg->user->avatar,
-                ] : null,
-            ];
-        });
+            return $this->messagePayload($msg);
+        })->values();
 
         return response()->json([
             'messages' => $payload,
@@ -386,7 +371,12 @@ class ConversationHubController extends Controller
 
             ConversationParticipant::updateOrCreate(
                 ['tenant_id' => $this->tenantId(), 'conversation_id' => $current->id, 'user_id' => $user->id],
-                ['role' => 'owner', 'invited_at' => $now, 'invited_by' => $user->id]
+                [
+                    'role' => 'owner',
+                    'unread_count' => (int) ($current->unread_count ?? 0),
+                    'invited_at' => $now,
+                    'invited_by' => $user->id,
+                ]
             );
 
             $this->log($current, $user->id, 'claim', 'Percakapan diklaim');
@@ -445,7 +435,13 @@ class ConversationHubController extends Controller
 
         ConversationParticipant::updateOrCreate(
             ['tenant_id' => $this->tenantId(), 'conversation_id' => $conversation->id, 'user_id' => $invitee->id],
-            ['role' => $role, 'invited_at' => now(), 'invited_by' => $user->id, 'left_at' => null]
+            [
+                'role' => $role,
+                'unread_count' => (int) ($conversation->unread_count ?? 0),
+                'invited_at' => now(),
+                'invited_by' => $user->id,
+                'left_at' => null,
+            ]
         );
 
         $this->log($conversation, $user->id, 'invite', "Invite user {$invitee->id}");
@@ -631,7 +627,11 @@ class ConversationHubController extends Controller
         ]);
 
         if ($message) {
-            $this->dispatchOutboundMessage($message);
+            $dispatched = $this->dispatchOutboundMessage($message);
+            if (!$dispatched) {
+                return $this->sendErrorResponse($request, 'Pesan gagal dikirim. Channel ini belum memiliki outbound dispatcher aktif.');
+            }
+
             $this->safeBroadcastMessageCreated($message);
         }
 
@@ -692,6 +692,7 @@ class ConversationHubController extends Controller
             'media_mime' => $message->media_mime,
             'filename' => data_get($message->payload, 'filename'),
             'status' => $message->status,
+            'status_label' => $this->messageStatusLabel($message->status),
             'created_at' => optional($message->created_at)->format('d M H:i') ?? '',
             'user' => $message->user ? [
                 'name' => $message->user->name,
@@ -754,7 +755,10 @@ class ConversationHubController extends Controller
 
     private function baseQuery(User $user)
     {
-        $query = Conversation::with([
+        $query = Conversation::query()
+            ->select('conversations.*')
+            ->selectRaw($this->viewerUnreadSelectSql($user) . ' as viewer_unread_count')
+            ->with([
             'owner',
             'latestMessage' => function ($q) {
                 $q->select([
@@ -791,7 +795,7 @@ class ConversationHubController extends Controller
             })
             ->when($filters['channel'], fn ($query, $channel) => $query->where('channel', $channel))
             ->when($filters['status'], fn ($query, $status) => $query->where('status', $status))
-            ->when($filters['unread_only'], fn ($query) => $query->where('unread_count', '>', 0))
+            ->when($filters['unread_only'], fn ($query) => $query->whereRaw($this->viewerUnreadSelectSql($user) . ' > 0'))
             ->when($filters['assignment'], function ($query, $assignment) use ($user) {
                 if ($assignment === 'mine') {
                     $query->where('owner_id', $user->id);
@@ -851,9 +855,34 @@ class ConversationHubController extends Controller
         return is_dir(public_path('storage'));
     }
 
-    private function dispatchOutboundMessage(ConversationMessage $message): void
+    private function dispatchOutboundMessage(ConversationMessage $message): bool
     {
-        app(ConversationOutboundDispatcher::class)->dispatch($message);
+        try {
+            $dispatched = app(ConversationOutboundDispatcher::class)->dispatch($message);
+        } catch (Throwable $e) {
+            $message->update([
+                'status' => 'failed',
+                'error_message' => $e->getMessage(),
+            ]);
+
+            Log::warning('Conversation outbound dispatch failed', [
+                'conversation_id' => $message->conversation_id,
+                'message_id' => $message->id,
+                'channel' => optional($message->conversation)->channel,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+
+        if (!$dispatched) {
+            $message->update([
+                'status' => 'failed',
+                'error_message' => 'Outbound dispatcher tidak tersedia untuk channel ini.',
+            ]);
+        }
+
+        return $dispatched;
     }
 
     private function safeBroadcastMessageCreated(ConversationMessage $message): void
@@ -873,5 +902,49 @@ class ConversationHubController extends Controller
     private function tenantId(): int
     {
         return TenantContext::currentId();
+    }
+
+    private function messageStatusLabel(?string $status): string
+    {
+        return match (strtolower(trim((string) $status))) {
+            'queued' => 'Dalam antrean',
+            'sending' => 'Sedang dikirim',
+            'sent' => 'Terkirim',
+            'delivered' => 'Diterima',
+            'read' => 'Dibaca',
+            'failed' => 'Gagal',
+            default => ucfirst((string) $status),
+        };
+    }
+
+    private function markConversationReadForUser(Conversation $conversation, int $userId): void
+    {
+        ConversationParticipant::query()->updateOrCreate(
+            [
+                'tenant_id' => $this->tenantId(),
+                'conversation_id' => $conversation->id,
+                'user_id' => $userId,
+            ],
+            [
+                'role' => $conversation->owner_id === $userId ? 'owner' : 'collaborator',
+                'unread_count' => 0,
+                'last_read_at' => now(),
+                'invited_at' => now(),
+                'invited_by' => auth()->id() ?: $userId,
+                'left_at' => null,
+            ]
+        );
+    }
+
+    private function viewerUnreadSelectSql(User $user): string
+    {
+        if ($user->hasRole('Super-admin')) {
+            return 'conversations.unread_count';
+        }
+
+        $tenantId = $this->tenantId();
+        $userId = (int) $user->id;
+
+        return "COALESCE((select cp.unread_count from conversation_participants cp where cp.tenant_id = {$tenantId} and cp.conversation_id = conversations.id and cp.user_id = {$userId} limit 1), conversations.unread_count)";
     }
 }

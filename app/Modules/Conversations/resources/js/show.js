@@ -114,6 +114,24 @@ document.addEventListener('DOMContentLoaded', () => {
             accept: 'video/*',
         },
     };
+    const formatMessageStatusLabel = (status) => {
+        switch ((status || '').toString().toLowerCase().trim()) {
+            case 'queued':
+                return 'Dalam antrean';
+            case 'sending':
+                return 'Sedang dikirim';
+            case 'sent':
+                return 'Terkirim';
+            case 'delivered':
+                return 'Diterima';
+            case 'read':
+                return 'Dibaca';
+            case 'failed':
+                return 'Gagal';
+            default:
+                return status || '';
+        }
+    };
 
     const isMobile = () => window.matchMedia('(max-width: 991.98px)').matches;
     const isChatVisible = () => !isMobile() || dashboardRoot.classList.contains('mobile-view-chat');
@@ -478,7 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const buildMessageNode = (msg) => {
         const name = msg.user?.name ?? (msg.direction === 'out' ? 'You' : 'System');
-        const state = `${msg.direction === 'out' ? 'Outgoing' : 'Incoming'}${msg.status ? ' | ' + msg.status : ''}`;
+        const state = `${msg.direction === 'out' ? 'Keluar' : 'Masuk'}${msg.status ? ' | ' + (msg.status_label || formatMessageStatusLabel(msg.status)) : ''}`;
         const avatar = avatarUrl(msg.user?.avatar ?? '');
         const avatarHtml = avatar
             ? `<img src="${escapeHtml(avatar)}" alt="${escapeHtml(name)}">`

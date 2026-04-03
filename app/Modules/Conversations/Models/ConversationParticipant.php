@@ -18,12 +18,15 @@ class ConversationParticipant extends Model
         'conversation_id',
         'user_id',
         'role',
+        'unread_count',
         'invited_by',
         'invited_at',
+        'last_read_at',
         'left_at',
     ];
 
     protected $casts = [
+        'last_read_at' => 'datetime',
         'invited_at' => 'datetime',
         'left_at' => 'datetime',
     ];

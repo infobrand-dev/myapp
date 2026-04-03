@@ -133,7 +133,7 @@ class ConversationsServiceProvider extends ServiceProvider
             $metrics = [
                 'open' => (clone $baseQuery)->where('status', 'open')->count(),
                 'claimed' => (clone $baseQuery)->whereNotNull('owner_id')->count(),
-                'unread' => (clone $baseQuery)->where('unread_count', '>', 0)->sum('unread_count'),
+                'unread' => $this->conversationUnreadTotal(),
                 'audience' => $user->hasAnyRole(['Super-admin', 'Admin']) ? 'global' : 'personal',
             ];
 
@@ -189,8 +189,7 @@ class ConversationsServiceProvider extends ServiceProvider
         }
 
         $query = Conversation::query()
-            ->where('tenant_id', TenantContext::currentId())
-            ->where('unread_count', '>', 0);
+            ->where('tenant_id', TenantContext::currentId());
         $authUser = auth()->user();
 
         if (!$authUser->hasRole('Super-admin')) {
@@ -201,6 +200,14 @@ class ConversationsServiceProvider extends ServiceProvider
             });
         }
 
-        return (int) $query->sum('unread_count');
+        if ($authUser->hasRole('Super-admin')) {
+            return (int) $query->where('unread_count', '>', 0)->sum('unread_count');
+        }
+
+        $tenantId = (int) TenantContext::currentId();
+        $userId = (int) $authUser->id;
+        $expression = "COALESCE((select cp.unread_count from conversation_participants cp where cp.tenant_id = {$tenantId} and cp.conversation_id = conversations.id and cp.user_id = {$userId} limit 1), conversations.unread_count)";
+
+        return (int) $query->sum(DB::raw($expression));
     }
 }

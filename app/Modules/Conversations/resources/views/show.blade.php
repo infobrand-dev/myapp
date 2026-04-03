@@ -13,7 +13,16 @@
     $canReply = $isOwner || $isParticipant || $isSuperAdmin;
     $replyDisabledMessage = 'Claim conversation atau minta owner mengundang Anda sebagai participant untuk membalas.';
     $hooks = app(\App\Support\HookManager::class);
+    $messageStatusLabels = [
+        'queued' => 'Dalam antrean',
+        'sending' => 'Sedang dikirim',
+        'sent' => 'Terkirim',
+        'delivered' => 'Diterima',
+        'read' => 'Dibaca',
+        'failed' => 'Gagal',
+    ];
 @endphp
+{{--
 <style>
     .conv-dashboard {
         --conv-shell-bg: #f8fafc;
@@ -748,6 +757,7 @@
         color: var(--conv-muted);
     }
 </style>
+--}}
 <div class="conv-dashboard mobile-view-inbox" id="conv-dashboard-root">
 <div class="conv-page-head d-flex justify-content-between align-items-center mb-3">
     <div>
@@ -829,7 +839,7 @@
                        class="list-group-item list-group-item-action d-flex justify-content-between align-items-start conv-item {{ $c->id === $conversation->id ? 'active' : '' }}"
                        data-name="{{ mb_strtolower($c->contact_name ?? $c->contact_external_id ?? 'internal') }}"
                        data-assignment="{{ $isUnsigned ? 'unsigned' : 'assigned' }}"
-                       data-unread-count="{{ (int) ($c->unread_count ?? 0) }}">
+                       data-unread-count="{{ (int) ($c->effective_unread_count ?? 0) }}">
                         <div class="d-flex align-items-start gap-2 me-2">
                             <span class="inbox-avatar">
                                 @if($listAvatar)
@@ -848,8 +858,8 @@
                                 </div>
                             </div>
                         </div>
-                        @if((int) ($c->unread_count ?? 0) > 0)
-                            <span class="badge text-bg-danger">{{ (int) $c->unread_count }}</span>
+                        @if((int) ($c->effective_unread_count ?? 0) > 0)
+                            <span class="badge text-bg-danger">{{ (int) $c->effective_unread_count }}</span>
                         @endif
                     </a>
                 @empty
@@ -936,7 +946,7 @@
                         <div class="chat-bubble {{ $msg->direction === 'out' ? 'chat-bubble-out' : 'chat-bubble-in' }}">
                             <div class="chat-head d-flex align-items-center justify-content-between gap-2">
                                 <span class="chat-sender">{{ $senderName }}</span>
-                                <span class="chat-state">{{ $msg->direction === 'out' ? 'Outgoing' : 'Incoming' }}{{ $msg->status ? ' | ' . ucfirst($msg->status) : '' }}</span>
+                                <span class="chat-state">{{ $msg->direction === 'out' ? 'Keluar' : 'Masuk' }}{{ $msg->status ? ' | ' . ($messageStatusLabels[strtolower((string) $msg->status)] ?? ucfirst((string) $msg->status)) : '' }}</span>
                             </div>
                             @php
                                 $messageMediaUrl = $msg->media_url;
@@ -1090,217 +1100,13 @@
         </div>
     </div>
     <div class="col-md-3 conv-col conv-col-detail">
-        <div class="conv-surface mb-3">
-            <div class="section-head d-flex align-items-center justify-content-between">
-                <h3 class="conv-section-title">Details</h3>
-                <div class="mobile-nav">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" id="mobile-back-chat">
-                        <i class="ti ti-chevron-left" aria-hidden="true"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="section-body detail-list pt-0">
-                <div class="detail-row"><span class="detail-key">Kontak</span><span class="detail-value">{{ $conversation->contact_name ?? $conversation->contact_external_id ?? 'Internal' }}</span></div>
-                @if($conversation->channel === 'live_chat')
-                    <div class="detail-row">
-                        <span class="detail-key">Live Chat</span>
-                        <span class="detail-value">
-                            <span class="badge {{ $conversation->status === 'closed' ? 'text-bg-secondary' : 'text-bg-success' }}">
-                                {{ $conversation->status === 'closed' ? 'Closed' : 'Open' }}
-                            </span>
-                        </span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-key">Actions</span>
-                        <span class="detail-value">
-                            @if($conversation->status === 'closed')
-                                <form method="POST" action="{{ route('conversations.reopen', $conversation) }}" class="d-inline-block m-0">
-                                    @csrf
-                                    <button class="btn btn-sm btn-outline-primary" type="submit">Reopen</button>
-                                </form>
-                            @else
-                                <form method="POST" action="{{ route('conversations.close', $conversation) }}" class="d-inline-block m-0">
-                                    @csrf
-                                    <button class="btn btn-sm btn-outline-secondary" type="submit">Close</button>
-                                </form>
-                            @endif
-                        </span>
-                    </div>
-                @endif
-                <div class="detail-row"><span class="detail-key">Owner</span><span class="detail-value" id="detail-owner-name">{{ $conversation->owner->name ?? 'Unassigned' }}</span></div>
-                <div class="detail-row"><span class="detail-key">Status</span><span class="detail-value">{{ ucfirst($conversation->status) }}</span></div>
-                @if($channelUi['show_ai_bot'])
-                    <div class="detail-row">
-                        <span class="detail-key">AI Bot</span>
-                        <span class="detail-value">
-                            @if($needsHuman)
-                                <span class="badge text-bg-warning">Paused (Need Human)</span>
-                                @if($handoffAt)
-                                    <div class="text-muted small mt-1">{{ \Illuminate\Support\Carbon::parse($handoffAt)->diffForHumans() }}</div>
-                                @endif
-                            @elseif($botPaused)
-                                <span class="badge text-bg-warning">Paused</span>
-                            @else
-                                <span class="badge text-bg-success">Active</span>
-                            @endif
-                        </span>
-                    </div>
-                @endif
-                <div class="detail-row"><span class="detail-key">Last message</span><span class="detail-value" id="detail-last-message-time">{{ optional($conversation->last_message_at)->diffForHumans() ?? '-' }}</span></div>
-                @foreach($hooks->render('conversations.show.detail_rows', ['conversation' => $conversation, 'canReply' => $canReply]) as $hookedDetailRow)
-                    {!! $hookedDetailRow !!}
-                @endforeach
-            </div>
-        </div>
-        @if($conversation->channel === 'live_chat')
-            <div class="conv-surface mb-3">
-                <div class="section-head"><h3 class="conv-section-title">Assignment</h3></div>
-                <div class="section-body">
-                    <div class="detail-list pt-0">
-                        <div class="detail-row detail-row-stack">
-                            <span class="detail-key">Workflow</span>
-                            <div class="detail-value detail-value-detail">
-                                <div id="livechat-assignment-status" class="fw-semibold">
-                                    @if($isOwner)
-                                        Conversation ini sedang Anda tangani.
-                                    @elseif($lockExpired)
-                                        Conversation ini belum di-assign.
-                                    @else
-                                        Conversation ini sedang dipegang {{ $conversation->owner->name ?? 'agent lain' }}.
-                                    @endif
-                                </div>
-                                <div class="assignment-note mt-1" id="livechat-assignment-note">
-                                    @if($isOwner)
-                                        Anda bisa invite anggota lain bila perlu kolaborasi atau release jika ingin melepaskan ownership.
-                                    @elseif($lockExpired)
-                                        Claim conversation dulu agar ownership dan respon tetap rapi sebelum membalas visitor.
-                                    @else
-                                        Tunggu lock berakhir, minta owner release, atau kolaborasi sebagai participant jika sudah diundang.
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-key">Lock</span>
-                            <span class="detail-value" id="livechat-assignment-lock">
-                                @if($lockExpired)
-                                    Available to claim
-                                @else
-                                    {{ optional($conversation->locked_until)->diffForHumans() ?? 'Locked' }}
-                                @endif
-                            </span>
-                        </div>
-                    </div>
-                    <div class="d-grid gap-2 mt-3">
-                        @if($isOwner)
-                            <form method="POST" action="{{ route('conversations.release', $conversation) }}" class="m-0">
-                                @csrf
-                                <button class="btn btn-outline-secondary w-100" type="submit">Release Conversation</button>
-                            </form>
-                        @elseif($lockExpired)
-                            <form method="POST" action="{{ route('conversations.claim', $conversation) }}" class="m-0">
-                                @csrf
-                                <button class="btn btn-primary w-100" type="submit">Claim Conversation</button>
-                            </form>
-                        @else
-                            <div class="text-muted small">Conversation sedang terkunci pada owner aktif.</div>
-                        @endif
-                    </div>
-                </div>
-            </div>
-        @endif
-        <div class="conv-surface">
-            <div class="section-head"><h3 class="conv-section-title">Team</h3></div>
-            <div class="section-body">
-                @if($conversation->owner_id === auth()->id() || auth()->user()->hasRole('Super-admin'))
-                    <button class="btn btn-outline-primary w-100 invite-trigger" type="button" data-bs-toggle="collapse" data-bs-target="#invite-panel" aria-expanded="false" aria-controls="invite-panel">
-                        Invite Member
-                    </button>
-                    <div class="collapse mt-2" id="invite-panel">
-                        <div class="invite-form-shell">
-                            <form method="POST" action="{{ route('conversations.invite', $conversation) }}" class="d-flex gap-2" onsubmit="return confirm('Undang ' + document.getElementById('invite-query').value + '?')">
-                                @csrf
-                                <input type="text" name="query" id="invite-query" class="form-control" placeholder="Name or email" required>
-                                <button class="btn btn-primary" type="submit">Send</button>
-                            </form>
-                        </div>
-                    </div>
-                @else
-                    <div class="text-muted small">Hanya owner atau super-admin yang bisa mengundang.</div>
-                @endif
-                <div class="section-divider">
-                    <div class="participants-title mb-1">Participants</div>
-                @forelse($conversation->participants as $p)
-                    @php
-                        $participantName = $p->user->name ?? ('User '.$p->user_id);
-                        $participantAvatar = $p->user->avatar ?? null;
-                        if ($participantAvatar && !\Illuminate\Support\Str::startsWith($participantAvatar, ['http://', 'https://', '/'])) {
-                            $participantAvatar = asset('storage/' . ltrim($participantAvatar, '/'));
-                        }
-                        $participantParts = preg_split('/\s+/', trim($participantName));
-                        $participantInitials = strtoupper(substr($participantParts[0] ?? '?', 0, 1) . substr($participantParts[1] ?? '', 0, 1));
-                        $participantTone = ['avatar-tone-1', 'avatar-tone-2', 'avatar-tone-3', 'avatar-tone-4', 'avatar-tone-5'][abs(crc32($participantName)) % 5];
-                        $invitedAt = optional($p->invited_at)->diffForHumans() ?? 'No invite timestamp';
-                    @endphp
-                    <div class="participant-item">
-                        <div class="participant-left">
-                            <span class="participant-avatar">
-                                @if($participantAvatar)
-                                    <img src="{{ $participantAvatar }}" alt="{{ $participantName }}">
-                                @else
-                                    <span class="chat-avatar-fallback {{ $participantTone }}">{{ $participantInitials ?: '?' }}</span>
-                                @endif
-                            </span>
-                            <div>
-                                <div class="participant-name">{{ $participantName }}</div>
-                                <div class="participant-meta">Invited {{ $invitedAt }}</div>
-                            </div>
-                        </div>
-                        <span class="badge bg-azure-lt text-azure">{{ ucfirst($p->role) }}</span>
-                    </div>
-                @empty
-                    <div class="text-muted small">Belum ada peserta.</div>
-                @endforelse
-                </div>
-            </div>
-        </div>
+        @include('conversations::partials.detail-panel')
+        @include('conversations::partials.team-panel')
     </div>
 </div>
 </div>
 
-<div class="modal fade" id="start-conversation-modal" tabindex="-1" aria-labelledby="start-conversation-modal-label" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <form method="POST" action="{{ route('conversations.start') }}">
-                @csrf
-                <div class="modal-header">
-                    <h3 class="modal-title fs-5 mb-0" id="start-conversation-modal-label">Start Conversation</h3>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <label for="start-user-picker" class="form-label">Select user</label>
-                    <div class="user-search-wrap">
-                        <input
-                            type="text"
-                            id="start-user-picker"
-                            class="form-control"
-                            placeholder="Search name or email..."
-                            autocomplete="off"
-                            required>
-                        <div id="start-user-results" class="user-search-results"></div>
-                    </div>
-                    <input type="hidden" name="query" id="start-user-id" required>
-                    <div id="start-user-invalid" class="text-danger small mt-2 d-none">Please select a user from the dropdown list.</div>
-                    <div class="text-muted small mt-2">Type at least 2 characters to search users.</div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Start</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+@include('conversations::partials.start-modal')
 @endsection
 
 @php

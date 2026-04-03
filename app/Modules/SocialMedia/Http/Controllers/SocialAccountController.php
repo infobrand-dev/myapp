@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\SocialMedia\Http\Requests\SocialAccountRequest;
 use App\Modules\SocialMedia\Models\SocialAccount;
 use App\Modules\SocialMedia\Models\SocialAccountChatbotIntegration;
+use App\Modules\SocialMedia\Services\TikTokDisplayApiClient;
 use App\Support\PlanLimit;
 use App\Support\TenantContext;
 use App\Support\TenantPlanManager;
@@ -33,6 +34,7 @@ class SocialAccountController extends Controller
         return view('socialmedia::accounts.index', [
             'accounts' => $accounts,
             'metaOAuthReady' => $this->metaOauthReady(),
+            'tiktokOAuthReady' => $this->tiktokOauthReady(),
             'xOAuthReady' => $this->xOauthReady(),
             'xTenantBetaEnabled' => $this->xTenantBetaEnabled(),
         ]);
@@ -46,6 +48,7 @@ class SocialAccountController extends Controller
             'integration' => $account->chatbotIntegration()->first(),
             'chatbotEnabled' => $this->isChatbotModuleReady(),
             'metaOAuthReady' => $this->metaOauthReady(),
+            'tiktokOAuthReady' => $this->tiktokOauthReady(),
             'xOAuthReady' => $this->xOauthReady(),
             'xTenantBetaEnabled' => $this->xTenantBetaEnabled(),
             'internalCreateMode' => false,
@@ -288,6 +291,114 @@ class SocialAccountController extends Controller
         ]);
 
         return redirect()->away('https://www.facebook.com/' . config('services.meta.graph_version', 'v22.0') . '/dialog/oauth?' . $query);
+    }
+
+    public function redirectToTikTok(Request $request): RedirectResponse
+    {
+        if (!$this->tiktokOauthReady()) {
+            return redirect()
+                ->route('social-media.accounts.index')
+                ->withErrors([
+                    'tiktok_oauth' => 'TikTok OAuth belum siap. Isi TIKTOK_API_CLIENT_KEY dan TIKTOK_API_CLIENT_SECRET di environment platform.',
+                ]);
+        }
+
+        $state = Str::random(40);
+        $request->session()->put('social_media.tiktok_oauth_state', $state);
+        $request->session()->put('social_media.tiktok_oauth_tenant_id', TenantContext::currentId());
+
+        $query = http_build_query([
+            'client_key' => config('services.tiktok_api.client_key'),
+            'response_type' => 'code',
+            'scope' => implode(',', config('services.tiktok_api.oauth_scopes', [])),
+            'redirect_uri' => route('social-media.accounts.connect.tiktok.callback'),
+            'state' => $state,
+        ]);
+
+        return redirect()->away(rtrim((string) config('services.tiktok_api.authorize_url'), '?') . '?' . $query);
+    }
+
+    public function handleTikTokCallback(Request $request, TikTokDisplayApiClient $client): RedirectResponse
+    {
+        $expectedState = (string) $request->session()->pull('social_media.tiktok_oauth_state');
+        $expectedTenantId = (int) $request->session()->pull('social_media.tiktok_oauth_tenant_id');
+
+        if ($expectedState === '' || !hash_equals($expectedState, (string) $request->query('state', ''))) {
+            abort(419, 'OAuth state mismatch.');
+        }
+
+        if ($expectedTenantId > 0 && $expectedTenantId !== TenantContext::currentId()) {
+            abort(403, 'Tenant context mismatch for TikTok connect.');
+        }
+
+        if ($request->filled('error')) {
+            return redirect()
+                ->route('social-media.accounts.index')
+                ->withErrors([
+                    'tiktok_oauth' => (string) $request->query('error_description', 'Koneksi TikTok dibatalkan.'),
+                ]);
+        }
+
+        $code = trim((string) $request->query('code', ''));
+        if ($code === '') {
+            return redirect()
+                ->route('social-media.accounts.index')
+                ->withErrors(['tiktok_oauth' => 'TikTok tidak mengembalikan authorization code yang valid.']);
+        }
+
+        $tokenResponse = Http::asForm()
+            ->timeout(20)
+            ->post((string) config('services.tiktok_api.token_url'), [
+                'client_key' => config('services.tiktok_api.client_key'),
+                'client_secret' => config('services.tiktok_api.client_secret'),
+                'code' => $code,
+                'grant_type' => 'authorization_code',
+                'redirect_uri' => route('social-media.accounts.connect.tiktok.callback'),
+            ]);
+
+        if (!$tokenResponse->successful()) {
+            return redirect()
+                ->route('social-media.accounts.index')
+                ->withErrors(['tiktok_oauth' => 'Gagal menukar authorization code TikTok menjadi access token.']);
+        }
+
+        $accessToken = trim((string) data_get($tokenResponse->json(), 'access_token', ''));
+        if ($accessToken === '') {
+            return redirect()
+                ->route('social-media.accounts.index')
+                ->withErrors(['tiktok_oauth' => 'TikTok tidak mengembalikan access token yang valid.']);
+        }
+
+        $profileResponse = $client->fetchUserProfile($accessToken);
+        if (!$profileResponse->successful()) {
+            return redirect()
+                ->route('social-media.accounts.index')
+                ->withErrors(['tiktok_oauth' => 'Gagal mengambil profil TikTok dari Display API.']);
+        }
+
+        $profile = (array) data_get($profileResponse->json(), 'data.user', []);
+        $openId = trim((string) data_get($profile, 'open_id', ''));
+        if ($openId === '') {
+            return redirect()
+                ->route('social-media.accounts.index')
+                ->withErrors(['tiktok_oauth' => 'TikTok tidak mengembalikan open_id yang valid.']);
+        }
+
+        $videosResponse = $client->fetchVideoList($accessToken);
+        $videos = (array) data_get($videosResponse->json(), 'data.videos', []);
+
+        $account = $this->upsertTikTokOAuthAccount(
+            $openId,
+            $accessToken,
+            trim((string) data_get($tokenResponse->json(), 'refresh_token', '')),
+            (array) $profile,
+            $videos,
+            $request->user()?->id
+        );
+
+        return redirect()
+            ->route('social-media.accounts.edit', $account)
+            ->with('status', 'Akun TikTok berhasil dihubungkan.');
     }
 
     public function handleMetaCallback(Request $request): RedirectResponse
@@ -562,6 +673,11 @@ class SocialAccountController extends Controller
         return filled(config('services.meta.app_id')) && filled(config('services.meta.app_secret'));
     }
 
+    private function tiktokOauthReady(): bool
+    {
+        return filled(config('services.tiktok_api.client_key')) && filled(config('services.tiktok_api.client_secret'));
+    }
+
     private function xOauthReady(): bool
     {
         return filled(config('services.x_api.client_id')) && filled(config('services.x_api.client_secret'));
@@ -670,6 +786,58 @@ class SocialAccountController extends Controller
 
         $existing->fill([
             'name' => $name !== '' ? $name : ($username !== '' ? '@' . $username : 'X Account'),
+            'status' => 'active',
+            'access_token' => $accessToken,
+            'metadata' => $metadata,
+        ]);
+        $existing->save();
+
+        return $existing;
+    }
+
+    private function upsertTikTokOAuthAccount(string $openId, string $accessToken, string $refreshToken, array $profile, array $videos, ?int $userId): SocialAccount
+    {
+        $tenantId = TenantContext::currentId();
+        $existing = SocialAccount::query()
+            ->where('tenant_id', $tenantId)
+            ->where('platform', 'tiktok')
+            ->get()
+            ->first(function (SocialAccount $account) use ($openId) {
+                return trim((string) data_get($account->metadata, 'tiktok_open_id', '')) === $openId;
+            });
+
+        if (!$existing) {
+            app(TenantPlanManager::class)->ensureWithinLimit(PlanLimit::SOCIAL_ACCOUNTS, 1);
+            $existing = new SocialAccount([
+                'tenant_id' => $tenantId,
+                'platform' => 'tiktok',
+                'created_by' => $userId,
+            ]);
+        }
+
+        $metadata = is_array($existing->metadata) ? $existing->metadata : [];
+        $metadata['connection_source'] = 'tiktok_oauth';
+        $metadata['tiktok_open_id'] = $openId;
+        $metadata['tiktok_union_id'] = trim((string) data_get($profile, 'union_id', '')) ?: null;
+        $metadata['tiktok_username'] = trim((string) data_get($profile, 'username', '')) ?: null;
+        $metadata['tiktok_avatar_url'] = trim((string) data_get($profile, 'avatar_url', '')) ?: null;
+        $metadata['tiktok_profile_url'] = trim((string) data_get($profile, 'profile_deep_link', '')) ?: null;
+        $metadata['tiktok_is_verified'] = (bool) data_get($profile, 'is_verified', false);
+        $metadata['tiktok_stats'] = [
+            'followers' => (int) data_get($profile, 'follower_count', 0),
+            'following' => (int) data_get($profile, 'following_count', 0),
+            'likes' => (int) data_get($profile, 'likes_count', 0),
+            'videos' => (int) data_get($profile, 'video_count', 0),
+        ];
+        $metadata['tiktok_videos'] = array_slice($videos, 0, 10);
+        $metadata['oauth_connected_at'] = now()->toDateTimeString();
+        $metadata['tiktok_refresh_token_enc'] = $refreshToken !== '' ? Crypt::encryptString($refreshToken) : data_get($metadata, 'tiktok_refresh_token_enc');
+
+        $displayName = trim((string) data_get($profile, 'display_name', ''));
+        $username = trim((string) data_get($profile, 'username', ''));
+
+        $existing->fill([
+            'name' => $displayName !== '' ? $displayName : ($username !== '' ? '@' . $username : 'TikTok Account'),
             'status' => 'active',
             'access_token' => $accessToken,
             'metadata' => $metadata,

@@ -92,8 +92,8 @@
                         </td>
                         <td><span class="badge {{ $conv->status === 'closed' ? 'text-bg-secondary' : 'text-bg-primary' }}">{{ ucfirst($conv->status) }}</span></td>
                         <td>
-                            @if((int) ($conv->unread_count ?? 0) > 0)
-                                <span class="badge bg-warning-lt text-warning">{{ (int) $conv->unread_count }}</span>
+                            @if((int) ($conv->effective_unread_count ?? 0) > 0)
+                                <span class="badge bg-warning-lt text-warning">{{ (int) $conv->effective_unread_count }}</span>
                             @else
                                 <span class="text-muted small">0</span>
                             @endif
@@ -156,7 +156,7 @@
             <input type="text" name="query" id="start-query" class="form-control" placeholder="Nama atau Email" required>
             <button class="btn btn-primary" type="submit">Start</button>
         </form>
-        <div class="text-muted small mt-2">Masukkan user ID rekan untuk membuat percakapan baru.</div>
+        <div class="text-muted small mt-2">Masukkan nama atau email rekan untuk membuat percakapan baru.</div>
     </div>
 </div>
 @endsection

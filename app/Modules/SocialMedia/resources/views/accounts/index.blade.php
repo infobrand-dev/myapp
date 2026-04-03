@@ -5,7 +5,7 @@
     <div class="row align-items-center w-100">
         <div class="col">
             <h2 class="mb-0">Social Accounts</h2>
-            <div class="text-muted small">Hubungkan Instagram, Facebook Messenger, dan X dari satu tempat.</div>
+            <div class="text-muted small">Hubungkan Instagram, Facebook Messenger, X, dan TikTok dari satu tempat.</div>
         </div>
         <div class="col-auto">
             <div class="d-flex gap-2 align-items-center">
@@ -16,6 +16,9 @@
                     <div class="dropdown-menu dropdown-menu-end">
                         <a href="{{ route('social-media.accounts.connect.meta') }}" class="dropdown-item {{ ($metaOAuthReady ?? false) ? '' : 'disabled' }}">
                             Facebook / Instagram
+                        </a>
+                        <a href="{{ route('social-media.accounts.connect.tiktok') }}" class="dropdown-item {{ ($tiktokOAuthReady ?? false) ? '' : 'disabled' }}">
+                            TikTok
                         </a>
                         @if($xTenantBetaEnabled ?? false)
                             <a href="{{ route('social-media.accounts.connect.x') }}" class="dropdown-item {{ ($xOAuthReady ?? false) ? '' : 'disabled' }}">
@@ -44,12 +47,22 @@
     </div>
 @endif
 
+@if(!($tiktokOAuthReady ?? false))
+    <div class="alert alert-warning">
+        TikTok OAuth belum siap. Isi <code>TIKTOK_API_CLIENT_KEY</code> dan <code>TIKTOK_API_CLIENT_SECRET</code> di environment platform agar tenant bisa connect akun TikTok.
+    </div>
+@endif
+
 @if($errors->has('meta_oauth'))
     <div class="alert alert-danger">{{ $errors->first('meta_oauth') }}</div>
 @endif
 
 @if($errors->has('x_oauth'))
     <div class="alert alert-danger">{{ $errors->first('x_oauth') }}</div>
+@endif
+
+@if($errors->has('tiktok_oauth'))
+    <div class="alert alert-danger">{{ $errors->first('tiktok_oauth') }}</div>
 @endif
 
 <div class="card">
@@ -73,6 +86,8 @@
                         <td>
                             @if($acc->platform === 'instagram')
                                 {{ $acc->ig_business_id }}
+                            @elseif($acc->platform === 'tiktok')
+                                {{ data_get($acc->metadata, 'tiktok_open_id') ?: '-' }}
                             @elseif($acc->platform === 'x')
                                 {{ data_get($acc->metadata, 'x_user_id') ?: '-' }}
                             @else

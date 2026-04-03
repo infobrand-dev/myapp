@@ -17,7 +17,7 @@ class SocialPlatformRegistryTest extends TestCase
             ->values()
             ->all();
 
-        $this->assertSame(['facebook', 'instagram', 'x'], $publicKeys);
+        $this->assertSame(['facebook', 'instagram', 'x', 'tiktok'], $publicKeys);
     }
 
     public function test_threads_x_and_tiktok_are_scaffolded_but_not_public()
@@ -35,8 +35,9 @@ class SocialPlatformRegistryTest extends TestCase
         $this->assertTrue($x['public_enabled']);
         $this->assertContains('oauth_connect', $x['capabilities'] ?? []);
 
-        $this->assertSame('research', $tiktok['status']);
-        $this->assertFalse($tiktok['public_enabled']);
+        $this->assertSame('active', $tiktok['status']);
+        $this->assertTrue($tiktok['public_enabled']);
+        $this->assertContains('video_list', $tiktok['capabilities'] ?? []);
     }
 
     public function test_x_is_publicly_enabled_with_oauth_capability()

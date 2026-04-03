@@ -308,7 +308,19 @@ class GenerateAiReply implements ShouldQueue
             'reply_message_id' => $replyMessage->id,
         ]));
 
-        app(ConversationOutboundDispatcher::class)->dispatch($replyMessage);
+        $dispatched = app(ConversationOutboundDispatcher::class)->dispatch($replyMessage);
+        if (!$dispatched) {
+            $replyMessage->update([
+                'status' => 'failed',
+                'error_message' => 'Outbound dispatcher tidak tersedia untuk channel ini.',
+            ]);
+
+            Log::warning('AI outbound dispatch failed: no dispatcher', [
+                'conversation_id' => $conversation->id,
+                'message_id' => $replyMessage->id,
+                'channel' => $conversation->channel,
+            ]);
+        }
     }
 
     private function systemPrompt(Conversation $conversation, $aiAccount): string

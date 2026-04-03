@@ -1,40 +1,9 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Keamanan Data — {{ config('app.name') }}</title>
-    <meta name="description" content="Bagaimana Meetra melindungi data bisnis dan pelanggan Anda — infrastruktur, enkripsi, isolasi tenant, dan praktik keamanan yang kami terapkan.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.1/dist/tabler-icons.min.css">
-    <link rel="stylesheet" href="{{ mix('css/app.css') }}">
-</head>
-<body class="landing-page">
-<div class="landing-shell">
+@extends('layouts.landing')
 
-{{-- ══ TOPBAR ══════════════════════════════════════════════ --}}
-<header class="landing-topbar sticky-top">
-    <div class="container py-3">
-        <div class="d-flex align-items-center justify-content-between gap-3">
-            <a href="{{ route('landing') }}" class="text-decoration-none d-inline-flex align-items-center gap-2">
-                <x-app-logo variant="default" :height="36" />
-            </a>
-            <nav class="d-none d-lg-flex align-items-center gap-1">
-                <a href="{{ route('landing') }}#solutions" class="landing-nav-link">Fitur</a>
-                <a href="{{ route('landing') }}#pricing"   class="landing-nav-link">Harga</a>
-                <a href="{{ route('landing') }}#faq"       class="landing-nav-link">FAQ</a>
-            </nav>
-            <div class="d-flex align-items-center gap-2">
-                <a href="{{ route('workspace.finder') }}" class="btn btn-outline-dark btn-sm d-none d-md-inline-flex">Login Workspace</a>
-                <a href="{{ route('onboarding.create') }}" class="btn btn-dark btn-sm">Daftar Gratis</a>
-            </div>
-        </div>
-    </div>
-</header>
+@section('head_title', 'Keamanan Data — ' . config('app.name'))
+@section('head_description', 'Bagaimana ' . config('app.name') . ' melindungi data bisnis dan pelanggan Anda — infrastruktur, enkripsi, isolasi tenant, dan praktik keamanan yang kami terapkan.')
 
-<main>
+@section('content')
 
 {{-- ══ HERO ════════════════════════════════════════════════ --}}
 <section class="py-5 py-lg-6" style="background: linear-gradient(135deg, #f8fafc 0%, #eef1ff 100%); border-bottom: 1px solid var(--landing-line);">
@@ -48,7 +17,7 @@
                     Data bisnis Anda <span>dilindungi</span> dengan serius.
                 </h1>
                 <p class="landing-subtext mb-0">
-                    Kami membangun Meetra di atas infrastruktur kelas enterprise dengan isolasi data penuh antar workspace, enkripsi end-to-end, dan pemantauan aktif 24 jam. Tidak ada kompromi untuk keamanan.
+                    Kami membangun {{ config('app.name') }} di atas infrastruktur kelas enterprise dengan isolasi data penuh antar workspace, enkripsi end-to-end, dan pemantauan aktif 24 jam. Tidak ada kompromi untuk keamanan.
                 </p>
             </div>
             <div class="col-lg-5">
@@ -182,7 +151,7 @@
                             <div class="security-trust-icon"><i class="ti ti-eye-off"></i></div>
                             <div>
                                 <div class="fw-bold mb-1" style="font-size:1.05rem;">Aman dari kami sendiri</div>
-                                <div class="text-muted">Tim Meetra tidak memantau isi percakapan Anda. Akses ke data pengguna sangat dibatasi, tercatat, dan hanya dilakukan jika Anda meminta bantuan teknis secara langsung.</div>
+                                <div class="text-muted">Tim {{ config('app.name') }} tidak memantau isi percakapan Anda. Akses ke data pengguna sangat dibatasi, tercatat, dan hanya dilakukan jika Anda meminta bantuan teknis secara langsung.</div>
                             </div>
                         </div>
                     </div>
@@ -206,7 +175,7 @@
                     <div class="security-practice-icon flex-shrink-0"><i class="ti ti-cloud-lock"></i></div>
                     <div>
                         <h3 class="mb-1">Proteksi Jaringan Global</h3>
-                        <p class="text-muted mb-0">Seluruh traffic ke platform Meetra melewati lapisan proteksi jaringan global. Serangan DDoS, bot berbahaya, dan ancaman jaringan diblokir secara otomatis sebelum menyentuh server kami.</p>
+                        <p class="text-muted mb-0">Seluruh traffic ke platform melewati lapisan proteksi jaringan global. Serangan DDoS, bot berbahaya, dan ancaman jaringan diblokir secara otomatis sebelum menyentuh server kami.</p>
                     </div>
                 </div>
             </div>
@@ -283,145 +252,4 @@
     </div>
 </section>
 
-{{-- ══ CONTACT ══════════════════════════════════════════════ --}}
-<section class="py-5 py-lg-6">
-    <div class="container">
-        <div class="text-center mb-5">
-            <div class="landing-eyebrow mb-2">Laporan Keamanan</div>
-            <h2 class="landing-section-title">Temukan celah keamanan? Hubungi kami.</h2>
-            <p class="landing-subtext mx-auto">Jika Anda menemukan potensi kerentanan atau masalah keamanan di platform kami, kami sangat menghargai laporan yang bertanggung jawab. Kami akan merespons dalam waktu 24 jam.</p>
-        </div>
-        <div class="row g-4 justify-content-center">
-            <div class="col-md-4">
-                <div class="security-contact-card p-4 text-center">
-                    <div class="security-contact-icon mb-3"><i class="ti ti-mail"></i></div>
-                    <h3 class="h6 mb-1">Email</h3>
-                    <a href="mailto:support@meetra.id" class="text-muted small text-decoration-none">support@meetra.id</a>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="security-contact-card p-4 text-center">
-                    <div class="security-contact-icon mb-3"><i class="ti ti-brand-whatsapp"></i></div>
-                    <h3 class="h6 mb-1">WhatsApp</h3>
-                    <a href="https://wa.me/6281222229815" target="_blank" rel="noopener" class="text-muted small text-decoration-none">+62 812-222-9815</a>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="security-contact-card p-4 text-center">
-                    <div class="security-contact-icon mb-3"><i class="ti ti-clock-24"></i></div>
-                    <h3 class="h6 mb-1">Waktu Respons</h3>
-                    <span class="text-muted small">Kurang dari 24 jam</span>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-{{-- ══ CTA ══════════════════════════════════════════════════ --}}
-<section class="py-5">
-    <div class="container">
-        <div class="landing-cta-band p-4 p-lg-5">
-            <div class="row g-4 align-items-center">
-                <div class="col-lg-8">
-                    <h2 class="landing-section-title text-white mb-2">Siap mulai dengan platform yang aman?</h2>
-                    <p class="mb-0 opacity-75">Daftar workspace dan rasakan sendiri infrastruktur omnichannel yang dibangun dengan standar keamanan enterprise.</p>
-                </div>
-                <div class="col-lg-4 text-lg-end">
-                    <a href="{{ route('onboarding.create') }}" class="btn btn-light btn-lg me-2 mb-2">Mulai Sekarang</a>
-                    <a href="{{ route('landing') }}" class="btn btn-outline-light btn-lg mb-2">Kembali ke Beranda</a>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-</main>
-
-{{-- ══ FOOTER ══════════════════════════════════════════════ --}}
-<footer class="landing-footer">
-    <div class="container">
-        <div class="landing-footer-inner row g-5">
-            <div class="col-lg-4">
-                <div class="mb-3">
-                    <x-app-logo variant="default" :height="30" />
-                </div>
-                <p class="landing-footer-tagline mb-4">Platform omnichannel untuk tim sales, support, dan marketing — semua percakapan pelanggan dalam satu workspace.</p>
-                <div class="landing-footer-contact">
-                    <a href="https://wa.me/6281222229815" target="_blank" rel="noopener" class="landing-footer-contact-item">
-                        <i class="ti ti-brand-whatsapp"></i>
-                        <span>+62 812-222-9815</span>
-                        <span class="landing-footer-contact-badge">Chat WhatsApp</span>
-                    </a>
-                    <a href="mailto:support@meetra.id" class="landing-footer-contact-item">
-                        <i class="ti ti-mail"></i>
-                        <span>support@meetra.id</span>
-                    </a>
-                    <div class="landing-footer-contact-item">
-                        <i class="ti ti-headset"></i>
-                        <span>Dukungan tersedia 24 jam</span>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-lg-2">
-                <div class="landing-footer-heading">Produk</div>
-                <nav class="landing-footer-nav">
-                    <a href="{{ route('landing') }}#solutions">Fitur</a>
-                    <a href="{{ route('landing') }}#pricing">Harga</a>
-                    <a href="{{ route('landing') }}#ai-credits">AI Credits</a>
-                    <a href="{{ route('landing') }}#faq">FAQ</a>
-                    <a href="{{ route('workspace.finder') }}">Login Workspace</a>
-                    <a href="{{ route('onboarding.create') }}">Daftar Gratis</a>
-                </nav>
-            </div>
-            <div class="col-6 col-lg-2">
-                <div class="landing-footer-heading">Perusahaan</div>
-                <nav class="landing-footer-nav">
-                    <a href="{{ route('affiliate.program') }}">Program Partner</a>
-                    <a href="{{ route('security') }}">Keamanan Data</a>
-                    <a href="{{ route('privacy') }}">Kebijakan Privasi</a>
-                    <a href="{{ route('terms') }}">Syarat &amp; Ketentuan</a>
-                </nav>
-            </div>
-            <div class="col-lg-4">
-                <div class="landing-footer-heading">Infrastruktur &amp; Keamanan</div>
-                <div class="landing-footer-trust-cards">
-                    <div class="landing-footer-trust-card">
-                        <i class="ti ti-server-2"></i>
-                        <div>
-                            <div class="fw-semibold">Server di Indonesia</div>
-                            <div>Data center cloud Tier-1 berlokasi di Indonesia.</div>
-                        </div>
-                    </div>
-                    <div class="landing-footer-trust-card">
-                        <i class="ti ti-lock"></i>
-                        <div>
-                            <div class="fw-semibold">Koneksi Terenkripsi</div>
-                            <div>TLS aktif di semua koneksi. Isolasi data per workspace.</div>
-                        </div>
-                    </div>
-                    <div class="landing-footer-trust-card">
-                        <i class="ti ti-database-heart"></i>
-                        <div>
-                            <div class="fw-semibold">Database PostgreSQL</div>
-                            <div>Managed enterprise · Backup harian otomatis.</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="landing-footer-bottom">
-            <div class="landing-footer-copy">
-                &copy; {{ date('Y') }} {{ config('app.name') }}. Hak cipta dilindungi.
-            </div>
-            <div class="d-flex align-items-center gap-3 flex-wrap">
-                <span class="landing-footer-trust-pill"><i class="ti ti-shield-check"></i> Data Aman</span>
-                <span class="landing-footer-trust-pill"><i class="ti ti-brand-whatsapp"></i> WhatsApp API Resmi</span>
-                <span class="landing-footer-trust-pill"><i class="ti ti-credit-card"></i> Bayar Lokal</span>
-            </div>
-        </div>
-    </div>
-</footer>
-
-</div>{{-- .landing-shell --}}
-</body>
-</html>
+@endsection

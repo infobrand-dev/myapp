@@ -58,6 +58,15 @@ return [
         'oauth_scopes' => array_values(array_filter(array_map('trim', explode(',', (string) env('X_API_OAUTH_SCOPES', 'users.read,dm.read,dm.write,offline.access'))))),
     ],
 
+    'tiktok_api' => [
+        'base_url' => env('TIKTOK_API_BASE_URL', 'https://open.tiktokapis.com'),
+        'authorize_url' => env('TIKTOK_API_AUTHORIZE_URL', 'https://www.tiktok.com/v2/auth/authorize/'),
+        'token_url' => env('TIKTOK_API_TOKEN_URL', 'https://open.tiktokapis.com/v2/oauth/token/'),
+        'client_key' => env('TIKTOK_API_CLIENT_KEY'),
+        'client_secret' => env('TIKTOK_API_CLIENT_SECRET'),
+        'oauth_scopes' => array_values(array_filter(array_map('trim', explode(',', (string) env('TIKTOK_API_OAUTH_SCOPES', 'user.info.profile,user.info.stats,video.list'))))),
+    ],
+
     'openai' => [
         'api_key' => env('OPENAI_API_KEY'),
         'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),

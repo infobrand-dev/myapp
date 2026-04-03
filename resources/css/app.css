@@ -1,5 +1,6 @@
 @import "@tabler/core/dist/css/tabler.min.css";
 @import "./theme.css";
+@import "../../app/Modules/Conversations/resources/css/show.css";
 
 @tailwind base;
 @tailwind components;

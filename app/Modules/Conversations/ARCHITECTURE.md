@@ -16,6 +16,7 @@ Ia menyimpan percakapan, pesan, participant, dan activity log untuk berbagai ada
 - Outbound dikirim melalui dispatcher registry, bukan `if/else` channel di controller inbox.
 - Access policy tambahan diregistrasikan oleh module channel.
 - Capability channel untuk send flow dan UI diregistrasikan oleh module channel.
+- Unread utama untuk agent disimpan per participant/user. `conversations.unread_count` tetap dipakai sebagai fallback queue-level counter saat conversation belum punya state participant yang spesifik.
 
 ## Integration seams saat ini
 

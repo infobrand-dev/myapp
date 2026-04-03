@@ -21,36 +21,36 @@ class XPlatformAdapter extends AbstractSocialPlatformAdapter
 
     public function status(): string
     {
-        return 'scaffolded';
+        return 'active';
     }
 
     public function supportsOAuthConnect(): bool
     {
-        return false;
+        return true;
     }
 
     public function supportsInboundWebhook(): bool
     {
-        return false;
+        return true;
     }
 
     public function supportsOutboundMessages(): bool
     {
-        return false;
+        return true;
     }
 
     public function publicEnabled(): bool
     {
-        return false;
+        return true;
     }
 
     public function capabilities(): array
     {
-        return ['planned_connect', 'planned_inbound', 'planned_outbound'];
+        return ['oauth_connect', 'inbound', 'outbound'];
     }
 
     public function note(): ?string
     {
-        return 'Scaffold internal. Jalur API ada, tapi connector tenant belum dibuka.';
+        return 'Connector X memakai OAuth tenant dan sudah siap untuk inbound/outbound dasar.';
     }
 }

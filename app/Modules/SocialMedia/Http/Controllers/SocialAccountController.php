@@ -11,7 +11,9 @@ use App\Support\TenantContext;
 use App\Support\TenantPlanManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -31,6 +33,8 @@ class SocialAccountController extends Controller
         return view('socialmedia::accounts.index', [
             'accounts' => $accounts,
             'metaOAuthReady' => $this->metaOauthReady(),
+            'xOAuthReady' => $this->xOauthReady(),
+            'xTenantBetaEnabled' => $this->xTenantBetaEnabled(),
         ]);
     }
 
@@ -42,18 +46,216 @@ class SocialAccountController extends Controller
             'integration' => $account->chatbotIntegration()->first(),
             'chatbotEnabled' => $this->isChatbotModuleReady(),
             'metaOAuthReady' => $this->metaOauthReady(),
+            'xOAuthReady' => $this->xOauthReady(),
+            'xTenantBetaEnabled' => $this->xTenantBetaEnabled(),
+            'internalCreateMode' => false,
+            'xCreateMode' => 'edit',
         ]);
+    }
+
+    public function testConnection(SocialAccount $account): RedirectResponse
+    {
+        if ($account->platform !== 'x') {
+            return back()->withErrors([
+                'connection_test' => 'Test connection saat ini hanya tersedia untuk akun X.',
+            ]);
+        }
+
+        $token = trim((string) $account->access_token);
+        if ($token === '') {
+            $account->updateOperationalMetadata([
+                'last_connection_tested_at' => now()->toDateTimeString(),
+                'last_connection_test_status' => 'error',
+                'last_connection_test_message' => 'Token OAuth X belum tersedia.',
+            ]);
+
+            return back()->withErrors([
+                'connection_test' => 'Token OAuth X belum tersedia. Hubungkan ulang akun X.',
+            ]);
+        }
+
+        $client = app(\App\Modules\SocialMedia\Services\XDirectMessageClient::class);
+        $tokenManager = app(\App\Modules\SocialMedia\Services\XTokenManager::class);
+
+        $response = $client->fetchAuthenticatedUser($token);
+        if (in_array($response->status(), [401, 403], true) && $tokenManager->canRefresh($account)) {
+            $refreshedToken = $tokenManager->refreshAccessToken($account);
+            if ($refreshedToken) {
+                $response = $client->fetchAuthenticatedUser($refreshedToken);
+            }
+        }
+
+        if (!$response->successful()) {
+            $message = trim((string) $response->body()) ?: 'Koneksi X gagal diuji.';
+            $account->updateOperationalMetadata([
+                'last_connection_tested_at' => now()->toDateTimeString(),
+                'last_connection_test_status' => 'error',
+                'last_connection_test_message' => mb_substr($message, 0, 500),
+            ]);
+
+            return back()->withErrors([
+                'connection_test' => 'Koneksi X gagal diuji. ' . $message,
+            ]);
+        }
+
+        $profile = (array) $response->json('data', []);
+        $account->updateOperationalMetadata([
+            'last_connection_tested_at' => now()->toDateTimeString(),
+            'last_connection_test_status' => 'ok',
+            'last_connection_test_message' => 'Terhubung sebagai @' . trim((string) data_get($profile, 'username', '')),
+            'x_connector_status' => 'active',
+        ]);
+
+        return back()->with('status', 'Koneksi X berhasil diuji.');
     }
 
     public function update(SocialAccountRequest $request, SocialAccount $account): RedirectResponse
     {
         $data = $request->validated();
         unset($data['auto_reply'], $data['chatbot_account_id']);
+        $metadata = is_array($account->metadata) ? $account->metadata : [];
+
+        if ($account->platform === 'x') {
+            $metadata['x_connector_status'] = trim((string) ($data['x_connector_status'] ?? '')) ?: 'not_configured';
+            $data['metadata'] = $metadata;
+        }
 
         $account->update($data);
         $this->persistChatbotIntegration($request, $account);
 
         return redirect()->route('social-media.accounts.index')->with('status', 'Akun diperbarui.');
+    }
+
+    public function createXInternal(): View
+    {
+        abort_unless($this->xInternalEnabled() && $this->isPlatformAdminHost(), Response::HTTP_NOT_FOUND);
+
+        return $this->xConfigForm('internal');
+    }
+
+    public function storeXInternal(SocialAccountRequest $request): RedirectResponse
+    {
+        abort_unless($this->xInternalEnabled() && $this->isPlatformAdminHost(), Response::HTTP_NOT_FOUND);
+
+        return $this->storeXConfiguredAccount($request, 'internal');
+    }
+
+    public function redirectToX(Request $request): RedirectResponse
+    {
+        abort_unless($this->xTenantBetaEnabled(), Response::HTTP_NOT_FOUND);
+
+        if (!$this->xOauthReady()) {
+            return redirect()
+                ->route('social-media.accounts.index')
+                ->withErrors([
+                    'x_oauth' => 'X OAuth belum siap. Isi X_API_CLIENT_ID dan X_API_CLIENT_SECRET di environment platform.',
+                ]);
+        }
+
+        $state = Str::random(40);
+        $verifier = Str::random(96);
+        $request->session()->put('social_media.x_oauth_state', $state);
+        $request->session()->put('social_media.x_oauth_tenant_id', TenantContext::currentId());
+        $request->session()->put('social_media.x_oauth_code_verifier', $verifier);
+
+        $query = http_build_query([
+            'response_type' => 'code',
+            'client_id' => config('services.x_api.client_id'),
+            'redirect_uri' => route('social-media.accounts.connect.x.callback'),
+            'scope' => implode(' ', config('services.x_api.oauth_scopes', [])),
+            'state' => $state,
+            'code_challenge' => $this->pkceChallenge($verifier),
+            'code_challenge_method' => 'S256',
+        ]);
+
+        return redirect()->away(rtrim((string) config('services.x_api.authorize_url'), '?') . '?' . $query);
+    }
+
+    public function handleXCallback(Request $request): RedirectResponse
+    {
+        abort_unless($this->xTenantBetaEnabled(), Response::HTTP_NOT_FOUND);
+
+        $expectedState = (string) $request->session()->pull('social_media.x_oauth_state');
+        $expectedTenantId = (int) $request->session()->pull('social_media.x_oauth_tenant_id');
+        $verifier = (string) $request->session()->pull('social_media.x_oauth_code_verifier');
+
+        if ($expectedState === '' || !hash_equals($expectedState, (string) $request->query('state', ''))) {
+            abort(419, 'OAuth state mismatch.');
+        }
+
+        if ($expectedTenantId > 0 && $expectedTenantId !== TenantContext::currentId()) {
+            abort(403, 'Tenant context mismatch for X connect.');
+        }
+
+        if ($request->filled('error')) {
+            return redirect()
+                ->route('social-media.accounts.index')
+                ->withErrors([
+                    'x_oauth' => (string) $request->query('error_description', 'Koneksi X dibatalkan.'),
+                ]);
+        }
+
+        $code = trim((string) $request->query('code', ''));
+        if ($code === '' || $verifier === '') {
+            return redirect()
+                ->route('social-media.accounts.index')
+                ->withErrors(['x_oauth' => 'X tidak mengembalikan authorization code yang valid.']);
+        }
+
+        $tokenRequest = Http::asForm()
+            ->timeout(20)
+            ->withBasicAuth((string) config('services.x_api.client_id'), (string) config('services.x_api.client_secret'))
+            ->post((string) config('services.x_api.token_url'), [
+                'grant_type' => 'authorization_code',
+                'code' => $code,
+                'redirect_uri' => route('social-media.accounts.connect.x.callback'),
+                'code_verifier' => $verifier,
+            ]);
+
+        if (!$tokenRequest->successful()) {
+            return redirect()
+                ->route('social-media.accounts.index')
+                ->withErrors(['x_oauth' => 'Gagal menukar authorization code X menjadi access token.']);
+        }
+
+        $accessToken = trim((string) $tokenRequest->json('access_token'));
+        if ($accessToken === '') {
+            return redirect()
+                ->route('social-media.accounts.index')
+                ->withErrors(['x_oauth' => 'X tidak mengembalikan access token yang valid.']);
+        }
+
+        $profileRequest = Http::withToken($accessToken)
+            ->timeout(20)
+            ->get(rtrim((string) config('services.x_api.base_url'), '/') . '/2/users/me', [
+                'user.fields' => 'username,name,profile_image_url,verified',
+            ]);
+
+        if (!$profileRequest->successful()) {
+            return redirect()
+                ->route('social-media.accounts.index')
+                ->withErrors(['x_oauth' => 'Gagal mengambil profil akun X yang terhubung.']);
+        }
+
+        $profile = (array) $profileRequest->json('data', []);
+        $xUserId = trim((string) data_get($profile, 'id', ''));
+        if ($xUserId === '') {
+            return redirect()
+                ->route('social-media.accounts.index')
+                ->withErrors(['x_oauth' => 'Profil X yang terhubung tidak memiliki user ID yang valid.']);
+        }
+
+        $account = $this->upsertXOAuthAccount(
+            $xUserId,
+            $accessToken,
+            trim((string) $tokenRequest->json('refresh_token', '')),
+            (array) $profile,
+            $request->user()?->id
+        );
+
+        return redirect()
+            ->route('social-media.accounts.edit', $account)
+            ->with('status', 'Akun X berhasil dihubungkan.');
     }
 
     public function destroy(SocialAccount $account): RedirectResponse
@@ -358,5 +560,127 @@ class SocialAccountController extends Controller
     private function metaOauthReady(): bool
     {
         return filled(config('services.meta.app_id')) && filled(config('services.meta.app_secret'));
+    }
+
+    private function xOauthReady(): bool
+    {
+        return filled(config('services.x_api.client_id')) && filled(config('services.x_api.client_secret'));
+    }
+
+    private function xInternalEnabled(): bool
+    {
+        return (bool) config('services.x_api.internal_enabled', false);
+    }
+
+    private function isPlatformAdminHost(): bool
+    {
+        return (bool) request()->attributes->get('platform_admin_host', false);
+    }
+
+    private function xTenantBetaEnabled(): bool
+    {
+        return (bool) config('services.x_api.tenant_beta_enabled', true);
+    }
+
+    private function xConfigForm(string $mode): View
+    {
+        $account = new SocialAccount([
+            'platform' => 'x',
+            'status' => 'inactive',
+            'metadata' => [
+                'x_connector_status' => 'not_configured',
+            ],
+        ]);
+
+        return view('socialmedia::accounts.form', [
+            'account' => $account,
+            'chatbotAccounts' => $this->chatbotAccounts(),
+            'integration' => null,
+            'chatbotEnabled' => $this->isChatbotModuleReady(),
+            'metaOAuthReady' => $this->metaOauthReady(),
+            'xOAuthReady' => $this->xOauthReady(),
+            'xTenantBetaEnabled' => $this->xTenantBetaEnabled(),
+            'internalCreateMode' => true,
+            'xCreateMode' => 'internal',
+        ]);
+    }
+
+    private function storeXConfiguredAccount(SocialAccountRequest $request, string $mode): RedirectResponse
+    {
+        app(TenantPlanManager::class)->ensureWithinLimit(PlanLimit::SOCIAL_ACCOUNTS, 1);
+
+        $data = $request->validated();
+
+        $account = SocialAccount::query()->create([
+            'tenant_id' => TenantContext::currentId(),
+            'platform' => 'x',
+            'name' => trim((string) ($data['name'] ?? '')) ?: 'X Account',
+            'status' => trim((string) ($data['status'] ?? 'inactive')) ?: 'inactive',
+            'access_token' => trim((string) ($data['access_token'] ?? '')),
+            'metadata' => [
+                'connection_source' => $mode === 'internal' ? 'internal_x_config' : 'tenant_x_beta',
+                'x_user_id' => trim((string) ($data['x_user_id'] ?? '')) ?: null,
+                'x_handle' => trim((string) ($data['x_handle'] ?? '')) ?: null,
+                'x_connector_status' => trim((string) ($data['x_connector_status'] ?? '')) ?: 'not_configured',
+            ],
+            'created_by' => $request->user()?->id,
+        ]);
+
+        $this->persistChatbotIntegration($request, $account);
+
+        $message = $mode === 'internal'
+            ? 'Akun internal X berhasil dibuat.'
+            : 'Akun X beta berhasil dibuat.';
+
+        return redirect()->route('social-media.accounts.edit', $account)
+            ->with('status', $message);
+    }
+
+    private function upsertXOAuthAccount(string $xUserId, string $accessToken, string $refreshToken, array $profile, ?int $userId): SocialAccount
+    {
+        $tenantId = TenantContext::currentId();
+        $existing = SocialAccount::query()
+            ->where('tenant_id', $tenantId)
+            ->where('platform', 'x')
+            ->get()
+            ->first(function (SocialAccount $account) use ($xUserId) {
+                return trim((string) data_get($account->metadata, 'x_user_id', '')) === $xUserId;
+            });
+
+        if (!$existing) {
+            app(TenantPlanManager::class)->ensureWithinLimit(PlanLimit::SOCIAL_ACCOUNTS, 1);
+            $existing = new SocialAccount([
+                'tenant_id' => $tenantId,
+                'platform' => 'x',
+                'created_by' => $userId,
+            ]);
+        }
+
+        $metadata = is_array($existing->metadata) ? $existing->metadata : [];
+        $metadata['connection_source'] = 'x_oauth';
+        $metadata['x_user_id'] = $xUserId;
+        $metadata['x_handle'] = trim((string) data_get($profile, 'username', '')) ?: null;
+        $metadata['x_connector_status'] = 'active';
+        $metadata['oauth_connected_at'] = now()->toDateTimeString();
+        $metadata['x_profile_image_url'] = trim((string) data_get($profile, 'profile_image_url', '')) ?: null;
+        $metadata['x_verified'] = (bool) data_get($profile, 'verified', false);
+        $metadata['x_refresh_token_enc'] = $refreshToken !== '' ? Crypt::encryptString($refreshToken) : data_get($metadata, 'x_refresh_token_enc');
+        $name = trim((string) data_get($profile, 'name', ''));
+        $username = trim((string) data_get($profile, 'username', ''));
+
+        $existing->fill([
+            'name' => $name !== '' ? $name : ($username !== '' ? '@' . $username : 'X Account'),
+            'status' => 'active',
+            'access_token' => $accessToken,
+            'metadata' => $metadata,
+        ]);
+        $existing->save();
+
+        return $existing;
+    }
+
+    private function pkceChallenge(string $verifier): string
+    {
+        return rtrim(strtr(base64_encode(hash('sha256', $verifier, true)), '+/', '-_'), '=');
     }
 }

@@ -16,6 +16,9 @@ class SocialAccountRequest extends FormRequest
 
     public function rules(): array
     {
+        $account = $this->route('account');
+        $platform = trim((string) (($account?->platform) ?: $this->input('platform', '')));
+
         $chatbotRule = ['nullable'];
         if (class_exists(\App\Modules\Chatbot\Models\ChatbotAccount::class) && Schema::hasTable('chatbot_accounts')) {
             $hasAccessScope = Schema::hasColumn('chatbot_accounts', 'access_scope');
@@ -32,6 +35,10 @@ class SocialAccountRequest extends FormRequest
             'status' => ['required', 'in:active,inactive'],
             'auto_reply' => ['sometimes', 'boolean'],
             'chatbot_account_id' => $chatbotRule,
+            'access_token' => $platform === 'x' ? ['nullable', 'string', 'max:5000'] : ['nullable'],
+            'x_user_id' => $platform === 'x' ? ['nullable', 'string', 'max:100'] : ['nullable'],
+            'x_handle' => $platform === 'x' ? ['nullable', 'string', 'max:100'] : ['nullable'],
+            'x_connector_status' => $platform === 'x' ? ['nullable', 'in:not_configured,configured,active,error'] : ['nullable'],
         ];
     }
 }

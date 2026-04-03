@@ -3,6 +3,9 @@
 namespace App\Modules\SocialMedia\Jobs;
 
 use App\Modules\Conversations\Models\ConversationMessage;
+use App\Modules\SocialMedia\Services\SocialPlatformRegistry;
+use App\Modules\SocialMedia\Services\XDirectMessageClient;
+use App\Modules\SocialMedia\Services\XTokenManager;
 use App\Support\TenantContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -11,6 +14,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use App\Modules\SocialMedia\Models\SocialAccount;
 
 class SendSocialMessage implements ShouldQueue
@@ -40,6 +44,7 @@ class SendSocialMessage implements ShouldQueue
         }
 
         $platform = $message->conversation->metadata['platform'] ?? 'facebook';
+        $platformConfig = app(SocialPlatformRegistry::class)->find((string) $platform);
         $recipient = $message->conversation->contact_external_id;
         $accountId = $message->conversation->instance_id;
         $account = $accountId
@@ -49,6 +54,17 @@ class SendSocialMessage implements ShouldQueue
         $pageToken = $account?->access_token;
         $pageId = $account?->page_id;
         $igBusinessId = $account?->ig_business_id;
+
+        if (!$platformConfig || !($platformConfig['supports_outbound_messages'] ?? false)) {
+            $errorMessage = 'Outbound connector untuk platform ini belum aktif.';
+            $message->update(['status' => 'error', 'error_message' => $errorMessage]);
+            $account?->updateOperationalMetadata([
+                'last_outbound_error_at' => now()->toDateTimeString(),
+                'last_outbound_error_message' => $errorMessage,
+            ]);
+
+            return;
+        }
 
         if (!$account || !$pageToken) {
             $message->update(['status' => 'error', 'error_message' => 'Social account token is not connected for this tenant.']);
@@ -60,6 +76,117 @@ class SendSocialMessage implements ShouldQueue
         }
 
         try {
+            if ($platform === 'x') {
+                /** @var XDirectMessageClient $xClient */
+                $xClient = app(XDirectMessageClient::class);
+                /** @var XTokenManager $xTokenManager */
+                $xTokenManager = app(XTokenManager::class);
+                $dmConversationId = trim((string) data_get($message->conversation->metadata, 'x_dm_conversation_id', ''));
+                $mediaIds = [];
+
+                if ($message->media_url) {
+                    if (!in_array((string) $message->type, ['image', 'video'], true)) {
+                        $errorMessage = 'X hanya mendukung lampiran image, gif, atau video.';
+                        $message->update(['status' => 'error', 'error_message' => $errorMessage]);
+                        $account->updateOperationalMetadata([
+                            'last_outbound_error_at' => now()->toDateTimeString(),
+                            'last_outbound_error_message' => $errorMessage,
+                        ]);
+                        return;
+                    }
+
+                    $localPath = $this->resolvePublicStoragePath((string) $message->media_url);
+                    if ($localPath === null) {
+                        $errorMessage = 'Media X harus berasal dari file lokal workspace.';
+                        $message->update(['status' => 'error', 'error_message' => $errorMessage]);
+                        $account->updateOperationalMetadata([
+                            'last_outbound_error_at' => now()->toDateTimeString(),
+                            'last_outbound_error_message' => $errorMessage,
+                        ]);
+                        return;
+                    }
+
+                    $uploadResponse = $xClient->uploadMedia($pageToken, $localPath, (string) ($message->media_mime ?: 'image/jpeg'));
+                    if (in_array($uploadResponse->status(), [401, 403], true) && $xTokenManager->canRefresh($account)) {
+                        $refreshedToken = $xTokenManager->refreshAccessToken($account);
+                        if ($refreshedToken) {
+                            $pageToken = $refreshedToken;
+                            $uploadResponse = $xClient->uploadMedia($pageToken, $localPath, (string) ($message->media_mime ?: 'image/jpeg'));
+                        }
+                    }
+
+                    if (!$uploadResponse->successful()) {
+                        $errorMessage = $uploadResponse->body();
+                        $message->update(['status' => 'error', 'error_message' => $errorMessage]);
+                        $account->updateOperationalMetadata([
+                            'last_outbound_error_at' => now()->toDateTimeString(),
+                            'last_outbound_error_message' => mb_substr($errorMessage, 0, 500),
+                        ]);
+                        return;
+                    }
+
+                    $mediaId = trim((string) (data_get($uploadResponse->json(), 'data.id')
+                        ?? data_get($uploadResponse->json(), 'media_id')
+                        ?? data_get($uploadResponse->json(), 'data.media_id')));
+                    if ($mediaId === '') {
+                        $errorMessage = 'X tidak mengembalikan media_id yang valid.';
+                        $message->update(['status' => 'error', 'error_message' => $errorMessage]);
+                        $account->updateOperationalMetadata([
+                            'last_outbound_error_at' => now()->toDateTimeString(),
+                            'last_outbound_error_message' => $errorMessage,
+                        ]);
+                        return;
+                    }
+
+                    $mediaIds = [$mediaId];
+                }
+
+                $resp = $dmConversationId !== ''
+                    ? $xClient->sendToConversation($pageToken, $dmConversationId, (string) $message->body, $mediaIds)
+                    : ($mediaIds === []
+                        ? $xClient->sendTextToParticipant($pageToken, (string) $recipient, (string) $message->body)
+                        : $xClient->sendToParticipantWithMedia($pageToken, (string) $recipient, (string) $message->body, $mediaIds));
+
+                if (in_array($resp->status(), [401, 403], true) && $xTokenManager->canRefresh($account)) {
+                    $refreshedToken = $xTokenManager->refreshAccessToken($account);
+                    if ($refreshedToken) {
+                        $pageToken = $refreshedToken;
+                        $resp = $dmConversationId !== ''
+                            ? $xClient->sendToConversation($pageToken, $dmConversationId, (string) $message->body, $mediaIds)
+                            : ($mediaIds === []
+                                ? $xClient->sendTextToParticipant($pageToken, (string) $recipient, (string) $message->body)
+                                : $xClient->sendToParticipantWithMedia($pageToken, (string) $recipient, (string) $message->body, $mediaIds));
+                    }
+                }
+
+                if ($resp->successful()) {
+                    $message->update([
+                        'status' => 'sent',
+                        'sent_at' => now(),
+                        'external_message_id' => data_get($resp->json(), 'data.event_id')
+                            ?? data_get($resp->json(), 'data.id')
+                            ?? $message->external_message_id,
+                    ]);
+                    $account->updateOperationalMetadata([
+                        'last_outbound_at' => now()->toDateTimeString(),
+                        'last_outbound_error_at' => null,
+                        'last_outbound_error_message' => null,
+                    ]);
+                } else {
+                    $errorMessage = $resp->body();
+                    $message->update([
+                        'status' => 'error',
+                        'error_message' => $errorMessage,
+                    ]);
+                    $account->updateOperationalMetadata([
+                        'last_outbound_error_at' => now()->toDateTimeString(),
+                        'last_outbound_error_message' => mb_substr($errorMessage, 0, 500),
+                    ]);
+                }
+
+                return;
+            }
+
             if ($platform === 'instagram') {
                 if (!$igBusinessId) {
                     $message->update(['status' => 'error', 'error_message' => 'META_IG_BUSINESS_ID not set']);
@@ -145,6 +272,30 @@ class SendSocialMessage implements ShouldQueue
             'image', 'video', 'audio' => $type,
             default => 'file',
         };
+    }
+
+    private function resolvePublicStoragePath(string $publicUrl): ?string
+    {
+        $appUrl = rtrim((string) config('app.url'), '/');
+        $publicUrl = trim($publicUrl);
+
+        if ($publicUrl === '') {
+            return null;
+        }
+
+        if ($appUrl !== '' && Str::startsWith($publicUrl, $appUrl . '/storage/')) {
+            return public_path('storage/' . ltrim(Str::after($publicUrl, $appUrl . '/storage/'), '/'));
+        }
+
+        if (Str::startsWith($publicUrl, '/storage/')) {
+            return public_path(ltrim($publicUrl, '/'));
+        }
+
+        if (Str::contains($publicUrl, '/storage/')) {
+            return public_path('storage/' . ltrim(Str::after($publicUrl, '/storage/'), '/'));
+        }
+
+        return null;
     }
 }
 

@@ -10,6 +10,9 @@ use App\Modules\Conversations\Models\Conversation;
 use App\Modules\SocialMedia\Models\SocialAccount;
 use App\Modules\SocialMedia\Models\SocialAccountChatbotIntegration;
 use App\Modules\SocialMedia\Services\MetaWebhookPayloadParser;
+use App\Modules\SocialMedia\Services\XAccountActivityPayloadParser;
+use App\Modules\SocialMedia\Services\XSocialAccountResolver;
+use App\Modules\SocialMedia\Services\XWebhookSecurity;
 use App\Modules\Conversations\Jobs\GenerateAiReply;
 use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
@@ -22,7 +25,10 @@ class SocialWebhookController extends Controller
     public function __construct(
         private readonly InboxMessageIngester $ingester,
         private readonly ConversationBotPolicy $botPolicy,
-        private readonly MetaWebhookPayloadParser $payloadParser
+        private readonly MetaWebhookPayloadParser $payloadParser,
+        private readonly XWebhookSecurity $xWebhookSecurity,
+        private readonly XAccountActivityPayloadParser $xPayloadParser,
+        private readonly XSocialAccountResolver $xAccountResolver
     ) {
     }
 
@@ -81,6 +87,94 @@ class SocialWebhookController extends Controller
                     'last_inbound_at' => now()->toDateTimeString(),
                     'last_inbound_summary' => mb_substr(trim((string) $event['message']), 0, 160),
                 ]);
+            }
+        }
+
+        return response()->json([
+            'stored' => true,
+            'processed' => $processed,
+            'deduplicated' => $deduplicated > 0,
+            'deduplicated_count' => $deduplicated,
+        ]);
+    }
+
+    public function xCrc(Request $request): JsonResponse
+    {
+        $crcToken = trim((string) $request->query('crc_token', ''));
+        abort_unless($crcToken !== '', 400, 'Missing crc_token');
+
+        return response()->json($this->xWebhookSecurity->buildCrcResponse($crcToken));
+    }
+
+    public function xInbound(Request $request): JsonResponse
+    {
+        $signature = trim((string) $request->header('x-twitter-webhooks-signature', ''));
+        if (!$this->xWebhookSecurity->verifySignature((string) $request->getContent(), $signature)) {
+            return response()->json(['message' => 'Invalid X webhook signature'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $events = $this->xPayloadParser->parse($request->all());
+        $processed = 0;
+        $deduplicated = 0;
+
+        foreach ($events as $event) {
+            $account = $this->xAccountResolver->resolveByForUserId((string) ($event['for_user_id'] ?? ''));
+            if (!$account) {
+                continue;
+            }
+
+            TenantContext::setCurrentId((int) $account->tenant_id);
+
+            $body = trim((string) ($event['text'] ?? ''));
+            if ($body === '' && !empty($event['attachment_media_keys'])) {
+                $body = '[x media attachment]';
+            }
+
+            $result = $this->ingester->ingest(new InboxMessageEnvelope(
+                channel: 'social_dm',
+                instanceId: (int) $account->id,
+                conversationExternalId: (string) ($event['conversation_id'] ?? ''),
+                contactExternalId: (string) $event['contact_id'],
+                contactName: null,
+                direction: (string) ($event['direction'] ?? 'in'),
+                type: 'text',
+                body: $body,
+                externalMessageId: (string) ($event['event_id'] ?? null),
+                payload: $this->sanitizeWebhookPayload($event),
+                conversationMetadata: [
+                    'platform' => 'x',
+                    'x_dm_conversation_id' => $event['conversation_id'] ?? null,
+                ],
+                messageStatus: (($event['direction'] ?? 'in') === 'out') ? 'sent' : 'delivered',
+                ingestionMode: InboxMessageEnvelope::MODE_REALTIME,
+                incrementUnread: ($event['direction'] ?? 'in') !== 'out',
+                writeActivityLog: false,
+                broadcast: false,
+            ));
+            $processed++;
+
+            if ($result->deduplicated) {
+                $deduplicated++;
+                continue;
+            }
+
+            if (($event['direction'] ?? 'in') === 'in') {
+                $account->updateOperationalMetadata([
+                    'last_inbound_at' => now()->toDateTimeString(),
+                    'last_inbound_summary' => mb_substr($body, 0, 160),
+                    'x_webhook_last_event_at' => now()->toDateTimeString(),
+                    'x_webhook_last_event_id' => (string) ($event['event_id'] ?? ''),
+                ]);
+
+                $chatbot = $this->chatbotIntegration($account);
+                if ($chatbot['auto_reply']) {
+                    $decision = $this->evaluateAutoReplyDecision($result->conversation, $chatbot['chatbot_account_id'], (string) ($result->message->body ?? ''));
+                    if (($decision['action'] ?? null) === 'reply') {
+                        GenerateAiReply::dispatch($result->conversation->id, $result->message->id, $chatbot['chatbot_account_id']);
+                    } elseif (($decision['action'] ?? null) === 'handoff') {
+                        $this->markConversationHandoff($result->conversation, (string) ($decision['reason'] ?? 'user_requested_human'), $chatbot['chatbot_account_id']);
+                    }
+                }
             }
         }
 

@@ -14,12 +14,25 @@
 - Prioritas bisnis paling tinggi setelah Meta untuk pasar Indonesia.
 - Cocok untuk inbound commerce dan brand interaction.
 - Saat ini di codebase sudah ada scaffold internal `tiktok`, tapi belum ada connector tenant-facing.
-- Kebutuhan minimal:
-  - account connect/token flow
-  - inbound event parser native
-  - outbound reply adapter
-  - normalized mapping ke conversations
-  - plan limit + storage + audit
+- Urutan kerja sampai siap publish:
+  1. Validasi capability resmi yang benar-benar tersedia untuk tenant.
+     - gunakan hanya API resmi TikTok yang memang dibuka untuk partner/developer
+     - jangan asumsikan DM/business inbox tersedia kalau docs publik belum ada
+  2. Siapkan OAuth / Login Kit connector tenant.
+     - connect account TikTok harus lewat platform OAuth, bukan token manual
+  3. Siapkan account metadata model.
+     - simpan user/account ID, display name, avatar, dan token refresh lifecycle
+  4. Tentukan event ingress resmi.
+     - jika ada webhook/event resmi untuk messaging atau komentar, parser harus native
+     - jika tidak ada, jangan jual sebagai inbox omnichannel penuh
+  5. Tambahkan outbound adapter hanya untuk aksi yang memang didukung official API.
+  6. Normalisasi ke `conversations` hanya jika ada inbound/outbound nyata.
+  7. Tambahkan plan limits, storage, audit, dan health observability.
+  8. Baru buka ke landing page dan tenant umum setelah `connect + inbound + outbound + audit` nyata.
+- Blocker saat ini:
+  - saya belum menemukan dokumentasi publik resmi TikTok yang cukup jelas untuk `DM/business messaging inbox` setara Meta/X.
+  - yang jelas tersedia secara publik justru area seperti Login Kit/OAuth dan Content Posting API.
+  - artinya TikTok bisa disiapkan dari sisi auth/foundation, tetapi belum jujur kalau langsung dijual sebagai channel DM omnichannel.
 
 ### Threads
 - Anggap sebagai channel baru, bukan turunan langsung dari Instagram.
@@ -31,6 +44,18 @@
 - Prioritas bisnis lebih rendah untuk SMB Indonesia dibanding TikTok/Meta.
 - Tetap relevan untuk use case public brand response atau segmen tertentu.
 - Saat ini di codebase sudah ada scaffold internal `x`, tapi connector tenant belum dibuka.
+- Fondasi internal saat ini sudah mencakup registry platform dan client boundary untuk DM send berdasarkan X API v2.
+- Fondasi internal sekarang juga sudah mencakup:
+  - helper CRC/signature webhook
+  - parser payload Account Activity untuk event `MessageCreate`
+- Endpoint resmi yang jadi acuan:
+  - `POST /2/dm_conversations/with/:participant_id/messages`
+  - `POST /2/dm_conversations/:dm_conversation_id/messages`
+- Scope resmi yang dibutuhkan:
+  - `dm.write`
+  - `dm.read`
+  - `tweet.read`
+  - `users.read`
 - Cocok dipertimbangkan setelah Meta parser stabil dan roadmap TikTok lebih jelas.
 
 ## Shared Architecture For Any New Social Channel

@@ -11,6 +11,7 @@ use App\Modules\SocialMedia\Models\SocialAccount;
 use App\Modules\SocialMedia\SocialMediaServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
@@ -415,5 +416,323 @@ class SocialWebhookTest extends TestCase
         $account->refresh();
         $this->assertNotNull($account->lastOutboundAt());
         $this->assertNull($account->lastOutboundErrorAt());
+    }
+
+    public function test_send_social_message_blocks_non_live_platform_connector()
+    {
+        $account = SocialAccount::query()->create([
+            'tenant_id' => 1,
+            'platform' => 'facebook',
+            'name' => 'Legacy Account',
+            'page_id' => 'page-x-1',
+            'access_token' => 'valid-token',
+            'status' => 'active',
+        ]);
+
+        $conversation = Conversation::query()->create([
+            'tenant_id' => 1,
+            'channel' => 'social_dm',
+            'instance_id' => $account->id,
+            'contact_external_id' => 'x-user-1',
+            'contact_name' => 'X User',
+            'status' => 'open',
+            'metadata' => [
+                'platform' => 'threads',
+            ],
+        ]);
+
+        $message = ConversationMessage::query()->create([
+            'tenant_id' => 1,
+            'conversation_id' => $conversation->id,
+            'direction' => 'out',
+            'type' => 'text',
+            'body' => 'Halo X',
+            'status' => 'pending',
+        ]);
+
+        (new SendSocialMessage($message->id))->handle();
+
+        $message->refresh();
+        $this->assertSame('error', $message->status);
+        $this->assertSame('Outbound connector untuk platform ini belum aktif.', $message->error_message);
+    }
+
+    public function test_send_social_message_dispatches_text_to_x_connector(): void
+    {
+        Http::fake([
+            'https://api.x.com/*' => Http::response(['data' => ['event_id' => 'x-out-1']], 200),
+        ]);
+
+        $account = SocialAccount::query()->create([
+            'tenant_id' => 1,
+            'platform' => 'x',
+            'name' => 'X Account',
+            'access_token' => 'x-user-token',
+            'status' => 'active',
+            'metadata' => [
+                'x_user_id' => '111',
+            ],
+        ]);
+
+        $conversation = Conversation::query()->create([
+            'tenant_id' => 1,
+            'channel' => 'social_dm',
+            'instance_id' => $account->id,
+            'contact_external_id' => '222',
+            'contact_name' => 'X Contact',
+            'status' => 'open',
+            'metadata' => [
+                'platform' => 'x',
+                'x_dm_conversation_id' => '111-222',
+            ],
+        ]);
+
+        $message = ConversationMessage::query()->create([
+            'tenant_id' => 1,
+            'conversation_id' => $conversation->id,
+            'direction' => 'out',
+            'type' => 'text',
+            'body' => 'Halo dari outbound X',
+            'status' => 'pending',
+        ]);
+
+        (new SendSocialMessage($message->id))->handle();
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://api.x.com/2/dm_conversations/111-222/messages'
+                && data_get($request->data(), 'text') === 'Halo dari outbound X';
+        });
+
+        $message->refresh();
+        $this->assertSame('sent', $message->status);
+        $this->assertSame('x-out-1', $message->external_message_id);
+    }
+
+    public function test_send_social_message_refreshes_x_token_and_retries_once(): void
+    {
+        config([
+            'services.x_api.client_id' => 'x-client-123',
+            'services.x_api.client_secret' => 'x-secret-123',
+            'services.x_api.token_url' => 'https://api.x.com/2/oauth2/token',
+        ]);
+
+        Http::fake([
+            'https://api.x.com/2/dm_conversations/111-222/messages' => Http::sequence()
+                ->push(['title' => 'Unauthorized'], 401)
+                ->push(['data' => ['event_id' => 'x-out-2']], 200),
+            'https://api.x.com/2/oauth2/token' => Http::response([
+                'access_token' => 'x-access-token-new',
+                'refresh_token' => 'x-refresh-token-new',
+            ], 200),
+        ]);
+
+        $account = SocialAccount::query()->create([
+            'tenant_id' => 1,
+            'platform' => 'x',
+            'name' => 'X Account',
+            'access_token' => 'x-access-token-old',
+            'status' => 'active',
+            'metadata' => [
+                'x_user_id' => '111',
+                'x_refresh_token_enc' => Crypt::encryptString('x-refresh-token-old'),
+            ],
+        ]);
+
+        $conversation = Conversation::query()->create([
+            'tenant_id' => 1,
+            'channel' => 'social_dm',
+            'instance_id' => $account->id,
+            'contact_external_id' => '222',
+            'contact_name' => 'X Contact',
+            'status' => 'open',
+            'metadata' => [
+                'platform' => 'x',
+                'x_dm_conversation_id' => '111-222',
+            ],
+        ]);
+
+        $message = ConversationMessage::query()->create([
+            'tenant_id' => 1,
+            'conversation_id' => $conversation->id,
+            'direction' => 'out',
+            'type' => 'text',
+            'body' => 'Halo setelah refresh',
+            'status' => 'pending',
+        ]);
+
+        (new SendSocialMessage($message->id))->handle();
+
+        Http::assertSentCount(3);
+
+        $message->refresh();
+        $account->refresh();
+
+        $this->assertSame('sent', $message->status);
+        $this->assertSame('x-out-2', $message->external_message_id);
+        $this->assertSame('x-access-token-new', $account->access_token);
+        $this->assertNotEmpty(data_get($account->metadata, 'oauth_refreshed_at'));
+        $this->assertSame('ok', data_get($account->metadata, 'last_token_refresh_status'));
+    }
+
+    public function test_send_social_message_uploads_image_for_x(): void
+    {
+        config([
+            'app.url' => 'https://example.test',
+        ]);
+
+        $path = 'social_messages/2026/04/x-image.jpg';
+        $absolutePath = public_path('storage/' . $path);
+        if (!is_dir(dirname($absolutePath))) {
+            mkdir(dirname($absolutePath), 0777, true);
+        }
+        file_put_contents($absolutePath, 'fake-image-binary');
+
+        Http::fake([
+            'https://api.x.com/2/media/upload' => Http::response([
+                'data' => ['id' => 'media-123'],
+            ], 200),
+            'https://api.x.com/2/dm_conversations/111-222/messages' => Http::response([
+                'data' => ['event_id' => 'x-out-media-1'],
+            ], 200),
+        ]);
+
+        $account = SocialAccount::query()->create([
+            'tenant_id' => 1,
+            'platform' => 'x',
+            'name' => 'X Account',
+            'access_token' => 'x-token',
+            'status' => 'active',
+            'metadata' => [
+                'x_user_id' => '111',
+            ],
+        ]);
+
+        $conversation = Conversation::query()->create([
+            'tenant_id' => 1,
+            'channel' => 'social_dm',
+            'instance_id' => $account->id,
+            'contact_external_id' => '222',
+            'contact_name' => 'X Contact',
+            'status' => 'open',
+            'metadata' => [
+                'platform' => 'x',
+                'x_dm_conversation_id' => '111-222',
+            ],
+        ]);
+
+        $message = ConversationMessage::query()->create([
+            'tenant_id' => 1,
+            'conversation_id' => $conversation->id,
+            'direction' => 'out',
+            'type' => 'image',
+            'body' => 'Foto produk',
+            'media_url' => 'https://example.test/storage/' . $path,
+            'media_mime' => 'image/jpeg',
+            'status' => 'pending',
+        ]);
+
+        (new SendSocialMessage($message->id))->handle();
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://api.x.com/2/media/upload';
+        });
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://api.x.com/2/dm_conversations/111-222/messages'
+                && data_get($request->data(), 'attachments.0.media_id') === 'media-123';
+        });
+
+        $message->refresh();
+        $this->assertSame('sent', $message->status);
+        $this->assertSame('x-out-media-1', $message->external_message_id);
+    }
+
+    public function test_send_social_message_uploads_video_for_x_using_chunked_flow(): void
+    {
+        config([
+            'app.url' => 'https://example.test',
+        ]);
+
+        $path = 'social_messages/2026/04/x-video.mp4';
+        $absolutePath = public_path('storage/' . $path);
+        if (!is_dir(dirname($absolutePath))) {
+            mkdir(dirname($absolutePath), 0777, true);
+        }
+        file_put_contents($absolutePath, 'fake-video-binary');
+
+        Http::fake(function ($request) {
+            $url = $request->url();
+
+            if ($url === 'https://api.x.com/2/media/upload/media-video-1/append') {
+                return Http::response([], 200);
+            }
+
+            if ($url === 'https://api.x.com/2/media/upload/media-video-1/finalize') {
+                return Http::response([
+                    'data' => ['processing_info' => ['state' => 'pending'], 'id' => 'media-video-1'],
+                ], 200);
+            }
+
+            if ($url === 'https://api.x.com/2/dm_conversations/111-222/messages') {
+                return Http::response([
+                    'data' => ['event_id' => 'x-out-video-1'],
+                ], 200);
+            }
+
+            if (str_starts_with($url, 'https://api.x.com/2/media/upload?command=STATUS')) {
+                return Http::response([
+                    'data' => ['processing_info' => ['state' => 'succeeded'], 'id' => 'media-video-1'],
+                ], 200);
+            }
+
+            if ($url === 'https://api.x.com/2/media/upload') {
+                return Http::response([
+                    'data' => ['id' => 'media-video-1'],
+                ], 200);
+            }
+
+            return Http::response([], 404);
+        });
+
+        $account = SocialAccount::query()->create([
+            'tenant_id' => 1,
+            'platform' => 'x',
+            'name' => 'X Account',
+            'access_token' => 'x-token',
+            'status' => 'active',
+            'metadata' => [
+                'x_user_id' => '111',
+            ],
+        ]);
+
+        $conversation = Conversation::query()->create([
+            'tenant_id' => 1,
+            'channel' => 'social_dm',
+            'instance_id' => $account->id,
+            'contact_external_id' => '222',
+            'contact_name' => 'X Contact',
+            'status' => 'open',
+            'metadata' => [
+                'platform' => 'x',
+                'x_dm_conversation_id' => '111-222',
+            ],
+        ]);
+
+        $message = ConversationMessage::query()->create([
+            'tenant_id' => 1,
+            'conversation_id' => $conversation->id,
+            'direction' => 'out',
+            'type' => 'video',
+            'body' => 'Video demo',
+            'media_url' => 'https://example.test/storage/' . $path,
+            'media_mime' => 'video/mp4',
+            'status' => 'pending',
+        ]);
+
+        (new SendSocialMessage($message->id))->handle();
+
+        $message->refresh();
+        $this->assertSame('sent', $message->status);
+        $this->assertSame('x-out-video-1', $message->external_message_id);
     }
 }

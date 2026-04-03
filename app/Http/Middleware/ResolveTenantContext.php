@@ -152,6 +152,7 @@ class ResolveTenantContext
     private function isPlatformWebhookRoute(Request $request): bool
     {
         return $request->is('social-media/webhook')
+            || $request->is('social-media/webhook/x')
             || $request->is('whatsapp-api/webhook')
             || $request->is('platform/billing/midtrans/webhook');
     }

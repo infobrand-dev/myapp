@@ -45,6 +45,19 @@ return [
         'oauth_scopes' => array_values(array_filter(array_map('trim', explode(',', (string) env('META_OAUTH_SCOPES', 'pages_show_list,pages_manage_metadata,pages_messaging,instagram_basic,instagram_manage_messages,business_management'))))),
     ],
 
+    'x_api' => [
+        'base_url' => env('X_API_BASE_URL', 'https://api.x.com'),
+        'authorize_url' => env('X_API_AUTHORIZE_URL', 'https://x.com/i/oauth2/authorize'),
+        'token_url' => env('X_API_TOKEN_URL', 'https://api.x.com/2/oauth2/token'),
+        'client_id' => env('X_API_CLIENT_ID'),
+        'client_secret' => env('X_API_CLIENT_SECRET'),
+        'webhook_environment' => env('X_API_WEBHOOK_ENVIRONMENT'),
+        'webhook_secret' => env('X_API_WEBHOOK_SECRET'),
+        'internal_enabled' => filter_var(env('X_API_INTERNAL_ENABLED', false), FILTER_VALIDATE_BOOL),
+        'tenant_beta_enabled' => filter_var(env('X_API_TENANT_BETA_ENABLED', true), FILTER_VALIDATE_BOOL),
+        'oauth_scopes' => array_values(array_filter(array_map('trim', explode(',', (string) env('X_API_OAUTH_SCOPES', 'users.read,dm.read,dm.write,offline.access'))))),
+    ],
+
     'openai' => [
         'api_key' => env('OPENAI_API_KEY'),
         'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),

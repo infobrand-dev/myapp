@@ -13,7 +13,7 @@
                     <i class="ti ti-layout-dashboard"></i> Meetra Platform
                 </div>
                 <h1 class="landing-headline mb-4">
-                    <span>Meetra</span> membantu bisnis menjalankan customer, transaksi, dan workflow tim dalam satu tempat.
+                    <span>Jalankan seluruh ekosistem bisnis Anda</span> dalam satu platform.
                 </h1>
                 <p class="landing-subtext mb-5">
                     Platform bisnis yang menyatukan customer, transaksi, dan workflow tim — tanpa memecah data ke banyak alat terpisah.

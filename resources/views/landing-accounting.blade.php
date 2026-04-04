@@ -87,7 +87,7 @@
                     <i class="ti ti-report-money"></i> Meetra Accounting
                 </div>
                 <h1 class="landing-headline mb-4">
-                    Rapikan <span>jualan, pembayaran, pembelian, stok, dan laporan</span> tanpa bikin tim pindah-pindah alat.
+                    <span>Satukan pencatatan transaksi</span> tanpa perlu pindah-pindah aplikasi.
                 </h1>
                 <p class="landing-subtext mb-5">
                     Mulai dari penjualan, pembayaran, dan kas. Tambah pembelian, stok, dan laporan saat bisnis tumbuh — semua dalam satu workspace.

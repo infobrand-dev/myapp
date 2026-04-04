@@ -31,6 +31,7 @@ return new class extends Migration
                 $features[PlanFeature::ADVANCED_REPORTS] = !$isStarter;
                 $features[PlanFeature::POINT_OF_SALE] = false;
                 unset($features['inventory'], $features['pos']);
+                $meta['sales_status'] = 'public';
 
                 if ($isStarter) {
                     $meta['tagline'] = 'Paket simple untuk UMKM dengan sales, payments, finance ringan, products, contacts, dan dashboard report ringkas. POS tersedia sebagai add-on.';

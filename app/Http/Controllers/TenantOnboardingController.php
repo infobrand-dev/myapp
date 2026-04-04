@@ -23,15 +23,18 @@ class TenantOnboardingController extends Controller
         abort_unless(config('multitenancy.mode') === 'saas', 404);
 
         $affiliate = $affiliateService->captureFromRequest($request);
+        $productLine = $this->requestedPublicProductLine($request);
 
-        $preferredPlanId = $sales->resolvePublicPlanIdByCode((string) request()->query('plan'));
+        $preferredPlanId = $sales->resolvePublicPlanIdByCode((string) request()->query('plan'), $productLine);
 
         return view('onboarding.create', [
-            'plans' => $sales->publicPlans(),
+            'plans' => $sales->publicPlans($productLine),
             'preferredPlanId' => $preferredPlanId,
             'affiliate' => $affiliate,
             'manualPaymentReady' => $manualPayment->isConfigured(),
             'midtransReady' => $midtrans->isConfigured(),
+            'productLine' => $productLine,
+            'productLineLabel' => $this->productLineLabel($productLine),
         ]);
     }
 
@@ -91,9 +94,9 @@ class TenantOnboardingController extends Controller
             ->public()
             ->firstOrFail();
 
-        if ($plan->productLine() !== 'omnichannel') {
+        if (!in_array($plan->productLine(), ['omnichannel', 'accounting'], true)) {
             throw ValidationException::withMessages([
-                'subscription_plan_id' => 'Plan yang dipilih tidak tersedia di alur pendaftaran omnichannel saat ini.',
+                'subscription_plan_id' => 'Plan yang dipilih belum tersedia di alur pendaftaran publik saat ini.',
             ]);
         }
 
@@ -125,5 +128,22 @@ class TenantOnboardingController extends Controller
 
             return redirect()->away($sales->publicInvoiceUrl($invoice));
         }
+    }
+
+    private function requestedPublicProductLine(Request $request): string
+    {
+        $requested = strtolower(trim((string) ($request->query('product_line') ?: $request->query('product'))));
+
+        return in_array($requested, ['accounting', 'omnichannel'], true)
+            ? $requested
+            : 'omnichannel';
+    }
+
+    private function productLineLabel(string $productLine): string
+    {
+        return match ($productLine) {
+            'accounting' => 'Accounting',
+            default => 'Omnichannel',
+        };
     }
 }

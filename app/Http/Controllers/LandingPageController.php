@@ -54,13 +54,14 @@ class LandingPageController extends Controller
         ]);
     }
 
-    public function accounting(Request $request): View|RedirectResponse
+    public function accounting(Request $request, TenantOnboardingSalesService $sales): View|RedirectResponse
     {
         if (auth()->check()) {
             return redirect()->away($this->workspaceUrlFor($request));
         }
 
         return view('landing-accounting', [
+            'publicPlans' => $sales->publicPlans('accounting'),
             'modules' => $this->publicModuleCatalog($this->accountingModuleSlugs()),
             'supportingModules' => $this->publicModuleCatalog(['purchases', 'inventory', 'discounts']),
             'addonModules' => $this->publicModuleCatalog(['point-of-sale']),

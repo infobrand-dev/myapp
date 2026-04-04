@@ -4,28 +4,6 @@
 @section('head_description', 'Meetra adalah platform bisnis yang membantu tim menjalankan penjualan, customer handling, operasional transaksi, dan workflow kerja dalam satu workspace.')
 
 @section('content')
-<style>
-    .meetra-hero-showcase { display:grid; gap:1rem; grid-template-columns:repeat(3,minmax(0,1fr)); }
-    .meetra-showcase-card { border:1px solid rgba(15,23,42,.08); border-radius:26px; background:#fff; padding:1rem; box-shadow:0 20px 46px rgba(15,23,42,.08); min-height:165px; }
-    .meetra-showcase-icon { width:52px; height:52px; border-radius:18px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#0f172a,#1d4ed8); color:#fff; margin-bottom:1rem; }
-    .meetra-showcase-icon svg { width:26px; height:26px; }
-    .meetra-showcase-icon svg * { stroke: currentColor !important; fill:none !important; }
-    .meetra-solution-card { border:1px solid rgba(15,23,42,.08); border-radius:30px; background:#fff; padding:2rem; height:100%; box-shadow:0 24px 50px rgba(15,23,42,.08); }
-    .meetra-solution-card.primary { background:linear-gradient(180deg,#0f172a 0%,#172554 100%); color:#fff; }
-    .meetra-solution-card.primary .text-muted,
-    .meetra-solution-card.primary .small { color:rgba(255,255,255,.74) !important; }
-    .meetra-capability-card { border:1px solid rgba(15,23,42,.08); border-radius:26px; background:#fff; padding:1.35rem; height:100%; box-shadow:0 18px 38px rgba(15,23,42,.06); }
-    .meetra-capability-icon { width:54px; height:54px; border-radius:18px; display:flex; align-items:center; justify-content:center; background:#eff6ff; color:#1d4ed8; }
-    .meetra-capability-icon svg { width:26px; height:26px; }
-    .meetra-capability-icon svg * { stroke: currentColor !important; fill:none !important; }
-    .meetra-why-card { border:1px solid rgba(15,23,42,.08); border-radius:24px; background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%); padding:1.4rem; height:100%; }
-    @media (max-width: 991.98px) {
-        .meetra-hero-showcase { grid-template-columns:1fr 1fr; }
-    }
-    @media (max-width: 767.98px) {
-        .meetra-hero-showcase { grid-template-columns:1fr; }
-    }
-</style>
 
 <section id="platform" class="landing-hero py-5 py-lg-6">
     <div class="container py-lg-4">

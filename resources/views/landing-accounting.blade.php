@@ -4,8 +4,7 @@
 @section('head_description', 'Meetra Accounting membantu bisnis merapikan penjualan, pembayaran, pembelian, kas, produk, kontak, stok, dan laporan operasional dalam satu workspace.')
 
 @section('content')
-@php
-    $money = app(\App\Support\MoneyFormatter::class);
+@php $money = app(\App\Support\MoneyFormatter::class);
     $plans = collect($publicPlans ?? [])->map(function ($plan) use ($money) {
         $sales = (array) ($plan->sales_meta ?? []);
         $features = (array) ($plan->features ?? []);
@@ -91,29 +90,6 @@
         ]);
     }
 @endphp
-
-<style>
-    .accounting-hero-grid { display:grid; gap:1rem; grid-template-columns:repeat(2,minmax(0,1fr)); }
-    .accounting-summary-card { border:1px solid rgba(15,23,42,.08); border-radius:28px; background:#fff; padding:1.15rem; box-shadow:0 18px 42px rgba(15,23,42,.08); min-height:150px; }
-    .accounting-summary-icon { width:50px; height:50px; border-radius:16px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#0f172a,#1d4ed8); color:#fff; margin-bottom:1rem; }
-    .accounting-summary-icon svg { width:24px; height:24px; }
-    .accounting-summary-icon svg * { stroke: currentColor !important; fill:none !important; }
-    .accounting-feature-card { border:1px solid rgba(15,23,42,.08); border-radius:28px; background:#fff; box-shadow:0 18px 40px rgba(15,23,42,.06); height:100%; }
-    .accounting-feature-body { padding:1.5rem; }
-    .accounting-feature-icon { width:56px; height:56px; border-radius:18px; display:flex; align-items:center; justify-content:center; background:#eff6ff; color:#1d4ed8; }
-    .accounting-feature-icon svg { width:28px; height:28px; }
-    .accounting-feature-icon svg * { stroke: currentColor !important; fill:none !important; }
-    .accounting-plan-card { border:1px solid rgba(15,23,42,.08); border-radius:30px; background:#fff; padding:1.8rem; height:100%; box-shadow:0 22px 45px rgba(15,23,42,.08); }
-    .accounting-plan-card.featured { background:linear-gradient(180deg,#0f172a 0%,#1e3a8a 100%); color:#fff; box-shadow:0 26px 60px rgba(15,23,42,.18); }
-    .accounting-plan-card.featured .text-muted,
-    .accounting-plan-card.featured .small { color:rgba(255,255,255,.76) !important; }
-    .accounting-plan-badge { display:inline-flex; padding:.35rem .75rem; border-radius:999px; background:#dbeafe; color:#1d4ed8; font-size:.78rem; font-weight:700; }
-    .accounting-addon-card { border:1px dashed rgba(15,23,42,.18); border-radius:24px; background:#fff; padding:1.25rem; height:100%; }
-    .accounting-easy-card { border:1px solid rgba(15,23,42,.08); border-radius:24px; background:linear-gradient(180deg,#fff 0%,#f8fafc 100%); padding:1.4rem; height:100%; }
-    @media (max-width: 991.98px) {
-        .accounting-hero-grid { grid-template-columns:1fr; }
-    }
-</style>
 
 <section id="overview" class="landing-hero py-5 py-lg-6">
     <div class="container py-lg-4">
@@ -280,7 +256,7 @@
         <div class="text-center mb-5">
             <div class="landing-eyebrow mb-2">Pilih Paket</div>
             <h2 class="landing-section-title">Tinggal pilih plan yang paling pas untuk kondisi bisnis Anda.</h2>
-            <p class="landing-subtext mx-auto">Setiap tombol akan membawa user ke halaman daftar dengan paket yang sudah dipilih, supaya proses mulai workspace lebih singkat.</p>
+            <p class="landing-subtext mx-auto">Pilih paket yang paling sesuai dan mulai workspace Anda langsung dari sini. Bisa naik ke paket lebih lengkap kapan saja saat bisnis berkembang.</p>
         </div>
         <div class="row g-4">
             @foreach ($plans as $plan)

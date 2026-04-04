@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('head_title', config('app.name'))</title>
-    <meta name="description" content="@yield('head_description', 'Platform omnichannel untuk tim sales, support, dan marketing — semua percakapan pelanggan dalam satu workspace.')">
+    <meta name="description" content="@yield('head_description', 'Meetra — platform bisnis untuk operasional, penjualan, customer, dan workflow tim dalam satu workspace.')">
     @stack('head_meta')
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,15 +26,13 @@
                 <x-app-logo variant="default" :height="36" />
             </a>
             <nav class="d-none d-lg-flex align-items-center gap-1">
-                <a href="{{ route('landing') }}" class="landing-nav-link">Tentang Meetra</a>
+                <a href="{{ route('landing') }}" class="landing-nav-link">Meetra</a>
                 <a href="{{ route('landing.accounting') }}" class="landing-nav-link">Accounting</a>
                 <a href="{{ route('landing.omnichannel') }}" class="landing-nav-link">Omnichannel</a>
-                <a href="{{ route('landing') }}#products" class="landing-nav-link">Solusi</a>
-                <a href="{{ route('landing') }}#why" class="landing-nav-link">Kenapa Meetra</a>
             </nav>
             <div class="d-flex align-items-center gap-2">
                 <a href="{{ route('workspace.finder') }}" class="btn btn-outline-dark btn-sm d-none d-md-inline-flex">Login Workspace</a>
-                <a href="{{ route('landing') }}" class="btn btn-dark btn-sm">Tentang Meetra</a>
+                <a href="{{ route('onboarding.create') }}" class="btn btn-dark btn-sm">Mulai Sekarang</a>
             </div>
         </div>
     </div>
@@ -134,7 +132,7 @@
             </div>
             <div class="d-flex align-items-center gap-3 flex-wrap">
                 <span class="landing-footer-trust-pill"><i class="ti ti-shield-check"></i> Data Aman</span>
-                <span class="landing-footer-trust-pill"><i class="ti ti-brand-whatsapp"></i> WhatsApp API Resmi</span>
+                <span class="landing-footer-trust-pill"><i class="ti ti-server-2"></i> Server Indonesia</span>
                 <span class="landing-footer-trust-pill"><i class="ti ti-credit-card"></i> Bayar Lokal</span>
             </div>
         </div>

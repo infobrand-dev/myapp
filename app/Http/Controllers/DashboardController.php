@@ -31,11 +31,19 @@ class DashboardController extends Controller
         $allModules = collect($modules->all());
         $tenantId = TenantContext::currentId();
         $visibleModules = $allModules->filter(function ($module) use ($plans, $tenantId) {
-            $features = PlanFeature::moduleFeaturesForSlug((string) ($module['slug'] ?? ''));
+            $requirement = PlanFeature::moduleFeatureRequirement((string) ($module['slug'] ?? ''));
+            $all = (array) ($requirement['all'] ?? []);
+            $any = (array) ($requirement['any'] ?? []);
 
-            return empty($features)
-                ? true
-                : collect($features)->contains(fn (string $feature) => $plans->hasFeature($feature, $tenantId));
+            if ($all !== []) {
+                return collect($all)->every(fn (string $feature) => $plans->hasFeature($feature, $tenantId));
+            }
+
+            if ($any !== []) {
+                return collect($any)->contains(fn (string $feature) => $plans->hasFeature($feature, $tenantId));
+            }
+
+            return true;
         });
         $activeModules = $visibleModules->filter(fn ($module) => $module['installed'] && $module['active']);
         $installedModules = $visibleModules->filter(fn ($module) => $module['installed']);

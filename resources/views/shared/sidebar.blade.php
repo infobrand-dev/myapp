@@ -16,9 +16,19 @@
                 return true;
             }
 
-            $feature = \App\Support\PlanFeature::moduleFeatureForSlug((string) ($module['slug'] ?? ''));
+            $requirement = \App\Support\PlanFeature::moduleFeatureRequirement((string) ($module['slug'] ?? ''));
+            $allFeatures = (array) ($requirement['all'] ?? []);
+            $anyFeatures = (array) ($requirement['any'] ?? []);
 
-            return $feature ? $planManager->hasFeature($feature) : true;
+            if ($allFeatures !== []) {
+                return collect($allFeatures)->every(fn ($feature) => $planManager->hasFeature((string) $feature));
+            }
+
+            if ($anyFeatures !== []) {
+                return collect($anyFeatures)->contains(fn ($feature) => $planManager->hasFeature((string) $feature));
+            }
+
+            return true;
         })
         ->map(function ($module) {
             $items = collect($module['navigation'] ?? [])

@@ -65,7 +65,8 @@ class PlanProductLineMap
             PlanFeature::CRM,
             PlanFeature::EMAIL_MARKETING => 'crm',
 
-            PlanFeature::COMMERCE => 'accounting',
+            PlanFeature::COMMERCE,
+            PlanFeature::POINT_OF_SALE => 'accounting',
             PlanFeature::PROJECT_MANAGEMENT => 'project_management',
 
             default => null,

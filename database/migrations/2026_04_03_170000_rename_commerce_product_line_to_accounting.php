@@ -164,10 +164,10 @@ return new class extends Migration
                     PlanFeature::WHATSAPP_API => false,
                     PlanFeature::WHATSAPP_WEB => false,
                     PlanFeature::ADVANCED_REPORTS => true,
+                    PlanFeature::POINT_OF_SALE => false,
                     'multi_branch' => false,
                     'inventory' => false,
                     'finance' => true,
-                    'pos' => true,
                 ],
                 'limits' => [
                     PlanLimit::COMPANIES => 1,
@@ -195,14 +195,20 @@ return new class extends Migration
                 'meta' => [
                     'price' => 249000,
                     'currency' => 'IDR',
-                    'tagline' => 'Paket awal accounting untuk penjualan, pembelian, pembayaran, finance ringan, POS, dan reporting dasar.',
+                    'tagline' => 'Paket awal accounting untuk penjualan, pembelian, pembayaran, finance ringan, dan reporting dasar. POS tersedia sebagai add-on.',
                     'description' => 'Cocok untuk tim kecil yang mulai merapikan operasional transaksi dalam satu workspace tanpa membuka channel omnichannel.',
                     'highlights' => [
                         'Sales dan purchases operasional',
                         'Payments dan finance ringan',
-                        'Point of Sale',
+                        'POS Add-on tersedia',
                         'Reporting dasar',
                         'Kapasitas awal untuk tim kecil',
+                    ],
+                    'addons' => [
+                        'point_of_sale' => [
+                            'price' => 99000,
+                            'currency' => 'IDR',
+                        ],
                     ],
                     'product_line' => 'accounting',
                     'plan_revision' => 'v1',
@@ -232,10 +238,10 @@ return new class extends Migration
                     PlanFeature::WHATSAPP_API => false,
                     PlanFeature::WHATSAPP_WEB => false,
                     PlanFeature::ADVANCED_REPORTS => true,
+                    PlanFeature::POINT_OF_SALE => false,
                     'multi_branch' => true,
                     'inventory' => false,
                     'finance' => true,
-                    'pos' => true,
                 ],
                 'limits' => [
                     PlanLimit::COMPANIES => 1,
@@ -263,13 +269,20 @@ return new class extends Migration
                 'meta' => [
                     'price' => 499000,
                     'currency' => 'IDR',
-                    'tagline' => 'Paket rekomendasi untuk tim yang sudah aktif menangani transaksi harian lintas sales, purchases, payments, finance, POS, dan reporting.',
+                    'tagline' => 'Paket rekomendasi untuk tim yang sudah aktif menangani transaksi harian lintas sales, purchases, payments, finance, dan reporting. POS tersedia sebagai add-on.',
                     'description' => 'Dirancang untuk operasional yang mulai padat dengan kebutuhan user, branch, storage, dan kapasitas data yang lebih besar.',
                     'highlights' => [
                         'Semua capability Starter',
+                        'POS Add-on tersedia',
                         'Kapasitas user dan branch lebih besar',
                         'Storage dan produk lebih longgar',
                         'Cocok untuk tim operasional yang sedang tumbuh',
+                    ],
+                    'addons' => [
+                        'point_of_sale' => [
+                            'price' => 149000,
+                            'currency' => 'IDR',
+                        ],
                     ],
                     'product_line' => 'accounting',
                     'plan_revision' => 'v1',
@@ -299,10 +312,10 @@ return new class extends Migration
                     PlanFeature::WHATSAPP_API => false,
                     PlanFeature::WHATSAPP_WEB => false,
                     PlanFeature::ADVANCED_REPORTS => true,
+                    PlanFeature::POINT_OF_SALE => false,
                     'multi_branch' => true,
                     'inventory' => false,
                     'finance' => true,
-                    'pos' => true,
                 ],
                 'limits' => [
                     PlanLimit::COMPANIES => 3,
@@ -334,9 +347,16 @@ return new class extends Migration
                     'description' => 'Paket tertinggi untuk organisasi yang butuh kapasitas produk, kontak, storage, dan branch yang jauh lebih besar tanpa membuka channel omnichannel.',
                     'highlights' => [
                         'Semua capability Growth',
+                        'POS Add-on tersedia',
                         'Kapasitas besar untuk user dan branch',
                         'Storage, produk, dan kontak jauh lebih besar',
                         'Cocok untuk operasional yang lebih kompleks',
+                    ],
+                    'addons' => [
+                        'point_of_sale' => [
+                            'price' => 199000,
+                            'currency' => 'IDR',
+                        ],
                     ],
                     'product_line' => 'accounting',
                     'plan_revision' => 'v1',

@@ -10,6 +10,7 @@ use App\Models\Tenant;
 use App\Models\TenantSubscription;
 use App\Modules\Midtrans\Models\MidtransSetting;
 use App\Support\ByoAiAddon;
+use App\Support\PlanFeature;
 use App\Support\PlanProductLineMap;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -234,7 +235,8 @@ class PlatformMidtransBillingService
                         'midtrans',
                         $orderId,
                         $order->starts_at ?: now(),
-                        $order->ends_at
+                        $order->ends_at,
+                        is_array($order->meta) ? $order->meta : []
                     );
 
                     $order->forceFill([
@@ -426,7 +428,7 @@ class PlatformMidtransBillingService
         return optional($tenant->users()->orderBy('id')->first())->email;
     }
 
-    private function activateSubscriptionFromBilling(int $tenantId, int $planId, string $billingProvider, string $billingReference, $startsAt, $endsAt): TenantSubscription
+    private function activateSubscriptionFromBilling(int $tenantId, int $planId, string $billingProvider, string $billingReference, $startsAt, $endsAt, array $sourceMeta = []): TenantSubscription
     {
         $plan = SubscriptionPlan::query()->findOrFail($planId);
         $productLine = PlanProductLineMap::canonicalProductLine($plan->productLine() ?: 'default') ?: 'default';
@@ -434,6 +436,12 @@ class PlatformMidtransBillingService
         $featureOverrides = is_array($activeSubscription?->feature_overrides) ? $activeSubscription->feature_overrides : [];
         $limitOverrides = is_array($activeSubscription?->limit_overrides) ? $activeSubscription->limit_overrides : [];
         $byoOverrides = ByoAiAddon::extractOverrideSubset($featureOverrides, $limitOverrides);
+
+        if ($productLine === 'accounting') {
+            $byoOverrides['feature_overrides'][PlanFeature::POINT_OF_SALE] = (bool) data_get($sourceMeta, 'addons.point_of_sale.enabled', false);
+        } else {
+            unset($byoOverrides['feature_overrides'][PlanFeature::POINT_OF_SALE]);
+        }
 
         TenantSubscription::query()
             ->where('tenant_id', $tenantId)
@@ -460,11 +468,12 @@ class PlatformMidtransBillingService
             'auto_renews' => $this->databaseBoolean(false),
             'feature_overrides' => $byoOverrides['feature_overrides'],
             'limit_overrides' => $byoOverrides['limit_overrides'],
-            'meta' => [
-                'assigned_from' => 'platform_billing_midtrans',
-                'product_line_label' => $plan->productLineLabel(),
-            ],
-        ]);
+                'meta' => [
+                    'assigned_from' => 'platform_billing_midtrans',
+                    'product_line_label' => $plan->productLineLabel(),
+                    'point_of_sale_addon' => (bool) ($byoOverrides['feature_overrides'][PlanFeature::POINT_OF_SALE] ?? false),
+                ],
+            ]);
     }
 
     private function databaseBoolean(bool $value): bool|string

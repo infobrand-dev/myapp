@@ -51,6 +51,15 @@
                                             sampai {{ $subscription->ends_at->format('d M Y') }}
                                         @endif
                                     </div>
+                                    @if(($subscription->productLine() ?? null) === 'accounting')
+                                        <div class="mt-2">
+                                            @if((bool) data_get($subscription->feature_overrides, \App\Support\PlanFeature::POINT_OF_SALE, false))
+                                                <span class="badge bg-azure-lt text-azure">POS Add-on aktif</span>
+                                            @else
+                                                <span class="badge bg-secondary-lt text-secondary">POS Add-on nonaktif</span>
+                                            @endif
+                                        </div>
+                                    @endif
                                 </div>
                             @empty
                                 <div class="text-muted small">Belum ada active plan.</div>
@@ -374,6 +383,20 @@
                                     <span class="form-check-label">Perpanjang otomatis</span>
                                 </label>
                             </div>
+                            @php
+                                $activeAccountingSubscription = $activePlans->get('accounting');
+                                $accountingPosAddonEnabled = (bool) data_get($activeAccountingSubscription?->feature_overrides, \App\Support\PlanFeature::POINT_OF_SALE, false);
+                            @endphp
+                            <div class="col-12">
+                                <div class="border rounded p-3 bg-light">
+                                    <input type="hidden" name="point_of_sale_addon" value="0">
+                                    <label class="form-check form-switch mb-2">
+                                        <input type="checkbox" class="form-check-input" name="point_of_sale_addon" value="1" @checked(old('point_of_sale_addon', $accountingPosAddonEnabled))>
+                                        <span class="form-check-label">Aktifkan POS Add-on</span>
+                                    </label>
+                                    <div class="form-hint mb-0">Toggle ini hanya dipakai saat plan yang dipilih berada di product line Accounting. Untuk line lain, nilainya diabaikan.</div>
+                                </div>
+                            </div>
                         </div>
                         <div class="mt-3">
                             <button type="submit" class="btn btn-primary">Simpan Langganan</button>
@@ -438,6 +461,24 @@
                             <div class="col-md-6">
                                 <label class="form-label">Berakhir</label>
                                 <input type="datetime-local" class="form-control" name="ends_at">
+                            </div>
+                            <div class="col-12">
+                                <div class="border rounded p-3 bg-light">
+                                    <input type="hidden" name="point_of_sale_addon" value="0">
+                                    <label class="form-check form-switch mb-2">
+                                        <input type="checkbox" class="form-check-input" name="point_of_sale_addon" value="1" @checked(old('point_of_sale_addon', $accountingPosAddonEnabled))>
+                                        <span class="form-check-label">Tambahkan POS Add-on ke order ini</span>
+                                    </label>
+                                    <div class="row g-3 align-items-end">
+                                        <div class="col-md-4">
+                                            <label class="form-label">Harga POS Add-on</label>
+                                            <input type="number" class="form-control" name="point_of_sale_addon_price" min="0" step="0.01" value="{{ old('point_of_sale_addon_price', '') }}">
+                                        </div>
+                                        <div class="col-md-8">
+                                            <div class="form-hint mb-0">Hanya dipakai saat plan yang dipilih berada di product line Accounting. Harga default akan mengikuti preset plan dan tetap bisa Anda override manual. Jika diisi lebih dari 0, invoice akan dipecah menjadi item plan dan item POS Add-on.</div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="mt-3">
@@ -686,3 +727,45 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const orderForm = document.querySelector('form[action="{{ route('platform.tenants.orders.store', $tenant) }}"]');
+    if (!orderForm) {
+        return;
+    }
+
+    const planSelect = orderForm.querySelector('select[name="subscription_plan_id"]');
+    const addonPriceInput = orderForm.querySelector('input[name="point_of_sale_addon_price"]');
+    const addonToggle = orderForm.querySelector('input[name="point_of_sale_addon"][value="1"]');
+    const defaults = @json($orderPosAddonDefaults);
+
+    if (!planSelect || !addonPriceInput || !addonToggle) {
+        return;
+    }
+
+    const syncPosAddonDefaults = function () {
+        const selectedPlan = defaults[String(planSelect.value)] || null;
+        const isAccounting = selectedPlan && selectedPlan.product_line === 'accounting';
+        const defaultPrice = selectedPlan ? selectedPlan.price : '';
+
+        addonToggle.disabled = !isAccounting;
+        addonPriceInput.disabled = !isAccounting;
+
+        if (!isAccounting) {
+            addonToggle.checked = false;
+            addonPriceInput.value = '';
+            return;
+        }
+
+        if (addonPriceInput.value === '' || addonPriceInput.value === '0' || addonPriceInput.value === '0.00') {
+            addonPriceInput.value = defaultPrice;
+        }
+    };
+
+    planSelect.addEventListener('change', syncPosAddonDefaults);
+    syncPosAddonDefaults();
+});
+</script>
+@endpush

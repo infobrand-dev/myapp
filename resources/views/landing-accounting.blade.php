@@ -96,11 +96,12 @@
                     @foreach ($modules as $module)
                         <span class="landing-pill">{{ $module['name'] }}</span>
                     @endforeach
+                    <span class="landing-pill"><i class="ti ti-plus"></i> POS Add-on</span>
                 </div>
             </div>
             <div class="col-lg-6">
                 <div class="product-hero-grid">
-                    @foreach ($modules as $module)
+                    @foreach (array_merge($modules, $addonModules) as $module)
                         <div class="product-mini-card">
                             <div class="d-flex align-items-start gap-3">
                                 <div class="product-mini-icon">{!! $module['icon_svg'] !!}</div>
@@ -122,7 +123,7 @@
     <div class="container">
         <div class="text-center mb-5">
             <div class="landing-eyebrow mb-2">Core Bundle</div>
-            <h2 class="landing-section-title">Enam module inti untuk ritme transaksi harian.</h2>
+            <h2 class="landing-section-title">Lima module inti untuk ritme transaksi harian.</h2>
             <p class="landing-subtext mx-auto">Accounting di Meetra dibangun untuk memudahkan alur operasional sehari-hari, dari transaksi masuk sampai ringkasan performa yang siap dibaca tim.</p>
         </div>
         <div class="row g-4">
@@ -193,6 +194,38 @@
     <div class="container">
         <div class="row g-5 align-items-center">
             <div class="col-lg-5">
+                <div class="landing-eyebrow mb-2">POS Add-on</div>
+                <h2 class="landing-section-title mb-3">Point of Sale disiapkan terpisah untuk bisnis yang memang butuh kasir outlet.</h2>
+                <p class="landing-subtext mb-0">Tidak semua tenant accounting memerlukan kasir. Karena itu POS diposisikan sebagai add-on opsional, sehingga bundle inti tetap terasa relevan untuk bisnis umum, sementara retail atau outlet tetap bisa menambahkan workflow kasir saat dibutuhkan.</p>
+            </div>
+            <div class="col-lg-7">
+                @foreach ($addonModules as $module)
+                    <div class="product-module-card">
+                        <div class="body">
+                            <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
+                                <div class="product-module-icon">{!! $module['icon_svg'] !!}</div>
+                                <div class="small text-uppercase fw-bold text-muted">{{ $module['eyebrow'] }}</div>
+                            </div>
+                            <h3 class="h5 mb-2">{{ $module['name'] }}</h3>
+                            <p class="text-muted small mb-3">{{ $module['description'] }}</p>
+                            <div class="landing-checklist small text-muted">
+                                @foreach ($module['public_points'] as $point)
+                                    <div><i class="ti ti-check text-success"></i> {{ $point }}</div>
+                                @endforeach
+                                <div><i class="ti ti-check text-success"></i> Diaktifkan hanya saat tenant butuh alur kasir</div>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5 py-lg-6">
+    <div class="container">
+        <div class="row g-5 align-items-center">
+            <div class="col-lg-5">
                 <div class="landing-eyebrow mb-2">Module Pendukung</div>
                 <h2 class="landing-section-title mb-3">Masih nyambung dengan data master dan operasional yang lebih luas.</h2>
                 <p class="landing-subtext mb-0">Beberapa workflow accounting membutuhkan data pendukung seperti produk, stok, kontak, atau aturan promo. Karena itu Meetra tetap menyiapkan jalur yang nyambung saat operasional Anda berkembang.</p>
@@ -236,7 +269,8 @@
                             @foreach ($tier['limits'] as $limit)
                                 <div><i class="ti ti-check text-success"></i> {{ $limit }}</div>
                             @endforeach
-                            <div><i class="ti ti-check text-success"></i> Sales, payments, purchases, finance, POS, dan reports</div>
+                            <div><i class="ti ti-check text-success"></i> Sales, payments, purchases, finance, dan reports</div>
+                            <div><i class="ti ti-check text-success"></i> POS tersedia sebagai add-on opsional</div>
                         </div>
                     </div>
                 </div>

@@ -249,11 +249,20 @@ class PlatformOwnerController extends Controller
             ->groupBy(fn (SubscriptionPlan $plan) => $plan->productLineLabel() ?: 'Default')
             ->sortKeys();
 
+        $orderPosAddonDefaults = $plans
+            ->mapWithKeys(fn (SubscriptionPlan $plan) => [
+                $plan->id => [
+                    'product_line' => $plan->productLine(),
+                    'price' => $this->defaultPointOfSaleAddonPriceForPlan($plan),
+                ],
+            ]);
+
         return view('platform.tenants.show', [
             'tenant' => $tenant,
             'plans' => $plans,
             'plansByProductLine' => $plansByProductLine,
             'activePlans' => $activePlans,
+            'orderPosAddonDefaults' => $orderPosAddonDefaults,
             'ordersReady' => $this->orderTableReady(),
             'invoicesReady' => $this->invoiceTableReady(),
             'paymentsReady' => $this->paymentTableReady(),
@@ -504,6 +513,7 @@ class PlatformOwnerController extends Controller
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'trial_ends_at' => ['nullable', 'date'],
             'auto_renews' => ['nullable', 'boolean'],
+            'point_of_sale_addon' => ['nullable', 'boolean'],
         ]);
 
         $selectedPlan = SubscriptionPlan::query()->findOrFail((int) $data['subscription_plan_id']);
@@ -511,7 +521,13 @@ class PlatformOwnerController extends Controller
 
         DB::transaction(function () use ($tenant, $data, $selectedPlan, $productLine): void {
             $activeSubscription = $this->activeSubscriptionForProductLine($tenant->id, $productLine);
-            $byoOverrides = $this->preserveByoOverrides($activeSubscription);
+            $addonOverrides = $this->preserveAddonOverrides($activeSubscription);
+
+            if ($productLine === 'accounting') {
+                $addonOverrides['feature_overrides'][PlanFeature::POINT_OF_SALE] = (bool) ($data['point_of_sale_addon'] ?? false);
+            } else {
+                unset($addonOverrides['feature_overrides'][PlanFeature::POINT_OF_SALE]);
+            }
 
             $this->expireActiveSubscriptionsForProductLine($tenant->id, $productLine);
 
@@ -526,12 +542,13 @@ class PlatformOwnerController extends Controller
                 'ends_at' => $this->nullableCarbon($data['ends_at'] ?? null),
                 'trial_ends_at' => $this->nullableCarbon($data['trial_ends_at'] ?? null),
                 'auto_renews' => $this->databaseBoolean(!empty($data['auto_renews'])),
-                'feature_overrides' => $byoOverrides['feature_overrides'],
-                'limit_overrides' => $byoOverrides['limit_overrides'],
+                'feature_overrides' => $addonOverrides['feature_overrides'],
+                'limit_overrides' => $addonOverrides['limit_overrides'],
                 'meta' => [
                     'assigned_from' => 'platform_owner',
                     'assigned_by_user_id' => auth()->id(),
                     'product_line_label' => $selectedPlan->productLineLabel(),
+                    'point_of_sale_addon' => $productLine === 'accounting' ? (bool) ($data['point_of_sale_addon'] ?? false) : null,
                 ],
             ]);
         });
@@ -629,11 +646,20 @@ class PlatformOwnerController extends Controller
             'payment_channel' => ['nullable', 'string', 'max:50'],
             'starts_at' => ['nullable', 'date'],
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
+            'point_of_sale_addon' => ['nullable', 'boolean'],
+            'point_of_sale_addon_price' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         $selectedPlan = SubscriptionPlan::query()->findOrFail((int) $data['subscription_plan_id']);
         $sellablePlan = app(TenantOnboardingSalesService::class)->resolvePlanForNewSale($selectedPlan);
         $productLine = $this->resolvedProductLine($sellablePlan);
+        $posAddon = $this->pointOfSaleAddonPayload($sellablePlan, $data);
+
+        if ($posAddon['enabled'] && $posAddon['price'] > (float) $data['amount']) {
+            return back()
+                ->withInput()
+                ->withErrors(['point_of_sale_addon_price' => 'Harga POS Add-on tidak boleh melebihi total order.']);
+        }
 
         PlatformPlanOrder::create([
             'tenant_id' => $tenant->id,
@@ -656,6 +682,9 @@ class PlatformOwnerController extends Controller
                 'resolved_plan_id' => $sellablePlan->id,
                 'resolved_plan_code' => $sellablePlan->code,
                 'product_line' => $productLine,
+                'addons' => [
+                    'point_of_sale' => $posAddon,
+                ],
             ],
         ]);
 
@@ -682,6 +711,13 @@ class PlatformOwnerController extends Controller
 
         DB::transaction(function () use ($order, $onboardingSales, &$welcomePayload, &$paymentMailQueue): void {
             $productLine = $order->product_line ?: $this->resolvedProductLine($order->plan);
+            $activeSubscription = $this->activeSubscriptionForProductLine($order->tenant_id, $productLine);
+            $addonOverrides = $this->addonOverridesForProductLine(
+                $productLine,
+                $activeSubscription,
+                is_array($order->meta) ? $order->meta : []
+            );
+
             $this->expireActiveSubscriptionsForProductLine($order->tenant_id, $productLine);
 
             $subscription = TenantSubscription::create([
@@ -694,11 +730,14 @@ class PlatformOwnerController extends Controller
                 'starts_at' => $order->starts_at ?: now(),
                 'ends_at' => $order->ends_at,
                 'auto_renews' => $this->databaseBoolean(false),
+                'feature_overrides' => $addonOverrides['feature_overrides'],
+                'limit_overrides' => $addonOverrides['limit_overrides'],
                 'meta' => [
                     'source_order_id' => $order->id,
                     'assigned_from' => 'platform_owner_order',
                     'assigned_by_user_id' => auth()->id(),
                     'product_line_label' => optional($order->plan)->productLineLabel(),
+                    'point_of_sale_addon' => (bool) ($addonOverrides['feature_overrides'][PlanFeature::POINT_OF_SALE] ?? false),
                 ],
             ]);
 
@@ -785,20 +824,42 @@ class PlatformOwnerController extends Controller
             ],
         ]);
 
+        $orderMeta = is_array($order->meta) ? $order->meta : [];
+        $posAddon = $this->extractPointOfSaleAddonFromMeta($orderMeta);
+        $addonPrice = $posAddon['enabled'] ? round((float) $posAddon['price'], 2) : 0.0;
+        $planAmount = round(max((float) $order->amount - $addonPrice, 0), 2);
+
         $invoice->items()->create([
             'item_type' => 'plan',
             'item_code' => optional($order->plan)->code,
             'name' => optional($order->plan)->display_name ?: optional($order->plan)->name ?: 'Subscription Plan',
             'description' => 'Tagihan langganan plan untuk workspace ' . optional($order->tenant)->name,
             'quantity' => 1,
-            'unit_price' => $order->amount,
-            'total_price' => $order->amount,
+            'unit_price' => $planAmount,
+            'total_price' => $planAmount,
             'meta' => [
                 'subscription_plan_id' => $order->subscription_plan_id,
                 'source_order_id' => $order->id,
                 'source' => 'platform_owner',
             ],
         ]);
+
+        if ($posAddon['enabled'] && $addonPrice > 0) {
+            $invoice->items()->create([
+                'item_type' => 'addon',
+                'item_code' => PlanFeature::POINT_OF_SALE,
+                'name' => 'POS Add-on',
+                'description' => 'Aktivasi add-on Point of Sale untuk workspace ' . optional($order->tenant)->name,
+                'quantity' => 1,
+                'unit_price' => $addonPrice,
+                'total_price' => $addonPrice,
+                'meta' => [
+                    'feature' => PlanFeature::POINT_OF_SALE,
+                    'source_order_id' => $order->id,
+                    'source' => 'platform_owner',
+                ],
+            ]);
+        }
 
         $invoice->syncAmountFromItems();
 
@@ -858,7 +919,8 @@ class PlatformOwnerController extends Controller
                     $data['payment_channel'] ?: 'manual',
                     $invoice->invoice_number,
                     $order->starts_at ?: now(),
-                    $order->ends_at
+                    $order->ends_at,
+                    is_array($order->meta) ? $order->meta : []
                 );
 
                 $order->forceFill([
@@ -1011,12 +1073,12 @@ class PlatformOwnerController extends Controller
             PlanFeature::CHATBOT_BYO_AI => 'Chatbot BYO AI add-on',
             PlanFeature::WHATSAPP_API => 'WhatsApp API',
             PlanFeature::WHATSAPP_WEB => 'WhatsApp Web',
+            PlanFeature::POINT_OF_SALE => 'Point of Sale add-on',
             'multi_branch' => 'Multi branch',
             PlanFeature::EMAIL_MARKETING => 'Email marketing',
             PlanFeature::ADVANCED_REPORTS => 'Advanced reports',
             'inventory' => 'Inventory',
             'finance' => 'Finance',
-            'pos' => 'Point of Sale',
         ];
     }
 
@@ -1220,7 +1282,7 @@ class PlatformOwnerController extends Controller
             ],
             'accounting_starter' => [
                 'label' => 'Accounting Starter',
-                'description' => 'Paket awal untuk operasional penjualan, pembelian, pembayaran, finance ringan, POS, dan reporting dasar.',
+                'description' => 'Paket awal untuk operasional penjualan, pembelian, pembayaran, finance ringan, dan reporting dasar. POS disiapkan sebagai add-on.',
                 'product_line' => 'accounting',
                 'features' => [
                     PlanFeature::MULTI_COMPANY => false,
@@ -1236,10 +1298,10 @@ class PlatformOwnerController extends Controller
                     PlanFeature::WHATSAPP_WEB => false,
                     PlanFeature::EMAIL_MARKETING => false,
                     PlanFeature::ADVANCED_REPORTS => true,
+                    PlanFeature::POINT_OF_SALE => false,
                     'multi_branch' => false,
                     'inventory' => false,
                     'finance' => true,
-                    'pos' => true,
                 ],
                 'limits' => [
                     PlanLimit::COMPANIES => 1,
@@ -1264,10 +1326,18 @@ class PlatformOwnerController extends Controller
                     PlanLimit::AUTOMATION_WORKFLOWS => 0,
                     PlanLimit::AUTOMATION_EXECUTIONS_MONTHLY => 0,
                 ],
+                'meta' => [
+                    'addons' => [
+                        'point_of_sale' => [
+                            'price' => 99000,
+                            'currency' => 'IDR',
+                        ],
+                    ],
+                ],
             ],
             'accounting_growth' => [
                 'label' => 'Accounting Growth',
-                'description' => 'Paket rekomendasi untuk tim yang sudah aktif menangani transaksi harian lintas penjualan, pembelian, pembayaran, finance, POS, dan reporting.',
+                'description' => 'Paket rekomendasi untuk tim yang sudah aktif menangani transaksi harian lintas penjualan, pembelian, pembayaran, finance, dan reporting. POS tersedia sebagai add-on.',
                 'product_line' => 'accounting',
                 'features' => [
                     PlanFeature::MULTI_COMPANY => true,
@@ -1283,10 +1353,10 @@ class PlatformOwnerController extends Controller
                     PlanFeature::WHATSAPP_WEB => false,
                     PlanFeature::EMAIL_MARKETING => false,
                     PlanFeature::ADVANCED_REPORTS => true,
+                    PlanFeature::POINT_OF_SALE => false,
                     'multi_branch' => true,
                     'inventory' => false,
                     'finance' => true,
-                    'pos' => true,
                 ],
                 'limits' => [
                     PlanLimit::COMPANIES => 1,
@@ -1311,6 +1381,14 @@ class PlatformOwnerController extends Controller
                     PlanLimit::AUTOMATION_WORKFLOWS => 0,
                     PlanLimit::AUTOMATION_EXECUTIONS_MONTHLY => 0,
                 ],
+                'meta' => [
+                    'addons' => [
+                        'point_of_sale' => [
+                            'price' => 149000,
+                            'currency' => 'IDR',
+                        ],
+                    ],
+                ],
             ],
             'accounting_scale' => [
                 'label' => 'Accounting Scale',
@@ -1330,10 +1408,10 @@ class PlatformOwnerController extends Controller
                     PlanFeature::WHATSAPP_WEB => false,
                     PlanFeature::EMAIL_MARKETING => false,
                     PlanFeature::ADVANCED_REPORTS => true,
+                    PlanFeature::POINT_OF_SALE => false,
                     'multi_branch' => true,
                     'inventory' => false,
                     'finance' => true,
-                    'pos' => true,
                 ],
                 'limits' => [
                     PlanLimit::COMPANIES => 3,
@@ -1357,6 +1435,14 @@ class PlatformOwnerController extends Controller
                     PlanLimit::BYO_AI_TOKENS_MONTHLY => 0,
                     PlanLimit::AUTOMATION_WORKFLOWS => 0,
                     PlanLimit::AUTOMATION_EXECUTIONS_MONTHLY => 0,
+                ],
+                'meta' => [
+                    'addons' => [
+                        'point_of_sale' => [
+                            'price' => 199000,
+                            'currency' => 'IDR',
+                        ],
+                    ],
                 ],
             ],
             'project_management' => [
@@ -1518,7 +1604,7 @@ class PlatformOwnerController extends Controller
     /**
      * @return array{feature_overrides: array<string, mixed>, limit_overrides: array<string, mixed>}
      */
-    private function preserveByoOverrides(?TenantSubscription $subscription): array
+    private function preserveAddonOverrides(?TenantSubscription $subscription): array
     {
         if (!$subscription) {
             return [
@@ -1527,10 +1613,65 @@ class PlatformOwnerController extends Controller
             ];
         }
 
-        return ByoAiAddon::extractOverrideSubset(
-            is_array($subscription->feature_overrides) ? $subscription->feature_overrides : [],
-            is_array($subscription->limit_overrides) ? $subscription->limit_overrides : [],
-        );
+        $featureOverrides = is_array($subscription->feature_overrides) ? $subscription->feature_overrides : [];
+        $limitOverrides = is_array($subscription->limit_overrides) ? $subscription->limit_overrides : [];
+        $subset = ByoAiAddon::extractOverrideSubset($featureOverrides, $limitOverrides);
+
+        if (array_key_exists(PlanFeature::POINT_OF_SALE, $featureOverrides)) {
+            $subset['feature_overrides'][PlanFeature::POINT_OF_SALE] = (bool) $featureOverrides[PlanFeature::POINT_OF_SALE];
+        }
+
+        return $subset;
+    }
+
+    private function addonOverridesForProductLine(string $productLine, ?TenantSubscription $subscription, array $sourceMeta = []): array
+    {
+        $overrides = $this->preserveAddonOverrides($subscription);
+
+        if ($productLine === 'accounting') {
+            $overrides['feature_overrides'][PlanFeature::POINT_OF_SALE] = $this->extractPointOfSaleAddonFromMeta($sourceMeta)['enabled'];
+        } else {
+            unset($overrides['feature_overrides'][PlanFeature::POINT_OF_SALE]);
+        }
+
+        return $overrides;
+    }
+
+    private function pointOfSaleAddonPayload(SubscriptionPlan $plan, array $data): array
+    {
+        $productLine = $this->resolvedProductLine($plan);
+
+        if ($productLine !== 'accounting') {
+            return [
+                'enabled' => false,
+                'price' => 0,
+            ];
+        }
+
+        $enabled = (bool) ($data['point_of_sale_addon'] ?? false);
+        $rawPrice = $data['point_of_sale_addon_price'] ?? null;
+        $defaultPrice = $this->defaultPointOfSaleAddonPriceForPlan($plan);
+        $price = $rawPrice === null || $rawPrice === ''
+            ? $defaultPrice
+            : round((float) $rawPrice, 2);
+
+        return [
+            'enabled' => $enabled,
+            'price' => $enabled ? max($price, 0) : 0,
+        ];
+    }
+
+    private function extractPointOfSaleAddonFromMeta(array $meta): array
+    {
+        return [
+            'enabled' => (bool) data_get($meta, 'addons.point_of_sale.enabled', false),
+            'price' => max((float) data_get($meta, 'addons.point_of_sale.price', 0), 0),
+        ];
+    }
+
+    private function defaultPointOfSaleAddonPriceForPlan(SubscriptionPlan $plan): float
+    {
+        return round((float) data_get($plan->meta, 'addons.point_of_sale.price', 0), 2);
     }
 
     private function nextOrderNumber(): string
@@ -1643,12 +1784,19 @@ class PlatformOwnerController extends Controller
         );
     }
 
-    private function activateSubscriptionFromBilling(int $tenantId, int $planId, string $billingProvider, string $billingReference, $startsAt, $endsAt): TenantSubscription
+    private function activateSubscriptionFromBilling(int $tenantId, int $planId, string $billingProvider, string $billingReference, $startsAt, $endsAt, array $sourceMeta = []): TenantSubscription
     {
         $plan = SubscriptionPlan::query()->findOrFail($planId);
         $productLine = $this->resolvedProductLine($plan);
         $activeSubscription = $this->activeSubscriptionForProductLine($tenantId, $productLine);
-        $byoOverrides = $this->preserveByoOverrides($activeSubscription);
+        $sourceOrder = PlatformPlanOrder::query()
+            ->where('order_number', $billingReference)
+            ->first();
+        $addonOverrides = $this->addonOverridesForProductLine(
+            $productLine,
+            $activeSubscription,
+            !empty($sourceMeta) ? $sourceMeta : (is_array($sourceOrder?->meta) ? $sourceOrder->meta : [])
+        );
 
         $this->expireActiveSubscriptionsForProductLine($tenantId, $productLine);
 
@@ -1662,12 +1810,13 @@ class PlatformOwnerController extends Controller
             'starts_at' => $startsAt,
             'ends_at' => $endsAt,
             'auto_renews' => $this->databaseBoolean(false),
-            'feature_overrides' => $byoOverrides['feature_overrides'],
-            'limit_overrides' => $byoOverrides['limit_overrides'],
+            'feature_overrides' => $addonOverrides['feature_overrides'],
+            'limit_overrides' => $addonOverrides['limit_overrides'],
             'meta' => [
                 'assigned_from' => 'platform_billing',
                 'assigned_by_user_id' => auth()->id(),
                 'product_line_label' => $plan->productLineLabel(),
+                'point_of_sale_addon' => (bool) ($addonOverrides['feature_overrides'][PlanFeature::POINT_OF_SALE] ?? false),
             ],
         ]);
     }

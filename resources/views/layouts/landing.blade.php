@@ -29,6 +29,7 @@
                 <a href="{{ route('landing') }}" class="landing-nav-link">Meetra</a>
                 <a href="{{ route('landing.accounting') }}" class="landing-nav-link">Accounting</a>
                 <a href="{{ route('landing.omnichannel') }}" class="landing-nav-link">Omnichannel</a>
+                <a href="{{ route('about') }}" class="landing-nav-link">Tentang Kami</a>
             </nav>
             <div class="d-flex align-items-center gap-2">
                 <a href="{{ route('workspace.finder') }}" class="btn btn-outline-dark btn-sm d-none d-md-inline-flex">Login Workspace</a>
@@ -90,6 +91,8 @@
             <div class="col-6 col-lg-2">
                 <div class="landing-footer-heading">Perusahaan</div>
                 <nav class="landing-footer-nav">
+                    <a href="{{ route('about') }}">Tentang Kami</a>
+                    <a href="{{ route('about') }}#kontak">Hubungi Kami</a>
                     <a href="{{ route('affiliate.program') }}">Program Partner</a>
                     <a href="{{ route('security') }}">Keamanan Data</a>
                     <a href="{{ route('privacy') }}">Kebijakan Privasi</a>

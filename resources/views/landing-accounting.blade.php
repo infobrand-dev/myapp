@@ -79,41 +79,6 @@
     ];
 @endphp
 
-<style>
-    .accounting-hero-grid { display:grid; gap:1rem; grid-template-columns:repeat(2,minmax(0,1fr)); }
-    .accounting-summary-card { border:1px solid rgba(15,23,42,.08); border-radius:28px; background:#fff; padding:1.15rem; box-shadow:0 18px 42px rgba(15,23,42,.08); min-height:150px; }
-    .accounting-summary-icon { width:50px; height:50px; border-radius:16px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#0f172a,#1d4ed8); color:#fff; margin-bottom:1rem; }
-    .accounting-summary-icon svg { width:24px; height:24px; }
-    .accounting-summary-icon svg * { stroke: currentColor !important; fill:none !important; }
-    .accounting-feature-card { border:1px solid rgba(15,23,42,.08); border-radius:28px; background:#fff; box-shadow:0 18px 40px rgba(15,23,42,.06); height:100%; }
-    .accounting-feature-body { padding:1.5rem; }
-    .accounting-feature-icon { width:56px; height:56px; border-radius:18px; display:flex; align-items:center; justify-content:center; background:#eff6ff; color:#1d4ed8; }
-    .accounting-feature-icon svg { width:28px; height:28px; }
-    .accounting-feature-icon svg * { stroke: currentColor !important; fill:none !important; }
-    .accounting-tier-nav { display:inline-flex; flex-wrap:wrap; gap:.5rem; padding:.4rem; border:1px solid rgba(15,23,42,.08); border-radius:999px; background:#fff; }
-    .accounting-tier-btn { border:0; background:transparent; border-radius:999px; padding:.7rem 1rem; font-weight:700; color:#475569; }
-    .accounting-tier-btn.active { background:#0f172a; color:#fff; }
-    .accounting-tier-badge { display:block; font-size:.72rem; font-weight:700; color:#2563eb; }
-    .accounting-tier-pane { display:none; }
-    .accounting-tier-pane.active { display:block; }
-    .accounting-plan-card { border:1px solid rgba(15,23,42,.08); border-radius:30px; background:#fff; padding:1.8rem; height:100%; box-shadow:0 22px 45px rgba(15,23,42,.08); }
-    .accounting-plan-card.featured { background:linear-gradient(180deg,#0f172a 0%,#1e3a8a 100%); color:#fff; box-shadow:0 26px 60px rgba(15,23,42,.18); }
-    .accounting-plan-card.featured .text-muted, .accounting-plan-card.featured .small { color:rgba(255,255,255,.76) !important; }
-    .accounting-plan-badge { display:inline-flex; padding:.35rem .75rem; border-radius:999px; background:#dbeafe; color:#1d4ed8; font-size:.78rem; font-weight:700; }
-    .accounting-metric-card { border:1px solid rgba(15,23,42,.08); border-radius:24px; background:#fff; padding:1.25rem; text-align:center; height:100%; }
-    .accounting-proof-card { border:1px solid rgba(15,23,42,.08); border-radius:24px; background:#fff; padding:1.4rem; height:100%; box-shadow:0 18px 38px rgba(15,23,42,.05); }
-    .accounting-addon-card { border:1px dashed rgba(15,23,42,.18); border-radius:24px; background:#fff; padding:1.25rem; height:100%; }
-    .accounting-easy-card { border:1px solid rgba(15,23,42,.08); border-radius:24px; background:linear-gradient(180deg,#fff 0%,#f8fafc 100%); padding:1.4rem; height:100%; }
-    .accounting-compare-wrap { overflow-x:auto; }
-    .accounting-compare-table { width:100%; min-width:880px; border-collapse:separate; border-spacing:0; }
-    .accounting-compare-table th, .accounting-compare-table td { border-bottom:1px solid rgba(15,23,42,.08); padding:1rem; vertical-align:top; }
-    .accounting-compare-table thead th { position:sticky; top:0; background:#fff; z-index:1; }
-    .accounting-compare-table tbody tr:nth-child(odd) td { background:#f8fafc; }
-    .accounting-value-yes { color:#16a34a; font-weight:700; }
-    .accounting-value-no { color:#94a3b8; font-weight:700; }
-    @media (max-width: 991.98px) { .accounting-hero-grid { grid-template-columns:1fr; } }
-</style>
-
 <section id="overview" class="landing-hero py-5 py-lg-6">
     <div class="container py-lg-4">
         <div class="row g-5 align-items-center">
@@ -125,7 +90,7 @@
                     Rapikan <span>jualan, pembayaran, pembelian, stok, dan laporan</span> tanpa bikin tim pindah-pindah alat.
                 </h1>
                 <p class="landing-subtext mb-5">
-                    Meetra Accounting cocok untuk bisnis yang ingin operasional harian lebih tertib. Mulai dari sales, pembayaran, kas, produk, dan kontak. Saat bisnis tumbuh, purchases, inventory, full reports, dan POS bisa ikut menyambung.
+                    Mulai dari penjualan, pembayaran, dan kas. Tambah pembelian, stok, dan laporan saat bisnis tumbuh — semua dalam satu workspace.
                 </p>
                 <div class="d-flex flex-wrap gap-3 mb-3">
                     <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'plan' => 'accounting_growth', 'trial' => 1]) }}" class="btn btn-lg btn-dark">Coba Gratis 14 Hari</a>
@@ -427,9 +392,8 @@
 <section class="py-5" id="social-proof">
     <div class="container">
         <div class="text-center mb-5">
-            <div class="landing-eyebrow mb-2">Social Proof</div>
-            <h2 class="landing-section-title">Cerita singkat dari tipe bisnis yang cocok dengan Meetra Accounting.</h2>
-            <p class="landing-subtext mx-auto">Logo klien belum kami tampilkan di halaman ini, tetapi berikut gambaran testimoni yang paling sering muncul dari user dengan kebutuhan serupa.</p>
+            <div class="landing-eyebrow mb-2">Cerita Pengguna</div>
+            <h2 class="landing-section-title">Siapa yang paling cocok menggunakan Meetra Accounting?</h2>
         </div>
         <div class="row g-4">
             @foreach ($testimonials as $testimonial)

@@ -35,6 +35,7 @@ Route::get('/accounting', [LandingPageController::class, 'accounting'])->name('l
 Route::get('/affiliate-program', AffiliateProgramController::class)->name('affiliate.program');
 Route::get('/aff/{slug}', [LandingPageController::class, 'affiliateRedirect'])->name('affiliate.redirect');
 Route::get('/workspace', [LandingPageController::class, 'workspaceFinder'])->name('workspace.finder');
+Route::get('/tentang-kami', [LandingPageController::class, 'about'])->name('about');
 Route::get('/keamanan-data', [LandingPageController::class, 'security'])->name('security');
 Route::get('/kebijakan-privasi', [LandingPageController::class, 'privacy'])->name('privacy');
 Route::get('/syarat-ketentuan', [LandingPageController::class, 'terms'])->name('terms');

@@ -16,7 +16,7 @@
                     <span>Meetra</span> membantu bisnis menjalankan customer, transaksi, dan workflow tim dalam satu tempat.
                 </h1>
                 <p class="landing-subtext mb-5">
-                    Meetra adalah platform bisnis. Bukan hanya untuk chat, bukan hanya untuk transaksi, dan bukan hanya untuk laporan. Meetra membantu bisnis bekerja lebih rapi dari sisi customer-facing sampai operasional internal, tanpa memecah data ke terlalu banyak alat.
+                    Platform bisnis yang menyatukan customer, transaksi, dan workflow tim — tanpa memecah data ke banyak alat terpisah.
                 </p>
                 <div class="d-flex flex-wrap gap-3 mb-4">
                     <a href="{{ route('landing.accounting') }}" class="btn btn-lg btn-dark">Lihat Accounting</a>

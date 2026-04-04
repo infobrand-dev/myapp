@@ -106,6 +106,11 @@ class LandingPageController extends Controller
         return view('workspace-finder');
     }
 
+    public function about(): View
+    {
+        return view('about');
+    }
+
     public function security(): View
     {
         return view('security');

@@ -25,7 +25,7 @@ return new class extends Migration
                 DB::table('subscription_plans')
                     ->where('id', $plan->id)
                     ->update([
-                        'is_public' => true,
+                        'is_public' => $this->databaseBoolean(true),
                         'meta' => json_encode($meta, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                         'updated_at' => now(),
                     ]);
@@ -51,10 +51,17 @@ return new class extends Migration
                 DB::table('subscription_plans')
                     ->where('id', $plan->id)
                     ->update([
-                        'is_public' => false,
+                        'is_public' => $this->databaseBoolean(false),
                         'meta' => json_encode($meta, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                         'updated_at' => now(),
                     ]);
             });
+    }
+
+    private function databaseBoolean(bool $value): bool|string
+    {
+        return DB::connection()->getDriverName() === 'pgsql'
+            ? ($value ? 'true' : 'false')
+            : $value;
     }
 };

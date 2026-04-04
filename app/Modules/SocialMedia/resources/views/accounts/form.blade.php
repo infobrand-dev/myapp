@@ -7,6 +7,7 @@
     $chatbotEnabled = $chatbotEnabled ?? false;
     $metaOAuthReady = $metaOAuthReady ?? false;
     $internalCreateMode = $internalCreateMode ?? false;
+    $showPlatformOAuthWarnings = $showPlatformOAuthWarnings ?? false;
     $isXPlatform = (($account->platform ?? old('platform')) === 'x');
     $isTikTokPlatform = (($account->platform ?? old('platform')) === 'tiktok');
     $xCreateMode = $xCreateMode ?? ($internalCreateMode ? 'internal' : 'edit');
@@ -36,7 +37,7 @@
     </div>
 </div>
 
-@if(!$metaOAuthReady && !$isXPlatform && !$isTikTokPlatform)
+@if($showPlatformOAuthWarnings && !$metaOAuthReady && !$isXPlatform && !$isTikTokPlatform)
     <div class="alert alert-warning">
         META OAuth belum siap di environment platform. Isi <code>META_APP_ID</code> dan <code>META_APP_SECRET</code>, lalu reconnect akun ini.
     </div>

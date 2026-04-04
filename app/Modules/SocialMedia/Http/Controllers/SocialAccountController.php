@@ -37,6 +37,7 @@ class SocialAccountController extends Controller
             'tiktokOAuthReady' => $this->tiktokOauthReady(),
             'xOAuthReady' => $this->xOauthReady(),
             'xTenantBetaEnabled' => $this->xTenantBetaEnabled(),
+            'showPlatformOAuthWarnings' => $this->showPlatformOAuthWarnings(),
         ]);
     }
 
@@ -51,6 +52,7 @@ class SocialAccountController extends Controller
             'tiktokOAuthReady' => $this->tiktokOauthReady(),
             'xOAuthReady' => $this->xOauthReady(),
             'xTenantBetaEnabled' => $this->xTenantBetaEnabled(),
+            'showPlatformOAuthWarnings' => $this->showPlatformOAuthWarnings(),
             'internalCreateMode' => false,
             'xCreateMode' => 'edit',
         ]);
@@ -151,7 +153,7 @@ class SocialAccountController extends Controller
             return redirect()
                 ->route('social-media.accounts.index')
                 ->withErrors([
-                    'x_oauth' => 'X OAuth belum siap. Isi X_API_CLIENT_ID dan X_API_CLIENT_SECRET di environment platform.',
+                    'x_oauth' => $this->oauthNotReadyMessage('x'),
                 ]);
         }
 
@@ -177,6 +179,8 @@ class SocialAccountController extends Controller
     public function handleXCallback(Request $request): RedirectResponse
     {
         abort_unless($this->xTenantBetaEnabled(), Response::HTTP_NOT_FOUND);
+
+        $userId = optional($request->user())->id;
 
         $expectedState = (string) $request->session()->pull('social_media.x_oauth_state');
         $expectedTenantId = (int) $request->session()->pull('social_media.x_oauth_tenant_id');
@@ -253,7 +257,7 @@ class SocialAccountController extends Controller
             $accessToken,
             trim((string) $tokenRequest->json('refresh_token', '')),
             (array) $profile,
-            $request->user()?->id
+            $userId
         );
 
         return redirect()
@@ -274,7 +278,7 @@ class SocialAccountController extends Controller
             return redirect()
                 ->route('social-media.accounts.index')
                 ->withErrors([
-                    'meta_oauth' => 'META_APP_ID dan META_APP_SECRET wajib diisi di environment platform sebelum tenant dapat connect akun sosial media.',
+                    'meta_oauth' => $this->oauthNotReadyMessage('meta'),
                 ]);
         }
 
@@ -299,7 +303,7 @@ class SocialAccountController extends Controller
             return redirect()
                 ->route('social-media.accounts.index')
                 ->withErrors([
-                    'tiktok_oauth' => 'TikTok OAuth belum siap. Isi TIKTOK_API_CLIENT_KEY dan TIKTOK_API_CLIENT_SECRET di environment platform.',
+                    'tiktok_oauth' => $this->oauthNotReadyMessage('tiktok'),
                 ]);
         }
 
@@ -320,6 +324,8 @@ class SocialAccountController extends Controller
 
     public function handleTikTokCallback(Request $request, TikTokDisplayApiClient $client): RedirectResponse
     {
+        $userId = optional($request->user())->id;
+
         $expectedState = (string) $request->session()->pull('social_media.tiktok_oauth_state');
         $expectedTenantId = (int) $request->session()->pull('social_media.tiktok_oauth_tenant_id');
 
@@ -393,7 +399,7 @@ class SocialAccountController extends Controller
             trim((string) data_get($tokenResponse->json(), 'refresh_token', '')),
             (array) $profile,
             $videos,
-            $request->user()?->id
+            $userId
         );
 
         return redirect()
@@ -403,6 +409,8 @@ class SocialAccountController extends Controller
 
     public function handleMetaCallback(Request $request): RedirectResponse
     {
+        $userId = optional($request->user())->id;
+
         $expectedState = (string) $request->session()->pull('social_media.oauth_state');
         $expectedTenantId = (int) $request->session()->pull('social_media.oauth_tenant_id');
 
@@ -477,7 +485,7 @@ class SocialAccountController extends Controller
             app(TenantPlanManager::class)->ensureWithinLimit(PlanLimit::SOCIAL_ACCOUNTS, $newAccountCount);
         }
 
-        $connected = $this->syncMetaAccounts($pages, $request->user()?->id);
+        $connected = $this->syncMetaAccounts($pages, $userId);
 
         if ($connected === 0) {
             return redirect()
@@ -693,6 +701,38 @@ class SocialAccountController extends Controller
         return (bool) request()->attributes->get('platform_admin_host', false);
     }
 
+    private function showPlatformOAuthWarnings(): bool
+    {
+        return $this->isPlatformAdminHost();
+    }
+
+    private function oauthNotReadyMessage(string $provider): string
+    {
+        if (!$this->showPlatformOAuthWarnings()) {
+            switch ($provider) {
+                case 'meta':
+                    return 'Koneksi Meta belum tersedia saat ini. Hubungi admin platform.';
+                case 'x':
+                    return 'Koneksi X belum tersedia saat ini. Hubungi admin platform.';
+                case 'tiktok':
+                    return 'Koneksi TikTok belum tersedia saat ini. Hubungi admin platform.';
+                default:
+                    return 'Koneksi channel belum tersedia saat ini. Hubungi admin platform.';
+            }
+        }
+
+        switch ($provider) {
+            case 'meta':
+                return 'META_APP_ID dan META_APP_SECRET wajib diisi di environment platform sebelum tenant dapat connect akun sosial media.';
+            case 'x':
+                return 'X OAuth belum siap. Isi X_API_CLIENT_ID dan X_API_CLIENT_SECRET di environment platform.';
+            case 'tiktok':
+                return 'TikTok OAuth belum siap. Isi TIKTOK_API_CLIENT_KEY dan TIKTOK_API_CLIENT_SECRET di environment platform.';
+            default:
+                return 'OAuth platform belum siap.';
+        }
+    }
+
     private function xTenantBetaEnabled(): bool
     {
         return (bool) config('services.x_api.tenant_beta_enabled', true);
@@ -716,6 +756,7 @@ class SocialAccountController extends Controller
             'metaOAuthReady' => $this->metaOauthReady(),
             'xOAuthReady' => $this->xOauthReady(),
             'xTenantBetaEnabled' => $this->xTenantBetaEnabled(),
+            'showPlatformOAuthWarnings' => $this->showPlatformOAuthWarnings(),
             'internalCreateMode' => true,
             'xCreateMode' => 'internal',
         ]);
@@ -726,6 +767,7 @@ class SocialAccountController extends Controller
         app(TenantPlanManager::class)->ensureWithinLimit(PlanLimit::SOCIAL_ACCOUNTS, 1);
 
         $data = $request->validated();
+        $userId = optional($request->user())->id;
 
         $account = SocialAccount::query()->create([
             'tenant_id' => TenantContext::currentId(),
@@ -739,7 +781,7 @@ class SocialAccountController extends Controller
                 'x_handle' => trim((string) ($data['x_handle'] ?? '')) ?: null,
                 'x_connector_status' => trim((string) ($data['x_connector_status'] ?? '')) ?: 'not_configured',
             ],
-            'created_by' => $request->user()?->id,
+            'created_by' => $userId,
         ]);
 
         $this->persistChatbotIntegration($request, $account);

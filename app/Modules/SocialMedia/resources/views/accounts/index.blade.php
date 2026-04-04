@@ -1,6 +1,7 @@
 @extends('layouts.admin')
 
 @section('content')
+@php($showPlatformOAuthWarnings = $showPlatformOAuthWarnings ?? false)
 <div class="page-header mb-3">
     <div class="row align-items-center w-100">
         <div class="col">
@@ -27,7 +28,7 @@
                         @endif
                     </div>
                 </div>
-                @if(!($metaOAuthReady ?? false))
+                @if($showPlatformOAuthWarnings && !($metaOAuthReady ?? false))
                     <span class="badge bg-yellow-lt text-yellow-fg">Meta belum siap</span>
                 @endif
             </div>
@@ -35,19 +36,19 @@
     </div>
 </div>
 
-@if(!($metaOAuthReady ?? false))
+@if($showPlatformOAuthWarnings && !($metaOAuthReady ?? false))
     <div class="alert alert-warning">
         META OAuth belum siap. Isi <code>META_APP_ID</code> dan <code>META_APP_SECRET</code> di environment platform agar tenant bisa connect akun sosial media tanpa input token manual.
     </div>
 @endif
 
-@if(!($xOAuthReady ?? false) && ($xTenantBetaEnabled ?? false))
+@if($showPlatformOAuthWarnings && !($xOAuthReady ?? false) && ($xTenantBetaEnabled ?? false))
     <div class="alert alert-warning">
         X OAuth belum siap. Isi <code>X_API_CLIENT_ID</code> dan <code>X_API_CLIENT_SECRET</code> di environment platform agar tenant bisa connect akun X tanpa input token manual.
     </div>
 @endif
 
-@if(!($tiktokOAuthReady ?? false))
+@if($showPlatformOAuthWarnings && !($tiktokOAuthReady ?? false))
     <div class="alert alert-warning">
         TikTok OAuth belum siap. Isi <code>TIKTOK_API_CLIENT_KEY</code> dan <code>TIKTOK_API_CLIENT_SECRET</code> di environment platform agar tenant bisa connect akun TikTok.
     </div>

@@ -43,6 +43,29 @@
                         </div>
                     </div>
                     <div class="card-body">
+                        <div class="row g-3 mb-4">
+                            <div class="col-sm-6">
+                                <div class="text-secondary text-uppercase small fw-bold mb-1">Harga Plan</div>
+                                <div class="fs-4 fw-bold">
+                                    @if(isset($plan->meta['price']))
+                                        Rp {{ number_format((float) $plan->meta['price'], 0, ',', '.') }}
+                                    @else
+                                        <span class="text-muted">Belum diatur</span>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="text-secondary text-uppercase small fw-bold mb-1">POS Add-on</div>
+                                <div class="fs-5 fw-semibold">
+                                    @if(($plan->productLine() === 'accounting') && data_get($plan->meta, 'addons.point_of_sale.price') !== null)
+                                        Rp {{ number_format((float) data_get($plan->meta, 'addons.point_of_sale.price', 0), 0, ',', '.') }}
+                                    @else
+                                        <span class="text-muted">Tidak dipakai</span>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="text-secondary text-uppercase small fw-bold mb-2">Subscriptions Aktif</div>
                         <div class="fs-2 fw-bold mb-4">{{ $plan->subscriptions_count }}</div>
 

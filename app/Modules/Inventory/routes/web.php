@@ -10,7 +10,7 @@ use App\Modules\Inventory\Http\Controllers\StockOpnameController;
 use App\Modules\Inventory\Http\Controllers\StockTransferController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['web', 'auth', 'plan.feature:commerce'])
+Route::middleware(['web', 'auth', 'plan.feature:commerce', 'plan.feature:inventory'])
     ->prefix('inventory')
     ->name('inventory.')
     ->group(function () {

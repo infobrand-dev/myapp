@@ -22,15 +22,17 @@ Saat ini `accounting` diposisikan sebagai product line pricing yang memakai modu
 Bundle inti:
 - `sales`
 - `payments`
-- `purchases`
 - `finance`
-- `point-of-sale`
 - `reports`
-
-Dependency teknis yang bisa ikut terpakai:
 - `products`
-- `inventory`
 - `contacts`
+
+Growth/Scale menambahkan:
+- `purchases`
+- `inventory`
+
+Add-on:
+- `point-of-sale`
 - `discounts`
 
 ## Reporting

@@ -66,6 +66,9 @@ class PlanProductLineMap
             PlanFeature::EMAIL_MARKETING => 'crm',
 
             PlanFeature::COMMERCE,
+            PlanFeature::PURCHASES,
+            PlanFeature::INVENTORY,
+            PlanFeature::ADVANCED_REPORTS,
             PlanFeature::POINT_OF_SALE => 'accounting',
             PlanFeature::PROJECT_MANAGEMENT => 'project_management',
 

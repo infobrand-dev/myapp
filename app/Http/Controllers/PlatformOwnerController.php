@@ -470,6 +470,7 @@ class PlatformOwnerController extends Controller
             'is_public' => ['nullable', 'boolean'],
             'features' => ['nullable', 'array'],
             'limits' => ['nullable', 'array'],
+            'point_of_sale_addon_price' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         $features = [];
@@ -485,6 +486,17 @@ class PlatformOwnerController extends Controller
 
         $meta = (array) ($plan->meta ?? []);
         $meta['product_line'] = $data['product_line'] ?: null;
+
+        if (($data['product_line'] ?: null) === 'accounting') {
+            data_set(
+                $meta,
+                'addons.point_of_sale.price',
+                round((float) ($data['point_of_sale_addon_price'] ?? 0), 2)
+            );
+            data_set($meta, 'addons.point_of_sale.currency', (string) ($meta['currency'] ?? 'IDR'));
+        } else {
+            data_forget($meta, 'addons.point_of_sale');
+        }
 
         $plan->forceFill([
             'name' => $data['name'],
@@ -1076,8 +1088,9 @@ class PlatformOwnerController extends Controller
             PlanFeature::POINT_OF_SALE => 'Point of Sale add-on',
             'multi_branch' => 'Multi branch',
             PlanFeature::EMAIL_MARKETING => 'Email marketing',
-            PlanFeature::ADVANCED_REPORTS => 'Advanced reports',
-            'inventory' => 'Inventory',
+            PlanFeature::PURCHASES => 'Purchases',
+            PlanFeature::INVENTORY => 'Inventory',
+            PlanFeature::ADVANCED_REPORTS => 'Full reports',
             'finance' => 'Finance',
         ];
     }
@@ -1282,7 +1295,7 @@ class PlatformOwnerController extends Controller
             ],
             'accounting_starter' => [
                 'label' => 'Accounting Starter',
-                'description' => 'Paket awal untuk operasional penjualan, pembelian, pembayaran, finance ringan, dan reporting dasar. POS disiapkan sebagai add-on.',
+                'description' => 'Paket simple untuk UMKM dengan sales, payments, finance ringan, products, contacts, dan dashboard report ringkas. POS disiapkan sebagai add-on.',
                 'product_line' => 'accounting',
                 'features' => [
                     PlanFeature::MULTI_COMPANY => false,
@@ -1297,10 +1310,11 @@ class PlatformOwnerController extends Controller
                     PlanFeature::WHATSAPP_API => false,
                     PlanFeature::WHATSAPP_WEB => false,
                     PlanFeature::EMAIL_MARKETING => false,
-                    PlanFeature::ADVANCED_REPORTS => true,
+                    PlanFeature::PURCHASES => false,
+                    PlanFeature::INVENTORY => false,
+                    PlanFeature::ADVANCED_REPORTS => false,
                     PlanFeature::POINT_OF_SALE => false,
                     'multi_branch' => false,
-                    'inventory' => false,
                     'finance' => true,
                 ],
                 'limits' => [
@@ -1337,7 +1351,7 @@ class PlatformOwnerController extends Controller
             ],
             'accounting_growth' => [
                 'label' => 'Accounting Growth',
-                'description' => 'Paket rekomendasi untuk tim yang sudah aktif menangani transaksi harian lintas penjualan, pembelian, pembayaran, finance, dan reporting. POS tersedia sebagai add-on.',
+                'description' => 'Paket lengkap untuk tim yang sudah aktif dengan purchases, inventory, full reports, dan kapasitas workspace yang lebih longgar.',
                 'product_line' => 'accounting',
                 'features' => [
                     PlanFeature::MULTI_COMPANY => true,
@@ -1352,10 +1366,11 @@ class PlatformOwnerController extends Controller
                     PlanFeature::WHATSAPP_API => false,
                     PlanFeature::WHATSAPP_WEB => false,
                     PlanFeature::EMAIL_MARKETING => false,
+                    PlanFeature::PURCHASES => true,
+                    PlanFeature::INVENTORY => true,
                     PlanFeature::ADVANCED_REPORTS => true,
                     PlanFeature::POINT_OF_SALE => false,
                     'multi_branch' => true,
-                    'inventory' => false,
                     'finance' => true,
                 ],
                 'limits' => [
@@ -1392,7 +1407,7 @@ class PlatformOwnerController extends Controller
             ],
             'accounting_scale' => [
                 'label' => 'Accounting Scale',
-                'description' => 'Kapasitas besar untuk tim multi-user dan multi-branch yang menjalankan operasional transaksi lebih padat.',
+                'description' => 'Isi paket sama dengan Growth, dengan kapasitas besar untuk tim multi-user dan multi-branch yang lebih padat.',
                 'product_line' => 'accounting',
                 'features' => [
                     PlanFeature::MULTI_COMPANY => true,
@@ -1407,10 +1422,11 @@ class PlatformOwnerController extends Controller
                     PlanFeature::WHATSAPP_API => false,
                     PlanFeature::WHATSAPP_WEB => false,
                     PlanFeature::EMAIL_MARKETING => false,
+                    PlanFeature::PURCHASES => true,
+                    PlanFeature::INVENTORY => true,
                     PlanFeature::ADVANCED_REPORTS => true,
                     PlanFeature::POINT_OF_SALE => false,
                     'multi_branch' => true,
-                    'inventory' => false,
                     'finance' => true,
                 ],
                 'limits' => [

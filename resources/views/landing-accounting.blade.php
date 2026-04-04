@@ -1,7 +1,7 @@
 @extends('layouts.landing')
 
-@section('head_title', config('app.name') . ' Accounting - Sales, Payments, Purchases, Finance, POS, dan Reports')
-@section('head_description', 'Product line Accounting dari Meetra untuk merapikan penjualan, pembelian, pembayaran, cashflow, kasir outlet, dan reporting dalam satu workspace.')
+@section('head_title', config('app.name') . ' Accounting - Sales, Payments, Finance, Products, Contacts, Reports')
+@section('head_description', 'Product line Accounting dari Meetra untuk merapikan penjualan, pembayaran, cashflow, produk, kontak, dan reporting operasional dalam satu workspace. Purchases, inventory, dan POS disiapkan sesuai tier.')
 
 @section('topbar')
 <header class="landing-topbar sticky-top">
@@ -30,19 +30,19 @@
     $tiers = [
         [
             'name' => 'Starter',
-            'caption' => 'Untuk tim yang baru merapikan ritme transaksi.',
-            'limits' => ['1 company', '1 branch', '5 users', '1 GB storage'],
+            'caption' => 'Versi simple untuk UMKM yang baru merapikan ritme transaksi.',
+            'limits' => ['1 company', '1 branch', '5 users', '1 GB storage', 'Basic reports'],
         ],
         [
             'name' => 'Growth',
-            'caption' => 'Untuk tim aktif yang butuh kapasitas lebih longgar.',
-            'limits' => ['1 company', '3 branches', '15 users', '5 GB storage'],
+            'caption' => 'Versi lengkap dengan purchases, inventory, dan full reports.',
+            'limits' => ['1 company', '3 branches', '15 users', '5 GB storage', 'Full reports + inventory'],
             'featured' => true,
         ],
         [
             'name' => 'Scale',
-            'caption' => 'Untuk operasional multi-user dan multi-branch yang lebih padat.',
-            'limits' => ['3 companies', '10 branches', '50 users', '20 GB storage'],
+            'caption' => 'Isi sama dengan Growth, dengan kapasitas yang lebih besar.',
+            'limits' => ['3 companies', '10 branches', '50 users', '20 GB storage', 'Full reports + inventory'],
         ],
     ];
 @endphp
@@ -86,7 +86,7 @@
                     Rapikan <span>sales, pembayaran, pembelian, kas, dan laporan</span> dalam satu workspace.
                 </h1>
                 <p class="landing-subtext mb-5">
-                    Product line Accounting di Meetra dirancang untuk tim operasional yang ingin alur transaksi harian lebih tertib. Semua tetap berjalan dari modul existing yang sudah saling terhubung, tanpa perlu menyusun ulang proses dari nol.
+                    Product line Accounting di Meetra dirancang untuk tim operasional yang ingin alur transaksi harian lebih tertib. Starter fokus ke alur simple untuk UMKM, sementara Growth dan Scale menambah purchases, inventory, dan full reports saat ritme operasional mulai lebih kompleks.
                 </p>
                 <div class="d-flex flex-wrap gap-3 mb-4">
                     <a href="#modules" class="btn btn-lg btn-dark">Lihat Module</a>
@@ -123,8 +123,8 @@
     <div class="container">
         <div class="text-center mb-5">
             <div class="landing-eyebrow mb-2">Core Bundle</div>
-            <h2 class="landing-section-title">Lima module inti untuk ritme transaksi harian.</h2>
-            <p class="landing-subtext mx-auto">Accounting di Meetra dibangun untuk memudahkan alur operasional sehari-hari, dari transaksi masuk sampai ringkasan performa yang siap dibaca tim.</p>
+            <h2 class="landing-section-title">Enam module inti untuk paket simple yang siap dipakai lebih dulu.</h2>
+            <p class="landing-subtext mx-auto">Accounting di Meetra dibangun untuk memudahkan alur operasional sehari-hari, dari transaksi masuk sampai ringkasan performa yang siap dibaca tim tanpa harus langsung membuka workflow yang lebih berat.</p>
         </div>
         <div class="row g-4">
             @foreach ($modules as $module)
@@ -226,9 +226,9 @@
     <div class="container">
         <div class="row g-5 align-items-center">
             <div class="col-lg-5">
-                <div class="landing-eyebrow mb-2">Module Pendukung</div>
-                <h2 class="landing-section-title mb-3">Masih nyambung dengan data master dan operasional yang lebih luas.</h2>
-                <p class="landing-subtext mb-0">Beberapa workflow accounting membutuhkan data pendukung seperti produk, stok, kontak, atau aturan promo. Karena itu Meetra tetap menyiapkan jalur yang nyambung saat operasional Anda berkembang.</p>
+                <div class="landing-eyebrow mb-2">Growth Modules</div>
+                <h2 class="landing-section-title mb-3">Saat operasional berkembang, purchases dan inventory ikut menyambung.</h2>
+                <p class="landing-subtext mb-0">Growth dan Scale menambahkan workflow pembelian supplier, receiving, stok, dan kebutuhan operasional lain yang biasanya mulai terasa penting setelah transaksi harian berjalan lebih padat.</p>
             </div>
             <div class="col-lg-7">
                 <div class="support-strip">
@@ -254,7 +254,7 @@
         <div class="text-center mb-5">
             <div class="landing-eyebrow mb-2">Paket</div>
             <h2 class="landing-section-title">Starter, Growth, dan Scale.</h2>
-            <p class="landing-subtext mx-auto">Semua tier membawa bundle inti yang sama. Perbedaannya ada pada kapasitas workspace, user, branch, storage, dan skala operasional.</p>
+            <p class="landing-subtext mx-auto">Starter dibuat lebih simple untuk UMKM. Growth dan Scale menambahkan workflow operasional yang lebih lengkap, lalu dibedakan lagi dengan kapasitas workspace, user, branch, dan storage.</p>
         </div>
         <div class="row g-4">
             @foreach ($tiers as $tier)
@@ -269,7 +269,11 @@
                             @foreach ($tier['limits'] as $limit)
                                 <div><i class="ti ti-check text-success"></i> {{ $limit }}</div>
                             @endforeach
-                            <div><i class="ti ti-check text-success"></i> Sales, payments, purchases, finance, dan reports</div>
+                            @if ($tier['name'] === 'Starter')
+                                <div><i class="ti ti-check text-success"></i> Sales, payments, finance, products, contacts, dan basic reports</div>
+                            @else
+                                <div><i class="ti ti-check text-success"></i> Semua capability Starter + purchases, inventory, dan full reports</div>
+                            @endif
                             <div><i class="ti ti-check text-success"></i> POS tersedia sebagai add-on opsional</div>
                         </div>
                     </div>
@@ -284,7 +288,7 @@
         <div class="landing-panel p-4 p-lg-5 text-center">
             <div class="landing-eyebrow mb-2">Accounting by Meetra</div>
             <h2 class="landing-section-title mb-3">Bangun ritme operasional yang lebih rapi tanpa memecah workflow tim.</h2>
-            <p class="landing-subtext mx-auto mb-4" style="max-width:760px;">Jika Anda ingin penjualan, pembelian, pembayaran, kas, dan laporan tetap nyambung dalam satu workspace, product line Accounting adalah jalur yang paling pas untuk mulai.</p>
+            <p class="landing-subtext mx-auto mb-4" style="max-width:760px;">Jika Anda ingin penjualan, pembayaran, kas, produk, kontak, dan laporan tetap nyambung dalam satu workspace, product line Accounting adalah jalur yang paling pas untuk mulai, lalu berkembang ke purchases dan inventory saat bisnis semakin rapi.</p>
             <div class="d-flex flex-wrap justify-content-center gap-3">
                 <a href="{{ route('landing') }}" class="btn btn-outline-dark btn-lg">Lihat Semua Product</a>
                 <a href="{{ route('landing.omnichannel') }}" class="btn btn-dark btn-lg">Lihat Omnichannel</a>

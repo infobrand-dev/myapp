@@ -16,6 +16,8 @@ class PlanFeature
     public const EMAIL_MARKETING = 'email_marketing';
     public const WHATSAPP_API = 'whatsapp_api';
     public const WHATSAPP_WEB = 'whatsapp_web';
+    public const PURCHASES = 'purchases';
+    public const INVENTORY = 'inventory';
     public const ADVANCED_REPORTS = 'advanced_reports';
     public const POINT_OF_SALE = 'point_of_sale';
 
@@ -36,9 +38,9 @@ class PlanFeature
             'sales' => [self::COMMERCE],
             'payments' => [self::COMMERCE],
             'products' => [self::COMMERCE],
-            'inventory' => [self::COMMERCE],
-            'purchases' => [self::COMMERCE],
-            'discounts' => [self::COMMERCE],
+            'inventory' => [self::INVENTORY],
+            'purchases' => [self::PURCHASES],
+            'discounts' => [self::POINT_OF_SALE],
             'finance' => [self::COMMERCE],
             'point-of-sale' => [self::POINT_OF_SALE],
             'task_management' => [self::PROJECT_MANAGEMENT],
@@ -47,7 +49,7 @@ class PlanFeature
             'chatbot' => [self::CHATBOT_AI],
             'whatsapp_api' => [self::WHATSAPP_API],
             'whatsapp_web' => [self::WHATSAPP_WEB],
-            'reports' => [self::ADVANCED_REPORTS],
+            'reports' => [self::COMMERCE],
         ][$slug] ?? [];
     }
 
@@ -57,6 +59,9 @@ class PlanFeature
     public static function moduleFeatureRequirement(string $slug): array
     {
         return match ($slug) {
+            'inventory' => ['all' => [self::COMMERCE, self::INVENTORY]],
+            'purchases' => ['all' => [self::COMMERCE, self::PURCHASES]],
+            'discounts' => ['all' => [self::COMMERCE, self::POINT_OF_SALE]],
             'point-of-sale' => ['all' => [self::COMMERCE, self::POINT_OF_SALE]],
             default => ($features = self::moduleFeaturesForSlug($slug)) !== []
                 ? ['any' => $features]

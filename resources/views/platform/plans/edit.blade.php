@@ -69,6 +69,20 @@
                             <label class="form-label">Urutan Tampil</label>
                             <input type="number" class="form-control" name="sort_order" value="{{ old('sort_order', $plan->sort_order) }}">
                         </div>
+                        @php
+                            $isAccountingPlan = old('product_line', $plan->productLine()) === 'accounting';
+                        @endphp
+                        <div class="mb-3">
+                            <label class="form-label">Harga POS Add-on</label>
+                            <input type="number" class="form-control" name="point_of_sale_addon_price" value="{{ old('point_of_sale_addon_price', data_get($plan->meta, 'addons.point_of_sale.price')) }}" min="0" step="0.01">
+                            <div class="form-hint">
+                                @if($isAccountingPlan)
+                                    Dipakai sebagai harga default POS Add-on saat admin membuat order billing untuk plan ini.
+                                @else
+                                    Nilai ini hanya dipakai jika product line plan adalah Accounting.
+                                @endif
+                            </div>
+                        </div>
                         <label class="form-check mb-2">
                             <input type="checkbox" class="form-check-input" name="is_active" value="1" @checked(old('is_active', $plan->is_active))>
                             <span class="form-check-label">Plan aktif</span>
@@ -148,6 +162,13 @@
                         const productLine = document.querySelector('select[name="product_line"]');
                         if (productLine) {
                             productLine.value = preset.product_line;
+                        }
+                    }
+
+                    if (preset.meta && preset.meta.addons && preset.meta.addons.point_of_sale) {
+                        const addonInput = document.querySelector('input[name="point_of_sale_addon_price"]');
+                        if (addonInput) {
+                            addonInput.value = preset.meta.addons.point_of_sale.price ?? '';
                         }
                     }
 

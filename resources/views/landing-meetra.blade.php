@@ -122,10 +122,10 @@
                         <i class="ti ti-report-money"></i> Accounting
                     </div>
                     <h3 class="h2 mb-3">Rapikan transaksi, pembayaran, pembelian, kas, dan laporan operasional.</h3>
-                    <p class="small text-muted mb-4">Cocok untuk tim internal yang ingin sales, payments, purchases, finance, POS, dan reporting tetap nyambung dalam satu workspace.</p>
+                    <p class="small text-muted mb-4">Cocok untuk tim internal yang ingin sales, payments, finance, products, contacts, dan reporting tetap nyambung dalam satu workspace, lalu bertumbuh ke purchases, inventory, dan POS saat dibutuhkan.</p>
                     <div class="landing-checklist small text-muted">
                         <div><i class="ti ti-check text-success"></i> Sales dan purchases harian</div>
-                        <div><i class="ti ti-check text-success"></i> Payments, finance, dan POS</div>
+                        <div><i class="ti ti-check text-success"></i> Payments, finance, dan POS add-on opsional</div>
                         <div><i class="ti ti-check text-success"></i> Reporting operasional yang lebih cepat dibaca</div>
                     </div>
                     <div class="mt-4">
@@ -150,7 +150,7 @@
                     <div class="small text-uppercase fw-bold text-muted mb-2">Gambaran cepat</div>
                     <div class="landing-checklist small text-muted">
                         <div><i class="ti ti-check text-success"></i> Customer conversation dan lead follow up</div>
-                        <div><i class="ti ti-check text-success"></i> Sales, payment, purchase, finance, dan POS</div>
+                        <div><i class="ti ti-check text-success"></i> Sales, payment, finance, lalu berkembang ke purchase, inventory, dan POS</div>
                         <div><i class="ti ti-check text-success"></i> Reporting, task execution, dan utility pendukung</div>
                     </div>
                 </div>

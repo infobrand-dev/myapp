@@ -24,6 +24,7 @@
 <div class="row g-3 mb-4">
     @foreach($cards as $card)
         <div class="col-md-6 col-xl-4">
+            @if(!empty($card['route']))
             <a href="{{ $card['route'] }}" class="card text-decoration-none text-reset h-100">
                 <div class="card-body">
                     <div class="text-muted small">{{ $card['title'] }}</div>
@@ -31,10 +32,20 @@
                     <div class="text-muted small mt-2">{{ $card['meta'] }}</div>
                 </div>
             </a>
+            @else
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="text-muted small">{{ $card['title'] }}</div>
+                    <div class="fs-2 fw-bold mt-1">{{ $card['value'] }}</div>
+                    <div class="text-muted small mt-2">{{ $card['meta'] }}</div>
+                </div>
+            </div>
+            @endif
         </div>
     @endforeach
 </div>
 
+@if($reportCatalog !== [])
 <div class="row g-3">
     @foreach($reportCatalog as $group)
         <div class="col-lg-6">
@@ -54,4 +65,9 @@
         </div>
     @endforeach
 </div>
+@else
+<div class="alert alert-secondary mb-0">
+    Paket ini menampilkan dashboard ringkas. Report detail tersedia mulai Accounting Growth.
+</div>
+@endif
 @endsection

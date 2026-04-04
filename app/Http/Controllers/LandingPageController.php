@@ -62,7 +62,7 @@ class LandingPageController extends Controller
 
         return view('landing-accounting', [
             'modules' => $this->publicModuleCatalog($this->accountingModuleSlugs()),
-            'supportingModules' => $this->publicModuleCatalog(['products', 'inventory', 'contacts', 'discounts']),
+            'supportingModules' => $this->publicModuleCatalog(['purchases', 'inventory', 'discounts']),
             'addonModules' => $this->publicModuleCatalog(['point-of-sale']),
         ]);
     }
@@ -239,9 +239,10 @@ class LandingPageController extends Controller
         return [
             'sales',
             'payments',
-            'purchases',
             'finance',
             'reports',
+            'products',
+            'contacts',
         ];
     }
 

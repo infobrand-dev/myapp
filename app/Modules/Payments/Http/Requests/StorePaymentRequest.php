@@ -7,6 +7,7 @@ use App\Support\CurrencySettingsResolver;
 use App\Support\TenantContext;
 use App\Support\UserAccessManager;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
@@ -19,6 +20,11 @@ class StorePaymentRequest extends FormRequest
 
     public function rules(): array
     {
+        $payableTypes = ['sale', 'sale_return'];
+        if ($this->purchaseModuleReady()) {
+            $payableTypes[] = 'purchase';
+        }
+
         $receivedByRules = ['nullable', 'integer', Rule::exists('users', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()))];
 
         if (!$this->user() || !$this->user()->can('payments.assign_receiver')) {
@@ -42,7 +48,7 @@ class StorePaymentRequest extends FormRequest
                 ->where('tenant_id', TenantContext::currentId())
                 ->where('company_id', CompanyContext::currentId()))],
             'allocations' => ['required', 'array', 'min:1'],
-            'allocations.*.payable_type' => ['required', Rule::in(['sale', 'sale_return', 'purchase'])],
+            'allocations.*.payable_type' => ['required', Rule::in($payableTypes)],
             'allocations.*.payable_id' => ['required', 'integer', 'min:1'],
             'allocations.*.amount' => ['required', 'numeric', 'gt:0'],
         ];
@@ -77,7 +83,7 @@ class StorePaymentRequest extends FormRequest
             ];
         }
 
-        if (empty($allocations) && $this->filled('purchase_id')) {
+        if ($this->purchaseModuleReady() && empty($allocations) && $this->filled('purchase_id')) {
             $allocations[] = [
                 'payable_type' => 'purchase',
                 'payable_id' => $this->input('purchase_id'),
@@ -112,5 +118,10 @@ class StorePaymentRequest extends FormRequest
                 $validator->errors()->add('branch_id', 'User tidak memiliki akses ke branch yang dipilih.');
             }
         }
+    }
+
+    private function purchaseModuleReady(): bool
+    {
+        return class_exists(\App\Modules\Purchases\Models\Purchase::class) && Schema::hasTable('purchases');
     }
 }

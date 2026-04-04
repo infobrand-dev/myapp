@@ -11,6 +11,7 @@ use App\Modules\Sales\Models\SaleReturn;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Collection;
 
 class PaymentLookupService
@@ -75,11 +76,16 @@ class PaymentLookupService
 
     public function payableTypeOptions(): array
     {
-        return [
+        $options = [
             'sale' => 'Sale',
             'sale_return' => 'Sales Return Refund',
-            'purchase' => 'Purchase',
         ];
+
+        if ($this->purchaseModuleReady()) {
+            $options['purchase'] = 'Purchase';
+        }
+
+        return $options;
     }
 
     public function saleOptions(): Collection
@@ -111,6 +117,10 @@ class PaymentLookupService
 
     public function purchaseOptions(): Collection
     {
+        if (!$this->purchaseModuleReady()) {
+            return collect();
+        }
+
         return Purchase::query()
             ->where('tenant_id', TenantContext::currentId())
             ->where('company_id', CompanyContext::currentId())
@@ -120,5 +130,10 @@ class PaymentLookupService
             ->orderByDesc('purchase_date')
             ->limit(self::MAX_LOOKUP_ROWS)
             ->get(['id', 'purchase_number', 'supplier_name_snapshot', 'grand_total', 'paid_total', 'balance_due']);
+    }
+
+    private function purchaseModuleReady(): bool
+    {
+        return class_exists(Purchase::class) && Schema::hasTable('purchases');
     }
 }

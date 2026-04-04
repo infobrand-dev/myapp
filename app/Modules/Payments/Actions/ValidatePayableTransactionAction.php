@@ -9,6 +9,7 @@ use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class ValidatePayableTransactionAction
@@ -46,6 +47,12 @@ class ValidatePayableTransactionAction
         }
 
         if ($normalizedType === 'purchase') {
+            if (!$this->purchaseModuleReady()) {
+                throw ValidationException::withMessages([
+                    'allocations' => 'Transaksi purchase belum tersedia karena modul Purchases belum ter-install.',
+                ]);
+            }
+
             $purchase = Purchase::query()
                 ->where('tenant_id', TenantContext::currentId())
                 ->where('company_id', CompanyContext::currentId())
@@ -102,5 +109,10 @@ class ValidatePayableTransactionAction
         }
 
         return $sale;
+    }
+
+    private function purchaseModuleReady(): bool
+    {
+        return class_exists(Purchase::class) && Schema::hasTable('purchases');
     }
 }

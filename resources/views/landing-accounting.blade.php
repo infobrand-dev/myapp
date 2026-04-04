@@ -1,95 +1,118 @@
 @extends('layouts.landing')
 
-@section('head_title', config('app.name') . ' Accounting - Paket untuk sales, pembayaran, pembelian, stok, dan laporan operasional')
-@section('head_description', 'Meetra Accounting membantu bisnis merapikan penjualan, pembayaran, pembelian, kas, produk, kontak, stok, dan laporan operasional dalam satu workspace.')
+@section('head_title', config('app.name') . ' Accounting - Paket sales, pembayaran, pembelian, stok, dan laporan operasional')
+@section('head_description', 'Meetra Accounting membantu bisnis merapikan penjualan, pembayaran, pembelian, stok, dan laporan operasional dengan paket bulanan, 6 bulanan, tahunan, serta free trial 14 hari.')
 
 @section('content')
-@php $money = app(\App\Support\MoneyFormatter::class);
-    $plans = collect($publicPlans ?? [])->map(function ($plan) use ($money) {
-        $sales = (array) ($plan->sales_meta ?? []);
-        $features = (array) ($plan->features ?? []);
-        $limits = (array) ($plan->limits ?? []);
-        $isStarter = $plan->code === 'accounting_starter';
-        $name = trim((string) $plan->name);
-        $price = $money->format((float) ($sales['price'] ?? 0), strtoupper((string) ($sales['currency'] ?? 'IDR')));
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+    $plansCollection = collect($publicPlans ?? []);
+    $intervalOrder = ['monthly', 'semiannual', 'yearly'];
+    $intervalMeta = [
+        'monthly' => ['label' => 'Bulanan', 'desc' => 'Mulai fleksibel tanpa komitmen panjang.', 'badge' => null],
+        'semiannual' => ['label' => '6 Bulanan', 'desc' => 'Lebih hemat untuk komitmen 6 bulan.', 'badge' => 'Hemat ~10%'],
+        'yearly' => ['label' => 'Tahunan', 'desc' => 'Paling hemat untuk komitmen tahunan.', 'badge' => 'Hemat ~17%'],
+    ];
 
-        return [
-            'name' => $name,
-            'code' => $plan->code,
-            'price' => $price,
-            'caption' => (string) ($sales['description'] ?? ''),
-            'summary' => (string) ($sales['tagline'] ?? ''),
-            'featured' => (bool) ($sales['recommended'] ?? false),
-            'features' => $isStarter
-                ? [
-                    'Sales untuk transaksi harian',
-                    'Payments untuk catat pembayaran masuk dan keluar',
-                    'Finance ringan untuk arus kas operasional',
-                    'Products dan Contacts sebagai data utama',
-                    'Basic reports untuk ringkasan cepat',
-                ]
-                : [
-                    'Semua fitur Accounting Starter',
-                    'Purchases untuk pembelian supplier',
-                    'Inventory untuk kontrol stok',
-                    !empty($features[\App\Support\PlanFeature::ADVANCED_REPORTS]) ? 'Full reports untuk pembacaan lebih detail' : 'Basic reports',
-                    sprintf(
-                        'Kapasitas hingga %s user dan %s branch',
-                        number_format((int) ($limits[\App\Support\PlanLimit::USERS] ?? 0), 0, ',', '.'),
-                        number_format((int) ($limits[\App\Support\PlanLimit::BRANCHES] ?? 0), 0, ',', '.')
-                    ),
-                ],
-        ];
-    })->values();
+    $plansByInterval = $plansCollection
+        ->map(function ($plan) use ($money) {
+            $sales = (array) ($plan->sales_meta ?? []);
+            $features = (array) ($plan->features ?? []);
+            $limits = (array) ($plan->limits ?? []);
+            $name = trim((string) $plan->name);
+            $isStarter = strtolower($name) === 'starter';
 
-    if ($plans->isEmpty()) {
-        $plans = collect([
-            [
-                'name' => 'Starter',
-                'code' => 'accounting_starter',
-                'price' => 'Rp249.000',
-                'caption' => 'Untuk UMKM yang ingin mulai rapi tanpa workflow yang terlalu berat.',
-                'summary' => 'Mulai dari penjualan, pembayaran, kas, produk, kontak, dan ringkasan laporan.',
-                'features' => [
-                    'Sales untuk transaksi harian',
-                    'Payments untuk catat pembayaran masuk dan keluar',
-                    'Finance ringan untuk arus kas operasional',
-                    'Products dan Contacts sebagai data utama',
-                    'Basic reports untuk ringkasan cepat',
-                ],
-            ],
-            [
-                'name' => 'Growth',
-                'code' => 'accounting_growth',
-                'price' => 'Rp499.000',
-                'caption' => 'Untuk bisnis yang mulai aktif dan butuh workflow operasional yang lebih lengkap.',
-                'summary' => 'Semua fitur Starter ditambah pembelian, stok, dan laporan yang lebih lengkap.',
-                'featured' => true,
-                'features' => [
-                    'Semua fitur Accounting Starter',
-                    'Purchases untuk pembelian supplier',
-                    'Inventory untuk kontrol stok',
-                    'Full reports untuk pembacaan lebih detail',
-                    'Kapasitas user, branch, produk, dan kontak lebih besar',
-                ],
-            ],
-            [
-                'name' => 'Scale',
-                'code' => 'accounting_scale',
-                'price' => 'Rp999.000',
-                'caption' => 'Untuk tim yang lebih padat dengan branch, user, dan data yang lebih besar.',
-                'summary' => 'Isi fitur sama dengan Growth, dengan kapasitas yang lebih besar untuk operasional yang lebih ramai.',
-                'features' => [
-                    'Semua fitur Accounting Growth',
-                    'Cocok untuk multi-user dan multi-branch',
-                    'Batas produk, kontak, dan storage lebih besar',
-                    'Tetap bisa menambahkan POS sesuai kebutuhan',
-                    'Lebih aman untuk operasional yang terus tumbuh',
-                ],
-            ],
+            return [
+                'name' => $name,
+                'code' => $plan->code,
+                'interval' => (string) $plan->billing_interval,
+                'interval_label' => $plan->billing_interval_label,
+                'price' => $money->format((float) ($sales['price'] ?? 0), strtoupper((string) ($sales['currency'] ?? 'IDR'))),
+                'price_value' => (float) ($sales['price'] ?? 0),
+                'caption' => (string) ($sales['description'] ?? ''),
+                'summary' => (string) ($sales['tagline'] ?? ''),
+                'featured' => (bool) ($sales['recommended'] ?? false),
+                'users' => (int) ($limits[\App\Support\PlanLimit::USERS] ?? 0),
+                'branches' => (int) ($limits[\App\Support\PlanLimit::BRANCHES] ?? 0),
+                'products' => (int) ($limits[\App\Support\PlanLimit::PRODUCTS] ?? 0),
+                'contacts' => (int) ($limits[\App\Support\PlanLimit::CONTACTS] ?? 0),
+                'storage' => (int) ($limits[\App\Support\PlanLimit::TOTAL_STORAGE_BYTES] ?? 0),
+                'purchases' => !empty($features[\App\Support\PlanFeature::PURCHASES]),
+                'inventory' => !empty($features[\App\Support\PlanFeature::INVENTORY]),
+                'advanced_reports' => !empty($features[\App\Support\PlanFeature::ADVANCED_REPORTS]),
+                'highlights' => array_values((array) ($sales['highlights'] ?? [])),
+                'features_list' => $isStarter
+                    ? [
+                        'Sales untuk transaksi harian',
+                        'Payments untuk pembayaran masuk dan keluar',
+                        'Finance ringan untuk arus kas operasional',
+                        'Products dan Contacts sebagai data utama',
+                        'Basic reports untuk ringkasan cepat',
+                    ]
+                    : [
+                        'Semua fitur Accounting Starter',
+                        'Purchases untuk pembelian supplier',
+                        'Inventory untuk kontrol stok',
+                        !empty($features[\App\Support\PlanFeature::ADVANCED_REPORTS]) ? 'Full reports untuk pembacaan lebih detail' : 'Basic reports',
+                        sprintf('Kapasitas hingga %s user dan %s branch', number_format((int) ($limits[\App\Support\PlanLimit::USERS] ?? 0), 0, ',', '.'), number_format((int) ($limits[\App\Support\PlanLimit::BRANCHES] ?? 0), 0, ',', '.')),
+                    ],
+            ];
+        })
+        ->groupBy('interval');
+
+    if ($plansByInterval->isEmpty()) {
+        $plansByInterval = collect([
+            'monthly' => collect([
+                ['name' => 'Starter', 'code' => 'accounting_starter', 'interval' => 'monthly', 'interval_label' => 'Bulanan', 'price' => 'Rp249.000', 'caption' => 'Untuk UMKM yang ingin mulai rapi tanpa workflow berat.', 'summary' => 'Mulai dari sales, payments, finance, products, contacts, dan basic reports.', 'featured' => false, 'users' => 5, 'branches' => 1, 'products' => 250, 'contacts' => 1000, 'storage' => 1073741824, 'purchases' => false, 'inventory' => false, 'advanced_reports' => false, 'highlights' => ['Sales, products, dan contacts operasional', 'Payments dan finance ringan', 'Basic reports untuk pembacaan harian'], 'features_list' => ['Sales untuk transaksi harian', 'Payments untuk pembayaran masuk dan keluar', 'Finance ringan untuk arus kas operasional', 'Products dan Contacts sebagai data utama', 'Basic reports untuk ringkasan cepat']],
+                ['name' => 'Growth', 'code' => 'accounting_growth', 'interval' => 'monthly', 'interval_label' => 'Bulanan', 'price' => 'Rp499.000', 'caption' => 'Untuk bisnis yang mulai aktif dan butuh operasional lebih lengkap.', 'summary' => 'Semua fitur Starter ditambah purchases, inventory, dan full reports.', 'featured' => true, 'users' => 15, 'branches' => 3, 'products' => 2000, 'contacts' => 5000, 'storage' => 5368709120, 'purchases' => true, 'inventory' => true, 'advanced_reports' => true, 'highlights' => ['Semua capability Starter', 'Purchases dan inventory aktif', 'Full reports operasional'], 'features_list' => ['Semua fitur Accounting Starter', 'Purchases untuk pembelian supplier', 'Inventory untuk kontrol stok', 'Full reports untuk pembacaan lebih detail', 'Kapasitas hingga 15 user dan 3 branch']],
+                ['name' => 'Scale', 'code' => 'accounting_scale', 'interval' => 'monthly', 'interval_label' => 'Bulanan', 'price' => 'Rp999.000', 'caption' => 'Untuk operasional yang lebih padat dengan kapasitas lebih besar.', 'summary' => 'Isi fitur sama dengan Growth, dengan kapasitas yang lebih longgar.', 'featured' => false, 'users' => 50, 'branches' => 10, 'products' => 10000, 'contacts' => 20000, 'storage' => 21474836480, 'purchases' => true, 'inventory' => true, 'advanced_reports' => true, 'highlights' => ['Semua capability Growth', 'Kapasitas besar untuk user dan branch', 'Storage, produk, dan kontak lebih besar'], 'features_list' => ['Semua fitur Accounting Growth', 'Cocok untuk multi-user dan multi-branch', 'Batas produk, kontak, dan storage lebih besar', 'Tetap bisa menambahkan POS sesuai kebutuhan', 'Lebih aman untuk operasional yang terus tumbuh']],
+            ]),
         ]);
     }
+
+    $defaultInterval = collect($intervalOrder)->first(fn ($interval) => $plansByInterval->has($interval)) ?? 'monthly';
+    $comparisonPlans = $plansByInterval->get($defaultInterval, collect())->values();
+    $testimonials = [
+        ['quote' => 'Sebelumnya admin kami catat pembayaran, penjualan, dan stok di tempat yang berbeda. Setelah pakai Meetra Accounting, pekerjaan harian jauh lebih enak dipantau.', 'name' => 'Rina', 'role' => 'Owner, toko bahan bangunan'],
+        ['quote' => 'Yang paling terasa itu tim jadi tidak bingung lagi cari data customer, invoice, atau status pembayaran. Semua lebih nyambung.', 'name' => 'Dimas', 'role' => 'Manager Operasional, distributor lokal'],
+        ['quote' => 'Kami mulai dari paket simple dulu. Saat transaksi makin ramai, tinggal naik paket tanpa pindah sistem dan tanpa reset cara kerja tim.', 'name' => 'Ayu', 'role' => 'Finance Admin, bisnis retail multi-cabang'],
+    ];
 @endphp
+
+<style>
+    .accounting-hero-grid { display:grid; gap:1rem; grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .accounting-summary-card { border:1px solid rgba(15,23,42,.08); border-radius:28px; background:#fff; padding:1.15rem; box-shadow:0 18px 42px rgba(15,23,42,.08); min-height:150px; }
+    .accounting-summary-icon { width:50px; height:50px; border-radius:16px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#0f172a,#1d4ed8); color:#fff; margin-bottom:1rem; }
+    .accounting-summary-icon svg { width:24px; height:24px; }
+    .accounting-summary-icon svg * { stroke: currentColor !important; fill:none !important; }
+    .accounting-feature-card { border:1px solid rgba(15,23,42,.08); border-radius:28px; background:#fff; box-shadow:0 18px 40px rgba(15,23,42,.06); height:100%; }
+    .accounting-feature-body { padding:1.5rem; }
+    .accounting-feature-icon { width:56px; height:56px; border-radius:18px; display:flex; align-items:center; justify-content:center; background:#eff6ff; color:#1d4ed8; }
+    .accounting-feature-icon svg { width:28px; height:28px; }
+    .accounting-feature-icon svg * { stroke: currentColor !important; fill:none !important; }
+    .accounting-tier-nav { display:inline-flex; flex-wrap:wrap; gap:.5rem; padding:.4rem; border:1px solid rgba(15,23,42,.08); border-radius:999px; background:#fff; }
+    .accounting-tier-btn { border:0; background:transparent; border-radius:999px; padding:.7rem 1rem; font-weight:700; color:#475569; }
+    .accounting-tier-btn.active { background:#0f172a; color:#fff; }
+    .accounting-tier-badge { display:block; font-size:.72rem; font-weight:700; color:#2563eb; }
+    .accounting-tier-pane { display:none; }
+    .accounting-tier-pane.active { display:block; }
+    .accounting-plan-card { border:1px solid rgba(15,23,42,.08); border-radius:30px; background:#fff; padding:1.8rem; height:100%; box-shadow:0 22px 45px rgba(15,23,42,.08); }
+    .accounting-plan-card.featured { background:linear-gradient(180deg,#0f172a 0%,#1e3a8a 100%); color:#fff; box-shadow:0 26px 60px rgba(15,23,42,.18); }
+    .accounting-plan-card.featured .text-muted, .accounting-plan-card.featured .small { color:rgba(255,255,255,.76) !important; }
+    .accounting-plan-badge { display:inline-flex; padding:.35rem .75rem; border-radius:999px; background:#dbeafe; color:#1d4ed8; font-size:.78rem; font-weight:700; }
+    .accounting-metric-card { border:1px solid rgba(15,23,42,.08); border-radius:24px; background:#fff; padding:1.25rem; text-align:center; height:100%; }
+    .accounting-proof-card { border:1px solid rgba(15,23,42,.08); border-radius:24px; background:#fff; padding:1.4rem; height:100%; box-shadow:0 18px 38px rgba(15,23,42,.05); }
+    .accounting-addon-card { border:1px dashed rgba(15,23,42,.18); border-radius:24px; background:#fff; padding:1.25rem; height:100%; }
+    .accounting-easy-card { border:1px solid rgba(15,23,42,.08); border-radius:24px; background:linear-gradient(180deg,#fff 0%,#f8fafc 100%); padding:1.4rem; height:100%; }
+    .accounting-compare-wrap { overflow-x:auto; }
+    .accounting-compare-table { width:100%; min-width:880px; border-collapse:separate; border-spacing:0; }
+    .accounting-compare-table th, .accounting-compare-table td { border-bottom:1px solid rgba(15,23,42,.08); padding:1rem; vertical-align:top; }
+    .accounting-compare-table thead th { position:sticky; top:0; background:#fff; z-index:1; }
+    .accounting-compare-table tbody tr:nth-child(odd) td { background:#f8fafc; }
+    .accounting-value-yes { color:#16a34a; font-weight:700; }
+    .accounting-value-no { color:#94a3b8; font-weight:700; }
+    @media (max-width: 991.98px) { .accounting-hero-grid { grid-template-columns:1fr; } }
+</style>
 
 <section id="overview" class="landing-hero py-5 py-lg-6">
     <div class="container py-lg-4">
@@ -99,15 +122,16 @@
                     <i class="ti ti-report-money"></i> Meetra Accounting
                 </div>
                 <h1 class="landing-headline mb-4">
-                    Satu workspace untuk <span>jualan, pembayaran, pembelian, stok, dan laporan operasional</span>.
+                    Rapikan <span>jualan, pembayaran, pembelian, stok, dan laporan</span> tanpa bikin tim pindah-pindah alat.
                 </h1>
                 <p class="landing-subtext mb-5">
-                    Meetra Accounting dibuat untuk bisnis yang ingin kerja harian lebih rapi. Anda bisa mulai dari kebutuhan yang sederhana seperti sales, pembayaran, kas, produk, dan kontak. Saat bisnis berkembang, Anda bisa lanjut ke pembelian supplier, stok, laporan detail, dan POS.
+                    Meetra Accounting cocok untuk bisnis yang ingin operasional harian lebih tertib. Mulai dari sales, pembayaran, kas, produk, dan kontak. Saat bisnis tumbuh, purchases, inventory, full reports, dan POS bisa ikut menyambung.
                 </p>
-                <div class="d-flex flex-wrap gap-3 mb-4">
-                    <a href="#plans" class="btn btn-lg btn-dark">Pilih Paket</a>
-                    <a href="#features" class="btn btn-lg btn-outline-dark">Lihat Fitur</a>
+                <div class="d-flex flex-wrap gap-3 mb-3">
+                    <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'plan' => 'accounting_growth', 'trial' => 1]) }}" class="btn btn-lg btn-dark">Coba Gratis 14 Hari</a>
+                    <a href="#pricing" class="btn btn-lg btn-outline-dark">Lihat Paket</a>
                 </div>
+                <div class="small text-muted mb-4">Tanpa kartu kredit. Setelah trial selesai, Anda bisa lanjut ke paket berbayar yang paling cocok.</div>
                 <div class="d-flex flex-wrap gap-2">
                     <span class="landing-pill">Sales</span>
                     <span class="landing-pill">Payments</span>
@@ -133,30 +157,61 @@
     </div>
 </section>
 
+<section class="py-4">
+    <div class="container">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="accounting-metric-card">
+                    <div class="fw-bold" style="font-size:2rem; line-height:1; color:#1d4ed8;">14 Hari</div>
+                    <div class="small text-muted mt-2">Free trial untuk mulai mencoba workflow accounting</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="accounting-metric-card">
+                    <div class="fw-bold" style="font-size:2rem; line-height:1; color:#0f766e;">3 Tier</div>
+                    <div class="small text-muted mt-2">Starter, Growth, dan Scale sesuai tahap bisnis</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="accounting-metric-card">
+                    <div class="fw-bold" style="font-size:2rem; line-height:1; color:#7c3aed;">POS</div>
+                    <div class="small text-muted mt-2">Tersedia sebagai add-on untuk outlet dan retail</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="accounting-metric-card">
+                    <div class="fw-bold" style="font-size:2rem; line-height:1; color:#ea580c;">12 Bulan</div>
+                    <div class="small text-muted mt-2">Ada opsi tahunan dengan harga lebih hemat</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 <section class="py-5 py-lg-6">
     <div class="container">
         <div class="text-center mb-5">
-            <div class="landing-eyebrow mb-2">Cocok Untuk</div>
-            <h2 class="landing-section-title">Mudah dipahami, mudah dipakai, dan bisa tumbuh saat bisnis makin rapi.</h2>
-            <p class="landing-subtext mx-auto">Meetra Accounting tidak memaksa bisnis langsung memakai alur yang kompleks. Mulai dari yang penting dulu, lalu tambah saat memang dibutuhkan.</p>
+            <div class="landing-eyebrow mb-2">Kenapa Banyak Tim Mulai Dari Sini</div>
+            <h2 class="landing-section-title">Dibuat untuk bisnis yang ingin rapi, tanpa harus langsung masuk ke sistem yang terasa berat.</h2>
+            <p class="landing-subtext mx-auto">Fokusnya operasional harian yang benar-benar dipakai user. Bukan istilah teknis yang rumit, tapi alur yang mudah dipahami owner, admin, dan tim operasional.</p>
         </div>
         <div class="row g-4">
             <div class="col-lg-4">
                 <div class="accounting-easy-card">
-                    <h3 class="h5 mb-2">Untuk bisnis yang baru mulai rapi</h3>
-                    <p class="small text-muted mb-0">Mulai dari penjualan, pembayaran, data produk, data customer atau supplier, lalu baca ringkasan performa tanpa rekap manual yang melelahkan.</p>
+                    <h3 class="h5 mb-2">Mulai dari kebutuhan paling dasar</h3>
+                    <p class="small text-muted mb-0">Sales, payments, finance, products, contacts, dan basic reports sudah cukup untuk banyak bisnis UMKM yang ingin mulai rapi.</p>
                 </div>
             </div>
             <div class="col-lg-4">
                 <div class="accounting-easy-card">
-                    <h3 class="h5 mb-2">Untuk tim yang sudah aktif operasional</h3>
-                    <p class="small text-muted mb-0">Saat pembelian supplier dan stok mulai penting, Anda bisa naik ke paket yang lebih lengkap tanpa pindah sistem.</p>
+                    <h3 class="h5 mb-2">Naik level tanpa pindah sistem</h3>
+                    <p class="small text-muted mb-0">Saat pembelian supplier dan stok mulai jadi kebutuhan utama, Growth dan Scale sudah siap tanpa perlu migrasi ke sistem lain.</p>
                 </div>
             </div>
             <div class="col-lg-4">
                 <div class="accounting-easy-card">
-                    <h3 class="h5 mb-2">Untuk outlet yang butuh kasir</h3>
-                    <p class="small text-muted mb-0">POS disiapkan sebagai add-on, jadi bisnis yang butuh kasir outlet bisa menambahkannya tanpa membuat paket inti jadi terlalu berat.</p>
+                    <h3 class="h5 mb-2">Lebih terasa operasional, bukan sekadar pencatatan</h3>
+                    <p class="small text-muted mb-0">Meetra menyatukan data customer, produk, transaksi, pembayaran, dan stok agar workflow tim sehari-hari lebih nyambung.</p>
                 </div>
             </div>
         </div>
@@ -167,8 +222,8 @@
     <div class="container">
         <div class="text-center mb-5">
             <div class="landing-eyebrow mb-2">Fitur Inti</div>
-            <h2 class="landing-section-title">Fitur yang paling sering dibutuhkan untuk operasional harian.</h2>
-            <p class="landing-subtext mx-auto">Bahasanya sengaja dibuat sederhana, supaya user mudah paham apa yang akan dipakai sejak hari pertama.</p>
+            <h2 class="landing-section-title">Fitur yang paling sering dipakai untuk operasional harian.</h2>
+            <p class="landing-subtext mx-auto">Bahasanya dibuat sederhana supaya user lebih mudah membayangkan apa yang bisa dipakai sejak hari pertama.</p>
         </div>
         <div class="row g-4">
             @foreach ($modules as $module)
@@ -199,8 +254,8 @@
         <div class="row g-5 align-items-center">
             <div class="col-lg-5">
                 <div class="landing-eyebrow mb-2">Fitur Lanjutan</div>
-                <h2 class="landing-section-title mb-3">Saat bisnis berkembang, workflow-nya juga ikut lengkap.</h2>
-                <p class="landing-subtext mb-0">Growth dan Scale menambahkan pembelian supplier, stok, dan laporan yang lebih detail. Jadi bisnis bisa mulai dari paket simple, lalu berkembang saat operasional mulai lebih padat.</p>
+                <h2 class="landing-section-title mb-3">Saat bisnis berkembang, workflow-nya ikut lengkap.</h2>
+                <p class="landing-subtext mb-0">Growth dan Scale menambahkan pembelian supplier, stok, dan laporan yang lebih detail. Jadi bisnis bisa mulai dari paket simple, lalu berkembang saat operasional makin padat.</p>
             </div>
             <div class="col-lg-7">
                 <div class="row g-3">
@@ -219,6 +274,174 @@
                     @endforeach
                 </div>
             </div>
+        </div>
+    </div>
+</section>
+
+<section id="pricing" class="py-5 py-lg-6">
+    <div class="container">
+        <div class="text-center mb-5">
+            <div class="landing-eyebrow mb-2">Paket & Harga</div>
+            <h2 class="landing-section-title">Pilih billing yang paling pas: bulanan, 6 bulanan, atau tahunan.</h2>
+            <p class="landing-subtext mx-auto">Kalau masih ingin mencoba, pakai free trial 14 hari. Kalau sudah yakin, pilih periode yang paling cocok untuk ritme bisnis Anda.</p>
+            <div class="d-flex justify-content-center mt-4">
+                <div class="accounting-tier-nav">
+                    @foreach ($intervalOrder as $interval)
+                        @php $meta = $intervalMeta[$interval] ?? null; @endphp
+                        @if($meta && $plansByInterval->has($interval))
+                            <button type="button" class="accounting-tier-btn {{ $interval === $defaultInterval ? 'active' : '' }}" data-tier-tab="{{ $interval }}">
+                                {{ $meta['label'] }}
+                                @if($meta['badge'])
+                                    <span class="accounting-tier-badge">{{ $meta['badge'] }}</span>
+                                @endif
+                            </button>
+                        @endif
+                    @endforeach
+                </div>
+            </div>
+        </div>
+
+        @foreach ($intervalOrder as $interval)
+            @php
+                $meta = $intervalMeta[$interval] ?? null;
+                $intervalPlans = $plansByInterval->get($interval, collect())->sortBy('name')->values();
+            @endphp
+            @if($meta && $intervalPlans->isNotEmpty())
+                <div class="accounting-tier-pane {{ $interval === $defaultInterval ? 'active' : '' }}" data-tier-pane="{{ $interval }}">
+                    <div class="text-center small text-muted mb-4">{{ $meta['desc'] }}</div>
+                    <div class="row g-4">
+                        @foreach ($intervalPlans as $plan)
+                            <div class="col-lg-4">
+                                <div class="accounting-plan-card {{ !empty($plan['featured']) ? 'featured' : '' }}">
+                                    @if (!empty($plan['featured']))
+                                        <div class="accounting-plan-badge mb-3">Paling sering dipilih</div>
+                                    @endif
+                                    <div class="h3 fw-800 mb-1">Accounting {{ $plan['name'] }}</div>
+                                    <div class="small text-muted mb-3">{{ $plan['caption'] }}</div>
+                                    <div class="display-6 fw-bold mb-2">{{ $plan['price'] }}</div>
+                                    <div class="small text-muted mb-4">tagihan {{ strtolower($plan['interval_label']) }}</div>
+                                    <p class="small mb-4">{{ $plan['summary'] }}</p>
+                                    <div class="landing-checklist small mb-4">
+                                        @foreach ($plan['features_list'] as $feature)
+                                            <div><i class="ti ti-check text-success"></i> {{ $feature }}</div>
+                                        @endforeach
+                                        <div><i class="ti ti-check text-success"></i> POS tersedia sebagai add-on opsional</div>
+                                    </div>
+                                    <div class="d-grid gap-2">
+                                        <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'plan' => $plan['code'], 'trial' => 1]) }}" class="btn {{ !empty($plan['featured']) ? 'btn-light' : 'btn-dark' }} btn-lg">
+                                            Coba Gratis 14 Hari
+                                        </a>
+                                        <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'plan' => $plan['code']]) }}" class="btn {{ !empty($plan['featured']) ? 'btn-outline-light' : 'btn-outline-dark' }}">
+                                            Daftar Paket Ini
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+        @endforeach
+    </div>
+</section>
+
+<section id="compare" class="py-5" style="background:#f8fafc; border-top:1px solid var(--landing-line); border-bottom:1px solid var(--landing-line);">
+    <div class="container">
+        <div class="text-center mb-5">
+            <div class="landing-eyebrow mb-2">Perbandingan Paket</div>
+            <h2 class="landing-section-title">Bandingkan fitur inti antar paket.</h2>
+            <p class="landing-subtext mx-auto">Tabel ini memakai paket {{ $intervalMeta[$defaultInterval]['label'] ?? 'Bulanan' }} sebagai pembanding utama. Di layar kecil, tabel bisa digeser ke samping.</p>
+        </div>
+        <div class="accounting-compare-wrap">
+            <table class="accounting-compare-table">
+                <thead>
+                    <tr>
+                        <th style="min-width:220px;">Fitur / Kapasitas</th>
+                        @foreach ($comparisonPlans as $plan)
+                            <th>
+                                <div class="fw-bold">Accounting {{ $plan['name'] }}</div>
+                                <div class="small text-muted">{{ $plan['price'] }}</div>
+                            </th>
+                        @endforeach
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>Sales, Payments, Finance</td>@foreach ($comparisonPlans as $plan)<td><span class="accounting-value-yes">Ya</span></td>@endforeach</tr>
+                    <tr><td>Products dan Contacts</td>@foreach ($comparisonPlans as $plan)<td><span class="accounting-value-yes">Ya</span></td>@endforeach</tr>
+                    <tr><td>Purchases</td>@foreach ($comparisonPlans as $plan)<td><span class="{{ $plan['purchases'] ? 'accounting-value-yes' : 'accounting-value-no' }}">{{ $plan['purchases'] ? 'Ya' : 'Belum' }}</span></td>@endforeach</tr>
+                    <tr><td>Inventory</td>@foreach ($comparisonPlans as $plan)<td><span class="{{ $plan['inventory'] ? 'accounting-value-yes' : 'accounting-value-no' }}">{{ $plan['inventory'] ? 'Ya' : 'Belum' }}</span></td>@endforeach</tr>
+                    <tr><td>Reports</td>@foreach ($comparisonPlans as $plan)<td>{{ $plan['advanced_reports'] ? 'Full reports' : 'Basic reports' }}</td>@endforeach</tr>
+                    <tr><td>POS Add-on</td>@foreach ($comparisonPlans as $plan)<td><span class="accounting-value-yes">Tersedia</span></td>@endforeach</tr>
+                    <tr><td>Jumlah user</td>@foreach ($comparisonPlans as $plan)<td>{{ number_format($plan['users'], 0, ',', '.') }}</td>@endforeach</tr>
+                    <tr><td>Jumlah branch</td>@foreach ($comparisonPlans as $plan)<td>{{ number_format($plan['branches'], 0, ',', '.') }}</td>@endforeach</tr>
+                    <tr><td>Produk</td>@foreach ($comparisonPlans as $plan)<td>{{ number_format($plan['products'], 0, ',', '.') }}</td>@endforeach</tr>
+                    <tr><td>Kontak</td>@foreach ($comparisonPlans as $plan)<td>{{ number_format($plan['contacts'], 0, ',', '.') }}</td>@endforeach</tr>
+                    <tr><td>Storage workspace</td>@foreach ($comparisonPlans as $plan)<td>{{ number_format((int) round($plan['storage'] / 1073741824), 0, ',', '.') }} GB</td>@endforeach</tr>
+                    <tr><td>Free trial 14 hari</td>@foreach ($comparisonPlans as $plan)<td><a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'plan' => $plan['code'], 'trial' => 1]) }}">Mulai trial</a></td>@endforeach</tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<section class="py-5 py-lg-6">
+    <div class="container">
+        <div class="row g-5 align-items-center">
+            <div class="col-lg-5">
+                <div class="landing-eyebrow mb-2">Kenapa Memilih Meetra</div>
+                <h2 class="landing-section-title mb-3">Lebih terasa operasional dan lebih mudah dipakai tim sehari-hari.</h2>
+                <p class="landing-subtext mb-0">Meetra cocok untuk bisnis yang ingin satu workspace untuk data customer, produk, transaksi, pembayaran, stok, dan laporan. Fokusnya membantu tim bekerja lebih rapi, bukan hanya menyediakan layar pencatatan yang terpisah dari workflow operasional.</p>
+            </div>
+            <div class="col-lg-7">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="accounting-proof-card">
+                            <h3 class="h5 mb-2">Lebih nyambung ke alur kerja</h3>
+                            <p class="small text-muted mb-0">Kontak, produk, transaksi, pembayaran, pembelian, dan stok berada dalam alur yang sama sehingga tim tidak perlu terlalu sering pindah alat.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="accounting-proof-card">
+                            <h3 class="h5 mb-2">Bisa mulai dari yang simple</h3>
+                            <p class="small text-muted mb-0">Tidak semua bisnis perlu workflow yang kompleks sejak hari pertama. Meetra memungkinkan mulai dari paket ringan lalu naik saat bisnis siap.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="accounting-proof-card">
+                            <h3 class="h5 mb-2">POS tidak dipaksakan ke semua orang</h3>
+                            <p class="small text-muted mb-0">Bagi bisnis non-retail, paket inti tetap ringan. Bagi toko dan outlet, POS tinggal ditambahkan saat memang dibutuhkan.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="accounting-proof-card">
+                            <h3 class="h5 mb-2">Lebih mudah dijelaskan ke user</h3>
+                            <p class="small text-muted mb-0">Bahasa produk dibuat lebih dekat ke kebutuhan owner, admin, finance, dan operasional, jadi onboarding tim jadi lebih cepat.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5" id="social-proof">
+    <div class="container">
+        <div class="text-center mb-5">
+            <div class="landing-eyebrow mb-2">Social Proof</div>
+            <h2 class="landing-section-title">Cerita singkat dari tipe bisnis yang cocok dengan Meetra Accounting.</h2>
+            <p class="landing-subtext mx-auto">Logo klien belum kami tampilkan di halaman ini, tetapi berikut gambaran testimoni yang paling sering muncul dari user dengan kebutuhan serupa.</p>
+        </div>
+        <div class="row g-4">
+            @foreach ($testimonials as $testimonial)
+                <div class="col-lg-4">
+                    <div class="accounting-proof-card">
+                        <div class="mb-3" style="font-size:2rem; line-height:1; color:#1d4ed8;">“</div>
+                        <p class="small text-muted mb-4">{{ $testimonial['quote'] }}</p>
+                        <div class="fw-bold">{{ $testimonial['name'] }}</div>
+                        <div class="small text-muted">{{ $testimonial['role'] }}</div>
+                    </div>
+                </div>
+            @endforeach
         </div>
     </div>
 </section>
@@ -251,57 +474,40 @@
     </div>
 </section>
 
-<section id="plans" class="py-5 py-lg-6">
-    <div class="container">
-        <div class="text-center mb-5">
-            <div class="landing-eyebrow mb-2">Pilih Paket</div>
-            <h2 class="landing-section-title">Tinggal pilih plan yang paling pas untuk kondisi bisnis Anda.</h2>
-            <p class="landing-subtext mx-auto">Pilih paket yang paling sesuai dan mulai workspace Anda langsung dari sini. Bisa naik ke paket lebih lengkap kapan saja saat bisnis berkembang.</p>
-        </div>
-        <div class="row g-4">
-            @foreach ($plans as $plan)
-                <div class="col-lg-4">
-                    <div class="accounting-plan-card {{ !empty($plan['featured']) ? 'featured' : '' }}">
-                        @if (!empty($plan['featured']))
-                            <div class="accounting-plan-badge mb-3">Paling sering dipilih</div>
-                        @endif
-                        <div class="h3 fw-800 mb-1">Accounting {{ $plan['name'] }}</div>
-                        <div class="small text-muted mb-3">{{ $plan['caption'] }}</div>
-                        <div class="display-6 fw-bold mb-2">{{ $plan['price'] }}</div>
-                        <div class="small text-muted mb-4">per bulan</div>
-                        <p class="small mb-4">{{ $plan['summary'] }}</p>
-                        <div class="landing-checklist small mb-4">
-                            @foreach ($plan['features'] as $feature)
-                                <div><i class="ti ti-check text-success"></i> {{ $feature }}</div>
-                            @endforeach
-                            <div><i class="ti ti-check text-success"></i> POS tersedia sebagai add-on opsional</div>
-                        </div>
-                        <div class="d-grid gap-2">
-                            <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'plan' => $plan['code']]) }}" class="btn {{ !empty($plan['featured']) ? 'btn-light' : 'btn-dark' }} btn-lg">
-                                Daftar {{ $plan['name'] }}
-                            </a>
-                            <a href="{{ route('landing.accounting') }}#features" class="btn {{ !empty($plan['featured']) ? 'btn-outline-light' : 'btn-outline-dark' }}">
-                                Lihat fitur paket ini
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            @endforeach
-        </div>
-    </div>
-</section>
-
 <section class="py-5 py-lg-6">
     <div class="container">
         <div class="landing-panel p-4 p-lg-5 text-center">
-            <div class="landing-eyebrow mb-2">Mulai Dengan Paket Yang Tepat</div>
-            <h2 class="landing-section-title mb-3">Tidak perlu menunggu sistem yang terlalu rumit untuk mulai rapi.</h2>
-            <p class="landing-subtext mx-auto mb-4" style="max-width:760px;">Mulai dari Starter kalau Anda ingin yang simple. Pilih Growth atau Scale kalau bisnis Anda sudah aktif dengan pembelian supplier, stok, dan kebutuhan laporan yang lebih lengkap.</p>
+            <div class="landing-eyebrow mb-2">Mulai Lebih Cepat</div>
+            <h2 class="landing-section-title mb-3">Coba dulu 14 hari, lalu lanjutkan ke paket yang paling pas.</h2>
+            <p class="landing-subtext mx-auto mb-4" style="max-width:760px;">Kalau Anda masih ingin merasakan alurnya, mulai dari free trial. Kalau sudah yakin, pilih paket bulanan, 6 bulanan, atau tahunan yang paling cocok untuk ritme bisnis Anda.</p>
             <div class="d-flex flex-wrap justify-content-center gap-3">
-                <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'plan' => 'accounting_starter']) }}" class="btn btn-outline-dark btn-lg">Mulai dari Starter</a>
-                <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'plan' => 'accounting_growth']) }}" class="btn btn-dark btn-lg">Pilih Growth</a>
+                <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'plan' => 'accounting_growth', 'trial' => 1]) }}" class="btn btn-dark btn-lg">Mulai Free Trial 14 Hari</a>
+                <a href="#pricing" class="btn btn-outline-dark btn-lg">Lihat Semua Paket</a>
             </div>
         </div>
     </div>
 </section>
 @endsection
+
+@push('scripts')
+<script>
+(function () {
+    var tabButtons = document.querySelectorAll('[data-tier-tab]');
+    var tabPanes = document.querySelectorAll('[data-tier-pane]');
+
+    tabButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            var target = button.getAttribute('data-tier-tab');
+
+            tabButtons.forEach(function (item) {
+                item.classList.toggle('active', item === button);
+            });
+
+            tabPanes.forEach(function (pane) {
+                pane.classList.toggle('active', pane.getAttribute('data-tier-pane') === target);
+            });
+        });
+    });
+})();
+</script>
+@endpush

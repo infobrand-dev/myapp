@@ -96,7 +96,7 @@ class Tenant extends Model
     public function activeSubscription(): HasOne
     {
         return $this->hasOne(TenantSubscription::class)
-            ->where('status', 'active')
+            ->whereIn('status', ['active', 'trialing'])
             ->where(function ($query): void {
                 $query->whereNull('starts_at')
                     ->orWhere('starts_at', '<=', now());

@@ -9,6 +9,7 @@ use App\Models\PlatformInvoiceItem;
 use App\Models\PlatformPlanOrder;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
+use App\Models\TenantSubscription;
 use App\Models\User;
 use App\Support\TenantRoleProvisioner;
 use Illuminate\Support\Carbon;
@@ -273,6 +274,73 @@ class TenantOnboardingSalesService
             $invoice->syncAmountFromItems();
 
             return compact('tenant', 'user', 'order', 'invoice');
+        });
+    }
+
+    public function createTrialWorkspace(array $data, SubscriptionPlan $plan, int $trialDays = 14): array
+    {
+        return DB::transaction(function () use ($data, $plan, $trialDays): array {
+            $startsAt = now();
+            $trialEndsAt = $startsAt->copy()->addDays(max($trialDays, 1));
+
+            $tenant = Tenant::query()->create([
+                'name' => $data['company_name'],
+                'slug' => $data['slug'],
+                'is_active' => true,
+                'meta' => [
+                    'onboarding_status' => 'trialing',
+                    'requested_plan_code' => $plan->code,
+                    'trial_started_at' => $startsAt->toIso8601String(),
+                    'trial_ends_at' => $trialEndsAt->toIso8601String(),
+                ],
+            ]);
+
+            app(TenantRoleProvisioner::class)->ensureForTenant($tenant->id);
+
+            $registrar = app(PermissionRegistrar::class);
+            $registrar->setPermissionsTeamId($tenant->id);
+
+            try {
+                $user = User::query()->create([
+                    'tenant_id' => $tenant->id,
+                    'name' => $data['name'],
+                    'email' => $data['email'],
+                    'password' => Hash::make($data['password']),
+                ]);
+
+                $superAdminRole = Role::query()
+                    ->where('name', 'Super-admin')
+                    ->where('tenant_id', $tenant->id)
+                    ->where('guard_name', 'web')
+                    ->firstOrFail();
+
+                $user->assignRole($superAdminRole);
+            } finally {
+                $registrar->setPermissionsTeamId(null);
+                $registrar->forgetCachedPermissions();
+            }
+
+            $subscription = TenantSubscription::query()->create([
+                'tenant_id' => $tenant->id,
+                'subscription_plan_id' => $plan->id,
+                'product_line' => $plan->productLine() ?: 'default',
+                'status' => 'trialing',
+                'billing_provider' => 'trial',
+                'billing_reference' => 'trial-' . strtolower($plan->code) . '-' . str_pad((string) $tenant->id, 6, '0', STR_PAD_LEFT),
+                'starts_at' => $startsAt,
+                'ends_at' => $trialEndsAt,
+                'trial_ends_at' => $trialEndsAt,
+                'auto_renews' => false,
+                'feature_overrides' => null,
+                'limit_overrides' => null,
+                'meta' => [
+                    'created_from' => 'self_serve_trial',
+                    'plan_code' => $plan->code,
+                    'trial_days' => $trialDays,
+                ],
+            ]);
+
+            return compact('tenant', 'user', 'subscription');
         });
     }
 

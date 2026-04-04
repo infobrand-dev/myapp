@@ -73,7 +73,7 @@ class TenantSubscription extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query
-            ->where('status', 'active')
+            ->whereIn('status', ['active', 'trialing'])
             ->where(function (Builder $builder): void {
                 $builder->whereNull('starts_at')
                     ->orWhere('starts_at', '<=', now());

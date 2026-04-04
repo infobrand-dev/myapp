@@ -7,6 +7,13 @@
 <style>
     .meetra-why-icon { width:52px; height:52px; border-radius:16px; display:flex; align-items:center; justify-content:center; background:#eff6ff; color:#1d4ed8; margin-bottom:1rem; }
     .meetra-why-icon i { font-size:1.4rem; }
+    .meetra-intro-band { position:relative; overflow:hidden; background:linear-gradient(180deg, rgba(255,255,255,0.94) 0%, rgba(240,247,255,0.92) 100%); border-top:1px solid var(--landing-line); border-bottom:1px solid var(--landing-line); }
+    .meetra-intro-band::before { content:""; position:absolute; inset:auto auto -80px -80px; width:240px; height:240px; border-radius:999px; background:radial-gradient(circle, rgba(37,99,235,0.10), transparent 70%); }
+    .meetra-intro-band::after { content:""; position:absolute; inset:20px -60px auto auto; width:220px; height:220px; border-radius:999px; background:radial-gradient(circle, rgba(20,184,166,0.10), transparent 70%); }
+    .meetra-intro-lead { max-width:860px; margin:0 auto; }
+    .meetra-intro-card { position:relative; border:1px solid rgba(15,23,42,.08); border-radius:28px; background:rgba(255,255,255,.9); padding:1.5rem; height:100%; box-shadow:0 18px 42px rgba(15,23,42,.06); }
+    .meetra-intro-icon { width:52px; height:52px; border-radius:18px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#eff6ff,#dbeafe); color:#1d4ed8; margin-bottom:1rem; }
+    .meetra-intro-icon i { font-size:1.35rem; }
 </style>
 
 <section id="platform" class="landing-hero py-5 py-lg-6">
@@ -50,28 +57,37 @@
     </div>
 </section>
 
-<section class="py-5 py-lg-6">
+<section class="py-5 py-lg-6 meetra-intro-band">
     <div class="container">
-        <div class="text-center mb-5">
+        <div class="text-center mb-5 position-relative" style="z-index:1;">
             <div class="landing-eyebrow mb-2">Apa Itu Meetra</div>
-            <h2 class="landing-section-title">Meetra adalah workspace bisnis yang bisa dipakai sesuai tahap pertumbuhan usaha Anda.</h2>
-            <p class="landing-subtext mx-auto">Ada bisnis yang butuh fokus ke komunikasi customer lebih dulu. Ada juga yang lebih butuh membereskan transaksi, pembayaran, stok, dan laporan. Meetra menyiapkan keduanya dalam platform yang sama.</p>
+            <h2 class="landing-section-title mb-3">Meetra adalah workspace bisnis yang fleksibel mengikuti tahap pertumbuhan usaha Anda.</h2>
+            <p class="landing-subtext meetra-intro-lead">Ada bisnis yang butuh fokus ke komunikasi customer lebih dulu. Ada juga yang lebih butuh membereskan transaksi, pembayaran, stok, dan laporan. Meetra menyiapkan keduanya dalam satu platform yang tetap terasa nyambung.</p>
         </div>
-        <div class="row g-4">
+        <div class="row g-4 position-relative" style="z-index:1;">
             <div class="col-lg-4">
-                <div class="meetra-why-card">
+                <div class="meetra-intro-card">
+                    <div class="meetra-intro-icon">
+                        <i class="ti ti-target-arrow"></i>
+                    </div>
                     <h3 class="h5 mb-2">Mulai dari kebutuhan terdekat</h3>
                     <p class="small text-muted mb-0">Anda tidak harus memakai semua capability sekaligus. Mulai dari yang paling terasa penting untuk tim hari ini.</p>
                 </div>
             </div>
             <div class="col-lg-4">
-                <div class="meetra-why-card">
+                <div class="meetra-intro-card">
+                    <div class="meetra-intro-icon">
+                        <i class="ti ti-link"></i>
+                    </div>
                     <h3 class="h5 mb-2">Data lebih nyambung</h3>
                     <p class="small text-muted mb-0">Kontak, transaksi, dan ritme kerja tim tidak perlu tersebar ke terlalu banyak alat terpisah.</p>
                 </div>
             </div>
             <div class="col-lg-4">
-                <div class="meetra-why-card">
+                <div class="meetra-intro-card">
+                    <div class="meetra-intro-icon">
+                        <i class="ti ti-rotate-clockwise-2"></i>
+                    </div>
                     <h3 class="h5 mb-2">Bisa bertumbuh tanpa pindah arah</h3>
                     <p class="small text-muted mb-0">Saat proses bisnis berkembang, workspace yang sama tetap bisa dipakai tanpa memulai ulang dari nol.</p>
                 </div>

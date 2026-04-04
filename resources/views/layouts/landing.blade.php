@@ -34,14 +34,6 @@
                     <i class="ti ti-box"></i>
                     <span>Produk</span>
                 </a>
-                <a href="{{ route('landing.accounting') }}" class="landing-nav-link d-inline-flex align-items-center gap-2">
-                    <i class="ti ti-report-money"></i>
-                    <span>Accounting</span>
-                </a>
-                <a href="{{ route('landing.omnichannel') }}" class="landing-nav-link d-inline-flex align-items-center gap-2">
-                    <i class="ti ti-message-circle-2"></i>
-                    <span>Omnichannel</span>
-                </a>
                 <a href="{{ route('landing') }}#capabilities" class="landing-nav-link d-inline-flex align-items-center gap-2">
                     <i class="ti ti-layout-grid"></i>
                     <span>Capability</span>

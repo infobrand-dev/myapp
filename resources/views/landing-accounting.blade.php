@@ -25,6 +25,7 @@
             return [
                 'name' => $name,
                 'code' => $plan->code,
+                'sort_order' => (int) ($plan->sort_order ?? 0),
                 'interval' => (string) $plan->billing_interval,
                 'interval_label' => $plan->billing_interval_label,
                 'price' => $money->format((float) ($sales['price'] ?? 0), strtoupper((string) ($sales['currency'] ?? 'IDR'))),
@@ -58,7 +59,11 @@
                     ],
             ];
         })
-        ->groupBy('interval');
+        ->groupBy('interval')
+        ->map(fn ($plans) => collect($plans)->sortBy([
+            ['sort_order', 'asc'],
+            ['name', 'asc'],
+        ])->values());
 
     if ($plansByInterval->isEmpty()) {
         $plansByInterval = collect([
@@ -269,7 +274,7 @@
         @foreach ($intervalOrder as $interval)
             @php
                 $meta = $intervalMeta[$interval] ?? null;
-                $intervalPlans = $plansByInterval->get($interval, collect())->sortBy('name')->values();
+                $intervalPlans = $plansByInterval->get($interval, collect())->values();
             @endphp
             @if($meta && $intervalPlans->isNotEmpty())
                 <div class="accounting-tier-pane {{ $interval === $defaultInterval ? 'active' : '' }}" data-tier-pane="{{ $interval }}">

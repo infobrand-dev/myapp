@@ -43,6 +43,10 @@ class LandingPageController extends Controller
     {
         $affiliate = $affiliateService->captureFromRequest($request);
 
+        if ($redirect = $this->landingHostRedirect($request)) {
+            return $redirect;
+        }
+
         if (auth()->check()) {
             return redirect()->away($this->workspaceUrlFor($request));
         }
@@ -56,6 +60,10 @@ class LandingPageController extends Controller
 
     public function accounting(Request $request, TenantOnboardingSalesService $sales): View|RedirectResponse
     {
+        if ($redirect = $this->landingHostRedirect($request)) {
+            return $redirect;
+        }
+
         if (auth()->check()) {
             return redirect()->away($this->workspaceUrlFor($request));
         }
@@ -70,6 +78,10 @@ class LandingPageController extends Controller
 
     public function mulaiDigital(Request $request): View|RedirectResponse
     {
+        if ($redirect = $this->landingHostRedirect($request)) {
+            return $redirect;
+        }
+
         if (auth()->check()) {
             return redirect()->away($this->workspaceUrlFor($request));
         }
@@ -88,6 +100,10 @@ class LandingPageController extends Controller
 
     public function meetra(Request $request): View|RedirectResponse
     {
+        if ($redirect = $this->landingHostRedirect($request)) {
+            return $redirect;
+        }
+
         if (auth()->check()) {
             return redirect()->away($this->workspaceUrlFor($request));
         }
@@ -196,6 +212,23 @@ class LandingPageController extends Controller
         }
 
         return route('workspace.finder');
+    }
+
+    private function landingHostRedirect(Request $request): ?RedirectResponse
+    {
+        if ($request->attributes->get('platform_admin_host')) {
+            return auth()->check()
+                ? redirect()->route('platform.dashboard')
+                : redirect()->route('login');
+        }
+
+        if ($request->attributes->has('tenant_id')) {
+            return auth()->check()
+                ? redirect()->route('dashboard')
+                : redirect()->route('login');
+        }
+
+        return null;
     }
 
     /**

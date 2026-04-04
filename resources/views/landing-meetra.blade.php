@@ -4,6 +4,10 @@
 @section('head_description', 'Meetra adalah platform bisnis yang membantu tim menjalankan penjualan, customer handling, operasional transaksi, dan workflow kerja dalam satu workspace.')
 
 @section('content')
+<style>
+    .meetra-why-icon { width:52px; height:52px; border-radius:16px; display:flex; align-items:center; justify-content:center; background:#eff6ff; color:#1d4ed8; margin-bottom:1rem; }
+    .meetra-why-icon i { font-size:1.4rem; }
+</style>
 
 <section id="platform" class="landing-hero py-5 py-lg-6">
     <div class="container py-lg-4">
@@ -167,27 +171,36 @@
 
 <section id="why" class="py-5">
     <div class="container">
-        <div class="text-center mb-5">
+        <div class="text-center mb-6">
             <div class="landing-eyebrow mb-2">Kenapa Meetra</div>
-            <h2 class="landing-section-title">Lebih general sebagai platform, tapi tetap jelas saat dipakai untuk kebutuhan spesifik.</h2>
+            <h2 class="landing-section-title">Satu platform, <span style="color:var(--landing-blue);">fleksibel untuk segala skala bisnis Anda.</span></h2>
         </div>
         <div class="row g-4">
             <div class="col-lg-4">
                 <div class="meetra-why-card">
-                    <h3 class="h5 mb-2">Bukan tool yang terlalu sempit</h3>
-                    <p class="small text-muted mb-0">Meetra tidak berhenti di satu fungsi saja. Ia bisa dipakai untuk customer-facing, transaksi, dan workflow operasional.</p>
+                    <div class="meetra-why-icon">
+                        <i class="ti ti-infinity"></i>
+                    </div>
+                    <h3 class="h5 mb-2">Solusi Lengkap dalam Satu Tempat</h3>
+                    <p class="small text-muted mb-0">Dari urusan pelanggan, transaksi keuangan, hingga alur kerja tim, semua terkelola secara harmonis tanpa data yang terpisah-pisah.</p>
                 </div>
             </div>
             <div class="col-lg-4">
                 <div class="meetra-why-card">
-                    <h3 class="h5 mb-2">Tetap mudah dipahami user</h3>
-                    <p class="small text-muted mb-0">Produk dijelaskan per jalur penggunaan, bukan dengan istilah teknis yang membingungkan calon user.</p>
+                    <div class="meetra-why-icon">
+                        <i class="ti ti-user-heart"></i>
+                    </div>
+                    <h3 class="h5 mb-2">Desain Simpel, Tanpa Ribet</h3>
+                    <p class="small text-muted mb-0">Kami membuang istilah teknis yang membingungkan. Meetra dirancang agar siapa pun di tim Anda bisa langsung menggunakannya dengan lancar.</p>
                 </div>
             </div>
             <div class="col-lg-4">
                 <div class="meetra-why-card">
-                    <h3 class="h5 mb-2">Siap untuk grow step by step</h3>
-                    <p class="small text-muted mb-0">Mulai dari jalur yang paling penting sekarang, lalu tambah kebutuhan lain saat bisnis sudah siap.</p>
+                    <div class="meetra-why-icon">
+                        <i class="ti ti-trending-up"></i>
+                    </div>
+                    <h3 class="h5 mb-2">Tumbuh Bersama Bisnis Anda</h3>
+                    <p class="small text-muted mb-0">Mulai dari fitur yang paling Anda butuhkan hari ini, lalu tambah modul lainnya seiring bisnis Anda semakin besar dan kompleks.</p>
                 </div>
             </div>
         </div>

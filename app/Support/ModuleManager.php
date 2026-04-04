@@ -121,19 +121,25 @@ class ModuleManager
             ]);
         }
 
-        $record = Module::query()->firstOrNew(['slug' => $slug]);
-        $record->fill([
+        $record = Module::query()->where('slug', $slug)->first();
+        $payload = [
+            'slug' => $slug,
             'name' => $module['name'],
             'provider' => $module['provider'],
             'version' => $module['version'],
-        ]);
-        if ($record->installed_at === null) {
-            $record->installed_at = now();
+        ];
+
+        if (!$record || $record->installed_at === null) {
+            $payload['installed_at'] = now();
         }
-        if ($record->is_active === null) {
-            $record->is_active = false;
+
+        if (!$record) {
+            $payload['is_active'] = false;
+            $this->insertModuleRow($payload);
+        } else {
+            $this->updateModuleRow($slug, Arr::except($payload, ['slug']));
         }
-        $record->saveOrFail();
+
         $this->forgetRuntimeCaches();
     }
 
@@ -164,9 +170,8 @@ class ModuleManager
             $this->callArtisanOrFail('migrate', ['--path' => $relativePath, '--force' => true]);
         }
 
-        $record = Module::query()->where('slug', $slug)->firstOrFail();
-        $record->is_active = true;
-        $record->saveOrFail();
+        Module::query()->where('slug', $slug)->firstOrFail();
+        $this->updateModuleRow($slug, ['is_active' => true]);
 
         if (!empty($all[$slug]['provider']) && class_exists($all[$slug]['provider'])) {
             app()->register($all[$slug]['provider']);
@@ -196,9 +201,8 @@ class ModuleManager
             );
         }
 
-        $record = Module::query()->where('slug', $slug)->firstOrFail();
-        $record->is_active = false;
-        $record->saveOrFail();
+        Module::query()->where('slug', $slug)->firstOrFail();
+        $this->updateModuleRow($slug, ['is_active' => false]);
         $this->forgetRuntimeCaches();
     }
 
@@ -511,6 +515,43 @@ class ModuleManager
 
         $record->meta = $meta;
         $record->saveOrFail();
+    }
+
+    private function insertModuleRow(array $attributes): void
+    {
+        $now = now();
+        $attributes['created_at'] = $attributes['created_at'] ?? $now;
+        $attributes['updated_at'] = $attributes['updated_at'] ?? $now;
+
+        $query = DB::table('modules');
+        if (array_key_exists('is_active', $attributes)) {
+            $query->insert(array_merge(
+                Arr::except($attributes, ['is_active']),
+                ['is_active' => DB::raw($this->databaseBoolean((bool) $attributes['is_active']))]
+            ));
+
+            return;
+        }
+
+        $query->insert($attributes);
+    }
+
+    private function updateModuleRow(string $slug, array $attributes): void
+    {
+        $attributes['updated_at'] = $attributes['updated_at'] ?? now();
+
+        if (array_key_exists('is_active', $attributes)) {
+            $attributes['is_active'] = DB::raw($this->databaseBoolean((bool) $attributes['is_active']));
+        }
+
+        DB::table('modules')
+            ->where('slug', $slug)
+            ->update($attributes);
+    }
+
+    private function databaseBoolean(bool $value): string
+    {
+        return $value ? 'true' : 'false';
     }
 
     private function normalizeNavigation(array $navigation): array

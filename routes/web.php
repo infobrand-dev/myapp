@@ -32,6 +32,7 @@ Route::get('/', [LandingPageController::class, 'meetra'])->name('landing');
 Route::get('/meetra', fn () => redirect()->route('landing'))->name('landing.meetra');
 Route::get('/omnichannel', [LandingPageController::class, 'omnichannel'])->name('landing.omnichannel');
 Route::get('/accounting', [LandingPageController::class, 'accounting'])->name('landing.accounting');
+Route::get('/mulai-digital', [LandingPageController::class, 'mulaiDigital'])->name('landing.mulai-digital');
 Route::get('/affiliate-program', AffiliateProgramController::class)->name('affiliate.program');
 Route::get('/aff/{slug}', [LandingPageController::class, 'affiliateRedirect'])->name('affiliate.redirect');
 Route::get('/workspace', [LandingPageController::class, 'workspaceFinder'])->name('workspace.finder');

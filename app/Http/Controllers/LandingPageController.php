@@ -68,6 +68,24 @@ class LandingPageController extends Controller
         ]);
     }
 
+    public function mulaiDigital(Request $request): View|RedirectResponse
+    {
+        if (auth()->check()) {
+            return redirect()->away($this->workspaceUrlFor($request));
+        }
+
+        return view('landing-mulai-digital', [
+            'modules' => $this->publicModuleCatalog([
+                'contacts',
+                'products',
+                'sales',
+                'payments',
+                'finance',
+                'reports',
+            ]),
+        ]);
+    }
+
     public function meetra(Request $request): View|RedirectResponse
     {
         if (auth()->check()) {

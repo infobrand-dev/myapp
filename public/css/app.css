@@ -1534,6 +1534,17 @@ body.landing-page {
     color: var(--landing-ink);
     background: rgba(15,31,53,0.06);
 }
+.landing-nav-shell {
+    padding: 0.3rem;
+    border: 1px solid rgba(15,31,53,0.08);
+    border-radius: 999px;
+    background: rgba(255,255,255,0.78);
+    box-shadow: 0 8px 24px rgba(15,31,53,0.04);
+}
+.landing-nav-link .ti {
+    font-size: 0.95rem;
+    color: var(--landing-blue);
+}
 .landing-topbar .btn {
     border-radius: 999px;
     font-weight: 700;
@@ -5187,4 +5198,3 @@ select.form-select, select.form-select-sm {
     color: rgb(209 213 219 / var(--tw-text-opacity, 1));
   }
 }
-

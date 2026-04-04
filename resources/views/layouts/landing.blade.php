@@ -25,15 +25,39 @@
             <a href="{{ route('landing') }}" class="text-decoration-none d-inline-flex align-items-center gap-2">
                 <x-app-logo variant="default" :height="36" />
             </a>
-            <nav class="d-none d-lg-flex align-items-center gap-1">
-                <a href="{{ route('landing') }}" class="landing-nav-link">Meetra</a>
-                <a href="{{ route('landing.accounting') }}" class="landing-nav-link">Accounting</a>
-                <a href="{{ route('landing.omnichannel') }}" class="landing-nav-link">Omnichannel</a>
-                <a href="{{ route('about') }}" class="landing-nav-link">Tentang Kami</a>
+            <nav class="d-none d-lg-flex align-items-center gap-1 landing-nav-shell">
+                <a href="{{ route('landing') }}" class="landing-nav-link d-inline-flex align-items-center gap-2">
+                    <i class="ti ti-home-2"></i>
+                    <span>Home</span>
+                </a>
+                <a href="{{ route('landing') }}#products" class="landing-nav-link d-inline-flex align-items-center gap-2">
+                    <i class="ti ti-box"></i>
+                    <span>Produk</span>
+                </a>
+                <a href="{{ route('landing.accounting') }}" class="landing-nav-link d-inline-flex align-items-center gap-2">
+                    <i class="ti ti-report-money"></i>
+                    <span>Accounting</span>
+                </a>
+                <a href="{{ route('landing.omnichannel') }}" class="landing-nav-link d-inline-flex align-items-center gap-2">
+                    <i class="ti ti-message-circle-2"></i>
+                    <span>Omnichannel</span>
+                </a>
+                <a href="{{ route('landing') }}#capabilities" class="landing-nav-link d-inline-flex align-items-center gap-2">
+                    <i class="ti ti-layout-grid"></i>
+                    <span>Capability</span>
+                </a>
+                <a href="{{ route('about') }}" class="landing-nav-link d-inline-flex align-items-center gap-2">
+                    <i class="ti ti-building"></i>
+                    <span>Tentang Kami</span>
+                </a>
+                <a href="{{ route('about') }}#kontak" class="landing-nav-link d-inline-flex align-items-center gap-2">
+                    <i class="ti ti-phone-call"></i>
+                    <span>Hubungi Kami</span>
+                </a>
             </nav>
             <div class="d-flex align-items-center gap-2">
                 <a href="{{ route('workspace.finder') }}" class="btn btn-outline-dark btn-sm d-none d-md-inline-flex">Login Workspace</a>
-                <a href="{{ route('onboarding.create') }}" class="btn btn-dark btn-sm">Mulai Sekarang</a>
+                <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'plan' => 'accounting_growth', 'trial' => 1]) }}" class="btn btn-dark btn-sm">Free Trial</a>
             </div>
         </div>
     </div>

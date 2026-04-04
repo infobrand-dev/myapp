@@ -129,6 +129,7 @@ class ResolveTenantContext
             || $request->is('meetra')
             || $request->is('omnichannel')
             || $request->is('accounting')
+            || $request->is('tentang-kami')
             || $request->is('affiliate-program')
             || $request->is('onboarding')
             || $request->is('aff/*')

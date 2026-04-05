@@ -130,6 +130,7 @@ class ResolveTenantContext
             || $request->is('omnichannel')
             || $request->is('accounting')
             || $request->is('mulai-digital')
+            || $request->is('website-aplikasi-bisnis')
             || $request->is('tentang-kami')
             || $request->is('affiliate-program')
             || $request->is('onboarding')

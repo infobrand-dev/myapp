@@ -98,6 +98,28 @@ class LandingPageController extends Controller
         ]);
     }
 
+    public function websiteApps(Request $request): View|RedirectResponse
+    {
+        if ($redirect = $this->landingHostRedirect($request)) {
+            return $redirect;
+        }
+
+        if (auth()->check()) {
+            return redirect()->away($this->workspaceUrlFor($request));
+        }
+
+        return view('landing-website-apps', [
+            'modules' => $this->publicModuleCatalog([
+                'live_chat',
+                'crm',
+                'contacts',
+                'sales',
+                'payments',
+                'reports',
+            ]),
+        ]);
+    }
+
     public function meetra(Request $request): View|RedirectResponse
     {
         if ($redirect = $this->landingHostRedirect($request)) {

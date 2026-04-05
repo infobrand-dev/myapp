@@ -120,6 +120,19 @@ class LandingPageController extends Controller
         ]);
     }
 
+    public function websiteService(Request $request): View|RedirectResponse
+    {
+        if ($redirect = $this->landingHostRedirect($request)) {
+            return $redirect;
+        }
+
+        if (auth()->check()) {
+            return redirect()->away($this->workspaceUrlFor($request));
+        }
+
+        return view('landing-website-service');
+    }
+
     public function meetra(Request $request): View|RedirectResponse
     {
         if ($redirect = $this->landingHostRedirect($request)) {

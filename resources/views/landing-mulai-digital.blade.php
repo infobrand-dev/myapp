@@ -114,20 +114,20 @@
         color: #ea580c;
     }
     .digital-module-badge {
-        width: 3.25rem;
-        height: 3.25rem;
-        border-radius: 1rem;
+        width: 2.75rem;
+        height: 2.75rem;
+        border-radius: 0.9rem;
         display: flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+        background: #eff6ff;
         color: #2563eb;
         overflow: hidden;
     }
     .digital-module-badge svg {
-        width: 1.5rem;
-        height: 1.5rem;
+        width: 1.85rem;
+        height: 1.85rem;
         display: block;
     }
     .digital-soft-panel {
@@ -278,7 +278,7 @@
                                         @if(!empty($module['icon_svg']))
                                             {!! $module['icon_svg'] !!}
                                         @else
-                                            <i class="ti ti-box" style="font-size:1.35rem;"></i>
+                                            <i class="ti ti-box" style="font-size:1.5rem;"></i>
                                         @endif
                                     </div>
                                     <div>

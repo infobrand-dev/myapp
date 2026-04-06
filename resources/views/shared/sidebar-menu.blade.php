@@ -156,35 +156,35 @@
     @endif
 
     @if($showTenantSettingsShortcuts)
-    <li class="nav-item sidebar-dropdown">
-        <a class="nav-link sidebar-dropdown-toggle d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('settings.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="#" data-sidebar-label="Workspace Settings">
-            <span class="nav-link-icon"><i class="ti ti-settings"></i></span>
-            <span class="nav-link-title">Workspace Settings</span>
+    <li class="nav-item">
+        <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('settings.subscription') || request()->routeIs('settings.addons') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('settings.subscription') }}" data-sidebar-label="Subscription & Billing">
+            <span class="nav-link-icon"><i class="ti ti-credit-card"></i></span>
+            <span class="nav-link-title">Subscription & Billing</span>
             @if($pendingBillingCount > 0)
-                <span class="badge bg-red-lt text-red">{{ $pendingBillingCount }}</span>
+                <span class="badge bg-red-lt text-red ms-auto">{{ $pendingBillingCount }}</span>
             @endif
+        </a>
+    </li>
+    <li class="nav-item sidebar-dropdown">
+        <a class="nav-link sidebar-dropdown-toggle d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('settings.general') || request()->routeIs('settings.company') || request()->routeIs('settings.branch') || request()->routeIs('settings.documents') || request()->routeIs('settings.access') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="#" data-sidebar-label="Settings">
+            <span class="nav-link-icon"><i class="ti ti-settings"></i></span>
+            <span class="nav-link-title">Settings</span>
             <i class="ti ti-chevron-right sidebar-dropdown-arrow ms-auto" aria-hidden="true"></i>
         </a>
-        <div class="sidebar-dropdown-menu px-0 py-1 ms-4 {{ request()->routeIs('settings.*') ? 'open' : '' }}">
+        <div class="sidebar-dropdown-menu px-0 py-1 ms-4 {{ request()->routeIs('settings.general') || request()->routeIs('settings.company') || request()->routeIs('settings.branch') || request()->routeIs('settings.documents') || request()->routeIs('settings.access') ? 'open' : '' }}">
             <a class="sidebar-dropdown-item px-3 {{ request()->routeIs('settings.general') ? 'active' : '' }}" href="{{ route('settings.general') }}">General</a>
-            <a class="sidebar-dropdown-item px-3 {{ request()->routeIs('settings.subscription') ? 'active' : '' }}" href="{{ route('settings.subscription') }}">Subscription & Billing @if($pendingBillingCount > 0)<span class="badge bg-red-lt text-red ms-1">{{ $pendingBillingCount }}</span>@endif</a>
-            <a class="sidebar-dropdown-item px-3 {{ request()->routeIs('settings.addons') ? 'active' : '' }}" href="{{ route('settings.addons') }}">Add-ons</a>
             <a class="sidebar-dropdown-item px-3 {{ request()->routeIs('settings.documents') ? 'active' : '' }}" href="{{ route('settings.documents') }}">Documents & Invoice</a>
             <a class="sidebar-dropdown-item px-3 {{ request()->routeIs('settings.company') ? 'active' : '' }}" href="{{ route('settings.company') }}">Company</a>
             <a class="sidebar-dropdown-item px-3 {{ request()->routeIs('settings.branch') ? 'active' : '' }}" href="{{ route('settings.branch') }}">Branch</a>
             <a class="sidebar-dropdown-item px-3 {{ request()->routeIs('settings.access') ? 'active' : '' }}" href="{{ route('settings.access') }}">Users & Access</a>
-            <a class="sidebar-dropdown-item px-3 {{ request()->routeIs('settings.modules') ? 'active' : '' }}" href="{{ route('settings.modules') }}">Modules</a>
         </div>
-        <div class="sidebar-flyout" data-module="Workspace Settings">
-            <div class="sidebar-flyout-label">Workspace Settings</div>
+        <div class="sidebar-flyout" data-module="Settings">
+            <div class="sidebar-flyout-label">Settings</div>
             <a class="sidebar-flyout-item {{ request()->routeIs('settings.general') ? 'active' : '' }}" href="{{ route('settings.general') }}">General</a>
-            <a class="sidebar-flyout-item {{ request()->routeIs('settings.subscription') ? 'active' : '' }}" href="{{ route('settings.subscription') }}">Subscription & Billing</a>
-            <a class="sidebar-flyout-item {{ request()->routeIs('settings.addons') ? 'active' : '' }}" href="{{ route('settings.addons') }}">Add-ons</a>
             <a class="sidebar-flyout-item {{ request()->routeIs('settings.documents') ? 'active' : '' }}" href="{{ route('settings.documents') }}">Documents & Invoice</a>
             <a class="sidebar-flyout-item {{ request()->routeIs('settings.company') ? 'active' : '' }}" href="{{ route('settings.company') }}">Company</a>
             <a class="sidebar-flyout-item {{ request()->routeIs('settings.branch') ? 'active' : '' }}" href="{{ route('settings.branch') }}">Branch</a>
             <a class="sidebar-flyout-item {{ request()->routeIs('settings.access') ? 'active' : '' }}" href="{{ route('settings.access') }}">Users & Access</a>
-            <a class="sidebar-flyout-item {{ request()->routeIs('settings.modules') ? 'active' : '' }}" href="{{ route('settings.modules') }}">Modules</a>
         </div>
     </li>
     @elseif($showSettingsLink)

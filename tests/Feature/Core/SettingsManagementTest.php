@@ -38,9 +38,8 @@ class SettingsManagementTest extends TestCase
         $this->actingAs($user)
             ->get(route('settings.general'))
             ->assertOk()
-            ->assertSee('Workspace Settings')
+            ->assertSee('Settings')
             ->assertSee('Subscription &amp; Billing', false)
-            ->assertSee('Add-ons')
             ->assertSee('Documents &amp; Invoice', false)
             ->assertSee('Users &amp; Access', false);
     }

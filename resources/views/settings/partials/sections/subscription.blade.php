@@ -11,6 +11,10 @@
         <div class="small mt-1">Segera buka bagian tagihan di bawah ini agar akses dan aktivasi layanan tidak tertunda.</div>
     </div>
 @endif
+<div class="alert alert-info mb-3">
+    <div class="fw-semibold">Perubahan paket</div>
+    <div class="small mt-1">Upgrade dan downgrade plan akan dikelola dari halaman ini. Jika nanti downgrade menurunkan biaya, selisih biaya tidak otomatis direfund dan perubahan paket akan mengikuti kebijakan billing platform.</div>
+</div>
 <div class="row g-3 mb-3">
     <div class="col-lg-5">
         <div class="card h-100">

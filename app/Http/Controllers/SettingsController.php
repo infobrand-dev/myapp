@@ -653,29 +653,11 @@ class SettingsController extends Controller
                 'icon' => 'ti ti-file-description',
                 'description' => 'Pengaturan invoice, receipt, dan numbering.',
             ],
-            'subscription' => [
-                'label' => 'Subscription',
-                'route' => 'settings.subscription',
-                'icon' => 'ti ti-credit-card',
-                'description' => 'Plan aktif, fitur, dan quota tenant.',
-            ],
-            'addons' => [
-                'label' => 'Add-ons',
-                'route' => 'settings.addons',
-                'icon' => 'ti ti-puzzle-2',
-                'description' => 'Add-on premium, request fitur tambahan, dan status review.',
-            ],
             'access' => [
                 'label' => 'Users & Access',
                 'route' => 'settings.access',
                 'icon' => 'ti ti-shield-lock',
                 'description' => 'User tenant dan role yang sedang aktif.',
-            ],
-            'modules' => [
-                'label' => 'Modules',
-                'route' => 'settings.modules',
-                'icon' => 'ti ti-layout-grid',
-                'description' => 'Ringkasan module aktif dan arah entitlement tenant.',
             ],
         ];
     }

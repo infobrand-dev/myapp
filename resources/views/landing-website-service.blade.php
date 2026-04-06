@@ -235,10 +235,38 @@
         height: auto;
         object-fit: cover;
     }
+    /* ── Responsive overrides ───────────────────────────── */
     @media (max-width: 991.98px) {
         .website-lp-hero-visual {
-            max-width: 36rem;
+            max-width: 32rem;
             margin: 0 auto;
+        }
+    }
+    @media (max-width: 767.98px) {
+        /* Hero trust row: wrap on small screens */
+        .website-lp-trust-row {
+            gap: .35rem .6rem !important;
+        }
+        /* Process section: CTA button full width on mobile */
+        .website-lp-process-cta {
+            display: block;
+            width: 100%;
+            text-align: center;
+        }
+        /* Section padding tighter on mobile */
+        .website-lp-lead {
+            font-size: .975rem;
+        }
+    }
+    @media (max-width: 575.98px) {
+        /* Hero: reduce gap between heading and image */
+        .website-lp-subtitle {
+            max-width: 100%;
+            font-size: 1rem;
+        }
+        /* Layanan & hasil cards: match height nicer */
+        .landing-panel.h-100 {
+            min-height: 0;
         }
     }
 </style>
@@ -289,7 +317,7 @@
                     </a>
                     <a href="{{ $quoteWa }}" target="_blank" rel="noopener" class="btn btn-lg btn-outline-dark">Tanya Harga</a>
                 </div>
-                <div class="d-flex align-items-center gap-3 mb-4 text-muted" style="font-size:.9rem;">
+                <div class="website-lp-trust-row d-flex flex-wrap align-items-center gap-3 mb-4 text-muted" style="font-size:.875rem;">
                     <span><i class="ti ti-check text-success me-1"></i>Gratis konsultasi</span>
                     <span><i class="ti ti-clock text-success me-1"></i>Respon cepat</span>
                     <span><i class="ti ti-lock-open text-success me-1"></i>Tanpa komitmen</span>
@@ -337,8 +365,8 @@
 
 <section class="py-5 py-lg-6" style="background:#f8fafc; border-top:1px solid var(--landing-line); border-bottom:1px solid var(--landing-line);">
     <div class="container">
-        <div class="row g-5 align-items-center">
-            <div class="col-lg-6">
+        <div class="row g-4 g-lg-5 align-items-center">
+            <div class="col-md-6">
                 <div class="landing-eyebrow mb-2">Solusi</div>
                 <h2 class="landing-section-title mb-3">Kami mulai dari tujuan bisnis, bukan dari desain.</h2>
                 <p class="landing-subtext website-lp-lead mb-4">Sebelum satu baris kode ditulis, kami pastikan dulu: apa yang ingin dicapai website ini? Dari situ baru kami rancang struktur, alur, dan tampilan yang mendukung tujuan tersebut.</p>
@@ -348,8 +376,8 @@
                     <div><i class="ti ti-check text-success"></i> Tampilan yang membangun kepercayaan</div>
                 </div>
             </div>
-            <div class="col-lg-6">
-                <div class="landing-panel p-4 p-lg-5 h-100 website-lp-note">
+            <div class="col-md-6">
+                <div class="landing-panel p-4 p-lg-5 website-lp-note">
                     <div class="small text-uppercase fw-bold text-muted mb-2">Pendekatan kami</div>
                     <h3 class="h4 mb-3">Visitor yang bingung tidak akan menghubungi Anda.</h3>
                     <p class="website-lp-text mb-0">Banyak website gagal bukan karena tampilan kurang bagus, tapi karena visitor tidak tahu harus melakukan apa setelah masuk. Kami pastikan setiap halaman punya arah yang jelas.</p>
@@ -408,19 +436,24 @@
 
 <section id="proses" class="py-5 py-lg-6">
     <div class="container">
-        <div class="row g-5 align-items-start">
-            <div class="col-lg-4">
-                <div class="landing-eyebrow mb-2">Proses</div>
-                <h2 class="landing-section-title mb-3">Pengerjaan dibuat ringkas, jelas, dan terarah.</h2>
-                <p class="landing-subtext website-lp-lead mb-4">Dari diskusi kebutuhan sampai launching, setiap tahap dibuat supaya hasil akhir tetap relevan dengan tujuan bisnis Anda.</p>
-                <a href="{{ $quoteWa }}" target="_blank" rel="noopener" class="btn btn-wa">
-                    <i class="ti ti-brand-whatsapp me-1"></i>Chat WhatsApp Sekarang
-                </a>
+        <div class="row g-4 g-lg-5 align-items-start">
+            <div class="col-md-4">
+                <div class="sticky-md-top" style="top:5rem;">
+                    <div class="landing-eyebrow mb-2">Proses</div>
+                    <h2 class="landing-section-title mb-3">Pengerjaan dibuat ringkas, jelas, dan terarah.</h2>
+                    <p class="landing-subtext website-lp-lead mb-4">Dari diskusi kebutuhan sampai launching, setiap tahap dibuat supaya hasil akhir tetap relevan dengan tujuan bisnis Anda.</p>
+                    <a href="{{ $quoteWa }}" target="_blank" rel="noopener" class="btn btn-wa website-lp-process-cta">
+                        <i class="ti ti-brand-whatsapp me-1"></i>Chat WhatsApp Sekarang
+                    </a>
+                </div>
             </div>
-            <div class="col-lg-8">
+            <div class="col-md-8">
                 <div class="row g-3">
                     @foreach($steps as $i => $step)
-                        <div class="col-md-6">
+                        @php
+                            $isLastOdd = $loop->last && ($loop->count % 2 !== 0);
+                        @endphp
+                        <div class="{{ $isLastOdd ? 'col-12' : 'col-sm-6' }}">
                             <div class="landing-panel p-4 h-100" style="border-left:3px solid #93c5fd; position:relative; overflow:hidden;">
                                 {{-- Nomor dekoratif --}}
                                 <span style="position:absolute;top:-.5rem;right:.75rem;font-size:4rem;font-weight:900;color:rgba(15,23,42,.05);line-height:1;user-select:none;">{{ $i + 1 }}</span>
@@ -443,8 +476,8 @@
 <section class="py-5 py-lg-6" style="background:#f8fafc; border-top:1px solid var(--landing-line);">
     <div class="container">
         <div class="landing-panel p-4 p-lg-5 website-lp-note" style="box-shadow:0 24px 60px rgba(15,23,42,.08);">
-            <div class="row g-5 align-items-center">
-                <div class="col-lg-7">
+            <div class="row g-4 g-lg-5 align-items-center">
+                <div class="col-md-7 col-lg-7">
                     <div class="landing-eyebrow mb-2">Mulai Sekarang</div>
                     <h2 class="landing-section-title mb-3">Sudah waktunya punya website yang bekerja untuk bisnis Anda.</h2>
                     <p class="website-lp-lead mb-4">Website yang bagus bukan soal tampilan saja — tapi soal seberapa jelas ia mengarahkan visitor untuk menghubungi Anda. Mari diskusikan kebutuhan Anda.</p>
@@ -461,7 +494,7 @@
                     </div>
                     <div class="text-muted" style="font-size:.875rem;">Gratis konsultasi · Tanpa komitmen · Respon cepat</div>
                 </div>
-                <div class="col-lg-5">
+                <div class="col-md-5 col-lg-5">
                     <div class="p-4 rounded-4" style="background:#fff; border:1px solid rgba(15,23,42,.07);">
                         <div class="small text-uppercase fw-bold text-muted mb-3">Yang Anda dapatkan</div>
                         <div class="d-flex flex-column gap-3">

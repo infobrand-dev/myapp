@@ -11,7 +11,7 @@
 
     $canonicalUrl = route('landing.website-service');
     $ogImage = asset('brand/logo-default.png');
-    $heroImage = asset('images/landing/website-service-hero.png');
+    $heroImage = asset('images/landing/website-service-hero-transparent.png');
     $seoKeywords = 'jasa pembuatan website, jasa website bisnis, website company profile, landing page bisnis, website katalog produk, website custom, jasa bikin website, website profesional bisnis';
 
     $problems = [
@@ -218,44 +218,11 @@
         box-shadow: 0 6px 28px rgba(37,211,102,.55);
         color: #fff;
     }
-    .website-lp-hero-visual {
-        position: relative;
-        overflow: hidden;
-        border-radius: 2rem;
-        border: 1px solid rgba(15, 23, 42, .08);
-        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-        box-shadow: 0 28px 60px rgba(15, 23, 42, .08);
-    }
     .website-lp-hero-visual img {
         display: block;
         width: 100%;
         height: auto;
         object-fit: cover;
-    }
-    .website-lp-hero-chip {
-        position: absolute;
-        left: 1rem;
-        right: 1rem;
-        bottom: 1rem;
-        display: flex;
-        align-items: center;
-        gap: .75rem;
-        padding: .95rem 1rem;
-        border-radius: 1rem;
-        background: rgba(255, 255, 255, .92);
-        border: 1px solid rgba(15, 23, 42, .08);
-        backdrop-filter: blur(8px);
-    }
-    .website-lp-hero-chip-icon {
-        width: 2.75rem;
-        height: 2.75rem;
-        border-radius: .9rem;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
-        color: #2563eb;
     }
     @media (max-width: 991.98px) {
         .website-lp-hero-visual {
@@ -326,13 +293,6 @@
             <div class="col-lg-6">
                 <div class="website-lp-hero-visual">
                     <img src="{{ $heroImage }}" alt="Ilustrasi jasa pembuatan website bisnis" loading="eager">
-                    <div class="website-lp-hero-chip">
-                        <span class="website-lp-hero-chip-icon"><i class="ti ti-layout-dashboard" style="font-size:1.2rem;"></i></span>
-                        <div>
-                            <div class="fw-semibold">Website yang diarahkan ke hasil</div>
-                            <div class="website-lp-text mb-0">Visual kuat, struktur jelas, dan CTA yang membantu visitor cepat paham harus lanjut ke mana.</div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

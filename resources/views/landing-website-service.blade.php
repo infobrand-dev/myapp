@@ -11,6 +11,7 @@
 
     $canonicalUrl = route('landing.website-service');
     $ogImage = asset('brand/logo-default.png');
+    $heroImage = asset('images/landing/website-service-hero.png');
     $seoKeywords = 'jasa pembuatan website, jasa website bisnis, website company profile, landing page bisnis, website katalog produk, website custom, jasa bikin website, website profesional bisnis';
 
     $problems = [
@@ -217,6 +218,51 @@
         box-shadow: 0 6px 28px rgba(37,211,102,.55);
         color: #fff;
     }
+    .website-lp-hero-visual {
+        position: relative;
+        overflow: hidden;
+        border-radius: 2rem;
+        border: 1px solid rgba(15, 23, 42, .08);
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        box-shadow: 0 28px 60px rgba(15, 23, 42, .08);
+    }
+    .website-lp-hero-visual img {
+        display: block;
+        width: 100%;
+        height: auto;
+        object-fit: cover;
+    }
+    .website-lp-hero-chip {
+        position: absolute;
+        left: 1rem;
+        right: 1rem;
+        bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        padding: .95rem 1rem;
+        border-radius: 1rem;
+        background: rgba(255, 255, 255, .92);
+        border: 1px solid rgba(15, 23, 42, .08);
+        backdrop-filter: blur(8px);
+    }
+    .website-lp-hero-chip-icon {
+        width: 2.75rem;
+        height: 2.75rem;
+        border-radius: .9rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+        color: #2563eb;
+    }
+    @media (max-width: 991.98px) {
+        .website-lp-hero-visual {
+            max-width: 36rem;
+            margin: 0 auto;
+        }
+    }
 </style>
 @endpush
 
@@ -278,26 +324,13 @@
                 </div>
             </div>
             <div class="col-lg-6">
-                <div class="landing-panel p-4 p-lg-5" style="border:1px solid rgba(15,23,42,.08); box-shadow:0 28px 60px rgba(15,23,42,.08);">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <div class="p-3 rounded-4 h-100" style="background:#fff7ed; border:1px solid rgba(249,115,22,.12);">
-                                <div class="fw-semibold mb-1">Website biasa</div>
-                                <div class="website-lp-text">Tampil, tetapi tidak jelas ingin mengarahkan visitor ke mana.</div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="p-3 rounded-4 h-100" style="background:#eff6ff; border:1px solid rgba(59,130,246,.12);">
-                                <div class="fw-semibold mb-1">Website yang tepat</div>
-                                <div class="website-lp-text">Punya struktur, CTA, dan alur yang jelas untuk mendukung tujuan bisnis.</div>
-                            </div>
-                        </div>
-                        <div class="col-12">
-                            <div class="p-4 rounded-4 website-lp-soft">
-                                <div class="text-uppercase fw-bold small text-muted mb-2">Fokus utama</div>
-                                <div class="h4 mb-2">Website yang bekerja untuk bisnis Anda.</div>
-                                <div class="website-lp-text mb-0">Bukan hanya terlihat rapi, tapi membantu promosi, membangun kepercayaan, dan mengarahkan visitor ke action yang Anda butuhkan.</div>
-                            </div>
+                <div class="website-lp-hero-visual">
+                    <img src="{{ $heroImage }}" alt="Ilustrasi jasa pembuatan website bisnis" loading="eager">
+                    <div class="website-lp-hero-chip">
+                        <span class="website-lp-hero-chip-icon"><i class="ti ti-layout-dashboard" style="font-size:1.2rem;"></i></span>
+                        <div>
+                            <div class="fw-semibold">Website yang diarahkan ke hasil</div>
+                            <div class="website-lp-text mb-0">Visual kuat, struktur jelas, dan CTA yang membantu visitor cepat paham harus lanjut ke mana.</div>
                         </div>
                     </div>
                 </div>

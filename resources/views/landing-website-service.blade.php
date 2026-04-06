@@ -49,9 +49,9 @@
         'Owner yang ingin terlihat lebih profesional',
     ];
 
-    $heroWa = $waLink('Halo, saya ingin konsultasi gratis untuk jasa pembuatan website bisnis.');
-    $quoteWa = $waLink('Halo, saya ingin buat website untuk bisnis saya. Bisa diskusikan kebutuhannya?');
-    $finalWa = $waLink('Halo, saya ingin mulai buat website bisnis saya. Bisa konsultasi dulu?');
+    $heroWa   = $waLink('Halo, saya ingin konsultasi gratis untuk jasa pembuatan website bisnis.');
+    $quoteWa  = $waLink('Halo, saya ingin tanya harga jasa pembuatan website untuk bisnis saya.');
+    $finalWa  = $waLink('Halo, saya ingin mulai buat website bisnis saya. Bisa konsultasi dulu?');
 
     $serviceSchema = [
         '@context' => 'https://schema.org',
@@ -173,6 +173,50 @@
         background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
         border: 1px solid rgba(15, 23, 42, .08);
     }
+    .btn-wa {
+        background: #25d366;
+        border-color: #25d366;
+        color: #fff;
+        font-weight: 600;
+    }
+    .btn-wa:hover, .btn-wa:focus {
+        background: #1ebe5d;
+        border-color: #1ebe5d;
+        color: #fff;
+    }
+    .btn-wa-outline {
+        border: 2px solid #25d366;
+        color: #16a34a;
+        font-weight: 600;
+        background: transparent;
+    }
+    .btn-wa-outline:hover, .btn-wa-outline:focus {
+        background: #25d366;
+        color: #fff;
+    }
+    .wa-float {
+        position: fixed;
+        bottom: 1.5rem;
+        right: 1.5rem;
+        z-index: 1050;
+        width: 3.5rem;
+        height: 3.5rem;
+        border-radius: 50%;
+        background: #25d366;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+        box-shadow: 0 4px 20px rgba(37,211,102,.45);
+        text-decoration: none;
+        transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .wa-float:hover {
+        transform: scale(1.08);
+        box-shadow: 0 6px 28px rgba(37,211,102,.55);
+        color: #fff;
+    }
 </style>
 @endpush
 
@@ -188,11 +232,11 @@
                 <a href="#layanan" class="landing-nav-link d-inline-flex align-items-center gap-2"><i class="ti ti-browser"></i><span>Layanan</span></a>
                 <a href="#hasil" class="landing-nav-link d-inline-flex align-items-center gap-2"><i class="ti ti-checklist"></i><span>Hasil</span></a>
                 <a href="#proses" class="landing-nav-link d-inline-flex align-items-center gap-2"><i class="ti ti-route"></i><span>Proses</span></a>
-                <a href="#pricing" class="landing-nav-link d-inline-flex align-items-center gap-2"><i class="ti ti-receipt-2"></i><span>Pricing</span></a>
             </nav>
             <div class="d-flex align-items-center gap-2">
-                <a href="{{ $heroWa }}" target="_blank" rel="noopener" class="btn btn-outline-dark btn-sm d-none d-md-inline-flex">Konsultasi Gratis Sekarang</a>
-                <a href="{{ $quoteWa }}" target="_blank" rel="noopener" class="btn btn-dark btn-sm">Buat Website Saya</a>
+                <a href="{{ $heroWa }}" target="_blank" rel="noopener" class="btn btn-wa btn-sm">
+                    <i class="ti ti-brand-whatsapp me-1"></i>Chat WhatsApp
+                </a>
             </div>
         </div>
     </div>
@@ -215,9 +259,16 @@
                 <p class="landing-subtext website-lp-subtitle mb-4">
                     Kami bantu Anda membuat website yang profesional, cepat, dan dirancang untuk mendatangkan leads atau penjualan. Bukan hanya jadi, tapi punya tujuan bisnis yang jelas.
                 </p>
-                <div class="d-flex flex-wrap gap-3 mb-4">
-                    <a href="{{ $heroWa }}" target="_blank" rel="noopener" class="btn btn-lg btn-dark">Konsultasi Gratis Sekarang</a>
-                    <a href="{{ $quoteWa }}" target="_blank" rel="noopener" class="btn btn-lg btn-outline-dark">Buat Website Saya</a>
+                <div class="d-flex flex-wrap gap-3 mb-3">
+                    <a href="{{ $heroWa }}" target="_blank" rel="noopener" class="btn btn-lg btn-wa">
+                        <i class="ti ti-brand-whatsapp me-1"></i>Chat WhatsApp Gratis
+                    </a>
+                    <a href="{{ $quoteWa }}" target="_blank" rel="noopener" class="btn btn-lg btn-outline-dark">Tanya Harga</a>
+                </div>
+                <div class="d-flex align-items-center gap-3 mb-4 text-muted" style="font-size:.9rem;">
+                    <span><i class="ti ti-check text-success me-1"></i>Gratis konsultasi</span>
+                    <span><i class="ti ti-clock text-success me-1"></i>Respon cepat</span>
+                    <span><i class="ti ti-lock-open text-success me-1"></i>Tanpa komitmen</span>
                 </div>
                 <div class="d-flex flex-wrap gap-2">
                     <span class="landing-pill">Company Profile</span>
@@ -352,7 +403,9 @@
                 <div class="landing-eyebrow mb-2">Proses</div>
                 <h2 class="landing-section-title mb-3">Pengerjaan dibuat ringkas, jelas, dan terarah.</h2>
                 <p class="landing-subtext website-lp-lead mb-4">Dari diskusi kebutuhan sampai launching, setiap tahap dibuat supaya hasil akhir tetap relevan dengan tujuan bisnis Anda.</p>
-                <a href="{{ $quoteWa }}" target="_blank" rel="noopener" class="btn btn-dark">Buat Website Saya</a>
+                <a href="{{ $quoteWa }}" target="_blank" rel="noopener" class="btn btn-wa">
+                    <i class="ti ti-brand-whatsapp me-1"></i>Chat WhatsApp Sekarang
+                </a>
             </div>
             <div class="col-lg-8">
                 <div class="row g-3">
@@ -370,29 +423,6 @@
     </div>
 </section>
 
-<section id="pricing" class="py-5 py-lg-6" style="background:#fdfaf5; border-top:1px solid var(--landing-line); border-bottom:1px solid var(--landing-line);">
-    <div class="container">
-        <div class="text-center mb-5">
-            <div class="landing-eyebrow mb-2">Pricing</div>
-            <h2 class="landing-section-title">Mulai dari Rp2.500.000</h2>
-            <p class="landing-subtext website-lp-lead mx-auto">Harga menyesuaikan jumlah halaman, kompleksitas, dan fitur tambahan yang dibutuhkan.</p>
-        </div>
-        <div class="row justify-content-center">
-            <div class="col-lg-7">
-                <div class="landing-panel p-4 p-lg-5 text-center" style="border:1px solid rgba(59,130,246,.14); box-shadow:0 24px 60px rgba(15,23,42,.08);">
-                    <div class="website-lp-icon mx-auto mb-3"><i class="ti ti-browser-check" style="font-size:1.2rem;"></i></div>
-                    <div class="display-5 fw-bold mb-2" style="color:#2563eb;">Rp2.500.000</div>
-                    <div class="website-lp-text mb-4">Titik awal untuk website bisnis yang profesional dan siap dipakai untuk promosi.</div>
-                    <div class="row g-3 text-start">
-                        <div class="col-md-4"><div class="website-lp-text"><i class="ti ti-check text-success"></i> Jumlah halaman</div></div>
-                        <div class="col-md-4"><div class="website-lp-text"><i class="ti ti-check text-success"></i> Kompleksitas</div></div>
-                        <div class="col-md-4"><div class="website-lp-text"><i class="ti ti-check text-success"></i> Fitur tambahan</div></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
 
 <section class="py-5 py-lg-6">
     <div class="container">
@@ -423,11 +453,19 @@
             <div class="landing-eyebrow mb-2">Mulai Sekarang</div>
             <h2 class="landing-section-title mb-3">Website Anda seharusnya membantu bisnis berkembang, bukan sekadar pajangan.</h2>
             <p class="landing-subtext website-lp-lead mx-auto mb-4" style="max-width:760px;">Kalau Anda ingin website yang lebih profesional, lebih jelas tujuannya, dan lebih siap mendatangkan leads, mari diskusikan kebutuhannya.</p>
-            <div class="d-flex flex-wrap justify-content-center gap-3">
-                <a href="{{ $heroWa }}" target="_blank" rel="noopener" class="btn btn-dark btn-lg">Konsultasi Gratis Sekarang</a>
-                <a href="{{ $finalWa }}" target="_blank" rel="noopener" class="btn btn-outline-dark btn-lg">Mulai Buat Website Anda</a>
+            <div class="d-flex flex-wrap justify-content-center gap-3 mb-3">
+                <a href="{{ $heroWa }}" target="_blank" rel="noopener" class="btn btn-wa btn-lg">
+                    <i class="ti ti-brand-whatsapp me-1"></i>Chat WhatsApp Gratis
+                </a>
+                <a href="{{ $finalWa }}" target="_blank" rel="noopener" class="btn btn-outline-dark btn-lg">Tanya Harga Dulu</a>
             </div>
+            <div class="text-muted" style="font-size:.875rem;">Gratis konsultasi · Tanpa komitmen · Respon cepat</div>
         </div>
     </div>
 </section>
+
+{{-- Floating WhatsApp Button --}}
+<a href="{{ $heroWa }}" target="_blank" rel="noopener" class="wa-float" title="Chat WhatsApp">
+    <i class="ti ti-brand-whatsapp"></i>
+</a>
 @endsection

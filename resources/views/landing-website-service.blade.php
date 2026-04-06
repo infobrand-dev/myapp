@@ -22,32 +22,42 @@
     ];
 
     $services = [
-        'Website Company Profile',
-        'Landing Page yang fokus conversion',
-        'Website katalog produk atau jasa',
-        'Website custom sesuai kebutuhan',
+        [
+            'icon'  => 'ti-building',
+            'title' => 'Website Company Profile',
+            'desc'  => 'Tampilkan identitas dan kredibilitas bisnis Anda. Cocok untuk meyakinkan calon klien sebelum mereka menghubungi.',
+        ],
+        [
+            'icon'  => 'ti-target',
+            'title' => 'Landing Page Konversi',
+            'desc'  => 'Satu halaman fokus dengan CTA yang jelas. Dirancang untuk mendatangkan leads dari iklan atau promosi.',
+        ],
+        [
+            'icon'  => 'ti-shopping-bag',
+            'title' => 'Website Katalog',
+            'desc'  => 'Tampilkan produk atau jasa dengan rapi. Visitor langsung tahu apa yang Anda jual dan bagaimana membelinya.',
+        ],
+        [
+            'icon'  => 'ti-code',
+            'title' => 'Website Custom',
+            'desc'  => 'Kebutuhan spesifik yang tidak muat di template standar. Kami kerjakan sesuai alur dan fitur yang Anda butuhkan.',
+        ],
     ];
 
     $outcomes = [
-        ['icon' => 'ti-layout-dashboard', 'text' => 'Desain profesional dan modern'],
-        ['icon' => 'ti-sitemap', 'text' => 'Struktur halaman yang jelas dan mudah dipahami'],
-        ['icon' => 'ti-device-mobile', 'text' => 'Mobile-friendly dan cepat'],
-        ['icon' => 'ti-speakerphone', 'text' => 'Siap digunakan untuk promosi dan ads'],
-        ['icon' => 'ti-click', 'text' => 'CTA yang jelas untuk meningkatkan konversi'],
+        ['icon' => 'ti-layout-dashboard', 'title' => 'Desain profesional', 'desc' => 'Tampilan modern yang membangun kepercayaan sejak detik pertama visitor membuka halaman.'],
+        ['icon' => 'ti-sitemap',          'title' => 'Struktur yang jelas', 'desc' => 'Setiap halaman punya tujuan. Visitor tahu harus ke mana selanjutnya tanpa kebingungan.'],
+        ['icon' => 'ti-device-mobile',    'title' => 'Mobile-friendly',     'desc' => 'Tampil sempurna di HP — mayoritas visitor Anda membuka dari perangkat mobile.'],
+        ['icon' => 'ti-speakerphone',     'title' => 'Siap untuk promosi',  'desc' => 'Struktur dan konten sudah dipersiapkan untuk mendukung iklan, Google, dan media sosial.'],
+        ['icon' => 'ti-click',            'title' => 'CTA yang tepat',      'desc' => 'Tombol dan alur yang mengarahkan visitor untuk menghubungi, memesan, atau mengisi form.'],
     ];
 
     $steps = [
-        ['icon' => 'ti-message-circle-search', 'title' => 'Diskusi kebutuhan'],
-        ['icon' => 'ti-schema', 'title' => 'Struktur dan wireframe'],
-        ['icon' => 'ti-code', 'title' => 'Desain dan development'],
-        ['icon' => 'ti-refresh', 'title' => 'Revisi dan finalisasi'],
-        ['icon' => 'ti-rocket', 'title' => 'Launching'],
-    ];
-
-    $fitFor = [
-        'UMKM dan brand yang belum punya website',
-        'Bisnis yang ingin meningkatkan leads',
-        'Owner yang ingin terlihat lebih profesional',
+        ['icon' => 'ti-message-circle-search', 'title' => 'Diskusi kebutuhan',      'desc' => 'Kami pahami tujuan bisnis, target pengunjung, dan ekspektasi Anda sebelum mulai.'],
+        ['icon' => 'ti-schema',                'title' => 'Struktur & wireframe',    'desc' => 'Rancangan alur halaman dibuat dulu agar struktur dan CTA sudah tepat sebelum desain dimulai.'],
+        ['icon' => 'ti-code',                  'title' => 'Desain & development',    'desc' => 'Website dibangun sesuai wireframe yang sudah disetujui, dengan perhatian ke detail visual dan performa.'],
+        ['icon' => 'ti-refresh',               'title' => 'Revisi & finalisasi',     'desc' => 'Anda bisa minta penyesuaian sebelum launching. Kami pastikan hasilnya sesuai ekspektasi.'],
+        ['icon' => 'ti-rocket',                'title' => 'Launching',               'desc' => 'Website live dan siap dipakai untuk promosi, iklan, atau dibagikan ke calon pelanggan.'],
     ];
 
     $heroWa   = $waLink('Halo, saya ingin konsultasi gratis untuk jasa pembuatan website bisnis.');
@@ -329,20 +339,19 @@
         <div class="row g-5 align-items-center">
             <div class="col-lg-6">
                 <div class="landing-eyebrow mb-2">Solusi</div>
-                <h2 class="landing-section-title mb-3">Kami tidak hanya membuat website.</h2>
-                <p class="landing-subtext website-lp-lead mb-3">Kami bantu membangun struktur halaman yang jelas, alur user yang mengarah ke action, dan tampilan profesional yang dipercaya.</p>
-                <p class="landing-subtext website-lp-lead mb-4">Fokus kami sederhana: website yang bekerja untuk bisnis Anda, bukan sekadar pajangan.</p>
+                <h2 class="landing-section-title mb-3">Kami mulai dari tujuan bisnis, bukan dari desain.</h2>
+                <p class="landing-subtext website-lp-lead mb-4">Sebelum satu baris kode ditulis, kami pastikan dulu: apa yang ingin dicapai website ini? Dari situ baru kami rancang struktur, alur, dan tampilan yang mendukung tujuan tersebut.</p>
                 <div class="landing-checklist">
-                    <div><i class="ti ti-check text-success"></i> Struktur halaman yang jelas</div>
-                    <div><i class="ti ti-check text-success"></i> Alur user yang mengarah ke action</div>
-                    <div><i class="ti ti-check text-success"></i> Tampilan profesional yang dipercaya</div>
+                    <div><i class="ti ti-check text-success"></i> Tujuan website jelas sejak awal</div>
+                    <div><i class="ti ti-check text-success"></i> Alur halaman yang mengarahkan visitor ke action</div>
+                    <div><i class="ti ti-check text-success"></i> Tampilan yang membangun kepercayaan</div>
                 </div>
             </div>
             <div class="col-lg-6">
                 <div class="landing-panel p-4 p-lg-5 h-100 website-lp-note">
-                    <div class="small text-uppercase fw-bold text-muted mb-2">Yang dibenahi</div>
-                    <h3 class="h4 mb-3">Tujuan website dibuat lebih jelas sejak awal.</h3>
-                    <p class="website-lp-text mb-0">Apakah website Anda ingin membangun kredibilitas, mengumpulkan leads, mendukung promosi, atau mendorong penjualan. Struktur dan CTA akan mengikuti tujuan itu.</p>
+                    <div class="small text-uppercase fw-bold text-muted mb-2">Pendekatan kami</div>
+                    <h3 class="h4 mb-3">Visitor yang bingung tidak akan menghubungi Anda.</h3>
+                    <p class="website-lp-text mb-0">Banyak website gagal bukan karena tampilan kurang bagus, tapi karena visitor tidak tahu harus melakukan apa setelah masuk. Kami pastikan setiap halaman punya arah yang jelas.</p>
                 </div>
             </div>
         </div>
@@ -353,17 +362,25 @@
     <div class="container">
         <div class="text-center mb-5">
             <div class="landing-eyebrow mb-2">Layanan</div>
-            <h2 class="landing-section-title">Jenis website yang kami kerjakan untuk kebutuhan bisnis.</h2>
+            <h2 class="landing-section-title">Jenis website yang kami kerjakan untuk bisnis Anda.</h2>
+            <p class="landing-subtext website-lp-lead mx-auto">Setiap jenis website punya tujuan berbeda. Kami bantu tentukan mana yang paling cocok untuk bisnis Anda.</p>
         </div>
-        <div class="row g-4">
+        <div class="row g-4 mb-5">
             @foreach($services as $service)
                 <div class="col-md-6 col-lg-3">
-                    <div class="landing-panel p-4 h-100 text-center">
-                        <div class="website-lp-icon mx-auto mb-3"><i class="ti ti-browser" style="font-size:1.2rem;"></i></div>
-                        <div class="fw-semibold mb-2">{{ $service }}</div>
+                    <div class="landing-panel p-4 h-100">
+                        <div class="website-lp-icon mb-3"><i class="ti {{ $service['icon'] }}" style="font-size:1.2rem;"></i></div>
+                        <div class="fw-semibold mb-2">{{ $service['title'] }}</div>
+                        <div class="website-lp-text" style="font-size:.9rem;">{{ $service['desc'] }}</div>
                     </div>
                 </div>
             @endforeach
+        </div>
+        <div class="text-center">
+            <a href="{{ $quoteWa }}" target="_blank" rel="noopener" class="btn btn-wa btn-lg">
+                <i class="ti ti-brand-whatsapp me-1"></i>Diskusikan Kebutuhan Website Saya
+            </a>
+            <div class="text-muted mt-2" style="font-size:.85rem;">Gratis konsultasi · Tanpa komitmen</div>
         </div>
     </div>
 </section>
@@ -378,10 +395,9 @@
             @foreach($outcomes as $outcome)
                 <div class="col-lg-4 col-md-6">
                     <div class="landing-panel p-4 h-100">
-                        <div class="d-flex align-items-start gap-3">
-                            <span class="website-lp-icon"><i class="ti {{ $outcome['icon'] }}" style="font-size:1.15rem;"></i></span>
-                            <div class="website-lp-text">{{ $outcome['text'] }}</div>
-                        </div>
+                        <span class="website-lp-icon mb-3 d-inline-flex"><i class="ti {{ $outcome['icon'] }}" style="font-size:1.15rem;"></i></span>
+                        <div class="fw-semibold mb-1">{{ $outcome['title'] }}</div>
+                        <div class="website-lp-text" style="font-size:.9rem;">{{ $outcome['desc'] }}</div>
                     </div>
                 </div>
             @endforeach
@@ -402,11 +418,15 @@
             </div>
             <div class="col-lg-8">
                 <div class="row g-3">
-                    @foreach($steps as $step)
+                    @foreach($steps as $i => $step)
                         <div class="col-md-6">
                             <div class="landing-panel p-4 h-100" style="border-left:4px solid #60a5fa;">
-                                <div class="website-lp-icon mb-3"><i class="ti {{ $step['icon'] }}" style="font-size:1.15rem;"></i></div>
-                                <h3 class="h5 mb-2">{{ $step['title'] }}</h3>
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <span class="text-muted small fw-bold">{{ $i + 1 }}</span>
+                                    <span class="website-lp-icon" style="width:2rem;height:2rem;border-radius:.6rem;"><i class="ti {{ $step['icon'] }}" style="font-size:1rem;"></i></span>
+                                </div>
+                                <h3 class="h6 fw-semibold mb-1">{{ $step['title'] }}</h3>
+                                <div class="website-lp-text" style="font-size:.875rem;">{{ $step['desc'] }}</div>
                             </div>
                         </div>
                     @endforeach
@@ -417,42 +437,56 @@
 </section>
 
 
-<section class="py-5 py-lg-6">
+<section class="py-5 py-lg-6" style="background:#f8fafc; border-top:1px solid var(--landing-line);">
     <div class="container">
-        <div class="row g-5 align-items-center">
-            <div class="col-lg-6">
-                <div class="landing-eyebrow mb-2">Siapa yang Cocok</div>
-                <h2 class="landing-section-title mb-3">Cocok untuk bisnis yang ingin tampil lebih serius dan mendapatkan lebih banyak peluang.</h2>
-                <div class="landing-checklist">
-                    @foreach($fitFor as $item)
-                        <div><i class="ti ti-check text-success"></i> {{ $item }}</div>
-                    @endforeach
+        <div class="landing-panel p-4 p-lg-5 website-lp-note" style="box-shadow:0 24px 60px rgba(15,23,42,.08);">
+            <div class="row g-5 align-items-center">
+                <div class="col-lg-7">
+                    <div class="landing-eyebrow mb-2">Mulai Sekarang</div>
+                    <h2 class="landing-section-title mb-3">Sudah waktunya punya website yang bekerja untuk bisnis Anda.</h2>
+                    <p class="website-lp-lead mb-4">Website yang bagus bukan soal tampilan saja — tapi soal seberapa jelas ia mengarahkan visitor untuk menghubungi Anda. Mari diskusikan kebutuhan Anda.</p>
+                    <div class="landing-checklist mb-4">
+                        <div><i class="ti ti-check text-success"></i> UMKM dan brand yang belum punya website</div>
+                        <div><i class="ti ti-check text-success"></i> Bisnis yang ingin menghasilkan lebih banyak leads</div>
+                        <div><i class="ti ti-check text-success"></i> Owner yang ingin terlihat lebih profesional di mata klien</div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-3 mb-3">
+                        <a href="{{ $heroWa }}" target="_blank" rel="noopener" class="btn btn-wa btn-lg">
+                            <i class="ti ti-brand-whatsapp me-1"></i>Chat WhatsApp Gratis
+                        </a>
+                        <a href="{{ $finalWa }}" target="_blank" rel="noopener" class="btn btn-outline-dark btn-lg">Tanya Harga Dulu</a>
+                    </div>
+                    <div class="text-muted" style="font-size:.875rem;">Gratis konsultasi · Tanpa komitmen · Respon cepat</div>
+                </div>
+                <div class="col-lg-5">
+                    <div class="p-4 rounded-4" style="background:#fff; border:1px solid rgba(15,23,42,.07);">
+                        <div class="small text-uppercase fw-bold text-muted mb-3">Yang Anda dapatkan</div>
+                        <div class="d-flex flex-column gap-3">
+                            <div class="d-flex align-items-start gap-3">
+                                <span class="website-lp-icon flex-shrink-0" style="width:2.2rem;height:2.2rem;border-radius:.6rem;"><i class="ti ti-phone-call" style="font-size:.95rem;"></i></span>
+                                <div>
+                                    <div class="fw-semibold mb-1" style="font-size:.9rem;">Konsultasi gratis</div>
+                                    <div class="text-muted" style="font-size:.825rem;">Diskusikan kebutuhan dulu sebelum memutuskan.</div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-start gap-3">
+                                <span class="website-lp-icon flex-shrink-0" style="width:2.2rem;height:2.2rem;border-radius:.6rem;"><i class="ti ti-file-description" style="font-size:.95rem;"></i></span>
+                                <div>
+                                    <div class="fw-semibold mb-1" style="font-size:.9rem;">Penawaran transparan</div>
+                                    <div class="text-muted" style="font-size:.825rem;">Harga dan scope jelas sejak awal, tidak ada biaya tersembunyi.</div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-start gap-3">
+                                <span class="website-lp-icon flex-shrink-0" style="width:2.2rem;height:2.2rem;border-radius:.6rem;"><i class="ti ti-adjustments" style="font-size:.95rem;"></i></span>
+                                <div>
+                                    <div class="fw-semibold mb-1" style="font-size:.9rem;">Revisi sampai sesuai</div>
+                                    <div class="text-muted" style="font-size:.825rem;">Ada sesi revisi sebelum website diluncurkan.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="col-lg-6">
-                <div class="landing-panel p-4 p-lg-5 h-100 website-lp-note">
-                    <div class="small text-uppercase fw-bold text-muted mb-2">Nilai bisnis</div>
-                    <h3 class="h4 mb-3">Website seharusnya membantu bisnis berkembang, bukan sekadar pajangan.</h3>
-                    <p class="website-lp-text mb-0">Jika tujuan websitenya jelas, visitor lebih mudah memahami value bisnis Anda dan lebih mudah diarahkan untuk menghubungi atau melakukan action.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="py-5 py-lg-6">
-    <div class="container">
-        <div class="landing-panel p-4 p-lg-5 text-center website-lp-note" style="box-shadow:0 24px 60px rgba(15,23,42,.08);">
-            <div class="landing-eyebrow mb-2">Mulai Sekarang</div>
-            <h2 class="landing-section-title mb-3">Website Anda seharusnya membantu bisnis berkembang, bukan sekadar pajangan.</h2>
-            <p class="landing-subtext website-lp-lead mx-auto mb-4" style="max-width:760px;">Kalau Anda ingin website yang lebih profesional, lebih jelas tujuannya, dan lebih siap mendatangkan leads, mari diskusikan kebutuhannya.</p>
-            <div class="d-flex flex-wrap justify-content-center gap-3 mb-3">
-                <a href="{{ $heroWa }}" target="_blank" rel="noopener" class="btn btn-wa btn-lg">
-                    <i class="ti ti-brand-whatsapp me-1"></i>Chat WhatsApp Gratis
-                </a>
-                <a href="{{ $finalWa }}" target="_blank" rel="noopener" class="btn btn-outline-dark btn-lg">Tanya Harga Dulu</a>
-            </div>
-            <div class="text-muted" style="font-size:.875rem;">Gratis konsultasi · Tanpa komitmen · Respon cepat</div>
         </div>
     </div>
 </section>

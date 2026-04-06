@@ -5,8 +5,9 @@
     $showUsersLink = auth()->user()?->can('users.view') ?? false;
     $showSettingsLink = auth()->user()?->can('settings.view') ?? false;
     $showModulesLink = (auth()->user()?->hasRole('Super-admin') ?? false);
-    $showOmnichannelOverviewLink = auth()->user()?->hasAnyRole(['Super-admin', 'Admin']) ?? false;
     $showTenantAccountHeading = $showUsersLink || $showSettingsLink;
+    $showTenantSettingsShortcuts = $showSettingsLink && Route::has('settings.subscription');
+    $pendingBillingCount = (int) data_get($topbarPendingBilling ?? [], 'count', 0);
 @endphp
 <li class="nav-item">
     <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('dashboard') || request()->routeIs('platform.dashboard') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route($homeRoute) }}" data-sidebar-label="{{ $homeLabel }}">
@@ -154,20 +155,43 @@
     </li>
     @endif
 
-    @if($showSettingsLink)
+    @if($showTenantSettingsShortcuts)
+    <li class="nav-item sidebar-dropdown">
+        <a class="nav-link sidebar-dropdown-toggle d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('settings.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="#" data-sidebar-label="Workspace Settings">
+            <span class="nav-link-icon"><i class="ti ti-settings"></i></span>
+            <span class="nav-link-title">Workspace Settings</span>
+            @if($pendingBillingCount > 0)
+                <span class="badge bg-red-lt text-red">{{ $pendingBillingCount }}</span>
+            @endif
+            <i class="ti ti-chevron-right sidebar-dropdown-arrow ms-auto" aria-hidden="true"></i>
+        </a>
+        <div class="sidebar-dropdown-menu px-0 py-1 ms-4 {{ request()->routeIs('settings.*') ? 'open' : '' }}">
+            <a class="sidebar-dropdown-item px-3 {{ request()->routeIs('settings.general') ? 'active' : '' }}" href="{{ route('settings.general') }}">General</a>
+            <a class="sidebar-dropdown-item px-3 {{ request()->routeIs('settings.subscription') ? 'active' : '' }}" href="{{ route('settings.subscription') }}">Subscription & Billing @if($pendingBillingCount > 0)<span class="badge bg-red-lt text-red ms-1">{{ $pendingBillingCount }}</span>@endif</a>
+            <a class="sidebar-dropdown-item px-3 {{ request()->routeIs('settings.addons') ? 'active' : '' }}" href="{{ route('settings.addons') }}">Add-ons</a>
+            <a class="sidebar-dropdown-item px-3 {{ request()->routeIs('settings.documents') ? 'active' : '' }}" href="{{ route('settings.documents') }}">Documents & Invoice</a>
+            <a class="sidebar-dropdown-item px-3 {{ request()->routeIs('settings.company') ? 'active' : '' }}" href="{{ route('settings.company') }}">Company</a>
+            <a class="sidebar-dropdown-item px-3 {{ request()->routeIs('settings.branch') ? 'active' : '' }}" href="{{ route('settings.branch') }}">Branch</a>
+            <a class="sidebar-dropdown-item px-3 {{ request()->routeIs('settings.access') ? 'active' : '' }}" href="{{ route('settings.access') }}">Users & Access</a>
+            <a class="sidebar-dropdown-item px-3 {{ request()->routeIs('settings.modules') ? 'active' : '' }}" href="{{ route('settings.modules') }}">Modules</a>
+        </div>
+        <div class="sidebar-flyout" data-module="Workspace Settings">
+            <div class="sidebar-flyout-label">Workspace Settings</div>
+            <a class="sidebar-flyout-item {{ request()->routeIs('settings.general') ? 'active' : '' }}" href="{{ route('settings.general') }}">General</a>
+            <a class="sidebar-flyout-item {{ request()->routeIs('settings.subscription') ? 'active' : '' }}" href="{{ route('settings.subscription') }}">Subscription & Billing</a>
+            <a class="sidebar-flyout-item {{ request()->routeIs('settings.addons') ? 'active' : '' }}" href="{{ route('settings.addons') }}">Add-ons</a>
+            <a class="sidebar-flyout-item {{ request()->routeIs('settings.documents') ? 'active' : '' }}" href="{{ route('settings.documents') }}">Documents & Invoice</a>
+            <a class="sidebar-flyout-item {{ request()->routeIs('settings.company') ? 'active' : '' }}" href="{{ route('settings.company') }}">Company</a>
+            <a class="sidebar-flyout-item {{ request()->routeIs('settings.branch') ? 'active' : '' }}" href="{{ route('settings.branch') }}">Branch</a>
+            <a class="sidebar-flyout-item {{ request()->routeIs('settings.access') ? 'active' : '' }}" href="{{ route('settings.access') }}">Users & Access</a>
+            <a class="sidebar-flyout-item {{ request()->routeIs('settings.modules') ? 'active' : '' }}" href="{{ route('settings.modules') }}">Modules</a>
+        </div>
+    </li>
+    @elseif($showSettingsLink)
     <li class="nav-item">
         <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('settings.*') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('settings.general') }}" data-sidebar-label="Settings">
             <span class="nav-link-icon"><i class="ti ti-settings"></i></span>
             <span class="nav-link-title">Settings</span>
-        </a>
-    </li>
-    @endif
-
-    @if($showOmnichannelOverviewLink)
-    <li class="nav-item">
-        <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ request()->routeIs('omnichannel.overview') ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route('omnichannel.overview') }}" data-sidebar-label="Omnichannel Overview">
-            <span class="nav-link-icon"><i class="ti ti-chart-pie-3"></i></span>
-            <span class="nav-link-title">Omnichannel Overview</span>
         </a>
     </li>
     @endif

@@ -1,9 +1,16 @@
 @php
     $storageFormatter = app(\App\Support\StorageSizeFormatter::class);
+    $money = app(\App\Support\MoneyFormatter::class);
     $hasLimitAdvice = collect($limitSummaries)->contains(function ($limit) {
         return !empty($limit['advice']);
     });
 @endphp
+@if($billingInvoices->isNotEmpty())
+    <div class="alert alert-danger mb-3">
+        <div class="fw-semibold">Ada tagihan langganan yang masih perlu dibayar.</div>
+        <div class="small mt-1">Segera buka bagian tagihan di bawah ini agar akses dan aktivasi layanan tidak tertunda.</div>
+    </div>
+@endif
 <div class="row g-3 mb-3">
     <div class="col-lg-5">
         <div class="card h-100">
@@ -94,12 +101,62 @@
 
 <div class="card mt-3">
     <div class="card-header">
+        <h3 class="card-title mb-0">Tagihan Langganan</h3>
+    </div>
+    <div class="card-body">
+        @if($billingInvoices->isEmpty())
+            <div class="text-muted">Saat ini tidak ada tagihan langganan yang menunggu pembayaran.</div>
+        @else
+            <div class="table-responsive">
+                <table class="table table-vcenter">
+                    <thead>
+                        <tr>
+                            <th>Invoice</th>
+                            <th>Plan</th>
+                            <th>Jatuh Tempo</th>
+                            <th>Nominal</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($billingInvoices as $billingItem)
+                            @php
+                                $invoice = $billingItem['invoice'];
+                                $statusMap = [
+                                    'issued' => ['label' => 'Menunggu Bayar', 'class' => 'bg-danger-lt text-danger'],
+                                    'pending' => ['label' => 'Pending', 'class' => 'bg-warning-lt text-warning'],
+                                    'paid' => ['label' => 'Paid', 'class' => 'bg-success-lt text-success'],
+                                    'void' => ['label' => 'Void', 'class' => 'bg-secondary-lt text-secondary'],
+                                ];
+                                $statusInfo = $statusMap[$invoice->status] ?? ['label' => strtoupper((string) $invoice->status), 'class' => 'bg-secondary-lt text-secondary'];
+                            @endphp
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">{{ $invoice->invoice_number }}</div>
+                                    <div class="text-muted small">{{ optional($invoice->issued_at)->format('d M Y H:i') ?: '-' }}</div>
+                                </td>
+                                <td>{{ optional($invoice->plan)->display_name ?? optional($invoice->plan)->name ?? '-' }}</td>
+                                <td>{{ optional($invoice->due_at)->format('d M Y H:i') ?: '-' }}</td>
+                                <td>{{ $money->format((float) $invoice->amount, $invoice->currency) }}</td>
+                                <td><span class="badge {{ $statusInfo['class'] }}">{{ $statusInfo['label'] }}</span></td>
+                                <td class="text-end">
+                                    <a href="{{ $billingItem['public_url'] }}" class="btn btn-sm btn-primary">Lihat / Bayar</a>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-header">
         <h3 class="card-title mb-0">Top Up AI Credits</h3>
     </div>
     <div class="card-body">
-        @php
-            $money = app(\App\Support\MoneyFormatter::class);
-        @endphp
         <div class="text-muted small mb-3">
             AI Credits dipakai saat Managed AI membantu memproses percakapan. Jika kuota hampir habis, hubungi admin platform untuk top up atau upgrade plan.
         </div>

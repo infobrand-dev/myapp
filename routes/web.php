@@ -8,7 +8,6 @@ use App\Http\Controllers\AffiliateProgramController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\ModuleController;
-use App\Http\Controllers\OmnichannelOverviewController;
 use App\Http\Controllers\PlatformOwnerController;
 use App\Http\Controllers\PlatformBillingMidtransController;
 use App\Http\Controllers\PlatformAffiliateController;
@@ -93,10 +92,6 @@ Route::any('/install/{any?}', function () {
 
 Route::middleware(['auth', 'verified', '2fa', 'platform.admin', \App\Http\Middleware\ResolveCompanyContext::class, \App\Http\Middleware\ResolveBranchContext::class])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
-    Route::middleware('role:Super-admin|Admin')->group(function () {
-        Route::get('/omnichannel-overview', OmnichannelOverviewController::class)->name('omnichannel.overview');
-        Route::get('/omnichannel-overview/export', [OmnichannelOverviewController::class, 'export'])->name('omnichannel.overview.export');
-    });
 
     Route::prefix('platform')->name('platform.')->group(function () {
         Route::get('/', [PlatformOwnerController::class, 'dashboard'])->name('dashboard');

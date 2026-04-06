@@ -90,18 +90,16 @@ class TenantPlanManager
         $subscriptions = $this->effectiveSubscriptions($tenantId);
 
         if ($subscriptions->isEmpty()) {
-            return true;
+            return config('multitenancy.mode') !== 'saas';
         }
 
         $productLine = PlanProductLineMap::featureProductLine($feature);
         if ($productLine) {
             $subscription = $this->effectiveSubscriptionFor($subscriptions, $productLine);
 
-            if (!$subscription) {
-                return false;
+            if ($subscription && $this->featureValueForSubscription($subscription, $feature, false)) {
+                return true;
             }
-
-            return $this->featureValueForSubscription($subscription, $feature, false);
         }
 
         foreach ($subscriptions as $subscription) {

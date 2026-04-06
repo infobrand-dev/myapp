@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\DocumentSetting;
+use App\Models\PlatformInvoice;
 use App\Models\TenantByoAiRequest;
 use App\Services\AiCreditPricingService;
 use App\Models\User;
@@ -23,6 +24,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -86,6 +89,30 @@ class SettingsController extends Controller
 
         $subscription = $planManager->currentSubscription($tenantId);
         $plan = $subscription ? $subscription->plan : null;
+        $billingInvoices = collect();
+
+        if (Schema::hasTable('platform_invoices')) {
+            $billingInvoices = PlatformInvoice::query()
+                ->with(['plan:id,name,code,billing_interval,meta', 'payments:id,platform_invoice_id,amount,status,paid_at'])
+                ->where('tenant_id', $tenantId)
+                ->whereNotIn('status', ['paid', 'void'])
+                ->orderByRaw('CASE WHEN due_at IS NULL THEN 1 ELSE 0 END')
+                ->orderBy('due_at')
+                ->orderByDesc('id')
+                ->limit(5)
+                ->get()
+                ->map(function (PlatformInvoice $invoice) {
+                    return [
+                        'invoice' => $invoice,
+                        'public_url' => URL::temporarySignedRoute(
+                            'platform.invoices.public',
+                            now()->addDays(30),
+                            ['invoice' => $invoice->id]
+                        ),
+                    ];
+                });
+        }
+
         $allModules = collect($modules->all());
         $activeModules = $allModules->where('installed', true)->where('active', true)->values();
         $installedModules = $allModules->where('installed', true)->values();
@@ -192,6 +219,7 @@ class SettingsController extends Controller
             'roles' => $roles,
             'subscription' => $subscription,
             'plan' => $plan,
+            'billingInvoices' => $billingInvoices,
             'availableFeatures' => $availableFeatures,
             'limitSummaries' => $limitSummaries,
             'allModules' => $allModules,

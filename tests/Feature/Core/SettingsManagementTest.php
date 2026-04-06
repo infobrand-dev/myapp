@@ -31,6 +31,20 @@ class SettingsManagementTest extends TestCase
             ->assertSee('Settings');
     }
 
+    public function test_settings_sidebar_shows_subscription_and_workspace_shortcuts(): void
+    {
+        $user = $this->settingsUser(['settings.view']);
+
+        $this->actingAs($user)
+            ->get(route('settings.general'))
+            ->assertOk()
+            ->assertSee('Workspace Settings')
+            ->assertSee('Subscription &amp; Billing', false)
+            ->assertSee('Add-ons')
+            ->assertSee('Documents &amp; Invoice', false)
+            ->assertSee('Users &amp; Access', false);
+    }
+
     public function test_user_can_create_company_create_branch_and_switch_context(): void
     {
         $user = $this->settingsUser(['settings.view', 'settings.manage']);

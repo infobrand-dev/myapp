@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Branch;
 use App\Models\Company;
+use App\Models\PlatformInvoice;
 use App\Support\HookManager;
 use App\Support\BranchContext;
 use App\Support\CorePermissions;
@@ -18,6 +19,7 @@ use App\Support\ModuleManager;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
@@ -58,6 +60,10 @@ class AppServiceProvider extends ServiceProvider
             $currentBranch = BranchContext::currentBranch();
             $companies = collect();
             $branches = collect();
+            $pendingBilling = [
+                'count' => 0,
+                'latest_url' => null,
+            ];
             $user = Auth::user();
             $userAccessManager = app(\App\Support\UserAccessManager::class);
             $allowedCompanyIds = $userAccessManager->companyIdsFor($user);
@@ -88,12 +94,31 @@ class AppServiceProvider extends ServiceProvider
                 }
             }
 
+            if (Auth::check() && $tenant && $this->schemaHasTable('platform_invoices')) {
+                $pendingInvoices = PlatformInvoice::query()
+                    ->where('tenant_id', TenantContext::currentId())
+                    ->whereNotIn('status', ['paid', 'void'])
+                    ->orderByRaw('CASE WHEN due_at IS NULL THEN 1 ELSE 0 END')
+                    ->orderBy('due_at')
+                    ->orderByDesc('id')
+                    ->limit(5)
+                    ->get(['id']);
+
+                $pendingBilling = [
+                    'count' => $pendingInvoices->count(),
+                    'latest_url' => $pendingInvoices->isNotEmpty()
+                        ? URL::temporarySignedRoute('platform.invoices.public', now()->addDays(30), ['invoice' => $pendingInvoices->first()->id])
+                        : null,
+                ];
+            }
+
             $view->with([
                 'topbarTenant' => $tenant,
                 'topbarCurrentCompany' => $currentCompany,
                 'topbarCurrentBranch' => $currentBranch,
                 'topbarCompanies' => $companies,
                 'topbarBranches' => $branches,
+                'topbarPendingBilling' => $pendingBilling,
             ]);
         });
 

@@ -134,6 +134,25 @@ class OmnichannelModuleAccessTest extends TestCase
             ->assertOk();
     }
 
+    public function test_saas_tenant_without_active_subscription_is_blocked_from_feature_routes(): void
+    {
+        config()->set('multitenancy.mode', 'saas');
+
+        $tenant = Tenant::query()->create([
+            'name' => 'No Plan Workspace',
+            'slug' => 'no-plan-workspace',
+            'is_active' => true,
+        ]);
+
+        $user = User::factory()->create([
+            'tenant_id' => $tenant->id,
+        ]);
+
+        $this->actingAs($user)
+            ->get('/_feature-test/social-media')
+            ->assertForbidden();
+    }
+
     private function makeTenantWithFeatureOverrides(array $features): array
     {
         $tenant = Tenant::query()->create([

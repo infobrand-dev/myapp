@@ -23,10 +23,7 @@
 </div>
 
 <div class="row g-3">
-    <div class="col-xl-3">
-        @include('settings.partials.nav')
-    </div>
-    <div class="col-xl-9">
+    <div class="col-12">
         @if($errors->any())
             <div class="alert alert-danger mb-3">
                 <div class="fw-semibold mb-2">Periksa input berikut:</div>

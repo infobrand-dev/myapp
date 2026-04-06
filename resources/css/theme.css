@@ -977,11 +977,13 @@ body.sidebar-mini .sidebar-footer .ti-layout-sidebar-left-collapse::before {
 .sidebar-dropdown-item:hover {
     background: rgba(var(--tblr-primary-rgb), 0.07);
     color: var(--tblr-primary);
+    text-decoration: none;
 }
 .sidebar-dropdown-item.active {
     background: rgba(var(--tblr-primary-rgb), 0.12);
     color: var(--tblr-primary);
     font-weight: 600;
+    text-decoration: none;
 }
 
 /* ── Sidebar: flyout (mini mode) ────────────────────────── */
@@ -1019,11 +1021,13 @@ body.sidebar-mini .sidebar-footer .ti-layout-sidebar-left-collapse::before {
 .sidebar-flyout-item:hover {
     background: rgba(var(--tblr-primary-rgb), 0.07);
     color: var(--tblr-primary);
+    text-decoration: none;
 }
 .sidebar-flyout-item.active {
     background: rgba(var(--tblr-primary-rgb), 0.12);
     color: var(--tblr-primary);
     font-weight: 600;
+    text-decoration: none;
 }
 
 /* Sidebar section label */

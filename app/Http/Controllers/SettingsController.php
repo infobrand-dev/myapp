@@ -436,44 +436,45 @@ class SettingsController extends Controller
 
     public function saveGeneral(Request $request): RedirectResponse
     {
-        if ($this->currencySettingsLocked()) {
-            return redirect()
-                ->route('settings.general')
-                ->with('warning', 'Mata uang default dikunci setelah setup awal agar transaksi tetap rapi. Jika benar-benar perlu diubah, lakukan lewat intervensi platform.');
-        }
-
         $tenant = TenantContext::currentTenant();
         abort_unless($tenant, 404);
 
-        $data = $request->validate([
+        $rules = [
             'workspace_name' => ['required', 'string', 'max:255'],
-            'default_currency' => ['required', Rule::in(array_keys(app(CurrencySettingsResolver::class)->options()))],
-            'company_default_currency' => ['nullable', Rule::in(array_keys(app(CurrencySettingsResolver::class)->options()))],
-        ]);
+        ];
+
+        if (!$this->currencySettingsLocked()) {
+            $rules['default_currency'] = ['required', Rule::in(array_keys(app(CurrencySettingsResolver::class)->options()))];
+            $rules['company_default_currency'] = ['nullable', Rule::in(array_keys(app(CurrencySettingsResolver::class)->options()))];
+        }
+
+        $data = $request->validate($rules);
 
         $tenant->update([
             'name' => trim((string) $data['workspace_name']),
         ]);
 
-        $tenantMeta = $tenant->meta ?? [];
-        $tenantMeta['default_currency'] = strtoupper((string) $data['default_currency']);
-        $tenant->update([
-            'meta' => $tenantMeta,
-        ]);
-
-        if ($company = CompanyContext::currentCompany()) {
-            $companyMeta = $company->meta ?? [];
-            $companyCurrency = strtoupper((string) ($data['company_default_currency'] ?? ''));
-
-            if ($companyCurrency === '') {
-                unset($companyMeta['default_currency']);
-            } else {
-                $companyMeta['default_currency'] = $companyCurrency;
-            }
-
-            $company->update([
-                'meta' => $companyMeta,
+        if (!$this->currencySettingsLocked()) {
+            $tenantMeta = $tenant->meta ?? [];
+            $tenantMeta['default_currency'] = strtoupper((string) $data['default_currency']);
+            $tenant->update([
+                'meta' => $tenantMeta,
             ]);
+
+            if ($company = CompanyContext::currentCompany()) {
+                $companyMeta = $company->meta ?? [];
+                $companyCurrency = strtoupper((string) ($data['company_default_currency'] ?? ''));
+
+                if ($companyCurrency === '') {
+                    unset($companyMeta['default_currency']);
+                } else {
+                    $companyMeta['default_currency'] = $companyCurrency;
+                }
+
+                $company->update([
+                    'meta' => $companyMeta,
+                ]);
+            }
         }
 
         return redirect()->route('settings.general')->with('status', 'General settings berhasil disimpan.');

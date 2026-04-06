@@ -50,6 +50,7 @@
         ['icon' => 'ti-device-mobile',    'title' => 'Mobile-friendly',     'desc' => 'Tampil sempurna di HP — mayoritas visitor Anda membuka dari perangkat mobile.'],
         ['icon' => 'ti-speakerphone',     'title' => 'Siap untuk promosi',  'desc' => 'Struktur dan konten sudah dipersiapkan untuk mendukung iklan, Google, dan media sosial.'],
         ['icon' => 'ti-click',            'title' => 'CTA yang tepat',      'desc' => 'Tombol dan alur yang mengarahkan visitor untuk menghubungi, memesan, atau mengisi form.'],
+        ['icon' => 'ti-trending-up',      'title' => 'Mudah dikembangkan',  'desc' => 'Dibangun dengan struktur yang rapi sehingga mudah ditambah fitur atau halaman baru ke depannya.'],
     ];
 
     $steps = [
@@ -420,13 +421,15 @@
                 <div class="row g-3">
                     @foreach($steps as $i => $step)
                         <div class="col-md-6">
-                            <div class="landing-panel p-4 h-100" style="border-left:4px solid #60a5fa;">
-                                <div class="d-flex align-items-center gap-2 mb-2">
-                                    <span class="text-muted small fw-bold">{{ $i + 1 }}</span>
-                                    <span class="website-lp-icon" style="width:2rem;height:2rem;border-radius:.6rem;"><i class="ti {{ $step['icon'] }}" style="font-size:1rem;"></i></span>
-                                </div>
-                                <h3 class="h6 fw-semibold mb-1">{{ $step['title'] }}</h3>
-                                <div class="website-lp-text" style="font-size:.875rem;">{{ $step['desc'] }}</div>
+                            <div class="landing-panel p-4 h-100" style="border-left:3px solid #93c5fd; position:relative; overflow:hidden;">
+                                {{-- Nomor dekoratif --}}
+                                <span style="position:absolute;top:-.5rem;right:.75rem;font-size:4rem;font-weight:900;color:rgba(15,23,42,.05);line-height:1;user-select:none;">{{ $i + 1 }}</span>
+                                {{-- Ikon --}}
+                                <span class="website-lp-icon mb-3 d-inline-flex"><i class="ti {{ $step['icon'] }}" style="font-size:1.15rem;"></i></span>
+                                {{-- Judul --}}
+                                <div class="fw-bold mb-1" style="font-size:.95rem;">{{ $step['title'] }}</div>
+                                {{-- Deskripsi --}}
+                                <div class="text-muted" style="font-size:.85rem;line-height:1.6;">{{ $step['desc'] }}</div>
                             </div>
                         </div>
                     @endforeach

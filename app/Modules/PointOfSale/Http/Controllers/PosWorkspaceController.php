@@ -10,6 +10,7 @@ use App\Modules\PointOfSale\Models\PosCart;
 use App\Modules\PointOfSale\Services\PosCashSessionService;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
+use App\Support\BooleanQuery;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
@@ -58,9 +59,10 @@ class PosWorkspaceController extends Controller
             ]);
         }
 
-        $products = Product::query()
-            ->with(['unit', 'variants'])
-            ->where('is_active', true)
+        $products = BooleanQuery::apply(
+            Product::query()->with(['unit', 'variants']),
+            'is_active'
+        )
             ->where(function ($query) use ($q) {
                 $query->where('name', 'like', '%' . $q . '%')
                     ->orWhere('sku', 'like', '%' . $q . '%')
@@ -70,9 +72,10 @@ class PosWorkspaceController extends Controller
             ->limit(24)
             ->get();
 
-        $variants = ProductVariant::query()
-            ->with(['product.unit'])
-            ->where('is_active', true)
+        $variants = BooleanQuery::apply(
+            ProductVariant::query()->with(['product.unit']),
+            'is_active'
+        )
             ->where(function ($query) use ($q) {
                 $query->where('name', 'like', '%' . $q . '%')
                     ->orWhere('sku', 'like', '%' . $q . '%')
@@ -102,10 +105,10 @@ class PosWorkspaceController extends Controller
     {
         $q = trim((string) $request->query('q', ''));
 
-        $query = Contact::query()
-            ->tap(fn ($builder) => ContactScope::applyVisibilityScope($builder))
-            ->where('is_active', true)
-            ->orderBy('name');
+        $query = BooleanQuery::apply(
+            Contact::query()->tap(fn ($builder) => ContactScope::applyVisibilityScope($builder)),
+            'is_active'
+        )->orderBy('name');
 
         if ($q !== '') {
             $query->where(function ($builder) use ($q) {
@@ -130,9 +133,10 @@ class PosWorkspaceController extends Controller
 
     private function productOptions(): array
     {
-        return Product::query()
-            ->with('unit')
-            ->where('is_active', true)
+        return BooleanQuery::apply(
+            Product::query()->with('unit'),
+            'is_active'
+        )
             ->orderBy('name')
             ->limit(18)
             ->get()
@@ -145,9 +149,10 @@ class PosWorkspaceController extends Controller
 
     private function customerOptions(): array
     {
-        return Contact::query()
-            ->tap(fn ($query) => ContactScope::applyVisibilityScope($query))
-            ->where('is_active', true)
+        return BooleanQuery::apply(
+            Contact::query()->tap(fn ($query) => ContactScope::applyVisibilityScope($query)),
+            'is_active'
+        )
             ->orderBy('name')
             ->limit(12)
             ->get()
@@ -165,10 +170,12 @@ class PosWorkspaceController extends Controller
 
     private function paymentMethodOptions(): array
     {
-        return PaymentMethod::query()
-            ->where('tenant_id', TenantContext::currentId())
-            ->where('company_id', CompanyContext::currentId())
-            ->where('is_active', true)
+        return BooleanQuery::apply(
+            PaymentMethod::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId()),
+            'is_active'
+        )
             ->orderBy('sort_order')
             ->get()
             ->map(function (PaymentMethod $method) {

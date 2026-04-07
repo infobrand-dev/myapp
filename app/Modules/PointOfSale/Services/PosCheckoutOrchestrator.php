@@ -12,6 +12,7 @@ use App\Modules\Sales\Actions\CreateDraftSaleAction;
 use App\Modules\Sales\Actions\FinalizeSaleAction;
 use App\Modules\Sales\Actions\UpdateDraftSaleAction;
 use App\Modules\Sales\Models\Sale;
+use App\Support\BooleanQuery;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
@@ -241,11 +242,13 @@ class PosCheckoutOrchestrator
             ? $normalized
             : PaymentMethod::fromSalesInput($normalized);
 
-        $method = PaymentMethod::query()
-            ->where('tenant_id', TenantContext::currentId())
-            ->where('company_id', CompanyContext::currentId())
-            ->where('code', $code)
-            ->where('is_active', true)
+        $method = BooleanQuery::apply(
+            PaymentMethod::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
+                ->where('code', $code),
+            'is_active'
+        )
             ->first();
 
         if (!$method) {

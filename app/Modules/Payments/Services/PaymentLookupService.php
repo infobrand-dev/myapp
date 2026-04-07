@@ -8,6 +8,7 @@ use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\Purchases\Models\Purchase;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\SaleReturn;
+use App\Support\BooleanQuery;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
@@ -55,13 +56,17 @@ class PaymentLookupService
 
     public function paymentMethods(bool $activeOnly = true): Collection
     {
-        return PaymentMethod::query()
+        $query = PaymentMethod::query()
             ->where('tenant_id', TenantContext::currentId())
             ->where('company_id', CompanyContext::currentId())
-            ->when($activeOnly, fn ($query) => $query->where('is_active', true))
             ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get();
+            ->orderBy('name');
+
+        if ($activeOnly) {
+            BooleanQuery::apply($query, 'is_active');
+        }
+
+        return $query->get();
     }
 
     public function receivers(): Collection

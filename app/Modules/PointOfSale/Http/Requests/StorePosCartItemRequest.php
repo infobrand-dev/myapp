@@ -4,6 +4,7 @@ namespace App\Modules\PointOfSale\Http\Requests;
 
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
+use App\Support\BooleanQuery;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -37,7 +38,10 @@ class StorePosCartItemRequest extends FormRequest
     private function validateTenantRelations(Validator $validator): void
     {
         $productId = $this->input('product_id');
-        if ($productId && !Product::query()->where('tenant_id', TenantContext::currentId())->where('is_active', true)->find($productId)) {
+        if ($productId && !BooleanQuery::apply(
+            Product::query()->where('tenant_id', TenantContext::currentId()),
+            'is_active'
+        )->find($productId)) {
             $validator->errors()->add('product_id', 'Produk tidak tersedia untuk tenant aktif.');
         }
 

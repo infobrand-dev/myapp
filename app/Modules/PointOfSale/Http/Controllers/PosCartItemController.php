@@ -9,6 +9,7 @@ use App\Modules\PointOfSale\Models\PosCartItem;
 use App\Modules\PointOfSale\Services\PosCartService;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
+use App\Support\BooleanQuery;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
@@ -24,16 +25,20 @@ class PosCartItemController extends Controller
 
     public function store(StorePosCartItemRequest $request): JsonResponse
     {
-        $product = Product::query()
-            ->with('unit')
-            ->where('tenant_id', TenantContext::currentId())
-            ->where('is_active', true)
+        $product = BooleanQuery::apply(
+            Product::query()
+                ->with('unit')
+                ->where('tenant_id', TenantContext::currentId()),
+            'is_active'
+        )
             ->findOrFail($request->integer('product_id'));
         $variant = $request->filled('product_variant_id')
-            ? ProductVariant::query()
-                ->where('tenant_id', TenantContext::currentId())
-                ->where('product_id', $product->id)
-                ->where('is_active', true)
+            ? BooleanQuery::apply(
+                ProductVariant::query()
+                    ->where('tenant_id', TenantContext::currentId())
+                    ->where('product_id', $product->id),
+                'is_active'
+            )
                 ->findOrFail($request->integer('product_variant_id'))
             : null;
 

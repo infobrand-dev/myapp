@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\Payments\Services\PaymentNumberService;
+use App\Support\BooleanQuery;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
@@ -36,11 +37,13 @@ class CreatePaymentAction
         return DB::transaction(function () use ($data, $actor) {
             $paidAt = !empty($data['paid_at']) ? Carbon::parse($data['paid_at']) : now();
 
-            $method = PaymentMethod::query()
-                ->where('tenant_id', TenantContext::currentId())
-                ->where('company_id', CompanyContext::currentId())
-                ->whereKey($data['payment_method_id'])
-                ->where('is_active', true)
+            $method = BooleanQuery::apply(
+                PaymentMethod::query()
+                    ->where('tenant_id', TenantContext::currentId())
+                    ->where('company_id', CompanyContext::currentId())
+                    ->whereKey($data['payment_method_id']),
+                'is_active'
+            )
                 ->first();
 
             if (!$method) {

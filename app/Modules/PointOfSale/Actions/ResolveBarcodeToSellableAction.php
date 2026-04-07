@@ -4,6 +4,7 @@ namespace App\Modules\PointOfSale\Actions;
 
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
+use App\Support\BooleanQuery;
 use Illuminate\Validation\ValidationException;
 
 class ResolveBarcodeToSellableAction
@@ -18,9 +19,10 @@ class ResolveBarcodeToSellableAction
             ]);
         }
 
-        $variant = ProductVariant::query()
-            ->with(['product.unit'])
-            ->where('is_active', true)
+        $variant = BooleanQuery::apply(
+            ProductVariant::query()->with(['product.unit']),
+            'is_active'
+        )
             ->where('barcode', $barcode)
             ->first();
 
@@ -32,9 +34,10 @@ class ResolveBarcodeToSellableAction
             ];
         }
 
-        $product = Product::query()
-            ->with('unit')
-            ->where('is_active', true)
+        $product = BooleanQuery::apply(
+            Product::query()->with('unit'),
+            'is_active'
+        )
             ->where('barcode', $barcode)
             ->first();
 
@@ -46,9 +49,10 @@ class ResolveBarcodeToSellableAction
             ];
         }
 
-        $variant = ProductVariant::query()
-            ->with(['product.unit'])
-            ->where('is_active', true)
+        $variant = BooleanQuery::apply(
+            ProductVariant::query()->with(['product.unit']),
+            'is_active'
+        )
             ->where('sku', $barcode)
             ->first();
 
@@ -60,9 +64,10 @@ class ResolveBarcodeToSellableAction
             ];
         }
 
-        $product = Product::query()
-            ->with('unit')
-            ->where('is_active', true)
+        $product = BooleanQuery::apply(
+            Product::query()->with('unit'),
+            'is_active'
+        )
             ->where('sku', $barcode)
             ->first();
 

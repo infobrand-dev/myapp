@@ -9,6 +9,7 @@ use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\PointOfSale\Models\PosCart;
 use App\Modules\PointOfSale\Services\PosCashSessionService;
 use App\Modules\Products\Models\Product;
+use App\Support\BooleanQuery;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
@@ -28,21 +29,22 @@ class PosScreenController extends Controller
         $activeShift = $this->cashSessions->activeSessionFor(auth()->user());
 
         return view('pos::index', [
-            'initialProducts' => Product::query()
-                ->where('is_active', true)
+            'initialProducts' => BooleanQuery::apply(Product::query(), 'is_active')
                 ->orderBy('name')
                 ->limit(18)
                 ->get(['id', 'name', 'sku', 'barcode', 'sell_price']),
-            'initialCustomers' => Contact::query()
+            'initialCustomers' => BooleanQuery::apply(
+                Contact::query()
                 ->tap(fn ($query) => ContactScope::applyVisibilityScope($query))
-                ->where('is_active', true)
+            , 'is_active')
                 ->orderBy('name')
                 ->limit(12)
                 ->get(['id', 'name', 'phone', 'mobile', 'email']),
-            'paymentMethods' => PaymentMethod::query()
+            'paymentMethods' => BooleanQuery::apply(
+                PaymentMethod::query()
                 ->where('tenant_id', TenantContext::currentId())
                 ->where('company_id', CompanyContext::currentId())
-                ->where('is_active', true)
+            , 'is_active')
                 ->orderBy('sort_order')
                 ->get(['id', 'code', 'name', 'type', 'requires_reference']),
             'heldCount' => PosCart::query()

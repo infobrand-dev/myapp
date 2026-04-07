@@ -8,6 +8,7 @@ use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
 use App\Modules\Purchases\Models\Purchase;
+use App\Support\BooleanQuery;
 use App\Support\CurrencySettingsResolver;
 use App\Support\MoneyFormatter;
 use App\Support\TenantContext;
@@ -23,9 +24,10 @@ class PurchaseLookupService
 
     public function suppliers(): Collection
     {
-        return Contact::query()
-            ->tap(fn ($query) => ContactScope::applyVisibilityScope($query))
-            ->where('is_active', true)
+        return BooleanQuery::apply(
+            Contact::query()->tap(fn ($query) => ContactScope::applyVisibilityScope($query)),
+            'is_active'
+        )
             ->orderBy('name')
             ->get();
     }
@@ -34,12 +36,16 @@ class PurchaseLookupService
     {
         $defaultCurrency = $this->currencies->defaultCurrency();
 
-        $products = Product::query()
-            ->with([
+        $products = BooleanQuery::apply(
+            Product::query()->with([
                 'unit',
-                'variants' => fn ($query) => $query->whereNull('deleted_at')->where('is_active', true)->orderBy('position'),
-            ])
-            ->where('is_active', true)
+                'variants' => fn ($query) => BooleanQuery::apply(
+                    $query->whereNull('deleted_at')->orderBy('position'),
+                    'is_active'
+                ),
+            ]),
+            'is_active'
+        )
             ->whereNull('deleted_at')
             ->orderBy('name')
             ->get();
@@ -79,9 +85,10 @@ class PurchaseLookupService
 
     public function inventoryLocations(): Collection
     {
-        return InventoryLocation::query()
-            ->where('tenant_id', TenantContext::currentId())
-            ->where('is_active', true)
+        return BooleanQuery::apply(
+            InventoryLocation::query()->where('tenant_id', TenantContext::currentId()),
+            'is_active'
+        )
             ->orderBy('name')
             ->get();
     }

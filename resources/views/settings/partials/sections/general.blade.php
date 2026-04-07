@@ -47,11 +47,25 @@
                             @endif
                         </div>
 
+                        <div class="col-md-6">
+                            <label class="form-label">Mata Uang Workspace</label>
+                            <input type="text" class="form-control bg-body-secondary"
+                                   value="{{ $currencyOptions[$defaultCurrency] ?? $defaultCurrency }}" readonly>
+                        </div>
+
+                        @if($currentCompany)
+                            <div class="col-md-6">
+                                <label class="form-label">Mata Uang Company Aktif</label>
+                                <input type="text" class="form-control bg-body-secondary"
+                                       value="{{ $currencyOptions[$companyDefaultCurrency] ?? ($companyDefaultCurrency ?: $defaultCurrency) }}" readonly>
+                            </div>
+                        @endif
+
                         <div class="col-12">
-                            <div class="alert alert-info mb-0">
+                            <div class="alert alert-info mb-0 py-2">
                                 <div class="d-flex gap-2">
                                     <i class="ti ti-info-circle flex-shrink-0 mt-1"></i>
-                                    <div>Halaman ini untuk ringkasan workspace dan pengaturan dasar yang aman. Pengaturan teknis yang berisiko mengubah transaksi atau laporan dikelola di bagian lain.</div>
+                                    <div>Mata uang ditampilkan sebagai referensi dan tidak dapat diubah dari halaman ini.</div>
                                 </div>
                             </div>
                         </div>

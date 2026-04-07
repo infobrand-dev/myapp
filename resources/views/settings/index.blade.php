@@ -10,7 +10,7 @@
         <div class="col">
             <div class="page-pretitle">Konfigurasi</div>
             <h2 class="page-title">Settings</h2>
-            <p class="text-muted mb-0">{{ $section['description'] }}</p>
+            <p class="text-muted mb-0">{{ $section['label'] }}</p>
         </div>
         @if(!empty($settingsStats))
         <div class="col-auto d-flex flex-wrap gap-2">

@@ -7,6 +7,7 @@ use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\SaleReturn;
+use App\Support\BooleanQuery;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
@@ -36,10 +37,12 @@ class SaleReturnLookupService
             return collect();
         }
 
-        return InventoryLocation::query()
-            ->where('tenant_id', TenantContext::currentId())
-            ->where('company_id', CompanyContext::currentId())
-            ->where('is_active', true)
+        return BooleanQuery::apply(
+            InventoryLocation::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId()),
+            'is_active'
+        )
             ->tap(fn ($query) => BranchContext::applyScope($query))
             ->orderByDesc('is_default')
             ->orderBy('name')
@@ -48,9 +51,10 @@ class SaleReturnLookupService
 
     public function customerOptions(): Collection
     {
-        return Contact::query()
-            ->tap(fn ($query) => ContactScope::applyVisibilityScope($query))
-            ->where('is_active', true)
+        return BooleanQuery::apply(
+            Contact::query()->tap(fn ($query) => ContactScope::applyVisibilityScope($query)),
+            'is_active'
+        )
             ->orderBy('name')
             ->get(['id', 'name']);
     }

@@ -9,6 +9,7 @@ use App\Modules\Finance\Http\Requests\UpdateFinanceTransactionRequest;
 use App\Modules\Finance\Models\FinanceCategory;
 use App\Modules\Finance\Models\FinanceTransaction;
 use App\Modules\PointOfSale\Models\PosCashSession;
+use App\Support\BooleanQuery;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
@@ -93,10 +94,12 @@ class FinanceTransactionController extends Controller
         $company = CompanyContext::currentCompany();
 
         return view('finance::transactions.create', [
-            'categories' => FinanceCategory::query()
-                ->where('tenant_id', TenantContext::currentId())
-                ->where('company_id', CompanyContext::currentId())
-                ->where('is_active', true)
+            'categories' => BooleanQuery::apply(
+                FinanceCategory::query()
+                    ->where('tenant_id', TenantContext::currentId())
+                    ->where('company_id', CompanyContext::currentId()),
+                'is_active'
+            )
                 ->orderBy('transaction_type')
                 ->orderBy('name')
                 ->get(),
@@ -165,10 +168,12 @@ class FinanceTransactionController extends Controller
 
         return view('finance::transactions.edit', [
             'transaction' => $transaction,
-            'categories' => FinanceCategory::query()
-                ->where('tenant_id', TenantContext::currentId())
-                ->where('company_id', CompanyContext::currentId())
-                ->where('is_active', true)
+            'categories' => BooleanQuery::apply(
+                FinanceCategory::query()
+                    ->where('tenant_id', TenantContext::currentId())
+                    ->where('company_id', CompanyContext::currentId()),
+                'is_active'
+            )
                 ->orderBy('transaction_type')
                 ->orderBy('name')
                 ->get(),

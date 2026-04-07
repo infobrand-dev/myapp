@@ -8,6 +8,7 @@ use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
 use App\Modules\Sales\Models\Sale;
+use App\Support\BooleanQuery;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\CurrencySettingsResolver;
@@ -25,9 +26,10 @@ class SaleLookupService
 
     public function customers(): Collection
     {
-        return Contact::query()
-            ->tap(fn ($query) => ContactScope::applyVisibilityScope($query))
-            ->where('is_active', true)
+        return BooleanQuery::apply(
+            Contact::query()->tap(fn ($query) => ContactScope::applyVisibilityScope($query)),
+            'is_active'
+        )
             ->orderBy('name')
             ->get();
     }
@@ -36,12 +38,16 @@ class SaleLookupService
     {
         $defaultCurrency = $this->currencies->defaultCurrency();
 
-        $products = Product::query()
-            ->with([
+        $products = BooleanQuery::apply(
+            Product::query()->with([
                 'unit',
-                'variants' => fn ($query) => $query->whereNull('deleted_at')->where('is_active', true)->orderBy('position'),
-            ])
-            ->where('is_active', true)
+                'variants' => fn ($query) => BooleanQuery::apply(
+                    $query->whereNull('deleted_at')->orderBy('position'),
+                    'is_active'
+                ),
+            ]),
+            'is_active'
+        )
             ->whereNull('deleted_at')
             ->orderBy('name')
             ->get();

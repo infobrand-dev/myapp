@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends('layouts.pos')
 
 @section('title', 'POS Terminal')
 
@@ -49,241 +49,423 @@
         ],
     ];
 @endphp
+
 <style>
-    .pos-shell { --pos-accent:#0f766e; --pos-accent-rgb:15,118,110; --pos-ink:#16302b; --pos-panel:#fffdf9; --pos-line:#e7dccd; min-height:calc(100vh - 6.5rem); background:radial-gradient(circle at top left, rgba(var(--pos-accent-rgb),.10), transparent 24rem), linear-gradient(180deg,#faf5ee 0%,#f5f0e7 100%); border-radius:1.5rem; padding:1rem; }
-    .pos-topbar { background:linear-gradient(135deg,#0f766e,#155e75); color:#fff; border-radius:1.25rem; padding:1rem 1.25rem; box-shadow:0 1rem 2rem rgba(15,118,110,.18); }
-    .pos-panel { background:var(--pos-panel); border:1px solid var(--pos-line); border-radius:1.25rem; box-shadow:0 .75rem 1.5rem rgba(36,34,30,.06); }
-    .pos-section-title { color:var(--pos-ink); font-size:.78rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
-    .pos-search-input, .pos-barcode-input { height:3.25rem; border-radius:1rem; border:1px solid #d9c8b4; background:#fff; padding-inline:1rem; font-size:1rem; }
-    .pos-barcode-input { font-weight:700; letter-spacing:.04em; background:#fffdf8; }
-    .pos-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:.9rem; }
-    .pos-product-card { border:1px solid var(--pos-line); border-radius:1rem; background:linear-gradient(180deg,#fff,#fbf7f0); padding:.95rem; min-height:150px; transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease; cursor:pointer; }
-    .pos-product-card:hover { transform:translateY(-2px); border-color:rgba(var(--pos-accent-rgb),.35); box-shadow:0 .85rem 1.35rem rgba(15,118,110,.10); }
-    .pos-cart-panel { position:sticky; top:1rem; }
-    .pos-cart-line, .pos-held-item, .pos-customer-item, .pos-payment-row { border:1px solid var(--pos-line); border-radius:1rem; background:#fff; padding:.85rem; }
-    .pos-qty-box { display:inline-flex; align-items:center; gap:.35rem; border:1px solid #dcccb9; border-radius:.8rem; padding:.3rem; background:#fcfaf7; }
-    .pos-qty-input { width:3.5rem; border:0; background:transparent; text-align:center; font-weight:700; }
-    .pos-summary { background:linear-gradient(180deg,#f7f2e9,#fdfcf9); border:1px dashed #d7c5af; border-radius:1rem; padding:1rem; }
-    .pos-total-figure { font-size:2rem; font-weight:800; color:var(--pos-ink); letter-spacing:-.02em; }
-    .pos-action-btn { height:3.05rem; border-radius:.95rem; font-weight:700; }
-    .pos-toast { position:fixed; right:1rem; bottom:1rem; z-index:1080; min-width:260px; max-width:360px; border-radius:1rem; padding:.9rem 1rem; color:#fff; box-shadow:0 1rem 2rem rgba(0,0,0,.18); }
-    .pos-toast.success { background:#0f766e; } .pos-toast.error { background:#b91c1c; } .pos-toast.info { background:#1d4ed8; }
-    @media (max-width: 991.98px) { .pos-shell{padding:.75rem;} .pos-cart-panel{position:static;} .pos-topbar{padding:.9rem 1rem;} }
+/* ── POS App Shell ──────────────────────────────── */
+.pos-app { display:flex; flex-direction:column; height:100dvh; background:#ede9e0; }
+
+/* ── Topbar ─────────────────────────────────────── */
+.pos-topbar { flex-shrink:0; display:flex; align-items:center; gap:.5rem; padding:.5rem .75rem; background:linear-gradient(135deg,#0f766e,#155e75); color:#fff; min-height:52px; }
+.pos-topbar-brand { font-weight:800; font-size:1rem; letter-spacing:.02em; white-space:nowrap; }
+.pos-topbar-sep { width:1px; height:1.25rem; background:rgba(255,255,255,.25); flex-shrink:0; }
+.pos-topbar-info { font-size:.78rem; opacity:.85; white-space:nowrap; }
+.pos-topbar-btn { display:inline-flex; align-items:center; gap:.35rem; padding:.35rem .7rem; border-radius:.65rem; border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.1); color:#fff; font-size:.8rem; font-weight:600; cursor:pointer; transition:background .15s; white-space:nowrap; }
+.pos-topbar-btn:hover { background:rgba(255,255,255,.2); }
+.pos-topbar-btn.active { background:rgba(255,255,255,.25); }
+.pos-topbar-spacer { flex:1; }
+
+/* ── Body ───────────────────────────────────────── */
+.pos-body { display:flex; flex:1; min-height:0; gap:.6rem; padding:.6rem; }
+
+/* ── Left: Products ─────────────────────────────── */
+.pos-left { display:flex; flex-direction:column; flex:1; min-height:0; gap:.5rem; }
+.pos-search-bar { flex-shrink:0; display:flex; gap:.5rem; }
+.pos-barcode-input, .pos-search-input { flex:1; height:2.8rem; border-radius:.75rem; border:1px solid #d0c8bc; background:#fff; padding-inline:.9rem; font-size:.92rem; font-family:inherit; }
+.pos-barcode-input { font-weight:700; letter-spacing:.04em; background:#fffdf8; max-width:300px; }
+.pos-products-wrap { flex:1; overflow-y:auto; border-radius:1rem; }
+.pos-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(155px,1fr)); gap:.6rem; padding:.6rem; }
+.pos-product-card { border:1px solid #ddd5c5; border-radius:.9rem; background:linear-gradient(180deg,#fff,#fbf7f0); padding:.8rem; min-height:130px; cursor:pointer; transition:transform .1s, box-shadow .1s, border-color .1s; text-align:left; }
+.pos-product-card:hover { transform:translateY(-2px); border-color:rgba(15,118,110,.35); box-shadow:0 .6rem 1rem rgba(15,118,110,.12); }
+
+/* ── Right: Cart ────────────────────────────────── */
+.pos-right { display:flex; flex-direction:column; width:380px; flex-shrink:0; min-height:0; background:#fdfbf7; border-radius:1rem; border:1px solid #ddd5c5; overflow:hidden; }
+.pos-cart-scroll { flex:1; overflow-y:auto; padding:.75rem; display:flex; flex-direction:column; gap:.5rem; }
+.pos-cart-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#9ca3af; }
+.pos-cart-line { border:1px solid #e8dfd2; border-radius:.8rem; background:#fff; padding:.7rem; }
+.pos-qty-box { display:inline-flex; align-items:center; gap:.25rem; border:1px solid #dcccb9; border-radius:.7rem; padding:.2rem .35rem; background:#fcfaf7; }
+.pos-qty-input { width:3rem; border:0; background:transparent; text-align:center; font-weight:700; font-size:.9rem; }
+
+/* ── Cart footer (totals + payment + buttons) ───── */
+.pos-cart-footer { flex-shrink:0; border-top:1px solid #e8dfd2; }
+.pos-totals { padding:.6rem .75rem .4rem; background:#f7f2e9; }
+.pos-total-row { display:flex; justify-content:space-between; font-size:.8rem; margin-bottom:.2rem; }
+.pos-grand-total { font-size:1.5rem; font-weight:800; color:#0f766e; letter-spacing:-.02em; }
+.pos-payment-section { padding:.6rem .75rem; border-top:1px dashed #ddd5c5; }
+.pos-payment-row { display:flex; gap:.4rem; align-items:center; margin-bottom:.4rem; }
+.pos-actions { display:flex; gap:.4rem; padding:.5rem .75rem .65rem; }
+.pos-btn-checkout { flex:3; }
+.pos-btn-hold, .pos-btn-clear { flex:1; }
+
+/* ── Modal overlay ──────────────────────────────── */
+.pos-modal-backdrop { position:fixed; inset:0; background:rgba(15,23,42,.45); z-index:1040; display:flex; align-items:center; justify-content:center; padding:1rem; }
+.pos-modal { background:#fff; border-radius:1.25rem; box-shadow:0 2rem 4rem rgba(0,0,0,.2); width:100%; max-width:480px; max-height:85dvh; display:flex; flex-direction:column; overflow:hidden; }
+.pos-modal-header { display:flex; align-items:center; justify-content:space-between; padding:.9rem 1.1rem; border-bottom:1px solid #e5e7eb; flex-shrink:0; }
+.pos-modal-title { font-weight:700; font-size:1rem; }
+.pos-modal-body { flex:1; overflow-y:auto; padding:1rem 1.1rem; }
+.pos-modal-footer { padding:.75rem 1.1rem; border-top:1px solid #e5e7eb; flex-shrink:0; }
+.pos-customer-item { border:1px solid #e8dfd2; border-radius:.75rem; background:#fafaf8; padding:.65rem .85rem; cursor:pointer; width:100%; text-align:left; transition:background .1s, border-color .1s; }
+.pos-customer-item:hover { background:#f0faf9; border-color:rgba(15,118,110,.3); }
+.pos-held-item { border:1px solid #e8dfd2; border-radius:.75rem; background:#fafaf8; padding:.65rem .85rem; cursor:pointer; width:100%; text-align:left; transition:background .1s; }
+.pos-held-item:hover { background:#f0faf9; }
+
+/* ── Toast ──────────────────────────────────────── */
+.pos-toast { position:fixed; right:1rem; bottom:1rem; z-index:2000; min-width:240px; max-width:340px; border-radius:.9rem; padding:.75rem 1rem; color:#fff; font-weight:600; font-size:.87rem; box-shadow:0 1rem 2rem rgba(0,0,0,.18); }
+.pos-toast.success { background:#0f766e; }
+.pos-toast.error { background:#b91c1c; }
+.pos-toast.info { background:#1d4ed8; }
+
+/* ── Shift alert ────────────────────────────────── */
+.pos-shift-bar { flex-shrink:0; padding:.35rem 1rem; font-size:.8rem; background:#fef9c3; color:#713f12; border-bottom:1px solid #fde68a; display:flex; align-items:center; gap:.5rem; }
+.pos-shift-bar.ok { background:#dcfce7; color:#14532d; border-color:#bbf7d0; }
+
+@media (max-width:900px) {
+    .pos-right { width:320px; }
+    .pos-barcode-input { max-width:200px; }
+}
+@media (max-width:680px) {
+    .pos-body { flex-direction:column; }
+    .pos-right { width:100%; height:50dvh; flex-shrink:0; }
+    .pos-left { flex:none; height:50dvh; flex-shrink:0; }
+}
 </style>
 
-<div class="pos-shell"
+<div class="pos-app"
     x-data='posScreen(@json($posConfig))'
     x-init="init()">
 
-    <div class="pos-topbar mb-3">
-        <div class="row g-3 align-items-center">
-            <div class="col-lg-5">
-                <div class="small text-uppercase opacity-75 fw-bold">Cashier Terminal</div>
-                <div class="h2 mb-1">Point Of Sale</div>
-                <div class="opacity-75">Fast checkout flow for store counter and walk-in sales.</div>
-            </div>
-            <div class="col-lg-7">
-                <div class="row g-2 text-lg-end">
-                    <div class="col-6 col-lg-3"><div class="small opacity-75">Cashier</div><div class="fw-semibold">{{ auth()->user()->name }}</div></div>
-                    <div class="col-6 col-lg-3"><div class="small opacity-75">Customer</div><div class="fw-semibold" x-text="cart.customer.label || 'Walk-in Customer'"></div></div>
-                    <div class="col-6 col-lg-3"><div class="small opacity-75">Held Carts</div><div class="fw-semibold" x-text="heldCarts.length"></div></div>
-                    <div class="col-6 col-lg-3"><div class="small opacity-75">Shortcut</div><div class="fw-semibold">F3 Scan | F9 Pay</div></div>
-                </div>
-            </div>
+    {{-- ── Topbar ──────────────────────────────────────── --}}
+    <div class="pos-topbar">
+        <div class="pos-topbar-brand"><i class="ti ti-device-desktop me-1"></i>POS Terminal</div>
+        <div class="pos-topbar-sep"></div>
+        <div class="pos-topbar-info">
+            <i class="ti ti-user-circle me-1"></i>{{ auth()->user()->name }}
         </div>
+        <div class="pos-topbar-spacer"></div>
+
+        {{-- Customer button --}}
+        <button type="button" class="pos-topbar-btn" @click="openCustomerModal()" :class="{active: cart.customer.contact_id}">
+            <i class="ti ti-users"></i>
+            <span x-text="cart.customer.label || 'Walk-in'"></span>
+        </button>
+
+        {{-- Discount button --}}
+        <button type="button" class="pos-topbar-btn" @click="showDiscountModal=true" :class="{active: appliedDiscountCount > 0}">
+            <i class="ti ti-tag"></i>
+            <span x-show="appliedDiscountCount > 0" x-text="appliedDiscountCount + ' disc'"></span>
+            <span x-show="appliedDiscountCount === 0">Diskon</span>
+        </button>
+
+        {{-- Held carts button --}}
+        <button type="button" class="pos-topbar-btn" @click="openHeldModal()">
+            <i class="ti ti-shopping-cart-pause"></i>
+            <span x-show="heldCarts.length > 0" x-text="heldCarts.length + ' held'"></span>
+            <span x-show="heldCarts.length === 0">Held</span>
+        </button>
+
+        <div class="pos-topbar-sep"></div>
+
+        {{-- Shortcuts hint --}}
+        <div class="pos-topbar-info d-none d-lg-block">
+            <i class="ti ti-keyboard me-1"></i>F3 Scan · F9 Pay
+        </div>
+
+        {{-- Exit to dashboard --}}
+        <a href="{{ route('dashboard') }}" class="pos-topbar-btn" style="text-decoration:none;" title="Keluar dari POS">
+            <i class="ti ti-door-exit"></i>
+        </a>
     </div>
 
-    <div class="alert {{ $activeShift ? 'alert-success' : 'alert-warning' }} mb-3">
-        @if($activeShift)
-            Shift aktif: <a href="{{ route('pos.shifts.show', $activeShift) }}" class="alert-link">{{ $activeShift->code }}</a>
-            | Opening cash: {{ $money->format((float) $activeShift->opening_cash_amount, $activeShift->currency_code ?: $defaultCurrency) }}
-        @else
-            Tidak ada shift aktif. <a href="{{ route('pos.shifts.create') }}" class="alert-link">Buka shift</a> sebelum checkout POS.
-        @endif
-    </div>
+    {{-- ── Shift Alert Bar ─────────────────────────────── --}}
+    @if($activeShift)
+        <div class="pos-shift-bar ok">
+            <i class="ti ti-circle-check"></i>
+            Shift aktif: <a href="{{ route('pos.shifts.show', $activeShift) }}" style="color:inherit;font-weight:700;">{{ $activeShift->code }}</a>
+            · Opening cash: {{ $money->format((float) $activeShift->opening_cash_amount, $activeShift->currency_code ?: $defaultCurrency) }}
+        </div>
+    @else
+        <div class="pos-shift-bar">
+            <i class="ti ti-alert-triangle"></i>
+            Tidak ada shift aktif.
+            <a href="{{ route('pos.shifts.create') }}" style="color:inherit;font-weight:700;text-decoration:underline;">Buka shift</a>
+            sebelum checkout POS.
+        </div>
+    @endif
 
-    <div class="row g-3">
-        <div class="col-xl-7">
-            <div class="pos-panel p-3 mb-3">
-                <div class="row g-3 align-items-end">
-                    <div class="col-lg-7">
-                        <div class="pos-section-title mb-2">Barcode Input</div>
-                        <form @submit.prevent="scanBarcode()">
-                            <input x-ref="barcodeInput" x-model="barcode" type="text" class="form-control pos-barcode-input" placeholder="Scan barcode or type SKU then press Enter" autocomplete="off">
-                        </form>
-                    </div>
-                    <div class="col-lg-5">
-                        <div class="pos-section-title mb-2">Product Search</div>
-                        <input x-model="productQuery" @input.debounce.250ms="searchProducts()" type="text" class="form-control pos-search-input" placeholder="Search product, SKU, barcode">
-                    </div>
-                </div>
+    {{-- ── Main Body ───────────────────────────────────── --}}
+    <div class="pos-body">
+
+        {{-- ── Left: Products ──────────────────────────── --}}
+        <div class="pos-left">
+            <div class="pos-search-bar">
+                <form @submit.prevent="scanBarcode()" style="flex:1;max-width:300px;">
+                    <input x-ref="barcodeInput" x-model="barcode" type="text" class="pos-barcode-input w-100"
+                        placeholder="Scan barcode / Enter SKU…" autocomplete="off">
+                </form>
+                <input x-model="productQuery" @input.debounce.250ms="searchProducts()" type="text"
+                    class="pos-search-input" placeholder="Cari nama produk, SKU…">
+                <button type="button" class="btn btn-outline-secondary btn-sm" style="border-radius:.75rem;white-space:nowrap;" @click="refreshProducts()">
+                    <i class="ti ti-refresh"></i>
+                </button>
             </div>
 
-            <div class="pos-panel p-3">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div><div class="pos-section-title mb-1">Quick Products</div></div>
-                    <button type="button" class="btn btn-outline-secondary btn-sm" @click="refreshWorkspace()">Refresh</button>
-                </div>
+            <div class="pos-products-wrap">
                 <div class="pos-grid">
                     <template x-for="product in products" :key="product.sellable_key">
-                        <button type="button" class="pos-product-card text-start" @click="addProduct(product)">
-                            <div class="d-flex justify-content-between align-items-start mb-3">
-                                <span class="badge bg-teal-lt text-teal" x-text="product.variant_name ? 'Variant' : 'Product'"></span>
-                                <span class="small text-muted" x-text="product.unit || 'Unit'"></span>
+                        <button type="button" class="pos-product-card" @click="addProduct(product)">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="badge bg-teal-lt text-teal" style="font-size:.7rem;" x-text="product.variant_name ? 'Variant' : 'Product'"></span>
                             </div>
-                            <div class="fw-bold mb-1" x-text="product.name"></div>
-                            <div class="text-muted small mb-2" x-text="product.variant_name || product.sku || '-'"></div>
-                            <div class="small text-muted">Barcode: <span x-text="product.barcode || '-'"></span></div>
-                            <div class="mt-3 fw-bold fs-4" x-text="money(product.price)"></div>
+                            <div class="fw-bold mb-1" style="font-size:.88rem;line-height:1.3;" x-text="product.name"></div>
+                            <div class="text-muted" style="font-size:.75rem;" x-text="product.variant_name || product.sku || '-'"></div>
+                            <div class="mt-2 fw-bold" style="font-size:1.05rem;color:#0f766e;" x-text="money(product.price)"></div>
                         </button>
+                    </template>
+                    <template x-if="products.length === 0">
+                        <div class="text-center text-muted py-5" style="grid-column:1/-1;">
+                            <i class="ti ti-package d-block mb-2" style="font-size:2.5rem;"></i>
+                            Produk tidak ditemukan.
+                        </div>
                     </template>
                 </div>
             </div>
         </div>
 
-        <div class="col-xl-5">
-            <div class="pos-cart-panel">
-                <div class="pos-panel p-3 mb-3">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div><div class="pos-section-title mb-1">Customer</div></div>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" @click="customerQuery=''; searchCustomers()">Browse</button>
+        {{-- ── Right: Cart ──────────────────────────────── --}}
+        <div class="pos-right">
+
+            {{-- Cart items (scrollable) --}}
+            <div class="pos-cart-scroll">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold" style="font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;">Active Cart</span>
+                    <span class="badge bg-orange-lt text-orange" style="font-size:.72rem;" x-text="cart.totals.item_count + ' lines'"></span>
+                </div>
+
+                <template x-if="cart.items.length === 0">
+                    <div class="pos-cart-empty">
+                        <i class="ti ti-shopping-cart" style="font-size:2.5rem;margin-bottom:.5rem;"></i>
+                        <div>Cart kosong</div>
                     </div>
-                    <div class="input-group mb-3">
-                        <input x-model="customerQuery" @input.debounce.250ms="searchCustomers()" type="text" class="form-control" placeholder="Search customer">
-                        <button type="button" class="btn btn-outline-secondary" @click="setWalkIn()">Walk-in</button>
-                    </div>
-                    <div class="row g-2">
-                        <template x-for="customer in customers" :key="customer.id">
-                            <div class="col-12">
-                                <button type="button" class="pos-customer-item w-100 text-start" @click="assignCustomer(customer)">
-                                    <div class="fw-semibold" x-text="customer.name"></div>
-                                    <div class="small text-muted" x-text="customer.phone || customer.email || '-'"></div>
-                                </button>
+                </template>
+
+                <template x-for="item in cart.items" :key="item.uuid">
+                    <div class="pos-cart-line">
+                        <div class="d-flex justify-content-between gap-2 align-items-start">
+                            <div style="flex:1;min-width:0;">
+                                <div class="fw-semibold" style="font-size:.88rem;" x-text="item.product_name"></div>
+                                <div class="text-muted" style="font-size:.75rem;" x-text="item.variant_name || item.sku || '-'"></div>
+                                <div class="text-muted" style="font-size:.75rem;" x-text="money(item.unit_price) + ' / item'"></div>
                             </div>
-                        </template>
-                    </div>
-                </div>
-
-                <div class="pos-panel p-3 mb-3">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div><div class="pos-section-title mb-1">Active Cart</div></div>
-                        <span class="badge bg-orange-lt text-orange" x-text="cart.totals.item_count + ' Lines'"></span>
-                    </div>
-                    <div class="d-grid gap-2" style="max-height: 360px; overflow:auto;">
-                        <template x-if="cart.items.length === 0"><div class="text-center text-muted py-5">Cart is empty</div></template>
-                        <template x-for="item in cart.items" :key="item.uuid">
-                            <div class="pos-cart-line">
-                                <div class="d-flex justify-content-between gap-2">
-                                    <div class="me-2">
-                                        <div class="fw-semibold" x-text="item.product_name"></div>
-                                        <div class="small text-muted" x-text="item.variant_name || item.sku || item.barcode || '-'"></div>
-                                        <div class="small text-muted mt-1" x-text="money(item.unit_price) + ' / item'"></div>
-                                    </div>
-                                    <button type="button" class="btn btn-outline-danger btn-sm" @click="removeItem(item)"><i class="ti ti-trash"></i></button>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center mt-3">
-                                    <div class="pos-qty-box">
-                                        <button type="button" class="btn btn-sm btn-icon btn-ghost-secondary" @click="changeQty(item, -1)">-</button>
-                                        <input type="number" min="0.0001" step="1" class="pos-qty-input" :value="item.qty" @change="setQty(item, $event.target.value)">
-                                        <button type="button" class="btn btn-sm btn-icon btn-ghost-secondary" @click="changeQty(item, 1)">+</button>
-                                    </div>
-                                    <div class="text-end">
-                                        <div class="fw-bold" x-text="money(item.line_total)"></div>
-                                        <div class="small text-success" x-show="item.discount_total > 0" x-text="'Disc ' + money(item.discount_total)"></div>
-                                    </div>
-                                </div>
+                            <button type="button" class="btn btn-icon btn-sm btn-ghost-danger" @click="removeItem(item)" title="Hapus">
+                                <i class="ti ti-x"></i>
+                            </button>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <div class="pos-qty-box">
+                                <button type="button" class="btn btn-sm btn-icon btn-ghost-secondary" @click="changeQty(item, -1)" style="padding:.15rem;">−</button>
+                                <input type="number" min="0.0001" step="1" class="pos-qty-input" :value="item.qty" @change="setQty(item, $event.target.value)">
+                                <button type="button" class="btn btn-sm btn-icon btn-ghost-secondary" @click="changeQty(item, 1)" style="padding:.15rem;">+</button>
                             </div>
-                        </template>
+                            <div class="text-end">
+                                <div class="fw-bold" style="font-size:.9rem;" x-text="money(item.line_total)"></div>
+                                <div class="text-success" style="font-size:.75rem;" x-show="item.discount_total > 0" x-text="'- ' + money(item.discount_total)"></div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            {{-- Cart footer: totals + payment + buttons --}}
+            <div class="pos-cart-footer">
+
+                {{-- Totals --}}
+                <div class="pos-totals">
+                    <div class="pos-total-row"><span class="text-muted">Subtotal</span><span x-text="money(cart.totals.subtotal)"></span></div>
+                    <div class="pos-total-row" x-show="cart.totals.item_discount_total + cart.totals.order_discount_total > 0">
+                        <span class="text-muted">Diskon</span>
+                        <span class="text-success" x-text="'− ' + money(cart.totals.item_discount_total + cart.totals.order_discount_total)"></span>
+                    </div>
+                    <div class="pos-total-row" x-show="cart.totals.tax_total > 0">
+                        <span class="text-muted">Tax</span><span x-text="money(cart.totals.tax_total)"></span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-baseline mt-1">
+                        <span class="text-muted" style="font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;">Grand Total</span>
+                        <span class="pos-grand-total" x-text="money(cart.totals.grand_total)"></span>
                     </div>
                 </div>
 
-                <div class="pos-panel p-3 mb-3">
-                    <div class="pos-section-title mb-2">Discount</div>
-                    <div class="input-group mb-2">
-                        <input x-model="voucherCode" type="text" class="form-control" placeholder="Voucher code">
-                        <button type="button" class="btn btn-outline-primary" @click="evaluateDiscounts()">Apply</button>
-                    </div>
-                    <div class="small text-muted" x-text="discountSummary"></div>
-                </div>
-
-                <div class="pos-summary mb-3">
-                    <div class="d-flex justify-content-between small mb-2"><span>Subtotal</span><span x-text="money(cart.totals.subtotal)"></span></div>
-                    <div class="d-flex justify-content-between small mb-2"><span>Discount</span><span x-text="money(cart.totals.item_discount_total + cart.totals.order_discount_total)"></span></div>
-                    <div class="d-flex justify-content-between small mb-2"><span>Tax</span><span x-text="money(cart.totals.tax_total)"></span></div>
-                    <div class="border-top pt-3 mt-3">
-                        <div class="small text-muted">Grand Total</div>
-                        <div class="pos-total-figure" x-text="money(cart.totals.grand_total)"></div>
-                    </div>
-                </div>
-
-                <div class="pos-panel p-3 mb-3">
+                {{-- Payment rows --}}
+                <div class="pos-payment-section">
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <div class="pos-section-title">Payments</div>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" @click="addPaymentRow()">Add Split</button>
+                        <span style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;">Pembayaran</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" style="border-radius:.6rem;font-size:.75rem;padding:.2rem .6rem;" @click="addPaymentRow()">
+                            <i class="ti ti-plus me-1"></i>Split
+                        </button>
                     </div>
-                    <div class="d-grid gap-2">
-                        <template x-for="(payment, index) in payments" :key="index">
-                            <div class="pos-payment-row">
-                                <div class="row g-2">
-                                    <div class="col-md-5">
-                                        <select class="form-select" x-model="payment.payment_method">
-                                            <template x-for="method in paymentMethods" :key="method.code">
-                                                <option :value="mapMethodToSalesInput(method.code)" x-text="method.name"></option>
-                                            </template>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <input type="number" step="0.01" min="0" class="form-control" x-model="payment.amount" placeholder="Amount">
-                                    </div>
-                                    <div class="col-md-3">
-                                        <button type="button" class="btn btn-outline-danger w-100" @click="removePaymentRow(index)" x-show="payments.length > 1">Remove</button>
-                                    </div>
-                                    <div class="col-md-12" x-show="requiresReference(payment.payment_method)">
-                                        <input type="text" class="form-control" x-model="payment.reference_number" placeholder="Reference number">
-                                    </div>
-                                </div>
+
+                    <template x-for="(payment, index) in payments" :key="index">
+                        <div class="pos-payment-row">
+                            <select class="form-select form-select-sm" style="border-radius:.65rem;flex:2;" x-model="payment.payment_method">
+                                <template x-for="method in paymentMethods" :key="method.code">
+                                    <option :value="method.code" x-text="method.name"></option>
+                                </template>
+                            </select>
+                            <input type="number" step="0.01" min="0" class="form-control form-control-sm" style="border-radius:.65rem;flex:2;" x-model="payment.amount" placeholder="Jumlah">
+                            <button type="button" class="btn btn-sm btn-ghost-danger btn-icon" @click="removePaymentRow(index)" x-show="payments.length > 1" title="Hapus">
+                                <i class="ti ti-x"></i>
+                            </button>
+                        </div>
+                        <div x-show="requiresReference(payment.payment_method)" class="mb-2">
+                            <input type="text" class="form-control form-control-sm" style="border-radius:.65rem;" x-model="payment.reference_number" placeholder="Reference number">
+                        </div>
+                    </template>
+
+                    {{-- Cash received / change --}}
+                    <template x-if="hasCashPayment()">
+                        <div class="d-flex gap-2 align-items-center mt-1">
+                            <input type="number" step="0.01" min="0" class="form-control form-control-sm" style="border-radius:.65rem;flex:1;"
+                                x-model="cashReceivedAmount" placeholder="Cash diterima">
+                            <div class="text-muted" style="font-size:.78rem;white-space:nowrap;">
+                                Kembalian: <strong x-text="money(changePreview())"></strong>
                             </div>
+                        </div>
+                    </template>
+                </div>
+
+                {{-- Action buttons --}}
+                <div class="pos-actions">
+                    <button type="button" class="btn btn-outline-warning pos-btn-hold" style="border-radius:.8rem;font-weight:700;font-size:.82rem;" @click="holdCart()">
+                        <i class="ti ti-shopping-cart-pause"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary pos-btn-clear" style="border-radius:.8rem;font-weight:700;font-size:.82rem;" @click="clearCart()">
+                        <i class="ti ti-trash"></i>
+                    </button>
+                    <button type="button" class="btn btn-primary pos-btn-checkout" style="border-radius:.8rem;font-weight:700;" @click="checkout()">
+                        <i class="ti ti-circle-check me-1"></i>Checkout
+                        <span class="ms-1 opacity-75" style="font-size:.75rem;">F9</span>
+                    </button>
+                </div>
+
+                {{-- Last receipt link --}}
+                <div x-show="lastReceiptRoute" class="px-3 pb-2 text-center">
+                    <a :href="lastReceiptRoute" target="_blank" class="text-muted" style="font-size:.75rem;">
+                        <i class="ti ti-printer me-1"></i>Print struk terakhir
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- ── Toast ───────────────────────────────────────── --}}
+    <template x-if="toast.show">
+        <div class="pos-toast" :class="toast.type" x-text="toast.message"></div>
+    </template>
+
+    {{-- ══ MODAL: Customer ════════════════════════════════ --}}
+    <template x-if="showCustomerModal">
+        <div class="pos-modal-backdrop" @click.self="showCustomerModal=false">
+            <div class="pos-modal">
+                <div class="pos-modal-header">
+                    <div class="pos-modal-title"><i class="ti ti-users me-2"></i>Pilih Customer</div>
+                    <button type="button" class="btn btn-sm btn-ghost-secondary btn-icon" @click="showCustomerModal=false">
+                        <i class="ti ti-x"></i>
+                    </button>
+                </div>
+                <div class="pos-modal-body">
+                    <input x-ref="customerSearchInput" x-model="customerQuery" @input.debounce.250ms="searchCustomers()"
+                        type="text" class="form-control mb-3" style="border-radius:.8rem;"
+                        placeholder="Cari nama, telepon, email…" autocomplete="off">
+                    <div class="d-grid gap-2">
+                        <template x-for="customer in customers" :key="customer.id">
+                            <button type="button" class="pos-customer-item" @click="assignCustomer(customer)">
+                                <div class="fw-semibold" style="font-size:.9rem;" x-text="customer.name"></div>
+                                <div class="text-muted" style="font-size:.78rem;" x-text="customer.phone || customer.email || '-'"></div>
+                            </button>
+                        </template>
+                        <template x-if="customers.length === 0 && customerQuery">
+                            <div class="text-muted text-center py-3">Tidak ada hasil.</div>
                         </template>
                     </div>
-                    <div class="mt-3">
-                        <label class="form-label">Cash Received</label>
-                        <input type="number" step="0.01" min="0" class="form-control" x-model="cashReceivedAmount" placeholder="Only for cash payment">
-                        <div class="small text-muted mt-1">Change preview: <span x-text="money(changePreview())"></span></div>
+                </div>
+                <div class="pos-modal-footer">
+                    <button type="button" class="btn btn-outline-secondary w-100" style="border-radius:.8rem;" @click="setWalkIn()">
+                        <i class="ti ti-user me-1"></i>Walk-in Customer (Tanpa data)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    {{-- ══ MODAL: Discount ════════════════════════════════ --}}
+    <template x-if="showDiscountModal">
+        <div class="pos-modal-backdrop" @click.self="showDiscountModal=false">
+            <div class="pos-modal" style="max-width:380px;">
+                <div class="pos-modal-header">
+                    <div class="pos-modal-title"><i class="ti ti-tag me-2"></i>Voucher / Diskon</div>
+                    <button type="button" class="btn btn-sm btn-ghost-secondary btn-icon" @click="showDiscountModal=false">
+                        <i class="ti ti-x"></i>
+                    </button>
+                </div>
+                <div class="pos-modal-body">
+                    <div class="input-group mb-3">
+                        <input x-ref="voucherInput" x-model="voucherCode" type="text" class="form-control"
+                            style="border-radius:.8rem 0 0 .8rem;" placeholder="Kode voucher (opsional)"
+                            @keydown.enter.prevent="evaluateDiscounts()">
+                        <button type="button" class="btn btn-primary" style="border-radius:0 .8rem .8rem 0;" @click="evaluateDiscounts()">
+                            Apply
+                        </button>
+                    </div>
+                    <div class="rounded p-3" style="background:#f7f2e9;font-size:.85rem;">
+                        <i class="ti ti-info-circle me-1"></i>
+                        <span x-text="discountSummary"></span>
                     </div>
                 </div>
-
-                <div class="d-grid gap-2 mb-3">
-                    <button type="button" class="btn btn-outline-warning pos-action-btn" @click="holdCart()">Hold Cart</button>
-                    <button type="button" class="btn btn-outline-secondary pos-action-btn" @click="clearCart()">Clear Cart</button>
-                    <button type="button" class="btn btn-primary pos-action-btn" @click="checkout()">Checkout</button>
-                    <a class="btn btn-outline-dark pos-action-btn d-flex align-items-center justify-content-center" :href="lastReceiptRoute || '#'" :class="{disabled: !lastReceiptRoute}">Print Receipt</a>
+                <div class="pos-modal-footer d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary" style="border-radius:.8rem;" @click="showDiscountModal=false">Tutup</button>
                 </div>
+            </div>
+        </div>
+    </template>
 
-                <div class="pos-panel p-3">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div class="pos-section-title">Held Carts</div>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" @click="loadHeldCarts()">Reload</button>
+    {{-- ══ MODAL: Held Carts ══════════════════════════════ --}}
+    <template x-if="showHeldModal">
+        <div class="pos-modal-backdrop" @click.self="showHeldModal=false">
+            <div class="pos-modal" style="max-width:420px;">
+                <div class="pos-modal-header">
+                    <div class="pos-modal-title"><i class="ti ti-shopping-cart-pause me-2"></i>Held Carts</div>
+                    <div class="d-flex gap-2 align-items-center">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" style="border-radius:.65rem;" @click="loadHeldCarts()">
+                            <i class="ti ti-refresh"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-ghost-secondary btn-icon" @click="showHeldModal=false">
+                            <i class="ti ti-x"></i>
+                        </button>
                     </div>
+                </div>
+                <div class="pos-modal-body">
+                    <template x-if="heldCarts.length === 0">
+                        <div class="text-center text-muted py-5">
+                            <i class="ti ti-shopping-cart-off d-block mb-2" style="font-size:2rem;"></i>
+                            Tidak ada cart yang ditahan.
+                        </div>
+                    </template>
                     <div class="d-grid gap-2">
-                        <template x-if="heldCarts.length === 0"><div class="text-muted small">Tidak ada cart yang ditahan.</div></template>
                         <template x-for="held in heldCarts" :key="held.id">
-                            <button type="button" class="pos-held-item w-100 text-start" @click="resumeHeldCart(held)">
-                                <div class="d-flex justify-content-between">
-                                    <span class="fw-semibold" x-text="held.customer.label"></span>
-                                    <span class="small text-muted" x-text="money(held.totals.grand_total)"></span>
+                            <button type="button" class="pos-held-item" @click="resumeHeldCart(held)">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <div class="fw-semibold" x-text="held.customer.label"></div>
+                                        <div class="text-muted" style="font-size:.78rem;" x-text="held.totals.item_count + ' item · ' + money(held.totals.grand_total)"></div>
+                                    </div>
+                                    <span class="badge bg-azure-lt text-azure" style="font-size:.7rem;">Resume</span>
                                 </div>
-                                <div class="small text-muted" x-text="held.totals.item_count + ' lines'"></div>
                             </button>
                         </template>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-
-    <template x-if="toast.show">
-        <div class="pos-toast" :class="toast.type" x-text="toast.message"></div>
     </template>
+
 </div>
 @endsection
 
@@ -297,26 +479,52 @@ function posScreen(config) {
         paymentMethods: config.paymentMethods || [],
         defaultCurrency: config.defaultCurrency || 'IDR',
         heldCarts: [],
-        cart: { customer: { label: 'Walk-in Customer' }, totals: { item_count: 0, subtotal: 0, item_discount_total: 0, order_discount_total: 0, tax_total: 0, grand_total: 0 }, items: [] },
+        cart: {
+            customer: { label: 'Walk-in Customer' },
+            totals: { item_count: 0, subtotal: 0, item_discount_total: 0, order_discount_total: 0, tax_total: 0, grand_total: 0 },
+            items: []
+        },
         barcode: '',
         productQuery: '',
         customerQuery: '',
         voucherCode: '',
         cashReceivedAmount: '',
         payments: [{ payment_method: 'cash', amount: '', reference_number: '' }],
-        discountSummary: 'No discount applied.',
+        discountSummary: 'Belum ada diskon.',
+        appliedDiscountCount: 0,
         lastReceiptRoute: '',
         toast: { show: false, type: 'info', message: '' },
         toastTimer: null,
+        showCustomerModal: false,
+        showDiscountModal: false,
+        showHeldModal: false,
 
         init() {
             this.loadCart();
             this.loadHeldCarts();
-            window.addEventListener('keydown', (event) => {
-                if (event.key === 'F3') { event.preventDefault(); this.$refs.barcodeInput.focus(); }
-                if (event.key === 'F9') { event.preventDefault(); this.checkout(); }
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'F3') { e.preventDefault(); this.$refs.barcodeInput.focus(); }
+                if (e.key === 'F9') { e.preventDefault(); this.checkout(); }
+                if (e.key === 'F2') { e.preventDefault(); this.openCustomerModal(); }
+                if (e.key === 'F4') { e.preventDefault(); this.openDiscountModal(); }
+                if (e.key === 'Escape') { this.showCustomerModal = false; this.showDiscountModal = false; this.showHeldModal = false; }
             });
             this.$nextTick(() => this.$refs.barcodeInput.focus());
+        },
+
+        openCustomerModal() {
+            this.showCustomerModal = true;
+            this.$nextTick(() => this.$refs.customerSearchInput?.focus());
+        },
+
+        openDiscountModal() {
+            this.showDiscountModal = true;
+            this.$nextTick(() => this.$refs.voucherInput?.focus());
+        },
+
+        openHeldModal() {
+            this.showHeldModal = true;
+            this.loadHeldCarts();
         },
 
         async fetchJson(url, options = {}) {
@@ -343,12 +551,9 @@ function posScreen(config) {
             if (!this.payments[0].amount) this.payments[0].amount = this.cart.totals.grand_total || '';
         },
 
-        async refreshWorkspace() {
+        async refreshProducts() {
             this.productQuery = '';
-            this.customerQuery = '';
             await this.searchProducts();
-            await this.searchCustomers();
-            await this.loadHeldCarts();
         },
 
         async searchProducts() {
@@ -365,7 +570,10 @@ function posScreen(config) {
 
         async addProduct(product) {
             try {
-                const response = await this.fetchJson(this.routes.cartItems, { method: 'POST', body: JSON.stringify({ product_id: product.product_id, product_variant_id: product.product_variant_id, qty: 1 }) });
+                const response = await this.fetchJson(this.routes.cartItems, {
+                    method: 'POST',
+                    body: JSON.stringify({ product_id: product.product_id, product_variant_id: product.product_variant_id, qty: 1 })
+                });
                 this.cart = response.data;
                 this.payments[0].amount = this.cart.totals.grand_total || '';
                 this.notify('success', response.message);
@@ -376,7 +584,10 @@ function posScreen(config) {
         async scanBarcode() {
             if (!this.barcode.trim()) return;
             try {
-                const response = await this.fetchJson(this.routes.barcodeScan, { method: 'POST', body: JSON.stringify({ barcode: this.barcode }) });
+                const response = await this.fetchJson(this.routes.barcodeScan, {
+                    method: 'POST',
+                    body: JSON.stringify({ barcode: this.barcode })
+                });
                 this.cart = response.data;
                 this.barcode = '';
                 this.payments[0].amount = this.cart.totals.grand_total || '';
@@ -393,7 +604,9 @@ function posScreen(config) {
 
         async setQty(item, qty) {
             try {
-                const response = await this.fetchJson(`${this.routes.cartItemBase}/${item.id}`, { method: 'PATCH', body: JSON.stringify({ qty: qty }) });
+                const response = await this.fetchJson(`${this.routes.cartItemBase}/${item.id}`, {
+                    method: 'PATCH', body: JSON.stringify({ qty: qty })
+                });
                 this.cart = response.data;
                 this.payments[0].amount = this.cart.totals.grand_total || '';
             } catch (error) { this.notify('error', error.message); }
@@ -410,17 +623,24 @@ function posScreen(config) {
 
         async assignCustomer(customer) {
             try {
-                const response = await this.fetchJson(this.routes.cartUpdate, { method: 'PATCH', body: JSON.stringify({ contact_id: customer.id }) });
+                const response = await this.fetchJson(this.routes.cartUpdate, {
+                    method: 'PATCH', body: JSON.stringify({ contact_id: customer.id })
+                });
                 this.cart = response.data;
-                this.notify('success', 'Customer assigned.');
+                this.showCustomerModal = false;
+                this.customerQuery = '';
+                this.notify('success', 'Customer: ' + customer.name);
             } catch (error) { this.notify('error', error.message); }
         },
 
         async setWalkIn() {
             try {
-                const response = await this.fetchJson(this.routes.cartUpdate, { method: 'PATCH', body: JSON.stringify({ contact_id: null, customer_label: 'Walk-in Customer' }) });
+                const response = await this.fetchJson(this.routes.cartUpdate, {
+                    method: 'PATCH', body: JSON.stringify({ contact_id: null, customer_label: 'Walk-in Customer' })
+                });
                 this.cart = response.data;
-                this.notify('info', 'Walk-in customer selected.');
+                this.showCustomerModal = false;
+                this.notify('info', 'Walk-in customer.');
             } catch (error) { this.notify('error', error.message); }
         },
 
@@ -429,7 +649,8 @@ function posScreen(config) {
             try {
                 const response = await this.fetchJson(this.routes.cartClear, { method: 'DELETE' });
                 this.cart = response.data;
-                this.discountSummary = 'No discount applied.';
+                this.discountSummary = 'Belum ada diskon.';
+                this.appliedDiscountCount = 0;
                 this.voucherCode = '';
                 this.payments = [{ payment_method: 'cash', amount: '', reference_number: '' }];
                 this.notify('success', response.message);
@@ -438,9 +659,12 @@ function posScreen(config) {
 
         async holdCart() {
             try {
-                const response = await this.fetchJson(this.routes.heldStore, { method: 'POST', body: JSON.stringify({ label: this.cart.customer.label }) });
+                const response = await this.fetchJson(this.routes.heldStore, {
+                    method: 'POST', body: JSON.stringify({ label: this.cart.customer.label })
+                });
                 this.cart = response.active;
-                this.discountSummary = 'No discount applied.';
+                this.discountSummary = 'Belum ada diskon.';
+                this.appliedDiscountCount = 0;
                 this.voucherCode = '';
                 this.payments = [{ payment_method: 'cash', amount: '', reference_number: '' }];
                 await this.loadHeldCarts();
@@ -461,18 +685,21 @@ function posScreen(config) {
                 this.cart = response.data;
                 this.payments = [{ payment_method: 'cash', amount: this.cart.totals.grand_total || '', reference_number: '' }];
                 await this.loadHeldCarts();
+                this.showHeldModal = false;
                 this.notify('success', response.message);
             } catch (error) { this.notify('error', error.message); }
         },
 
         async evaluateDiscounts() {
-            if (!this.cart.items.length) return this.notify('error', 'Cart is empty.');
+            if (!this.cart.items.length) return this.notify('error', 'Cart kosong.');
             try {
                 const response = await this.fetchJson(this.routes.discountEvaluate, {
                     method: 'POST',
                     body: JSON.stringify({
                         voucher_code: this.voucherCode || null,
-                        customer: this.cart.customer.contact_id ? { reference_type: 'contact', reference_id: String(this.cart.customer.contact_id) } : null,
+                        customer: this.cart.customer.contact_id
+                            ? { reference_type: 'contact', reference_id: String(this.cart.customer.contact_id) }
+                            : null,
                         items: this.cart.items.map((item) => ({
                             line_key: item.uuid,
                             product_id: item.product_id,
@@ -484,10 +711,13 @@ function posScreen(config) {
                     }),
                 });
                 this.cart = response.cart;
-                const appliedCount = (response.data.applied_discounts || []).length;
-                this.discountSummary = appliedCount ? `${appliedCount} discount(s) applied, total ${this.money(response.data.discount_total)}` : 'No eligible discount found.';
+                const applied = response.data.applied_discounts || [];
+                this.appliedDiscountCount = applied.length;
+                this.discountSummary = applied.length
+                    ? `${applied.length} diskon diterapkan, total ${this.money(response.data.discount_total)}`
+                    : 'Tidak ada diskon yang berlaku.';
                 this.payments[0].amount = this.cart.totals.grand_total || '';
-                this.notify('success', 'Discount recalculated.');
+                this.notify('success', 'Diskon dihitung ulang.');
             } catch (error) { this.notify('error', error.message); }
         },
 
@@ -495,40 +725,45 @@ function posScreen(config) {
         removePaymentRow(index) { this.payments.splice(index, 1); },
 
         requiresReference(methodCode) {
-            const method = this.paymentMethods.find((item) => item.code === methodCode);
+            const method = this.paymentMethods.find((m) => m.code === methodCode);
             return method ? method.requires_reference : false;
         },
-        mapMethodToSalesInput(code) { return code; },
-        mapSalesInputToMethod(code) { return code; },
+
+        hasCashPayment() {
+            return this.payments.some((p) => p.payment_method === 'cash');
+        },
 
         async checkout() {
-            if (!this.cart.items.length) return this.notify('error', 'Cart is empty.');
+            if (!this.cart.items.length) return this.notify('error', 'Cart kosong.');
             try {
                 const response = await this.fetchJson(this.routes.checkout, {
                     method: 'POST',
                     body: JSON.stringify({
-                        payments: this.payments.map((payment) => ({
-                            payment_method: payment.payment_method,
-                            amount: Number(payment.amount || 0),
-                            reference_number: payment.reference_number || null,
+                        payments: this.payments.map((p) => ({
+                            payment_method: p.payment_method,
+                            amount: Number(p.amount || 0),
+                            reference_number: p.reference_number || null,
                         })),
                         cash_received_amount: Number(this.cashReceivedAmount || 0),
                     }),
                 });
                 this.lastReceiptRoute = response.data.receipt_print_route;
-                this.notify('success', `${response.message} Invoice ${response.data.sale_number}`);
+                this.notify('success', `${response.message} · ${response.data.sale_number}`);
                 window.open(response.data.receipt_route, '_blank');
                 await this.loadCart();
                 await this.loadHeldCarts();
                 this.voucherCode = '';
-                this.discountSummary = 'No discount applied.';
+                this.discountSummary = 'Belum ada diskon.';
+                this.appliedDiscountCount = 0;
                 this.cashReceivedAmount = '';
                 this.payments = [{ payment_method: 'cash', amount: '', reference_number: '' }];
             } catch (error) { this.notify('error', error.message); }
         },
 
         changePreview() {
-            const cashPayment = this.payments.filter((payment) => payment.payment_method === 'cash').reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+            const cashPayment = this.payments
+                .filter((p) => p.payment_method === 'cash')
+                .reduce((sum, p) => sum + Number(p.amount || 0), 0);
             const received = Number(this.cashReceivedAmount || 0);
             if (received <= 0 || cashPayment <= 0) return 0;
             return Math.max(0, received - cashPayment);
@@ -538,7 +773,10 @@ function posScreen(config) {
             const resolvedCurrency = (currency || this.cart.currency_code || this.defaultCurrency || 'IDR').toUpperCase();
             const localeMap = { IDR: 'id-ID', USD: 'en-US', SGD: 'en-SG', EUR: 'de-DE' };
             const fractionDigits = resolvedCurrency === 'IDR' ? 0 : 2;
-            return new Intl.NumberFormat(localeMap[resolvedCurrency] || 'id-ID', { style: 'currency', currency: resolvedCurrency, maximumFractionDigits: fractionDigits, minimumFractionDigits: fractionDigits }).format(Number(value || 0));
+            return new Intl.NumberFormat(localeMap[resolvedCurrency] || 'id-ID', {
+                style: 'currency', currency: resolvedCurrency,
+                maximumFractionDigits: fractionDigits, minimumFractionDigits: fractionDigits,
+            }).format(Number(value || 0));
         },
 
         notify(type, message) {

@@ -1,32 +1,52 @@
 @extends('layouts.admin')
 
+@section('title', 'Opening Stock')
+
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h2 class="mb-0">Opening Stock</h2>
-        <div class="text-muted small">Inisialisasi stok awal per lokasi.</div>
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Inventori</div>
+            <h2 class="page-title">Opening Stock</h2>
+            <p class="text-muted mb-0">Inisialisasi stok awal per lokasi.</p>
+        </div>
+        <div class="col-auto">
+            <a href="{{ route('inventory.openings.create') }}" class="btn btn-primary">
+                <i class="ti ti-plus me-1"></i>Buat Opening
+            </a>
+        </div>
     </div>
-    <a href="{{ route('inventory.openings.create') }}" class="btn btn-primary">Buat Opening</a>
 </div>
 
 <div class="card">
-    <div class="table-responsive">
-        <table class="table table-vcenter">
-            <thead><tr><th>Kode</th><th>Tanggal</th><th>Lokasi</th><th>Status</th><th>User</th></tr></thead>
-            <tbody>
-                @forelse($openings as $opening)
-                    <tr>
-                        <td>{{ $opening->code }}</td>
-                        <td>{{ $opening->opening_date?->format('d/m/Y') }}</td>
-                        <td>{{ $opening->location?->name }}</td>
-                        <td><span class="badge bg-success-lt text-success">{{ $opening->status }}</span></td>
-                        <td>{{ $opening->creator?->name ?? '-' }}</td>
-                    </tr>
-                @empty
-                    <tr><td colspan="5" class="text-center text-muted">Belum ada opening stock.</td></tr>
-                @endforelse
-            </tbody>
-        </table>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-vcenter table-hover">
+                <thead><tr><th>Kode</th><th>Tanggal</th><th>Lokasi</th><th>Status</th><th>User</th><th class="w-1"></th></tr></thead>
+                <tbody>
+                    @forelse($openings as $opening)
+                        <tr>
+                            <td>{{ $opening->code }}</td>
+                            <td>{{ $opening->opening_date?->format('d/m/Y') }}</td>
+                            <td>{{ $opening->location?->name }}</td>
+                            <td><span class="badge bg-green-lt text-green">{{ $opening->status }}</span></td>
+                            <td>{{ $opening->creator?->name ?? '-' }}</td>
+                            <td class="text-end align-middle">
+                                {{-- Opening stock adalah read-only setelah selesai --}}
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <i class="ti ti-box text-muted d-block mb-2" style="font-size:2rem;"></i>
+                                <div class="text-muted mb-2">Belum ada opening stock.</div>
+                                <a href="{{ route('inventory.openings.create') }}" class="btn btn-sm btn-primary">Buat Opening</a>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
     <div class="card-footer">{{ $openings->links() }}</div>
 </div>

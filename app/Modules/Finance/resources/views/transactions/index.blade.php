@@ -1,17 +1,26 @@
 @extends('layouts.admin')
 
+@section('title', 'Transaksi Keuangan')
+
 @section('content')
 @php
     $money = app(\App\Support\MoneyFormatter::class);
     $currency = app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency();
 @endphp
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h2 class="mb-0">Finance Transactions</h2>
-        <div class="text-muted small">Kas masuk, kas keluar, dan pengeluaran operasional.</div>
-        <div class="text-muted small">Company: {{ $company?->name ?? '-' }}</div>
+
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Keuangan</div>
+            <h2 class="page-title">Transaksi Keuangan</h2>
+            <p class="text-muted mb-0">Kas masuk, kas keluar, dan pengeluaran operasional. Company: {{ $company?->name ?? '-' }}</p>
+        </div>
+        <div class="col-auto">
+            <a href="{{ route('finance.transactions.create') }}" class="btn btn-primary">
+                <i class="ti ti-plus me-1"></i>Buat Transaksi
+            </a>
+        </div>
     </div>
-    <a href="{{ route('finance.transactions.create') }}" class="btn btn-primary">Create Transaction</a>
 </div>
 
 <div class="row g-3 mb-3">
@@ -92,39 +101,67 @@
 </div>
 
 <div class="card">
-    <div class="table-responsive">
-        <table class="table table-vcenter">
-            <thead><tr><th>Number</th><th>Date</th><th>Type</th><th>Category</th><th>Amount</th><th>User</th><th>Branch</th>@if($shiftEnabled)<th>Shift</th>@endif<th></th></tr></thead>
-            <tbody>
-                @forelse($transactions as $transaction)
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-vcenter table-hover">
+                <thead>
                     <tr>
-                        <td>{{ $transaction->transaction_number }}</td>
-                        <td>{{ $transaction->transaction_date ? $transaction->transaction_date->format('d/m/Y H:i') : '-' }}</td>
-                        <td>{{ $transaction->transaction_type }}</td>
-                        <td>{{ $transaction->category ? $transaction->category->name : '-' }}</td>
-                        <td>{{ $money->format((float) $transaction->amount, $currency) }}</td>
-                        <td>{{ $transaction->creator ? $transaction->creator->name : '-' }}</td>
-                        <td>{{ $transaction->branch_id ?: '-' }}</td>
-                        @if($shiftEnabled)
-                            <td>{{ $transaction->shift ? $transaction->shift->code : '-' }}</td>
-                        @endif
-                        <td class="text-end">
-                            <div class="d-flex gap-1 justify-content-end">
-                                <a href="{{ route('finance.transactions.show', $transaction) }}" class="btn btn-outline-secondary btn-sm">Detail</a>
-                                <a href="{{ route('finance.transactions.edit', $transaction) }}" class="btn btn-outline-primary btn-sm">Edit</a>
-                                <form method="POST" action="{{ route('finance.transactions.destroy', $transaction) }}">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-outline-danger btn-sm" data-confirm="Hapus transaksi ini?">Hapus</button>
-                                </form>
-                            </div>
-                        </td>
+                        <th>Number</th>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Category</th>
+                        <th>Amount</th>
+                        <th>User</th>
+                        <th>Branch</th>
+                        @if($shiftEnabled)<th>Shift</th>@endif
+                        <th class="w-1"></th>
                     </tr>
-                @empty
-                    <tr><td colspan="{{ $shiftEnabled ? '9' : '8' }}" class="text-center text-muted">Belum ada transaksi.</td></tr>
-                @endforelse
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @forelse($transactions as $transaction)
+                        <tr>
+                            <td>{{ $transaction->transaction_number }}</td>
+                            <td>{{ $transaction->transaction_date ? $transaction->transaction_date->format('d/m/Y H:i') : '-' }}</td>
+                            <td>{{ $transaction->transaction_type }}</td>
+                            <td>{{ $transaction->category ? $transaction->category->name : '-' }}</td>
+                            <td>{{ $money->format((float) $transaction->amount, $currency) }}</td>
+                            <td>{{ $transaction->creator ? $transaction->creator->name : '-' }}</td>
+                            <td>{{ $transaction->branch_id ?: '-' }}</td>
+                            @if($shiftEnabled)
+                                <td>{{ $transaction->shift ? $transaction->shift->code : '-' }}</td>
+                            @endif
+                            <td class="text-end align-middle">
+                                <div class="table-actions">
+                                    <a href="{{ route('finance.transactions.show', $transaction) }}" class="btn btn-icon btn-sm btn-outline-secondary" title="Lihat Detail">
+                                        <i class="ti ti-eye"></i>
+                                    </a>
+                                    <a href="{{ route('finance.transactions.edit', $transaction) }}" class="btn btn-icon btn-sm btn-outline-primary" title="Edit">
+                                        <i class="ti ti-pencil"></i>
+                                    </a>
+                                    <form class="d-inline-block m-0" method="POST" action="{{ route('finance.transactions.destroy', $transaction) }}">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-icon btn-sm btn-outline-danger" title="Hapus" data-confirm="Hapus transaksi ini?">
+                                            <i class="ti ti-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="{{ $shiftEnabled ? '9' : '8' }}" class="text-center py-5">
+                                <i class="ti ti-receipt text-muted d-block mb-2" style="font-size:2rem;"></i>
+                                <div class="text-muted mb-2">Belum ada transaksi.</div>
+                                <a href="{{ route('finance.transactions.create') }}" class="btn btn-sm btn-primary">Buat Transaksi</a>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
     <div class="card-footer">{{ $transactions->links() }}</div>
 </div>
+
 @endsection

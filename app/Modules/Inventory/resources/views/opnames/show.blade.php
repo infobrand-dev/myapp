@@ -1,19 +1,28 @@
 @extends('layouts.admin')
 
+@section('title', 'Detail Stock Opname')
+
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h2 class="mb-0">{{ $opname->code }}</h2>
-        <div class="text-muted small">{{ $opname->location ? $opname->location->name : '-' }} | {{ $opname->opname_date ? $opname->opname_date->format('d/m/Y') : '-' }}</div>
-    </div>
-    <div class="d-flex gap-2">
-        <a href="{{ route('inventory.opnames.index') }}" class="btn btn-outline-secondary">Kembali</a>
-        @if($opname->isDraft() && auth()->user() && auth()->user()->can('inventory.finalize-stock-opname'))
-            <form method="POST" action="{{ route('inventory.opnames.finalize', $opname) }}">
-                @csrf
-                <button class="btn btn-primary">Finalize</button>
-            </form>
-        @endif
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Inventori · Stock Opname</div>
+            <h2 class="page-title">{{ $opname->code }}</h2>
+            <p class="text-muted mb-0">{{ $opname->location ? $opname->location->name : '-' }} | {{ $opname->opname_date ? $opname->opname_date->format('d/m/Y') : '-' }}</p>
+        </div>
+        <div class="col-auto d-flex gap-2">
+            <a href="{{ route('inventory.opnames.index') }}" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left me-1"></i>Kembali
+            </a>
+            @if($opname->isDraft() && auth()->user() && auth()->user()->can('inventory.finalize-stock-opname'))
+                <form method="POST" action="{{ route('inventory.opnames.finalize', $opname) }}">
+                    @csrf
+                    <button class="btn btn-primary">
+                        <i class="ti ti-check me-1"></i>Finalize
+                    </button>
+                </form>
+            @endif
+        </div>
     </div>
 </div>
 
@@ -65,8 +74,10 @@
             </div>
 
             @if($opname->isDraft())
-                <div class="mt-3 d-flex gap-2">
-                    <button class="btn btn-primary">Simpan Draft</button>
+                <div class="card-footer d-flex justify-content-end">
+                    <button class="btn btn-primary">
+                        <i class="ti ti-device-floppy me-1"></i>Simpan Draft
+                    </button>
                 </div>
             @endif
         </div>

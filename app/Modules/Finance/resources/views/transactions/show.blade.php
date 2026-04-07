@@ -1,22 +1,35 @@
 @extends('layouts.admin')
 
+@section('title', 'Detail Transaksi')
+
 @section('content')
 @php
     $money = app(\App\Support\MoneyFormatter::class);
     $currency = app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency();
 @endphp
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h2 class="mb-0">{{ $transaction->transaction_number }}</h2>
-        <div class="text-muted small">{{ $transaction->transaction_type }} | {{ $transaction->transaction_date ? $transaction->transaction_date->format('d/m/Y H:i') : '-' }}</div>
-    </div>
-    <div class="d-flex gap-2">
-        <a href="{{ route('finance.transactions.edit', $transaction) }}" class="btn btn-outline-primary">Edit</a>
-        <form method="POST" action="{{ route('finance.transactions.destroy', $transaction) }}">
-            @csrf @method('DELETE')
-            <button type="submit" class="btn btn-outline-danger" data-confirm="Hapus transaksi ini?">Hapus</button>
-        </form>
-        <a href="{{ route('finance.transactions.index') }}" class="btn btn-outline-secondary">Kembali</a>
+
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Keuangan</div>
+            <h2 class="page-title">{{ $transaction->transaction_number }}</h2>
+            <p class="text-muted mb-0">{{ $transaction->transaction_type }} &mdash; {{ $transaction->transaction_date ? $transaction->transaction_date->format('d/m/Y H:i') : '-' }}</p>
+        </div>
+        <div class="col-auto d-flex gap-2 flex-wrap">
+            <a href="{{ route('finance.transactions.edit', $transaction) }}" class="btn btn-icon btn-sm btn-outline-primary" title="Edit">
+                <i class="ti ti-pencil"></i>
+            </a>
+            <form class="d-inline-block m-0" method="POST" action="{{ route('finance.transactions.destroy', $transaction) }}">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-icon btn-sm btn-outline-danger" title="Hapus" data-confirm="Hapus transaksi ini?">
+                    <i class="ti ti-trash"></i>
+                </button>
+            </form>
+            <a href="{{ route('finance.transactions.index') }}" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left me-1"></i>Kembali
+            </a>
+        </div>
     </div>
 </div>
 
@@ -46,4 +59,5 @@
         </div>
     </div>
 </div>
+
 @endsection

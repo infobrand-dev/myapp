@@ -1,9 +1,21 @@
 @extends('layouts.admin')
 
+@section('title', 'Buat Opening Stock')
+
 @section('content')
-<div class="mb-3">
-    <h2 class="mb-0">Buat Opening Stock</h2>
-    <div class="text-muted small">Input stok awal per lokasi.</div>
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Inventori · Opening Stock</div>
+            <h2 class="page-title">Buat Opening Stock</h2>
+            <p class="text-muted mb-0">Input stok awal per lokasi.</p>
+        </div>
+        <div class="col-auto">
+            <a href="{{ route('inventory.openings.index') }}" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left me-1"></i>Kembali
+            </a>
+        </div>
+    </div>
 </div>
 
 @include('inventory::partials.document-form', [

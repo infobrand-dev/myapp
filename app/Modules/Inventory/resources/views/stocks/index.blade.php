@@ -1,21 +1,26 @@
 @extends('layouts.admin')
 
+@section('title', 'Stock List')
+
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h2 class="mb-0">Stock List</h2>
-        <div class="text-muted small">Saldo stok per produk dan lokasi.</div>
-    </div>
-    <div class="btn-list">
-        <a href="{{ route('inventory.reports.low-stock', ['location_id' => $filters['location_id'] ?? null]) }}" class="btn btn-outline-warning">Low Stock</a>
-        <a href="{{ route('inventory.dashboard', ['location_id' => $filters['location_id'] ?? null]) }}" class="btn btn-outline-secondary">Dashboard</a>
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Inventori</div>
+            <h2 class="page-title">Stock List</h2>
+            <p class="text-muted mb-0">Saldo stok per produk dan lokasi.</p>
+        </div>
+        <div class="col-auto d-flex gap-2">
+            <a href="{{ route('inventory.reports.low-stock', ['location_id' => $filters['location_id'] ?? null]) }}" class="btn btn-outline-warning">Low Stock</a>
+            <a href="{{ route('inventory.dashboard', ['location_id' => $filters['location_id'] ?? null]) }}" class="btn btn-outline-secondary">Dashboard</a>
+        </div>
     </div>
 </div>
 
 <div class="row g-3 mb-3">
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Items</div><div class="h2 mb-0">{{ $summary['total_items'] ?? 0 }}</div></div></div></div>
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Out of Stock</div><div class="h2 mb-0 text-danger">{{ $summary['out_of_stock'] ?? 0 }}</div></div></div></div>
-    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Reserved Risk</div><div class="h2 mb-0 text-warning">{{ $summary['reserved_risk'] ?? 0 }}</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Reserved Risk</div><div class="h2 mb-0 text-orange">{{ $summary['reserved_risk'] ?? 0 }}</div></div></div></div>
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Reorder Candidates</div><div class="h2 mb-0">{{ $summary['reorder_candidates'] ?? 0 }}</div></div></div></div>
 </div>
 
@@ -44,7 +49,7 @@
                 </select>
             </div>
             <div class="col-md-2 d-flex align-items-end gap-2">
-                <button class="btn btn-primary w-100">Filter</button>
+                <button class="btn btn-outline-primary w-100">Filter</button>
             </div>
         </form>
         <div class="mt-3 d-flex flex-wrap gap-2">
@@ -57,40 +62,53 @@
 </div>
 
 <div class="card">
-    <div class="table-responsive">
-        <table class="table table-vcenter">
-            <thead><tr><th>Produk</th><th>Lokasi</th><th>Current</th><th>Reserved</th><th>Available</th><th>Reorder</th><th>Status</th><th></th></tr></thead>
-            <tbody>
-                @forelse($stocks as $stock)
-                    @php
-                        $available = $stock->availableQuantity();
-                        $status = $stock->stockStatus();
-                        $statusClass = $status === 'out_of_stock' ? 'danger' : ($status === 'low_stock' ? 'warning' : 'success');
-                    @endphp
-                    <tr>
-                        <td>
-                            <div class="fw-semibold">{{ $stock->product?->name }}</div>
-                            <div class="text-muted small">SKU: {{ $stock->variant?->sku ?? $stock->product?->sku }}</div>
-                            @if($stock->variant)<div class="text-muted small">Variant: {{ $stock->variant->name }}</div>@endif
-                        </td>
-                        <td>{{ $stock->location?->name }}</td>
-                        <td>{{ number_format((float) $stock->current_quantity, 2, ',', '.') }}</td>
-                        <td>{{ number_format((float) $stock->reserved_quantity, 2, ',', '.') }}</td>
-                        <td class="{{ $available <= 0 && (float) $stock->current_quantity > 0 ? 'text-warning fw-semibold' : '' }}">{{ number_format($available, 2, ',', '.') }}</td>
-                        <td>{{ number_format((float) $stock->reorder_quantity, 2, ',', '.') }}</td>
-                        <td>
-                            <span class="badge bg-{{ $statusClass }}-lt text-{{ $statusClass }}">{{ $status }}</span>
-                            @if($available <= 0 && (float) $stock->current_quantity > 0)
-                                <div class="text-warning small">reserved risk</div>
-                            @endif
-                        </td>
-                        <td class="text-end"><a href="{{ route('inventory.stocks.show', $stock) }}" class="btn btn-outline-secondary btn-sm">Detail</a></td>
-                    </tr>
-                @empty
-                    <tr><td colspan="8" class="text-center text-muted">Belum ada saldo stok.</td></tr>
-                @endforelse
-            </tbody>
-        </table>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-vcenter table-hover">
+                <thead><tr><th>Produk</th><th>Lokasi</th><th>Current</th><th>Reserved</th><th>Available</th><th>Reorder</th><th>Status</th><th class="w-1"></th></tr></thead>
+                <tbody>
+                    @forelse($stocks as $stock)
+                        @php
+                            $available = $stock->availableQuantity();
+                            $status = $stock->stockStatus();
+                            $statusClass = $status === 'out_of_stock' ? 'danger' : ($status === 'low_stock' ? 'orange' : 'success');
+                        @endphp
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">{{ $stock->product?->name }}</div>
+                                <div class="text-muted small">SKU: {{ $stock->variant?->sku ?? $stock->product?->sku }}</div>
+                                @if($stock->variant)<div class="text-muted small">Variant: {{ $stock->variant->name }}</div>@endif
+                            </td>
+                            <td>{{ $stock->location?->name }}</td>
+                            <td>{{ number_format((float) $stock->current_quantity, 2, ',', '.') }}</td>
+                            <td>{{ number_format((float) $stock->reserved_quantity, 2, ',', '.') }}</td>
+                            <td class="{{ $available <= 0 && (float) $stock->current_quantity > 0 ? 'text-orange fw-semibold' : '' }}">{{ number_format($available, 2, ',', '.') }}</td>
+                            <td>{{ number_format((float) $stock->reorder_quantity, 2, ',', '.') }}</td>
+                            <td>
+                                <span class="badge bg-{{ $statusClass }}-lt text-{{ $statusClass }}">{{ $status }}</span>
+                                @if($available <= 0 && (float) $stock->current_quantity > 0)
+                                    <div class="text-orange small">reserved risk</div>
+                                @endif
+                            </td>
+                            <td class="text-end align-middle">
+                                <div class="table-actions">
+                                    <a href="{{ route('inventory.stocks.show', $stock) }}" class="btn btn-icon btn-sm btn-outline-secondary" title="Lihat Detail">
+                                        <i class="ti ti-eye"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="8" class="text-center py-5">
+                                <i class="ti ti-package text-muted d-block mb-2" style="font-size:2rem;"></i>
+                                <div class="text-muted">Belum ada saldo stok.</div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
     <div class="card-footer">{{ $stocks->links() }}</div>
 </div>

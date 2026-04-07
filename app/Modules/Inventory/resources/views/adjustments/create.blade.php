@@ -1,9 +1,21 @@
 @extends('layouts.admin')
 
+@section('title', 'Buat Stock Adjustment')
+
 @section('content')
-<div class="mb-3">
-    <h2 class="mb-0">Buat Stock Adjustment</h2>
-    <div class="text-muted small">Stok berubah setelah dokumen difinalisasi.</div>
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Inventori · Stock Adjustment</div>
+            <h2 class="page-title">Buat Stock Adjustment</h2>
+            <p class="text-muted mb-0">Stok berubah setelah dokumen difinalisasi.</p>
+        </div>
+        <div class="col-auto">
+            <a href="{{ route('inventory.adjustments.index') }}" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left me-1"></i>Kembali
+            </a>
+        </div>
+    </div>
 </div>
 
 @if($errors->any())
@@ -102,9 +114,11 @@
                 </div>
             </div>
 
-            <div class="mt-3 d-flex gap-2">
-                <button class="btn btn-primary">Simpan Draft</button>
+            <div class="card-footer d-flex justify-content-end gap-2">
                 <a href="{{ route('inventory.adjustments.index') }}" class="btn btn-outline-secondary">Batal</a>
+                <button class="btn btn-primary">
+                    <i class="ti ti-device-floppy me-1"></i>Simpan Draft
+                </button>
             </div>
         </div>
     </div>

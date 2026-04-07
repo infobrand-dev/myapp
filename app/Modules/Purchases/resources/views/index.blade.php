@@ -1,15 +1,25 @@
 @extends('layouts.admin')
 
+@section('title', 'Purchases')
+
 @section('content')
 @php
     $money = app(\App\Support\MoneyFormatter::class);
 @endphp
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h2 class="mb-0">Purchases</h2>
-        <div class="text-muted small">Daftar transaksi pembelian dari supplier.</div>
+
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Pembelian</div>
+            <h2 class="page-title">Purchases</h2>
+            <p class="text-muted mb-0">Daftar transaksi pembelian dari supplier.</p>
+        </div>
+        <div class="col-auto">
+            <a href="{{ route('purchases.create') }}" class="btn btn-primary">
+                <i class="ti ti-plus me-1"></i>Create Purchase
+            </a>
+        </div>
     </div>
-    <a href="{{ route('purchases.create') }}" class="btn btn-primary">Create Purchase</a>
 </div>
 
 <div class="card mb-3">
@@ -21,56 +31,74 @@
             <div class="col-md-2"><label class="form-label">Payment</label><select name="payment_status" class="form-select"><option value="">Semua payment</option>@foreach($paymentStatusOptions as $value => $label)<option value="{{ $value }}" @selected(($filters['payment_status'] ?? '') === $value)>{{ $label }}</option>@endforeach</select></div>
             <div class="col-md-1"><label class="form-label">From</label><input type="date" name="date_from" class="form-control" value="{{ $filters['date_from'] ?? '' }}"></div>
             <div class="col-md-1"><label class="form-label">To</label><input type="date" name="date_to" class="form-control" value="{{ $filters['date_to'] ?? '' }}"></div>
-            <div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-primary">Filter</button><a href="{{ route('purchases.index') }}" class="btn btn-outline-secondary">Reset</a></div>
+            <div class="col-12 d-flex gap-2">
+                <button type="submit" class="btn btn-outline-primary">Filter</button>
+                <a href="{{ route('purchases.index') }}" class="btn btn-outline-secondary">Reset</a>
+            </div>
         </form>
     </div>
 </div>
 
 <div class="card">
-    <div class="table-responsive">
-        <table class="table table-vcenter">
-            <thead>
-                <tr>
-                    <th>Purchase</th>
-                    <th>Supplier</th>
-                    <th>Items</th>
-                    <th>Totals</th>
-                    <th>Status</th>
-                    <th class="w-1"></th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($purchases as $purchase)
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-vcenter table-hover">
+                <thead>
                     <tr>
-                        <td>
-                            <a href="{{ route('purchases.show', $purchase) }}" class="text-decoration-none fw-semibold">{{ $purchase->purchase_number }}</a>
-                            <div class="text-muted small">{{ optional($purchase->purchase_date)->format('d M Y H:i') ?? '-' }}</div>
-                            <div class="text-muted small">{{ $purchase->supplier_invoice_number ?: '-' }}</div>
-                        </td>
-                        <td>{{ $purchase->supplier_name_snapshot ?: (optional($purchase->supplier)->name ?: '-') }}</td>
-                        <td>{{ $purchase->items_count }}</td>
-                        <td>
-                            <div>Grand: {{ $money->format((float) $purchase->grand_total, $purchase->currency_code) }}</div>
-                            <div class="text-muted small">Paid: {{ $money->format((float) $purchase->paid_total, $purchase->currency_code) }}</div>
-                        </td>
-                        <td>
-                            <div><span class="badge bg-secondary-lt text-secondary">{{ $statusOptions[$purchase->status] ?? ucfirst($purchase->status) }}</span></div>
-                            <div class="text-muted small">{{ $paymentStatusOptions[$purchase->payment_status] ?? ucfirst($purchase->payment_status) }}</div>
-                        </td>
-                        <td class="text-end">
-                            <div class="table-actions">
-                                @if($purchase->status === 'draft')
-                                    <a class="btn btn-icon btn-outline-secondary" href="{{ route('purchases.edit', $purchase) }}"><i class="ti ti-edit"></i></a>
-                                @endif
-                                <a class="btn btn-icon btn-outline-primary" href="{{ route('purchases.print', $purchase) }}"><i class="ti ti-printer"></i></a>
-                            </div>
-                        </td>
+                        <th>Purchase</th>
+                        <th>Supplier</th>
+                        <th>Items</th>
+                        <th>Totals</th>
+                        <th>Status</th>
+                        <th class="w-1"></th>
                     </tr>
-                @empty
-                    <tr><td colspan="6" class="text-center text-muted">Belum ada pembelian.</td></tr>
-                @endforelse
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @forelse($purchases as $purchase)
+                        <tr>
+                            <td>
+                                <a href="{{ route('purchases.show', $purchase) }}" class="text-decoration-none fw-semibold">{{ $purchase->purchase_number }}</a>
+                                <div class="text-muted small">{{ optional($purchase->purchase_date)->format('d M Y H:i') ?? '-' }}</div>
+                                <div class="text-muted small">{{ $purchase->supplier_invoice_number ?: '-' }}</div>
+                            </td>
+                            <td>{{ $purchase->supplier_name_snapshot ?: (optional($purchase->supplier)->name ?: '-') }}</td>
+                            <td>{{ $purchase->items_count }}</td>
+                            <td>
+                                <div>Grand: {{ $money->format((float) $purchase->grand_total, $purchase->currency_code) }}</div>
+                                <div class="text-muted small">Paid: {{ $money->format((float) $purchase->paid_total, $purchase->currency_code) }}</div>
+                            </td>
+                            <td>
+                                <div><span class="badge bg-secondary-lt text-secondary">{{ $statusOptions[$purchase->status] ?? ucfirst($purchase->status) }}</span></div>
+                                <div class="text-muted small">{{ $paymentStatusOptions[$purchase->payment_status] ?? ucfirst($purchase->payment_status) }}</div>
+                            </td>
+                            <td class="text-end align-middle">
+                                <div class="table-actions">
+                                    <a class="btn btn-icon btn-sm btn-outline-secondary" href="{{ route('purchases.show', $purchase) }}" title="Lihat Detail">
+                                        <i class="ti ti-eye"></i>
+                                    </a>
+                                    @if($purchase->status === 'draft')
+                                        <a class="btn btn-icon btn-sm btn-outline-primary" href="{{ route('purchases.edit', $purchase) }}" title="Edit">
+                                            <i class="ti ti-pencil"></i>
+                                        </a>
+                                    @endif
+                                    <a class="btn btn-icon btn-sm btn-outline-secondary" href="{{ route('purchases.print', $purchase) }}" title="Print">
+                                        <i class="ti ti-printer"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <i class="ti ti-shopping-cart text-muted d-block mb-2" style="font-size:2rem;"></i>
+                                <div class="text-muted mb-2">Belum ada pembelian.</div>
+                                <a href="{{ route('purchases.create') }}" class="btn btn-sm btn-primary">Create Purchase</a>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
     <div class="card-footer">{{ $purchases->links() }}</div>
 </div>

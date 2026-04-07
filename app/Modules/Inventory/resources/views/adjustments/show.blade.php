@@ -1,19 +1,28 @@
 @extends('layouts.admin')
 
+@section('title', 'Detail Adjustment')
+
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h2 class="mb-0">{{ $adjustment->code }}</h2>
-        <div class="text-muted small">{{ $adjustment->location?->name }} | {{ $adjustment->adjustment_date?->format('d/m/Y') }}</div>
-    </div>
-    <div class="d-flex gap-2">
-        <a href="{{ route('inventory.adjustments.index') }}" class="btn btn-outline-secondary">Kembali</a>
-        @if($adjustment->isDraft() && auth()->user()?->can('inventory.finalize-stock-adjustment'))
-            <form method="POST" action="{{ route('inventory.adjustments.finalize', $adjustment) }}">
-                @csrf
-                <button class="btn btn-primary">Finalize</button>
-            </form>
-        @endif
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Inventori · Stock Adjustment</div>
+            <h2 class="page-title">{{ $adjustment->code }}</h2>
+            <p class="text-muted mb-0">{{ $adjustment->location?->name }} | {{ $adjustment->adjustment_date?->format('d/m/Y') }}</p>
+        </div>
+        <div class="col-auto d-flex gap-2">
+            <a href="{{ route('inventory.adjustments.index') }}" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left me-1"></i>Kembali
+            </a>
+            @if($adjustment->isDraft() && auth()->user()?->can('inventory.finalize-stock-adjustment'))
+                <form method="POST" action="{{ route('inventory.adjustments.finalize', $adjustment) }}">
+                    @csrf
+                    <button class="btn btn-primary">
+                        <i class="ti ti-check me-1"></i>Finalize
+                    </button>
+                </form>
+            @endif
+        </div>
     </div>
 </div>
 
@@ -26,7 +35,7 @@
         <div class="card">
             <div class="card-header"><h3 class="card-title">Header</h3></div>
             <div class="card-body">
-                <div class="mb-2"><div class="text-muted small">Status</div><div><span class="badge {{ $adjustment->isFinalized() ? 'bg-success-lt text-success' : 'bg-yellow-lt text-yellow' }}">{{ $adjustment->status }}</span></div></div>
+                <div class="mb-2"><div class="text-muted small">Status</div><div><span class="badge {{ $adjustment->isFinalized() ? 'bg-green-lt text-green' : 'bg-orange-lt text-orange' }}">{{ $adjustment->status }}</span></div></div>
                 <div class="mb-2"><div class="text-muted small">Lokasi</div><div>{{ $adjustment->location?->name }}</div></div>
                 <div class="mb-2"><div class="text-muted small">Reason Code</div><div>{{ $adjustment->reason_code }}</div></div>
                 <div class="mb-2"><div class="text-muted small">Reason</div><div>{{ $adjustment->reason_text }}</div></div>
@@ -40,32 +49,34 @@
     <div class="col-lg-8">
         <div class="card">
             <div class="card-header"><h3 class="card-title">Items</h3></div>
-            <div class="table-responsive">
-                <table class="table table-vcenter">
-                    <thead><tr><th>Produk</th><th>Arah</th><th>Qty</th><th>Notes</th><th>Movement</th></tr></thead>
-                    <tbody>
-                        @foreach($adjustment->items as $item)
-                            <tr>
-                                <td>{{ $item->product?->name }} @if($item->variant)<div class="text-muted small">{{ $item->variant->name }}</div>@endif</td>
-                                <td>
-                                    <span class="badge {{ $item->direction === 'in' ? 'bg-success-lt text-success' : 'bg-danger-lt text-danger' }}">
-                                        {{ $item->direction === 'in' ? 'Increase' : 'Decrease' }}
-                                    </span>
-                                </td>
-                                <td>{{ number_format((float) $item->quantity, 4, ',', '.') }}</td>
-                                <td>{{ $item->notes ?: '-' }}</td>
-                                <td>
-                                    @if($item->movement)
-                                        <div>{{ $item->movement->movement_type }}</div>
-                                        <div class="text-muted small">#{{ $item->movement->id }}</div>
-                                    @else
-                                        <span class="text-muted small">Belum diposting</span>
-                                    @endif
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-vcenter">
+                        <thead><tr><th>Produk</th><th>Arah</th><th>Qty</th><th>Notes</th><th>Movement</th></tr></thead>
+                        <tbody>
+                            @foreach($adjustment->items as $item)
+                                <tr>
+                                    <td>{{ $item->product?->name }} @if($item->variant)<div class="text-muted small">{{ $item->variant->name }}</div>@endif</td>
+                                    <td>
+                                        <span class="badge {{ $item->direction === 'in' ? 'bg-green-lt text-green' : 'bg-red-lt text-red' }}">
+                                            {{ $item->direction === 'in' ? 'Increase' : 'Decrease' }}
+                                        </span>
+                                    </td>
+                                    <td>{{ number_format((float) $item->quantity, 4, ',', '.') }}</td>
+                                    <td>{{ $item->notes ?: '-' }}</td>
+                                    <td>
+                                        @if($item->movement)
+                                            <div>{{ $item->movement->movement_type }}</div>
+                                            <div class="text-muted small">#{{ $item->movement->id }}</div>
+                                        @else
+                                            <span class="text-muted small">Belum diposting</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>

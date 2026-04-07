@@ -1,9 +1,21 @@
 @extends('layouts.admin')
 
+@section('title', 'Buat Stock Opname')
+
 @section('content')
-<div class="mb-3">
-    <h2 class="mb-0">Buat Stock Opname</h2>
-    <div class="text-muted small">Buat sesi opname stok fisik.</div>
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Inventori · Stock Opname</div>
+            <h2 class="page-title">Buat Stock Opname</h2>
+            <p class="text-muted mb-0">Buat sesi opname stok fisik.</p>
+        </div>
+        <div class="col-auto">
+            <a href="{{ route('inventory.opnames.index') }}" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left me-1"></i>Kembali
+            </a>
+        </div>
+    </div>
 </div>
 
 @if($errors->any())
@@ -83,9 +95,11 @@
                 </div>
             </div>
 
-            <div class="mt-3 d-flex gap-2">
-                <button class="btn btn-primary" {{ $previewStocks->isEmpty() ? 'disabled' : '' }}>Buat Draft Opname</button>
+            <div class="card-footer d-flex justify-content-end gap-2">
                 <a href="{{ route('inventory.opnames.index') }}" class="btn btn-outline-secondary">Batal</a>
+                <button class="btn btn-primary" {{ $previewStocks->isEmpty() ? 'disabled' : '' }}>
+                    <i class="ti ti-device-floppy me-1"></i>Buat Draft Opname
+                </button>
             </div>
         </div>
     </div>

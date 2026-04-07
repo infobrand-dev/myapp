@@ -1,21 +1,29 @@
 @extends('layouts.admin')
 
+@section('title', 'Detail Transfer')
+
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h2 class="mb-0">{{ $transfer->code }}</h2>
-        <div class="text-muted small">{{ $transfer->sourceLocation?->name }} -> {{ $transfer->destinationLocation?->name }}</div>
-    </div>
-    <div class="d-flex gap-2">
-        @if($transfer->status === 'draft')
-            <form method="POST" action="{{ route('inventory.transfers.approve', $transfer) }}">@csrf<button class="btn btn-outline-primary">Approve</button></form>
-        @endif
-        @if(in_array($transfer->status, ['draft', 'approved'], true))
-            <form method="POST" action="{{ route('inventory.transfers.send', $transfer) }}">@csrf<button class="btn btn-primary">Send</button></form>
-        @endif
-        @if($transfer->status === 'sent')
-            <form method="POST" action="{{ route('inventory.transfers.receive', $transfer) }}">@csrf<button class="btn btn-success">Receive</button></form>
-        @endif
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Inventori · Stock Transfer</div>
+            <h2 class="page-title">{{ $transfer->code }}</h2>
+            <p class="text-muted mb-0">{{ $transfer->sourceLocation?->name }} → {{ $transfer->destinationLocation?->name }}</p>
+        </div>
+        <div class="col-auto d-flex gap-2 flex-wrap">
+            @if($transfer->status === 'draft')
+                <form method="POST" action="{{ route('inventory.transfers.approve', $transfer) }}">@csrf<button class="btn btn-outline-primary">Approve</button></form>
+            @endif
+            @if(in_array($transfer->status, ['draft', 'approved'], true))
+                <form method="POST" action="{{ route('inventory.transfers.send', $transfer) }}">@csrf<button class="btn btn-primary">Send</button></form>
+            @endif
+            @if($transfer->status === 'sent')
+                <form method="POST" action="{{ route('inventory.transfers.receive', $transfer) }}">@csrf<button class="btn btn-success">Receive</button></form>
+            @endif
+            <a href="{{ route('inventory.transfers.index') }}" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left me-1"></i>Kembali
+            </a>
+        </div>
     </div>
 </div>
 
@@ -35,20 +43,22 @@
     <div class="col-lg-8">
         <div class="card">
             <div class="card-header"><h3 class="card-title">Items</h3></div>
-            <div class="table-responsive">
-                <table class="table table-vcenter">
-                    <thead><tr><th>Produk</th><th>Requested</th><th>Sent</th><th>Received</th></tr></thead>
-                    <tbody>
-                        @foreach($transfer->items as $item)
-                            <tr>
-                                <td>{{ $item->product?->name }} @if($item->variant)<div class="text-muted small">{{ $item->variant->name }}</div>@endif</td>
-                                <td>{{ number_format((float) $item->requested_quantity, 2, ',', '.') }}</td>
-                                <td>{{ number_format((float) $item->sent_quantity, 2, ',', '.') }}</td>
-                                <td>{{ number_format((float) $item->received_quantity, 2, ',', '.') }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-vcenter">
+                        <thead><tr><th>Produk</th><th>Requested</th><th>Sent</th><th>Received</th></tr></thead>
+                        <tbody>
+                            @foreach($transfer->items as $item)
+                                <tr>
+                                    <td>{{ $item->product?->name }} @if($item->variant)<div class="text-muted small">{{ $item->variant->name }}</div>@endif</td>
+                                    <td>{{ number_format((float) $item->requested_quantity, 2, ',', '.') }}</td>
+                                    <td>{{ number_format((float) $item->sent_quantity, 2, ',', '.') }}</td>
+                                    <td>{{ number_format((float) $item->received_quantity, 2, ',', '.') }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>

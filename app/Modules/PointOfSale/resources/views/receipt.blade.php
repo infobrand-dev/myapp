@@ -34,7 +34,7 @@
     @endphp
     <div class="receipt-page">
         <div class="receipt-header">
-            <div class="strong" style="font-size:1.1rem;">MYAPP STORE</div>
+            <div class="strong" style="font-size:1.1rem;">{{ strtoupper(config('app.name')) }}</div>
             <div class="small">Point Of Sale Receipt</div>
             <div class="small">Invoice {{ $sale->sale_number }}</div>
             @if(!empty($documentSettings['document_header']))

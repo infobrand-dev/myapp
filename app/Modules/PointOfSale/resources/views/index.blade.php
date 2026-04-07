@@ -1,5 +1,7 @@
 @extends('layouts.admin')
 
+@section('title', 'POS Terminal')
+
 @section('content')
 @php
     $defaultCurrency = app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency();

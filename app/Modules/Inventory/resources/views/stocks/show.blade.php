@@ -1,12 +1,21 @@
 @extends('layouts.admin')
 
+@section('title', 'Detail Stok')
+
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h2 class="mb-0">{{ $stock->product?->name }}</h2>
-        <div class="text-muted small">{{ $stock->variant?->name ?? '-' }} | {{ $stock->location?->name }}</div>
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Inventori · Stock List</div>
+            <h2 class="page-title">{{ $stock->product?->name }}</h2>
+            <p class="text-muted mb-0">{{ $stock->variant?->name ?? '-' }} | {{ $stock->location?->name }}</p>
+        </div>
+        <div class="col-auto">
+            <a href="{{ route('inventory.stocks.index') }}" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left me-1"></i>Kembali
+            </a>
+        </div>
     </div>
-    <a href="{{ route('inventory.stocks.index') }}" class="btn btn-outline-secondary">Kembali</a>
 </div>
 
 <div class="row g-3">
@@ -25,25 +34,32 @@
     <div class="col-lg-8">
         <div class="card">
             <div class="card-header"><h3 class="card-title">Stock Card</h3></div>
-            <div class="table-responsive">
-                <table class="table table-vcenter">
-                    <thead><tr><th>Waktu</th><th>Tipe</th><th>Ref</th><th>Before</th><th>Qty</th><th>After</th><th>User</th></tr></thead>
-                    <tbody>
-                        @forelse($stock->movements()->with('performer')->orderByDesc('occurred_at')->orderByDesc('id')->get() as $movement)
-                            <tr>
-                                <td>{{ $movement->occurred_at?->format('d/m/Y H:i') }}</td>
-                                <td>{{ $movement->movement_type }}</td>
-                                <td>{{ $movement->reference_type ? class_basename($movement->reference_type) . '#' . $movement->reference_id : '-' }}</td>
-                                <td>{{ number_format((float) $movement->before_quantity, 2, ',', '.') }}</td>
-                                <td>{{ $movement->direction === 'out' ? '-' : '+' }}{{ number_format((float) $movement->quantity, 2, ',', '.') }}</td>
-                                <td>{{ number_format((float) $movement->after_quantity, 2, ',', '.') }}</td>
-                                <td>{{ $movement->performer?->name ?? '-' }}</td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="7" class="text-center text-muted">Belum ada mutasi.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-vcenter">
+                        <thead><tr><th>Waktu</th><th>Tipe</th><th>Ref</th><th>Before</th><th>Qty</th><th>After</th><th>User</th></tr></thead>
+                        <tbody>
+                            @forelse($stock->movements()->with('performer')->orderByDesc('occurred_at')->orderByDesc('id')->get() as $movement)
+                                <tr>
+                                    <td>{{ $movement->occurred_at?->format('d/m/Y H:i') }}</td>
+                                    <td>{{ $movement->movement_type }}</td>
+                                    <td>{{ $movement->reference_type ? class_basename($movement->reference_type) . '#' . $movement->reference_id : '-' }}</td>
+                                    <td>{{ number_format((float) $movement->before_quantity, 2, ',', '.') }}</td>
+                                    <td>{{ $movement->direction === 'out' ? '-' : '+' }}{{ number_format((float) $movement->quantity, 2, ',', '.') }}</td>
+                                    <td>{{ number_format((float) $movement->after_quantity, 2, ',', '.') }}</td>
+                                    <td>{{ $movement->performer?->name ?? '-' }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="7" class="text-center py-5">
+                                        <i class="ti ti-history text-muted d-block mb-2" style="font-size:2rem;"></i>
+                                        <div class="text-muted">Belum ada mutasi.</div>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>

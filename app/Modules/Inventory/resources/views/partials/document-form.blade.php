@@ -72,9 +72,11 @@
                 </div>
             </div>
 
-            <div class="mt-3 d-flex gap-2">
-                <button class="btn btn-primary">Simpan</button>
+            <div class="card-footer d-flex justify-content-end gap-2">
                 <a href="{{ $cancelRoute }}" class="btn btn-outline-secondary">Batal</a>
+                <button class="btn btn-primary">
+                    <i class="ti ti-device-floppy me-1"></i>Simpan
+                </button>
             </div>
         </div>
     </div>

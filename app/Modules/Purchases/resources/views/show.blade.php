@@ -1,24 +1,43 @@
 @extends('layouts.admin')
 
+@section('title', 'Detail Purchase')
+
 @section('content')
 @php
     $money = app(\App\Support\MoneyFormatter::class);
 @endphp
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h2 class="mb-0">{{ $purchase->purchase_number }}</h2>
-        <div class="text-muted small">{{ optional($purchase->purchase_date)->format('d M Y H:i') ?? '-' }} | Supplier: {{ $purchase->supplier_name_snapshot ?: '-' }}</div>
-    </div>
-    <div class="btn-list">
-        @if($purchase->status === 'draft')
-            <a href="{{ route('purchases.edit', $purchase) }}" class="btn btn-outline-secondary">Edit Draft</a>
-            <form method="POST" action="{{ route('purchases.finalize', $purchase) }}">@csrf<button type="submit" class="btn btn-primary">Finalize</button></form>
-        @endif
-        @if(in_array($purchase->status, ['confirmed', 'partial_received']))
-            <a href="{{ route('purchases.receive', $purchase) }}" class="btn btn-outline-success">Receive Goods</a>
-        @endif
-        <a href="{{ route('purchases.print', $purchase) }}" class="btn btn-outline-primary">Print</a>
-        <a href="{{ route('purchases.index') }}" class="btn btn-outline-secondary">Kembali</a>
+
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Pembelian</div>
+            <h2 class="page-title">{{ $purchase->purchase_number }}</h2>
+            <p class="text-muted mb-0">{{ optional($purchase->purchase_date)->format('d M Y H:i') ?? '-' }} | Supplier: {{ $purchase->supplier_name_snapshot ?: '-' }}</p>
+        </div>
+        <div class="col-auto d-flex gap-2 flex-wrap">
+            @if($purchase->status === 'draft')
+                <a href="{{ route('purchases.edit', $purchase) }}" class="btn btn-outline-secondary">
+                    <i class="ti ti-pencil me-1"></i>Edit Draft
+                </a>
+                <form method="POST" action="{{ route('purchases.finalize', $purchase) }}">
+                    @csrf
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-check me-1"></i>Finalize
+                    </button>
+                </form>
+            @endif
+            @if(in_array($purchase->status, ['confirmed', 'partial_received']))
+                <a href="{{ route('purchases.receive', $purchase) }}" class="btn btn-outline-success">
+                    <i class="ti ti-package me-1"></i>Receive Goods
+                </a>
+            @endif
+            <a href="{{ route('purchases.print', $purchase) }}" class="btn btn-outline-secondary" title="Print">
+                <i class="ti ti-printer me-1"></i>Print
+            </a>
+            <a href="{{ route('purchases.index') }}" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left me-1"></i>Kembali
+            </a>
+        </div>
     </div>
 </div>
 
@@ -26,21 +45,23 @@
     <div class="col-lg-8">
         <div class="card">
             <div class="card-header"><h3 class="card-title">Purchase Items</h3></div>
-            <div class="table-responsive">
-                <table class="table table-vcenter">
-                    <thead><tr><th>Item</th><th>Qty</th><th>Received</th><th>Cost</th><th>Total</th></tr></thead>
-                    <tbody>
-                    @foreach($purchase->items as $item)
-                        <tr>
-                            <td><div class="fw-semibold">{{ $item->product_name_snapshot }}</div><div class="text-muted small">{{ $item->variant_name_snapshot ?: '-' }} | SKU: {{ $item->sku_snapshot ?: '-' }}</div></td>
-                            <td>{{ number_format((float) $item->qty, 2, ',', '.') }}</td>
-                            <td>{{ number_format((float) $item->qty_received, 2, ',', '.') }}</td>
-                            <td>{{ $money->format((float) $item->unit_cost, $purchase->currency_code) }}</td>
-                            <td>{{ $money->format((float) $item->line_total, $purchase->currency_code) }}</td>
-                        </tr>
-                    @endforeach
-                    </tbody>
-                </table>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-vcenter">
+                        <thead><tr><th>Item</th><th>Qty</th><th>Received</th><th>Cost</th><th>Total</th></tr></thead>
+                        <tbody>
+                        @foreach($purchase->items as $item)
+                            <tr>
+                                <td><div class="fw-semibold">{{ $item->product_name_snapshot }}</div><div class="text-muted small">{{ $item->variant_name_snapshot ?: '-' }} | SKU: {{ $item->sku_snapshot ?: '-' }}</div></td>
+                                <td>{{ number_format((float) $item->qty, 2, ',', '.') }}</td>
+                                <td>{{ number_format((float) $item->qty_received, 2, ',', '.') }}</td>
+                                <td>{{ $money->format((float) $item->unit_cost, $purchase->currency_code) }}</td>
+                                <td>{{ $money->format((float) $item->line_total, $purchase->currency_code) }}</td>
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -75,7 +96,7 @@
                     <form method="POST" action="{{ route('purchases.cancel', $purchase) }}" class="mb-3">@csrf<label class="form-label">Cancel Reason</label><textarea name="reason" class="form-control" rows="2"></textarea><button type="submit" class="btn btn-outline-warning w-100 mt-2">Cancel Draft</button></form>
                 @endif
                 @if(in_array($purchase->status, ['confirmed', 'partial_received', 'received']))
-                    <form method="POST" action="{{ route('purchases.void', $purchase) }}">@csrf<label class="form-label">Void Reason</label><textarea name="reason" class="form-control" rows="3" required></textarea><button type="submit" class="btn btn-danger w-100 mt-2">Void Purchase</button></form>
+                    <form method="POST" action="{{ route('purchases.void', $purchase) }}">@csrf<label class="form-label">Void Reason</label><textarea name="reason" class="form-control" rows="3" required></textarea><button type="submit" class="btn btn-outline-danger w-100 mt-2">Void Purchase</button></form>
                 @endif
             </div>
         </div>

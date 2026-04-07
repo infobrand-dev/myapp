@@ -93,6 +93,7 @@
 .pos-payment-section { padding:.6rem .75rem; border-top:1px dashed #ddd5c5; }
 .pos-payment-row { display:flex; gap:.4rem; align-items:center; margin-bottom:.4rem; }
 .pos-actions { display:flex; gap:.4rem; padding:.5rem .75rem .65rem; }
+.pos-actions .btn { min-height:3rem; }
 .pos-btn-checkout { flex:3; }
 .pos-btn-hold, .pos-btn-clear { flex:1; }
 
@@ -309,7 +310,11 @@
                                     <option :value="method.code" x-text="method.name"></option>
                                 </template>
                             </select>
-                            <input type="number" step="0.01" min="0" class="form-control form-control-sm" style="border-radius:.65rem;flex:2;" x-model="payment.amount" placeholder="Jumlah">
+                            <input type="number" step="1" min="0" class="form-control form-control-sm" style="border-radius:.65rem;flex:2;"
+                                x-model="payment.amount"
+                                @focus="$event.target.select()"
+                                @blur="payment.amount = cleanNumber(payment.amount)"
+                                placeholder="Jumlah">
                             <button type="button" class="btn btn-sm btn-ghost-danger btn-icon" @click="removePaymentRow(index)" x-show="payments.length > 1" title="Hapus">
                                 <i class="ti ti-x"></i>
                             </button>
@@ -322,8 +327,11 @@
                     {{-- Cash received / change --}}
                     <template x-if="hasCashPayment()">
                         <div class="d-flex gap-2 align-items-center mt-1">
-                            <input type="number" step="0.01" min="0" class="form-control form-control-sm" style="border-radius:.65rem;flex:1;"
-                                x-model="cashReceivedAmount" placeholder="Cash diterima">
+                            <input type="number" step="1" min="0" class="form-control form-control-sm" style="border-radius:.65rem;flex:1;"
+                                x-model="cashReceivedAmount"
+                                @focus="$event.target.select()"
+                                @blur="cashReceivedAmount = cleanNumber(cashReceivedAmount)"
+                                placeholder="Cash diterima">
                             <div class="text-muted" style="font-size:.78rem;white-space:nowrap;">
                                 Kembalian: <strong x-text="money(changePreview())"></strong>
                             </div>
@@ -333,15 +341,17 @@
 
                 {{-- Action buttons --}}
                 <div class="pos-actions">
-                    <button type="button" class="btn btn-outline-warning pos-btn-hold" style="border-radius:.8rem;font-weight:700;font-size:.82rem;" @click="holdCart()">
-                        <i class="ti ti-shopping-cart-pause"></i>
+                    <button type="button" class="btn btn-outline-warning pos-btn-hold" style="border-radius:.8rem;font-weight:700;font-size:.85rem;display:flex;align-items:center;justify-content:center;gap:.35rem;" @click="holdCart()" title="Hold Cart">
+                        <i class="ti ti-shopping-cart-pause" style="font-size:1.1rem;"></i>
+                        <span style="font-size:.78rem;">Hold</span>
                     </button>
-                    <button type="button" class="btn btn-outline-secondary pos-btn-clear" style="border-radius:.8rem;font-weight:700;font-size:.82rem;" @click="clearCart()">
-                        <i class="ti ti-trash"></i>
+                    <button type="button" class="btn btn-outline-secondary pos-btn-clear" style="border-radius:.8rem;font-weight:700;font-size:.85rem;display:flex;align-items:center;justify-content:center;gap:.35rem;" @click="clearCart()" title="Clear Cart">
+                        <i class="ti ti-trash" style="font-size:1.1rem;"></i>
+                        <span style="font-size:.78rem;">Clear</span>
                     </button>
-                    <button type="button" class="btn btn-primary pos-btn-checkout" style="border-radius:.8rem;font-weight:700;" @click="checkout()">
+                    <button type="button" class="btn btn-primary pos-btn-checkout" style="border-radius:.8rem;font-weight:700;font-size:.95rem;" @click="checkout()">
                         <i class="ti ti-circle-check me-1"></i>Checkout
-                        <span class="ms-1 opacity-75" style="font-size:.75rem;">F9</span>
+                        <span class="ms-1 opacity-60" style="font-size:.73rem;">F9</span>
                     </button>
                 </div>
 
@@ -758,6 +768,13 @@ function posScreen(config) {
                 this.cashReceivedAmount = '';
                 this.payments = [{ payment_method: 'cash', amount: '', reference_number: '' }];
             } catch (error) { this.notify('error', error.message); }
+        },
+
+        // Strip leading zeros, return clean integer string (or '' if empty/zero)
+        cleanNumber(value) {
+            const num = parseInt(value, 10);
+            if (isNaN(num) || num === 0) return '';
+            return String(num);
         },
 
         changePreview() {

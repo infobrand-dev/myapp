@@ -6,6 +6,48 @@
 @php
     $defaultCurrency = app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency();
     $money = app(\App\Support\MoneyFormatter::class);
+    $posConfig = [
+        'initialProducts' => $initialProducts->map(fn ($product) => [
+            'sellable_key' => 'product:' . $product->id,
+            'product_id' => $product->id,
+            'product_variant_id' => null,
+            'name' => $product->name,
+            'variant_name' => null,
+            'sku' => $product->sku,
+            'barcode' => $product->barcode,
+            'price' => (float) $product->sell_price,
+            'unit' => null,
+        ])->values(),
+        'initialCustomers' => $initialCustomers->map(fn ($customer) => [
+            'id' => $customer->id,
+            'name' => $customer->name,
+            'phone' => $customer->mobile ?: $customer->phone,
+            'email' => $customer->email,
+        ])->values(),
+        'paymentMethods' => $paymentMethods->map(fn ($method) => [
+            'id' => $method->id,
+            'code' => $method->code,
+            'name' => $method->name,
+            'type' => $method->type,
+            'requires_reference' => (bool) $method->requires_reference,
+        ])->values(),
+        'defaultCurrency' => $defaultCurrency,
+        'routes' => [
+            'cartActive' => route('pos.cart.active'),
+            'cartUpdate' => route('pos.cart.update'),
+            'cartClear' => route('pos.cart.clear'),
+            'cartItems' => route('pos.cart.items.store'),
+            'cartItemBase' => url('/pos/cart/items'),
+            'barcodeScan' => route('pos.barcode.scan'),
+            'heldIndex' => route('pos.held.index'),
+            'heldStore' => route('pos.held.store'),
+            'heldResumeBase' => url('/pos/held-carts'),
+            'productSearch' => route('pos.products.search'),
+            'customerSearch' => route('pos.customers.search'),
+            'discountEvaluate' => route('pos.discounts.evaluate'),
+            'checkout' => route('pos.checkout.store'),
+        ],
+    ];
 @endphp
 <style>
     .pos-shell { --pos-accent:#0f766e; --pos-accent-rgb:15,118,110; --pos-ink:#16302b; --pos-panel:#fffdf9; --pos-line:#e7dccd; min-height:calc(100vh - 6.5rem); background:radial-gradient(circle at top left, rgba(var(--pos-accent-rgb),.10), transparent 24rem), linear-gradient(180deg,#faf5ee 0%,#f5f0e7 100%); border-radius:1.5rem; padding:1rem; }
@@ -30,27 +72,7 @@
 </style>
 
 <div class="pos-shell"
-    x-data="posScreen({
-        initialProducts: @json($initialProducts->map(function ($product) { return ['sellable_key' => 'product:' . $product->id, 'product_id' => $product->id, 'product_variant_id' => null, 'name' => $product->name, 'variant_name' => null, 'sku' => $product->sku, 'barcode' => $product->barcode, 'price' => (float) $product->sell_price, 'unit' => null]; })->values()),
-        initialCustomers: @json($initialCustomers->map(function ($customer) { return ['id' => $customer->id, 'name' => $customer->name, 'phone' => $customer->mobile ?: $customer->phone, 'email' => $customer->email]; })->values()),
-        paymentMethods: @json($paymentMethods->map(function ($method) { return ['id' => $method->id, 'code' => $method->code, 'name' => $method->name, 'type' => $method->type, 'requires_reference' => (bool) $method->requires_reference]; })->values()),
-        defaultCurrency: @json($defaultCurrency),
-        routes: {
-            cartActive: '{{ route('pos.cart.active') }}',
-            cartUpdate: '{{ route('pos.cart.update') }}',
-            cartClear: '{{ route('pos.cart.clear') }}',
-            cartItems: '{{ route('pos.cart.items.store') }}',
-            cartItemBase: '{{ url('/pos/cart/items') }}',
-            barcodeScan: '{{ route('pos.barcode.scan') }}',
-            heldIndex: '{{ route('pos.held.index') }}',
-            heldStore: '{{ route('pos.held.store') }}',
-            heldResumeBase: '{{ url('/pos/held-carts') }}',
-            productSearch: '{{ route('pos.products.search') }}',
-            customerSearch: '{{ route('pos.customers.search') }}',
-            discountEvaluate: '{{ route('pos.discounts.evaluate') }}',
-            checkout: '{{ route('pos.checkout.store') }}',
-        }
-    })"
+    x-data='posScreen(@json($posConfig))'
     x-init="init()">
 
     <div class="pos-topbar mb-3">

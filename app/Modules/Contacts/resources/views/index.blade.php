@@ -3,11 +3,13 @@
 @section('title', 'Contacts')
 
 @section('content')
-@php($hooks = app(\App\Support\HookManager::class))
-@php($hasFilters = !empty(array_filter($filters ?? [])))
-@php($typeFilter = $filters['type'] ?? '')
-@php($searchFilter = $filters['search'] ?? '')
-@php($avatarPalette = ['#206bc4','#2fb344','#f59f00','#d63939','#ae3ec9','#0ca678','#4299e1','#e67700','#f76707','#1c7ed6'])
+@php
+    $hooks = app(\App\Support\HookManager::class);
+    $hasFilters = !empty(array_filter($filters ?? []));
+    $typeFilter = $filters['type'] ?? '';
+    $searchFilter = $filters['search'] ?? '';
+    $avatarPalette = ['#206bc4', '#2fb344', '#f59f00', '#d63939', '#ae3ec9', '#0ca678', '#4299e1', '#e67700', '#f76707', '#1c7ed6'];
+@endphp
 
 <div class="page-header">
     <div class="row align-items-center">

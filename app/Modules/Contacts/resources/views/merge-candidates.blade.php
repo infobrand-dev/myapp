@@ -83,7 +83,9 @@
                         </thead>
                         <tbody>
                             @foreach($contacts as $contact)
-                                @php($contactId = (int) $contact->id)
+                                @php
+                                    $contactId = (int) $contact->id;
+                                @endphp
                                 <tr>
                                     <td class="text-center ps-3">
                                         <input class="form-check-input" type="radio"

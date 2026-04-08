@@ -3,7 +3,9 @@
 @section('title', $contact->name)
 
 @section('content')
-@php($hooks = app(\App\Support\HookManager::class))
+@php
+    $hooks = app(\App\Support\HookManager::class);
+@endphp
 
 <div class="page-header">
     <div class="row align-items-center">

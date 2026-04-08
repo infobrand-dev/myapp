@@ -33,6 +33,85 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.1/dist/tabler-icons.min.css">
     <link rel="stylesheet" href="{{ mix('css/app.css') }}">
+    <style>
+        .app-toast-stack {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1085;
+            width: min(26rem, calc(100vw - 2rem));
+            display: grid;
+            gap: .75rem;
+            pointer-events: none;
+        }
+        .app-toast {
+            pointer-events: auto;
+            border-radius: 18px;
+            border: 1px solid rgba(15, 23, 42, .08);
+            background: #fff;
+            box-shadow: 0 18px 48px rgba(15, 23, 42, .12);
+            overflow: hidden;
+            transform: translateY(-8px);
+            opacity: 0;
+            transition: opacity .18s ease, transform .18s ease;
+        }
+        .app-toast.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .app-toast.is-hiding {
+            opacity: 0;
+            transform: translateY(-8px);
+        }
+        .app-toast__bar {
+            width: 4px;
+            flex: 0 0 4px;
+        }
+        .app-toast--success .app-toast__bar { background: #16a34a; }
+        .app-toast--danger .app-toast__bar { background: #dc2626; }
+        .app-toast--warning .app-toast__bar { background: #d97706; }
+        .app-toast--info .app-toast__bar { background: #2563eb; }
+        .app-toast__body {
+            display: flex;
+            align-items: flex-start;
+            gap: .85rem;
+            padding: .95rem 1rem;
+        }
+        .app-toast__icon {
+            font-size: 1.1rem;
+            line-height: 1;
+            margin-top: .1rem;
+        }
+        .app-toast--success .app-toast__icon { color: #15803d; }
+        .app-toast--danger .app-toast__icon { color: #b91c1c; }
+        .app-toast--warning .app-toast__icon { color: #b45309; }
+        .app-toast--info .app-toast__icon { color: #1d4ed8; }
+        .app-toast__content {
+            min-width: 0;
+            flex: 1 1 auto;
+            color: #0f172a;
+            font-weight: 500;
+        }
+        .app-toast__close {
+            border: 0;
+            background: transparent;
+            color: #94a3b8;
+            padding: 0;
+            line-height: 1;
+            font-size: 1.05rem;
+        }
+        .app-toast__close:hover {
+            color: #475569;
+        }
+        @media (max-width: 767.98px) {
+            .app-toast-stack {
+                top: .75rem;
+                right: .75rem;
+                left: .75rem;
+                width: auto;
+            }
+        }
+    </style>
     @stack('styles')
 </head>
 <body class="bg-body {{ request()->attributes->get('platform_admin_host') ? 'platform-admin-host' : '' }}">
@@ -40,6 +119,41 @@
 
     {{-- Mobile sidebar backdrop --}}
     <div id="sidebar-backdrop" class="sidebar-backdrop" aria-hidden="true"></div>
+
+    @php
+        $flashToasts = collect([
+            session('status') ?? session('success')
+                ? ['tone' => 'success', 'icon' => 'ti ti-circle-check', 'message' => session('status') ?? session('success')]
+                : null,
+            session('error')
+                ? ['tone' => 'danger', 'icon' => 'ti ti-alert-circle', 'message' => session('error')]
+                : null,
+            session('warning')
+                ? ['tone' => 'warning', 'icon' => 'ti ti-alert-triangle', 'message' => session('warning')]
+                : null,
+            session('info')
+                ? ['tone' => 'info', 'icon' => 'ti ti-info-circle', 'message' => session('info')]
+                : null,
+        ])->filter()->values();
+    @endphp
+    @if($flashToasts->isNotEmpty())
+        <div class="app-toast-stack" id="app-toast-stack" aria-live="polite" aria-atomic="true">
+            @foreach($flashToasts as $toast)
+                <div class="app-toast app-toast--{{ $toast['tone'] }}" data-toast>
+                    <div class="d-flex">
+                        <div class="app-toast__bar"></div>
+                        <div class="app-toast__body">
+                            <i class="{{ $toast['icon'] }} app-toast__icon" aria-hidden="true"></i>
+                            <div class="app-toast__content">{{ $toast['message'] }}</div>
+                            <button type="button" class="app-toast__close" data-toast-close aria-label="Close">
+                                <i class="ti ti-x"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    @endif
 
     <div class="page app-shell">
         @include('shared.sidebar')
@@ -157,35 +271,6 @@
 
             <main class="page-body" id="main-content" tabindex="-1">
                 <div class="container-xl">
-                    {{-- Flash messages --}}
-                    @if(session('status') || session('success'))
-                        <div class="alert alert-success alert-dismissible mb-3" role="alert">
-                            <i class="ti ti-circle-check me-2" aria-hidden="true"></i>
-                            {{ session('status') ?? session('success') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    @endif
-                    @if(session('error'))
-                        <div class="alert alert-danger alert-dismissible mb-3" role="alert">
-                            <i class="ti ti-alert-circle me-2" aria-hidden="true"></i>
-                            {{ session('error') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    @endif
-                    @if(session('warning'))
-                        <div class="alert alert-warning alert-dismissible mb-3" role="alert">
-                            <i class="ti ti-alert-triangle me-2" aria-hidden="true"></i>
-                            {{ session('warning') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    @endif
-                    @if(session('info'))
-                        <div class="alert alert-info alert-dismissible mb-3" role="alert">
-                            <i class="ti ti-info-circle me-2" aria-hidden="true"></i>
-                            {{ session('info') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    @endif
                     @if($errors->any())
                         <div class="alert alert-danger alert-dismissible mb-3" role="alert">
                             <i class="ti ti-alert-circle me-2" aria-hidden="true"></i>
@@ -206,6 +291,35 @@
 
     <script src="{{ mix('js/app.js') }}" defer></script>
     <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var toasts = Array.prototype.slice.call(document.querySelectorAll('[data-toast]'));
+
+            toasts.forEach(function (toast, index) {
+                var hideTimer;
+                var closeButton = toast.querySelector('[data-toast-close]');
+
+                function hideToast() {
+                    toast.classList.add('is-hiding');
+                    window.setTimeout(function () {
+                        toast.remove();
+                    }, 180);
+                }
+
+                window.setTimeout(function () {
+                    toast.classList.add('is-visible');
+                }, 20 + (index * 60));
+
+                hideTimer = window.setTimeout(hideToast, 4200 + (index * 250));
+
+                if (closeButton) {
+                    closeButton.addEventListener('click', function () {
+                        window.clearTimeout(hideTimer);
+                        hideToast();
+                    });
+                }
+            });
+        });
+
         // ── Sidebar: mobile drawer + desktop collapse ─────────────
         document.addEventListener('DOMContentLoaded', function () {
             var sidebar    = document.querySelector('.page > .navbar-vertical');

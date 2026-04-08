@@ -19,6 +19,18 @@
     </div>
 </div>
 
+@php
+    $selectedBranchId = old('branch_id', old('outlet_id'));
+    $defaultBranchLabel = optional($branches->first())->name;
+    $usesAllBranchView = $branch === null;
+    $categoryTypeLabels = [
+        'cash_in' => 'Kas Masuk',
+        'cash_out' => 'Kas Keluar',
+        'expense' => 'Biaya Operasional',
+    ];
+    $groupedCategories = $categories->groupBy('transaction_type');
+@endphp
+
 @if($errors->any())
     <div class="alert alert-danger">
         <ul class="mb-0 ps-3">
@@ -40,11 +52,12 @@
             <div class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">Type <span class="text-danger">*</span></label>
-                    <select name="transaction_type" class="form-select @error('transaction_type') is-invalid @enderror" required>
+                    <select name="transaction_type" id="finance-transaction-type" class="form-select @error('transaction_type') is-invalid @enderror" required>
                         @foreach($transactionTypeOptions as $value => $label)
                             <option value="{{ $value }}" @selected(old('transaction_type', 'cash_out') === $value)>{{ $label }}</option>
                         @endforeach
                     </select>
+                    <div class="form-hint">Pilih tipe dasar transaksi. `Expense` dipakai untuk biaya operasional, bukan sekadar uang keluar biasa.</div>
                     @error('transaction_type') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
                 <div class="col-md-4">
@@ -59,34 +72,71 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Account <span class="text-danger">*</span></label>
-                    <select name="finance_account_id" class="form-select @error('finance_account_id') is-invalid @enderror" required>
+                    <input type="search"
+                           id="finance-account-search"
+                           class="form-control mb-2"
+                           placeholder="Cari account...">
+                    <select name="finance_account_id" id="finance-account-select" class="form-select @error('finance_account_id') is-invalid @enderror" required size="6">
                         <option value="">Select account</option>
                         @foreach($accounts as $account)
-                            <option value="{{ $account->id }}" @selected((string) old('finance_account_id', optional($accounts->firstWhere('is_default', true))->id) === (string) $account->id)>{{ $account->name }} ({{ \App\Modules\Finance\Models\FinanceAccount::typeOptions()[$account->account_type] ?? $account->account_type }})</option>
+                            <option value="{{ $account->id }}"
+                                    data-account-type="{{ $account->account_type }}"
+                                    @selected((string) old('finance_account_id', optional($accounts->firstWhere('is_default', true))->id) === (string) $account->id)>{{ $account->name }} ({{ \App\Modules\Finance\Models\FinanceAccount::typeOptions()[$account->account_type] ?? $account->account_type }})</option>
                         @endforeach
                     </select>
-                    <div class="form-hint">Gunakan `cash` untuk kas tunai dan `bank` untuk transaksi rekening.</div>
+                    <div class="form-hint">Gunakan `cash` untuk kas tunai, `bank` untuk rekening, dan `ewallet` untuk saldo digital.</div>
                     @error('finance_account_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Category <span class="text-danger">*</span></label>
-                    <select name="finance_category_id" class="form-select @error('finance_category_id') is-invalid @enderror" required>
+                    <input type="search"
+                           id="finance-category-search"
+                           class="form-control mb-2"
+                           placeholder="Cari category...">
+                    <select name="finance_category_id" id="finance-category-select" class="form-select @error('finance_category_id') is-invalid @enderror" required size="8">
                         <option value="">Select category</option>
-                        @foreach($categories as $category)
-                            <option value="{{ $category->id }}" @selected((string) old('finance_category_id') === (string) $category->id)>{{ $category->name }} ({{ $category->transaction_type }})</option>
+                        @foreach($groupedCategories as $transactionType => $categoryGroup)
+                            <optgroup label="{{ $categoryTypeLabels[$transactionType] ?? ucfirst(str_replace('_', ' ', $transactionType)) }}">
+                                @foreach($categoryGroup as $category)
+                                    <option value="{{ $category->id }}"
+                                            data-transaction-type="{{ $category->transaction_type }}"
+                                            @selected((string) old('finance_category_id') === (string) $category->id)>{{ $category->name }}</option>
+                                @endforeach
+                            </optgroup>
                         @endforeach
                     </select>
+                    <div class="form-hint">Category otomatis difilter mengikuti type agar user tidak salah pilih.</div>
                     @error('finance_category_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Branch</label>
-                    <input type="number" min="1" name="branch_id" class="form-control @error('branch_id') is-invalid @enderror" value="{{ old('branch_id', old('outlet_id')) }}" placeholder="Optional">
+                    <select name="branch_id" class="form-select @error('branch_id') is-invalid @enderror">
+                        <option value="">Gunakan branch default operasional</option>
+                        @foreach($branches as $branchOption)
+                            <option value="{{ $branchOption->id }}" @selected((string) $selectedBranchId === (string) $branchOption->id)>{{ $branchOption->name }}</option>
+                        @endforeach
+                    </select>
+                    <div class="form-hint">
+                        @if($usesAllBranchView)
+                            Anda sedang melihat mode `Semua branch`. Jika dikosongkan, transaksi akan masuk ke branch default operasional{{ $defaultBranchLabel ? ': '.$defaultBranchLabel : '' }}.
+                        @else
+                            Jika dikosongkan, transaksi akan mengikuti branch operasional aktif/default.
+                        @endif
+                    </div>
                     @error('branch_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Shift Reference</label>
+                    <label class="form-label d-inline-flex align-items-center gap-1">
+                        Sesi Kasir
+                        <span tabindex="0"
+                              class="text-muted"
+                              data-bs-toggle="tooltip"
+                              data-bs-placement="top"
+                              title="Isi jika transaksi ini terkait sesi kasir POS tertentu. Jika tidak, biarkan kosong."
+                              style="cursor:help; font-weight:700;">(?)</span>
+                    </label>
                     <select name="pos_cash_session_id" class="form-select @error('pos_cash_session_id') is-invalid @enderror">
-                        <option value="">No shift</option>
+                        <option value="">Tidak terkait sesi kasir</option>
                         @if($shiftEnabled)
                             @foreach($shifts as $shift)
                                 <option value="{{ $shift->id }}" @selected((string) old('pos_cash_session_id') === (string) $shift->id)>{{ $shift->code }}</option>
@@ -113,5 +163,97 @@
         </div>
     </div>
 </form>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (element) {
+        if (window.bootstrap && bootstrap.Tooltip) {
+            bootstrap.Tooltip.getOrCreateInstance(element);
+        }
+    });
+
+    const typeSelect = document.getElementById('finance-transaction-type');
+    const accountSearch = document.getElementById('finance-account-search');
+    const accountSelect = document.getElementById('finance-account-select');
+    const categorySearch = document.getElementById('finance-category-search');
+    const categorySelect = document.getElementById('finance-category-select');
+
+    if (!typeSelect || !categorySelect || !accountSelect) {
+        return;
+    }
+
+    const categoryOptions = Array.from(categorySelect.options);
+    const categoryGroups = Array.from(categorySelect.querySelectorAll('optgroup'));
+    const accountOptions = Array.from(accountSelect.options);
+
+    function syncAccountOptions() {
+        const searchTerm = (accountSearch?.value || '').trim().toLowerCase();
+        let visibleCount = 0;
+
+        accountOptions.forEach((option) => {
+            if (!option.value) {
+                option.hidden = false;
+                return;
+            }
+
+            const visible = searchTerm === '' || option.text.toLowerCase().includes(searchTerm);
+            option.hidden = !visible;
+            if (visible) {
+                visibleCount += 1;
+            }
+        });
+
+        const selectedOption = accountSelect.options[accountSelect.selectedIndex];
+        if (selectedOption && selectedOption.value && selectedOption.hidden) {
+            accountSelect.value = '';
+        }
+
+        accountSelect.size = Math.min(Math.max(visibleCount + 1, 4), 8);
+    }
+
+    function syncCategoryOptions() {
+        const currentType = typeSelect.value;
+        const searchTerm = (categorySearch?.value || '').trim().toLowerCase();
+        let visibleCount = 0;
+
+        categoryOptions.forEach((option) => {
+            if (!option.value) {
+                option.hidden = false;
+                return;
+            }
+
+            const optionType = option.dataset.transactionType || '';
+            const matchesType = optionType === currentType;
+            const matchesSearch = searchTerm === '' || option.text.toLowerCase().includes(searchTerm);
+            const visible = matchesType && matchesSearch;
+
+            option.hidden = !visible;
+            if (visible) {
+                visibleCount += 1;
+            }
+        });
+
+        categoryGroups.forEach((group) => {
+            const hasVisibleOption = Array.from(group.querySelectorAll('option')).some((option) => !option.hidden);
+            group.hidden = !hasVisibleOption;
+        });
+
+        const selectedOption = categorySelect.options[categorySelect.selectedIndex];
+        if (selectedOption && selectedOption.value && selectedOption.hidden) {
+            categorySelect.value = '';
+        }
+
+        categorySelect.size = Math.min(Math.max(visibleCount + 1, 4), 8);
+    }
+
+    accountSearch?.addEventListener('input', syncAccountOptions);
+    typeSelect.addEventListener('change', syncCategoryOptions);
+    categorySearch?.addEventListener('input', syncCategoryOptions);
+    syncAccountOptions();
+    syncCategoryOptions();
+});
+</script>
+@endpush
 
 @endsection

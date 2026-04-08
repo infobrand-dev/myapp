@@ -128,6 +128,13 @@ class FinanceTransactionController extends Controller
                 ->orderBy('account_type')
                 ->orderBy('name')
                 ->get(),
+            'branches' => \App\Models\Branch::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', $companyId)
+                ->active()
+                ->orderByDesc('is_active')
+                ->orderBy('name')
+                ->get(),
             'shifts' => $shiftEnabled
                 ? PosCashSession::query()
                     ->where('tenant_id', TenantContext::currentId())
@@ -214,6 +221,13 @@ class FinanceTransactionController extends Controller
                 ->active()
                 ->orderByDesc('is_default')
                 ->orderBy('account_type')
+                ->orderBy('name')
+                ->get(),
+            'branches' => \App\Models\Branch::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', $companyId)
+                ->active()
+                ->orderByDesc('is_active')
                 ->orderBy('name')
                 ->get(),
             'shifts' => $shiftEnabled

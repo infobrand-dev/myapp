@@ -121,6 +121,21 @@ php artisan golive:audit
 
 Command ini memeriksa critical path env dan runtime seperti tenancy mode, session cookie, queue, tabel billing platform, mail, dan Midtrans.
 
+## Tenant repair
+Untuk scan atau memperbaiki tenant context workspace:
+
+```bash
+php artisan meetra:repair-tenant 2
+php artisan meetra:repair-tenant 2 --fix
+php artisan meetra:repair-tenant --all
+php artisan meetra:repair-tenant --all --fix
+```
+
+Command ini fokus ke integritas context tenant:
+- sinkronisasi sequence PostgreSQL untuk `companies`, `branches`, `user_companies`, dan `user_branches`
+- memastikan tenant punya default `company` dan `branch`
+- memastikan user tenant punya default access `company` dan `branch`
+
 ## Sentry
 - Paket monitoring yang dipakai: `sentry/sentry-laravel`
 - Isi minimal di `.env` production:

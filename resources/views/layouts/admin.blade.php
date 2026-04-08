@@ -290,6 +290,7 @@
     </div>
 
     <script src="{{ mix('js/app.js') }}" defer></script>
+    <script src="{{ asset('js/product-autocomplete.js') }}" defer></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             var toasts = Array.prototype.slice.call(document.querySelectorAll('[data-toast]'));

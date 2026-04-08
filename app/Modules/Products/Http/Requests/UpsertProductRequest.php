@@ -49,7 +49,7 @@ class UpsertProductRequest extends FormRequest
                         ->whereNull('deleted_at')
                 ),
             ],
-            'sku' => ['required', 'string', 'max:100'],
+            'sku' => ['nullable', 'string', 'max:100'],
             'barcode' => ['nullable', 'string', 'max:100'],
             'description' => ['nullable', 'string'],
             'category_id' => ['nullable', 'integer', Rule::exists('product_categories', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()))],
@@ -126,6 +126,10 @@ class UpsertProductRequest extends FormRequest
                     }
                 }
 
+                if (array_key_exists('sku', $variant) && trim((string) $variant['sku']) === '') {
+                    $variant['sku'] = null;
+                }
+
                 foreach (['is_active', 'track_stock'] as $field) {
                     $variant[$field] = filter_var($variant[$field] ?? false, FILTER_VALIDATE_BOOLEAN);
                 }
@@ -137,6 +141,7 @@ class UpsertProductRequest extends FormRequest
 
         $this->merge([
             'slug' => $this->filled('slug') ? Str::slug((string) $this->input('slug')) : null,
+            'sku' => $this->filled('sku') ? trim((string) $this->input('sku')) : null,
             'barcode' => $this->filled('barcode') ? trim((string) $this->input('barcode')) : null,
             'is_active' => $this->boolean('is_active'),
             'track_stock' => $this->boolean('track_stock'),
@@ -166,10 +171,6 @@ class UpsertProductRequest extends FormRequest
 
             if ($this->input('type') === 'variant' && trim((string) ($variant['name'] ?? '')) === '') {
                 $validator->errors()->add("variants.{$index}.name", "Nama variant pada baris {$row} wajib diisi.");
-            }
-
-            if ($this->input('type') === 'variant' && $sku === '') {
-                $validator->errors()->add("variants.{$index}.sku", "SKU variant pada baris {$row} wajib diisi.");
             }
 
             if ($sku !== '' && $seenSkus->contains($sku)) {

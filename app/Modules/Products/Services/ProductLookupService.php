@@ -2,11 +2,15 @@
 
 namespace App\Modules\Products\Services;
 
+use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductBrand;
 use App\Modules\Products\Models\ProductCategory;
 use App\Modules\Products\Models\ProductPriceLevel;
 use App\Modules\Products\Models\ProductUnit;
+use App\Modules\Products\Models\ProductVariant;
 use App\Support\BooleanQuery;
+use App\Support\CurrencySettingsResolver;
+use App\Support\MoneyFormatter;
 use App\Support\TenantContext;
 use DomainException;
 use Illuminate\Support\Collection;
@@ -14,6 +18,78 @@ use Illuminate\Support\Str;
 
 class ProductLookupService
 {
+    public function __construct(
+        private readonly MoneyFormatter $money,
+        private readonly CurrencySettingsResolver $currencies,
+    ) {
+    }
+
+    /**
+     * Returns a flat list of products + variants suitable for autocomplete widgets.
+     * Each item contains both sell_price and cost_price so consumers can pick the
+     * field they need without re-querying.
+     *
+     * Shape: { key, label, description, sell_price, cost_price }
+     */
+    public function forAutocomplete(): Collection
+    {
+        $defaultCurrency = $this->currencies->defaultCurrency();
+
+        $products = BooleanQuery::apply(
+            Product::query()->with([
+                'unit',
+                'variants' => fn ($query) => BooleanQuery::apply(
+                    $query->whereNull('deleted_at')->orderBy('position'),
+                    'is_active'
+                ),
+            ]),
+            'is_active'
+        )
+            ->whereNull('deleted_at')
+            ->orderBy('name')
+            ->get();
+
+        return $products->flatMap(function (Product $product) use ($defaultCurrency) {
+            $currency = $product->currency_code ?: $defaultCurrency;
+
+            $rows = collect([[
+                'key'         => 'product:' . $product->id,
+                'product_id'  => $product->id,
+                'variant_id'  => null,
+                'label'       => $product->name,
+                'description' => implode(' | ', array_filter([
+                    $product->sku ? 'SKU: ' . $product->sku : null,
+                    $product->unit?->name ? 'Unit: ' . $product->unit->name : null,
+                    'Sell: ' . $this->money->format((float) $product->sell_price, $currency),
+                    'Cost: ' . $this->money->format((float) $product->cost_price, $currency),
+                ])),
+                'sell_price'  => (float) $product->sell_price,
+                'cost_price'  => (float) $product->cost_price,
+            ]]);
+
+            $variants = $product->variants->map(function (ProductVariant $variant) use ($product, $defaultCurrency) {
+                $currency = $variant->currency_code ?: $product->currency_code ?: $defaultCurrency;
+
+                return [
+                    'key'         => 'variant:' . $variant->id,
+                    'product_id'  => $product->id,
+                    'variant_id'  => $variant->id,
+                    'label'       => $product->name . ' — ' . $variant->name,
+                    'description' => implode(' | ', array_filter([
+                        $variant->sku ? 'SKU: ' . $variant->sku : null,
+                        $variant->attribute_summary ?: null,
+                        'Sell: ' . $this->money->format((float) $variant->sell_price, $currency),
+                        'Cost: ' . $this->money->format((float) $variant->cost_price, $currency),
+                    ])),
+                    'sell_price'  => (float) $variant->sell_price,
+                    'cost_price'  => (float) $variant->cost_price,
+                ];
+            });
+
+            return $rows->concat($variants);
+        })->values();
+    }
+
     public function categories(): Collection
     {
         return BooleanQuery::apply(

@@ -1,28 +1,40 @@
 @extends('layouts.admin')
 
+@section('title', 'Sales')
+
 @section('content')
-@php
-    $money = app(\App\Support\MoneyFormatter::class);
-@endphp
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h2 class="mb-0">Sales</h2>
-        <div class="text-muted small">Daftar transaksi penjualan.</div>
+@php $money = app(\App\Support\MoneyFormatter::class); @endphp
+
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Sales</div>
+            <h2 class="page-title">Sales Transactions</h2>
+        </div>
+        <div class="col-auto">
+            @can('sales.create')
+                <a href="{{ route('sales.create') }}" class="btn btn-primary">
+                    <i class="ti ti-plus me-1"></i>Create Sale
+                </a>
+            @endcan
+        </div>
     </div>
-    <a href="{{ route('sales.create') }}" class="btn btn-primary">Create Sale</a>
 </div>
 
+{{-- Filters --}}
 <div class="card mb-3">
     <div class="card-body">
         <form method="GET" action="{{ route('sales.index') }}" class="row g-3">
             <div class="col-md-3">
                 <label class="form-label">Search</label>
-                <input type="text" name="search" class="form-control" value="{{ $filters['search'] ?? '' }}" placeholder="Sale no, customer, item">
+                <input type="text" name="search" class="form-control"
+                    value="{{ $filters['search'] ?? '' }}"
+                    placeholder="Sale no, customer, item…">
             </div>
             <div class="col-md-2">
                 <label class="form-label">Status</label>
                 <select name="status" class="form-select">
-                    <option value="">Semua status</option>
+                    <option value="">All statuses</option>
                     @foreach($statusOptions as $value => $label)
                         <option value="{{ $value }}" @selected(($filters['status'] ?? '') === $value)>{{ $label }}</option>
                     @endforeach
@@ -31,7 +43,7 @@
             <div class="col-md-2">
                 <label class="form-label">Payment</label>
                 <select name="payment_status" class="form-select">
-                    <option value="">Semua payment</option>
+                    <option value="">All payment</option>
                     @foreach($paymentStatusOptions as $value => $label)
                         <option value="{{ $value }}" @selected(($filters['payment_status'] ?? '') === $value)>{{ $label }}</option>
                     @endforeach
@@ -40,7 +52,7 @@
             <div class="col-md-2">
                 <label class="form-label">Source</label>
                 <select name="source" class="form-select">
-                    <option value="">Semua source</option>
+                    <option value="">All sources</option>
                     @foreach($sourceOptions as $value => $label)
                         <option value="{{ $value }}" @selected(($filters['source'] ?? '') === $value)>{{ $label }}</option>
                     @endforeach
@@ -49,7 +61,7 @@
             <div class="col-md-3">
                 <label class="form-label">Customer</label>
                 <select name="contact_id" class="form-select">
-                    <option value="">Semua customer</option>
+                    <option value="">All customers</option>
                     @foreach($customers as $customer)
                         <option value="{{ $customer->id }}" @selected((string) ($filters['contact_id'] ?? '') === (string) $customer->id)>{{ $customer->name }}</option>
                     @endforeach
@@ -64,85 +76,105 @@
                 <input type="date" name="date_to" class="form-control" value="{{ $filters['date_to'] ?? '' }}">
             </div>
             <div class="col-12 d-flex gap-2">
-                <button type="submit" class="btn btn-primary">Filter</button>
-                <a href="{{ route('sales.index') }}" class="btn btn-outline-secondary">Reset</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="ti ti-filter me-1"></i>Filter
+                </button>
+                <a href="{{ route('sales.index') }}" class="btn btn-outline-secondary">
+                    <i class="ti ti-x me-1"></i>Reset
+                </a>
             </div>
         </form>
     </div>
 </div>
 
+{{-- Table --}}
 <div class="card">
-    <div class="card-header">
-        <div class="text-muted small"></div>
-    </div>
-    <div class="table-responsive">
-        <table class="table table-vcenter">
-            <thead>
-                <tr>
-                    <th>Sale</th>
-                    <th>Customer</th>
-                    <th>Source</th>
-                    <th>Items</th>
-                    <th>Totals</th>
-                    <th>Status</th>
-                    <th class="w-1"></th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($sales as $sale)
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-vcenter table-hover">
+                <thead>
                     <tr>
-                        <td>
-                            <a href="{{ route('sales.show', $sale) }}" class="text-decoration-none fw-semibold">{{ $sale->sale_number }}</a>
-                            <div class="text-muted small">{{ optional($sale->transaction_date)->format('d M Y H:i') ?? '-' }}</div>
-                        </td>
-                        <td>
-                            <div>{{ $sale->customer_name_snapshot ?: ($sale->contact ? $sale->contact->name : 'Guest / Walk-in') }}</div>
-                            <div class="text-muted small">{{ $sale->customer_phone_snapshot ?: ($sale->contact ? ($sale->contact->mobile ?: $sale->contact->phone) : '-') }}</div>
-                        </td>
-                        <td><span class="badge bg-blue-lt text-blue">{{ strtoupper($sale->source) }}</span></td>
-                        <td>{{ $sale->items_count }}</td>
-                        <td>
-                            <div>Subtotal: {{ $money->format((float) $sale->subtotal, $sale->currency_code) }}</div>
-                            <div class="text-muted small">Grand: {{ $money->format((float) $sale->grand_total, $sale->currency_code) }}</div>
-                        </td>
-                        <td>
-                            <div><span class="badge bg-{{ $sale->status === 'finalized' ? 'success' : ($sale->status === 'draft' ? 'secondary' : 'danger') }}-lt text-{{ $sale->status === 'finalized' ? 'success' : ($sale->status === 'draft' ? 'secondary' : 'danger') }}">{{ ucfirst($sale->status) }}</span></div>
-                            <div class="text-muted small">{{ ucfirst($sale->payment_status) }}</div>
-                        </td>
-                        <td class="text-end">
-                            <div class="table-actions">
-                                @if($sale->status === 'draft')
-                                    <a class="btn btn-icon btn-outline-secondary" href="{{ route('sales.edit', $sale) }}" title="Edit draft">
-                                        <i class="ti ti-edit"></i>
-                                    </a>
-                                @endif
-                                <a class="btn btn-icon btn-outline-primary" href="{{ route('sales.invoice', $sale) }}" title="Invoice">
-                                    <i class="ti ti-printer"></i>
-                                </a>
-                            </div>
-                        </td>
+                        <th>Sale</th>
+                        <th>Customer</th>
+                        <th>Source</th>
+                        <th>Items</th>
+                        <th>Grand Total</th>
+                        <th>Status</th>
+                        <th class="w-1"></th>
                     </tr>
-                @empty
-                    <tr><td colspan="7" class="text-center text-muted">Belum ada penjualan.</td></tr>
-                @endforelse
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @forelse($sales as $sale)
+                        <tr>
+                            <td>
+                                <a href="{{ route('sales.show', $sale) }}" class="fw-semibold text-decoration-none">
+                                    {{ $sale->sale_number }}
+                                </a>
+                                <div class="text-muted small">{{ optional($sale->transaction_date)->format('d M Y, H:i') ?? '-' }}</div>
+                            </td>
+                            <td>
+                                <div>{{ $sale->customer_name_snapshot ?: ($sale->contact?->name ?? 'Guest / Walk-in') }}</div>
+                                <div class="text-muted small">{{ $sale->customer_phone_snapshot ?: ($sale->contact ? ($sale->contact->mobile ?: $sale->contact->phone) : '-') }}</div>
+                            </td>
+                            <td>
+                                <span class="badge bg-blue-lt text-blue">{{ strtoupper($sale->source) }}</span>
+                            </td>
+                            <td>{{ $sale->items_count }}</td>
+                            <td>
+                                <div class="fw-medium">{{ $money->format((float) $sale->grand_total, $sale->currency_code) }}</div>
+                                <div class="text-muted small">Sub: {{ $money->format((float) $sale->subtotal, $sale->currency_code) }}</div>
+                            </td>
+                            <td>
+                                @php
+                                    $statusBadge = match($sale->status) {
+                                        'finalized' => 'bg-green-lt text-green',
+                                        'draft'     => 'bg-secondary-lt text-secondary',
+                                        default     => 'bg-red-lt text-red',
+                                    };
+                                    $payBadge = match($sale->payment_status) {
+                                        'paid'    => 'bg-green-lt text-green',
+                                        'partial' => 'bg-orange-lt text-orange',
+                                        default   => 'bg-secondary-lt text-secondary',
+                                    };
+                                @endphp
+                                <span class="badge {{ $statusBadge }}">{{ ucfirst($sale->status) }}</span>
+                                <div class="mt-1">
+                                    <span class="badge {{ $payBadge }}">{{ ucfirst($sale->payment_status) }}</span>
+                                </div>
+                            </td>
+                            <td class="text-end align-middle">
+                                <div class="table-actions">
+                                    <a href="{{ route('sales.show', $sale) }}" class="btn btn-icon btn-sm btn-outline-secondary" title="View">
+                                        <i class="ti ti-eye"></i>
+                                    </a>
+                                    @if($sale->status === 'draft')
+                                        <a href="{{ route('sales.edit', $sale) }}" class="btn btn-icon btn-sm btn-outline-primary" title="Edit draft">
+                                            <i class="ti ti-pencil"></i>
+                                        </a>
+                                    @endif
+                                    <a href="{{ route('sales.invoice', $sale) }}" class="btn btn-icon btn-sm btn-outline-secondary" title="Print / Invoice">
+                                        <i class="ti ti-printer"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7" class="text-center py-5">
+                                <i class="ti ti-receipt text-muted d-block mb-2" style="font-size:2rem;"></i>
+                                <div class="text-muted mb-2">No sales transactions yet.</div>
+                                @can('sales.create')
+                                    <a href="{{ route('sales.create') }}" class="btn btn-sm btn-primary">Create First Sale</a>
+                                @endcan
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
     <div class="card-footer">
         {{ $sales->links() }}
     </div>
-</div>
-
-<div class="row g-3 mt-1">
-    @foreach($dependencies as $dependency)
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <div class="fw-semibold text-uppercase small">{{ $dependency['module'] }}</div>
-                    <div class="text-muted small">{{ $dependency['notes'] }}</div>
-                </div>
-            </div>
-        </div>
-    @endforeach
 </div>
 @endsection

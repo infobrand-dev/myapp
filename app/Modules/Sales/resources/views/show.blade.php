@@ -1,244 +1,339 @@
 @extends('layouts.admin')
 
+@section('title', 'Sale — ' . $sale->sale_number)
+
 @section('content')
+@php $money = app(\App\Support\MoneyFormatter::class); @endphp
+
 @php
-    $money = app(\App\Support\MoneyFormatter::class);
+    $statusBadge = match($sale->status) {
+        'finalized' => 'bg-green-lt text-green',
+        'draft'     => 'bg-secondary-lt text-secondary',
+        'voided'    => 'bg-red-lt text-red',
+        default     => 'bg-orange-lt text-orange',
+    };
+    $payBadge = match($sale->payment_status) {
+        'paid'      => 'bg-green-lt text-green',
+        'partial'   => 'bg-orange-lt text-orange',
+        'overpaid'  => 'bg-azure-lt text-azure',
+        default     => 'bg-secondary-lt text-secondary',
+    };
 @endphp
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h2 class="mb-0">{{ $sale->sale_number }}</h2>
-        <div class="text-muted small">{{ optional($sale->transaction_date)->format('d M Y H:i') ?? '-' }} | Source: {{ strtoupper($sale->source) }}</div>
-    </div>
-    <div class="btn-list">
-        @if($sale->status === 'draft')
-            <a href="{{ route('sales.edit', $sale) }}" class="btn btn-outline-secondary">Edit Draft</a>
-            <form method="POST" action="{{ route('sales.finalize', $sale) }}">
-                @csrf
-                <button type="submit" class="btn btn-primary">Finalize</button>
-            </form>
-        @endif
-        @if($sale->status === 'finalized')
-            <a href="{{ route('sales.returns.create', ['sale_id' => $sale->id]) }}" class="btn btn-outline-warning">Create Return</a>
-        @endif
-        @if($sale->status === 'finalized' && (float) $sale->balance_due > 0 && Route::has('payments.create'))
-            <a href="{{ route('payments.create', ['sale_id' => $sale->id]) }}" class="btn btn-primary">Record Payment</a>
-        @endif
-        @if($sale->source === 'pos' && $sale->status === 'finalized' && Route::has('pos.receipts.show') && auth()->user()->can('pos.print-receipt'))
-            <a href="{{ route('pos.receipts.show', $sale) }}" class="btn btn-outline-dark">POS Receipt</a>
-        @endif
-        <a href="{{ route('sales.invoice', $sale) }}" class="btn btn-outline-primary">Print / Invoice</a>
-        <a href="{{ route('sales.index') }}" class="btn btn-outline-secondary">Kembali</a>
+
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Sales</div>
+            <h2 class="page-title">{{ $sale->sale_number }}</h2>
+            <p class="text-muted mb-0">
+                <span class="badge {{ $statusBadge }} me-1">{{ ucfirst($sale->status) }}</span>
+                <span class="badge {{ $payBadge }} me-1">{{ ucfirst($sale->payment_status) }}</span>
+                {{ optional($sale->transaction_date)->format('d M Y, H:i') ?? '-' }}
+                &middot; <span class="badge bg-blue-lt text-blue">{{ strtoupper($sale->source) }}</span>
+            </p>
+        </div>
+        <div class="col-auto d-flex gap-2 flex-wrap">
+            @if($sale->status === 'draft')
+                <a href="{{ route('sales.edit', $sale) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="ti ti-pencil me-1"></i>Edit Draft
+                </a>
+                <form method="POST" action="{{ route('sales.finalize', $sale) }}" class="d-inline-block m-0">
+                    @csrf
+                    <button type="submit" class="btn btn-sm btn-primary">
+                        <i class="ti ti-check me-1"></i>Finalize
+                    </button>
+                </form>
+            @endif
+            @if($sale->status === 'finalized')
+                <a href="{{ route('sales.returns.create', ['sale_id' => $sale->id]) }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="ti ti-arrow-back me-1"></i>Create Return
+                </a>
+            @endif
+            @if($sale->status === 'finalized' && (float) $sale->balance_due > 0 && Route::has('payments.create'))
+                <a href="{{ route('payments.create', ['sale_id' => $sale->id]) }}" class="btn btn-sm btn-primary">
+                    <i class="ti ti-cash me-1"></i>Record Payment
+                </a>
+            @endif
+            @if($sale->source === 'pos' && $sale->status === 'finalized' && Route::has('pos.receipts.show') && auth()->user()->can('pos.print-receipt'))
+                <a href="{{ route('pos.receipts.show', $sale) }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="ti ti-receipt me-1"></i>POS Receipt
+                </a>
+            @endif
+            <a href="{{ route('sales.invoice', $sale) }}" class="btn btn-sm btn-outline-secondary">
+                <i class="ti ti-printer me-1"></i>Print / Invoice
+            </a>
+            <a href="{{ route('sales.index') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="ti ti-arrow-left me-1"></i>Back
+            </a>
+        </div>
     </div>
 </div>
 
 <div class="row g-3">
+    {{-- Left: Items + Returns + History --}}
     <div class="col-lg-8">
+
+        {{-- Items --}}
         <div class="card">
-            <div class="card-header"><h3 class="card-title">Sales Detail</h3></div>
-            <div class="table-responsive">
-                <table class="table table-vcenter">
-                    <thead>
-                        <tr>
-                            <th>Item</th>
-                            <th>Qty</th>
-                            <th>Price</th>
-                            <th>Discount</th>
-                            <th>Tax</th>
-                            <th>Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($sale->items as $item)
+            <div class="card-header">
+                <h3 class="card-title">Items</h3>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-vcenter">
+                        <thead>
                             <tr>
-                                <td>
-                                    <div class="fw-semibold">{{ $item->product_name_snapshot }}</div>
-                                    <div class="text-muted small">{{ $item->variant_name_snapshot ?: '-' }} | SKU: {{ $item->sku_snapshot ?: '-' }}</div>
-                                </td>
-                                <td>{{ number_format((float) $item->qty, 2, ',', '.') }}</td>
-                                <td>{{ $money->format((float) $item->unit_price, $sale->currency_code) }}</td>
-                                <td>{{ $money->format((float) $item->discount_total, $sale->currency_code) }}</td>
-                                <td>{{ $money->format((float) $item->tax_total, $sale->currency_code) }}</td>
-                                <td>{{ $money->format((float) $item->line_total, $sale->currency_code) }}</td>
+                                <th>Item</th>
+                                <th>Qty</th>
+                                <th>Unit Price</th>
+                                <th>Discount</th>
+                                <th>Tax</th>
+                                <th>Line Total</th>
                             </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @foreach($sale->items as $item)
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">{{ $item->product_name_snapshot }}</div>
+                                        <div class="text-muted small">
+                                            {{ $item->variant_name_snapshot ?: '' }}
+                                            @if($item->sku_snapshot) &middot; SKU: {{ $item->sku_snapshot }} @endif
+                                        </div>
+                                    </td>
+                                    <td>{{ number_format((float) $item->qty, 2, ',', '.') }}</td>
+                                    <td>{{ $money->format((float) $item->unit_price, $sale->currency_code) }}</td>
+                                    <td>{{ $money->format((float) $item->discount_total, $sale->currency_code) }}</td>
+                                    <td>{{ $money->format((float) $item->tax_total, $sale->currency_code) }}</td>
+                                    <td class="fw-medium">{{ $money->format((float) $item->line_total, $sale->currency_code) }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
+        {{-- Sales Returns --}}
+        @if($sale->saleReturns->isNotEmpty())
         <div class="card mt-3">
-            <div class="card-header"><h3 class="card-title">Sales Returns</h3></div>
-            <div class="card-body">
-                @if($sale->saleReturns->isNotEmpty())
-                    @foreach($sale->saleReturns as $saleReturn)
-                        <div class="border rounded p-2 mb-2">
-                            <div class="d-flex justify-content-between align-items-start gap-2">
-                                <div>
-                                    <a href="{{ route('sales.returns.show', $saleReturn) }}" class="fw-semibold text-decoration-none">{{ $saleReturn->return_number }}</a>
-                                    <div class="text-muted small">{{ optional($saleReturn->return_date)->format('d M Y H:i') ?? '-' }}</div>
-                                </div>
-                                <span class="badge bg-{{ $saleReturn->status === 'finalized' ? 'success' : ($saleReturn->status === 'draft' ? 'secondary' : 'warning') }}-lt text-{{ $saleReturn->status === 'finalized' ? 'success' : ($saleReturn->status === 'draft' ? 'secondary' : 'warning') }}">{{ ucfirst($saleReturn->status) }}</span>
-                            </div>
-                            <div class="small mt-1">Grand: {{ $money->format((float) $saleReturn->grand_total, $saleReturn->currency_code) }}</div>
-                            <div class="text-muted small">Refund: {{ ucfirst($saleReturn->refund_status) }}</div>
-                        </div>
-                    @endforeach
-                @else
-                    <div class="text-muted">Belum ada sales return untuk transaksi ini.</div>
-                @endif
+            <div class="card-header">
+                <h3 class="card-title">Sales Returns</h3>
+                <div class="card-options">
+                    <span class="badge bg-secondary-lt text-secondary">{{ $sale->saleReturns->count() }}</span>
+                </div>
             </div>
-        </div>
-
-        <div class="card mt-3">
-            <div class="card-header"><h3 class="card-title">Status History</h3></div>
-            <div class="table-responsive">
-                <table class="table table-sm table-vcenter">
-                    <thead>
-                        <tr>
-                            <th>Time</th>
-                            <th>Event</th>
-                            <th>Transition</th>
-                            <th>Reason</th>
-                            <th>Actor</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($sale->statusHistories as $history)
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-vcenter">
+                        <thead>
                             <tr>
-                                <td>{{ $history->created_at->format('d M Y H:i') }}</td>
-                                <td>{{ ucfirst($history->event) }}</td>
-                                <td>{{ $history->from_status ?: '-' }} -> {{ $history->to_status }}</td>
-                                <td>{{ $history->reason ?: '-' }}</td>
-                                <td>{{ $history->actor ? $history->actor->name : '-' }}</td>
+                                <th>Return No.</th>
+                                <th>Date</th>
+                                <th>Grand Total</th>
+                                <th>Status</th>
+                                <th>Refund</th>
+                                <th class="w-1"></th>
                             </tr>
-                        @empty
-                            <tr><td colspan="5" class="text-center text-muted">Belum ada history.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @foreach($sale->saleReturns as $saleReturn)
+                                @php
+                                    $retBadge = match($saleReturn->status) {
+                                        'finalized' => 'bg-green-lt text-green',
+                                        'draft'     => 'bg-secondary-lt text-secondary',
+                                        default     => 'bg-orange-lt text-orange',
+                                    };
+                                @endphp
+                                <tr>
+                                    <td class="fw-semibold">{{ $saleReturn->return_number }}</td>
+                                    <td>{{ optional($saleReturn->return_date)->format('d M Y, H:i') ?? '-' }}</td>
+                                    <td>{{ $money->format((float) $saleReturn->grand_total, $saleReturn->currency_code) }}</td>
+                                    <td><span class="badge {{ $retBadge }}">{{ ucfirst($saleReturn->status) }}</span></td>
+                                    <td><span class="text-muted small">{{ ucfirst($saleReturn->refund_status) }}</span></td>
+                                    <td class="text-end align-middle">
+                                        <a href="{{ route('sales.returns.show', $saleReturn) }}" class="btn btn-icon btn-sm btn-outline-secondary" title="View">
+                                            <i class="ti ti-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        @endif
+
+        {{-- Status History --}}
+        <div class="card mt-3">
+            <div class="card-header">
+                <h3 class="card-title">Status History</h3>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-vcenter">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Event</th>
+                                <th>Transition</th>
+                                <th>Actor</th>
+                                <th>Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($sale->statusHistories as $history)
+                                <tr>
+                                    <td class="text-muted small">{{ $history->created_at->format('d M Y, H:i') }}</td>
+                                    <td><span class="badge bg-secondary-lt text-secondary">{{ ucfirst($history->event) }}</span></td>
+                                    <td class="text-muted small">
+                                        {{ $history->from_status ?: '—' }}
+                                        <i class="ti ti-arrow-right mx-1" style="font-size:.75rem;"></i>
+                                        {{ $history->to_status }}
+                                    </td>
+                                    <td>{{ $history->actor?->name ?? '-' }}</td>
+                                    <td class="text-muted small">{{ $history->reason ?: '-' }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted">No history yet.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
-        @php
-            $reprintHistories = $sale->statusHistories->filter(fn ($history) => $history->event === 'receipt_reprinted')->values();
-        @endphp
-        <div class="card mt-3">
-            <div class="card-header"><h3 class="card-title">Receipt Reprint Audit</h3></div>
-            <div class="card-body">
-                @if($sale->source !== 'pos')
-                    <div class="text-muted">Transaksi ini bukan transaksi POS.</div>
-                @elseif($reprintHistories->isNotEmpty())
-                    @foreach($reprintHistories as $history)
-                        <div class="border rounded p-2 mb-2">
-                            <div class="d-flex justify-content-between gap-2">
-                                <div class="fw-semibold">Reprint #{{ data_get($history->meta, 'reprint_sequence', '?') }}</div>
-                                <div class="text-muted small">{{ $history->created_at->format('d M Y H:i') }}</div>
-                            </div>
-                            <div class="small mt-1">Actor: {{ $history->actor ? $history->actor->name : '-' }}</div>
-                            <div class="small">Reason: {{ $history->reason ?: '-' }}</div>
-                            <div class="text-muted small">
-                                Outlet: {{ data_get($history->meta, 'outlet_id', '-') }}
-                                | Shift: {{ data_get($history->meta, 'pos_cash_session_id', '-') }}
-                            </div>
-                        </div>
-                    @endforeach
-                @else
-                    <div class="text-muted">Belum ada reprint receipt untuk transaksi ini.</div>
-                @endif
+        {{-- Receipt Reprint Audit (POS only) --}}
+        @if($sale->source === 'pos')
+            @php $reprintHistories = $sale->statusHistories->where('event', 'receipt_reprinted')->values(); @endphp
+            @if($reprintHistories->isNotEmpty())
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h3 class="card-title">Receipt Reprint Audit</h3>
+                    <div class="card-options">
+                        <span class="badge bg-orange-lt text-orange">{{ $reprintHistories->count() }} reprints</span>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-vcenter">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Time</th>
+                                    <th>Actor</th>
+                                    <th>Reason</th>
+                                    <th>Outlet / Shift</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($reprintHistories as $history)
+                                    <tr>
+                                        <td class="text-muted small">{{ data_get($history->meta, 'reprint_sequence', '?') }}</td>
+                                        <td class="text-muted small">{{ $history->created_at->format('d M Y, H:i') }}</td>
+                                        <td>{{ $history->actor?->name ?? '-' }}</td>
+                                        <td class="text-muted small">{{ $history->reason ?: '-' }}</td>
+                                        <td class="text-muted small">
+                                            {{ data_get($history->meta, 'outlet_id', '-') }}
+                                            / {{ data_get($history->meta, 'pos_cash_session_id', '-') }}
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-        </div>
+            @endif
+        @endif
+
     </div>
 
+    {{-- Right: Summary + Actions --}}
     <div class="col-lg-4">
+
+        {{-- Sale Summary --}}
         <div class="card">
-            <div class="card-header"><h3 class="card-title">Header</h3></div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <div class="text-muted small">Customer</div>
-                    <div>{{ $sale->customer_name_snapshot ?: ($sale->contact ? $sale->contact->name : 'Guest / Walk-in') }}</div>
-                    <div class="text-muted small">{{ $sale->customer_email_snapshot ?: '-' }}</div>
-                    <div class="text-muted small">{{ $sale->customer_phone_snapshot ?: '-' }}</div>
+            <div class="card-header">
+                <h3 class="card-title">Summary</h3>
+            </div>
+            <div class="card-body p-0">
+                {{-- Customer --}}
+                <div class="px-4 py-3">
+                    <div class="text-muted small mb-1"><i class="ti ti-user me-1"></i>Customer</div>
+                    <div class="fw-medium">{{ $sale->customer_name_snapshot ?: ($sale->contact?->name ?? 'Guest / Walk-in') }}</div>
+                    @if($sale->customer_email_snapshot)
+                        <div class="text-muted small">{{ $sale->customer_email_snapshot }}</div>
+                    @endif
+                    @if($sale->customer_phone_snapshot)
+                        <div class="text-muted small">{{ $sale->customer_phone_snapshot }}</div>
+                    @endif
                 </div>
-                <div class="mb-3">
-                    <div class="text-muted small">Status</div>
-                    <div class="fw-semibold">{{ $statusOptions[$sale->status] ?? ucfirst($sale->status) }}</div>
-                    <div class="text-muted small">Payment: {{ $paymentStatusOptions[$sale->payment_status] ?? ucfirst($sale->payment_status) }}</div>
-                </div>
-                <div class="mb-3">
-                    <div class="text-muted small">Notes</div>
-                    <div>{{ $sale->notes ?: '-' }}</div>
-                </div>
-                <div class="mb-3">
-                    <div class="text-muted small">Totals</div>
-                    <div>Subtotal: {{ $money->format((float) $sale->subtotal, $sale->currency_code) }}</div>
-                    <div>Discount: {{ $money->format((float) $sale->discount_total, $sale->currency_code) }}</div>
-                    <div>Tax: {{ $money->format((float) $sale->tax_total, $sale->currency_code) }}</div>
-                    <div class="fw-semibold">Grand: {{ $money->format((float) $sale->grand_total, $sale->currency_code) }}</div>
-                    <div>Paid: {{ $money->format((float) $sale->paid_total, $sale->currency_code) }}</div>
-                    <div>Balance Due: {{ $money->format((float) $sale->balance_due, $sale->currency_code) }}</div>
-                </div>
-
-                @if($sale->status === 'draft')
-                    <form method="POST" action="{{ route('sales.cancel', $sale) }}" class="mb-3">
-                        @csrf
-                        <label class="form-label">Cancel reason</label>
-                        <textarea name="reason" class="form-control" rows="2" placeholder="Opsional"></textarea>
-                        <button type="submit" class="btn btn-outline-warning w-100 mt-2">Cancel Draft</button>
-                    </form>
-                @endif
-
-                @if($sale->status === 'finalized')
-                    <form method="POST" action="{{ route('sales.void', $sale) }}">
-                        @csrf
-                        <label class="form-label">Void reason</label>
-                        <textarea name="reason" class="form-control" rows="3" required placeholder="Alasan void wajib diisi"></textarea>
-                        <button type="submit" class="btn btn-danger w-100 mt-2">Void Sale</button>
-                    </form>
-                @endif
-
-                @if($sale->source === 'pos' && $sale->status === 'finalized' && Route::has('pos.receipts.reprint') && auth()->user()->can('pos.reprint-receipt'))
-                    <form method="POST" action="{{ route('pos.receipts.reprint', $sale) }}" class="mt-3">
-                        @csrf
-                        <label class="form-label">Receipt reprint reason</label>
-                        <textarea name="reason" class="form-control" rows="3" required minlength="10" placeholder="Contoh: Customer kehilangan struk original dan meminta duplikat."></textarea>
-                        <button type="submit" class="btn btn-outline-danger w-100 mt-2">Reprint Struk</button>
-                        <div class="form-text">Hanya pengguna dengan izin reprint.</div>
-                    </form>
-                @endif
-
-                @if($sale->status === 'voided')
-                    <div class="alert alert-danger mb-0">
-                        <div class="fw-semibold">Voided</div>
-                        <div class="small">{{ $sale->void_reason }}</div>
+                <hr class="m-0">
+                {{-- Totals --}}
+                <div class="px-4 py-3">
+                    <div class="text-muted small mb-2"><i class="ti ti-calculator me-1"></i>Totals</div>
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span class="text-muted">Subtotal</span>
+                        <span>{{ $money->format((float) $sale->subtotal, $sale->currency_code) }}</span>
                     </div>
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span class="text-muted">Discount</span>
+                        <span>{{ $money->format((float) $sale->discount_total, $sale->currency_code) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between small mb-2">
+                        <span class="text-muted">Tax</span>
+                        <span>{{ $money->format((float) $sale->tax_total, $sale->currency_code) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between fw-semibold border-top pt-2 mb-1">
+                        <span>Grand Total</span>
+                        <span>{{ $money->format((float) $sale->grand_total, $sale->currency_code) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span class="text-muted">Paid</span>
+                        <span class="text-green">{{ $money->format((float) $sale->paid_total, $sale->currency_code) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between small fw-medium">
+                        <span class="text-muted">Balance Due</span>
+                        <span class="{{ (float) $sale->balance_due > 0 ? 'text-orange' : 'text-green' }}">
+                            {{ $money->format((float) $sale->balance_due, $sale->currency_code) }}
+                        </span>
+                    </div>
+                </div>
+                @if($sale->notes)
+                <hr class="m-0">
+                <div class="px-4 py-3">
+                    <div class="text-muted small mb-1"><i class="ti ti-notes me-1"></i>Notes</div>
+                    <div class="small">{{ $sale->notes }}</div>
+                </div>
                 @endif
             </div>
         </div>
 
+        {{-- Payments --}}
         <div class="card mt-3">
-            <div class="card-header"><h3 class="card-title">Payments</h3></div>
+            <div class="card-header">
+                <h3 class="card-title">Payments</h3>
+            </div>
             <div class="card-body">
                 @php
                     $paymentAllocations = $sale->relationLoaded('paymentAllocations')
-                        ? $sale->paymentAllocations->sortByDesc(fn ($allocation) => optional(optional($allocation->payment)->paid_at)->timestamp ?? 0)->values()
+                        ? $sale->paymentAllocations->sortByDesc(fn ($a) => optional(optional($a->payment)->paid_at)->timestamp ?? 0)->values()
                         : collect();
-                    $paymentProgress = (float) $sale->grand_total > 0 ? min(100, max(0, ((float) $sale->paid_total / (float) $sale->grand_total) * 100)) : 0;
+                    $paymentProgress = (float) $sale->grand_total > 0
+                        ? min(100, max(0, ((float) $sale->paid_total / (float) $sale->grand_total) * 100))
+                        : 0;
                 @endphp
-
-                <div class="border rounded p-3 mb-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="text-muted small">Payment Progress</div>
-                            <div class="fw-semibold">{{ number_format($paymentProgress, 0) }}%</div>
-                        </div>
-                        <div class="text-end">
-                            <div class="text-muted small">Balance Due</div>
-                            <div class="fw-semibold {{ (float) $sale->balance_due > 0 ? 'text-warning' : 'text-success' }}">{{ $money->format((float) $sale->balance_due, $sale->currency_code) }}</div>
-                        </div>
-                    </div>
-                    <div class="progress progress-sm mt-2">
-                        <div class="progress-bar bg-primary" style="width: {{ $paymentProgress }}%" role="progressbar" aria-valuenow="{{ $paymentProgress }}" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-muted small">Payment progress</span>
+                    <span class="fw-medium small">{{ number_format($paymentProgress, 0) }}%</span>
+                </div>
+                <div class="progress progress-sm mb-3">
+                    <div class="progress-bar bg-primary" style="width:{{ $paymentProgress }}%"
+                        role="progressbar" aria-valuenow="{{ $paymentProgress }}" aria-valuemin="0" aria-valuemax="100"></div>
                 </div>
 
                 @if($paymentAllocations->isNotEmpty())
@@ -248,9 +343,7 @@
                                 <tr>
                                     <th>Date</th>
                                     <th>Method</th>
-                                    <th>Reference</th>
-                                    <th>Allocated</th>
-                                    <th>Status</th>
+                                    <th>Amount</th>
                                     <th class="w-1"></th>
                                 </tr>
                             </thead>
@@ -258,14 +351,14 @@
                                 @foreach($paymentAllocations as $allocation)
                                     @php $payment = $allocation->payment; @endphp
                                     <tr>
-                                        <td>{{ optional(optional($payment)->paid_at)->format('d M Y H:i') ?? '-' }}</td>
-                                        <td>{{ optional(optional($payment)->method)->name ?: '-' }}</td>
-                                        <td>{{ optional($payment)->reference_number ?: (optional($payment)->external_reference ?: '-') }}</td>
-                                        <td>{{ $money->format((float) $allocation->amount, optional($payment)->currency_code ?: $sale->currency_code) }}</td>
-                                        <td>{{ ucfirst(optional($payment)->status ?: '-') }}</td>
+                                        <td class="text-muted small">{{ optional(optional($payment)->paid_at)->format('d M Y') ?? '-' }}</td>
+                                        <td class="small">{{ optional(optional($payment)->method)->name ?: '-' }}</td>
+                                        <td class="small fw-medium">{{ $money->format((float) $allocation->amount, optional($payment)->currency_code ?: $sale->currency_code) }}</td>
                                         <td class="text-end">
                                             @if($payment)
-                                                <a href="{{ route('payments.show', $payment) }}" class="btn btn-sm btn-outline-secondary">Detail</a>
+                                                <a href="{{ route('payments.show', $payment) }}" class="btn btn-icon btn-sm btn-outline-secondary" title="Detail">
+                                                    <i class="ti ti-eye"></i>
+                                                </a>
                                             @endif
                                         </td>
                                     </tr>
@@ -274,35 +367,108 @@
                         </table>
                     </div>
                 @else
-                    <div class="text-muted mb-3">Belum ada payment tercatat.</div>
+                    <p class="text-muted small mb-3">No payments recorded yet.</p>
                 @endif
 
                 @if($sale->status === 'finalized' && Route::has('payments.create'))
-                    <div class="d-grid gap-2">
-                        <a href="{{ route('payments.create', ['sale_id' => $sale->id]) }}" class="btn btn-outline-primary">Tambah Pembayaran</a>
-                        @if((float) $sale->balance_due > 0)
-                            <div class="text-muted small">Catat pelunasan atau pembayaran parsial.</div>
-                        @endif
-                    </div>
+                    <a href="{{ route('payments.create', ['sale_id' => $sale->id]) }}" class="btn btn-outline-primary w-100">
+                        <i class="ti ti-plus me-1"></i>Add Payment
+                    </a>
                 @endif
             </div>
         </div>
 
+        {{-- Actions (Cancel / Void / Reprint) --}}
+        @if(in_array($sale->status, ['draft', 'finalized']))
         <div class="card mt-3">
-            <div class="card-header"><h3 class="card-title">Audit</h3></div>
+            <div class="card-header">
+                <h3 class="card-title">Actions</h3>
+            </div>
             <div class="card-body">
-                <div class="text-muted small">Created by</div>
-                <div class="mb-2">{{ $sale->creator ? $sale->creator->name : '-' }}</div>
-                <div class="text-muted small">Updated by</div>
-                <div class="mb-2">{{ $sale->updater ? $sale->updater->name : '-' }}</div>
-                <div class="text-muted small">Finalized by</div>
-                <div class="mb-2">{{ $sale->finalizer ? $sale->finalizer->name : '-' }}</div>
-                <div class="text-muted small">Voided by</div>
-                <div class="mb-2">{{ $sale->voider ? $sale->voider->name : '-' }}</div>
-                <div class="text-muted small">Cancelled by</div>
-                <div>{{ $sale->canceller ? $sale->canceller->name : '-' }}</div>
+                @if($sale->status === 'draft')
+                    <form method="POST" action="{{ route('sales.cancel', $sale) }}">
+                        @csrf
+                        <label class="form-label">Cancel reason</label>
+                        <textarea name="reason" class="form-control mb-2" rows="2" placeholder="Optional"></textarea>
+                        <button type="submit" class="btn btn-outline-danger w-100"
+                            data-confirm="Cancel this draft sale?">
+                            <i class="ti ti-ban me-1"></i>Cancel Draft
+                        </button>
+                    </form>
+                @endif
+
+                @if($sale->status === 'finalized')
+                    <form method="POST" action="{{ route('sales.void', $sale) }}">
+                        @csrf
+                        <label class="form-label">Void reason <span class="text-danger">*</span></label>
+                        <textarea name="reason" class="form-control mb-2" rows="2" required
+                            placeholder="Reason for voiding is required"></textarea>
+                        <button type="submit" class="btn btn-outline-danger w-100"
+                            data-confirm="Void this sale? This cannot be undone.">
+                            <i class="ti ti-trash me-1"></i>Void Sale
+                        </button>
+                    </form>
+
+                    @if($sale->source === 'pos' && Route::has('pos.receipts.reprint') && auth()->user()->can('pos.reprint-receipt'))
+                        <hr>
+                        <form method="POST" action="{{ route('pos.receipts.reprint', $sale) }}">
+                            @csrf
+                            <label class="form-label">Reprint reason <span class="text-danger">*</span></label>
+                            <textarea name="reason" class="form-control mb-2" rows="2" required minlength="10"
+                                placeholder="e.g. Customer lost original receipt and requested a duplicate."></textarea>
+                            <button type="submit" class="btn btn-outline-secondary w-100">
+                                <i class="ti ti-printer me-1"></i>Reprint Receipt
+                            </button>
+                            <div class="form-hint">Authorized users only.</div>
+                        </form>
+                    @endif
+                @endif
             </div>
         </div>
+        @endif
+
+        @if($sale->status === 'voided')
+        <div class="alert alert-danger mt-3">
+            <div class="d-flex gap-2">
+                <i class="ti ti-ban flex-shrink-0"></i>
+                <div>
+                    <div class="fw-semibold">Sale Voided</div>
+                    @if($sale->void_reason)
+                        <div class="small mt-1">{{ $sale->void_reason }}</div>
+                    @endif
+                </div>
+            </div>
+        </div>
+        @endif
+
+        {{-- Audit --}}
+        <div class="card mt-3">
+            <div class="card-header">
+                <h3 class="card-title">Audit</h3>
+            </div>
+            <div class="card-body d-flex flex-column gap-3">
+                @foreach([
+                    ['label' => 'Created by',   'user' => $sale->creator,   'icon' => 'ti-user-plus',  'color' => 'green'],
+                    ['label' => 'Updated by',   'user' => $sale->updater,   'icon' => 'ti-user-edit',  'color' => 'blue'],
+                    ['label' => 'Finalized by', 'user' => $sale->finalizer, 'icon' => 'ti-check',      'color' => 'green'],
+                    ['label' => 'Voided by',    'user' => $sale->voider,    'icon' => 'ti-ban',        'color' => 'red'],
+                    ['label' => 'Cancelled by', 'user' => $sale->canceller, 'icon' => 'ti-x',          'color' => 'orange'],
+                ] as $audit)
+                    @if($audit['user'])
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="avatar avatar-sm bg-{{ $audit['color'] }}-lt flex-shrink-0">
+                            <i class="ti {{ $audit['icon'] }}" style="font-size:.9rem; color:var(--tblr-{{ $audit['color'] }});"></i>
+                        </span>
+                        <div>
+                            <div class="text-muted small">{{ $audit['label'] }}</div>
+                            <div class="fw-medium">{{ $audit['user']->name }}</div>
+                        </div>
+                    </div>
+                    @endif
+                @endforeach
+            </div>
+        </div>
+
     </div>
 </div>
 @endsection

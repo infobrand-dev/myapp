@@ -63,7 +63,7 @@
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">SKU</label>
-                        <input type="text" name="sku" class="form-control" value="{{ old('sku', $product->sku) }}" required>
+                        <input type="text" name="sku" class="form-control" value="{{ old('sku', $product->sku) }}">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Barcode</label>

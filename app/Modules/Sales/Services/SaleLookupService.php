@@ -5,22 +5,18 @@ namespace App\Modules\Sales\Services;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Payments\Models\PaymentMethod;
-use App\Modules\Products\Models\Product;
-use App\Modules\Products\Models\ProductVariant;
+use App\Modules\Products\Services\ProductLookupService;
 use App\Modules\Sales\Models\Sale;
 use App\Support\BooleanQuery;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
-use App\Support\CurrencySettingsResolver;
-use App\Support\MoneyFormatter;
 use App\Support\TenantContext;
 use Illuminate\Support\Collection;
 
 class SaleLookupService
 {
     public function __construct(
-        private readonly MoneyFormatter $money,
-        private readonly CurrencySettingsResolver $currencies,
+        private readonly ProductLookupService $productLookup,
     ) {
     }
 
@@ -36,57 +32,10 @@ class SaleLookupService
 
     public function sellables(): Collection
     {
-        $defaultCurrency = $this->currencies->defaultCurrency();
-
-        $products = BooleanQuery::apply(
-            Product::query()->with([
-                'unit',
-                'variants' => fn ($query) => BooleanQuery::apply(
-                    $query->whereNull('deleted_at')->orderBy('position'),
-                    'is_active'
-                ),
-            ]),
-            'is_active'
-        )
-            ->whereNull('deleted_at')
-            ->orderBy('name')
-            ->get();
-
-        return $products->flatMap(function (Product $product) {
-            $rows = collect([
-                [
-                    'key' => 'product:' . $product->id,
-                    'type' => 'product',
-                    'product_id' => $product->id,
-                    'product_variant_id' => null,
-                        'label' => $product->name,
-                        'description' => implode(' | ', array_filter([
-                            'SKU: ' . $product->sku,
-                            $product->unit && $product->unit->name ? 'Unit: ' . $product->unit->name : null,
-                            'Harga default: ' . $this->money->format((float) $product->sell_price, $product->currency_code ?: $defaultCurrency),
-                        ])),
-                        'unit_price' => (float) $product->sell_price,
-                    ],
-                ]);
-
-            $variants = $product->variants->map(function (ProductVariant $variant) use ($product, $defaultCurrency) {
-                return [
-                    'key' => 'variant:' . $variant->id,
-                    'type' => 'variant',
-                    'product_id' => $product->id,
-                    'product_variant_id' => $variant->id,
-                    'label' => $product->name . ' - ' . $variant->name,
-                    'description' => implode(' | ', array_filter([
-                        'SKU: ' . $variant->sku,
-                        $variant->attribute_summary,
-                        'Harga default: ' . $this->money->format((float) $variant->sell_price, $variant->currency_code ?: $product->currency_code ?: $defaultCurrency),
-                    ])),
-                    'unit_price' => (float) $variant->sell_price,
-                ];
-            });
-
-            return $rows->concat($variants);
-        })->values();
+        return $this->productLookup->forAutocomplete()->map(fn ($item) => [
+            ...$item,
+            'unit_price' => $item['sell_price'],
+        ]);
     }
 
     public function statusOptions(): array

@@ -5,20 +5,16 @@ namespace App\Modules\Purchases\Services;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Inventory\Models\InventoryLocation;
-use App\Modules\Products\Models\Product;
-use App\Modules\Products\Models\ProductVariant;
+use App\Modules\Products\Services\ProductLookupService;
 use App\Modules\Purchases\Models\Purchase;
 use App\Support\BooleanQuery;
-use App\Support\CurrencySettingsResolver;
-use App\Support\MoneyFormatter;
 use App\Support\TenantContext;
 use Illuminate\Support\Collection;
 
 class PurchaseLookupService
 {
     public function __construct(
-        private readonly MoneyFormatter $money,
-        private readonly CurrencySettingsResolver $currencies,
+        private readonly ProductLookupService $productLookup,
     ) {
     }
 
@@ -34,53 +30,10 @@ class PurchaseLookupService
 
     public function purchasables(): Collection
     {
-        $defaultCurrency = $this->currencies->defaultCurrency();
-
-        $products = BooleanQuery::apply(
-            Product::query()->with([
-                'unit',
-                'variants' => fn ($query) => BooleanQuery::apply(
-                    $query->whereNull('deleted_at')->orderBy('position'),
-                    'is_active'
-                ),
-            ]),
-            'is_active'
-        )
-            ->whereNull('deleted_at')
-            ->orderBy('name')
-            ->get();
-
-        return $products->flatMap(function (Product $product) use ($defaultCurrency) {
-            $rows = collect([[
-                'key' => 'product:' . $product->id,
-                'product_id' => $product->id,
-                'product_variant_id' => null,
-                'label' => $product->name,
-                'description' => implode(' | ', array_filter([
-                    'SKU: ' . $product->sku,
-                    $product->unit ? 'Unit: ' . $product->unit->name : null,
-                    'Cost default: ' . $this->money->format((float) $product->cost_price, $product->currency_code ?: $defaultCurrency),
-                ])),
-                'unit_cost' => (float) $product->cost_price,
-            ]]);
-
-            $variants = $product->variants->map(function (ProductVariant $variant) use ($product, $defaultCurrency) {
-                return [
-                    'key' => 'variant:' . $variant->id,
-                    'product_id' => $product->id,
-                    'product_variant_id' => $variant->id,
-                    'label' => $product->name . ' - ' . $variant->name,
-                    'description' => implode(' | ', array_filter([
-                        'SKU: ' . $variant->sku,
-                        $variant->attribute_summary,
-                        'Cost default: ' . $this->money->format((float) $variant->cost_price, $variant->currency_code ?: $product->currency_code ?: $defaultCurrency),
-                    ])),
-                    'unit_cost' => (float) $variant->cost_price,
-                ];
-            });
-
-            return $rows->concat($variants);
-        })->values();
+        return $this->productLookup->forAutocomplete()->map(fn ($item) => [
+            ...$item,
+            'unit_cost' => $item['cost_price'],
+        ]);
     }
 
     public function inventoryLocations(): Collection

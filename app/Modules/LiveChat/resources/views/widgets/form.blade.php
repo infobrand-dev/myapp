@@ -1,7 +1,9 @@
 @extends('layouts.admin')
 
 @section('content')
-@php($isEdit = (bool) $widget->exists)
+@php
+    $isEdit = (bool) $widget->exists;
+@endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">{{ $isEdit ? 'Edit Live Chat Widget' : 'Tambah Live Chat Widget' }}</h2>

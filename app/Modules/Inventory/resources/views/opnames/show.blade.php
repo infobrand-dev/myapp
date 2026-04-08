@@ -89,7 +89,9 @@
                         <thead><tr><th>Produk</th><th>Stok Sistem</th><th>Stok Fisik</th><th>Selisih</th><th>Final System</th><th>Applied Adj</th></tr></thead>
                         <tbody>
                             @foreach($opname->items as $index => $item)
-                                @php($physicalOld = old('items.' . $index . '.physical_quantity', $item->physical_quantity))
+                                @php
+                                    $physicalOld = old('items.' . $index . '.physical_quantity', $item->physical_quantity);
+                                @endphp
                                 <tr>
                                     <td>
                                         <div class="fw-semibold">{{ $item->product ? $item->product->name : '-' }}</div>

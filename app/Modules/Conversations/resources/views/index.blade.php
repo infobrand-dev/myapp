@@ -1,6 +1,8 @@
 @extends('layouts.admin')
 
-@php($hooks = app(\App\Support\HookManager::class))
+@php
+    $hooks = app(\App\Support\HookManager::class);
+@endphp
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -109,7 +111,9 @@
                             @endif
                         </td>
                         <td>
-                            @php($integrationBadges = $hooks->render('conversations.index.integration_badges', ['conversation' => $conv]))
+                            @php
+                                $integrationBadges = $hooks->render('conversations.index.integration_badges', ['conversation' => $conv]);
+                            @endphp
                             @if(!empty($integrationBadges))
                                 {!! implode('', $integrationBadges) !!}
                             @else

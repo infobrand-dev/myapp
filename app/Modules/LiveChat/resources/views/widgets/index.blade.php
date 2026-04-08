@@ -42,7 +42,9 @@
                             </span>
                         </td>
                         <td>
-                            @php($domains = $widget->allowed_domains ?? [])
+                            @php
+                                $domains = $widget->allowed_domains ?? [];
+                            @endphp
                             {{ empty($domains) ? 'Belum dikonfigurasi' : implode(', ', $domains) }}
                         </td>
                         <td><code>{{ $widget->embedCode() }}</code></td>

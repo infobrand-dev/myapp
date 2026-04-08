@@ -1,7 +1,9 @@
 @extends('layouts.admin')
 
 @section('content')
-@php($showPlatformOAuthWarnings = $showPlatformOAuthWarnings ?? false)
+@php
+    $showPlatformOAuthWarnings = $showPlatformOAuthWarnings ?? false;
+@endphp
 <div class="page-header mb-3">
     <div class="row align-items-center w-100">
         <div class="col">

@@ -55,7 +55,9 @@
                             <thead><tr><th>Item</th><th>Ordered</th><th>Received</th><th>Remaining</th><th>Receive Now</th></tr></thead>
                             <tbody>
                                 @foreach($purchase->items as $item)
-                                    @php($remaining = max(0, (float) $item->qty - (float) $item->qty_received))
+                                    @php
+                                        $remaining = max(0, (float) $item->qty - (float) $item->qty_received);
+                                    @endphp
                                     <tr>
                                         <td>
                                             <div class="fw-semibold">{{ $item->product_name_snapshot }}</div>

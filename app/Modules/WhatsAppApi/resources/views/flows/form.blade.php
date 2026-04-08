@@ -50,7 +50,9 @@
                         <div class="col-12">
                             <label class="form-label">Kategori</label>
                             <div class="d-flex flex-wrap gap-2">
-                                @php($selectedCategories = old('categories', $flow->categories ?? ['OTHER']))
+                                @php
+                                    $selectedCategories = old('categories', $flow->categories ?? ['OTHER']);
+                                @endphp
                                 @foreach($categories as $category)
                                     <label class="form-check form-check-inline m-0">
                                         <input class="form-check-input" type="checkbox" name="categories[]" value="{{ $category }}" {{ in_array($category, $selectedCategories, true) ? 'checked' : '' }}>

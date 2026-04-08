@@ -1,4 +1,6 @@
-@php($money = app(\App\Support\MoneyFormatter::class))
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+@endphp
 
 <div class="col-12 col-sm-6 col-xl-3">
     <div class="dashboard-kpi p-3 p-lg-4 h-100 d-flex flex-column">

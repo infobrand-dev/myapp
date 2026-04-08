@@ -73,7 +73,9 @@
                     <button type="button" class="btn btn-outline-primary btn-sm" id="add-item-row">Tambah Item</button>
                 </div>
                 <div class="card-body" id="item-rows" data-product-options='@json($productOptions)'>
-                    @php($oldItems = old('items', [['direction' => 'in']]))
+                    @php
+                        $oldItems = old('items', [['direction' => 'in']]);
+                    @endphp
                     @foreach($oldItems as $index => $oldItem)
                         <div class="row g-2 align-items-end item-row mb-2">
                             <div class="col-md-4">

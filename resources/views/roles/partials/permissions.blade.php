@@ -1,5 +1,7 @@
-@php($selectedPermissions = $selectedPermissions ?? [])
-@php($inactiveAssignedPermissions = $inactiveAssignedPermissions ?? [])
+@php
+    $selectedPermissions = $selectedPermissions ?? [];
+    $inactiveAssignedPermissions = $inactiveAssignedPermissions ?? [];
+@endphp
 
 <div class="mb-3">
     <label class="form-label">Permissions</label>

@@ -37,7 +37,9 @@
                         <td><code>{{ $flow->meta_flow_id ?: '-' }}</code></td>
                         <td><span class="badge bg-secondary-lt text-secondary">{{ strtoupper($flow->status ?? 'draft') }}</span></td>
                         <td>
-                            @php($errorCount = count($flow->validation_errors ?? []))
+                            @php
+                                $errorCount = count($flow->validation_errors ?? []);
+                            @endphp
                             @if($errorCount > 0)
                                 <span class="badge bg-red-lt text-red">{{ $errorCount }} error</span>
                             @else

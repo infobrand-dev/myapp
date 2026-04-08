@@ -94,7 +94,9 @@
 
                     <div data-purchase-items>
                         @foreach($purchaseItems as $index => $item)
-                            @php($selected = collect($purchasables)->firstWhere('key', $item['purchasable_key'] ?? ''))
+                            @php
+                                $selected = collect($purchasables)->firstWhere('key', $item['purchasable_key'] ?? '');
+                            @endphp
                             <div class="border rounded p-3 mb-3 purchase-item-row">
                                 <div class="row g-3">
                                     <div class="col-md-5">

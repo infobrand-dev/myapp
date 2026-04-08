@@ -24,9 +24,9 @@
     $defaultBranchLabel = optional($branches->first())->name;
     $usesAllBranchView = $branch === null;
     $categoryTypeLabels = [
-        'cash_in' => 'Kas Masuk',
-        'cash_out' => 'Kas Keluar',
-        'expense' => 'Biaya Operasional',
+        'cash_in' => 'Cash In',
+        'cash_out' => 'Cash Out',
+        'expense' => 'Operating Expenses',
     ];
     $groupedCategories = $categories->groupBy('transaction_type');
 @endphp
@@ -72,16 +72,10 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Account <span class="text-danger">*</span></label>
-                    <input type="search"
-                           id="finance-account-search"
-                           class="form-control mb-2"
-                           placeholder="Cari account...">
-                    <select name="finance_account_id" id="finance-account-select" class="form-select @error('finance_account_id') is-invalid @enderror" required size="6">
+                    <select name="finance_account_id" class="form-select @error('finance_account_id') is-invalid @enderror" required>
                         <option value="">Select account</option>
                         @foreach($accounts as $account)
-                            <option value="{{ $account->id }}"
-                                    data-account-type="{{ $account->account_type }}"
-                                    @selected((string) old('finance_account_id', optional($accounts->firstWhere('is_default', true))->id) === (string) $account->id)>{{ $account->name }} ({{ \App\Modules\Finance\Models\FinanceAccount::typeOptions()[$account->account_type] ?? $account->account_type }})</option>
+                            <option value="{{ $account->id }}" @selected((string) old('finance_account_id', optional($accounts->firstWhere('is_default', true))->id) === (string) $account->id)>{{ $account->name }} ({{ \App\Modules\Finance\Models\FinanceAccount::typeOptions()[$account->account_type] ?? $account->account_type }})</option>
                         @endforeach
                     </select>
                     <div class="form-hint">Gunakan `cash` untuk kas tunai, `bank` untuk rekening, dan `ewallet` untuk saldo digital.</div>
@@ -89,11 +83,7 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Category <span class="text-danger">*</span></label>
-                    <input type="search"
-                           id="finance-category-search"
-                           class="form-control mb-2"
-                           placeholder="Cari category...">
-                    <select name="finance_category_id" id="finance-category-select" class="form-select @error('finance_category_id') is-invalid @enderror" required size="8">
+                    <select name="finance_category_id" id="finance-category-select" class="form-select @error('finance_category_id') is-invalid @enderror" required>
                         <option value="">Select category</option>
                         @foreach($groupedCategories as $transactionType => $categoryGroup)
                             <optgroup label="{{ $categoryTypeLabels[$transactionType] ?? ucfirst(str_replace('_', ' ', $transactionType)) }}">
@@ -118,25 +108,25 @@
                     </select>
                     <div class="form-hint">
                         @if($usesAllBranchView)
-                            Anda sedang melihat mode `Semua branch`. Jika dikosongkan, transaksi akan masuk ke branch default operasional{{ $defaultBranchLabel ? ': '.$defaultBranchLabel : '' }}.
+                            You are currently in `All branches` mode. If left blank, this transaction will use the default operational branch{{ $defaultBranchLabel ? ': '.$defaultBranchLabel : '' }}.
                         @else
-                            Jika dikosongkan, transaksi akan mengikuti branch operasional aktif/default.
+                            If left blank, this transaction will use the active/default operational branch.
                         @endif
                     </div>
                     @error('branch_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
                 <div class="col-md-3">
                     <label class="form-label d-inline-flex align-items-center gap-1">
-                        Sesi Kasir
+                        Cashier Session
                         <span tabindex="0"
                               class="text-muted"
                               data-bs-toggle="tooltip"
                               data-bs-placement="top"
-                              title="Isi jika transaksi ini terkait sesi kasir POS tertentu. Jika tidak, biarkan kosong."
-                              style="cursor:help; font-weight:700;">(?)</span>
+                              title="Fill this only if the transaction is related to a specific POS cashier session. Otherwise, leave it blank."
+                              style="cursor:help; line-height:1;"><i class="ti ti-info-circle"></i></span>
                     </label>
                     <select name="pos_cash_session_id" class="form-select @error('pos_cash_session_id') is-invalid @enderror">
-                        <option value="">Tidak terkait sesi kasir</option>
+                        <option value="">Not linked to a cashier session</option>
                         @if($shiftEnabled)
                             @foreach($shifts as $shift)
                                 <option value="{{ $shift->id }}" @selected((string) old('pos_cash_session_id') === (string) $shift->id)>{{ $shift->code }}</option>
@@ -144,7 +134,7 @@
                         @endif
                     </select>
                     @if(!$shiftEnabled)
-                        <div class="form-hint">POS shift belum tersedia. Field ini tetap opsional.</div>
+                        <div class="form-hint">POS shifts are not available yet. This field remains optional.</div>
                     @endif
                     @error('pos_cash_session_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
@@ -174,48 +164,17 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     const typeSelect = document.getElementById('finance-transaction-type');
-    const accountSearch = document.getElementById('finance-account-search');
-    const accountSelect = document.getElementById('finance-account-select');
-    const categorySearch = document.getElementById('finance-category-search');
     const categorySelect = document.getElementById('finance-category-select');
 
-    if (!typeSelect || !categorySelect || !accountSelect) {
+    if (!typeSelect || !categorySelect) {
         return;
     }
 
     const categoryOptions = Array.from(categorySelect.options);
     const categoryGroups = Array.from(categorySelect.querySelectorAll('optgroup'));
-    const accountOptions = Array.from(accountSelect.options);
-
-    function syncAccountOptions() {
-        const searchTerm = (accountSearch?.value || '').trim().toLowerCase();
-        let visibleCount = 0;
-
-        accountOptions.forEach((option) => {
-            if (!option.value) {
-                option.hidden = false;
-                return;
-            }
-
-            const visible = searchTerm === '' || option.text.toLowerCase().includes(searchTerm);
-            option.hidden = !visible;
-            if (visible) {
-                visibleCount += 1;
-            }
-        });
-
-        const selectedOption = accountSelect.options[accountSelect.selectedIndex];
-        if (selectedOption && selectedOption.value && selectedOption.hidden) {
-            accountSelect.value = '';
-        }
-
-        accountSelect.size = Math.min(Math.max(visibleCount + 1, 4), 8);
-    }
 
     function syncCategoryOptions() {
         const currentType = typeSelect.value;
-        const searchTerm = (categorySearch?.value || '').trim().toLowerCase();
-        let visibleCount = 0;
 
         categoryOptions.forEach((option) => {
             if (!option.value) {
@@ -224,14 +183,9 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             const optionType = option.dataset.transactionType || '';
-            const matchesType = optionType === currentType;
-            const matchesSearch = searchTerm === '' || option.text.toLowerCase().includes(searchTerm);
-            const visible = matchesType && matchesSearch;
+            const visible = optionType === currentType;
 
             option.hidden = !visible;
-            if (visible) {
-                visibleCount += 1;
-            }
         });
 
         categoryGroups.forEach((group) => {
@@ -243,14 +197,9 @@ document.addEventListener('DOMContentLoaded', function () {
         if (selectedOption && selectedOption.value && selectedOption.hidden) {
             categorySelect.value = '';
         }
-
-        categorySelect.size = Math.min(Math.max(visibleCount + 1, 4), 8);
     }
 
-    accountSearch?.addEventListener('input', syncAccountOptions);
     typeSelect.addEventListener('change', syncCategoryOptions);
-    categorySearch?.addEventListener('input', syncCategoryOptions);
-    syncAccountOptions();
     syncCategoryOptions();
 });
 </script>

@@ -110,6 +110,17 @@
                                                         <i class="ti ti-trash"></i>
                                                     </button>
                                                 </form>
+                                            @else
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-icon btn-sm btn-outline-danger"
+                                                    title="Cannot delete because this category is already used in transactions."
+                                                    data-bs-toggle="tooltip"
+                                                    data-bs-placement="top"
+                                                    disabled
+                                                >
+                                                    <i class="ti ti-trash"></i>
+                                                </button>
                                             @endif
                                         </div>
                                     </td>

@@ -6,6 +6,7 @@ use App\Models\Company;
 use App\Models\User;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
+use App\Support\NormalizesPgsqlBooleanAttributes;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class FinanceCategory extends Model
 {
+    use NormalizesPgsqlBooleanAttributes;
+
     public const TYPE_CASH_IN = 'cash_in';
     public const TYPE_CASH_OUT = 'cash_out';
     public const TYPE_EXPENSE = 'expense';

@@ -8,6 +8,7 @@ use App\Modules\Contacts\Models\Contact;
 use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Payments\Models\PaymentAllocation;
 use App\Support\CompanyContext;
+use App\Support\NormalizesPgsqlBooleanAttributes;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,6 +17,8 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class SaleReturn extends Model
 {
+    use NormalizesPgsqlBooleanAttributes;
+
     public const STATUS_DRAFT = 'draft';
     public const STATUS_FINALIZED = 'finalized';
     public const STATUS_CANCELLED = 'cancelled';

@@ -5,6 +5,7 @@ namespace App\Modules\Payments\Models;
 use App\Models\Company;
 use App\Models\User;
 use App\Support\CompanyContext;
+use App\Support\NormalizesPgsqlBooleanAttributes;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PaymentMethod extends Model
 {
+    use NormalizesPgsqlBooleanAttributes;
+
     public const CODE_CASH = 'cash';
     public const CODE_BANK_TRANSFER = 'bank_transfer';
     public const CODE_DEBIT_CARD = 'debit_card';

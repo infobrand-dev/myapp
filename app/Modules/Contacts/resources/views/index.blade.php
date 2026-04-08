@@ -44,16 +44,15 @@
     </div>
 @endif
 
-@include('shared.plan-limit-alert', [
-    'state' => $contactLimitState,
-    'title' => 'Limit Contacts',
-    'message' => match (($contactLimitState['status'] ?? 'ok')) {
-        'near_limit' => 'Kapasitas contacts tenant ini sudah mendekati batas plan.',
-        'at_limit' => 'Kapasitas contacts tenant ini sudah penuh. Contact baru tidak bisa ditambahkan.',
-        'over_limit' => 'Jumlah contacts tenant ini sudah melewati batas plan. Contact baru tetap diblokir sampai kapasitas turun atau plan berubah.',
-        default => 'Kapasitas contacts mengikuti plan tenant yang sedang aktif.',
-    },
-])
+@if(in_array(($contactLimitState['status'] ?? 'ok'), ['at_limit', 'over_limit'], true))
+    @include('shared.plan-limit-alert', [
+        'state' => $contactLimitState,
+        'title' => 'Limit Contacts',
+        'message' => ($contactLimitState['status'] ?? '') === 'over_limit'
+            ? 'Jumlah contacts sudah melewati batas plan. Contact baru diblokir sampai kapasitas turun atau plan berubah.'
+            : 'Kapasitas contacts sudah penuh. Contact baru tidak bisa ditambahkan.',
+    ])
+@endif
 
 <div class="card">
     {{-- Filter Bar --}}

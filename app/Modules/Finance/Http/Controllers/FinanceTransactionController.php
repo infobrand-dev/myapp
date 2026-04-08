@@ -18,19 +18,21 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Database\QueryException;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class FinanceTransactionController extends Controller
 {
     public function index(): View
     {
+        $companyId = $this->requireCurrentCompanyId();
         $filters = request()->only(['date_from', 'date_to', 'finance_category_id', 'created_by', 'branch_id', 'transaction_type']);
         $shiftEnabled = $this->shiftEnabled();
         $company = CompanyContext::currentCompany();
 
         $query = FinanceTransaction::query()
             ->where('tenant_id', TenantContext::currentId())
-            ->where('company_id', CompanyContext::currentId())
+            ->where('company_id', $companyId)
             ->with(array_filter(['category', 'creator', $shiftEnabled ? 'shift' : null]))
             ->when(empty($filters['branch_id']), fn ($builder) => BranchContext::applyScope($builder))
             ->when(!empty($filters['date_from']), function ($query) use ($filters) {
@@ -72,7 +74,7 @@ class FinanceTransactionController extends Controller
             'filters' => $filters,
             'categories' => FinanceCategory::query()
                 ->where('tenant_id', TenantContext::currentId())
-                ->where('company_id', CompanyContext::currentId())
+                ->where('company_id', $companyId)
                 ->orderBy('transaction_type')
                 ->orderBy('name')
                 ->get(),
@@ -90,6 +92,7 @@ class FinanceTransactionController extends Controller
 
     public function create(): View
     {
+        $companyId = $this->requireCurrentCompanyId();
         $shiftEnabled = $this->shiftEnabled();
         $company = CompanyContext::currentCompany();
 
@@ -97,7 +100,7 @@ class FinanceTransactionController extends Controller
             'categories' => BooleanQuery::apply(
                 FinanceCategory::query()
                     ->where('tenant_id', TenantContext::currentId())
-                    ->where('company_id', CompanyContext::currentId()),
+                    ->where('company_id', $companyId),
                 'is_active'
             )
                 ->orderBy('transaction_type')
@@ -106,7 +109,7 @@ class FinanceTransactionController extends Controller
             'shifts' => $shiftEnabled
                 ? PosCashSession::query()
                     ->where('tenant_id', TenantContext::currentId())
-                    ->where('company_id', CompanyContext::currentId())
+                    ->where('company_id', $companyId)
                     ->tap(fn ($query) => BranchContext::applyScope($query))
                     ->latest('opened_at')
                     ->limit(30)
@@ -125,10 +128,12 @@ class FinanceTransactionController extends Controller
 
     public function store(StoreFinanceTransactionRequest $request): RedirectResponse
     {
-        $transaction = DB::transaction(function () use ($request) {
+        $companyId = $this->requireCurrentCompanyId();
+
+        $transaction = DB::transaction(function () use ($request, $companyId) {
             return FinanceTransaction::query()->create([
                 'tenant_id' => TenantContext::currentId(),
-                'company_id' => CompanyContext::currentId(),
+                'company_id' => $companyId,
                 'transaction_number' => $this->generateTransactionNumber(),
                 'transaction_type' => $request->input('transaction_type'),
                 'transaction_date' => $request->input('transaction_date'),
@@ -163,6 +168,7 @@ class FinanceTransactionController extends Controller
 
     public function edit(FinanceTransaction $transaction): View
     {
+        $companyId = $this->requireCurrentCompanyId();
         $shiftEnabled = $this->shiftEnabled();
         $company = CompanyContext::currentCompany();
 
@@ -171,7 +177,7 @@ class FinanceTransactionController extends Controller
             'categories' => BooleanQuery::apply(
                 FinanceCategory::query()
                     ->where('tenant_id', TenantContext::currentId())
-                    ->where('company_id', CompanyContext::currentId()),
+                    ->where('company_id', $companyId),
                 'is_active'
             )
                 ->orderBy('transaction_type')
@@ -180,7 +186,7 @@ class FinanceTransactionController extends Controller
             'shifts' => $shiftEnabled
                 ? PosCashSession::query()
                     ->where('tenant_id', TenantContext::currentId())
-                    ->where('company_id', CompanyContext::currentId())
+                    ->where('company_id', $companyId)
                     ->tap(fn ($query) => BranchContext::applyScope($query))
                     ->latest('opened_at')
                     ->limit(30)
@@ -230,7 +236,7 @@ class FinanceTransactionController extends Controller
     private function generateTransactionNumber(): string
     {
         $tenantId = TenantContext::currentId();
-        $companyId = (int) CompanyContext::currentId();
+        $companyId = $this->requireCurrentCompanyId();
 
         for ($attempt = 0; $attempt < 5; $attempt++) {
             $number = 'FIN-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(6));
@@ -251,5 +257,18 @@ class FinanceTransactionController extends Controller
         }
 
         return 'FIN-' . now()->format('YmdHis') . '-' . Str::upper(Str::ulid());
+    }
+
+    private function requireCurrentCompanyId(): int
+    {
+        $companyId = CompanyContext::currentId();
+
+        if ($companyId) {
+            return (int) $companyId;
+        }
+
+        throw ValidationException::withMessages([
+            'company' => 'Pilih company aktif terlebih dahulu sebelum mengelola transaksi finance.',
+        ]);
     }
 }

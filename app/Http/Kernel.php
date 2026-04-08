@@ -38,6 +38,8 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\SetLocale::class,
             \App\Http\Middleware\ResolveTenantFromSubdomain::class, // must run before ResolveTenantContext
             \App\Http\Middleware\ResolveTenantContext::class,
+            \App\Http\Middleware\ResolveCompanyContext::class,
+            \App\Http\Middleware\ResolveBranchContext::class,
             // \Illuminate\Session\Middleware\AuthenticateSession::class,
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,

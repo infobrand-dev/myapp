@@ -11,6 +11,7 @@ use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class PaymentMethodController extends Controller
@@ -24,10 +25,12 @@ class PaymentMethodController extends Controller
 
     public function index(): View
     {
+        $companyId = $this->requireCurrentCompanyId();
+
         return view('payments::methods.index', [
             'methods' => PaymentMethod::query()
                 ->where('tenant_id', TenantContext::currentId())
-                ->where('company_id', CompanyContext::currentId())
+                ->where('company_id', $companyId)
                 ->orderBy('sort_order')
                 ->orderBy('name')
                 ->get(),
@@ -37,11 +40,13 @@ class PaymentMethodController extends Controller
 
     public function store(StorePaymentMethodRequest $request): RedirectResponse
     {
+        $companyId = $this->requireCurrentCompanyId();
+
         PaymentMethod::query()->create(array_merge(
             $request->validated(),
             [
                 'tenant_id' => TenantContext::currentId(),
-                'company_id' => CompanyContext::currentId(),
+                'company_id' => $companyId,
                 'requires_reference' => $request->boolean('requires_reference'),
                 'is_active' => $request->boolean('is_active', true),
                 'created_by' => $request->user() ? $request->user()->id : null,
@@ -93,5 +98,18 @@ class PaymentMethodController extends Controller
         $method->delete();
 
         return redirect()->route('payments.methods.index')->with('status', 'Payment method dihapus.');
+    }
+
+    private function requireCurrentCompanyId(): int
+    {
+        $companyId = CompanyContext::currentId();
+
+        if ($companyId) {
+            return (int) $companyId;
+        }
+
+        throw ValidationException::withMessages([
+            'company' => 'Pilih company aktif terlebih dahulu sebelum mengelola payment method.',
+        ]);
     }
 }

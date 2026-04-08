@@ -11,16 +11,19 @@ use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class FinanceCategoryController extends Controller
 {
     public function index(): View
     {
+        $companyId = $this->requireCurrentCompanyId();
+
         return view('finance::categories.index', [
             'categories' => FinanceCategory::query()
                 ->where('tenant_id', TenantContext::currentId())
-                ->where('company_id', CompanyContext::currentId())
+                ->where('company_id', $companyId)
                 ->withCount('transactions')
                 ->orderBy('transaction_type')
                 ->orderBy('name')
@@ -31,10 +34,12 @@ class FinanceCategoryController extends Controller
 
     public function store(StoreFinanceCategoryRequest $request): RedirectResponse
     {
-        DB::transaction(function () use ($request) {
+        $companyId = $this->requireCurrentCompanyId();
+
+        DB::transaction(function () use ($request, $companyId) {
             FinanceCategory::query()->create([
                 'tenant_id' => TenantContext::currentId(),
-                'company_id' => CompanyContext::currentId(),
+                'company_id' => $companyId,
                 'name' => $request->input('name'),
                 'slug' => Str::slug($request->input('name')) . '-' . Str::lower(Str::random(4)),
                 'transaction_type' => $request->input('transaction_type'),
@@ -89,5 +94,18 @@ class FinanceCategoryController extends Controller
             FinanceCategory::TYPE_CASH_OUT => 'Cash Out',
             FinanceCategory::TYPE_EXPENSE => 'Expense',
         ];
+    }
+
+    private function requireCurrentCompanyId(): int
+    {
+        $companyId = CompanyContext::currentId();
+
+        if ($companyId) {
+            return (int) $companyId;
+        }
+
+        throw ValidationException::withMessages([
+            'company' => 'Pilih company aktif terlebih dahulu sebelum mengelola kategori finance.',
+        ]);
     }
 }

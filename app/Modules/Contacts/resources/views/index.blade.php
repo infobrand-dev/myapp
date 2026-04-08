@@ -53,48 +53,50 @@
     },
 ])
 
-{{-- ── Toolbar: Search + Quick Filter ── --}}
-<div class="card mb-3">
-    <div class="card-body py-3">
+<div class="card">
+    {{-- Filter Bar --}}
+    <div class="card-header">
         <form method="GET" action="{{ route('contacts.index') }}" id="filter-form">
             <div class="row g-2 align-items-center">
+                {{-- Search --}}
                 <div class="col">
                     <div class="input-group">
-                        <span class="input-group-text text-muted"><i class="ti ti-search"></i></span>
+                        <span class="input-group-text"><i class="ti ti-search"></i></span>
                         <input type="text" name="search" class="form-control"
                             placeholder="Cari nama, email, atau nomor telepon…"
                             value="{{ $searchFilter }}" autocomplete="off">
-                        @if($searchFilter)
-                            <a href="{{ route('contacts.index', array_filter(array_merge($filters, ['search' => null]))) }}"
-                                class="btn btn-outline-secondary" title="Hapus pencarian">
-                                <i class="ti ti-x"></i>
-                            </a>
-                        @endif
                     </div>
                 </div>
+
+                {{-- Type Filter (radio as btn-group) --}}
                 <div class="col-auto">
-                    <div class="btn-group" role="group" aria-label="Filter tipe">
-                        <a href="{{ route('contacts.index', array_filter(array_merge($filters, ['type' => null]))) }}"
-                            class="btn {{ !$typeFilter ? 'btn-secondary' : 'btn-outline-secondary' }}">
-                            Semua
-                        </a>
-                        <a href="{{ route('contacts.index', array_merge($filters, ['type' => 'company'])) }}"
-                            class="btn {{ $typeFilter === 'company' ? 'btn-secondary' : 'btn-outline-secondary' }}">
+                    <div class="btn-group" role="group">
+                        <input type="radio" class="btn-check" name="type" id="type-all" value=""
+                            autocomplete="off" {{ $typeFilter === '' ? 'checked' : '' }}>
+                        <label class="btn btn-outline-secondary" for="type-all">Semua</label>
+
+                        <input type="radio" class="btn-check" name="type" id="type-company" value="company"
+                            autocomplete="off" {{ $typeFilter === 'company' ? 'checked' : '' }}>
+                        <label class="btn btn-outline-secondary" for="type-company">
                             <i class="ti ti-building me-1"></i>Company
-                        </a>
-                        <a href="{{ route('contacts.index', array_merge($filters, ['type' => 'individual'])) }}"
-                            class="btn {{ $typeFilter === 'individual' ? 'btn-secondary' : 'btn-outline-secondary' }}">
+                        </label>
+
+                        <input type="radio" class="btn-check" name="type" id="type-individual" value="individual"
+                            autocomplete="off" {{ $typeFilter === 'individual' ? 'checked' : '' }}>
+                        <label class="btn btn-outline-secondary" for="type-individual">
                             <i class="ti ti-user me-1"></i>Individual
-                        </a>
+                        </label>
                     </div>
                 </div>
+
+                {{-- Actions --}}
                 <div class="col-auto d-flex gap-2">
                     <button type="submit" class="btn btn-primary">
                         <i class="ti ti-search me-1"></i>Cari
                     </button>
                     @if($hasFilters)
-                        <a href="{{ route('contacts.index') }}" class="btn btn-outline-secondary" title="Reset semua filter">
-                            <i class="ti ti-filter-off me-1"></i>Reset
+                        <a href="{{ route('contacts.index') }}" class="btn btn-outline-secondary" title="Reset filter">
+                            <i class="ti ti-filter-off"></i>
                         </a>
                     @endif
                 </div>
@@ -102,8 +104,8 @@
 
             {{-- Active filter chips --}}
             @if($hasFilters)
-                <div class="d-flex flex-wrap gap-2 align-items-center mt-2 pt-2 border-top">
-                    <span class="text-muted" style="font-size:.78rem;">Filter aktif:</span>
+                <div class="d-flex flex-wrap gap-2 align-items-center mt-3 pt-3 border-top">
+                    <span class="text-muted small">Filter aktif:</span>
                     @if($searchFilter)
                         <span class="badge bg-blue-lt text-blue d-flex align-items-center gap-1">
                             <i class="ti ti-search" style="font-size:.7rem;"></i>
@@ -124,10 +126,8 @@
             @endif
         </form>
     </div>
-</div>
 
-{{-- ── Contacts Table ── --}}
-<div class="card">
+    {{-- Table --}}
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-vcenter table-hover mb-0">
@@ -145,10 +145,10 @@
                     @forelse($contacts as $contact)
                     @php
                         $avatarColor = $avatarPalette[abs(crc32($contact->name)) % count($avatarPalette)];
-                        $initials = strtoupper(substr(trim($contact->name), 0, 1));
                         $parts = explode(' ', trim($contact->name));
+                        $initials = strtoupper($parts[0][0] ?? '?');
                         if (count($parts) >= 2) {
-                            $initials = strtoupper($parts[0][0] . $parts[count($parts)-1][0]);
+                            $initials = strtoupper($parts[0][0] . $parts[count($parts) - 1][0]);
                         }
                     @endphp
                     <tr>
@@ -160,7 +160,7 @@
                                 </span>
                                 <div>
                                     <a href="{{ route('contacts.show', $contact) }}"
-                                        class="fw-semibold text-decoration-none text-body d-block">
+                                        class="fw-semibold text-body text-decoration-none d-block">
                                         {{ $contact->name }}
                                     </a>
                                     @if($contact->job_title)
@@ -232,6 +232,7 @@
             </table>
         </div>
     </div>
+
     <div class="card-footer d-flex align-items-center justify-content-between">
         <div class="text-muted small">
             {{ number_format($contacts->total()) }} kontak ditemukan

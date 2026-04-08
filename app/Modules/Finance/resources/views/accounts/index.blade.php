@@ -32,44 +32,11 @@
             <form method="POST" action="{{ route('finance.accounts.store') }}">
                 @csrf
                 <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <label class="form-label">Name <span class="text-danger">*</span></label>
-                            <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name') }}" required>
-                            @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Type <span class="text-danger">*</span></label>
-                            <select name="account_type" class="form-select @error('account_type') is-invalid @enderror" required>
-                                @foreach($typeOptions as $value => $label)
-                                    <option value="{{ $value }}" @selected(old('account_type', 'cash') === $value)>{{ $label }}</option>
-                                @endforeach
-                            </select>
-                            @error('account_type') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Account Number / Reference</label>
-                            <input type="text" name="account_number" class="form-control @error('account_number') is-invalid @enderror" value="{{ old('account_number') }}">
-                            @error('account_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                        </div>
-                        <div class="col-12">
-                            <label class="form-check">
-                                <input type="checkbox" class="form-check-input" name="is_active" value="1" @checked(old('is_active', true))>
-                                <span class="form-check-label">Active</span>
-                            </label>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-check">
-                                <input type="checkbox" class="form-check-input" name="is_default" value="1" @checked(old('is_default', false))>
-                                <span class="form-check-label">Jadikan default account</span>
-                            </label>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Notes</label>
-                            <textarea name="notes" class="form-control @error('notes') is-invalid @enderror" rows="3">{{ old('notes') }}</textarea>
-                            @error('notes') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                        </div>
-                    </div>
+                    @include('finance::accounts.partials.form', [
+                        'typeOptions' => $typeOptions,
+                        'showSlug' => false,
+                        'notesRows' => 3,
+                    ])
                 </div>
                 <div class="card-footer d-flex justify-content-end">
                     <button type="submit" class="btn btn-primary">

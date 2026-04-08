@@ -14,12 +14,18 @@ use App\Modules\Purchases\Events\PurchaseFinalized;
 use App\Modules\Purchases\Events\PurchaseVoided;
 use App\Modules\Purchases\Listeners\DispatchFinalizedPurchaseHooks;
 use App\Modules\Purchases\Listeners\DispatchVoidedPurchaseHooks;
+use App\Modules\Purchases\Models\Purchase;
 use App\Modules\Purchases\Repositories\PurchaseRepository;
 use App\Modules\Purchases\Services\PurchaseIntegrationPayloadBuilder;
 use App\Modules\Purchases\Services\PurchaseLookupService;
 use App\Modules\Purchases\Services\PurchaseNumberService;
 use App\Modules\Purchases\Services\PurchaseSnapshotService;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
+use App\Support\HookManager;
+use App\Support\PlanFeature;
 use App\Support\RegistersModuleRoutes;
+use App\Support\TenantContext;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
@@ -94,6 +100,7 @@ class PurchasesServiceProvider extends ServiceProvider
         Event::listen(PurchaseVoided::class, DispatchVoidedPurchaseHooks::class);
 
         $this->ensurePermissions();
+        $this->registerDashboardHooks();
     }
 
     private function ensurePermissions(): void
@@ -110,5 +117,54 @@ class PurchasesServiceProvider extends ServiceProvider
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    private function registerDashboardHooks(): void
+    {
+        /** @var HookManager $hooks */
+        $hooks = $this->app->make(HookManager::class);
+
+        $hooks->register('dashboard.overview.cards', 'purchases.dashboard.card', function (): string {
+            $planManager = app(\App\Support\TenantPlanManager::class);
+            $user = auth()->user();
+
+            if (!$user
+                || !Schema::hasTable('purchases')
+                || !$user->can('purchases.view')
+                || !$planManager->hasFeature(PlanFeature::COMMERCE, TenantContext::currentId())
+                || !$planManager->hasFeature(PlanFeature::PURCHASES, TenantContext::currentId())) {
+                return '';
+            }
+
+            $baseQuery = Purchase::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
+                ->tap(fn ($query) => BranchContext::applyScope($query));
+
+            $liveStatuses = [
+                Purchase::STATUS_CONFIRMED,
+                Purchase::STATUS_PARTIAL_RECEIVED,
+                Purchase::STATUS_RECEIVED,
+            ];
+
+            $monthStart = now()->startOfMonth();
+            $monthEnd = now()->endOfMonth();
+
+            $metrics = [
+                'open_count' => (clone $baseQuery)
+                    ->whereIn('status', [Purchase::STATUS_CONFIRMED, Purchase::STATUS_PARTIAL_RECEIVED])
+                    ->count(),
+                'spend_month' => (float) ((clone $baseQuery)
+                    ->whereIn('status', $liveStatuses)
+                    ->whereBetween('purchase_date', [$monthStart, $monthEnd])
+                    ->sum('grand_total')),
+                'payable_count' => (clone $baseQuery)
+                    ->whereIn('status', $liveStatuses)
+                    ->whereIn('payment_status', [Purchase::PAYMENT_UNPAID, Purchase::PAYMENT_PARTIAL])
+                    ->count(),
+            ];
+
+            return view('purchases::dashboard.card', compact('metrics'))->render();
+        });
     }
 }

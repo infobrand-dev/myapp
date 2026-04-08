@@ -12,7 +12,12 @@ use App\Modules\Payments\Repositories\PaymentRepository;
 use App\Modules\Payments\Services\PaymentLookupService;
 use App\Modules\Payments\Services\PaymentNumberService;
 use App\Modules\Payments\Services\PaymentSummaryService;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
+use App\Support\HookManager;
+use App\Support\PlanFeature;
 use App\Support\RegistersModuleRoutes;
+use App\Support\TenantContext;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
@@ -74,6 +79,7 @@ class PaymentsServiceProvider extends ServiceProvider
 
         Gate::policy(Payment::class, PaymentPolicy::class);
         $this->ensurePermissions();
+        $this->registerDashboardHooks();
     }
 
     private function ensurePermissions(): void
@@ -90,5 +96,46 @@ class PaymentsServiceProvider extends ServiceProvider
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    private function registerDashboardHooks(): void
+    {
+        /** @var HookManager $hooks */
+        $hooks = $this->app->make(HookManager::class);
+
+        $hooks->register('dashboard.overview.cards', 'payments.dashboard.card', function (): string {
+            $user = auth()->user();
+
+            if (!$user
+                || !Schema::hasTable('payments')
+                || !$user->can('payments.view')
+                || !app(\App\Support\TenantPlanManager::class)->hasFeature(PlanFeature::COMMERCE, TenantContext::currentId())) {
+                return '';
+            }
+
+            $baseQuery = Payment::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
+                ->tap(fn ($query) => BranchContext::applyScope($query));
+
+            $monthStart = now()->startOfMonth();
+            $monthEnd = now()->endOfMonth();
+
+            $metrics = [
+                'posted_count' => (clone $baseQuery)
+                    ->where('status', Payment::STATUS_POSTED)
+                    ->whereBetween('paid_at', [$monthStart, $monthEnd])
+                    ->count(),
+                'collected_month' => (float) ((clone $baseQuery)
+                    ->where('status', Payment::STATUS_POSTED)
+                    ->whereBetween('paid_at', [$monthStart, $monthEnd])
+                    ->sum('amount')),
+                'pending_count' => (clone $baseQuery)
+                    ->where('status', Payment::STATUS_PENDING)
+                    ->count(),
+            ];
+
+            return view('payments::dashboard.card', compact('metrics'))->render();
+        });
     }
 }

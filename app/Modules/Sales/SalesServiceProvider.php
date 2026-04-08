@@ -22,6 +22,7 @@ use App\Modules\Sales\Events\SaleFinalized;
 use App\Modules\Sales\Events\SaleVoided;
 use App\Modules\Sales\Listeners\DispatchFinalizedSaleHooks;
 use App\Modules\Sales\Listeners\DispatchVoidedSaleHooks;
+use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Repositories\SaleRepository;
 use App\Modules\Sales\Repositories\SaleReturnRepository;
 use App\Modules\Sales\Services\SaleIntegrationPayloadBuilder;
@@ -33,7 +34,12 @@ use App\Modules\Sales\Services\SaleReturnCalculationService;
 use App\Modules\Sales\Services\SaleReturnLookupService;
 use App\Modules\Sales\Services\SaleReturnNumberService;
 use App\Modules\Sales\Services\SaleSnapshotService;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
+use App\Support\HookManager;
+use App\Support\PlanFeature;
 use App\Support\RegistersModuleRoutes;
+use App\Support\TenantContext;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
@@ -144,6 +150,7 @@ class SalesServiceProvider extends ServiceProvider
         Event::listen(SaleVoided::class, DispatchVoidedSaleHooks::class);
 
         $this->ensurePermissions();
+        $this->registerDashboardHooks();
     }
 
     private function registerRoutes(): void
@@ -168,5 +175,47 @@ class SalesServiceProvider extends ServiceProvider
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    private function registerDashboardHooks(): void
+    {
+        /** @var HookManager $hooks */
+        $hooks = $this->app->make(HookManager::class);
+
+        $hooks->register('dashboard.overview.cards', 'sales.dashboard.card', function (): string {
+            $user = auth()->user();
+
+            if (!$user
+                || !Schema::hasTable('sales')
+                || !$user->can('sales.view')
+                || !app(\App\Support\TenantPlanManager::class)->hasFeature(PlanFeature::COMMERCE, TenantContext::currentId())) {
+                return '';
+            }
+
+            $baseQuery = Sale::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
+                ->tap(fn ($query) => BranchContext::applyScope($query));
+
+            $finalizedQuery = (clone $baseQuery)
+                ->where('status', Sale::STATUS_FINALIZED);
+
+            $monthStart = now()->startOfMonth();
+            $monthEnd = now()->endOfMonth();
+
+            $metrics = [
+                'finalized_count' => (clone $finalizedQuery)
+                    ->whereBetween('transaction_date', [$monthStart, $monthEnd])
+                    ->count(),
+                'revenue_month' => (float) ((clone $finalizedQuery)
+                    ->whereBetween('transaction_date', [$monthStart, $monthEnd])
+                    ->sum('grand_total')),
+                'outstanding_count' => (clone $finalizedQuery)
+                    ->whereIn('payment_status', [Sale::PAYMENT_UNPAID, Sale::PAYMENT_PARTIAL])
+                    ->count(),
+            ];
+
+            return view('sales::dashboard.card', compact('metrics'))->render();
+        });
     }
 }

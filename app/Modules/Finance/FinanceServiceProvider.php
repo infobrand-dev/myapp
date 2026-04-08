@@ -2,7 +2,13 @@
 
 namespace App\Modules\Finance;
 
+use App\Modules\Finance\Models\FinanceTransaction;
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
+use App\Support\HookManager;
+use App\Support\PlanFeature;
 use App\Support\RegistersModuleRoutes;
+use App\Support\TenantContext;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\Models\Permission;
@@ -36,6 +42,7 @@ class FinanceServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(\App\Support\ModulePath::migrationDirectory(__DIR__) ?? (__DIR__ . '/Database/Migrations'));
 
         $this->ensurePermissions();
+        $this->registerDashboardHooks();
     }
 
     private function ensurePermissions(): void
@@ -52,5 +59,51 @@ class FinanceServiceProvider extends ServiceProvider
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    private function registerDashboardHooks(): void
+    {
+        /** @var HookManager $hooks */
+        $hooks = $this->app->make(HookManager::class);
+
+        $hooks->register('dashboard.overview.cards', 'finance.dashboard.card', function (): string {
+            $user = auth()->user();
+
+            if (!$user
+                || !Schema::hasTable('finance_transactions')
+                || !$user->can('finance.view')
+                || !app(\App\Support\TenantPlanManager::class)->hasFeature(PlanFeature::COMMERCE, TenantContext::currentId())) {
+                return '';
+            }
+
+            $baseQuery = FinanceTransaction::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
+                ->tap(fn ($query) => BranchContext::applyScope($query));
+
+            $monthStart = now()->startOfMonth();
+            $monthEnd = now()->endOfMonth();
+
+            $cashIn = (float) ((clone $baseQuery)
+                ->where('transaction_type', FinanceTransaction::TYPE_CASH_IN)
+                ->whereBetween('transaction_date', [$monthStart, $monthEnd])
+                ->sum('amount'));
+
+            $cashOut = (float) ((clone $baseQuery)
+                ->whereIn('transaction_type', [FinanceTransaction::TYPE_CASH_OUT, FinanceTransaction::TYPE_EXPENSE])
+                ->whereBetween('transaction_date', [$monthStart, $monthEnd])
+                ->sum('amount'));
+
+            $metrics = [
+                'entry_count' => (clone $baseQuery)
+                    ->whereBetween('transaction_date', [$monthStart, $monthEnd])
+                    ->count(),
+                'cash_in_month' => $cashIn,
+                'cash_out_month' => $cashOut,
+                'net_month' => $cashIn - $cashOut,
+            ];
+
+            return view('finance::dashboard.card', compact('metrics'))->render();
+        });
     }
 }

@@ -3,6 +3,8 @@
 namespace App\Http\Middleware;
 
 use App\Support\CompanyContext;
+use App\Support\TenantContext;
+use App\Support\WorkspaceContextProvisioner;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -13,6 +15,10 @@ class ResolveCompanyContext
     {
         if ($request->is('install') || $request->is('install/*')) {
             return $next($request);
+        }
+
+        if ($request->user()) {
+            app(WorkspaceContextProvisioner::class)->ensureForTenant(TenantContext::currentId(), $request->user());
         }
 
         $companyId = CompanyContext::resolveIdFromRequest($request);

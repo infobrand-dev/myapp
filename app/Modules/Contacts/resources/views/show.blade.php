@@ -34,13 +34,6 @@
     </div>
 </div>
 
-@if(session('status'))
-    <div class="alert alert-azure alert-dismissible mb-3">
-        <i class="ti ti-info-circle me-2"></i>{{ session('status') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-@endif
-
 <div class="row g-3">
     <div class="col-lg-7">
         <div class="card">

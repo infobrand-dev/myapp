@@ -37,13 +37,6 @@
     </div>
 </div>
 
-@if(session('status'))
-    <div class="alert alert-azure alert-dismissible mb-3">
-        <i class="ti ti-info-circle me-2"></i>{{ session('status') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-@endif
-
 @if(in_array(($contactLimitState['status'] ?? 'ok'), ['at_limit', 'over_limit'], true))
     @include('shared.plan-limit-alert', [
         'state' => $contactLimitState,

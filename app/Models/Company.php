@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\NormalizesPgsqlBooleanAttributes;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -11,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 
 class Company extends Model
 {
+    use NormalizesPgsqlBooleanAttributes;
+
     protected $fillable = [
         'tenant_id',
         'name',

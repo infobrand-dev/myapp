@@ -123,7 +123,12 @@ class CrmServiceProvider extends ServiceProvider
         $hooks = $this->app->make(HookManager::class);
 
         $renderAction = function (array $context): string {
-            if (!Schema::hasTable('crm_leads')) {
+            $user = auth()->user();
+
+            if (!Schema::hasTable('crm_leads')
+                || !$user
+                || !app(\App\Support\TenantPlanManager::class)->hasFeature(PlanFeature::CRM, \App\Support\TenantContext::currentId())
+                || !$user->can('crm.view')) {
                 return '';
             }
 

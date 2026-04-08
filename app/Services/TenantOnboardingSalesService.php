@@ -12,6 +12,7 @@ use App\Models\Tenant;
 use App\Models\TenantSubscription;
 use App\Models\User;
 use App\Support\TenantRoleProvisioner;
+use App\Support\WorkspaceContextProvisioner;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -213,6 +214,8 @@ class TenantOnboardingSalesService
                 $registrar->forgetCachedPermissions();
             }
 
+            app(WorkspaceContextProvisioner::class)->ensureForTenant($tenant->id, $user);
+
             $order = PlatformPlanOrder::query()->create([
                 'tenant_id' => $tenant->id,
                 'subscription_plan_id' => $plan->id,
@@ -319,6 +322,8 @@ class TenantOnboardingSalesService
                 $registrar->setPermissionsTeamId(null);
                 $registrar->forgetCachedPermissions();
             }
+
+            app(WorkspaceContextProvisioner::class)->ensureForTenant($tenant->id, $user);
 
             $subscription = TenantSubscription::query()->create([
                 'tenant_id' => $tenant->id,

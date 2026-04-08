@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Support\NormalizesPgsqlBooleanAttributes;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class UserBranch extends Model
 {
+    use NormalizesPgsqlBooleanAttributes;
+
     protected $fillable = [
         'tenant_id',
         'user_id',

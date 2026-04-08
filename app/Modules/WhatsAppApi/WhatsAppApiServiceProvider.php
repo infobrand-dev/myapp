@@ -369,8 +369,13 @@ class WhatsAppApiServiceProvider extends ServiceProvider
         $hooks = $this->app->make(HookManager::class);
 
         $hooks->register('contacts.index.row_actions', 'whatsapp_api.contact_button', function (array $context): string {
+            $user = auth()->user();
             $contact = $context['contact'] ?? null;
-            if (!$contact) {
+
+            if (!$contact
+                || !$user
+                || !app(\App\Support\TenantPlanManager::class)->hasFeature(\App\Support\PlanFeature::WHATSAPP_API, \App\Support\TenantContext::currentId())
+                || !$user->can('whatsapp_api.view')) {
                 return '';
             }
 
@@ -378,8 +383,13 @@ class WhatsAppApiServiceProvider extends ServiceProvider
         });
 
         $hooks->register('contacts.show.header_actions', 'whatsapp_api.contact_button', function (array $context): string {
+            $user = auth()->user();
             $contact = $context['contact'] ?? null;
-            if (!$contact) {
+
+            if (!$contact
+                || !$user
+                || !app(\App\Support\TenantPlanManager::class)->hasFeature(\App\Support\PlanFeature::WHATSAPP_API, \App\Support\TenantContext::currentId())
+                || !$user->can('whatsapp_api.view')) {
                 return '';
             }
 
@@ -387,6 +397,14 @@ class WhatsAppApiServiceProvider extends ServiceProvider
         });
 
         $modalRenderer = function (): string {
+            $user = auth()->user();
+
+            if (!$user
+                || !app(\App\Support\TenantPlanManager::class)->hasFeature(\App\Support\PlanFeature::WHATSAPP_API, \App\Support\TenantContext::currentId())
+                || !$user->can('whatsapp_api.view')) {
+                return '';
+            }
+
             $data = ContactActionController::modalData(auth()->user());
             return view('whatsappapi::contact-actions.modal', $data)->render();
         };

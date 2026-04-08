@@ -24,13 +24,6 @@
     </div>
 </div>
 
-@if(session('status'))
-    <div class="alert alert-azure alert-dismissible mb-3">
-        <i class="ti ti-info-circle me-2"></i>{{ session('status') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-@endif
-
 @if($errors->has('import_file'))
     <div class="alert alert-danger alert-dismissible mb-3">
         <i class="ti ti-alert-circle me-2"></i>{{ $errors->first('import_file') }}

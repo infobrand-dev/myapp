@@ -2,6 +2,7 @@
 
 namespace App\Modules\Finance\Http\Requests;
 
+use App\Modules\Finance\Models\FinanceAccount;
 use App\Modules\Finance\Models\FinanceCategory;
 use App\Modules\Finance\Models\FinanceTransaction;
 use App\Modules\PointOfSale\Models\PosCashSession;
@@ -40,6 +41,9 @@ class UpdateFinanceTransactionRequest extends FormRequest
             ])],
             'transaction_date' => ['required', 'date'],
             'amount' => ['required', 'numeric', 'gt:0'],
+            'finance_account_id' => ['required', 'integer', Rule::exists('finance_accounts', 'id')->where(fn ($query) => $query
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId()))],
             'finance_category_id' => ['required', 'integer', Rule::exists('finance_categories', 'id')->where(fn ($query) => $query
                 ->where('tenant_id', TenantContext::currentId())
                 ->where('company_id', CompanyContext::currentId()))],
@@ -61,6 +65,16 @@ class UpdateFinanceTransactionRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
+            $account = FinanceAccount::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
+                ->find($this->input('finance_account_id'));
+
+            if (!$account || !$account->is_active) {
+                $validator->errors()->add('finance_account_id', 'Finance account tidak aktif atau tidak tersedia.');
+                return;
+            }
+
             $category = FinanceCategory::query()
                 ->where('tenant_id', TenantContext::currentId())
                 ->where('company_id', CompanyContext::currentId())

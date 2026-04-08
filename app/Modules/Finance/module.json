@@ -16,6 +16,10 @@
                        {
                            "label":  "Finance Categories",
                            "route":  "finance.categories.index"
+                       },
+                       {
+                           "label":  "Finance Accounts",
+                           "route":  "finance.accounts.index"
                        }
                    ],
     "icon":  "resources/icons/icon.svg"

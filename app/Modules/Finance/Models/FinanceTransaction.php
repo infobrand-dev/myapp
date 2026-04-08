@@ -27,6 +27,7 @@ class FinanceTransaction extends Model
         'transaction_type',
         'transaction_date',
         'amount',
+        'finance_account_id',
         'finance_category_id',
         'notes',
         'branch_id',
@@ -45,6 +46,13 @@ class FinanceTransaction extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(FinanceCategory::class, 'finance_category_id')
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId());
+    }
+
+    public function account(): BelongsTo
+    {
+        return $this->belongsTo(FinanceAccount::class, 'finance_account_id')
             ->where('tenant_id', TenantContext::currentId())
             ->where('company_id', CompanyContext::currentId());
     }

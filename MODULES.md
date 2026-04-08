@@ -11,7 +11,7 @@ This file is a quick catalog. The authoritative metadata for each module lives i
 - `sales`: sales workflow and returns. Requires `products`, `contacts`.
 - `payments`: payment records, methods, allocations, void flow. Requires `sales`, `purchases`, `point-of-sale`.
 - `purchases`: draft/finalized purchase flow and goods receiving. Requires `products`, `contacts`, `inventory`, `payments`.
-- `finance`: finance-related services and permissions used by the commerce stack.
+- `finance`: finance-related services, finance accounts (`cash`, `bank`, `ewallet`), and permissions used by the commerce stack.
 - `point-of-sale`: POS cart, checkout, cash session, receipt flow. Requires `products`, `contacts`, `sales`, `payments`, `discounts`.
 - `midtrans`: Midtrans payment gateway integration for online payment flow. Requires `payments`, `sales`, `point-of-sale`.
 - `reports`: dashboard and module-level reports for sales, payments, inventory, purchases, finance, POS, and products.
@@ -64,6 +64,7 @@ This file is a quick catalog. The authoritative metadata for each module lives i
 
 Planned boundary note:
 - `finance` saat ini tetap berada di `commerce` karena fungsinya masih cash flow operasional ringan, bukan akuntansi formal.
+- area `cash` dan `bank` saat ini hidup di dalam `finance` melalui finance accounts, bukan module terpisah.
 
 ## Accounting
 Saat ini `accounting` diposisikan sebagai product line pricing yang memakai modul existing, bukan katalog modul baru.

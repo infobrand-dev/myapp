@@ -40,6 +40,7 @@
             <div class="card-body">
                 <div class="mb-2"><div class="text-muted small">Type</div><div>{{ $transaction->transaction_type }}</div></div>
                 <div class="mb-2"><div class="text-muted small">Amount</div><div>{{ $money->format((float) $transaction->amount, $currency) }}</div></div>
+                <div class="mb-2"><div class="text-muted small">Account</div><div>{{ $transaction->account?->name ?? '-' }}</div></div>
                 <div class="mb-2"><div class="text-muted small">Category</div><div>{{ $transaction->category ? $transaction->category->name : '-' }}</div></div>
                 <div class="mb-2"><div class="text-muted small">User</div><div>{{ $transaction->creator ? $transaction->creator->name : '-' }}</div></div>
                 <div class="mb-2"><div class="text-muted small">Branch</div><div>{{ $transaction->branch_id ?: '-' }}</div></div>

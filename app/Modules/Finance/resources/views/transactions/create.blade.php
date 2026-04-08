@@ -58,6 +58,17 @@
                     @error('amount') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
                 <div class="col-md-6">
+                    <label class="form-label">Account <span class="text-danger">*</span></label>
+                    <select name="finance_account_id" class="form-select @error('finance_account_id') is-invalid @enderror" required>
+                        <option value="">Select account</option>
+                        @foreach($accounts as $account)
+                            <option value="{{ $account->id }}" @selected((string) old('finance_account_id', optional($accounts->firstWhere('is_default', true))->id) === (string) $account->id)>{{ $account->name }} ({{ \App\Modules\Finance\Models\FinanceAccount::typeOptions()[$account->account_type] ?? $account->account_type }})</option>
+                        @endforeach
+                    </select>
+                    <div class="form-hint">Gunakan `cash` untuk kas tunai dan `bank` untuk transaksi rekening.</div>
+                    @error('finance_account_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+                <div class="col-md-6">
                     <label class="form-label">Category <span class="text-danger">*</span></label>
                     <select name="finance_category_id" class="form-select @error('finance_category_id') is-invalid @enderror" required>
                         <option value="">Select category</option>

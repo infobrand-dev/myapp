@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Finance\Http\Controllers\FinanceCategoryController;
+use App\Modules\Finance\Http\Controllers\FinanceAccountController;
 use App\Modules\Finance\Http\Controllers\FinanceTransactionController;
 use Illuminate\Support\Facades\Route;
 
@@ -21,4 +22,10 @@ Route::middleware(['web', 'auth', 'plan.feature:commerce'])
         Route::get('/categories/{category}/edit', [FinanceCategoryController::class, 'edit'])->middleware('permission:finance.manage-categories')->name('categories.edit');
         Route::put('/categories/{category}', [FinanceCategoryController::class, 'update'])->middleware('permission:finance.manage-categories')->name('categories.update');
         Route::delete('/categories/{category}', [FinanceCategoryController::class, 'destroy'])->middleware('permission:finance.manage-categories')->name('categories.destroy');
+
+        Route::get('/accounts', [FinanceAccountController::class, 'index'])->middleware('permission:finance.manage-categories')->name('accounts.index');
+        Route::post('/accounts', [FinanceAccountController::class, 'store'])->middleware('permission:finance.manage-categories')->name('accounts.store');
+        Route::get('/accounts/{account}/edit', [FinanceAccountController::class, 'edit'])->middleware('permission:finance.manage-categories')->name('accounts.edit');
+        Route::put('/accounts/{account}', [FinanceAccountController::class, 'update'])->middleware('permission:finance.manage-categories')->name('accounts.update');
+        Route::delete('/accounts/{account}', [FinanceAccountController::class, 'destroy'])->middleware('permission:finance.manage-categories')->name('accounts.destroy');
     });

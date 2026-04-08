@@ -71,6 +71,15 @@
                 </select>
             </div>
             <div class="col-md-2">
+                <label class="form-label">Account</label>
+                <select name="finance_account_id" class="form-select">
+                    <option value="">All</option>
+                    @foreach($accounts as $account)
+                        <option value="{{ $account->id }}" @selected((string) ($filters['finance_account_id'] ?? '') === (string) $account->id)>{{ $account->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-2">
                 <label class="form-label">Category</label>
                 <select name="finance_category_id" class="form-select">
                     <option value="">All</option>
@@ -109,6 +118,7 @@
                         <th>Number</th>
                         <th>Date</th>
                         <th>Type</th>
+                        <th>Account</th>
                         <th>Category</th>
                         <th>Amount</th>
                         <th>User</th>
@@ -123,6 +133,14 @@
                             <td>{{ $transaction->transaction_number }}</td>
                             <td>{{ $transaction->transaction_date ? $transaction->transaction_date->format('d/m/Y H:i') : '-' }}</td>
                             <td>{{ $transaction->transaction_type }}</td>
+                            <td>
+                                @if($transaction->account)
+                                    {{ $transaction->account->name }}
+                                    <div class="text-muted small">{{ \App\Modules\Finance\Models\FinanceAccount::typeOptions()[$transaction->account->account_type] ?? $transaction->account->account_type }}</div>
+                                @else
+                                    -
+                                @endif
+                            </td>
                             <td>{{ $transaction->category ? $transaction->category->name : '-' }}</td>
                             <td>{{ $money->format((float) $transaction->amount, $currency) }}</td>
                             <td>{{ $transaction->creator ? $transaction->creator->name : '-' }}</td>
@@ -150,7 +168,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ $shiftEnabled ? '9' : '8' }}" class="text-center py-5">
+                            <td colspan="{{ $shiftEnabled ? '10' : '9' }}" class="text-center py-5">
                                 <i class="ti ti-receipt text-muted d-block mb-2" style="font-size:2rem;"></i>
                                 <div class="text-muted mb-2">Belum ada transaksi.</div>
                                 <a href="{{ route('finance.transactions.create') }}" class="btn btn-sm btn-primary">Buat Transaksi</a>

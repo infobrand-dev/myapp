@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Branch;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
@@ -34,6 +35,22 @@ class BranchContext
         self::$currentBranchId = $branchId ?: null;
     }
 
+    public static function currentOrDefaultId(?User $user = null, ?int $companyId = null): ?int
+    {
+        if (self::$currentBranchId !== null) {
+            return self::$currentBranchId;
+        }
+
+        $user ??= auth()->user();
+        $companyId ??= CompanyContext::currentId();
+
+        if (!$user || !$companyId) {
+            return null;
+        }
+
+        return app(UserAccessManager::class)->defaultBranchIdFor($user, $companyId);
+    }
+
     public static function forget(): void
     {
         self::$currentBranchId = null;
@@ -42,7 +59,7 @@ class BranchContext
     public static function applyScope($query, string $column = 'branch_id')
     {
         if (self::$currentBranchId === null) {
-            return $query->whereNull($column);
+            return $query;
         }
 
         return $query->where($column, self::$currentBranchId);

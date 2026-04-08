@@ -14,7 +14,7 @@ class SaleNumberService
     {
         $date = $date ?: now();
         $companyId = $companyId ?? CompanyContext::currentId();
-        $branchId = $branchId ?? BranchContext::currentId();
+        $branchId = $branchId ?? BranchContext::currentOrDefaultId();
 
         if ($companyId) {
             $documentSetting = $this->lockDocumentSetting($companyId, $branchId);

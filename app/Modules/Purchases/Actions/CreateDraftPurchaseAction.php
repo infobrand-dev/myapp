@@ -35,6 +35,7 @@ class CreateDraftPurchaseAction
     public function execute(array $data, ?User $actor = null): Purchase
     {
         return DB::transaction(function () use ($data, $actor) {
+            $resolvedBranchId = BranchContext::currentOrDefaultId($actor, CompanyContext::currentId());
             $totals = $this->recalculateTotals->execute($data);
             $supplier = ContactScope::applyVisibilityScope(Contact::query()->with('parentContact'))->find($data['contact_id']);
             $snapshot = $this->snapshotService->supplierSnapshot($supplier);
@@ -42,7 +43,7 @@ class CreateDraftPurchaseAction
             $purchase = Purchase::query()->create([
                 'tenant_id' => TenantContext::currentId(),
                 'company_id' => CompanyContext::currentId(),
-                'branch_id' => BranchContext::currentId(),
+                'branch_id' => $resolvedBranchId,
                 'purchase_number' => $this->numberService->generate(),
                 'contact_id' => $supplier ? $supplier->id : null,
                 'supplier_name_snapshot' => $snapshot['name'],
@@ -72,13 +73,13 @@ class CreateDraftPurchaseAction
                 'updated_by' => $actor ? $actor->id : null,
             ]);
 
-            $purchase->items()->createMany($this->withTenantId($totals['items']));
+            $purchase->items()->createMany($this->withTenantId($totals['items'], $purchase->branch_id));
             $purchase = $this->syncPaymentSummary->execute($purchase, Purchase::PAYMENT_UNPAID);
 
             $purchase->statusHistories()->create([
                 'tenant_id' => TenantContext::currentId(),
                 'company_id' => CompanyContext::currentId(),
-                'branch_id' => BranchContext::currentId(),
+                'branch_id' => $purchase->branch_id,
                 'from_status' => null,
                 'to_status' => Purchase::STATUS_DRAFT,
                 'event' => 'created',
@@ -90,12 +91,12 @@ class CreateDraftPurchaseAction
         });
     }
 
-    private function withTenantId(array $rows): array
+    private function withTenantId(array $rows, ?int $branchId): array
     {
-        return array_map(function (array $row): array {
+        return array_map(function (array $row) use ($branchId): array {
             $row['tenant_id'] = TenantContext::currentId();
             $row['company_id'] = CompanyContext::currentId();
-            $row['branch_id'] = BranchContext::currentId();
+            $row['branch_id'] = $branchId;
 
             return $row;
         }, $rows);

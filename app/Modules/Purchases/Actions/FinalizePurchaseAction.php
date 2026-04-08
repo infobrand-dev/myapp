@@ -98,7 +98,7 @@ class FinalizePurchaseAction
             $purchase->statusHistories()->create([
                 'tenant_id' => TenantContext::currentId(),
                 'company_id' => CompanyContext::currentId(),
-                'branch_id' => BranchContext::currentId(),
+                'branch_id' => $purchase->branch_id,
                 'from_status' => $fromStatus,
                 'to_status' => Purchase::STATUS_CONFIRMED,
                 'event' => 'finalized',

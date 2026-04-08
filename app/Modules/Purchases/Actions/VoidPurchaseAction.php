@@ -48,7 +48,7 @@ class VoidPurchaseAction
             $purchase->voidLogs()->create([
                 'tenant_id' => TenantContext::currentId(),
                 'company_id' => CompanyContext::currentId(),
-                'branch_id' => BranchContext::currentId(),
+                'branch_id' => $purchase->branch_id,
                 'status_before' => $fromStatus,
                 'reason' => $data['reason'],
                 'snapshot' => [
@@ -61,7 +61,7 @@ class VoidPurchaseAction
             $purchase->statusHistories()->create([
                 'tenant_id' => TenantContext::currentId(),
                 'company_id' => CompanyContext::currentId(),
-                'branch_id' => BranchContext::currentId(),
+                'branch_id' => $purchase->branch_id,
                 'from_status' => $fromStatus,
                 'to_status' => Purchase::STATUS_VOIDED,
                 'event' => 'voided',

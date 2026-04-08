@@ -40,6 +40,10 @@ class CreateDraftSaleAction
     public function execute(array $data, ?User $actor = null): Sale
     {
         return DB::transaction(function () use ($data, $actor) {
+            $resolvedBranchId = isset($data['branch_id']) && $data['branch_id'] !== null && $data['branch_id'] !== ''
+                ? (int) $data['branch_id']
+                : BranchContext::currentOrDefaultId($actor, CompanyContext::currentId());
+
             if (!empty($data['external_reference'])) {
                 $existingSale = Sale::query()
                     ->where('tenant_id', TenantContext::currentId())
@@ -68,7 +72,7 @@ class CreateDraftSaleAction
                     'sale_number' => $this->saleNumberService->generate(
                         !empty($data['transaction_date']) ? new \DateTimeImmutable((string) $data['transaction_date']) : null,
                         CompanyContext::currentId(),
-                        $data['branch_id'] ?? BranchContext::currentId()
+                        $resolvedBranchId
                     ),
                     'external_reference' => $data['external_reference'] ?? null,
                     'idempotency_payload_hash' => $this->idempotencyService->hashFromPayload($data),
@@ -81,7 +85,7 @@ class CreateDraftSaleAction
                     'status' => Sale::STATUS_DRAFT,
                     'payment_status' => $data['payment_status'],
                     'source' => $data['source'],
-                    'branch_id' => $data['branch_id'] ?? BranchContext::currentId(),
+                    'branch_id' => $resolvedBranchId,
                     'transaction_date' => $data['transaction_date'],
                     'subtotal' => $totals['subtotal'],
                     'discount_total' => $totals['discount_total'],

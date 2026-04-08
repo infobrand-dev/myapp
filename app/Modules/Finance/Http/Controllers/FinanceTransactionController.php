@@ -151,8 +151,9 @@ class FinanceTransactionController extends Controller
     public function store(StoreFinanceTransactionRequest $request): RedirectResponse
     {
         $companyId = $this->requireCurrentCompanyId();
+        $resolvedBranchId = $this->resolveOperationalBranchId($request);
 
-        $transaction = DB::transaction(function () use ($request, $companyId) {
+        $transaction = DB::transaction(function () use ($request, $companyId, $resolvedBranchId) {
             return FinanceTransaction::query()->create([
                 'tenant_id' => TenantContext::currentId(),
                 'company_id' => $companyId,
@@ -163,7 +164,7 @@ class FinanceTransactionController extends Controller
                 'finance_account_id' => $request->input('finance_account_id'),
                 'finance_category_id' => $request->input('finance_category_id'),
                 'notes' => $request->input('notes'),
-                'branch_id' => $request->input('branch_id', BranchContext::currentId()),
+                'branch_id' => $resolvedBranchId,
                 'pos_cash_session_id' => $request->input('pos_cash_session_id'),
                 'created_by' => $request->user()->id,
                 'updated_by' => $request->user()->id,
@@ -237,7 +238,9 @@ class FinanceTransactionController extends Controller
 
     public function update(FinanceTransaction $transaction, UpdateFinanceTransactionRequest $request): RedirectResponse
     {
-        DB::transaction(function () use ($transaction, $request) {
+        $resolvedBranchId = $this->resolveOperationalBranchId($request, $transaction->branch_id);
+
+        DB::transaction(function () use ($transaction, $request, $resolvedBranchId) {
             $transaction->update([
                 'transaction_type' => $request->input('transaction_type'),
                 'transaction_date' => $request->input('transaction_date'),
@@ -245,7 +248,7 @@ class FinanceTransactionController extends Controller
                 'finance_account_id' => $request->input('finance_account_id'),
                 'finance_category_id' => $request->input('finance_category_id'),
                 'notes' => $request->input('notes'),
-                'branch_id' => $request->input('branch_id', BranchContext::currentId()),
+                'branch_id' => $resolvedBranchId,
                 'pos_cash_session_id' => $request->input('pos_cash_session_id'),
                 'updated_by' => $request->user()->id,
             ]);
@@ -303,5 +306,16 @@ class FinanceTransactionController extends Controller
         throw ValidationException::withMessages([
             'company' => 'Pilih company aktif terlebih dahulu sebelum mengelola transaksi finance.',
         ]);
+    }
+
+    private function resolveOperationalBranchId($request, ?int $fallbackBranchId = null): ?int
+    {
+        $branchId = $request->input('branch_id');
+
+        if ($branchId !== null && $branchId !== '') {
+            return (int) $branchId;
+        }
+
+        return $fallbackBranchId ?: BranchContext::currentOrDefaultId($request->user(), CompanyContext::currentId());
     }
 }

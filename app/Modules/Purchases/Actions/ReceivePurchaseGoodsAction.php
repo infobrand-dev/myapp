@@ -82,7 +82,7 @@ class ReceivePurchaseGoodsAction
             $receipt = $purchase->receipts()->create([
                 'tenant_id' => TenantContext::currentId(),
                 'company_id' => CompanyContext::currentId(),
-                'branch_id' => BranchContext::currentId(),
+                'branch_id' => $purchase->branch_id,
                 'receipt_number' => $this->numberService->generateReceiptNumber(),
                 'inventory_location_id' => $data['inventory_location_id'],
                 'fingerprint' => $receiptFingerprint,
@@ -140,7 +140,7 @@ class ReceivePurchaseGoodsAction
                 $receipt->items()->create([
                     'tenant_id' => TenantContext::currentId(),
                     'company_id' => CompanyContext::currentId(),
-                    'branch_id' => BranchContext::currentId(),
+                    'branch_id' => $purchase->branch_id,
                     'purchase_item_id' => $purchaseItem->id,
                     'product_id' => $purchaseItem->product_id,
                     'product_variant_id' => $purchaseItem->product_variant_id,
@@ -188,7 +188,7 @@ class ReceivePurchaseGoodsAction
             $purchase->statusHistories()->create([
                 'tenant_id' => TenantContext::currentId(),
                 'company_id' => CompanyContext::currentId(),
-                'branch_id' => BranchContext::currentId(),
+                'branch_id' => $purchase->branch_id,
                 'from_status' => $fromStatus,
                 'to_status' => $nextStatus,
                 'event' => 'received',

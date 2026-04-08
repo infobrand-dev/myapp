@@ -83,7 +83,7 @@ class CreatePaymentAction
                 ]);
             }
 
-            $resolvedBranchId = $this->resolveBranchId($data, $allocations);
+            $resolvedBranchId = $this->resolveBranchId($data, $allocations, $actor);
 
             $payment = Payment::query()->create([
                 'tenant_id' => TenantContext::currentId(),
@@ -149,7 +149,7 @@ class CreatePaymentAction
             ->each(fn ($payable) => $this->recalculatePaymentSummary->execute($payable));
     }
 
-    private function resolveBranchId(array $data, Collection $allocations): ?int
+    private function resolveBranchId(array $data, Collection $allocations, ?User $actor = null): ?int
     {
         if (array_key_exists('branch_id', $data)) {
             return $data['branch_id'] ? (int) $data['branch_id'] : null;
@@ -170,6 +170,6 @@ class CreatePaymentAction
             return $branchIds->first();
         }
 
-        return null;
+        return BranchContext::currentOrDefaultId($actor ?? auth()->user(), CompanyContext::currentId());
     }
 }

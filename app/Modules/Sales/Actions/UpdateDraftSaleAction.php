@@ -48,6 +48,9 @@ class UpdateDraftSaleAction
                 ->tap(fn ($query) => BranchContext::applyScope($query))
                 ->lockForUpdate()
                 ->findOrFail($sale->id);
+            $resolvedBranchId = isset($data['branch_id']) && $data['branch_id'] !== null && $data['branch_id'] !== ''
+                ? (int) $data['branch_id']
+                : ($sale->branch_id ?: BranchContext::currentOrDefaultId($actor, CompanyContext::currentId()));
             $totals = $this->recalculateTotals->execute($data);
             $contact = !empty($data['contact_id'])
                 ? ContactScope::applyVisibilityScope(Contact::query()->with('parentContact'))->find($data['contact_id'])
@@ -65,7 +68,7 @@ class UpdateDraftSaleAction
                 'customer_snapshot' => $customer['payload'],
                 'payment_status' => $data['payment_status'],
                 'source' => $data['source'],
-                'branch_id' => $data['branch_id'] ?? $sale->branch_id ?? BranchContext::currentId(),
+                'branch_id' => $resolvedBranchId,
                 'transaction_date' => $data['transaction_date'],
                 'subtotal' => $totals['subtotal'],
                 'discount_total' => $totals['discount_total'],

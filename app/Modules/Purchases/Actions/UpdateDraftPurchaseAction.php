@@ -44,6 +44,7 @@ class UpdateDraftPurchaseAction
                 ->tap(fn ($query) => BranchContext::applyScope($query))
                 ->lockForUpdate()
                 ->findOrFail($purchase->id);
+            $resolvedBranchId = $purchase->branch_id ?: BranchContext::currentOrDefaultId($actor, CompanyContext::currentId());
             $totals = $this->recalculateTotals->execute($data);
             $supplier = ContactScope::applyVisibilityScope(Contact::query()->with('parentContact'))->find($data['contact_id']);
             $snapshot = $this->snapshotService->supplierSnapshot($supplier);
@@ -72,18 +73,18 @@ class UpdateDraftPurchaseAction
             ]);
 
             $purchase->items()->delete();
-            $purchase->items()->createMany($this->withTenantId($totals['items']));
+            $purchase->items()->createMany($this->withTenantId($totals['items'], $resolvedBranchId));
 
             return $this->syncPaymentSummary->execute($purchase);
         });
     }
 
-    private function withTenantId(array $rows): array
+    private function withTenantId(array $rows, ?int $branchId): array
     {
-        return array_map(function (array $row): array {
+        return array_map(function (array $row) use ($branchId): array {
             $row['tenant_id'] = TenantContext::currentId();
             $row['company_id'] = CompanyContext::currentId();
-            $row['branch_id'] = BranchContext::currentId();
+            $row['branch_id'] = $branchId;
 
             return $row;
         }, $rows);

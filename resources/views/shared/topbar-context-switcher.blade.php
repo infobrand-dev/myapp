@@ -3,21 +3,25 @@
     $canSwitchContext = auth()->user()?->can('settings.view') ?? false;
     $hasCompanies = $topbarCompanies->isNotEmpty();
     $hasBranches = $topbarCurrentCompany && ($topbarBranches->isNotEmpty() || $topbarCurrentBranch);
+    $switcherWidth = '11.5rem';
 @endphp
 @if($hasCompanies || $hasBranches)
 <div class="d-flex align-items-center gap-1 flex-wrap">
 
     @if($hasCompanies)
-    <div class="ctx-switcher-group">
+    <div class="ctx-switcher-group" style="min-width:{{ $switcherWidth }};">
         <div class="ctx-switcher-label">Company</div>
         @if($canSwitchContext)
             <div class="dropdown">
                 <button type="button"
                         class="ctx-switcher-btn"
+                        style="width:100%; min-width:{{ $switcherWidth }};"
                         data-bs-toggle="dropdown"
                         aria-expanded="false"
                         title="{{ optional($topbarCurrentCompany)->name ?? 'Pilih company' }}">
-                    {{ optional($topbarCurrentCompany)->name ?? 'Pilih company' }}
+                    <span class="text-truncate d-inline-block" style="max-width:calc(100% - 1.25rem); vertical-align:bottom;">
+                        {{ optional($topbarCurrentCompany)->name ?? 'Pilih company' }}
+                    </span>
                     <i class="ti ti-chevron-down ctx-chevron"></i>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-start shadow-sm ctx-switcher-dropdown" style="min-width:13rem;">
@@ -41,8 +45,10 @@
                 </ul>
             </div>
         @else
-            <div class="ctx-switcher-btn pe-none" title="{{ optional($topbarCurrentCompany)->name ?? 'Belum ada company aktif' }}">
-                {{ optional($topbarCurrentCompany)->name ?? 'Belum ada company aktif' }}
+            <div class="ctx-switcher-btn pe-none" style="width:100%; min-width:{{ $switcherWidth }};" title="{{ optional($topbarCurrentCompany)->name ?? 'Belum ada company aktif' }}">
+                <span class="text-truncate d-inline-block" style="max-width:calc(100% - 1.25rem); vertical-align:bottom;">
+                    {{ optional($topbarCurrentCompany)->name ?? 'Belum ada company aktif' }}
+                </span>
             </div>
         @endif
     </div>
@@ -53,16 +59,19 @@
     @endif
 
     @if($hasBranches)
-    <div class="ctx-switcher-group">
+    <div class="ctx-switcher-group" style="min-width:{{ $switcherWidth }};">
         <div class="ctx-switcher-label">Branch</div>
         @if($canSwitchContext)
             <div class="dropdown">
                 <button type="button"
                         class="ctx-switcher-btn"
+                        style="width:100%; min-width:{{ $switcherWidth }};"
                         data-bs-toggle="dropdown"
                         aria-expanded="false"
                         title="{{ optional($topbarCurrentBranch)->name ?? 'Semua branch' }}">
-                    {{ optional($topbarCurrentBranch)->name ?? 'Semua branch' }}
+                    <span class="text-truncate d-inline-block" style="max-width:calc(100% - 1.25rem); vertical-align:bottom;">
+                        {{ optional($topbarCurrentBranch)->name ?? 'Semua branch' }}
+                    </span>
                     <i class="ti ti-chevron-down ctx-chevron"></i>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-start shadow-sm ctx-switcher-dropdown" style="min-width:13rem;">
@@ -96,8 +105,10 @@
                 </ul>
             </div>
         @else
-            <div class="ctx-switcher-btn pe-none" title="{{ optional($topbarCurrentBranch)->name ?? 'Semua branch' }}">
-                {{ optional($topbarCurrentBranch)->name ?? 'Semua branch' }}
+            <div class="ctx-switcher-btn pe-none" style="width:100%; min-width:{{ $switcherWidth }};" title="{{ optional($topbarCurrentBranch)->name ?? 'Semua branch' }}">
+                <span class="text-truncate d-inline-block" style="max-width:calc(100% - 1.25rem); vertical-align:bottom;">
+                    {{ optional($topbarCurrentBranch)->name ?? 'Semua branch' }}
+                </span>
             </div>
         @endif
     </div>

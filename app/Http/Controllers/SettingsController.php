@@ -357,6 +357,7 @@ class SettingsController extends Controller
 
         $request->session()->put('branch_id', $branch->id);
         $request->session()->put('branch_slug', $branch->slug);
+        $request->session()->forget('branch_all');
 
         return back();
     }
@@ -364,6 +365,7 @@ class SettingsController extends Controller
     public function clearBranch(Request $request): RedirectResponse
     {
         $request->session()->forget(['branch_id', 'branch_slug']);
+        $request->session()->put('branch_all', true);
 
         return back();
     }

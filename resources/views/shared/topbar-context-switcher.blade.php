@@ -12,10 +12,10 @@
     <div class="ctx-switcher-group" style="min-width:{{ $switcherWidth }};">
         <div class="ctx-switcher-label">Company</div>
         @if($canSwitchContext)
-            <div class="dropdown">
+            <div class="dropdown" style="width:100%;">
                 <button type="button"
                         class="ctx-switcher-btn"
-                        style="width:100%; min-width:{{ $switcherWidth }};"
+                        style="min-width:{{ $switcherWidth }};"
                         data-bs-toggle="dropdown"
                         aria-expanded="false"
                         title="{{ optional($topbarCurrentCompany)->name ?? 'Pilih company' }}">
@@ -24,7 +24,7 @@
                     </span>
                     <i class="ti ti-chevron-down ctx-chevron"></i>
                 </button>
-                <ul class="dropdown-menu dropdown-menu-start shadow-sm ctx-switcher-dropdown" style="min-width:13rem;">
+                <ul class="dropdown-menu dropdown-menu-start shadow-sm ctx-switcher-dropdown">
                     <li><span class="dropdown-header">Pilih Company</span></li>
                     @foreach($topbarCompanies as $company)
                     <li>
@@ -62,10 +62,10 @@
     <div class="ctx-switcher-group" style="min-width:{{ $switcherWidth }};">
         <div class="ctx-switcher-label">Branch</div>
         @if($canSwitchContext)
-            <div class="dropdown">
+            <div class="dropdown" style="width:100%;">
                 <button type="button"
                         class="ctx-switcher-btn"
-                        style="width:100%; min-width:{{ $switcherWidth }};"
+                        style="min-width:{{ $switcherWidth }};"
                         data-bs-toggle="dropdown"
                         aria-expanded="false"
                         title="{{ optional($topbarCurrentBranch)->name ?? 'Semua branch' }}">
@@ -74,7 +74,7 @@
                     </span>
                     <i class="ti ti-chevron-down ctx-chevron"></i>
                 </button>
-                <ul class="dropdown-menu dropdown-menu-start shadow-sm ctx-switcher-dropdown" style="min-width:13rem;">
+                <ul class="dropdown-menu dropdown-menu-start shadow-sm ctx-switcher-dropdown">
                     <li><span class="dropdown-header">Pilih Branch</span></li>
                     <li>
                         <form method="POST" action="{{ route('settings.branch.clear') }}" class="d-contents">

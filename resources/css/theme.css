@@ -2518,9 +2518,10 @@ body.landing-page {
    CONTEXT SWITCHER (topbar company/branch selector)
    ============================================================ */
 .ctx-switcher-btn {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 0.2rem;
+    justify-content: space-between;
+    gap: 0.5rem;
     background: transparent;
     border: none;
     padding: 0.1rem 0;
@@ -2531,10 +2532,9 @@ body.landing-page {
     line-height: 1.4;
     cursor: pointer;
     transition: color var(--app-transition), border-color var(--app-transition);
-    max-width: 14rem;
+    width: 100%;
+    max-width: none;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 .ctx-switcher-btn:hover,
 .ctx-switcher-btn[aria-expanded="true"] {
@@ -2563,6 +2563,13 @@ body.landing-page {
     display: flex;
     flex-direction: column;
     gap: 0;
+}
+.ctx-switcher-group .dropdown {
+    width: 100%;
+}
+.ctx-switcher-group .ctx-switcher-dropdown {
+    width: 100%;
+    min-width: 100%;
 }
 /* Dropdown items inside context switcher */
 .ctx-switcher-dropdown .dropdown-item {
@@ -2597,12 +2604,6 @@ body.landing-page {
     }
     .ctx-switcher-btn {
         font-size: 0.75rem;
-        max-width: 8rem;
-    }
-}
-@media (min-width: 768px) and (max-width: 991.98px) {
-    .ctx-switcher-btn {
-        max-width: 11rem;
     }
 }
 

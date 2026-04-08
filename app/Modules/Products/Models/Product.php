@@ -2,6 +2,7 @@
 
 namespace App\Modules\Products\Models;
 
+use App\Support\NormalizesPgsqlBooleanAttributes;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,6 +12,7 @@ use Illuminate\Support\Collection;
 
 class Product extends Model
 {
+    use NormalizesPgsqlBooleanAttributes;
     use SoftDeletes;
 
     protected $fillable = [

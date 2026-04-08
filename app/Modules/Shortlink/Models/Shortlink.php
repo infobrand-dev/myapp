@@ -2,11 +2,15 @@
 
 namespace App\Modules\Shortlink\Models;
 
+use App\Support\BooleanQuery;
+use App\Support\NormalizesPgsqlBooleanAttributes;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 
 class Shortlink extends Model
 {
+    use NormalizesPgsqlBooleanAttributes;
+
     protected $fillable = [
         'tenant_id',
         'title',
@@ -33,7 +37,10 @@ class Shortlink extends Model
 
     public function primaryCode()
     {
-        return $this->hasOne(ShortlinkCode::class)->where('is_primary', true);
+        return BooleanQuery::apply(
+            $this->hasOne(ShortlinkCode::class),
+            'is_primary'
+        );
     }
 
     public function clicks()
@@ -48,7 +55,7 @@ class Shortlink extends Model
         }
 
         return $this->codes()
-            ->where('is_active', true)
+            ->tap(fn ($query) => BooleanQuery::apply($query, 'is_active'))
             ->orderBy('is_primary', 'desc')
             ->orderBy('id', 'desc')
             ->first();

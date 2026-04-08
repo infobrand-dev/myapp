@@ -4,11 +4,14 @@ namespace App\Modules\PointOfSale\Models;
 
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
+use App\Support\NormalizesPgsqlBooleanAttributes;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PosCartItem extends Model
 {
+    use NormalizesPgsqlBooleanAttributes;
+
     protected $fillable = [
         'tenant_id',
         'uuid',

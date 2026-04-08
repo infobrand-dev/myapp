@@ -2,6 +2,7 @@
 
 namespace App\Modules\Discounts\Models;
 
+use App\Support\NormalizesPgsqlBooleanAttributes;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,6 +10,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Discount extends Model
 {
+    use NormalizesPgsqlBooleanAttributes;
+
     use SoftDeletes;
 
     public const TYPE_FIXED_AMOUNT = 'fixed_amount';

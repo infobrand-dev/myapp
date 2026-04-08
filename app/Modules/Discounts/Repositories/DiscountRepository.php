@@ -6,6 +6,7 @@ use App\Modules\Discounts\Models\Discount;
 use App\Modules\Discounts\Models\DiscountUsage;
 use App\Modules\Discounts\Models\DiscountVoucher;
 use App\Modules\Discounts\Support\Engine\DiscountEvaluationContext;
+use App\Support\BooleanQuery;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -69,10 +70,15 @@ class DiscountRepository
 
     public function activeForEvaluation(DiscountEvaluationContext $context): Collection
     {
-        return Discount::query()
-            ->with(['targets', 'conditions', 'vouchers'])
-            ->where('is_active', true)
-            ->where('is_archived', false)
+        return BooleanQuery::apply(
+            BooleanQuery::apply(
+                Discount::query()
+                    ->with(['targets', 'conditions', 'vouchers']),
+                'is_active'
+            ),
+            'is_archived',
+            false
+        )
             ->where(function (Builder $query) use ($context) {
                 $query->whereNull('starts_at')
                     ->orWhere('starts_at', '<=', $context->now->format('Y-m-d H:i:s'));
@@ -135,8 +141,9 @@ class DiscountRepository
         $now = now();
 
         if ($status === 'active') {
-            $query->where('is_active', true)
-                ->where('is_archived', false)
+            BooleanQuery::apply($query, 'is_active');
+            BooleanQuery::apply($query, 'is_archived', false);
+            $query
                 ->where(function (Builder $nested) use ($now) {
                     $nested->whereNull('starts_at')->orWhere('starts_at', '<=', $now);
                 })
@@ -146,19 +153,24 @@ class DiscountRepository
         }
 
         if ($status === 'scheduled') {
-            $query->where('is_active', true)->where('is_archived', false)->where('starts_at', '>', $now);
+            BooleanQuery::apply($query, 'is_active');
+            BooleanQuery::apply($query, 'is_archived', false);
+            $query->where('starts_at', '>', $now);
         }
 
         if ($status === 'expired') {
-            $query->where('is_active', true)->where('is_archived', false)->where('ends_at', '<', $now);
+            BooleanQuery::apply($query, 'is_active');
+            BooleanQuery::apply($query, 'is_archived', false);
+            $query->where('ends_at', '<', $now);
         }
 
         if ($status === 'inactive') {
-            $query->where('is_active', false)->where('is_archived', false);
+            BooleanQuery::apply($query, 'is_active', false);
+            BooleanQuery::apply($query, 'is_archived', false);
         }
 
         if ($status === 'archived') {
-            $query->where('is_archived', true);
+            BooleanQuery::apply($query, 'is_archived');
         }
     }
 }

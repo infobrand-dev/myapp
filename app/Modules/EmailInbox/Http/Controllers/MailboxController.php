@@ -7,6 +7,7 @@ use App\Modules\EmailInbox\Http\Requests\SendMailboxMessageRequest;
 use App\Modules\EmailInbox\Jobs\SendMailboxOutboundMessage;
 use App\Modules\EmailInbox\Models\EmailAccount;
 use App\Modules\EmailInbox\Models\EmailMessage;
+use App\Support\BooleanQuery;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,7 +20,7 @@ class MailboxController extends Controller
         $accounts = EmailAccount::query()
             ->where('tenant_id', TenantContext::currentId())
             ->withCount([
-                'messages as unread_count' => fn ($query) => $query->where('is_read', false)->where('direction', 'inbound'),
+                'messages as unread_count' => fn ($query) => BooleanQuery::apply($query, 'is_read', false)->where('direction', 'inbound'),
             ])
             ->orderBy('name')
             ->get();

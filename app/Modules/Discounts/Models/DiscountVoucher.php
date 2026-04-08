@@ -2,12 +2,15 @@
 
 namespace App\Modules\Discounts\Models;
 
+use App\Support\NormalizesPgsqlBooleanAttributes;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class DiscountVoucher extends Model
 {
+    use NormalizesPgsqlBooleanAttributes;
+
     protected $fillable = [
         'discount_id',
         'code',

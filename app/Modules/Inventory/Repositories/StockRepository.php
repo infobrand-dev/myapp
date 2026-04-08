@@ -4,6 +4,7 @@ namespace App\Modules\Inventory\Repositories;
 
 use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Inventory\Models\StockBalance;
+use App\Support\BooleanQuery;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
@@ -53,10 +54,12 @@ class StockRepository
 
     public function locations(): Collection
     {
-        return InventoryLocation::query()
-            ->where('tenant_id', $this->tenantId())
-            ->where('company_id', $this->companyId())
-            ->where('is_active', true)
+        return BooleanQuery::apply(
+            InventoryLocation::query()
+                ->where('tenant_id', $this->tenantId())
+                ->where('company_id', $this->companyId()),
+            'is_active'
+        )
             ->tap(fn ($query) => BranchContext::applyScope($query))
             ->orderByDesc('is_default')
             ->orderBy('name')

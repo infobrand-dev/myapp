@@ -5,14 +5,17 @@ namespace App\Modules\Shortlink\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Shortlink\Models\ShortlinkClick;
 use App\Modules\Shortlink\Models\ShortlinkCode;
+use App\Support\BooleanQuery;
 use Illuminate\Http\Request;
 
 class ShortlinkRedirectController extends Controller
 {
     public function show(Request $request, string $code)
     {
-        $shortlinkCode = ShortlinkCode::where('code', $code)
-            ->where('is_active', true)
+        $shortlinkCode = BooleanQuery::apply(
+            ShortlinkCode::where('code', $code),
+            'is_active'
+        )
             ->first();
 
         if (!$shortlinkCode) {

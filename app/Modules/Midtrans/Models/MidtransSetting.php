@@ -2,12 +2,15 @@
 
 namespace App\Modules\Midtrans\Models;
 
+use App\Support\NormalizesPgsqlBooleanAttributes;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Schema;
 
 class MidtransSetting extends Model
 {
+    use NormalizesPgsqlBooleanAttributes;
+
     protected $table = 'midtrans_settings';
 
     /**

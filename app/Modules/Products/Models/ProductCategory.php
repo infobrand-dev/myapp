@@ -2,12 +2,15 @@
 
 namespace App\Modules\Products\Models;
 
+use App\Support\NormalizesPgsqlBooleanAttributes;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProductCategory extends Model
 {
+    use NormalizesPgsqlBooleanAttributes;
+
     protected $fillable = [
         'tenant_id',
         'parent_id',

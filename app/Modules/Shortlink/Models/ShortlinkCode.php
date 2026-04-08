@@ -2,10 +2,13 @@
 
 namespace App\Modules\Shortlink\Models;
 
+use App\Support\NormalizesPgsqlBooleanAttributes;
 use Illuminate\Database\Eloquent\Model;
 
 class ShortlinkCode extends Model
 {
+    use NormalizesPgsqlBooleanAttributes;
+
     protected $fillable = [
         'tenant_id',
         'shortlink_id',

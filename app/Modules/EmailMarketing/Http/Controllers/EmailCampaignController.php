@@ -11,6 +11,7 @@ use App\Modules\EmailMarketing\Models\EmailCampaignRecipient;
 use App\Modules\EmailMarketing\Models\EmailAttachment;
 use App\Modules\EmailMarketing\Models\EmailAttachmentTemplate;
 use App\Modules\EmailMarketing\Jobs\SendCampaignEmailRecipient;
+use App\Support\BooleanQuery;
 use App\Support\PlanLimit;
 use App\Support\TenantContext;
 use App\Support\TenantPlanManager;
@@ -384,7 +385,9 @@ HTML;
             ->leftJoin('contacts as company', 'company.id', '=', 'contacts.company_id')
             ->whereNotNull('contacts.email')
             ->where('contacts.email', '!=', '')
-            ->where('contacts.is_active', true);
+            ;
+
+        BooleanQuery::apply($query, 'contacts.is_active');
 
         if ($filters->isNotEmpty()) {
             $filters->each(function ($row) use ($query) {

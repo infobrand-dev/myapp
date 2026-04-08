@@ -7,6 +7,7 @@ use App\Modules\Midtrans\Models\MidtransTransaction;
 use App\Modules\Payments\Actions\CreatePaymentAction;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentMethod;
+use App\Support\BooleanQuery;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
@@ -117,9 +118,9 @@ class MidtransService
         string $signatureFromMidtrans,
     ): bool {
         $settings = MidtransSetting::query()
-            ->where('is_active', true)
-            ->where('tenant_id', '>', 0) // find by order_id prefix later
-            ->get();
+            ->where('tenant_id', '>', 0); // find by order_id prefix later
+
+        $settings = BooleanQuery::apply($settings, 'is_active')->get();
 
         foreach ($settings as $setting) {
             $expected = hash('sha512', $orderId . $statusCode . $grossAmount . $setting->server_key);

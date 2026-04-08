@@ -11,7 +11,7 @@ class ResolveBranchContext
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->is('install') || $request->is('install/*')) {
+        if ($this->shouldBypassBranchContext($request)) {
             return $next($request);
         }
 
@@ -50,5 +50,27 @@ class ResolveBranchContext
         } finally {
             BranchContext::forget();
         }
+    }
+
+    private function shouldBypassBranchContext(Request $request): bool
+    {
+        if ($request->is('install') || $request->is('install/*')) {
+            return true;
+        }
+
+        if ($request->routeIs('health')
+            || $request->routeIs('onboarding.create')
+            || $request->routeIs('onboarding.store')
+            || $request->routeIs('platform.billing.midtrans.webhook')
+            || $request->routeIs('platform.invoices.public')
+            || $request->routeIs('platform.invoices.public.midtrans.checkout')) {
+            return true;
+        }
+
+        if (config('multitenancy.mode') !== 'saas') {
+            return false;
+        }
+
+        return !$request->attributes->get('tenant_id') && !$request->user();
     }
 }

@@ -136,6 +136,25 @@ Command ini fokus ke integritas context tenant:
 - memastikan tenant punya default `company` dan `branch`
 - memastikan user tenant punya default access `company` dan `branch`
 
+## Migration scan
+Untuk scan file migration core dan module lalu membandingkannya dengan tabel `migrations`:
+
+```bash
+php artisan meetra:migrate
+php artisan meetra:migrate --module=finance
+php artisan meetra:migrate --show-all
+php artisan meetra:migrate --command-for=1
+php artisan meetra:migrate --command-for=2,3
+```
+
+Command ini tidak menjalankan migration custom. Untuk apply tetap gunakan `artisan migrate`, misalnya:
+
+```bash
+php artisan migrate --path=database/migrations --force
+php artisan migrate --path=app/Modules/Finance/Database/Migrations --force
+php artisan migrate --path=app/Modules/Finance/Database/Migrations/2026_04_08_150000_create_finance_accounts_and_link_transactions.php --force
+```
+
 ## Sentry
 - Paket monitoring yang dipakai: `sentry/sentry-laravel`
 - Isi minimal di `.env` production:

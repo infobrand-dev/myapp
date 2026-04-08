@@ -298,6 +298,7 @@ class SettingsController extends Controller
         $request->session()->put('company_id', $company->id);
         $request->session()->put('company_slug', $company->slug);
         $request->session()->forget(['branch_id', 'branch_slug']);
+        $request->session()->put('branch_all', true);
 
         return back();
     }

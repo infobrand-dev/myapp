@@ -15,8 +15,23 @@ class ResolveBranchContext
             return $next($request);
         }
 
-        $forceAllBranches = $request->hasSession() && (bool) $request->session()->get('branch_all');
-        $branchId = $forceAllBranches ? null : BranchContext::resolveIdFromRequest($request);
+        $branchId = null;
+
+        if ($request->hasSession()) {
+            $session = $request->session();
+            $hasExplicitBranchSelection = $session->has('branch_all')
+                || $session->has('branch_id')
+                || $session->has('branch_slug');
+
+            if (!$hasExplicitBranchSelection) {
+                $session->put('branch_all', true);
+            }
+
+            $forceAllBranches = (bool) $session->get('branch_all');
+            $branchId = $forceAllBranches ? null : BranchContext::resolveIdFromRequest($request);
+        } else {
+            $branchId = BranchContext::resolveIdFromRequest($request);
+        }
 
         BranchContext::setCurrentId($branchId);
         $request->attributes->set('branch_id', $branchId);

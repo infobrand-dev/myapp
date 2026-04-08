@@ -106,20 +106,27 @@
             <div class="card-header">
                 <h3 class="card-title">Audit</h3>
             </div>
-            <div class="card-body">
-                <dl class="row mb-0">
-                    <dt class="col-6 fw-normal text-muted">Dibuat oleh</dt>
-                    <dd class="col-6">{{ $transaction->creator?->name ?? '-' }}</dd>
-
-                    <dt class="col-6 fw-normal text-muted">Dibuat pada</dt>
-                    <dd class="col-6">{{ $transaction->created_at?->format('d M Y, H:i') ?? '-' }}</dd>
-
-                    <dt class="col-6 fw-normal text-muted">Diubah oleh</dt>
-                    <dd class="col-6">{{ $transaction->updater?->name ?? '-' }}</dd>
-
-                    <dt class="col-6 fw-normal text-muted">Diubah pada</dt>
-                    <dd class="col-6 mb-0">{{ $transaction->updated_at?->format('d M Y, H:i') ?? '-' }}</dd>
-                </dl>
+            <div class="card-body d-flex flex-column gap-4">
+                <div class="d-flex align-items-start gap-3">
+                    <span class="avatar avatar-sm bg-green-lt flex-shrink-0">
+                        <i class="ti ti-user-plus" style="font-size:.95rem; color:var(--tblr-green);"></i>
+                    </span>
+                    <div>
+                        <div class="text-muted small">Dibuat oleh</div>
+                        <div class="fw-medium">{{ $transaction->creator?->name ?? '-' }}</div>
+                        <div class="text-muted small">{{ $transaction->created_at?->format('d M Y, H:i') ?? '-' }}</div>
+                    </div>
+                </div>
+                <div class="d-flex align-items-start gap-3">
+                    <span class="avatar avatar-sm bg-blue-lt flex-shrink-0">
+                        <i class="ti ti-user-edit" style="font-size:.95rem; color:var(--tblr-blue);"></i>
+                    </span>
+                    <div>
+                        <div class="text-muted small">Diubah oleh</div>
+                        <div class="fw-medium">{{ $transaction->updater?->name ?? '-' }}</div>
+                        <div class="text-muted small">{{ $transaction->updated_at?->format('d M Y, H:i') ?? '-' }}</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

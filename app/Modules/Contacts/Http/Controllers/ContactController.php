@@ -29,16 +29,30 @@ use SimpleXMLElement;
 
 class ContactController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $contacts = ContactScope::applyVisibilityScope(Contact::query())
-            ->with(['parentContact', 'company', 'branch'])
-            ->orderByDesc('created_at')
-            ->paginate(15);
+        $query = ContactScope::applyVisibilityScope(Contact::query())
+            ->with(['parentContact', 'company', 'branch']);
+
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%")
+                  ->orWhere('mobile', 'like', "%{$search}%");
+            });
+        }
+
+        if ($type = $request->input('type')) {
+            $query->where('type', $type);
+        }
+
+        $contacts = $query->orderByDesc('created_at')->paginate(15)->withQueryString();
 
         $mergeCandidateCount = count($this->buildMergeCandidateGroups());
+        $filters = $request->only(['search', 'type']);
 
-        return view('contacts::index', compact('contacts', 'mergeCandidateCount'));
+        return view('contacts::index', compact('contacts', 'mergeCandidateCount', 'filters'));
     }
 
     public function mergeCandidates(): View

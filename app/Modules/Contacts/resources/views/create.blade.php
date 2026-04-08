@@ -1,32 +1,50 @@
 @extends('layouts.admin')
 
+@section('title', 'Tambah Contact')
+
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h2 class="mb-0">Tambah Contact</h2>
-        <div class="text-muted small">Lengkapi detail company atau individual.</div>
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="page-pretitle">CRM · Contacts</div>
+            <h2 class="page-title">Tambah Contact</h2>
+            <p class="text-muted mb-0">Lengkapi detail company atau individual.</p>
+        </div>
+        <div class="col-auto">
+            <a href="{{ route('contacts.index') }}" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left me-1"></i>Kembali
+            </a>
+        </div>
     </div>
-    <a href="{{ route('contacts.index') }}" class="btn btn-outline-secondary">Kembali</a>
 </div>
 
 @if($errors->any())
-    <div class="alert alert-danger">
-        <ul class="mb-0">
+    <div class="alert alert-danger alert-dismissible mb-3">
+        <i class="ti ti-alert-circle me-2"></i>
+        <strong>Periksa kembali isian form:</strong>
+        <ul class="mb-0 mt-1 ps-3">
             @foreach($errors->all() as $error)
                 <li>{{ $error }}</li>
             @endforeach
         </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 @endif
 
 <form method="POST" action="{{ route('contacts.store') }}">
     @csrf
     <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Informasi Contact</h3>
+        </div>
         <div class="card-body">
             @include('contacts::_form', ['contact' => $contact, 'companies' => $companies])
         </div>
-        <div class="card-footer d-flex justify-content-end">
-            <button class="btn btn-primary" type="submit">Simpan</button>
+        <div class="card-footer d-flex justify-content-end gap-2">
+            <a href="{{ route('contacts.index') }}" class="btn btn-outline-secondary">Batal</a>
+            <button class="btn btn-primary" type="submit">
+                <i class="ti ti-device-floppy me-1"></i>Simpan
+            </button>
         </div>
     </div>
 </form>

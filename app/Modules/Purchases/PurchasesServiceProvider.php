@@ -26,6 +26,7 @@ use App\Support\HookManager;
 use App\Support\PlanFeature;
 use App\Support\RegistersModuleRoutes;
 use App\Support\TenantContext;
+use App\Support\TenantRoleProvisioner;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
@@ -109,11 +110,19 @@ class PurchasesServiceProvider extends ServiceProvider
             return;
         }
 
+        $created = false;
+
         foreach (self::PERMISSIONS as $permission) {
-            Permission::query()->firstOrCreate([
+            $record = Permission::query()->firstOrCreate([
                 'name' => $permission,
                 'guard_name' => 'web',
             ]);
+
+            $created = $created || $record->wasRecentlyCreated;
+        }
+
+        if ($created) {
+            app(TenantRoleProvisioner::class)->ensureForAllTenants();
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -127,10 +136,11 @@ class PurchasesServiceProvider extends ServiceProvider
         $hooks->register('dashboard.overview.cards', 'purchases.dashboard.card', function (): string {
             $planManager = app(\App\Support\TenantPlanManager::class);
             $user = auth()->user();
+            $canView = $user && ($user->hasAnyRole(['Super-admin', 'Admin']) || $user->can('purchases.view'));
 
             if (!$user
                 || !Schema::hasTable('purchases')
-                || !$user->can('purchases.view')
+                || !$canView
                 || !$planManager->hasFeature(PlanFeature::COMMERCE, TenantContext::currentId())
                 || !$planManager->hasFeature(PlanFeature::PURCHASES, TenantContext::currentId())) {
                 return '';

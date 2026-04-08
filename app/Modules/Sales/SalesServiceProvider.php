@@ -40,6 +40,7 @@ use App\Support\HookManager;
 use App\Support\PlanFeature;
 use App\Support\RegistersModuleRoutes;
 use App\Support\TenantContext;
+use App\Support\TenantRoleProvisioner;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
@@ -167,11 +168,19 @@ class SalesServiceProvider extends ServiceProvider
             return;
         }
 
+        $created = false;
+
         foreach (self::PERMISSIONS as $permission) {
-            Permission::query()->firstOrCreate([
+            $record = Permission::query()->firstOrCreate([
                 'name' => $permission,
                 'guard_name' => 'web',
             ]);
+
+            $created = $created || $record->wasRecentlyCreated;
+        }
+
+        if ($created) {
+            app(TenantRoleProvisioner::class)->ensureForAllTenants();
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -184,10 +193,11 @@ class SalesServiceProvider extends ServiceProvider
 
         $hooks->register('dashboard.overview.cards', 'sales.dashboard.card', function (): string {
             $user = auth()->user();
+            $canView = $user && ($user->hasAnyRole(['Super-admin', 'Admin']) || $user->can('sales.view'));
 
             if (!$user
                 || !Schema::hasTable('sales')
-                || !$user->can('sales.view')
+                || !$canView
                 || !app(\App\Support\TenantPlanManager::class)->hasFeature(PlanFeature::COMMERCE, TenantContext::currentId())) {
                 return '';
             }

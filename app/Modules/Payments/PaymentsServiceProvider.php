@@ -18,6 +18,7 @@ use App\Support\HookManager;
 use App\Support\PlanFeature;
 use App\Support\RegistersModuleRoutes;
 use App\Support\TenantContext;
+use App\Support\TenantRoleProvisioner;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
@@ -88,11 +89,19 @@ class PaymentsServiceProvider extends ServiceProvider
             return;
         }
 
+        $created = false;
+
         foreach (self::PERMISSIONS as $permission) {
-            Permission::query()->firstOrCreate([
+            $record = Permission::query()->firstOrCreate([
                 'name' => $permission,
                 'guard_name' => 'web',
             ]);
+
+            $created = $created || $record->wasRecentlyCreated;
+        }
+
+        if ($created) {
+            app(TenantRoleProvisioner::class)->ensureForAllTenants();
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -105,10 +114,11 @@ class PaymentsServiceProvider extends ServiceProvider
 
         $hooks->register('dashboard.overview.cards', 'payments.dashboard.card', function (): string {
             $user = auth()->user();
+            $canView = $user && ($user->hasAnyRole(['Super-admin', 'Admin']) || $user->can('payments.view'));
 
             if (!$user
                 || !Schema::hasTable('payments')
-                || !$user->can('payments.view')
+                || !$canView
                 || !app(\App\Support\TenantPlanManager::class)->hasFeature(PlanFeature::COMMERCE, TenantContext::currentId())) {
                 return '';
             }

@@ -81,7 +81,6 @@
                             <option value="{{ $account->id }}" @selected((string) old('finance_account_id', $transaction->finance_account_id) === (string) $account->id)>{{ $account->name }} ({{ \App\Modules\Finance\Models\FinanceAccount::typeOptions()[$account->account_type] ?? $account->account_type }})</option>
                         @endforeach
                     </select>
-                    <div class="form-hint">Account menentukan bucket dana transaksi ini: kas, bank, atau e-wallet.</div>
                     @error('finance_account_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
                 <div class="col-md-6">
@@ -98,13 +97,12 @@
                             </optgroup>
                         @endforeach
                     </select>
-                    <div class="form-hint">Category difilter otomatis berdasarkan type agar tidak terjadi mismatch.</div>
                     @error('finance_category_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Branch</label>
                     <select name="branch_id" class="form-select @error('branch_id') is-invalid @enderror">
-                        <option value="">Gunakan branch default operasional</option>
+                        <option value="">Default Branch</option>
                         @foreach($branches as $branchOption)
                             <option value="{{ $branchOption->id }}" @selected((string) $selectedBranchId === (string) $branchOption->id)>{{ $branchOption->name }}</option>
                         @endforeach

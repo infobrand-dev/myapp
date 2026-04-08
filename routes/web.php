@@ -98,6 +98,7 @@ Route::middleware(['auth', 'verified', '2fa', 'platform.admin', \App\Http\Middle
         Route::get('/tenants', [PlatformOwnerController::class, 'tenants'])->name('tenants.index');
         Route::get('/tenants/{tenant}', [PlatformOwnerController::class, 'tenant'])->name('tenants.show');
         Route::post('/tenants/{tenant}/status', [PlatformOwnerController::class, 'updateTenantStatus'])->name('tenants.status');
+        Route::post('/tenants/{tenant}/subscriptions/{subscription}/cancel', [PlatformOwnerController::class, 'cancelActivePlan'])->name('tenants.subscriptions.cancel');
         Route::post('/tenants/{tenant}/notes', [PlatformOwnerController::class, 'updateTenantNotes'])->name('tenants.notes');
         Route::post('/tenants/{tenant}/ai-credits', [PlatformOwnerController::class, 'topUpAiCredits'])->name('tenants.ai-credits.store');
         Route::post('/tenants/{tenant}/byo-ai-addon', [PlatformOwnerController::class, 'updateByoAiAddon'])->name('tenants.byo-ai-addon.update');

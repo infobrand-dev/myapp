@@ -42,7 +42,19 @@
                                 <div class="border rounded px-3 py-2">
                                     <div class="d-flex align-items-center justify-content-between gap-2">
                                         <div class="fw-semibold">{{ optional($subscription->plan)->productLineLabel() ?? \Illuminate\Support\Str::headline($productLine) }}</div>
-                                        <span class="badge bg-success-lt text-success">{{ optional($subscription->plan)->name ?? 'Active' }}</span>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge bg-success-lt text-success">{{ optional($subscription->plan)->name ?? 'Active' }}</span>
+                                            <form method="POST" action="{{ route('platform.tenants.subscriptions.cancel', [$tenant, $subscription]) }}">
+                                                @csrf
+                                                <button
+                                                    type="submit"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    data-confirm="Cancel plan aktif {{ optional($subscription->plan)->display_name ?? optional($subscription->plan)->name ?? 'ini' }} untuk tenant {{ $tenant->name }}?"
+                                                    data-loading="Mencancel plan...">
+                                                    Cancel Plan
+                                                </button>
+                                            </form>
+                                        </div>
                                     </div>
                                     <div class="text-muted small mt-1">
                                         {{ optional($subscription->plan)->display_name ?? optional($subscription->plan)->name ?? '-' }}

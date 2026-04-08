@@ -568,6 +568,33 @@ class PlatformOwnerController extends Controller
         return back()->with('status', 'Plan tenant berhasil diperbarui.');
     }
 
+    public function cancelActivePlan(Tenant $tenant, TenantSubscription $subscription): RedirectResponse
+    {
+        abort_unless($subscription->tenant_id === $tenant->id, 404);
+
+        $isCurrentSubscription = in_array($subscription->status, ['active', 'trialing'], true)
+            && (!$subscription->starts_at || $subscription->starts_at->lte(now()))
+            && (!$subscription->ends_at || $subscription->ends_at->isFuture());
+
+        if (!$isCurrentSubscription) {
+            return back()->with('error', 'Subscription tersebut sudah tidak aktif, jadi tidak perlu dicancel lagi.');
+        }
+
+        $meta = is_array($subscription->meta) ? $subscription->meta : [];
+        $meta['cancelled_from'] = 'platform_owner';
+        $meta['cancelled_by_user_id'] = auth()->id();
+        $meta['cancelled_at'] = now()->toIso8601String();
+
+        $subscription->forceFill([
+            'status' => 'cancelled',
+            'ends_at' => now(),
+            'auto_renews' => false,
+            'meta' => $meta,
+        ])->save();
+
+        return back()->with('status', 'Plan aktif tenant berhasil dicancel.');
+    }
+
     public function updateByoAiAddon(Request $request, Tenant $tenant): RedirectResponse
     {
         $data = $request->validate([

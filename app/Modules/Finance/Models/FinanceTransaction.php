@@ -11,9 +11,31 @@ use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class FinanceTransaction extends Model
 {
+    use LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly([
+                'transaction_type',
+                'transaction_date',
+                'amount',
+                'finance_account_id',
+                'finance_category_id',
+                'notes',
+                'branch_id',
+                'pos_cash_session_id',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName('finance_transaction');
+    }
+
     public const TYPE_CASH_IN = 'cash_in';
     public const TYPE_CASH_OUT = 'cash_out';
     public const TYPE_EXPENSE = 'expense';

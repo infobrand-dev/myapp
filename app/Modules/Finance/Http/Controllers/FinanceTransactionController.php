@@ -191,6 +191,7 @@ class FinanceTransactionController extends Controller
 
         return view('finance::transactions.show', [
             'transaction' => $transaction->load(array_filter(['account', 'category', 'branch', 'creator', 'updater', $shiftEnabled ? 'shift' : null])),
+            'activities' => $transaction->activities()->with('causer')->latest()->get(),
             'company' => CompanyContext::currentCompany(),
             'branch' => BranchContext::currentBranch(),
             'shiftEnabled' => $shiftEnabled,

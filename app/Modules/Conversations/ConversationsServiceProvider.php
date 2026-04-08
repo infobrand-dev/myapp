@@ -16,6 +16,7 @@ use App\Modules\Conversations\Services\ConversationChannelRegistry;
 use App\Modules\Conversations\Services\ConversationOutboundRegistry;
 use App\Support\RegistersModuleRoutes;
 use App\Support\HookManager;
+use App\Support\PlanFeature;
 use App\Support\TenantContext;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Broadcast;
@@ -118,6 +119,10 @@ class ConversationsServiceProvider extends ServiceProvider
             $user = auth()->user();
 
             if (!$user || !Schema::hasTable('conversations')) {
+                return '';
+            }
+
+            if (!app(\App\Support\TenantPlanManager::class)->hasFeature(PlanFeature::CONVERSATIONS, TenantContext::currentId())) {
                 return '';
             }
 

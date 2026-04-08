@@ -31,6 +31,17 @@
     </div>
 @endif
 
+@include('shared.plan-limit-alert', [
+    'state' => $contactLimitState,
+    'title' => 'Limit Contacts',
+    'showBadge' => false,
+    'message' => in_array(($contactLimitState['status'] ?? 'ok'), ['at_limit', 'over_limit'], true)
+        ? 'Tenant ini sudah tidak punya slot contact baru.'
+        : (($contactLimitState['status'] ?? 'ok') === 'near_limit'
+            ? 'Slot contact tenant ini tinggal sedikit.'
+            : 'Penambahan contact baru akan mengikuti limit aktif dari plan tenant.'),
+])
+
 <form method="POST" action="{{ route('contacts.store') }}">
     @csrf
     <div class="card">

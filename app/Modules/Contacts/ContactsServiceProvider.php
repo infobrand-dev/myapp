@@ -5,6 +5,7 @@ namespace App\Modules\Contacts;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Contacts\Support\ContactPhoneNormalizer;
 use App\Support\HookManager;
+use App\Support\PlanFeature;
 use App\Support\RegistersModuleRoutes;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\Schema;
@@ -98,6 +99,12 @@ class ContactsServiceProvider extends ServiceProvider
             }
 
             $tenantId = TenantContext::currentId();
+            $plans = app(\App\Support\TenantPlanManager::class);
+
+            if (!$plans->hasFeature(PlanFeature::CRM, $tenantId) && !$plans->hasFeature(PlanFeature::COMMERCE, $tenantId)) {
+                return '';
+            }
+
             $total = Contact::query()->where('tenant_id', $tenantId)->count();
             $newThisMonth = Contact::query()
                 ->where('tenant_id', $tenantId)
@@ -105,7 +112,6 @@ class ContactsServiceProvider extends ServiceProvider
                 ->whereYear('created_at', now()->year)
                 ->count();
 
-            $plans = app(\App\Support\TenantPlanManager::class);
             $limit = $plans->limit(\App\Support\PlanLimit::CONTACTS, $tenantId);
 
             return view('contacts::dashboard.card', compact('total', 'newThisMonth', 'limit'))->render();

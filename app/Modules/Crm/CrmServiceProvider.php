@@ -6,6 +6,7 @@ use App\Modules\Contacts\Models\Contact;
 use App\Modules\Crm\Models\CrmLead;
 use App\Support\BooleanQuery;
 use App\Support\HookManager;
+use App\Support\PlanFeature;
 use App\Support\RegistersModuleRoutes;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
@@ -86,6 +87,10 @@ class CrmServiceProvider extends ServiceProvider
             $user = auth()->user();
 
             if (!$user || !Schema::hasTable('crm_leads')) {
+                return '';
+            }
+
+            if (!app(\App\Support\TenantPlanManager::class)->hasFeature(PlanFeature::CRM, \App\Support\TenantContext::currentId())) {
                 return '';
             }
 

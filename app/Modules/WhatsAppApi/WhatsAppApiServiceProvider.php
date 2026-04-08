@@ -16,6 +16,7 @@ use App\Support\HookManager;
 use App\Support\RegistersModuleRoutes;
 use App\Modules\WhatsAppApi\Console\Commands\CheckWhatsAppInstances;
 use App\Modules\WhatsAppApi\Console\Commands\DispatchScheduledWABlasts;
+use App\Support\PlanFeature;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
@@ -455,6 +456,12 @@ class WhatsAppApiServiceProvider extends ServiceProvider
             }
 
             $tenantId = \App\Support\TenantContext::currentId();
+            $plans = app(\App\Support\TenantPlanManager::class);
+
+            if (!$plans->hasFeature(PlanFeature::WHATSAPP_API, $tenantId)) {
+                return '';
+            }
+
             $totalQuery = \App\Modules\WhatsAppApi\Models\WhatsAppInstance::query()
                 ->where('tenant_id', $tenantId);
             $connectedQuery = \App\Modules\WhatsAppApi\Models\WhatsAppInstance::query()
@@ -463,7 +470,6 @@ class WhatsAppApiServiceProvider extends ServiceProvider
             $total = BooleanQuery::apply($totalQuery, 'is_active', true)->count();
             $connected = BooleanQuery::apply($connectedQuery, 'is_active', true)->count();
 
-            $plans = app(\App\Support\TenantPlanManager::class);
             $limit = $plans->limit(\App\Support\PlanLimit::WHATSAPP_INSTANCES, $tenantId);
 
             return view('whatsappapi::dashboard.card', compact('total', 'connected', 'limit'))->render();

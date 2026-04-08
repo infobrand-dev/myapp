@@ -9,6 +9,7 @@ use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\SocialMedia\Jobs\SendSocialMessage;
 use App\Modules\SocialMedia\Services\SocialPlatformRegistry;
 use App\Support\BooleanQuery;
+use App\Support\PlanFeature;
 use App\Support\PlanLimit;
 use App\Support\RegistersModuleRoutes;
 use Illuminate\Support\Facades\App;
@@ -158,13 +159,18 @@ class SocialMediaServiceProvider extends ServiceProvider
             }
 
             $tenantId = \App\Support\TenantContext::currentId();
+            $plans = app(\App\Support\TenantPlanManager::class);
+
+            if (!$plans->hasFeature(PlanFeature::SOCIAL_MEDIA, $tenantId)) {
+                return '';
+            }
+
             $total = \App\Modules\SocialMedia\Models\SocialAccount::query()
                 ->where('tenant_id', $tenantId)->count();
             $connectedQuery = \App\Modules\SocialMedia\Models\SocialAccount::query()
                 ->where('tenant_id', $tenantId);
             $connected = BooleanQuery::apply($connectedQuery, 'is_active', true)->count();
 
-            $plans = app(\App\Support\TenantPlanManager::class);
             $limit = $plans->limit(\App\Support\PlanLimit::SOCIAL_ACCOUNTS, $tenantId);
 
             return view('socialmedia::dashboard.card', compact('total', 'connected', 'limit'))->render();

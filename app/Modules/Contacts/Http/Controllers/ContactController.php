@@ -51,8 +51,9 @@ class ContactController extends Controller
 
         $mergeCandidateCount = count($this->buildMergeCandidateGroups());
         $filters = $request->only(['search', 'type']);
+        $contactLimitState = $this->contactLimitState();
 
-        return view('contacts::index', compact('contacts', 'mergeCandidateCount', 'filters'));
+        return view('contacts::index', compact('contacts', 'mergeCandidateCount', 'filters', 'contactLimitState'));
     }
 
     public function mergeCandidates(): View
@@ -64,7 +65,9 @@ class ContactController extends Controller
 
     public function importPage(): View
     {
-        return view('contacts::import');
+        $contactLimitState = $this->contactLimitState();
+
+        return view('contacts::import', compact('contactLimitState'));
     }
 
     public function downloadTemplate(string $format)
@@ -219,6 +222,7 @@ class ContactController extends Controller
         return view('contacts::create', [
             'companies' => $companies,
             'contact' => $prefill,
+            'contactLimitState' => $this->contactLimitState(),
         ]);
     }
 
@@ -906,6 +910,13 @@ class ContactController extends Controller
             ->all();
 
         return $groups;
+    }
+
+    private function contactLimitState(): array
+    {
+        return app(TenantPlanManager::class)->usageState(PlanLimit::CONTACTS, $this->tenantId()) + [
+            'label' => 'Contacts',
+        ];
     }
 
     private function contactMatchSignatures(Contact $contact): array

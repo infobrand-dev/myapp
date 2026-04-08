@@ -54,6 +54,12 @@
     </div>
 @endif
 
+@include('shared.plan-limit-alert', [
+    'state' => $contactLimitState,
+    'title' => 'Limit Contacts',
+    'message' => 'Import akan ditolak bila estimasi contact baru melebihi kapasitas plan tenant.',
+])
+
 <div class="row g-3">
     <div class="col-lg-7">
         <form method="POST" action="{{ route('contacts.import') }}" enctype="multipart/form-data">

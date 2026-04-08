@@ -67,35 +67,82 @@
     <div class="col-lg-8">
         <div class="card h-100">
             <div class="card-header">
-                <h3 class="card-title">Detail Transaksi</h3>
+                <h3 class="card-title">Transaction Details</h3>
             </div>
-            <div class="card-body">
-                <dl class="row mb-0">
-                    <dt class="col-sm-4 fw-normal text-muted">Tipe</dt>
-                    <dd class="col-sm-8">
-                        <span class="badge {{ $typeConfig['badge'] }}">{{ $typeConfig['label'] }}</span>
-                    </dd>
+            <div class="card-body p-0">
 
-                    <dt class="col-sm-4 fw-normal text-muted">Tanggal</dt>
-                    <dd class="col-sm-8">{{ $transaction->transaction_date ? $transaction->transaction_date->format('d M Y, H:i') : '-' }}</dd>
+                {{-- Group 1: Type & Date --}}
+                <div class="px-4 py-3">
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <div class="text-muted small mb-1">
+                                <i class="ti ti-tag me-1"></i>Type
+                            </div>
+                            <span class="badge {{ $typeConfig['badge'] }}">{{ $typeConfig['label'] }}</span>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="text-muted small mb-1">
+                                <i class="ti ti-calendar me-1"></i>Date
+                            </div>
+                            <div>{{ $transaction->transaction_date ? $transaction->transaction_date->format('d M Y, H:i') : '-' }}</div>
+                        </div>
+                    </div>
+                </div>
 
-                    <dt class="col-sm-4 fw-normal text-muted">Akun</dt>
-                    <dd class="col-sm-8">{{ $transaction->account?->name ?? '-' }}</dd>
+                <hr class="m-0">
 
-                    <dt class="col-sm-4 fw-normal text-muted">Kategori</dt>
-                    <dd class="col-sm-8">{{ $transaction->category?->name ?? '-' }}</dd>
+                {{-- Group 2: Account & Category --}}
+                <div class="px-4 py-3">
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <div class="text-muted small mb-1">
+                                <i class="ti ti-building-bank me-1"></i>Account
+                            </div>
+                            <div>{{ $transaction->account?->name ?? '-' }}</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="text-muted small mb-1">
+                                <i class="ti ti-folder me-1"></i>Category
+                            </div>
+                            <div>{{ $transaction->category?->name ?? '-' }}</div>
+                        </div>
+                    </div>
+                </div>
 
-                    <dt class="col-sm-4 fw-normal text-muted">Cabang</dt>
-                    <dd class="col-sm-8">{{ $transaction->branch?->name ?? '-' }}</dd>
+                <hr class="m-0">
 
-                    @if($shiftEnabled && $transaction->shift)
-                        <dt class="col-sm-4 fw-normal text-muted">Shift</dt>
-                        <dd class="col-sm-8">{{ $transaction->shift->code }}</dd>
-                    @endif
+                {{-- Group 3: Branch & Shift --}}
+                <div class="px-4 py-3">
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <div class="text-muted small mb-1">
+                                <i class="ti ti-map-pin me-1"></i>Branch
+                            </div>
+                            <div>{{ $transaction->branch?->name ?? '-' }}</div>
+                        </div>
+                        @if($shiftEnabled)
+                        <div class="col-sm-6">
+                            <div class="text-muted small mb-1">
+                                <i class="ti ti-clock me-1"></i>Shift
+                            </div>
+                            <div>{{ $transaction->shift?->code ?? '-' }}</div>
+                        </div>
+                        @endif
+                    </div>
+                </div>
 
-                    <dt class="col-sm-4 fw-normal text-muted">Catatan</dt>
-                    <dd class="col-sm-8 mb-0">{{ $transaction->notes ?: '-' }}</dd>
-                </dl>
+                @if($transaction->notes)
+                <hr class="m-0">
+
+                {{-- Group 4: Notes --}}
+                <div class="px-4 py-3">
+                    <div class="text-muted small mb-1">
+                        <i class="ti ti-notes me-1"></i>Notes
+                    </div>
+                    <div class="text-body">{{ $transaction->notes }}</div>
+                </div>
+                @endif
+
             </div>
         </div>
     </div>

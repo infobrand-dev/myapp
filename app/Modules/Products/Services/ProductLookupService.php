@@ -6,6 +6,7 @@ use App\Modules\Products\Models\ProductBrand;
 use App\Modules\Products\Models\ProductCategory;
 use App\Modules\Products\Models\ProductPriceLevel;
 use App\Modules\Products\Models\ProductUnit;
+use App\Support\BooleanQuery;
 use App\Support\TenantContext;
 use DomainException;
 use Illuminate\Support\Collection;
@@ -15,36 +16,44 @@ class ProductLookupService
 {
     public function categories(): Collection
     {
-        return ProductCategory::query()
-            ->where('tenant_id', TenantContext::currentId())
-            ->where('is_active', true)
+        return BooleanQuery::apply(
+            ProductCategory::query()
+                ->where('tenant_id', TenantContext::currentId()),
+            'is_active'
+        )
             ->orderBy('name')
             ->get();
     }
 
     public function brands(): Collection
     {
-        return ProductBrand::query()
-            ->where('tenant_id', TenantContext::currentId())
-            ->where('is_active', true)
+        return BooleanQuery::apply(
+            ProductBrand::query()
+                ->where('tenant_id', TenantContext::currentId()),
+            'is_active'
+        )
             ->orderBy('name')
             ->get();
     }
 
     public function units(): Collection
     {
-        return ProductUnit::query()
-            ->where('tenant_id', TenantContext::currentId())
-            ->where('is_active', true)
+        return BooleanQuery::apply(
+            ProductUnit::query()
+                ->where('tenant_id', TenantContext::currentId()),
+            'is_active'
+        )
             ->orderBy('name')
             ->get();
     }
 
     public function priceLevels(): Collection
     {
-        return ProductPriceLevel::query()
-            ->where('tenant_id', TenantContext::currentId())
-            ->where('is_active', true)
+        return BooleanQuery::apply(
+            ProductPriceLevel::query()
+                ->where('tenant_id', TenantContext::currentId()),
+            'is_active'
+        )
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();

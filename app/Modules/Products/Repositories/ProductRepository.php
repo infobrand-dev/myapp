@@ -3,6 +3,7 @@
 namespace App\Modules\Products\Repositories;
 
 use App\Modules\Products\Models\Product;
+use App\Support\BooleanQuery;
 use App\Support\TenantContext;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -90,11 +91,11 @@ class ProductRepository
         }
 
         if (($filters['status'] ?? null) === 'active') {
-            $query->where('products.is_active', true);
+            BooleanQuery::apply($query, 'products.is_active');
         }
 
         if (($filters['status'] ?? null) === 'inactive') {
-            $query->where('products.is_active', false);
+            BooleanQuery::apply($query, 'products.is_active', false);
         }
 
         if (!empty($filters['category_id'])) {

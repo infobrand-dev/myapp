@@ -36,7 +36,7 @@ class FinanceTransactionController extends Controller
         $query = FinanceTransaction::query()
             ->where('tenant_id', TenantContext::currentId())
             ->where('company_id', $companyId)
-            ->with(array_filter(['account', 'category', 'creator', $shiftEnabled ? 'shift' : null]))
+            ->with(array_filter(['account', 'category', 'branch', 'creator', $shiftEnabled ? 'shift' : null]))
             ->when(empty($filters['branch_id']), fn ($builder) => BranchContext::applyScope($builder))
             ->when(!empty($filters['date_from']), function ($query) use ($filters) {
                 $query->whereDate('transaction_date', '>=', $filters['date_from']);
@@ -190,7 +190,7 @@ class FinanceTransactionController extends Controller
         $shiftEnabled = $this->shiftEnabled();
 
         return view('finance::transactions.show', [
-            'transaction' => $transaction->load(array_filter(['account', 'category', 'creator', 'updater', $shiftEnabled ? 'shift' : null])),
+            'transaction' => $transaction->load(array_filter(['account', 'category', 'branch', 'creator', 'updater', $shiftEnabled ? 'shift' : null])),
             'company' => CompanyContext::currentCompany(),
             'branch' => BranchContext::currentBranch(),
             'shiftEnabled' => $shiftEnabled,

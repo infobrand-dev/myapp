@@ -144,7 +144,7 @@
                             <td>{{ $transaction->category ? $transaction->category->name : '-' }}</td>
                             <td>{{ $money->format((float) $transaction->amount, $currency) }}</td>
                             <td>{{ $transaction->creator ? $transaction->creator->name : '-' }}</td>
-                            <td>{{ $transaction->branch_id ?: '-' }}</td>
+                            <td>{{ $transaction->branch ? $transaction->branch->name : '-' }}</td>
                             @if($shiftEnabled)
                                 <td>{{ $transaction->shift ? $transaction->shift->code : '-' }}</td>
                             @endif

@@ -57,7 +57,6 @@
                             <option value="{{ $value }}" @selected(old('transaction_type', 'cash_out') === $value)>{{ $label }}</option>
                         @endforeach
                     </select>
-                    <div class="form-hint">Pilih tipe dasar transaksi. `Expense` dipakai untuk biaya operasional, bukan sekadar uang keluar biasa.</div>
                     @error('transaction_type') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
                 <div class="col-md-4">
@@ -87,9 +86,7 @@
                         @foreach($groupedCategories as $transactionType => $categoryGroup)
                             <optgroup label="{{ $categoryTypeLabels[$transactionType] ?? ucfirst(str_replace('_', ' ', $transactionType)) }}">
                                 @foreach($categoryGroup as $category)
-                                    <option value="{{ $category->id }}"
-                                            data-transaction-type="{{ $category->transaction_type }}"
-                                            @selected((string) old('finance_category_id') === (string) $category->id)>{{ $category->name }}</option>
+                                    <option value="{{ $category->id }}" @selected((string) old('finance_category_id') === (string) $category->id)>{{ $category->name }}</option>
                                 @endforeach
                             </optgroup>
                         @endforeach
@@ -107,7 +104,6 @@
                     <div class="form-hint">
                         @if($usesAllBranchView)
                             You are currently in `All branches` mode. If left blank, this transaction will use the default operational branch{{ $defaultBranchLabel ? ': '.$defaultBranchLabel : '' }}.
-                        @else
                         @endif
                     </div>
                     @error('branch_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -159,45 +155,6 @@ document.addEventListener('DOMContentLoaded', function () {
             bootstrap.Tooltip.getOrCreateInstance(element);
         }
     });
-
-    const typeSelect = document.getElementById('finance-transaction-type');
-    const categorySelect = document.getElementById('finance-category-select');
-
-    if (!typeSelect || !categorySelect) {
-        return;
-    }
-
-    const categoryOptions = Array.from(categorySelect.options);
-    const categoryGroups = Array.from(categorySelect.querySelectorAll('optgroup'));
-
-    function syncCategoryOptions() {
-        const currentType = typeSelect.value;
-
-        categoryOptions.forEach((option) => {
-            if (!option.value) {
-                option.hidden = false;
-                return;
-            }
-
-            const optionType = option.dataset.transactionType || '';
-            const visible = optionType === currentType;
-
-            option.hidden = !visible;
-        });
-
-        categoryGroups.forEach((group) => {
-            const hasVisibleOption = Array.from(group.querySelectorAll('option')).some((option) => !option.hidden);
-            group.hidden = !hasVisibleOption;
-        });
-
-        const selectedOption = categorySelect.options[categorySelect.selectedIndex];
-        if (selectedOption && selectedOption.value && selectedOption.hidden) {
-            categorySelect.value = '';
-        }
-    }
-
-    typeSelect.addEventListener('change', syncCategoryOptions);
-    syncCategoryOptions();
 });
 </script>
 @endpush

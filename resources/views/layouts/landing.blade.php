@@ -148,6 +148,7 @@
         <div class="landing-footer-bottom">
             <div class="landing-footer-copy">
                 &copy; {{ date('Y') }} {{ config('app.name') }}. Hak cipta dilindungi.
+                <span style="opacity:.45; margin-left:.5rem;">PT Meetra Digital Teknologi</span>
             </div>
             <div class="d-flex align-items-center gap-3 flex-wrap">
                 <span class="landing-footer-trust-pill"><i class="ti ti-shield-check"></i> Data Aman</span>

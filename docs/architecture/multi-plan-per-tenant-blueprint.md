@@ -154,7 +154,7 @@ Add helpers:
   - expire only the previous active subscription in that same `product_line`
 
 ### onboarding
-- Current public onboarding is omnichannel-only.
+- Current public onboarding defaults to accounting, while omnichannel remains available only when explicitly opened again as a sellable flow.
 - Keep that for now.
 - Future onboarding may allow choosing a product line first, but this is not required for the multi-plan refactor itself.
 
@@ -231,7 +231,7 @@ Replace single plan block with:
 ## Recommended decisions now
 - Do not support multiple active subscriptions in the same `product_line`.
 - Do not sum shared limits in phase 1.
-- Treat `omnichannel` as the first migrated product line and keep public onboarding there.
+- Treat `accounting` as the active public onboarding line for now; omnichannel can be re-opened later without changing the multi-plan runtime contract.
 - Keep add-ons attached to the owning product line subscription, not to the tenant globally.
 
 ## First implementation slice

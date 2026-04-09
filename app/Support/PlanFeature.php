@@ -7,6 +7,7 @@ class PlanFeature
     public const MULTI_COMPANY = 'multi_company';
     public const CONVERSATIONS = 'conversations';
     public const CRM = 'crm';
+    public const ACCOUNTING = 'accounting';
     public const COMMERCE = 'commerce';
     public const PROJECT_MANAGEMENT = 'project_management';
     public const LIVE_CHAT = 'live_chat';
@@ -33,15 +34,15 @@ class PlanFeature
     {
         return [
             'conversations' => [self::CONVERSATIONS],
-            'contacts' => [self::CRM, self::COMMERCE],
+            'contacts' => [self::CRM, self::ACCOUNTING],
             'crm' => [self::CRM],
-            'sales' => [self::COMMERCE],
-            'payments' => [self::COMMERCE],
-            'products' => [self::COMMERCE],
+            'sales' => [self::ACCOUNTING],
+            'payments' => [self::ACCOUNTING],
+            'products' => [self::ACCOUNTING],
             'inventory' => [self::INVENTORY],
             'purchases' => [self::PURCHASES],
             'discounts' => [self::POINT_OF_SALE],
-            'finance' => [self::COMMERCE],
+            'finance' => [self::ACCOUNTING],
             'point-of-sale' => [self::POINT_OF_SALE],
             'task_management' => [self::PROJECT_MANAGEMENT],
             'live_chat' => [self::LIVE_CHAT],
@@ -49,7 +50,7 @@ class PlanFeature
             'chatbot' => [self::CHATBOT_AI],
             'whatsapp_api' => [self::WHATSAPP_API],
             'whatsapp_web' => [self::WHATSAPP_WEB],
-            'reports' => [self::COMMERCE],
+            'reports' => [self::ACCOUNTING],
         ][$slug] ?? [];
     }
 
@@ -59,13 +60,24 @@ class PlanFeature
     public static function moduleFeatureRequirement(string $slug): array
     {
         return match ($slug) {
-            'inventory' => ['all' => [self::COMMERCE, self::INVENTORY]],
-            'purchases' => ['all' => [self::COMMERCE, self::PURCHASES]],
-            'discounts' => ['all' => [self::COMMERCE, self::POINT_OF_SALE]],
-            'point-of-sale' => ['all' => [self::COMMERCE, self::POINT_OF_SALE]],
-            default => ($features = self::moduleFeaturesForSlug($slug)) !== []
-                ? ['any' => $features]
+            'inventory' => ['all' => [self::ACCOUNTING, self::INVENTORY]],
+            'purchases' => ['all' => [self::ACCOUNTING, self::PURCHASES]],
+            'discounts' => ['all' => [self::ACCOUNTING, self::POINT_OF_SALE]],
+            'point-of-sale' => ['all' => [self::ACCOUNTING, self::POINT_OF_SALE]],
+            default => self::moduleFeaturesForSlug($slug) !== []
+                ? ['any' => self::moduleFeaturesForSlug($slug)]
                 : [],
+        };
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function featureKeyCandidates(string $feature): array
+    {
+        return match ($feature) {
+            self::ACCOUNTING, self::COMMERCE => [self::ACCOUNTING, self::COMMERCE],
+            default => [$feature],
         };
     }
 }

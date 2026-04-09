@@ -4,7 +4,7 @@ use App\Modules\Payments\Http\Controllers\PaymentController;
 use App\Modules\Payments\Http\Controllers\PaymentMethodController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['web', 'auth', 'plan.feature:commerce'])
+Route::middleware(['web', 'auth', 'plan.feature:accounting'])
     ->prefix('payments')
     ->name('payments.')
     ->group(function () {

@@ -4,7 +4,7 @@ use App\Modules\Sales\Http\Controllers\SaleController;
 use App\Modules\Sales\Http\Controllers\SaleReturnController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['web', 'auth', 'plan.feature:commerce'])
+Route::middleware(['web', 'auth', 'plan.feature:accounting'])
     ->prefix('sales')
     ->name('sales.')
     ->group(function () {

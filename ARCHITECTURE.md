@@ -21,7 +21,7 @@
 - Core runtime tenant resolution now flows through `App\Support\TenantContext` and `App\Http\Middleware\ResolveTenantContext`.
 - Current resolver order is: explicit request attribute/header/query, session, authenticated user `tenant_id`, then fallback to tenant `id = 1` only for standalone/bootstrap-safe flows. In SaaS mode, unresolved tenant context should fail closed instead of silently falling back to tenant `1`.
 - In SaaS mode, guest auth pages must be reached from the tenant subdomain. Apex/root domain is for onboarding or workspace discovery, not shared tenant login.
-- Public self-serve sales now starts from the apex onboarding flow. Buyer selects a public subscription plan, creates a tenant in `pending_payment`, receives a platform invoice, and then pays either through Midtrans checkout or manual bank transfer with a unique amount before the tenant is activated.
+- Public self-serve sales now starts from the apex onboarding flow with `accounting` as the active default product line. Buyer selects a public subscription plan, creates a tenant in `pending_payment`, receives a platform invoice, and then pays either through Midtrans checkout or manual bank transfer with a unique amount before the tenant is activated.
 - Platform owner access is separated onto the reserved `dash` subdomain, which binds to tenant `id = 1` for control-plane work.
 - Core runtime company resolution now flows through `App\Support\CompanyContext` and `App\Http\Middleware\ResolveCompanyContext`.
 - Current company resolver order is: explicit request attribute/header/query, session, then first active company under the active tenant.

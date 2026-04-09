@@ -101,7 +101,7 @@ class ContactsServiceProvider extends ServiceProvider
             $tenantId = TenantContext::currentId();
             $plans = app(\App\Support\TenantPlanManager::class);
 
-            if (!$plans->hasFeature(PlanFeature::CRM, $tenantId) && !$plans->hasFeature(PlanFeature::COMMERCE, $tenantId)) {
+            if (!$plans->hasFeature(PlanFeature::CRM, $tenantId) && !$plans->hasFeature(PlanFeature::ACCOUNTING, $tenantId)) {
                 return '';
             }
 

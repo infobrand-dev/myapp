@@ -3,7 +3,7 @@
 use App\Modules\Purchases\Http\Controllers\PurchaseController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['web', 'auth', 'plan.feature:commerce', 'plan.feature:purchases'])
+Route::middleware(['web', 'auth', 'plan.feature:accounting', 'plan.feature:purchases'])
     ->prefix('purchases')
     ->name('purchases.')
     ->group(function () {

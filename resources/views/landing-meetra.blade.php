@@ -31,7 +31,7 @@
                 </p>
                 <div class="d-flex flex-wrap gap-3 mb-4">
                     <a href="{{ route('landing.accounting') }}" class="btn btn-lg btn-dark">Lihat Accounting</a>
-                    <a href="{{ route('landing.omnichannel') }}" class="btn btn-lg btn-outline-dark">Lihat Omnichannel</a>
+                    <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'plan' => 'accounting_starter']) }}" class="btn btn-lg btn-outline-dark">Daftar Accounting</a>
                 </div>
                 <div class="d-flex flex-wrap gap-2">
                     <span class="landing-pill">Customer Inbox</span>
@@ -128,15 +128,15 @@
                         <i class="ti ti-message-circle-2"></i> Omnichannel
                     </div>
                     <h3 class="h2 mb-3">Untuk tim yang fokus ke komunikasi customer dan follow up lead.</h3>
-                    <p class="small text-muted mb-4">Cocok untuk social inbox, live chat, CRM lite, WhatsApp, dan automation. Jalur ini tetap ada untuk bisnis yang memang butuh customer-facing workflow.</p>
+                    <p class="small text-muted mb-4">Cocok untuk social inbox, live chat, CRM lite, WhatsApp, dan automation. Jalur ini masih dipersiapkan lebih lanjut dan belum menjadi fokus pendaftaran utama saat ini.</p>
                     <div class="landing-checklist small text-muted">
                         <div><i class="ti ti-check text-success"></i> Shared inbox dan social media conversation</div>
                         <div><i class="ti ti-check text-success"></i> CRM lite, live chat, AI, dan WhatsApp</div>
-                        <div><i class="ti ti-check text-success"></i> Cocok untuk sales dan support team</div>
+                        <div><i class="ti ti-check text-success"></i> Cocok untuk sales dan support team saat jalur ini dibuka penuh</div>
                     </div>
                     <div class="mt-4 d-flex flex-wrap gap-2">
                         <a href="{{ route('landing.omnichannel') }}" class="btn btn-dark">Lihat Omnichannel</a>
-                        <a href="{{ route('onboarding.create', ['product_line' => 'omnichannel', 'plan' => 'growth-v2']) }}" class="btn btn-outline-dark">Daftar Omnichannel</a>
+                        <span class="btn btn-outline-dark disabled" aria-disabled="true">Coming Soon</span>
                     </div>
                 </div>
             </div>
@@ -228,7 +228,7 @@
         <div class="landing-panel p-4 p-lg-5 text-center">
             <div class="landing-eyebrow mb-2">Mulai dari Yang Paling Relevan</div>
             <h2 class="landing-section-title mb-3">Kalau ingin go-live cepat, mulai dari jalur yang paling dekat dengan kebutuhan bisnis Anda.</h2>
-            <p class="landing-subtext mx-auto mb-4" style="max-width:760px;">Untuk sekarang, jalur Accounting paling siap untuk bisnis yang ingin merapikan transaksi dan operasional. Kalau fokus Anda ada di percakapan customer dan lead handling, Omnichannel tetap tersedia sebagai jalur lain.</p>
+            <p class="landing-subtext mx-auto mb-4" style="max-width:760px;">Untuk sekarang, jalur Accounting paling siap untuk bisnis yang ingin merapikan transaksi dan operasional. Omnichannel tetap ada di roadmap produk, tetapi belum menjadi jalur pendaftaran utama.</p>
             <div class="d-flex flex-wrap justify-content-center gap-3">
                 <a href="{{ route('landing.accounting') }}" class="btn btn-dark btn-lg">Lihat Accounting</a>
                 <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'plan' => 'accounting_starter']) }}" class="btn btn-outline-dark btn-lg">Daftar Accounting</a>

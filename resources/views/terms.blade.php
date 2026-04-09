@@ -56,8 +56,8 @@
 
                     <div id="t2" class="legal-section">
                         <h2><span class="legal-section-num">2</span> Deskripsi Layanan</h2>
-                        <p>{{ config('app.name') }} adalah platform omnichannel berbasis cloud yang memungkinkan bisnis mengelola percakapan pelanggan dari berbagai channel (WhatsApp, sosial media, live chat) dalam satu workspace terpadu.</p>
-                        <p>Layanan disediakan berdasarkan model berlangganan (SaaS). Fitur yang tersedia bergantung pada paket yang dipilih. Kami berhak menambah, mengubah, atau menghentikan fitur tertentu dengan pemberitahuan yang wajar.</p>
+                        <p>{{ config('app.name') }} adalah platform bisnis berbasis cloud yang menyediakan workspace untuk mengelola operasional, transaksi, customer data, komunikasi, dan workflow tim sesuai paket yang dipilih.</p>
+                        <p>Layanan disediakan berdasarkan model berlangganan (SaaS). Fitur yang tersedia bergantung pada product line dan paket yang Anda pilih. Kami berhak menambah, mengubah, atau menghentikan fitur tertentu dengan pemberitahuan yang wajar.</p>
                     </div>
 
                     <div id="t3" class="legal-section">
@@ -91,9 +91,9 @@
                         <h2><span class="legal-section-num">5</span> Penggunaan yang Diizinkan</h2>
                         <p>Anda diizinkan menggunakan platform untuk:</p>
                         <ul>
-                            <li>Mengelola percakapan pelanggan bisnis Anda secara sah</li>
-                            <li>Menghubungkan channel komunikasi resmi bisnis Anda</li>
-                            <li>Mengonfigurasi chatbot dan otomasi untuk keperluan bisnis yang wajar</li>
+                            <li>Mengelola data bisnis, transaksi, customer, atau komunikasi bisnis Anda secara sah</li>
+                            <li>Menghubungkan channel komunikasi resmi atau workflow operasional bisnis Anda sesuai paket yang tersedia</li>
+                            <li>Mengonfigurasi automasi, integrasi, atau fitur tambahan untuk keperluan bisnis yang wajar</li>
                             <li>Mengundang anggota tim sesuai kuota paket yang dipilih</li>
                         </ul>
                     </div>

@@ -94,7 +94,6 @@
                 <nav class="landing-footer-nav">
                     <a href="{{ route('landing') }}">Meetra</a>
                     <a href="{{ route('landing') }}#products">Solusi</a>
-                    <a href="{{ route('landing.omnichannel') }}">Omnichannel</a>
                     <a href="{{ route('landing.accounting') }}">Accounting</a>
                     <a href="{{ route('landing') }}#platform">Tentang Meetra</a>
                     <a href="{{ route('landing') }}#why">Kenapa Meetra</a>

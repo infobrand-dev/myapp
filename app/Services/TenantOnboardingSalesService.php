@@ -25,7 +25,7 @@ use Spatie\Permission\PermissionRegistrar;
 
 class TenantOnboardingSalesService
 {
-    private const DEFAULT_PUBLIC_PRODUCT_LINE = 'omnichannel';
+    private const DEFAULT_PUBLIC_PRODUCT_LINE = 'accounting';
 
     private const PUBLIC_PLAN_ALIASES = [
         'starter' => 'starter-v2',

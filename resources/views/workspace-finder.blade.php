@@ -45,7 +45,7 @@
 
                         <div class="mt-3 text-center small text-muted">
                             Belum punya workspace?
-                            <a href="{{ route('onboarding.create') }}" class="text-decoration-none">Daftar sekarang</a>
+                            <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'plan' => 'accounting_starter']) }}" class="text-decoration-none">Daftar accounting sekarang</a>
                         </div>
                     </div>
                 </div>

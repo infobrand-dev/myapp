@@ -198,7 +198,7 @@ class SalesServiceProvider extends ServiceProvider
             if (!$user
                 || !Schema::hasTable('sales')
                 || !$canView
-                || !app(\App\Support\TenantPlanManager::class)->hasFeature(PlanFeature::COMMERCE, TenantContext::currentId())) {
+                || !app(\App\Support\TenantPlanManager::class)->hasFeature(PlanFeature::ACCOUNTING, TenantContext::currentId())) {
                 return '';
             }
 

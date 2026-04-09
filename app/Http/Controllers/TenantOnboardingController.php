@@ -159,7 +159,7 @@ class TenantOnboardingController extends Controller
 
         return in_array($requested, ['accounting', 'omnichannel'], true)
             ? $requested
-            : 'omnichannel';
+            : 'accounting';
     }
 
     private function productLineLabel(string $productLine): string

@@ -141,7 +141,7 @@ class PurchasesServiceProvider extends ServiceProvider
             if (!$user
                 || !Schema::hasTable('purchases')
                 || !$canView
-                || !$planManager->hasFeature(PlanFeature::COMMERCE, TenantContext::currentId())
+                || !$planManager->hasFeature(PlanFeature::ACCOUNTING, TenantContext::currentId())
                 || !$planManager->hasFeature(PlanFeature::PURCHASES, TenantContext::currentId())) {
                 return '';
             }

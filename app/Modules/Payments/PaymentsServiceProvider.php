@@ -119,7 +119,7 @@ class PaymentsServiceProvider extends ServiceProvider
             if (!$user
                 || !Schema::hasTable('payments')
                 || !$canView
-                || !app(\App\Support\TenantPlanManager::class)->hasFeature(PlanFeature::COMMERCE, TenantContext::currentId())) {
+                || !app(\App\Support\TenantPlanManager::class)->hasFeature(PlanFeature::ACCOUNTING, TenantContext::currentId())) {
                 return '';
             }
 

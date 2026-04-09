@@ -88,12 +88,17 @@ class TenantPlanManager
     public function hasFeature(string $feature, ?int $tenantId = null): bool
     {
         $subscriptions = $this->effectiveSubscriptions($tenantId);
+        $featureCandidates = PlanFeature::featureKeyCandidates($feature);
 
         if ($subscriptions->isEmpty()) {
             return config('multitenancy.mode') !== 'saas';
         }
 
-        $productLine = PlanProductLineMap::featureProductLine($feature);
+        $productLine = collect($featureCandidates)
+            ->map(fn (string $candidate) => PlanProductLineMap::featureProductLine($candidate))
+            ->filter()
+            ->first();
+
         if ($productLine) {
             $subscription = $this->effectiveSubscriptionFor($subscriptions, $productLine);
 
@@ -105,8 +110,10 @@ class TenantPlanManager
         foreach ($subscriptions as $subscription) {
             $overrides = $subscription->feature_overrides ?? [];
 
-            if (array_key_exists($feature, $overrides)) {
-                return (bool) $overrides[$feature];
+            foreach ($featureCandidates as $candidate) {
+                if (array_key_exists($candidate, $overrides)) {
+                    return (bool) $overrides[$candidate];
+                }
             }
         }
 
@@ -471,12 +478,23 @@ class TenantPlanManager
     private function featureValueForSubscription(TenantSubscription $subscription, string $feature, bool $default = false): bool
     {
         $overrides = $subscription->feature_overrides ?? [];
+        $candidates = PlanFeature::featureKeyCandidates($feature);
 
-        if (array_key_exists($feature, $overrides)) {
-            return (bool) $overrides[$feature];
+        foreach ($candidates as $candidate) {
+            if (array_key_exists($candidate, $overrides)) {
+                return (bool) $overrides[$candidate];
+            }
         }
 
-        return (bool) (($subscription->plan?->features ?? [])[$feature] ?? $default);
+        $planFeatures = $subscription->plan?->features ?? [];
+
+        foreach ($candidates as $candidate) {
+            if (array_key_exists($candidate, $planFeatures)) {
+                return (bool) $planFeatures[$candidate];
+            }
+        }
+
+        return $default;
     }
 
     private function limitValueForSubscription(TenantSubscription $subscription, string $key): ?int

@@ -82,7 +82,7 @@ class FinanceServiceProvider extends ServiceProvider
             if (!$user
                 || !Schema::hasTable('finance_transactions')
                 || !$canView
-                || !app(\App\Support\TenantPlanManager::class)->hasFeature(PlanFeature::COMMERCE, TenantContext::currentId())) {
+                || !app(\App\Support\TenantPlanManager::class)->hasFeature(PlanFeature::ACCOUNTING, TenantContext::currentId())) {
                 return '';
             }
 

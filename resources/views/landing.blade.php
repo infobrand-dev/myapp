@@ -1,7 +1,7 @@
 @extends('layouts.landing')
 
-@section('head_title', config('app.name') . ' — Omnichannel Inbox untuk Tim Sales & Support')
-@section('head_description', 'Satukan percakapan WhatsApp, Instagram/Facebook DM, live chat, dan chatbot AI dalam satu workspace. Balas lebih cepat, lead tidak tercecer, tim lebih fokus.')
+@section('head_title', config('app.name') . ' - Platform bisnis untuk operasional, transaksi, dan workflow tim')
+@section('head_description', 'Meetra adalah platform bisnis untuk operasional, transaksi, customer, dan workflow tim. Jalur pendaftaran utama yang aktif saat ini adalah Accounting.')
 
 @section('content')
 @include('partials.landing-main-sections')

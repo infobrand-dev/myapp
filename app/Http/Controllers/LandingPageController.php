@@ -32,11 +32,7 @@ class LandingPageController extends Controller
             return redirect()->away($this->workspaceUrlFor($request));
         }
 
-        return view('landing', [
-            'plans' => $sales->publicPlans(),
-            'workspaceUrl' => $this->workspaceUrlFor($request, false),
-            'affiliate' => $affiliate,
-        ]);
+        return redirect()->route('landing.accounting', $request->query());
     }
 
     public function omnichannel(Request $request, TenantOnboardingSalesService $sales, PlatformAffiliateService $affiliateService): View|RedirectResponse

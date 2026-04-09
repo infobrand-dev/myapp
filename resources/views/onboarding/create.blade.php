@@ -2,7 +2,7 @@
     <x-auth-card>
         @php
             $money = app(\App\Support\MoneyFormatter::class);
-            $productLineKey = strtolower((string) ($productLine ?? 'omnichannel'));
+            $productLineKey = strtolower((string) ($productLine ?? 'accounting'));
             $isAccounting = $productLineKey === 'accounting';
             $trialRequested = !empty($trialRequested);
             $lineTitle = $isAccounting ? 'Mulai workspace Accounting Anda' : 'Mulai workspace Omnichannel Anda';

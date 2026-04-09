@@ -6,17 +6,21 @@
 - Fase pertama memakai modul existing yang sudah ada di repo, bukan menunggu modul akuntansi formal baru.
 
 ## Bundle inti
-Bundle inti `accounting` memakai modul existing berikut:
+Bundle inti `accounting` yang dipakai saat ini:
 - `sales`
 - `payments`
-- `purchases`
 - `finance`
-- `point-of-sale`
 - `reports`
+- `products`
+- `contacts`
 
-Catatan dependency teknis:
-- beberapa alur masih bergantung pada `products`, `inventory`, `contacts`, dan `discounts`
-- dependency tersebut boleh tetap terikut secara teknis bila runtime membutuhkannya, tetapi bukan pesan utama paket
+Tier lanjutan:
+- `Accounting Growth` menambahkan `purchases` dan `inventory`
+- `Accounting Scale` memakai capability yang sama dengan kapasitas lebih besar
+
+Add-on:
+- `point-of-sale`
+- `discounts` mengikuti kebutuhan POS
 
 ## Struktur paket
 Tier awal mengikuti pola Omnichannel:
@@ -25,15 +29,16 @@ Tier awal mengikuti pola Omnichannel:
 - `Accounting Scale`
 
 Aturan tier:
-- semua tier membawa core bundle yang sama
-- pembeda utama ada di limit/capacity
-- fase pertama tidak memakai unlock module antar tier
+- `Starter` ditujukan untuk UMKM yang belum butuh pembelian supplier, stok, atau POS
+- `Growth` dan `Scale` membuka workflow operasional yang lebih lengkap
+- pembeda tier ada di kombinasi capability dan limit/capacity
+- POS tetap diposisikan sebagai add-on, bukan paket inti semua bisnis
 
 ## Positioning copy
 Copy paket harus menekankan:
-- operasional penjualan dan pembelian
-- pembayaran dan finance ringan
-- POS
+- operasional penjualan, pembayaran, dan finance ringan
+- products dan contacts sebagai data utama
+- pembelian dan stok tersedia saat bisnis sudah membutuhkannya
 - reporting
 
 Hindari klaim:
@@ -43,6 +48,6 @@ Hindari klaim:
 - integrasi Accurate/Zahir/Jurnal yang belum live
 
 ## Public flow
-- fase pertama fokus ke plan dan harga internal
-- onboarding public tetap `omnichannel` saja
-- landing `accounting` boleh dipakai sebagai positioning, tetapi tidak menjadi self-serve checkout utama
+- `accounting` adalah jalur utama yang aktif dijual lewat `/onboarding`
+- default public signup harus mengarahkan user ke paket `accounting`
+- `omnichannel` tetap ada sebagai product line berikutnya, tetapi bukan jalur utama sampai siap dijual penuh

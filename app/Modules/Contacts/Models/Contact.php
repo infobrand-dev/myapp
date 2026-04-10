@@ -6,8 +6,10 @@ use App\Models\Branch;
 use App\Models\Company;
 use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Contacts\Support\ContactPhoneNormalizer;
+use App\Support\BooleanQuery;
 use App\Support\NormalizesPgsqlBooleanAttributes;
 use App\Support\TenantContext;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -44,6 +46,11 @@ class Contact extends Model
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    public function scopeActive(Builder $query): Builder
+    {
+        return BooleanQuery::apply($query, 'is_active');
+    }
 
     public function company(): BelongsTo
     {

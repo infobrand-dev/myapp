@@ -7,9 +7,11 @@ use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Payments\Models\PaymentAllocation;
+use App\Support\BooleanQuery;
 use App\Support\CompanyContext;
 use App\Support\NormalizesPgsqlBooleanAttributes;
 use App\Support\TenantContext;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -90,6 +92,11 @@ class SaleReturn extends Model
         'integration_snapshot' => 'array',
         'meta' => 'array',
     ];
+
+    public function scopeRefundRequired(Builder $query, bool $value = true): Builder
+    {
+        return BooleanQuery::apply($query, 'refund_required', $value);
+    }
 
     public function sale(): BelongsTo
     {

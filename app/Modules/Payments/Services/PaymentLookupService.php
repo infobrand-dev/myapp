@@ -122,7 +122,7 @@ class PaymentLookupService
             ->where('company_id', CompanyContext::currentId())
             ->tap(fn ($query) => BranchContext::applyScope($query))
             ->where('status', SaleReturn::STATUS_FINALIZED)
-            ->where('refund_required', true)
+            ->refundRequired()
             ->whereNotIn('refund_status', [SaleReturn::REFUND_REFUNDED, SaleReturn::REFUND_SKIPPED])
             ->orderByDesc('return_date')
             ->limit(self::MAX_LOOKUP_ROWS)

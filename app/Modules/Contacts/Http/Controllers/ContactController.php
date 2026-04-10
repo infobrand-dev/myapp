@@ -41,7 +41,7 @@ class ContactController extends Controller
         $limit = max(1, min(50, (int) $request->input('limit', 25)));
 
         $query = ContactScope::applyVisibilityScope(Contact::query())
-            ->where('is_active', true)
+            ->active()
             ->select(['id', 'name', 'type'])
             ->orderBy('name')
             ->limit($limit);

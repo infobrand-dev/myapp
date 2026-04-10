@@ -17,37 +17,51 @@ use Illuminate\Validation\ValidationException;
 
 class TenantPlanManager
 {
+    /**
+     * @var array<string, bool>
+     */
+    private array $schemaTableCache = [];
+
+    /**
+     * @var array<string, bool>
+     */
+    private array $schemaColumnCache = [];
+
+    /**
+     * @var array<int, \Illuminate\Support\Collection<int, \App\Models\TenantSubscription>>
+     */
+    private array $currentSubscriptionsCache = [];
+
     public function currentSubscription(?int $tenantId = null): ?TenantSubscription
     {
-        if (!Schema::hasTable('tenant_subscriptions')) {
+        $tenantId ??= TenantContext::currentId();
+
+        $subscriptions = $this->currentSubscriptions($tenantId);
+
+        if ($subscriptions->isEmpty()) {
             return null;
         }
 
-        $tenantId ??= TenantContext::currentId();
-
-        $omnichannel = $this->currentSubscriptionFor('omnichannel', $tenantId);
+        $omnichannel = $this->effectiveSubscriptionFor($subscriptions, 'omnichannel');
         if ($omnichannel) {
             return $omnichannel;
         }
 
-        return TenantSubscription::query()
-            ->with('plan')
-            ->where('tenant_id', $tenantId)
-            ->active()
-            ->latest('starts_at')
-            ->latest('id')
-            ->first();
+        return $subscriptions->first();
     }
 
     public function currentSubscriptions(?int $tenantId = null)
     {
-        if (!Schema::hasTable('tenant_subscriptions')) {
+        if (!$this->schemaHasTable('tenant_subscriptions')) {
             return collect();
         }
 
-        return TenantSubscription::query()
+        $tenantId ??= TenantContext::currentId();
+
+        return $this->currentSubscriptionsCache[$tenantId]
+            ??= TenantSubscription::query()
             ->with('plan')
-            ->where('tenant_id', $tenantId ?? TenantContext::currentId())
+            ->where('tenant_id', $tenantId)
             ->active()
             ->orderByDesc('starts_at')
             ->orderByDesc('id')
@@ -56,28 +70,17 @@ class TenantPlanManager
 
     public function currentSubscriptionFor(string $productLine, ?int $tenantId = null): ?TenantSubscription
     {
-        if (!Schema::hasTable('tenant_subscriptions')) {
+        $subscriptions = $this->currentSubscriptions($tenantId);
+
+        if ($subscriptions->isEmpty()) {
             return null;
         }
 
-        if (!Schema::hasColumn('tenant_subscriptions', 'product_line')) {
-            return TenantSubscription::query()
-                ->with('plan')
-                ->where('tenant_id', $tenantId ?? TenantContext::currentId())
-                ->active()
-                ->latest('starts_at')
-                ->latest('id')
-                ->first();
+        if (!$this->tenantSubscriptionsHasProductLineColumn()) {
+            return $subscriptions->first();
         }
 
-        return TenantSubscription::query()
-            ->with('plan')
-            ->where('tenant_id', $tenantId ?? TenantContext::currentId())
-            ->whereIn('product_line', PlanProductLineMap::productLineCandidates($productLine))
-            ->active()
-            ->latest('starts_at')
-            ->latest('id')
-            ->first();
+        return $this->effectiveSubscriptionFor($subscriptions, $productLine);
     }
 
     public function currentPlan(?int $tenantId = null): ?SubscriptionPlan
@@ -452,7 +455,7 @@ class TenantPlanManager
             return collect();
         }
 
-        if (!Schema::hasColumn('tenant_subscriptions', 'product_line')) {
+        if (!$this->tenantSubscriptionsHasProductLineColumn()) {
             return collect([$subscriptions->first()]);
         }
 
@@ -464,7 +467,7 @@ class TenantPlanManager
 
     private function effectiveSubscriptionFor(Collection $subscriptions, string $productLine): ?TenantSubscription
     {
-        if (!Schema::hasColumn('tenant_subscriptions', 'product_line')) {
+        if (!$this->tenantSubscriptionsHasProductLineColumn()) {
             return $subscriptions->first();
         }
 
@@ -506,5 +509,22 @@ class TenantPlanManager
         }
 
         return $this->normalizeLimit(($subscription->plan?->limits ?? [])[$key] ?? null);
+    }
+
+    private function tenantSubscriptionsHasProductLineColumn(): bool
+    {
+        return $this->schemaHasColumn('tenant_subscriptions', 'product_line');
+    }
+
+    private function schemaHasTable(string $table): bool
+    {
+        return $this->schemaTableCache[$table] ??= Schema::hasTable($table);
+    }
+
+    private function schemaHasColumn(string $table, string $column): bool
+    {
+        $key = $table . '.' . $column;
+
+        return $this->schemaColumnCache[$key] ??= Schema::hasColumn($table, $column);
     }
 }

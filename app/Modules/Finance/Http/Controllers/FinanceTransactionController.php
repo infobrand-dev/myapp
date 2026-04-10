@@ -253,7 +253,9 @@ class FinanceTransactionController extends Controller
 
     public function update(FinanceTransaction $transaction, UpdateFinanceTransactionRequest $request): RedirectResponse
     {
-        $resolvedBranchId = $this->resolveOperationalBranchId($request, $transaction->branch_id);
+        $resolvedBranchId = $request->has('branch_id')
+            ? $this->resolveOperationalBranchId($request, $transaction->branch_id)
+            : $transaction->branch_id;
 
         DB::transaction(function () use ($transaction, $request, $resolvedBranchId) {
             $transaction->update([
@@ -264,7 +266,7 @@ class FinanceTransactionController extends Controller
                 'finance_category_id' => $request->input('finance_category_id'),
                 'notes' => $request->input('notes'),
                 'branch_id' => $resolvedBranchId,
-                'pos_cash_session_id' => $request->input('pos_cash_session_id'),
+                'pos_cash_session_id' => $request->has('pos_cash_session_id') ? $request->input('pos_cash_session_id') : $transaction->pos_cash_session_id,
                 'updated_by' => $request->user()->id,
             ]);
         });

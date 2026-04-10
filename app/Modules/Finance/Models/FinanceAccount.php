@@ -12,10 +12,29 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class FinanceAccount extends Model
 {
     use NormalizesPgsqlBooleanAttributes;
+    use LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly([
+                'name',
+                'account_type',
+                'account_number',
+                'is_active',
+                'is_default',
+                'notes',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName('finance_account');
+    }
 
     public const TYPE_CASH = 'cash';
     public const TYPE_BANK = 'bank';

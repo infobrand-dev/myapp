@@ -14,9 +14,40 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Purchase extends Model
 {
+    use LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly([
+                'contact_id',
+                'supplier_reference',
+                'supplier_invoice_number',
+                'supplier_notes',
+                'status',
+                'payment_status',
+                'purchase_date',
+                'subtotal',
+                'discount_total',
+                'tax_total',
+                'grand_total',
+                'paid_total',
+                'balance_due',
+                'currency_code',
+                'notes',
+                'internal_notes',
+                'branch_id',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName('purchase');
+    }
+
     public const STATUS_DRAFT = 'draft';
     public const STATUS_CONFIRMED = 'confirmed';
     public const STATUS_PARTIAL_RECEIVED = 'partial_received';

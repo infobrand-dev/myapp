@@ -4,8 +4,9 @@
     $hasCompanies = $topbarCompanies->isNotEmpty();
     $hasBranches = $topbarCurrentCompany && ($topbarBranches->isNotEmpty() || $topbarCurrentBranch);
     $switcherWidth = '11.5rem';
+    $uiMode = $accountingUiMode ?? \App\Support\AccountingUiMode::STANDARD;
 @endphp
-@if($hasCompanies || $hasBranches)
+@if($hasCompanies || $hasBranches || $canSwitchContext)
 <div class="d-flex align-items-center gap-1 flex-wrap">
 
     @if($hasCompanies)
@@ -111,6 +112,50 @@
                 </span>
             </div>
         @endif
+    </div>
+    @endif
+
+    @if(($hasCompanies || $hasBranches) && $canSwitchContext)
+    <div class="ctx-switcher-divider d-none d-md-block"></div>
+    @endif
+
+    @if($canSwitchContext)
+    <div class="ctx-switcher-group" style="min-width:{{ $switcherWidth }};">
+        <div class="ctx-switcher-label">Accounting UI</div>
+        <div class="dropdown" style="width:100%;">
+            <button type="button"
+                    class="ctx-switcher-btn"
+                    style="min-width:{{ $switcherWidth }};"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                    title="{{ $uiMode === 'advanced' ? 'Advanced mode' : 'Standard mode' }}">
+                <span class="text-truncate d-inline-block" style="max-width:calc(100% - 1.25rem); vertical-align:bottom;">
+                    {{ $uiMode === 'advanced' ? 'Advanced mode' : 'Standard mode' }}
+                </span>
+                <i class="ti ti-chevron-down ctx-chevron"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-start shadow-sm ctx-switcher-dropdown">
+                <li><span class="dropdown-header">Pilih Mode</span></li>
+                <li>
+                    <form method="POST" action="{{ route('settings.accounting-ui-mode') }}" class="d-contents">
+                        @csrf
+                        <input type="hidden" name="mode" value="standard">
+                        <button type="submit" class="dropdown-item {{ $uiMode === 'standard' ? 'active' : '' }}">
+                            Standard
+                        </button>
+                    </form>
+                </li>
+                <li>
+                    <form method="POST" action="{{ route('settings.accounting-ui-mode') }}" class="d-contents">
+                        @csrf
+                        <input type="hidden" name="mode" value="advanced">
+                        <button type="submit" class="dropdown-item {{ $uiMode === 'advanced' ? 'active' : '' }}">
+                            Advanced
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
     </div>
     @endif
 

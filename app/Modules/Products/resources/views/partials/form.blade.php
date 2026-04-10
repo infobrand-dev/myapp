@@ -1,5 +1,6 @@
 @php
     $isEdit = $product->exists;
+    $isAdvancedMode = ($accountingUiMode ?? 'standard') === 'advanced';
     $wholesaleLevelId = optional($priceLevels->firstWhere('code', 'wholesale'))->id;
     $memberLevelId = optional($priceLevels->firstWhere('code', 'member'))->id;
     $variantRows = old('variants', $product->variants->map(function ($variant) {
@@ -47,7 +48,10 @@
     <div class="row g-3">
         <div class="col-xl-8">
             <div class="card">
-                <div class="card-header"><h3 class="card-title">Data Dasar Produk</h3></div>
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title">Data Dasar Produk</h3>
+                    @include('shared.accounting.mode-badge')
+                </div>
                 <div class="card-body row g-3">
                     <div class="col-md-4">
                         <label class="form-label">Tipe produk</label>
@@ -70,10 +74,6 @@
                         <input type="text" name="barcode" class="form-control" value="{{ old('barcode', $product->barcode) }}">
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Slug</label>
-                        <input type="text" name="slug" class="form-control" value="{{ old('slug', $product->slug) }}">
-                    </div>
-                    <div class="col-md-4">
                         <label class="form-label">Category</label>
                         <select name="category_id" class="form-select">
                             <option value="">Pilih category</option>
@@ -83,33 +83,35 @@
                         </select>
                         <input type="text" name="new_category_name" class="form-control mt-2" placeholder="Atau buat category baru" value="{{ old('new_category_name') }}">
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Brand</label>
-                        <select name="brand_id" class="form-select">
-                            <option value="">Pilih brand</option>
-                            @foreach($brands as $brand)
-                                <option value="{{ $brand->id }}" @selected((string) old('brand_id', $product->brand_id) === (string) $brand->id)>{{ $brand->name }}</option>
-                            @endforeach
-                        </select>
-                        <input type="text" name="new_brand_name" class="form-control mt-2" placeholder="Atau buat brand baru" value="{{ old('new_brand_name') }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Unit</label>
-                        <select name="unit_id" class="form-select">
-                            <option value="">Pilih unit</option>
-                            @foreach($units as $unit)
-                                <option value="{{ $unit->id }}" @selected((string) old('unit_id', $product->unit_id) === (string) $unit->id)>{{ $unit->name }} ({{ $unit->code }})</option>
-                            @endforeach
-                        </select>
-                        <div class="row g-2 mt-0">
-                            <div class="col-7"><input type="text" name="new_unit_name" class="form-control mt-2" placeholder="Unit baru" value="{{ old('new_unit_name') }}"></div>
-                            <div class="col-5"><input type="text" name="new_unit_code" class="form-control mt-2" placeholder="Kode" value="{{ old('new_unit_code') }}"></div>
+                    @if($isAdvancedMode)
+                        <div class="col-md-4">
+                            <label class="form-label">Brand</label>
+                            <select name="brand_id" class="form-select">
+                                <option value="">Pilih brand</option>
+                                @foreach($brands as $brand)
+                                    <option value="{{ $brand->id }}" @selected((string) old('brand_id', $product->brand_id) === (string) $brand->id)>{{ $brand->name }}</option>
+                                @endforeach
+                            </select>
+                            <input type="text" name="new_brand_name" class="form-control mt-2" placeholder="Atau buat brand baru" value="{{ old('new_brand_name') }}">
                         </div>
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label">Deskripsi</label>
-                        <textarea name="description" class="form-control" rows="4">{{ old('description', $product->description) }}</textarea>
-                    </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Unit</label>
+                            <select name="unit_id" class="form-select">
+                                <option value="">Pilih unit</option>
+                                @foreach($units as $unit)
+                                    <option value="{{ $unit->id }}" @selected((string) old('unit_id', $product->unit_id) === (string) $unit->id)>{{ $unit->name }} ({{ $unit->code }})</option>
+                                @endforeach
+                            </select>
+                            <div class="row g-2 mt-0">
+                                <div class="col-7"><input type="text" name="new_unit_name" class="form-control mt-2" placeholder="Unit baru" value="{{ old('new_unit_name') }}"></div>
+                                <div class="col-5"><input type="text" name="new_unit_code" class="form-control mt-2" placeholder="Kode" value="{{ old('new_unit_code') }}"></div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Deskripsi</label>
+                            <textarea name="description" class="form-control" rows="4">{{ old('description', $product->description) }}</textarea>
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -118,16 +120,19 @@
                 <div class="card-body row g-3">
                     <div class="col-md-3"><label class="form-label">Harga beli</label><input type="number" step="0.01" min="0" name="cost_price" class="form-control" value="{{ old('cost_price', $product->cost_price ?? 0) }}" required></div>
                     <div class="col-md-3"><label class="form-label">Harga jual</label><input type="number" step="0.01" min="0" name="sell_price" class="form-control" value="{{ old('sell_price', $product->sell_price ?? 0) }}" required></div>
-                    <div class="col-md-3"><label class="form-label">Harga grosir default</label><input type="number" step="0.01" min="0" name="wholesale_price" class="form-control" value="{{ old('wholesale_price', $product->wholesale_price) }}"></div>
-                    <div class="col-md-3"><label class="form-label">Harga member default</label><input type="number" step="0.01" min="0" name="member_price" class="form-control" value="{{ old('member_price', $product->member_price) }}"></div>
-                    <div class="col-12">
-                        <div class="text-muted small">
-                            Harga grosir/member tersimpan sebagai level harga standar. Promo sementara dikelola di Discounts.
+                    @if($isAdvancedMode)
+                        <div class="col-md-3"><label class="form-label">Harga grosir default</label><input type="number" step="0.01" min="0" name="wholesale_price" class="form-control" value="{{ old('wholesale_price', $product->wholesale_price) }}"></div>
+                        <div class="col-md-3"><label class="form-label">Harga member default</label><input type="number" step="0.01" min="0" name="member_price" class="form-control" value="{{ old('member_price', $product->member_price) }}"></div>
+                        <div class="col-12">
+                            <div class="text-muted small">
+                                Harga grosir/member tersimpan sebagai level harga standar. Promo sementara dikelola di Discounts.
+                            </div>
                         </div>
-                    </div>
+                    @endif
                 </div>
             </div>
 
+            @if($isAdvancedMode)
             <div class="card mt-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h3 class="card-title">Multi Price Level</h3>
@@ -195,6 +200,7 @@
                     @endforeach
                 </div>
             </div>
+            @endif
         </div>
 
         <div class="col-xl-4">
@@ -202,14 +208,15 @@
                 <div class="card-header"><h3 class="card-title">Status dan Media</h3></div>
                 <div class="card-body row g-3">
                     <div class="col-12"><div class="form-check"><input type="hidden" name="is_active" value="0"><input class="form-check-input" type="checkbox" name="is_active" value="1" @checked((bool) old('is_active', $product->is_active))><label class="form-check-label">Status active</label></div></div>
-                    <div class="col-12" id="track-stock-wrapper"><div class="form-check"><input type="hidden" name="track_stock" value="0"><input class="form-check-input" type="checkbox" name="track_stock" value="1" @checked((bool) old('track_stock', $product->track_stock))><label class="form-check-label">Track stock</label></div></div>
                     <div class="col-12">
                         <div class="alert alert-secondary mb-0">
-                            Stok dikelola di Inventory. Promo dan voucher dikelola di Discounts.
+                            Stok dikelola di Inventory. Products hanya menyimpan master produk, bukan kuantitas stok. Promo dan voucher dikelola di Discounts.
                         </div>
                     </div>
-                    <div class="col-12"><label class="form-label">Featured image</label><input type="file" name="featured_image" class="form-control" accept="image/*"></div>
-                    <div class="col-12"><label class="form-label">Gallery images</label><input type="file" name="gallery_images[]" class="form-control" accept="image/*" multiple></div>
+                    @if($isAdvancedMode)
+                        <div class="col-12"><label class="form-label">Featured image</label><input type="file" name="featured_image" class="form-control" accept="image/*"></div>
+                        <div class="col-12"><label class="form-label">Gallery images</label><input type="file" name="gallery_images[]" class="form-control" accept="image/*" multiple></div>
+                    @endif
                 </div>
             </div>
 

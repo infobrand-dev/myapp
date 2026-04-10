@@ -15,9 +15,39 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Sale extends Model
 {
+    use LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly([
+                'contact_id',
+                'status',
+                'payment_status',
+                'source',
+                'branch_id',
+                'pos_cash_session_id',
+                'transaction_date',
+                'subtotal',
+                'discount_total',
+                'tax_total',
+                'grand_total',
+                'paid_total',
+                'balance_due',
+                'currency_code',
+                'notes',
+                'external_reference',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName('sale');
+    }
+
     public const STATUS_DRAFT = 'draft';
     public const STATUS_FINALIZED = 'finalized';
     public const STATUS_VOIDED = 'voided';

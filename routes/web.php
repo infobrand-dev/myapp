@@ -5,6 +5,7 @@ use App\Http\Controllers\TenantOnboardingController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AffiliateProgramController;
+use App\Http\Controllers\AccountingUiModeController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\ModuleController;
@@ -92,6 +93,7 @@ Route::any('/install/{any?}', function () {
 
 Route::middleware(['auth', 'verified', '2fa', 'platform.admin', \App\Http\Middleware\ResolveCompanyContext::class, \App\Http\Middleware\ResolveBranchContext::class])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::post('/settings/accounting-ui-mode', [AccountingUiModeController::class, 'store'])->name('settings.accounting-ui-mode');
 
     Route::prefix('platform')->name('platform.')->group(function () {
         Route::get('/', [PlatformOwnerController::class, 'dashboard'])->name('dashboard');

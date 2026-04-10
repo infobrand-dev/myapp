@@ -3,7 +3,10 @@
 @section('title', 'Sale — ' . $sale->sale_number)
 
 @section('content')
-@php $money = app(\App\Support\MoneyFormatter::class); @endphp
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+    $isAdvancedMode = ($accountingUiMode ?? 'standard') === 'advanced';
+@endphp
 
 @php
     $statusBadge = match($sale->status) {
@@ -29,10 +32,13 @@
                 <span class="badge {{ $statusBadge }} me-1">{{ ucfirst($sale->status) }}</span>
                 <span class="badge {{ $payBadge }} me-1">{{ ucfirst($sale->payment_status) }}</span>
                 {{ optional($sale->transaction_date)->format('d M Y, H:i') ?? '-' }}
-                &middot; <span class="badge bg-blue-lt text-blue">{{ strtoupper($sale->source) }}</span>
+                @if($isAdvancedMode)
+                    &middot; <span class="badge bg-blue-lt text-blue">{{ strtoupper($sale->source) }}</span>
+                @endif
             </p>
         </div>
         <div class="col-auto d-flex gap-2 flex-wrap">
+            @include('shared.accounting.mode-badge')
             @if($sale->status === 'draft')
                 <a href="{{ route('sales.edit', $sale) }}" class="btn btn-sm btn-outline-primary">
                     <i class="ti ti-pencil me-1"></i>Edit Draft
@@ -86,8 +92,10 @@
                                 <th>Item</th>
                                 <th>Qty</th>
                                 <th>Unit Price</th>
-                                <th>Discount</th>
-                                <th>Tax</th>
+                                @if($isAdvancedMode)
+                                    <th>Discount</th>
+                                    <th>Tax</th>
+                                @endif
                                 <th>Line Total</th>
                             </tr>
                         </thead>
@@ -103,8 +111,10 @@
                                     </td>
                                     <td>{{ number_format((float) $item->qty, 2, ',', '.') }}</td>
                                     <td>{{ $money->format((float) $item->unit_price, $sale->currency_code) }}</td>
-                                    <td>{{ $money->format((float) $item->discount_total, $sale->currency_code) }}</td>
-                                    <td>{{ $money->format((float) $item->tax_total, $sale->currency_code) }}</td>
+                                    @if($isAdvancedMode)
+                                        <td>{{ $money->format((float) $item->discount_total, $sale->currency_code) }}</td>
+                                        <td>{{ $money->format((float) $item->tax_total, $sale->currency_code) }}</td>
+                                    @endif
                                     <td class="fw-medium">{{ $money->format((float) $item->line_total, $sale->currency_code) }}</td>
                                 </tr>
                             @endforeach
@@ -442,33 +452,40 @@
         @endif
 
         {{-- Audit --}}
-        <div class="card mt-3">
-            <div class="card-header">
-                <h3 class="card-title">Audit</h3>
-            </div>
-            <div class="card-body d-flex flex-column gap-3">
-                @foreach([
-                    ['label' => 'Created by',   'user' => $sale->creator,   'icon' => 'ti-user-plus',  'color' => 'green'],
-                    ['label' => 'Updated by',   'user' => $sale->updater,   'icon' => 'ti-user-edit',  'color' => 'blue'],
-                    ['label' => 'Finalized by', 'user' => $sale->finalizer, 'icon' => 'ti-check',      'color' => 'green'],
-                    ['label' => 'Voided by',    'user' => $sale->voider,    'icon' => 'ti-ban',        'color' => 'red'],
-                    ['label' => 'Cancelled by', 'user' => $sale->canceller, 'icon' => 'ti-x',          'color' => 'orange'],
-                ] as $audit)
-                    @if($audit['user'])
-                    <div class="d-flex align-items-center gap-3">
-                        <span class="avatar avatar-sm bg-{{ $audit['color'] }}-lt flex-shrink-0">
-                            <i class="ti {{ $audit['icon'] }}" style="font-size:.9rem; color:var(--tblr-{{ $audit['color'] }});"></i>
-                        </span>
-                        <div>
-                            <div class="text-muted small">{{ $audit['label'] }}</div>
-                            <div class="fw-medium">{{ $audit['user']->name }}</div>
-                        </div>
-                    </div>
-                    @endif
-                @endforeach
-            </div>
-        </div>
+        @include('shared.accounting.audit-summary', [
+            'cardClass' => 'mt-3',
+            'entries' => [
+                ['label' => 'Dibuat oleh', 'user' => $sale->creator, 'timestamp' => $sale->created_at, 'icon' => 'ti-user-plus', 'color' => 'green'],
+                ['label' => 'Diubah terakhir', 'user' => $sale->updater, 'timestamp' => $sale->updated_at, 'icon' => 'ti-user-edit', 'color' => 'blue'],
+                ['label' => 'Finalized oleh', 'user' => $sale->finalizer, 'timestamp' => $sale->finalized_at, 'icon' => 'ti-check', 'color' => 'green'],
+                ['label' => 'Void oleh', 'user' => $sale->voider, 'timestamp' => $sale->voided_at, 'icon' => 'ti-ban', 'color' => 'red'],
+                ['label' => 'Cancelled oleh', 'user' => $sale->canceller, 'timestamp' => $sale->cancelled_at, 'icon' => 'ti-x', 'color' => 'orange'],
+            ],
+        ])
 
     </div>
 </div>
+@include('shared.accounting.activity-log', [
+    'activities' => $activities,
+    'fieldLabels' => [
+        'contact_id' => 'Customer',
+        'status' => 'Status',
+        'payment_status' => 'Payment status',
+        'source' => 'Source',
+        'branch_id' => 'Branch',
+        'pos_cash_session_id' => 'POS session',
+        'transaction_date' => 'Transaction date',
+        'subtotal' => 'Subtotal',
+        'discount_total' => 'Discount',
+        'tax_total' => 'Tax',
+        'grand_total' => 'Grand total',
+        'paid_total' => 'Paid',
+        'balance_due' => 'Balance due',
+        'currency_code' => 'Currency',
+        'notes' => 'Notes',
+        'external_reference' => 'External reference',
+    ],
+    'money' => $money,
+    'currency' => $sale->currency_code,
+])
 @endsection

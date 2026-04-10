@@ -98,6 +98,7 @@ class PaymentController extends Controller
         return view('payments::show', [
             'payment' => $this->repository->findForDetail($payment),
             'paymentStatusOptions' => $this->lookupService->paymentStatusOptions(),
+            'activities' => $payment->activities()->with('causer')->latest()->get(),
         ]);
     }
 

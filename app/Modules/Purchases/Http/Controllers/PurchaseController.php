@@ -102,6 +102,7 @@ class PurchaseController extends Controller
             'purchase' => $this->repository->findForDetail($purchase),
             'statusOptions' => $this->lookupService->statusOptions(),
             'paymentStatusOptions' => $this->lookupService->paymentStatusOptions(),
+            'activities' => $purchase->activities()->with('causer')->latest()->get(),
         ]);
     }
 

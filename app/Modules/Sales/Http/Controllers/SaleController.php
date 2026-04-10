@@ -97,6 +97,7 @@ class SaleController extends Controller
             'sale' => $sale,
             'statusOptions' => $this->lookupService->statusOptions(),
             'paymentStatusOptions' => $this->lookupService->paymentStatusOptions(),
+            'activities' => $sale->activities()->with('causer')->latest()->get(),
         ]);
     }
 

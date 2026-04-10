@@ -12,9 +12,35 @@ use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Payment extends Model
 {
+    use LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly([
+                'payment_method_id',
+                'amount',
+                'currency_code',
+                'paid_at',
+                'status',
+                'source',
+                'channel',
+                'reference_number',
+                'external_reference',
+                'branch_id',
+                'notes',
+                'received_by',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName('payment');
+    }
+
     public const STATUS_PENDING = 'pending';
     public const STATUS_POSTED = 'posted';
     public const STATUS_VOIDED = 'voided';

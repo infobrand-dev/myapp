@@ -11,10 +11,27 @@ use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class FinanceCategory extends Model
 {
     use NormalizesPgsqlBooleanAttributes;
+    use LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly([
+                'name',
+                'transaction_type',
+                'is_active',
+                'notes',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName('finance_category');
+    }
 
     public const TYPE_CASH_IN = 'cash_in';
     public const TYPE_CASH_OUT = 'cash_out';

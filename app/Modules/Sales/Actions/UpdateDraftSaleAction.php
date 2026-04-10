@@ -58,7 +58,7 @@ class UpdateDraftSaleAction
             $customer = $this->snapshotService->customerSnapshot($contact);
 
             $sale->update([
-                'external_reference' => $data['external_reference'] ?? null,
+                'external_reference' => array_key_exists('external_reference', $data) ? ($data['external_reference'] ?? null) : $sale->external_reference,
                 'idempotency_payload_hash' => $this->idempotencyService->hashFromPayload($data),
                 'contact_id' => $contact ? $contact->id : null,
                 'customer_name_snapshot' => $customer['name'],
@@ -67,7 +67,7 @@ class UpdateDraftSaleAction
                 'customer_address_snapshot' => $customer['address'],
                 'customer_snapshot' => $customer['payload'],
                 'payment_status' => $data['payment_status'],
-                'source' => $data['source'],
+                'source' => $data['source'] ?? $sale->source,
                 'branch_id' => $resolvedBranchId,
                 'transaction_date' => $data['transaction_date'],
                 'subtotal' => $totals['subtotal'],

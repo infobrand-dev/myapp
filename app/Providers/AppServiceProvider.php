@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\Company;
 use App\Models\PlatformInvoice;
 use App\Support\HookManager;
+use App\Support\AccountingUiMode;
 use App\Support\BranchContext;
 use App\Support\CorePermissions;
 use App\Support\CurrencySettingsResolver;
@@ -39,6 +40,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(CurrencySettingsResolver::class);
         $this->app->singleton(MoneyFormatter::class);
         $this->app->singleton(TenantPlanManager::class);
+        $this->app->singleton(AccountingUiMode::class);
     }
 
     /**
@@ -68,6 +70,7 @@ class AppServiceProvider extends ServiceProvider
             $userAccessManager = app(\App\Support\UserAccessManager::class);
             $allowedCompanyIds = $userAccessManager->companyIdsFor($user);
             $allowedBranchIds = $userAccessManager->branchIdsFor($user, optional($currentCompany)->id);
+            $accountingUiMode = app(AccountingUiMode::class)->current();
 
             if (Auth::check() && $this->schemaHasTable('companies')) {
                 $companies = Company::query()
@@ -119,6 +122,8 @@ class AppServiceProvider extends ServiceProvider
                 'topbarCompanies' => $companies,
                 'topbarBranches' => $branches,
                 'topbarPendingBilling' => $pendingBilling,
+                'accountingUiMode' => $accountingUiMode,
+                'accountingUiModeAdvanced' => $accountingUiMode === AccountingUiMode::ADVANCED,
             ]);
         });
 

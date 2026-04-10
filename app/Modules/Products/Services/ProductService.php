@@ -46,7 +46,7 @@ class ProductService
         return DB::transaction(function () use ($product, $data, $actor) {
             $data = $this->lookupService->resolveLookupIds($data);
 
-            $product->update($this->productPayload($data, $actor, false));
+            $product->update($this->productPayload($data, $actor, false, $product));
             $this->syncProductGraph($product, $data);
 
             return $product->fresh();
@@ -89,45 +89,70 @@ class ProductService
 
     private function syncProductGraph(Product $product, array $data): void
     {
-        $this->syncProductPrices(
-            $product,
-            $this->normalizePriceLevels(
-                $data['price_levels'] ?? [],
-                [
-                    'wholesale' => $data['wholesale_price'] ?? null,
-                    'member' => $data['member_price'] ?? null,
-                ]
-            )
-        );
-        $this->syncProductMedia($product, $data);
-        $this->syncVariants($product, $data['variants'] ?? []);
+        if (
+            array_key_exists('price_levels', $data)
+            || array_key_exists('wholesale_price', $data)
+            || array_key_exists('member_price', $data)
+        ) {
+            $this->syncProductPrices(
+                $product,
+                $this->normalizePriceLevels(
+                    $data['price_levels'] ?? [],
+                    [
+                        'wholesale' => $data['wholesale_price'] ?? null,
+                        'member' => $data['member_price'] ?? null,
+                    ]
+                )
+            );
+        }
+
+        if (
+            array_key_exists('featured_image', $data)
+            || array_key_exists('gallery_images', $data)
+            || array_key_exists('remove_gallery_media_ids', $data)
+        ) {
+            $this->syncProductMedia($product, $data);
+        }
+
+        if (array_key_exists('variants', $data) || $product->type !== 'variant') {
+            $this->syncVariants($product, $data['variants'] ?? []);
+        }
     }
 
-    private function productPayload(array $data, ?User $actor, bool $isCreate): array
+    private function productPayload(array $data, ?User $actor, bool $isCreate, ?Product $existing = null): array
     {
+        $existingSlug = $existing ? $existing->slug : null;
+        $existingBrandId = $existing ? $existing->brand_id : null;
+        $existingUnitId = $existing ? $existing->unit_id : null;
+        $existingDescription = $existing ? $existing->description : null;
+        $existingTrackStock = $existing ? $existing->track_stock : true;
+
         $slug = trim((string) ($data['slug'] ?? ''));
         if ($slug === '') {
-            $slug = Str::slug((string) $data['name']);
+            $slug = $existingSlug ?: Str::slug((string) $data['name']);
         }
 
         $payload = [
             'tenant_id' => TenantContext::currentId(),
             'type' => $data['type'],
             'category_id' => $data['category_id'] ?? null,
-            'brand_id' => $data['brand_id'] ?? null,
-            'unit_id' => $data['unit_id'] ?? null,
+            'brand_id' => array_key_exists('brand_id', $data) ? ($data['brand_id'] ?? null) : $existingBrandId,
+            'unit_id' => array_key_exists('unit_id', $data) ? ($data['unit_id'] ?? null) : $existingUnitId,
             'name' => trim((string) $data['name']),
             'slug' => $slug,
             'sku' => $this->nullableString($data['sku'] ?? null),
             'barcode' => $this->nullableString($data['barcode'] ?? null),
-            'description' => $this->nullableString($data['description'] ?? null),
+            'description' => array_key_exists('description', $data) ? $this->nullableString($data['description'] ?? null) : $existingDescription,
             'cost_price' => $data['cost_price'] ?? 0,
             'sell_price' => $data['sell_price'] ?? 0,
             'is_active' => (bool) ($data['is_active'] ?? true),
-            'track_stock' => $data['type'] === 'service' ? false : (bool) ($data['track_stock'] ?? false),
+            'track_stock' => $data['type'] === 'service'
+                ? false
+                : (array_key_exists('track_stock', $data) ? (bool) $data['track_stock'] : (bool) $existingTrackStock),
             'meta' => [
                 'module' => 'products',
                 'inventory_managed' => true,
+                'inventory_source_of_truth' => 'inventory',
             ],
             'updated_by' => $actor ? $actor->id : null,
         ];

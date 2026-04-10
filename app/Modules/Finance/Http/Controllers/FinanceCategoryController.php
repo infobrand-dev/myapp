@@ -68,7 +68,7 @@ class FinanceCategoryController extends Controller
                 'name' => $request->input('name'),
                 'transaction_type' => $request->input('transaction_type'),
                 'is_active' => $request->boolean('is_active'),
-                'notes' => $request->input('notes'),
+                'notes' => $request->has('notes') ? $request->input('notes') : $category->notes,
                 'updated_by' => $request->user()->id,
             ]);
         });

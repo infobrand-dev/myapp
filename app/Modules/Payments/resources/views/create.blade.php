@@ -3,6 +3,7 @@
 @section('content')
 @php
     $money = app(\App\Support\MoneyFormatter::class);
+    $isAdvancedMode = ($accountingUiMode ?? 'standard') === 'advanced';
 @endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
@@ -16,7 +17,7 @@
     @csrf
     <div class="col-lg-8">
         <div class="card">
-            <div class="card-header"><h3 class="card-title">Payment Detail</h3></div>
+            <div class="card-header d-flex justify-content-between align-items-center"><h3 class="card-title">Payment Detail</h3>@include('shared.accounting.mode-badge')</div>
             <div class="card-body row g-3">
                 <div class="col-md-6">
                     <label class="form-label">Payment Method</label>
@@ -36,31 +37,35 @@
                     <label class="form-label">Paid At</label>
                     <input type="datetime-local" name="paid_at" class="form-control" value="{{ old('paid_at', now()->format('Y-m-d\\TH:i')) }}">
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">Source</label>
-                    <select name="source" class="form-select">
-                        @foreach($paymentSourceOptions as $value => $label)
-                            <option value="{{ $value }}" @selected(old('source', 'backoffice') === $value)>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Received By</label>
-                    <select name="received_by" class="form-select">
-                        <option value="">Auto current user</option>
-                        @foreach($receivers as $receiver)
-                            <option value="{{ $receiver->id }}" @selected((string) old('received_by') === (string) $receiver->id)>{{ $receiver->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Reference Number</label>
-                    <input type="text" name="reference_number" class="form-control" value="{{ old('reference_number') }}">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">External Reference</label>
-                    <input type="text" name="external_reference" class="form-control" value="{{ old('external_reference') }}">
-                </div>
+                @if($isAdvancedMode)
+                    <div class="col-md-4">
+                        <label class="form-label">Source</label>
+                        <select name="source" class="form-select">
+                            @foreach($paymentSourceOptions as $value => $label)
+                                <option value="{{ $value }}" @selected(old('source', 'backoffice') === $value)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Received By</label>
+                        <select name="received_by" class="form-select">
+                            <option value="">Auto current user</option>
+                            @foreach($receivers as $receiver)
+                                <option value="{{ $receiver->id }}" @selected((string) old('received_by') === (string) $receiver->id)>{{ $receiver->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Reference Number</label>
+                        <input type="text" name="reference_number" class="form-control" value="{{ old('reference_number') }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">External Reference</label>
+                        <input type="text" name="external_reference" class="form-control" value="{{ old('external_reference') }}">
+                    </div>
+                @else
+                    <input type="hidden" name="source" value="{{ old('source', 'backoffice') }}">
+                @endif
                 <div class="col-12">
                     <label class="form-label">Notes</label>
                     <textarea name="notes" class="form-control" rows="3">{{ old('notes') }}</textarea>
@@ -123,13 +128,15 @@
                                 <input type="number" min="0.01" step="0.01" name="allocations[{{ $index }}][amount]" class="form-control" value="{{ $allocation['amount'] ?? '' }}" data-allocation-amount>
                             </div>
                             <div class="form-hint mt-2" data-transaction-summary>Pilih transaksi untuk melihat nominal outstanding.</div>
-                            @if($index > 0)
+                            @if($isAdvancedMode && $index > 0)
                                 <button type="button" class="btn btn-sm btn-outline-danger mt-2 remove-allocation">Remove</button>
                             @endif
                         </div>
                     @endforeach
                 </div>
-                <button type="button" class="btn btn-outline-secondary w-100 mt-3" id="add-allocation">Add Allocation</button>
+                @if($isAdvancedMode)
+                    <button type="button" class="btn btn-outline-secondary w-100 mt-3" id="add-allocation">Add Allocation</button>
+                @endif
             </div>
         </div>
 
@@ -169,7 +176,9 @@
             <input type="number" min="0.01" step="0.01" class="form-control" data-name="amount" data-allocation-amount>
         </div>
         <div class="form-hint mb-2" data-transaction-summary>Pilih transaksi untuk melihat nominal outstanding.</div>
-        <button type="button" class="btn btn-sm btn-outline-danger remove-allocation">Remove</button>
+        @if($isAdvancedMode)
+            <button type="button" class="btn btn-sm btn-outline-danger remove-allocation">Remove</button>
+        @endif
     </div>
 </template>
 
@@ -266,7 +275,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
-    if (!list || !template || !button) {
+    if (!list || !template) {
         return;
     }
 
@@ -290,17 +299,19 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    button.addEventListener('click', function () {
-        const index = list.querySelectorAll('.payment-allocation-item').length;
-        const fragment = template.content.cloneNode(true);
+    if (button) {
+        button.addEventListener('click', function () {
+            const index = list.querySelectorAll('.payment-allocation-item').length;
+            const fragment = template.content.cloneNode(true);
 
-        fragment.querySelectorAll('[data-name]').forEach(function (field) {
-            field.name = 'allocations[' + index + '][' + field.dataset.name + ']';
+            fragment.querySelectorAll('[data-name]').forEach(function (field) {
+                field.name = 'allocations[' + index + '][' + field.dataset.name + ']';
+            });
+
+            list.appendChild(fragment);
+            syncTargetOptions(list.lastElementChild);
         });
-
-        list.appendChild(fragment);
-        syncTargetOptions(list.lastElementChild);
-    });
+    }
 
     if (paymentAmountField) {
         paymentAmountField.addEventListener('input', syncTotals);

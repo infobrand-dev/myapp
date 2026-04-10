@@ -1,5 +1,6 @@
 @php
     $category = $category ?? new \App\Modules\Finance\Models\FinanceCategory();
+    $isAdvancedMode = ($accountingUiMode ?? 'standard') === 'advanced';
 @endphp
 
 <div class="row g-3">
@@ -23,9 +24,11 @@
             <span class="form-check-label">Active</span>
         </label>
     </div>
-    <div class="col-12">
-        <label class="form-label">Notes</label>
-        <textarea name="notes" class="form-control @error('notes') is-invalid @enderror" rows="{{ $notesRows ?? 4 }}">{{ old('notes', $category->notes) }}</textarea>
-        @error('notes') <div class="invalid-feedback">{{ $message }}</div> @enderror
-    </div>
+    @if($isAdvancedMode)
+        <div class="col-12">
+            <label class="form-label">Notes</label>
+            <textarea name="notes" class="form-control @error('notes') is-invalid @enderror" rows="{{ $notesRows ?? 4 }}">{{ old('notes', $category->notes) }}</textarea>
+            @error('notes') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
+    @endif
 </div>

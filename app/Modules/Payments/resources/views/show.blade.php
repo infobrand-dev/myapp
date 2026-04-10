@@ -3,13 +3,15 @@
 @section('content')
 @php
     $money = app(\App\Support\MoneyFormatter::class);
+    $isAdvancedMode = ($accountingUiMode ?? 'standard') === 'advanced';
 @endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">{{ $payment->payment_number }}</h2>
         <div class="text-muted small">{{ optional($payment->paid_at)->format('d M Y H:i') ?? '-' }} | {{ optional($payment->method)->name ?: '-' }}</div>
     </div>
-    <div class="btn-list">
+    <div class="btn-list align-items-center">
+        @include('shared.accounting.mode-badge')
         <a href="{{ route('payments.index') }}" class="btn btn-outline-secondary">Back</a>
     </div>
 </div>
@@ -95,12 +97,14 @@
                 </div>
                 <div class="mb-3">
                     <div class="text-muted small">Reference</div>
-                    <div>{{ $payment->reference_number ?: '-' }}</div>
-                    <div class="text-muted small">{{ $payment->external_reference ?: '-' }}</div>
+                    <div>{{ $isAdvancedMode ? ($payment->reference_number ?: '-') : '-' }}</div>
+                    @if($isAdvancedMode)
+                        <div class="text-muted small">{{ $payment->external_reference ?: '-' }}</div>
+                    @endif
                 </div>
                 <div class="mb-3">
                     <div class="text-muted small">Receiver</div>
-                    <div>{{ optional($payment->receiver)->name ?: '-' }}</div>
+                    <div>{{ $isAdvancedMode ? (optional($payment->receiver)->name ?: '-') : (optional($payment->creator)->name ?: '-') }}</div>
                 </div>
                 <div class="mb-3">
                     <div class="text-muted small">Notes</div>
@@ -122,6 +126,34 @@
                 @endif
             </div>
         </div>
+
+        @include('shared.accounting.audit-summary', [
+            'cardClass' => 'mt-3',
+            'entries' => [
+                ['label' => 'Dibuat oleh', 'user' => $payment->creator, 'timestamp' => $payment->created_at, 'icon' => 'ti-user-plus', 'color' => 'green'],
+                ['label' => 'Diubah terakhir', 'user' => $payment->updater, 'timestamp' => $payment->updated_at, 'icon' => 'ti-user-edit', 'color' => 'blue'],
+                ['label' => 'Void oleh', 'user' => $payment->voider, 'timestamp' => $payment->voided_at, 'icon' => 'ti-ban', 'color' => 'red'],
+            ],
+        ])
     </div>
 </div>
+@include('shared.accounting.activity-log', [
+    'activities' => $activities,
+    'fieldLabels' => [
+        'payment_method_id' => 'Payment method',
+        'amount' => 'Amount',
+        'currency_code' => 'Currency',
+        'paid_at' => 'Paid at',
+        'status' => 'Status',
+        'source' => 'Source',
+        'channel' => 'Channel',
+        'reference_number' => 'Reference number',
+        'external_reference' => 'External reference',
+        'branch_id' => 'Branch',
+        'notes' => 'Notes',
+        'received_by' => 'Received by',
+    ],
+    'money' => $money,
+    'currency' => $payment->currency_code,
+])
 @endsection

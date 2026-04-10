@@ -77,7 +77,9 @@ class FinanceAccountController extends Controller
     public function update(FinanceAccount $account, UpdateFinanceAccountRequest $request): RedirectResponse
     {
         DB::transaction(function () use ($account, $request): void {
-            $isDefault = $request->boolean('is_default');
+            $isDefault = $request->has('is_default')
+                ? $request->boolean('is_default')
+                : $account->is_default;
 
             if ($isDefault) {
                 $this->clearDefaultAccount($account->id);
@@ -87,10 +89,10 @@ class FinanceAccountController extends Controller
                 'name' => $request->input('name'),
                 'slug' => $request->filled('slug') ? Str::slug((string) $request->input('slug')) : $account->slug,
                 'account_type' => $request->input('account_type'),
-                'account_number' => $request->input('account_number'),
+                'account_number' => $request->has('account_number') ? $request->input('account_number') : $account->account_number,
                 'is_active' => $request->boolean('is_active'),
                 'is_default' => $isDefault,
-                'notes' => $request->input('notes'),
+                'notes' => $request->has('notes') ? $request->input('notes') : $account->notes,
                 'updated_by' => $request->user()?->id,
             ]);
         });

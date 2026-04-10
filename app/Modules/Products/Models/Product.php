@@ -9,11 +9,36 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Product extends Model
 {
     use NormalizesPgsqlBooleanAttributes;
+    use LogsActivity;
     use SoftDeletes;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly([
+                'type',
+                'category_id',
+                'brand_id',
+                'unit_id',
+                'name',
+                'sku',
+                'barcode',
+                'description',
+                'cost_price',
+                'sell_price',
+                'is_active',
+                'track_stock',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName('product');
+    }
 
     protected $fillable = [
         'tenant_id',
@@ -58,6 +83,16 @@ class Product extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(ProductUnit::class, 'unit_id');
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\User::class, 'created_by');
+    }
+
+    public function updater(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\User::class, 'updated_by');
     }
 
     public function optionGroups(): HasMany

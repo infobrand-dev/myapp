@@ -5,6 +5,7 @@
 @section('content')
 @php
     $money = app(\App\Support\MoneyFormatter::class);
+    $isAdvancedMode = ($accountingUiMode ?? 'standard') === 'advanced';
 @endphp
 
 <div class="page-header">
@@ -15,6 +16,7 @@
             <p class="text-muted mb-0">{{ optional($purchase->purchase_date)->format('d M Y H:i') ?? '-' }} | Supplier: {{ $purchase->supplier_name_snapshot ?: '-' }}</p>
         </div>
         <div class="col-auto d-flex gap-2 flex-wrap">
+            @include('shared.accounting.mode-badge')
             @if($purchase->status === 'draft')
                 <a href="{{ route('purchases.edit', $purchase) }}" class="btn btn-outline-secondary">
                     <i class="ti ti-pencil me-1"></i>Edit Draft
@@ -88,7 +90,9 @@
             <div class="card-body">
                 <div class="mb-3"><div class="text-muted small">Supplier</div><div>{{ $purchase->supplier_name_snapshot ?: '-' }}</div><div class="text-muted small">{{ $purchase->supplier_phone_snapshot ?: '-' }}</div></div>
                 <div class="mb-3"><div class="text-muted small">Status</div><div>{{ $statusOptions[$purchase->status] ?? ucfirst($purchase->status) }}</div><div class="text-muted small">Payment: {{ $paymentStatusOptions[$purchase->payment_status] ?? ucfirst($purchase->payment_status) }}</div></div>
-                <div class="mb-3"><div class="text-muted small">Supplier Ref</div><div>{{ $purchase->supplier_reference ?: '-' }}</div><div class="text-muted small">Invoice: {{ $purchase->supplier_invoice_number ?: '-' }}</div></div>
+                @if($isAdvancedMode)
+                    <div class="mb-3"><div class="text-muted small">Supplier Ref</div><div>{{ $purchase->supplier_reference ?: '-' }}</div><div class="text-muted small">Invoice: {{ $purchase->supplier_invoice_number ?: '-' }}</div></div>
+                @endif
                 <div class="mb-3"><div class="text-muted small">Totals</div><div>Subtotal: {{ $money->format((float) $purchase->subtotal, $purchase->currency_code) }}</div><div>Discount: {{ $money->format((float) $purchase->discount_total, $purchase->currency_code) }}</div><div>Tax: {{ $money->format((float) $purchase->tax_total, $purchase->currency_code) }}</div><div class="fw-semibold">Grand: {{ $money->format((float) $purchase->grand_total, $purchase->currency_code) }}</div><div>Paid: {{ $money->format((float) $purchase->paid_total, $purchase->currency_code) }}</div><div>Balance: {{ $money->format((float) $purchase->balance_due, $purchase->currency_code) }}</div></div>
                 <div class="mb-3"><div class="text-muted small">Notes</div><div>{{ $purchase->notes ?: '-' }}</div></div>
 
@@ -120,6 +124,41 @@
                 @endif
             </div>
         </div>
+
+        @include('shared.accounting.audit-summary', [
+            'cardClass' => 'mt-3',
+            'entries' => [
+                ['label' => 'Dibuat oleh', 'user' => $purchase->creator, 'timestamp' => $purchase->created_at, 'icon' => 'ti-user-plus', 'color' => 'green'],
+                ['label' => 'Diubah terakhir', 'user' => $purchase->updater, 'timestamp' => $purchase->updated_at, 'icon' => 'ti-user-edit', 'color' => 'blue'],
+                ['label' => 'Confirmed oleh', 'user' => $purchase->confirmer, 'timestamp' => $purchase->confirmed_at, 'icon' => 'ti-check', 'color' => 'green'],
+                ['label' => 'Void oleh', 'user' => $purchase->voider, 'timestamp' => $purchase->voided_at, 'icon' => 'ti-ban', 'color' => 'red'],
+                ['label' => 'Cancelled oleh', 'user' => $purchase->canceller, 'timestamp' => $purchase->cancelled_at, 'icon' => 'ti-x', 'color' => 'orange'],
+            ],
+        ])
     </div>
 </div>
+@include('shared.accounting.activity-log', [
+    'activities' => $activities,
+    'fieldLabels' => [
+        'contact_id' => 'Supplier',
+        'supplier_reference' => 'Supplier reference',
+        'supplier_invoice_number' => 'Invoice number',
+        'supplier_notes' => 'Supplier notes',
+        'status' => 'Status',
+        'payment_status' => 'Payment status',
+        'purchase_date' => 'Purchase date',
+        'subtotal' => 'Subtotal',
+        'discount_total' => 'Discount',
+        'tax_total' => 'Tax',
+        'grand_total' => 'Grand total',
+        'paid_total' => 'Paid',
+        'balance_due' => 'Balance due',
+        'currency_code' => 'Currency',
+        'notes' => 'Notes',
+        'internal_notes' => 'Internal notes',
+        'branch_id' => 'Branch',
+    ],
+    'money' => $money,
+    'currency' => $purchase->currency_code,
+])
 @endsection

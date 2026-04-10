@@ -99,6 +99,7 @@ class UpsertProductRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $type = (string) $this->input('type', 'simple');
         $priceLevels = collect($this->input('price_levels', []))
             ->map(function ($row) {
                 if (!is_array($row)) {
@@ -140,11 +141,13 @@ class UpsertProductRequest extends FormRequest
             ->all();
 
         $this->merge([
-            'slug' => $this->filled('slug') ? Str::slug((string) $this->input('slug')) : null,
+            'slug' => null,
             'sku' => $this->filled('sku') ? trim((string) $this->input('sku')) : null,
             'barcode' => $this->filled('barcode') ? trim((string) $this->input('barcode')) : null,
             'is_active' => $this->boolean('is_active'),
-            'track_stock' => $this->boolean('track_stock'),
+            'track_stock' => $type === 'service'
+                ? false
+                : ($this->has('track_stock') ? $this->boolean('track_stock') : true),
             'price_levels' => $priceLevels,
             'variants' => $variants,
         ]);
@@ -158,7 +161,9 @@ class UpsertProductRequest extends FormRequest
         $seenSkus = collect([trim((string) $this->input('sku'))])->filter()->values();
         $seenBarcodes = collect([trim((string) $this->input('barcode'))])->filter()->values();
 
-        if ($this->input('type') === 'variant' && $variants->isEmpty()) {
+        $variantsSubmitted = $this->has('variants');
+
+        if ($this->input('type') === 'variant' && $variants->isEmpty() && (!$productId || $variantsSubmitted)) {
             $validator->errors()->add('variants', 'Produk variant wajib memiliki minimal satu child variant.');
         }
 

@@ -1,4 +1,5 @@
 @php
+    $isAdvancedMode = ($accountingUiMode ?? 'standard') === 'advanced';
     $purchaseItems = old('items', $purchase->items->map(function ($item) {
         $key = $item->product_variant_id ? 'variant:' . $item->product_variant_id : 'product:' . $item->product_id;
         return [
@@ -49,8 +50,9 @@
         {{-- Left: Purchase Header --}}
         <div class="col-lg-4">
             <div class="card h-100">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h3 class="card-title">Purchase Info</h3>
+                    @include('shared.accounting.mode-badge')
                 </div>
                 <div class="card-body row g-3">
                     <div class="col-12">
@@ -74,29 +76,35 @@
                         @error('purchase_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
-                    <div class="col-md-6">
-                        <label class="form-label">Currency <span class="text-danger">*</span></label>
-                        <input type="text" name="currency_code"
-                            class="form-control @error('currency_code') is-invalid @enderror"
-                            value="{{ old('currency_code', $purchase->currency_code ?: app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency()) }}">
-                        @error('currency_code') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                    </div>
+                    @if($isAdvancedMode)
+                        <div class="col-md-6">
+                            <label class="form-label">Currency <span class="text-danger">*</span></label>
+                            <input type="text" name="currency_code"
+                                class="form-control @error('currency_code') is-invalid @enderror"
+                                value="{{ old('currency_code', $purchase->currency_code ?: app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency()) }}">
+                            @error('currency_code') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+                    @else
+                        <input type="hidden" name="currency_code" value="{{ old('currency_code', $purchase->currency_code ?: app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency()) }}">
+                    @endif
 
-                    <div class="col-12">
-                        <label class="form-label">Supplier Reference</label>
-                        <input type="text" name="supplier_reference"
-                            class="form-control @error('supplier_reference') is-invalid @enderror"
-                            value="{{ old('supplier_reference', $purchase->supplier_reference) }}">
-                        @error('supplier_reference') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                    </div>
+                    @if($isAdvancedMode)
+                        <div class="col-12">
+                            <label class="form-label">Supplier Reference</label>
+                            <input type="text" name="supplier_reference"
+                                class="form-control @error('supplier_reference') is-invalid @enderror"
+                                value="{{ old('supplier_reference', $purchase->supplier_reference) }}">
+                            @error('supplier_reference') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
 
-                    <div class="col-12">
-                        <label class="form-label">Supplier Invoice No.</label>
-                        <input type="text" name="supplier_invoice_number"
-                            class="form-control @error('supplier_invoice_number') is-invalid @enderror"
-                            value="{{ old('supplier_invoice_number', $purchase->supplier_invoice_number) }}">
-                        @error('supplier_invoice_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                    </div>
+                        <div class="col-12">
+                            <label class="form-label">Supplier Invoice No.</label>
+                            <input type="text" name="supplier_invoice_number"
+                                class="form-control @error('supplier_invoice_number') is-invalid @enderror"
+                                value="{{ old('supplier_invoice_number', $purchase->supplier_invoice_number) }}">
+                            @error('supplier_invoice_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+                    @endif
 
                     <div class="col-12">
                         <label class="form-label">Notes</label>
@@ -105,21 +113,23 @@
                         @error('notes') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
-                    <div class="col-12">
-                        <label class="form-label">Internal Notes</label>
-                        <textarea name="internal_notes" rows="2"
-                            class="form-control @error('internal_notes') is-invalid @enderror">{{ old('internal_notes', $purchase->internal_notes) }}</textarea>
-                        @error('internal_notes') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                        <div class="form-hint">Tidak ditampilkan ke supplier.</div>
-                    </div>
+                    @if($isAdvancedMode)
+                        <div class="col-12">
+                            <label class="form-label">Internal Notes</label>
+                            <textarea name="internal_notes" rows="2"
+                                class="form-control @error('internal_notes') is-invalid @enderror">{{ old('internal_notes', $purchase->internal_notes) }}</textarea>
+                            @error('internal_notes') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            <div class="form-hint">Tidak ditampilkan ke supplier.</div>
+                        </div>
 
-                    <div class="col-12">
-                        <label class="form-label">Supplier Notes</label>
-                        <textarea name="supplier_notes" rows="2"
-                            class="form-control @error('supplier_notes') is-invalid @enderror">{{ old('supplier_notes', $purchase->supplier_notes) }}</textarea>
-                        @error('supplier_notes') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                        <div class="form-hint">Catatan yang akan dilihat supplier.</div>
-                    </div>
+                        <div class="col-12">
+                            <label class="form-label">Supplier Notes</label>
+                            <textarea name="supplier_notes" rows="2"
+                                class="form-control @error('supplier_notes') is-invalid @enderror">{{ old('supplier_notes', $purchase->supplier_notes) }}</textarea>
+                            @error('supplier_notes') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            <div class="form-hint">Catatan yang akan dilihat supplier.</div>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -175,30 +185,39 @@
                                             name="items[{{ $index }}][unit_cost]" class="form-control"
                                             value="{{ $item['unit_cost'] }}" data-item-price>
                                     </div>
-                                    <div class="col-md-1">
-                                        <label class="form-label">Disc.</label>
-                                        <input type="number" min="0" step="0.01"
-                                            name="items[{{ $index }}][discount_total]" class="form-control"
-                                            value="{{ $item['discount_total'] }}">
-                                    </div>
-                                    <div class="col-md-1">
-                                        <label class="form-label">Tax</label>
-                                        <input type="number" min="0" step="0.01"
-                                            name="items[{{ $index }}][tax_total]" class="form-control"
-                                            value="{{ $item['tax_total'] }}">
-                                    </div>
+                                    @if($isAdvancedMode)
+                                        <div class="col-md-1">
+                                            <label class="form-label">Disc.</label>
+                                            <input type="number" min="0" step="0.01"
+                                                name="items[{{ $index }}][discount_total]" class="form-control"
+                                                value="{{ $item['discount_total'] }}">
+                                        </div>
+                                        <div class="col-md-1">
+                                            <label class="form-label">Tax</label>
+                                            <input type="number" min="0" step="0.01"
+                                                name="items[{{ $index }}][tax_total]" class="form-control"
+                                                value="{{ $item['tax_total'] }}">
+                                        </div>
+                                    @else
+                                        <input type="hidden" name="items[{{ $index }}][discount_total]" value="{{ $item['discount_total'] }}">
+                                        <input type="hidden" name="items[{{ $index }}][tax_total]" value="{{ $item['tax_total'] }}">
+                                    @endif
                                     <div class="col-md-1 d-flex align-items-end justify-content-end">
                                         <button type="button" class="btn btn-icon btn-sm btn-outline-danger"
                                             title="Remove item" data-remove-purchase-item>
                                             <i class="ti ti-trash"></i>
                                         </button>
                                     </div>
-                                    <div class="col-12">
-                                        <label class="form-label">Item Notes</label>
-                                        <input type="text" name="items[{{ $index }}][notes]"
-                                            class="form-control" placeholder="Optional note for this item"
-                                            value="{{ $item['notes'] }}">
-                                    </div>
+                                    @if($isAdvancedMode)
+                                        <div class="col-12">
+                                            <label class="form-label">Item Notes</label>
+                                            <input type="text" name="items[{{ $index }}][notes]"
+                                                class="form-control" placeholder="Optional note for this item"
+                                                value="{{ $item['notes'] }}">
+                                        </div>
+                                    @else
+                                        <input type="hidden" name="items[{{ $index }}][notes]" value="{{ $item['notes'] }}">
+                                    @endif
                                 </div>
                             </div>
                         @endforeach
@@ -220,6 +239,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     if (!window.ProductAutocomplete) return;
+    const isAdvancedMode = @json($isAdvancedMode);
 
     const newRowHtml = (index) => `
         <div class="border rounded p-3 mb-3 purchase-item-row">
@@ -243,6 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <label class="form-label">Unit Cost</label>
                     <input type="number" min="0" step="0.01" name="items[${index}][unit_cost]" class="form-control" value="0" data-item-price>
                 </div>
+                ${isAdvancedMode ? `
                 <div class="col-md-1">
                     <label class="form-label">Disc.</label>
                     <input type="number" min="0" step="0.01" name="items[${index}][discount_total]" class="form-control" value="0">
@@ -250,16 +271,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="col-md-1">
                     <label class="form-label">Tax</label>
                     <input type="number" min="0" step="0.01" name="items[${index}][tax_total]" class="form-control" value="0">
-                </div>
+                </div>` : `
+                <input type="hidden" name="items[${index}][discount_total]" value="0">
+                <input type="hidden" name="items[${index}][tax_total]" value="0">`}
                 <div class="col-md-1 d-flex align-items-end justify-content-end">
                     <button type="button" class="btn btn-icon btn-sm btn-outline-danger" title="Remove item" data-remove-purchase-item>
                         <i class="ti ti-trash"></i>
                     </button>
                 </div>
+                ${isAdvancedMode ? `
                 <div class="col-12">
                     <label class="form-label">Item Notes</label>
                     <input type="text" name="items[${index}][notes]" class="form-control" placeholder="Optional note for this item" value="">
-                </div>
+                </div>` : `
+                <input type="hidden" name="items[${index}][notes]" value="">`}
             </div>
         </div>`;
 

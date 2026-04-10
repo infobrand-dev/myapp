@@ -1,4 +1,5 @@
 @php
+    $isAdvancedMode = ($accountingUiMode ?? 'standard') === 'advanced';
     $selectedBranchId = old('branch_id', $transaction->branch_id ?? old('outlet_id'));
     $defaultBranchLabel = optional($branches->first())->name;
     $usesAllBranchView = $branch === null;
@@ -20,7 +21,10 @@
 
 <div class="card">
     <div class="card-header">
-        <h3 class="card-title">{{ $cardTitle }}</h3>
+        <div class="d-flex justify-content-between align-items-center w-100">
+            <h3 class="card-title">{{ $cardTitle }}</h3>
+            @include('shared.accounting.mode-badge')
+        </div>
     </div>
     <div class="card-body">
         <div class="row g-3">
@@ -67,39 +71,41 @@
                 </select>
                 @error('finance_category_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
-            <div class="col-md-3">
-                <label class="form-label">Branch</label>
-                <select name="branch_id" class="form-select @error('branch_id') is-invalid @enderror">
-                    <option value="">Default Branch</option>
-                    @foreach($branches as $branchOption)
-                        <option value="{{ $branchOption->id }}" @selected((string) $selectedBranchId === (string) $branchOption->id)>{{ $branchOption->name }}</option>
-                    @endforeach
-                </select>
-                @if($usesAllBranchView || !empty($branchHint))
-                    <div class="form-hint">
-                        {{ $branchHint ?: 'You are currently in `All branches` mode. If left blank, this transaction will use the default operational branch'.($defaultBranchLabel ? ': '.$defaultBranchLabel : '').'.' }}
-                    </div>
-                @endif
-                @error('branch_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
-            </div>
-            <div class="col-md-3">
-                <label class="form-label d-inline-flex align-items-center gap-1">
-                    Cashier Session
-                    <span tabindex="0" class="text-muted" data-bs-toggle="tooltip" data-bs-placement="top" title="Fill this only if the transaction is related to a specific POS cashier session. Otherwise, leave it blank." style="cursor:help; line-height:1;"><i class="ti ti-info-circle"></i></span>
-                </label>
-                <select name="pos_cash_session_id" class="form-select @error('pos_cash_session_id') is-invalid @enderror">
-                    <option value="">Not linked to a cashier session</option>
-                    @if($shiftEnabled)
-                        @foreach($shifts as $shift)
-                            <option value="{{ $shift->id }}" @selected((string) $selectedShiftId === (string) $shift->id)>{{ $shift->code }}</option>
+            @if($isAdvancedMode)
+                <div class="col-md-3">
+                    <label class="form-label">Branch</label>
+                    <select name="branch_id" class="form-select @error('branch_id') is-invalid @enderror">
+                        <option value="">Default Branch</option>
+                        @foreach($branches as $branchOption)
+                            <option value="{{ $branchOption->id }}" @selected((string) $selectedBranchId === (string) $branchOption->id)>{{ $branchOption->name }}</option>
                         @endforeach
+                    </select>
+                    @if($usesAllBranchView || !empty($branchHint))
+                        <div class="form-hint">
+                            {{ $branchHint ?: 'You are currently in `All branches` mode. If left blank, this transaction will use the default operational branch'.($defaultBranchLabel ? ': '.$defaultBranchLabel : '').'.' }}
+                        </div>
                     @endif
-                </select>
-                @if(!$shiftEnabled)
-                    <div class="form-hint">POS shifts are not available yet. This field remains optional.</div>
-                @endif
-                @error('pos_cash_session_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
-            </div>
+                    @error('branch_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label d-inline-flex align-items-center gap-1">
+                        Cashier Session
+                        <span tabindex="0" class="text-muted" data-bs-toggle="tooltip" data-bs-placement="top" title="Fill this only if the transaction is related to a specific POS cashier session. Otherwise, leave it blank." style="cursor:help; line-height:1;"><i class="ti ti-info-circle"></i></span>
+                    </label>
+                    <select name="pos_cash_session_id" class="form-select @error('pos_cash_session_id') is-invalid @enderror">
+                        <option value="">Not linked to a cashier session</option>
+                        @if($shiftEnabled)
+                            @foreach($shifts as $shift)
+                                <option value="{{ $shift->id }}" @selected((string) $selectedShiftId === (string) $shift->id)>{{ $shift->code }}</option>
+                            @endforeach
+                        @endif
+                    </select>
+                    @if(!$shiftEnabled)
+                        <div class="form-hint">POS shifts are not available yet. This field remains optional.</div>
+                    @endif
+                    @error('pos_cash_session_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+            @endif
             <div class="col-12">
                 <label class="form-label">Notes</label>
                 <textarea name="notes" class="form-control @error('notes') is-invalid @enderror" rows="4">{{ $selectedNotes }}</textarea>

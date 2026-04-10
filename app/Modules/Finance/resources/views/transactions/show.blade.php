@@ -6,6 +6,7 @@
 @php
     $money = app(\App\Support\MoneyFormatter::class);
     $currency = app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency();
+    $isAdvancedMode = ($accountingUiMode ?? 'standard') === 'advanced';
 
     $typeConfig = match($transaction->transaction_type) {
         'cash_in'  => ['label' => 'Cash In',  'badge' => 'bg-green-lt text-green',   'icon' => 'ti-arrow-down-circle', 'color' => 'green'],
@@ -26,6 +27,7 @@
             </p>
         </div>
         <div class="col-auto d-flex gap-2 flex-wrap">
+            @include('shared.accounting.mode-badge')
             <a href="{{ route('finance.transactions.edit', $transaction) }}" class="btn btn-sm btn-outline-primary">
                 <i class="ti ti-pencil me-1"></i>Edit
             </a>
@@ -149,130 +151,28 @@
 
     {{-- Audit --}}
     <div class="col-lg-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <h3 class="card-title">Audit</h3>
-            </div>
-            <div class="card-body d-flex flex-column gap-4">
-                <div class="d-flex align-items-start gap-3">
-                    <span class="avatar avatar-sm bg-green-lt flex-shrink-0">
-                        <i class="ti ti-user-plus" style="font-size:.95rem; color:var(--tblr-green);"></i>
-                    </span>
-                    <div>
-                        <div class="text-muted small">Dibuat oleh</div>
-                        <div class="fw-medium">{{ $transaction->creator?->name ?? '-' }}</div>
-                        <div class="text-muted small">{{ $transaction->created_at?->format('d M Y, H:i') ?? '-' }}</div>
-                    </div>
-                </div>
-                <div class="d-flex align-items-start gap-3">
-                    <span class="avatar avatar-sm bg-blue-lt flex-shrink-0">
-                        <i class="ti ti-user-edit" style="font-size:.95rem; color:var(--tblr-blue);"></i>
-                    </span>
-                    <div>
-                        <div class="text-muted small">Diubah oleh</div>
-                        <div class="fw-medium">{{ $transaction->updater?->name ?? '-' }}</div>
-                        <div class="text-muted small">{{ $transaction->updated_at?->format('d M Y, H:i') ?? '-' }}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        @include('shared.accounting.audit-summary', [
+            'entries' => [
+                ['label' => 'Dibuat oleh', 'user' => $transaction->creator, 'timestamp' => $transaction->created_at, 'icon' => 'ti-user-plus', 'color' => 'green'],
+                ['label' => 'Diubah terakhir', 'user' => $transaction->updater, 'timestamp' => $transaction->updated_at, 'icon' => 'ti-user-edit', 'color' => 'blue'],
+            ],
+        ])
     </div>
 </div>
-
-{{-- Activity Log --}}
-@if($activities->isNotEmpty())
-<div class="card mt-3">
-    <div class="card-header">
-        <h3 class="card-title">
-            <i class="ti ti-history me-2 text-muted"></i>Change History
-        </h3>
-        <div class="card-options">
-            <span class="badge bg-secondary-lt text-secondary">{{ $activities->count() }} event</span>
-        </div>
-    </div>
-    <div class="card-body p-0">
-        @php
-            $fieldLabels = [
-                'transaction_type'   => 'Type',
-                'transaction_date'   => 'Date',
-                'amount'             => 'Amount',
-                'finance_account_id' => 'Account',
-                'finance_category_id'=> 'Category',
-                'notes'              => 'Notes',
-                'branch_id'          => 'Branch',
-                'pos_cash_session_id'=> 'Shift',
-            ];
-        @endphp
-
-        <ul class="list-group list-group-flush">
-            @foreach($activities as $activity)
-            <li class="list-group-item">
-                <div class="d-flex align-items-start gap-3">
-                    {{-- Icon per event --}}
-                    @if($activity->event === 'created')
-                        <span class="avatar avatar-sm bg-green-lt flex-shrink-0">
-                            <i class="ti ti-plus" style="font-size:.9rem; color:var(--tblr-green);"></i>
-                        </span>
-                    @elseif($activity->event === 'deleted')
-                        <span class="avatar avatar-sm bg-red-lt flex-shrink-0">
-                            <i class="ti ti-trash" style="font-size:.9rem; color:var(--tblr-red);"></i>
-                        </span>
-                    @else
-                        <span class="avatar avatar-sm bg-blue-lt flex-shrink-0">
-                            <i class="ti ti-pencil" style="font-size:.9rem; color:var(--tblr-blue);"></i>
-                        </span>
-                    @endif
-
-                    <div class="flex-fill">
-                        <div class="d-flex justify-content-between align-items-start mb-1">
-                            <div>
-                                <span class="fw-medium">{{ $activity->causer?->name ?? 'System' }}</span>
-                                <span class="text-muted ms-1">
-                                    {{ $activity->event === 'created' ? 'created this transaction' : ($activity->event === 'deleted' ? 'deleted this transaction' : 'updated this transaction') }}
-                                </span>
-                            </div>
-                            <span class="text-muted small flex-shrink-0 ms-3">
-                                {{ $activity->created_at->format('d M Y, H:i') }}
-                            </span>
-                        </div>
-
-                        {{-- Changed fields for 'updated' events --}}
-                        @if($activity->event === 'updated' && !empty($activity->properties['old']))
-                            <div class="d-flex flex-wrap gap-2 mt-2">
-                                @foreach($activity->properties['old'] as $field => $oldValue)
-                                    @php
-                                        $newValue = $activity->properties['attributes'][$field] ?? null;
-                                        $label = $fieldLabels[$field] ?? $field;
-
-                                        if ($field === 'amount') {
-                                            $oldValue = $money->format((float) $oldValue, $currency);
-                                            $newValue = $money->format((float) $newValue, $currency);
-                                        } elseif ($field === 'transaction_date' && $oldValue) {
-                                            $oldValue = \Carbon\Carbon::parse($oldValue)->format('d M Y, H:i');
-                                            $newValue = $newValue ? \Carbon\Carbon::parse($newValue)->format('d M Y, H:i') : '-';
-                                        } elseif ($oldValue === null || $oldValue === '') {
-                                            $oldValue = '(empty)';
-                                        }
-                                        if ($newValue === null || $newValue === '') {
-                                            $newValue = '(empty)';
-                                        }
-                                    @endphp
-                                    <div class="border rounded px-2 py-1 small bg-body-secondary">
-                                        <span class="text-muted">{{ $label }}:</span>
-                                        <span class="text-muted text-decoration-line-through ms-1">{{ $oldValue }}</span>
-                                        <i class="ti ti-arrow-right mx-1 text-muted" style="font-size:.75rem;"></i>
-                                        <span class="fw-medium">{{ $newValue }}</span>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
-                    </div>
-                </div>
-            </li>
-            @endforeach
-        </ul>
-    </div>
-</div>
-@endif
+@include('shared.accounting.activity-log', [
+    'activities' => $activities,
+    'fieldLabels' => [
+        'transaction_type' => 'Type',
+        'transaction_date' => 'Date',
+        'amount' => 'Amount',
+        'finance_account_id' => 'Account',
+        'finance_category_id' => 'Category',
+        'notes' => 'Notes',
+        'branch_id' => 'Branch',
+        'pos_cash_session_id' => 'Shift',
+    ],
+    'money' => $money,
+    'currency' => $currency,
+])
 
 @endsection

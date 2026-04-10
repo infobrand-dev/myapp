@@ -63,7 +63,8 @@ class ProductController extends Controller
     public function show(Product $product): View
     {
         return view('products::show', [
-            'product' => $this->repository->findForDetail($product),
+            'product' => $this->repository->findForDetail($product)->loadMissing(['creator', 'updater']),
+            'activities' => $product->activities()->with('causer')->latest()->get(),
             'dependencies' => $this->lookupService->dependencyMap(),
         ]);
     }

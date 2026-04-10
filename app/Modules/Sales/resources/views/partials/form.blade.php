@@ -1,4 +1,5 @@
 @php
+    $isAdvancedMode = ($accountingUiMode ?? 'standard') === 'advanced';
     $saleItems = old('items', $sale->items->map(function ($item) {
         $key = $item->product_variant_id ? 'variant:' . $item->product_variant_id : 'product:' . $item->product_id;
         return [
@@ -49,8 +50,9 @@
         {{-- Left: Sale Info --}}
         <div class="col-lg-4">
             <div class="card h-100">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h3 class="card-title">Sale Info</h3>
+                    @include('shared.accounting.mode-badge')
                 </div>
                 <div class="card-body row g-3">
                     <div class="col-12">
@@ -75,23 +77,28 @@
                         @error('transaction_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
-                    <div class="col-md-6">
-                        <label class="form-label">Currency <span class="text-danger">*</span></label>
-                        <input type="text" name="currency_code" maxlength="3"
-                            class="form-control @error('currency_code') is-invalid @enderror"
-                            value="{{ old('currency_code', $sale->currency_code ?: app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency()) }}">
-                        @error('currency_code') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                    </div>
+                    @if($isAdvancedMode)
+                        <div class="col-md-6">
+                            <label class="form-label">Currency <span class="text-danger">*</span></label>
+                            <input type="text" name="currency_code" maxlength="3"
+                                class="form-control @error('currency_code') is-invalid @enderror"
+                                value="{{ old('currency_code', $sale->currency_code ?: app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency()) }}">
+                            @error('currency_code') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
 
-                    <div class="col-md-6">
-                        <label class="form-label">Source</label>
-                        <select name="source" class="form-select @error('source') is-invalid @enderror">
-                            @foreach($sourceOptions as $value => $label)
-                                <option value="{{ $value }}" @selected(old('source', $sale->source) === $value)>{{ $label }}</option>
-                            @endforeach
-                        </select>
-                        @error('source') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                    </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Source</label>
+                            <select name="source" class="form-select @error('source') is-invalid @enderror">
+                                @foreach($sourceOptions as $value => $label)
+                                    <option value="{{ $value }}" @selected(old('source', $sale->source) === $value)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            @error('source') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+                    @else
+                        <input type="hidden" name="currency_code" value="{{ old('currency_code', $sale->currency_code ?: app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency()) }}">
+                        <input type="hidden" name="source" value="{{ old('source', $sale->source ?: \App\Modules\Sales\Models\Sale::SOURCE_MANUAL) }}">
+                    @endif
 
                     <div class="col-md-6">
                         <label class="form-label">Payment Status</label>
@@ -103,14 +110,16 @@
                         @error('payment_status') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
-                    <div class="col-12">
-                        <label class="form-label">External Reference</label>
-                        <input type="text" name="external_reference"
-                            class="form-control @error('external_reference') is-invalid @enderror"
-                            placeholder="POS, API, or online order ref"
-                            value="{{ old('external_reference', $sale->external_reference) }}">
-                        @error('external_reference') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                    </div>
+                    @if($isAdvancedMode)
+                        <div class="col-12">
+                            <label class="form-label">External Reference</label>
+                            <input type="text" name="external_reference"
+                                class="form-control @error('external_reference') is-invalid @enderror"
+                                placeholder="POS, API, or online order ref"
+                                value="{{ old('external_reference', $sale->external_reference) }}">
+                            @error('external_reference') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+                    @endif
 
                     <div class="col-12">
                         <label class="form-label">Notes</label>
@@ -173,30 +182,39 @@
                                             name="items[{{ $index }}][unit_price]" class="form-control"
                                             value="{{ $item['unit_price'] }}" data-item-price>
                                     </div>
-                                    <div class="col-md-1">
-                                        <label class="form-label">Disc.</label>
-                                        <input type="number" min="0" step="0.01"
-                                            name="items[{{ $index }}][discount_total]" class="form-control"
-                                            value="{{ $item['discount_total'] }}">
-                                    </div>
-                                    <div class="col-md-1">
-                                        <label class="form-label">Tax</label>
-                                        <input type="number" min="0" step="0.01"
-                                            name="items[{{ $index }}][tax_total]" class="form-control"
-                                            value="{{ $item['tax_total'] }}">
-                                    </div>
+                                    @if($isAdvancedMode)
+                                        <div class="col-md-1">
+                                            <label class="form-label">Disc.</label>
+                                            <input type="number" min="0" step="0.01"
+                                                name="items[{{ $index }}][discount_total]" class="form-control"
+                                                value="{{ $item['discount_total'] }}">
+                                        </div>
+                                        <div class="col-md-1">
+                                            <label class="form-label">Tax</label>
+                                            <input type="number" min="0" step="0.01"
+                                                name="items[{{ $index }}][tax_total]" class="form-control"
+                                                value="{{ $item['tax_total'] }}">
+                                        </div>
+                                    @else
+                                        <input type="hidden" name="items[{{ $index }}][discount_total]" value="{{ $item['discount_total'] }}">
+                                        <input type="hidden" name="items[{{ $index }}][tax_total]" value="{{ $item['tax_total'] }}">
+                                    @endif
                                     <div class="col-md-1 d-flex align-items-end justify-content-end">
                                         <button type="button" class="btn btn-icon btn-sm btn-outline-danger"
                                             title="Remove item" data-remove-sale-item>
                                             <i class="ti ti-trash"></i>
                                         </button>
                                     </div>
-                                    <div class="col-12">
-                                        <label class="form-label">Item Notes</label>
-                                        <input type="text" name="items[{{ $index }}][notes]"
-                                            class="form-control" placeholder="Optional note for this item"
-                                            value="{{ $item['notes'] }}">
-                                    </div>
+                                    @if($isAdvancedMode)
+                                        <div class="col-12">
+                                            <label class="form-label">Item Notes</label>
+                                            <input type="text" name="items[{{ $index }}][notes]"
+                                                class="form-control" placeholder="Optional note for this item"
+                                                value="{{ $item['notes'] }}">
+                                        </div>
+                                    @else
+                                        <input type="hidden" name="items[{{ $index }}][notes]" value="{{ $item['notes'] }}">
+                                    @endif
                                 </div>
                             </div>
                         @endforeach
@@ -218,6 +236,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     if (!window.ProductAutocomplete) return;
+    const isAdvancedMode = @json($isAdvancedMode);
 
     const newRowHtml = (index) => `
         <div class="border rounded p-3 mb-3 sale-item-row">
@@ -241,6 +260,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <label class="form-label">Unit Price</label>
                     <input type="number" min="0" step="0.01" name="items[${index}][unit_price]" class="form-control" value="0" data-item-price>
                 </div>
+                ${isAdvancedMode ? `
                 <div class="col-md-1">
                     <label class="form-label">Disc.</label>
                     <input type="number" min="0" step="0.01" name="items[${index}][discount_total]" class="form-control" value="0">
@@ -248,16 +268,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="col-md-1">
                     <label class="form-label">Tax</label>
                     <input type="number" min="0" step="0.01" name="items[${index}][tax_total]" class="form-control" value="0">
-                </div>
+                </div>` : `
+                <input type="hidden" name="items[${index}][discount_total]" value="0">
+                <input type="hidden" name="items[${index}][tax_total]" value="0">`}
                 <div class="col-md-1 d-flex align-items-end justify-content-end">
                     <button type="button" class="btn btn-icon btn-sm btn-outline-danger" title="Remove item" data-remove-sale-item>
                         <i class="ti ti-trash"></i>
                     </button>
                 </div>
+                ${isAdvancedMode ? `
                 <div class="col-12">
                     <label class="form-label">Item Notes</label>
                     <input type="text" name="items[${index}][notes]" class="form-control" placeholder="Optional note for this item" value="">
-                </div>
+                </div>` : `
+                <input type="hidden" name="items[${index}][notes]" value="">`}
             </div>
         </div>`;
 

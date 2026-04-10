@@ -74,7 +74,7 @@
         </div>
         <div class="navbar-collapse" id="sidebar-menu">
             @can('settings.view')
-            @if($topbarCompanies->isNotEmpty())
+            @if($topbarCompanies->isNotEmpty() || auth()->check())
             {{-- Mobile context switcher — only visible when sidebar is open on mobile --}}
             <div class="d-lg-none sidebar-ctx-panel">
                 @if($topbarCompanies->count() > 1 || $topbarCompanies->isNotEmpty())
@@ -121,6 +121,26 @@
                     </div>
                 </div>
                 @endif
+
+                <div class="sidebar-ctx-section">
+                    <div class="sidebar-ctx-label">Accounting UI</div>
+                    <div class="sidebar-ctx-chips">
+                        <form method="POST" action="{{ route('settings.accounting-ui-mode') }}" class="d-contents">
+                            @csrf
+                            <input type="hidden" name="mode" value="standard">
+                            <button type="submit" class="sidebar-ctx-chip {{ ($accountingUiMode ?? 'standard') === 'standard' ? 'active' : '' }}">
+                                Standard
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ route('settings.accounting-ui-mode') }}" class="d-contents">
+                            @csrf
+                            <input type="hidden" name="mode" value="advanced">
+                            <button type="submit" class="sidebar-ctx-chip {{ ($accountingUiMode ?? 'standard') === 'advanced' ? 'active' : '' }}">
+                                Advanced
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
             @endif
             @endcan

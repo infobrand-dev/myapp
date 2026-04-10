@@ -2909,54 +2909,31 @@ body.landing-page {
     color: var(--tblr-secondary);
     background: transparent;
     cursor: pointer;
-    transition: background .15s ease, color .15s ease, border-color .15s ease;
+    transition: background .15s ease, color .15s ease;
 }
 .topbar-apps-btn:hover,
 .topbar-apps-btn[aria-expanded="true"] {
     background: var(--tblr-bg-surface-secondary);
     color: var(--tblr-primary);
-    border-color: var(--tblr-border-color);
 }
 
 .topbar-apps-dropdown {
-    min-width: 262px;
+    min-width: 270px;
     max-width: 310px;
 }
 
-.topbar-apps-header {
-    border-bottom: 1px solid var(--tblr-border-color-translucent);
-}
-
-.topbar-apps-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: .2rem;
-}
-
 .topbar-apps-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: .35rem;
-    padding: .6rem .3rem;
-    border-radius: var(--tblr-border-radius);
-    text-decoration: none;
     color: var(--tblr-body-color);
     transition: background .12s ease, color .12s ease;
 }
 .topbar-apps-item:hover {
     background: var(--tblr-bg-surface-secondary);
     color: var(--tblr-primary);
-    text-decoration: none;
 }
 
 .topbar-apps-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
     width: 2.5rem;
     height: 2.5rem;
-    border-radius: var(--tblr-border-radius);
     background: var(--tblr-bg-surface-secondary);
     flex-shrink: 0;
     transition: background .12s ease;
@@ -2968,10 +2945,9 @@ body.landing-page {
 .topbar-apps-label {
     font-size: .7rem;
     font-weight: 500;
-    text-align: center;
     line-height: 1.25;
     color: inherit;
-    max-width: 5rem;
+    max-width: 5.5rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

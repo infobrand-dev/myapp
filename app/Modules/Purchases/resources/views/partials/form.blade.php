@@ -56,16 +56,15 @@
                 </div>
                 <div class="card-body row g-3">
                     <div class="col-12">
-                        <label class="form-label">Supplier <span class="text-danger">*</span></label>
-                        <select name="contact_id" class="form-select @error('contact_id') is-invalid @enderror" required>
-                            <option value="">— Select supplier —</option>
-                            @foreach($suppliers as $supplier)
-                                <option value="{{ $supplier->id }}" @selected((string) old('contact_id', $purchase->contact_id) === (string) $supplier->id)>
-                                    {{ $supplier->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('contact_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        <x-contact-select
+                            name="contact_id"
+                            label="Supplier"
+                            :required="true"
+                            placeholder="— Select supplier —"
+                            :value="old('contact_id', $purchase->contact_id)"
+                            :value-name="$purchase->contact?->name"
+                            :value-type="$purchase->contact?->type"
+                        />
                     </div>
 
                     <div class="col-md-6">

@@ -17,6 +17,7 @@ use App\Support\CompanyContext;
 use App\Support\PlanLimit;
 use App\Support\TenantContext;
 use App\Support\TenantPlanManager;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -29,6 +30,35 @@ use SimpleXMLElement;
 
 class ContactController extends Controller
 {
+    /**
+     * AJAX search endpoint for Tom Select / autocomplete.
+     * Secured: auth + permission:contacts.view + throttle(60/min) + ContactScope tenant isolation.
+     * Returns only id, name, type — no PII beyond what the user already has access to.
+     */
+    public function search(Request $request): JsonResponse
+    {
+        $q     = mb_substr(strip_tags((string) $request->input('q', '')), 0, 100);
+        $limit = max(1, min(50, (int) $request->input('limit', 25)));
+
+        $query = ContactScope::applyVisibilityScope(Contact::query())
+            ->where('is_active', true)
+            ->select(['id', 'name', 'type'])
+            ->orderBy('name')
+            ->limit($limit);
+
+        if ($q !== '') {
+            $query->where('name', 'like', '%' . $q . '%');
+        }
+
+        $results = $query->get()->map(fn (Contact $c) => [
+            'id'   => $c->id,
+            'text' => $c->name,
+            'type' => $c->type,
+        ]);
+
+        return response()->json(['results' => $results]);
+    }
+
     public function index(Request $request): View
     {
         $query = ContactScope::applyVisibilityScope(Contact::query())
@@ -211,16 +241,7 @@ class ContactController extends Controller
             'is_active' => true,
         ]);
 
-        $companies = Contact::query()
-            ->where('tenant_id', $this->tenantId())
-            ->where('type', 'company')
-            ->whereNull('parent_contact_id')
-            ->tap(fn ($query) => ContactScope::applyVisibilityScope($query))
-            ->orderBy('name')
-            ->get();
-
         return view('contacts::create', [
-            'companies' => $companies,
             'contact' => $prefill,
             'contactLimitState' => $this->contactLimitState(),
         ]);
@@ -253,16 +274,7 @@ class ContactController extends Controller
 
     public function edit(Contact $contact): View
     {
-        $companies = Contact::query()
-            ->where('tenant_id', $this->tenantId())
-            ->where('type', 'company')
-            ->whereNull('parent_contact_id')
-            ->where('id', '!=', $contact->id)
-            ->tap(fn ($query) => ContactScope::applyVisibilityScope($query))
-            ->orderBy('name')
-            ->get();
-
-        return view('contacts::edit', compact('contact', 'companies'));
+        return view('contacts::edit', compact('contact'));
     }
 
     public function update(UpdateContactRequest $request, Contact $contact): RedirectResponse

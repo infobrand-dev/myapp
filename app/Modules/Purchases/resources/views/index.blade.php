@@ -26,7 +26,7 @@
     <div class="card-body">
         <form method="GET" action="{{ route('purchases.index') }}" class="row g-3">
             <div class="col-md-3"><label class="form-label">Search</label><input type="text" name="search" class="form-control" value="{{ $filters['search'] ?? '' }}" placeholder="Purchase no, supplier, invoice"></div>
-            <div class="col-md-3"><label class="form-label">Supplier</label><select name="contact_id" class="form-select"><option value="">Semua supplier</option>@foreach($suppliers as $supplier)<option value="{{ $supplier->id }}" @selected((string) ($filters['contact_id'] ?? '') === (string) $supplier->id)>{{ $supplier->name }}</option>@endforeach</select></div>
+            <div class="col-md-3"><x-contact-select name="contact_id" label="Supplier" placeholder="Semua supplier" :value="$filters['contact_id'] ?? null" :show-link="false" /></div>
             <div class="col-md-2"><label class="form-label">Status</label><select name="status" class="form-select"><option value="">Semua status</option>@foreach($statusOptions as $value => $label)<option value="{{ $value }}" @selected(($filters['status'] ?? '') === $value)>{{ $label }}</option>@endforeach</select></div>
             <div class="col-md-2"><label class="form-label">Payment</label><select name="payment_status" class="form-select"><option value="">Semua payment</option>@foreach($paymentStatusOptions as $value => $label)<option value="{{ $value }}" @selected(($filters['payment_status'] ?? '') === $value)>{{ $label }}</option>@endforeach</select></div>
             <div class="col-md-1"><label class="form-label">From</label><input type="date" name="date_from" class="form-control" value="{{ $filters['date_from'] ?? '' }}"></div>

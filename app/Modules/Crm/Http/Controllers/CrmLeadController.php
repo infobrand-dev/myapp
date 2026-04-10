@@ -123,7 +123,6 @@ class CrmLeadController extends Controller
 
         return view('crm::form', [
             'lead' => $lead,
-            'contacts' => $this->contactOptions(),
             'owners' => $this->ownerOptions(),
             'stageOptions' => CrmStageCatalog::options(),
             'priorityOptions' => CrmStageCatalog::priorities(),
@@ -158,7 +157,6 @@ class CrmLeadController extends Controller
 
         return view('crm::form', [
             'lead' => $lead,
-            'contacts' => $this->contactOptions(),
             'owners' => $this->ownerOptions(),
             'stageOptions' => CrmStageCatalog::options(),
             'priorityOptions' => CrmStageCatalog::priorities(),
@@ -246,13 +244,6 @@ class CrmLeadController extends Controller
                 'contact_phone_snapshot' => $contact?->mobile ?: $contact?->phone,
             ],
         ];
-    }
-
-    private function contactOptions()
-    {
-        return ContactScope::applyVisibilityScope(Contact::query())
-            ->orderBy('name')
-            ->get(['id', 'name', 'email', 'phone', 'mobile']);
     }
 
     private function ownerOptions()

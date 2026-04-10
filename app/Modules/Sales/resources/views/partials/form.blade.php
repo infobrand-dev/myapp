@@ -56,17 +56,15 @@
                 </div>
                 <div class="card-body row g-3">
                     <div class="col-12">
-                        <label class="form-label">Customer</label>
-                        <select name="contact_id" class="form-select @error('contact_id') is-invalid @enderror">
-                            <option value="">Guest / Walk-in</option>
-                            @foreach($customers as $customer)
-                                <option value="{{ $customer->id }}" @selected((string) old('contact_id', $sale->contact_id) === (string) $customer->id)>
-                                    {{ $customer->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('contact_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                        <div class="form-hint">Leave empty for walk-in / anonymous customer.</div>
+                        <x-contact-select
+                            name="contact_id"
+                            label="Customer"
+                            placeholder="Guest / Walk-in"
+                            :value="old('contact_id', $sale->contact_id)"
+                            :value-name="$sale->contact?->name"
+                            :value-type="$sale->contact?->type"
+                            hint="Leave empty for walk-in / anonymous customer."
+                        />
                     </div>
 
                     <div class="col-md-6">

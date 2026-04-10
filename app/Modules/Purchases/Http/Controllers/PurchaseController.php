@@ -70,7 +70,6 @@ class PurchaseController extends Controller
         return view('purchases::index', [
             'purchases' => $this->repository->paginateForIndex($filters),
             'filters' => $filters,
-            'suppliers' => $this->lookupService->suppliers(),
             'statusOptions' => $this->lookupService->statusOptions(),
             'paymentStatusOptions' => $this->lookupService->paymentStatusOptions(),
             'dependencies' => $this->lookupService->dependencyMap(),
@@ -178,7 +177,6 @@ class PurchaseController extends Controller
     {
         return [
             'purchase' => $purchase->loadMissing('items'),
-            'suppliers' => $this->lookupService->suppliers(),
             'purchasables' => $this->lookupService->purchasables(),
             'paymentStatusOptions' => $this->lookupService->paymentStatusOptions(),
         ];

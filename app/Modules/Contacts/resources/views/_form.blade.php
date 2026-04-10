@@ -29,17 +29,15 @@
         @error('job_title') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
     <div class="col-md-6" id="parent-contact-wrapper">
-        <label class="form-label">Relasi Company Contact</label>
-        <select name="parent_contact_id" id="parent-contact-id" class="form-select @error('parent_contact_id') is-invalid @enderror">
-            <option value="">— Tidak ada —</option>
-            @foreach($companies as $company)
-                <option value="{{ $company->id }}" {{ (string) old('parent_contact_id', $contact->parent_contact_id ?? '') === (string) $company->id ? 'selected' : '' }}>
-                    {{ $company->name }}
-                </option>
-            @endforeach
-        </select>
-        <div class="form-hint">Isi jika tipe Individual dan bekerja di perusahaan tertentu.</div>
-        @error('parent_contact_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        <x-contact-select
+            name="parent_contact_id"
+            label="Relasi Company Contact"
+            placeholder="— Tidak ada —"
+            :value="old('parent_contact_id', $contact->parent_contact_id ?? null)"
+            :value-name="$contact->parentContact?->name ?? null"
+            :value-type="$contact->parentContact?->type ?? null"
+            hint="Isi jika tipe Individual dan bekerja di perusahaan tertentu."
+        />
     </div>
     <div class="col-md-6">
         <label class="form-label">Scope Data <span class="text-danger">*</span></label>

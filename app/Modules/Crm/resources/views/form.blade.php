@@ -41,17 +41,15 @@
                         @error('title')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Contact</label>
-                        <select name="contact_id" class="form-select">
-                            <option value="">Tanpa contact terhubung</option>
-                            @foreach($contacts as $contact)
-                                <option value="{{ $contact->id }}"
-                                        @selected((int) old('contact_id', $lead->contact_id) === (int) $contact->id)>
-                                    {{ $contact->name }}{{ $contact->email ? ' · ' . $contact->email : '' }}
-                                </option>
-                            @endforeach
-                        </select>
-                        <div class="form-hint">Pilih contact agar riwayat pelanggan tetap konsisten.</div>
+                        <x-contact-select
+                            name="contact_id"
+                            label="Contact"
+                            placeholder="Tanpa contact terhubung"
+                            :value="old('contact_id', $lead->contact_id)"
+                            :value-name="$lead->contact?->name"
+                            :value-type="$lead->contact?->type"
+                            hint="Pilih contact agar riwayat pelanggan tetap konsisten."
+                        />
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Owner</label>

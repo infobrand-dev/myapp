@@ -63,7 +63,6 @@ class SaleController extends Controller
         return view('sales::index', [
             'sales' => $this->repository->paginateForIndex($filters),
             'filters' => $filters,
-            'customers' => $this->lookupService->customers(),
             'statusOptions' => $this->lookupService->statusOptions(),
             'paymentStatusOptions' => $this->lookupService->paymentStatusOptions(),
             'sourceOptions' => $this->lookupService->sourceOptions(),
@@ -153,7 +152,6 @@ class SaleController extends Controller
     {
         return [
             'sale' => $sale->loadMissing('items'),
-            'customers' => $this->lookupService->customers(),
             'sellables' => $this->lookupService->sellables(),
             'paymentStatusOptions' => $this->lookupService->paymentStatusOptions(),
             'paymentMethodOptions' => $this->lookupService->paymentMethodOptions(),

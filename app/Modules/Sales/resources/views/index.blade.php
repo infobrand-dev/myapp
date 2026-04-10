@@ -59,13 +59,13 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="form-label">Customer</label>
-                <select name="contact_id" class="form-select">
-                    <option value="">All customers</option>
-                    @foreach($customers as $customer)
-                        <option value="{{ $customer->id }}" @selected((string) ($filters['contact_id'] ?? '') === (string) $customer->id)>{{ $customer->name }}</option>
-                    @endforeach
-                </select>
+                <x-contact-select
+                    name="contact_id"
+                    label="Customer"
+                    placeholder="All customers"
+                    :value="$filters['contact_id'] ?? null"
+                    :show-link="false"
+                />
             </div>
             <div class="col-md-2">
                 <label class="form-label">Date From</label>

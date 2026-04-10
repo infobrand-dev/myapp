@@ -7,6 +7,7 @@ Route::middleware(['web', 'auth', 'plan.feature:crm,accounting', 'permission:con
     ->prefix('contacts')
     ->name('contacts.')
     ->group(function () {
+        Route::get('/search', [ContactController::class, 'search'])->middleware('throttle:60,1')->name('search');
         Route::get('/', [ContactController::class, 'index'])->name('index');
         Route::get('/merge-candidates', [ContactController::class, 'mergeCandidates'])->middleware('permission:contacts.merge')->name('merge-candidates');
         Route::post('/merge', [ContactController::class, 'merge'])->middleware('permission:contacts.merge')->name('merge');

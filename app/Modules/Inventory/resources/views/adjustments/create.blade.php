@@ -36,7 +36,11 @@
                 <div class="card-header"><h3 class="card-title">Adjustment Header</h3></div>
                 <div class="card-body row g-3">
                     <div class="col-12">
-                        <label class="form-label">Lokasi / Outlet</label>
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Location',
+                            'required' => true,
+                            'tooltip' => 'Lokasi stok yang akan disesuaikan. Pastikan lokasi sesuai dengan tempat stok fisik diperiksa.',
+                        ])
                         <select name="inventory_location_id" class="form-select" required>
                             <option value="">Pilih lokasi</option>
                             @foreach($locations as $location)
@@ -45,19 +49,34 @@
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Tanggal Adjustment</label>
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Adjustment Date',
+                            'required' => true,
+                            'tooltip' => 'Tanggal saat koreksi stok berlaku. Gunakan tanggal pemeriksaan atau tanggal keputusan penyesuaian.',
+                        ])
                         <input type="date" name="adjustment_date" class="form-control" value="{{ old('adjustment_date', now()->toDateString()) }}" required>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Reason Code</label>
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Reason Code',
+                            'required' => true,
+                            'tooltip' => 'Kode singkat alasan penyesuaian, misalnya manual_correction atau damaged_goods. Berguna untuk pelacakan dan laporan.',
+                        ])
                         <input type="text" name="reason_code" class="form-control" value="{{ old('reason_code', 'manual_correction') }}" required>
                     </div>
                     <div class="col-12">
-                        <label class="form-label">Reason</label>
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Reason',
+                            'required' => true,
+                            'tooltip' => 'Jelaskan alasan penyesuaian stok secara operasional, misalnya selisih opname atau barang rusak.',
+                        ])
                         <textarea name="reason_text" class="form-control" rows="4" required>{{ old('reason_text') }}</textarea>
                     </div>
                     <div class="col-12">
-                        <label class="form-label">Notes</label>
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Notes',
+                            'tooltip' => 'Catatan tambahan untuk dokumen adjustment ini. Boleh dikosongkan jika alasan sudah cukup jelas.',
+                        ])
                         <textarea name="notes" class="form-control" rows="3">{{ old('notes') }}</textarea>
                     </div>
                 </div>
@@ -94,14 +113,22 @@
                                 </select>
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label">Arah</label>
+                                @include('shared.accounting.field-label', [
+                                    'label' => 'Direction',
+                                    'required' => true,
+                                    'tooltip' => 'Tambah untuk menaikkan stok, Kurang untuk menurunkan stok. Pilih sesuai hasil pemeriksaan fisik.',
+                                ])
                                 <select name="items[{{ $index }}][direction]" class="form-select" required>
                                     <option value="in" @selected(($oldItem['direction'] ?? 'in') === 'in')>Tambah</option>
                                     <option value="out" @selected(($oldItem['direction'] ?? '') === 'out')>Kurang</option>
                                 </select>
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label">Qty</label>
+                                @include('shared.accounting.field-label', [
+                                    'label' => 'Qty',
+                                    'required' => true,
+                                    'tooltip' => 'Jumlah stok yang akan ditambah atau dikurangi pada item ini.',
+                                ])
                                 <input type="number" step="0.0001" min="0.0001" name="items[{{ $index }}][quantity]" class="form-control" value="{{ $oldItem['quantity'] ?? '' }}" required>
                             </div>
                             <div class="col-md-10">

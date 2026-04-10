@@ -41,6 +41,7 @@ class StoreDraftSaleRequest extends FormRequest
                 Sale::SOURCE_API,
             ])],
             'transaction_date' => ['required', 'date'],
+            'due_date' => ['nullable', 'date'],
             'currency_code' => ['required', 'string', 'size:3'],
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],

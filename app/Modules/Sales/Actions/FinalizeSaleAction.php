@@ -80,6 +80,7 @@ class FinalizeSaleAction
                 'status' => Sale::STATUS_FINALIZED,
                 'payment_status' => $data['payment_status'] ?? $sale->payment_status,
                 'transaction_date' => $sale->transaction_date ?: now(),
+                'due_date' => array_key_exists('due_date', $data) ? ($data['due_date'] ?? null) : $sale->due_date,
                 'finalized_at' => now(),
                 'subtotal' => $totals['subtotal'],
                 'discount_total' => $totals['discount_total'],

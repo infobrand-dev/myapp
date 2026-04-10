@@ -28,9 +28,12 @@
                     <div class="col-md-6"><div class="text-muted small">Status</div><div>{{ $product->is_active ? 'Active' : 'Inactive' }}</div></div>
                     <div class="col-md-6"><div class="text-muted small">Category</div><div>{{ $product->category?->name ?? '-' }}</div></div>
                     @if($isAdvancedMode)
+                        <div class="col-md-6"><div class="text-muted small">Default Supplier</div><div>{{ $product->defaultSupplier?->name ?? '-' }}</div></div>
                         <div class="col-md-6"><div class="text-muted small">Brand</div><div>{{ $product->brand?->name ?? '-' }}</div></div>
                         <div class="col-md-6"><div class="text-muted small">Unit</div><div>{{ $product->unit?->name ?? '-' }}</div></div>
                         <div class="col-md-6"><div class="text-muted small">Inventory Tracking</div><div>{{ $product->track_stock ? 'Dikelola via Inventory' : 'Tidak' }}</div></div>
+                        <div class="col-md-6"><div class="text-muted small">Minimum Stock</div><div>{{ number_format((float) $product->minimum_stock, 4, ',', '.') }}</div></div>
+                        <div class="col-md-6"><div class="text-muted small">Reorder Point</div><div>{{ number_format((float) $product->reorder_point, 4, ',', '.') }}</div></div>
                         <div class="col-12"><div class="text-muted small">Deskripsi</div><div>{{ $product->description ?: '-' }}</div></div>
                     @endif
                 </div>
@@ -50,6 +53,18 @@
                 </div>
                 <div class="alert alert-secondary mb-{{ $isAdvancedMode ? '3' : '0' }}">
                     Harga di halaman ini adalah base/default pricing dari tabel `product_prices`. Jika ada promo aktif, source of truth tetap berasal dari module Discounts.
+                </div>
+                <div class="row g-3 mb-{{ $isAdvancedMode ? '3' : '0' }}">
+                    <div class="col-md-6">
+                        <div class="text-muted small">Margin Amount</div>
+                        <div class="fw-semibold {{ $product->margin_amount < 0 ? 'text-danger' : 'text-success' }}">
+                            {{ $money->format((float) $product->margin_amount, $currency) }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-muted small">Margin Percent</div>
+                        <div>{{ $product->margin_percent !== null ? number_format((float) $product->margin_percent, 2, ',', '.').'%' : '-' }}</div>
+                    </div>
                 </div>
                 @if($isAdvancedMode)
                     <div class="table-responsive">
@@ -135,6 +150,9 @@
         'description' => 'Deskripsi',
         'cost_price' => 'Harga beli',
         'sell_price' => 'Harga jual',
+        'default_supplier_contact_id' => 'Supplier default',
+        'minimum_stock' => 'Minimum stock',
+        'reorder_point' => 'Reorder point',
         'is_active' => 'Status aktif',
         'track_stock' => 'Inventory tracking',
     ],

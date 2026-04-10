@@ -1,26 +1,34 @@
 @extends('layouts.admin')
 
+@section('title', 'Buat Payment')
+
 @section('content')
 @php
     $money = app(\App\Support\MoneyFormatter::class);
     $isAdvancedMode = ($accountingUiMode ?? 'standard') === 'advanced';
 @endphp
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="page-header d-flex align-items-center justify-content-between">
     <div>
-        <h2 class="mb-0">Create Payment</h2>
-        <div class="text-muted small">Catat pembayaran dan alokasikan ke transaksi.</div>
+        <div class="page-pretitle">Keuangan</div>
+        <h2 class="page-title">Buat Payment</h2>
     </div>
-    <a href="{{ route('payments.index') }}" class="btn btn-outline-secondary">Back</a>
+    <a href="{{ route('payments.index') }}" class="btn btn-outline-secondary">
+        <i class="ti ti-arrow-left me-1"></i>Kembali
+    </a>
 </div>
 
-<form method="POST" action="{{ route('payments.store') }}" class="row g-3">
+<form method="POST" action="{{ route('payments.store') }}" class="row g-3" enctype="multipart/form-data">
     @csrf
     <div class="col-lg-8">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center"><h3 class="card-title">Payment Detail</h3>@include('shared.accounting.mode-badge')</div>
             <div class="card-body row g-3">
                 <div class="col-md-6">
-                    <label class="form-label">Payment Method</label>
+                    @include('shared.accounting.field-label', [
+                        'label' => 'Payment Method',
+                        'required' => true,
+                        'tooltip' => 'Pilih metode pembayaran yang benar-benar digunakan, seperti transfer bank, cash, atau e-wallet.',
+                    ])
                     <select name="payment_method_id" class="form-select" required>
                         <option value="">Pilih method</option>
                         @foreach($paymentMethods as $method)
@@ -29,17 +37,27 @@
                     </select>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Amount</label>
+                    @include('shared.accounting.field-label', [
+                        'label' => 'Amount',
+                        'required' => true,
+                        'tooltip' => 'Nominal pembayaran yang diterima atau dibayarkan. Nilai ini harus sama dengan total allocation.',
+                    ])
                     <input type="number" name="amount" min="0.01" step="0.01" class="form-control" value="{{ old('amount') }}" required data-payment-total>
                     <div class="form-hint">Nominal payment harus sama dengan total allocation.</div>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">Paid At</label>
+                    @include('shared.accounting.field-label', [
+                        'label' => 'Paid At',
+                        'tooltip' => 'Tanggal dan jam pembayaran benar-benar terjadi. Boleh disesuaikan jika input dilakukan belakangan.',
+                    ])
                     <input type="datetime-local" name="paid_at" class="form-control" value="{{ old('paid_at', now()->format('Y-m-d\\TH:i')) }}">
                 </div>
                 @if($isAdvancedMode)
                     <div class="col-md-4">
-                        <label class="form-label">Source</label>
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Source',
+                            'tooltip' => 'Sumber asal pembayaran, misalnya backoffice, POS, atau integrasi lain. Berguna untuk audit proses penerimaan uang.',
+                        ])
                         <select name="source" class="form-select">
                             @foreach($paymentSourceOptions as $value => $label)
                                 <option value="{{ $value }}" @selected(old('source', 'backoffice') === $value)>{{ $label }}</option>
@@ -47,7 +65,10 @@
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Received By</label>
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Received By',
+                            'tooltip' => 'Petugas yang menerima atau mencatat pembayaran ini. Jika dikosongkan, sistem memakai user aktif.',
+                        ])
                         <select name="received_by" class="form-select">
                             <option value="">Auto current user</option>
                             @foreach($receivers as $receiver)
@@ -56,18 +77,46 @@
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Reference Number</label>
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Reference Number',
+                            'tooltip' => 'Nomor referensi internal seperti nomor slip transfer atau bukti setor. Boleh dikosongkan jika tidak ada.',
+                        ])
                         <input type="text" name="reference_number" class="form-control" value="{{ old('reference_number') }}">
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">External Reference</label>
+                        @include('shared.accounting.field-label', [
+                            'label' => 'External Reference',
+                            'tooltip' => 'Nomor referensi dari sistem lain seperti marketplace, gateway, atau POS. Berguna untuk pelacakan silang antar sistem.',
+                        ])
                         <input type="text" name="external_reference" class="form-control" value="{{ old('external_reference') }}">
+                    </div>
+                    <div class="col-md-6">
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Proof of Payment',
+                            'tooltip' => 'Upload bukti transfer, slip, atau dokumen pembayaran lain. Boleh dikosongkan jika belum tersedia.',
+                        ])
+                        <input type="file" name="proof_file" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
+                    </div>
+                    <div class="col-md-6">
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Reconciliation Status',
+                            'tooltip' => 'Gunakan untuk menandai apakah payment ini sudah dicek dan cocok dengan bukti atau mutasi rekening.',
+                        ])
+                        <select name="reconciliation_status" class="form-select">
+                            @foreach($reconciliationStatusOptions as $value => $label)
+                                <option value="{{ $value }}" @selected(old('reconciliation_status', 'unreconciled') === $value)>{{ $label }}</option>
+                            @endforeach
+                        </select>
                     </div>
                 @else
                     <input type="hidden" name="source" value="{{ old('source', 'backoffice') }}">
+                    <input type="hidden" name="reconciliation_status" value="{{ old('reconciliation_status', 'unreconciled') }}">
                 @endif
                 <div class="col-12">
-                    <label class="form-label">Notes</label>
+                    @include('shared.accounting.field-label', [
+                        'label' => 'Notes',
+                        'tooltip' => 'Catatan tambahan untuk pembayaran ini. Boleh dikosongkan jika tidak ada keterangan khusus.',
+                    ])
                     <textarea name="notes" class="form-control" rows="3">{{ old('notes') }}</textarea>
                 </div>
             </div>
@@ -95,7 +144,10 @@
                     @foreach($oldAllocations as $index => $allocation)
                         <div class="col-12 payment-allocation-item border rounded p-3">
                             <div class="mb-2">
-                                <label class="form-label">Transaction Type</label>
+                                @include('shared.accounting.field-label', [
+                                    'label' => 'Transaction Type',
+                                    'tooltip' => 'Pilih jenis transaksi yang akan dibayar atau dikaitkan, seperti sale, purchase, atau sale return.',
+                                ])
                                 <select name="allocations[{{ $index }}][payable_type]" class="form-select">
                                     @foreach($payableTypeOptions as $value => $label)
                                         <option value="{{ $value }}" @selected(($allocation['payable_type'] ?? 'sale') === $value)>{{ $label }}</option>
@@ -103,7 +155,10 @@
                                 </select>
                             </div>
                             <div class="mb-2">
-                                <label class="form-label">Transaction</label>
+                                @include('shared.accounting.field-label', [
+                                    'label' => 'Transaction',
+                                    'tooltip' => 'Pilih transaksi spesifik yang ingin dialokasikan pembayaran ini.',
+                                ])
                                 <select name="allocations[{{ $index }}][payable_id]" class="form-select">
                                     <option value="">Pilih transaksi</option>
                                     @foreach($saleOptions as $sale)
@@ -124,7 +179,10 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="form-label">Allocation Amount</label>
+                                @include('shared.accounting.field-label', [
+                                    'label' => 'Allocation Amount',
+                                    'tooltip' => 'Nominal dari payment ini yang dialokasikan ke transaksi terpilih. Total semua allocation harus sama dengan Amount.',
+                                ])
                                 <input type="number" min="0.01" step="0.01" name="allocations[{{ $index }}][amount]" class="form-control" value="{{ $allocation['amount'] ?? '' }}" data-allocation-amount>
                             </div>
                             <div class="form-hint mt-2" data-transaction-summary>Pilih transaksi untuk melihat nominal outstanding.</div>
@@ -140,8 +198,11 @@
             </div>
         </div>
 
-        <div class="d-grid mt-3">
-            <button type="submit" class="btn btn-primary">Save Payment</button>
+        <div class="d-flex gap-2 mt-3">
+            <a href="{{ route('payments.index') }}" class="btn btn-outline-secondary flex-fill">Batal</a>
+            <button type="submit" class="btn btn-primary flex-fill">
+                <i class="ti ti-device-floppy me-1"></i>Simpan
+            </button>
         </div>
     </div>
 </form>
@@ -149,7 +210,10 @@
 <template id="payment-allocation-template">
     <div class="col-12 payment-allocation-item border rounded p-3">
         <div class="mb-2">
-            <label class="form-label">Transaction Type</label>
+            @include('shared.accounting.field-label', [
+                'label' => 'Transaction Type',
+                'tooltip' => 'Pilih jenis transaksi yang akan dibayar atau dikaitkan, seperti sale, purchase, atau sale return.',
+            ])
             <select class="form-select" data-name="payable_type">
                 @foreach($payableTypeOptions as $value => $label)
                     <option value="{{ $value }}">{{ $label }}</option>
@@ -157,7 +221,10 @@
             </select>
         </div>
         <div class="mb-2">
-            <label class="form-label">Transaction</label>
+            @include('shared.accounting.field-label', [
+                'label' => 'Transaction',
+                'tooltip' => 'Pilih transaksi spesifik yang ingin dialokasikan pembayaran ini.',
+            ])
             <select class="form-select" data-name="payable_id">
                 <option value="">Pilih transaksi</option>
                 @foreach($saleOptions as $sale)
@@ -172,7 +239,10 @@
             </select>
         </div>
         <div class="mb-2">
-            <label class="form-label">Allocation Amount</label>
+            @include('shared.accounting.field-label', [
+                'label' => 'Allocation Amount',
+                'tooltip' => 'Nominal dari payment ini yang dialokasikan ke transaksi terpilih. Total semua allocation harus sama dengan Amount.',
+            ])
             <input type="number" min="0.01" step="0.01" class="form-control" data-name="amount" data-allocation-amount>
         </div>
         <div class="form-hint mb-2" data-transaction-summary>Pilih transaksi untuk melihat nominal outstanding.</div>

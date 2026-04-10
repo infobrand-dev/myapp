@@ -10,6 +10,7 @@ use App\Support\BooleanQuery;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -84,6 +85,8 @@ class CreatePaymentAction
             }
 
             $resolvedBranchId = $this->resolveBranchId($data, $allocations, $actor);
+            $proofFilePath = $this->storeProofFile($data['proof_file'] ?? null);
+            $reconciliationStatus = $data['reconciliation_status'] ?? Payment::RECONCILIATION_UNRECONCILED;
 
             $payment = Payment::query()->create([
                 'tenant_id' => TenantContext::currentId(),
@@ -94,16 +97,20 @@ class CreatePaymentAction
                 'currency_code' => $data['currency_code'] ?? 'IDR',
                 'paid_at' => $paidAt,
                 'status' => Payment::STATUS_POSTED,
+                'reconciliation_status' => $reconciliationStatus,
                 'source' => $data['source'] ?? Payment::SOURCE_BACKOFFICE,
                 'channel' => $data['channel'] ?? null,
                 'reference_number' => $data['reference_number'] ?? null,
                 'external_reference' => $data['external_reference'] ?? null,
+                'proof_file_path' => $proofFilePath,
                 'branch_id' => $resolvedBranchId,
                 'notes' => $data['notes'] ?? null,
                 'meta' => $data['meta'] ?? null,
                 'received_by' => $data['received_by'] ?? ($actor ? $actor->id : null),
                 'created_by' => $actor ? $actor->id : null,
                 'updated_by' => $actor ? $actor->id : null,
+                'reconciled_by' => $reconciliationStatus === Payment::RECONCILIATION_RECONCILED && $actor ? $actor->id : null,
+                'reconciled_at' => $reconciliationStatus === Payment::RECONCILIATION_RECONCILED ? now() : null,
             ]);
 
             $payables = $allocations->map(function (array $allocation, int $index) use ($payment) {
@@ -171,5 +178,14 @@ class CreatePaymentAction
         }
 
         return BranchContext::currentOrDefaultId($actor ?? auth()->user(), CompanyContext::currentId());
+    }
+
+    private function storeProofFile($proofFile): ?string
+    {
+        if (!$proofFile instanceof UploadedFile) {
+            return null;
+        }
+
+        return $proofFile->store('payments/proofs', 'public');
     }
 }

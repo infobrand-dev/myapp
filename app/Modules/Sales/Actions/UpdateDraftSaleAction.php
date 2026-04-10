@@ -70,6 +70,7 @@ class UpdateDraftSaleAction
                 'source' => $data['source'] ?? $sale->source,
                 'branch_id' => $resolvedBranchId,
                 'transaction_date' => $data['transaction_date'],
+                'due_date' => array_key_exists('due_date', $data) ? ($data['due_date'] ?? null) : $sale->due_date,
                 'subtotal' => $totals['subtotal'],
                 'discount_total' => $totals['discount_total'],
                 'tax_total' => $totals['tax_total'],

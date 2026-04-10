@@ -60,12 +60,21 @@
                                 <a href="{{ route('purchases.show', $purchase) }}" class="text-decoration-none fw-semibold">{{ $purchase->purchase_number }}</a>
                                 <div class="text-muted small">{{ optional($purchase->purchase_date)->format('d M Y H:i') ?? '-' }}</div>
                                 <div class="text-muted small">{{ $purchase->supplier_invoice_number ?: '-' }}</div>
+                                @if($purchase->due_date)
+                                    <div class="text-muted small">
+                                        Due {{ $purchase->due_date->format('d M Y') }}
+                                        @if($purchase->isOverdue())
+                                            <span class="text-red fw-semibold">· Overdue</span>
+                                        @endif
+                                    </div>
+                                @endif
                             </td>
                             <td>{{ $purchase->supplier_name_snapshot ?: (optional($purchase->supplier)->name ?: '-') }}</td>
                             <td>{{ $purchase->items_count }}</td>
                             <td>
                                 <div>Grand: {{ $money->format((float) $purchase->grand_total, $purchase->currency_code) }}</div>
                                 <div class="text-muted small">Paid: {{ $money->format((float) $purchase->paid_total, $purchase->currency_code) }}</div>
+                                <div class="text-muted small">Due: {{ $money->format((float) $purchase->balance_due, $purchase->currency_code) }}</div>
                             </td>
                             <td>
                                 <div><span class="badge bg-secondary-lt text-secondary">{{ $statusOptions[$purchase->status] ?? ucfirst($purchase->status) }}</span></div>

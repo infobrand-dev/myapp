@@ -69,16 +69,34 @@
                     </div>
 
                     <div class="col-md-6">
-                        <label class="form-label">Purchase Date <span class="text-danger">*</span></label>
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Purchase Date',
+                            'required' => true,
+                            'tooltip' => 'Tanggal dan jam saat pembelian dicatat. Gunakan waktu transaksi sebenarnya agar hutang dan histori pembelian rapi.',
+                        ])
                         <input type="datetime-local" name="purchase_date"
                             class="form-control @error('purchase_date') is-invalid @enderror"
                             value="{{ old('purchase_date', optional($purchase->purchase_date)->format('Y-m-d\TH:i') ?? now()->format('Y-m-d\TH:i')) }}">
                         @error('purchase_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
+                    <div class="col-md-6">
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Due Date',
+                            'tooltip' => 'Tanggal jatuh tempo pembayaran ke supplier. Boleh dikosongkan jika pembelian dibayar langsung.',
+                        ])
+                        <input type="date" name="due_date"
+                            class="form-control @error('due_date') is-invalid @enderror"
+                            value="{{ old('due_date', optional($purchase->due_date)->format('Y-m-d')) }}">
+                        @error('due_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
 
                     @if($isAdvancedMode)
                         <div class="col-md-6">
-                            <label class="form-label">Currency <span class="text-danger">*</span></label>
+                            @include('shared.accounting.field-label', [
+                                'label' => 'Currency',
+                                'required' => true,
+                                'tooltip' => 'Kode mata uang transaksi pembelian. Biarkan default jika pembelian dilakukan dalam mata uang utama bisnis Anda.',
+                            ])
                             <input type="text" name="currency_code"
                                 class="form-control @error('currency_code') is-invalid @enderror"
                                 value="{{ old('currency_code', $purchase->currency_code ?: app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency()) }}">
@@ -90,7 +108,10 @@
 
                     @if($isAdvancedMode)
                         <div class="col-12">
-                            <label class="form-label">Supplier Reference</label>
+                            @include('shared.accounting.field-label', [
+                                'label' => 'Supplier Reference',
+                                'tooltip' => 'Nomor referensi dari supplier, seperti nomor order atau dokumen pengiriman. Boleh dikosongkan jika tidak ada.',
+                            ])
                             <input type="text" name="supplier_reference"
                                 class="form-control @error('supplier_reference') is-invalid @enderror"
                                 value="{{ old('supplier_reference', $purchase->supplier_reference) }}">
@@ -98,7 +119,10 @@
                         </div>
 
                         <div class="col-12">
-                            <label class="form-label">Supplier Invoice No.</label>
+                            @include('shared.accounting.field-label', [
+                                'label' => 'Supplier Invoice Number',
+                                'tooltip' => 'Nomor invoice dari supplier untuk memudahkan pelacakan dokumen pembelian dan pembayaran.',
+                            ])
                             <input type="text" name="supplier_invoice_number"
                                 class="form-control @error('supplier_invoice_number') is-invalid @enderror"
                                 value="{{ old('supplier_invoice_number', $purchase->supplier_invoice_number) }}">
@@ -107,7 +131,10 @@
                     @endif
 
                     <div class="col-12">
-                        <label class="form-label">Notes</label>
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Notes',
+                            'tooltip' => 'Catatan umum terkait transaksi pembelian. Boleh dikosongkan jika tidak ada informasi tambahan.',
+                        ])
                         <textarea name="notes" rows="2"
                             class="form-control @error('notes') is-invalid @enderror">{{ old('notes', $purchase->notes) }}</textarea>
                         @error('notes') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -115,7 +142,10 @@
 
                     @if($isAdvancedMode)
                         <div class="col-12">
-                            <label class="form-label">Internal Notes</label>
+                            @include('shared.accounting.field-label', [
+                                'label' => 'Internal Notes',
+                                'tooltip' => 'Catatan internal yang hanya terlihat tim Anda. Tidak ditampilkan ke supplier.',
+                            ])
                             <textarea name="internal_notes" rows="2"
                                 class="form-control @error('internal_notes') is-invalid @enderror">{{ old('internal_notes', $purchase->internal_notes) }}</textarea>
                             @error('internal_notes') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -123,7 +153,10 @@
                         </div>
 
                         <div class="col-12">
-                            <label class="form-label">Supplier Notes</label>
+                            @include('shared.accounting.field-label', [
+                                'label' => 'Supplier Notes',
+                                'tooltip' => 'Catatan yang ditujukan untuk supplier, misalnya instruksi pengiriman atau keterangan pesanan.',
+                            ])
                             <textarea name="supplier_notes" rows="2"
                                 class="form-control @error('supplier_notes') is-invalid @enderror">{{ old('supplier_notes', $purchase->supplier_notes) }}</textarea>
                             @error('supplier_notes') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -180,20 +213,29 @@
                                             value="{{ $item['qty'] }}">
                                     </div>
                                     <div class="col-md-2">
-                                        <label class="form-label">Unit Cost</label>
+                                        @include('shared.accounting.field-label', [
+                                            'label' => 'Unit Cost',
+                                            'tooltip' => 'Biaya beli per unit item ini. Nilai default diambil dari master product dan dapat disesuaikan jika harga supplier berubah.',
+                                        ])
                                         <input type="number" min="0" step="0.01"
                                             name="items[{{ $index }}][unit_cost]" class="form-control"
                                             value="{{ $item['unit_cost'] }}" data-item-price>
                                     </div>
                                     @if($isAdvancedMode)
                                         <div class="col-md-1">
-                                            <label class="form-label">Disc.</label>
+                                            @include('shared.accounting.field-label', [
+                                                'label' => 'Disc.',
+                                                'tooltip' => 'Diskon nominal untuk item pembelian ini. Isi 0 jika tidak ada potongan khusus.',
+                                            ])
                                             <input type="number" min="0" step="0.01"
                                                 name="items[{{ $index }}][discount_total]" class="form-control"
                                                 value="{{ $item['discount_total'] }}">
                                         </div>
                                         <div class="col-md-1">
-                                            <label class="form-label">Tax</label>
+                                            @include('shared.accounting.field-label', [
+                                                'label' => 'Tax',
+                                                'tooltip' => 'Nilai pajak nominal untuk item pembelian ini. Isi hanya jika pembelian memang dikenakan pajak.',
+                                            ])
                                             <input type="number" min="0" step="0.01"
                                                 name="items[{{ $index }}][tax_total]" class="form-control"
                                                 value="{{ $item['tax_total'] }}">
@@ -210,7 +252,10 @@
                                     </div>
                                     @if($isAdvancedMode)
                                         <div class="col-12">
-                                            <label class="form-label">Item Notes</label>
+                                            @include('shared.accounting.field-label', [
+                                                'label' => 'Internal Notes',
+                                                'tooltip' => 'Catatan internal untuk item pembelian ini, misalnya kondisi barang atau instruksi khusus. Boleh dikosongkan.',
+                                            ])
                                             <input type="text" name="items[{{ $index }}][notes]"
                                                 class="form-control" placeholder="Optional note for this item"
                                                 value="{{ $item['notes'] }}">

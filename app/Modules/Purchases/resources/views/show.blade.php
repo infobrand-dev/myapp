@@ -6,6 +6,7 @@
 @php
     $money = app(\App\Support\MoneyFormatter::class);
     $isAdvancedMode = ($accountingUiMode ?? 'standard') === 'advanced';
+    $isOverdue = $purchase->isOverdue();
 @endphp
 
 <div class="page-header">
@@ -13,7 +14,12 @@
         <div class="col">
             <div class="page-pretitle">Pembelian</div>
             <h2 class="page-title">{{ $purchase->purchase_number }}</h2>
-            <p class="text-muted mb-0">{{ optional($purchase->purchase_date)->format('d M Y H:i') ?? '-' }} | Supplier: {{ $purchase->supplier_name_snapshot ?: '-' }}</p>
+            <p class="text-muted mb-0">
+                {{ optional($purchase->purchase_date)->format('d M Y H:i') ?? '-' }} | Supplier: {{ $purchase->supplier_name_snapshot ?: '-' }}
+                @if($isOverdue)
+                    | <span class="text-red fw-semibold">Overdue</span>
+                @endif
+            </p>
         </div>
         <div class="col-auto d-flex gap-2 flex-wrap">
             @include('shared.accounting.mode-badge')
@@ -90,6 +96,15 @@
             <div class="card-body">
                 <div class="mb-3"><div class="text-muted small">Supplier</div><div>{{ $purchase->supplier_name_snapshot ?: '-' }}</div><div class="text-muted small">{{ $purchase->supplier_phone_snapshot ?: '-' }}</div></div>
                 <div class="mb-3"><div class="text-muted small">Status</div><div>{{ $statusOptions[$purchase->status] ?? ucfirst($purchase->status) }}</div><div class="text-muted small">Payment: {{ $paymentStatusOptions[$purchase->payment_status] ?? ucfirst($purchase->payment_status) }}</div></div>
+                @if($purchase->due_date)
+                    <div class="mb-3">
+                        <div class="text-muted small">Payable</div>
+                        <div>Due Date: {{ $purchase->due_date->format('d M Y') }}</div>
+                        <div class="text-muted small {{ $isOverdue ? 'text-red' : '' }}">
+                            {{ $isOverdue ? 'Overdue' : ((float) $purchase->balance_due > 0 ? 'Open payable' : 'Settled') }}
+                        </div>
+                    </div>
+                @endif
                 @if($isAdvancedMode)
                     <div class="mb-3"><div class="text-muted small">Supplier Ref</div><div>{{ $purchase->supplier_reference ?: '-' }}</div><div class="text-muted small">Invoice: {{ $purchase->supplier_invoice_number ?: '-' }}</div></div>
                 @endif
@@ -147,6 +162,7 @@
         'status' => 'Status',
         'payment_status' => 'Payment status',
         'purchase_date' => 'Purchase date',
+        'due_date' => 'Due date',
         'subtotal' => 'Subtotal',
         'discount_total' => 'Discount',
         'tax_total' => 'Tax',

@@ -16,6 +16,7 @@ class ProductRepository
             ->where('products.tenant_id', $this->tenantId())
             ->select('products.*')
             ->with(['category', 'brand', 'unit'])
+            ->with('defaultSupplier')
             ->withCount([
                 'variants as variant_count' => fn (Builder $query) => $query
                     ->where('tenant_id', $this->tenantId())
@@ -38,6 +39,7 @@ class ProductRepository
             'category.parent',
             'brand',
             'unit',
+            'defaultSupplier',
             'optionGroups.values',
             'prices.priceLevel',
             'media',
@@ -57,6 +59,7 @@ class ProductRepository
             ->with([
             'prices.priceLevel',
             'gallery',
+            'defaultSupplier',
             'variants' => fn ($query) => $query
                 ->where('tenant_id', $this->tenantId())
                 ->whereNull('deleted_at')

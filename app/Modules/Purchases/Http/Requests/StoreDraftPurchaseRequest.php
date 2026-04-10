@@ -31,6 +31,7 @@ class StoreDraftPurchaseRequest extends FormRequest
         return [
             'contact_id' => ['required', 'integer', Rule::exists('contacts', 'id')->where(fn ($query) => ContactScope::applyVisibilityScope($query))],
             'purchase_date' => ['required', 'date'],
+            'due_date' => ['nullable', 'date'],
             'supplier_reference' => ['nullable', 'string', 'max:100'],
             'supplier_invoice_number' => ['nullable', 'string', 'max:100'],
             'supplier_notes' => ['nullable', 'string'],

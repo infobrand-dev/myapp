@@ -32,6 +32,7 @@ class Purchase extends Model
                 'status',
                 'payment_status',
                 'purchase_date',
+                'due_date',
                 'subtotal',
                 'discount_total',
                 'tax_total',
@@ -77,6 +78,7 @@ class Purchase extends Model
         'status',
         'payment_status',
         'purchase_date',
+        'due_date',
         'confirmed_at',
         'cancelled_at',
         'voided_at',
@@ -104,6 +106,7 @@ class Purchase extends Model
     protected $casts = [
         'supplier_snapshot' => 'array',
         'purchase_date' => 'datetime',
+        'due_date' => 'date',
         'confirmed_at' => 'datetime',
         'cancelled_at' => 'datetime',
         'voided_at' => 'datetime',
@@ -197,6 +200,14 @@ class Purchase extends Model
             self::STATUS_PARTIAL_RECEIVED,
             self::STATUS_RECEIVED,
         ], true);
+    }
+
+    public function isOverdue(): bool
+    {
+        return $this->due_date !== null
+            && (float) $this->balance_due > 0
+            && $this->isConfirmedLike()
+            && $this->due_date->lt(now()->startOfDay());
     }
 
     public function resolveRouteBinding($value, $field = null)

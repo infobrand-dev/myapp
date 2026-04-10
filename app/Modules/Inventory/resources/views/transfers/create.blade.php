@@ -24,15 +24,15 @@
     'cancelRoute' => route('inventory.transfers.index'),
     'products' => $products,
     'metaFields' => [
-        ['name' => 'source_location_id', 'label' => 'Lokasi Asal', 'type' => 'select', 'options' => $locations->pluck('name', 'id')->all()],
-        ['name' => 'destination_location_id', 'label' => 'Lokasi Tujuan', 'type' => 'select', 'options' => $locations->pluck('name', 'id')->all()],
-        ['name' => 'transfer_date', 'label' => 'Tanggal', 'type' => 'date', 'value' => now()->toDateString(), 'column' => 'col-md-6'],
-        ['name' => 'notes', 'label' => 'Catatan', 'type' => 'textarea'],
+        ['name' => 'source_location_id', 'label' => 'Source Location', 'type' => 'select', 'options' => $locations->pluck('name', 'id')->all(), 'required' => true, 'tooltip' => 'Lokasi asal tempat stok akan dikurangi sebelum dipindahkan ke lokasi tujuan.'],
+        ['name' => 'destination_location_id', 'label' => 'Destination Location', 'type' => 'select', 'options' => $locations->pluck('name', 'id')->all(), 'required' => true, 'tooltip' => 'Lokasi tujuan penerimaan stok transfer. Pastikan berbeda dari lokasi asal.'],
+        ['name' => 'transfer_date', 'label' => 'Transfer Date', 'type' => 'date', 'value' => now()->toDateString(), 'column' => 'col-md-6', 'required' => true, 'tooltip' => 'Tanggal saat dokumen transfer dibuat atau mulai berlaku.'],
+        ['name' => 'notes', 'label' => 'Notes', 'type' => 'textarea', 'tooltip' => 'Catatan tambahan untuk transfer stok ini, misalnya alasan pemindahan atau instruksi penerimaan.'],
     ],
     'itemFields' => [
-        ['name' => 'product_variant_id', 'label' => 'Variant ID', 'type' => 'number', 'value' => ''],
-        ['name' => 'requested_quantity', 'label' => 'Qty', 'type' => 'number', 'value' => '0.0000'],
-        ['name' => 'notes', 'label' => 'Catatan', 'type' => 'text', 'column' => 'col-md-4'],
+        ['name' => 'product_variant_id', 'label' => 'Variant ID', 'type' => 'number', 'value' => '', 'tooltip' => 'Isi jika transfer ditujukan untuk varian tertentu. Boleh dikosongkan untuk produk utama.'],
+        ['name' => 'requested_quantity', 'label' => 'Transfer Qty', 'type' => 'number', 'value' => '0.0000', 'required' => true, 'tooltip' => 'Jumlah stok yang diminta untuk dipindahkan dari lokasi asal ke lokasi tujuan.'],
+        ['name' => 'notes', 'label' => 'Notes', 'type' => 'text', 'column' => 'col-md-4', 'tooltip' => 'Catatan item transfer, misalnya kondisi barang atau instruksi khusus.'],
     ],
 ])
 @endsection

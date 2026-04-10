@@ -24,16 +24,16 @@
     'cancelRoute' => route('inventory.openings.index'),
     'products' => $products,
     'metaFields' => [
-        ['name' => 'inventory_location_id', 'label' => 'Lokasi', 'type' => 'select', 'options' => $locations->pluck('name', 'id')->all()],
-        ['name' => 'opening_date', 'label' => 'Tanggal', 'type' => 'date', 'value' => now()->toDateString(), 'column' => 'col-md-6'],
-        ['name' => 'notes', 'label' => 'Catatan', 'type' => 'textarea'],
+        ['name' => 'inventory_location_id', 'label' => 'Location', 'type' => 'select', 'options' => $locations->pluck('name', 'id')->all(), 'required' => true, 'tooltip' => 'Lokasi penyimpanan stok awal yang akan dibuat. Pilih lokasi yang benar agar saldo awal tidak masuk ke gudang yang salah.'],
+        ['name' => 'opening_date', 'label' => 'Opening Date', 'type' => 'date', 'value' => now()->toDateString(), 'column' => 'col-md-6', 'required' => true, 'tooltip' => 'Tanggal saat saldo awal stok mulai dianggap berlaku. Biasanya diisi tanggal mulai penggunaan sistem.'],
+        ['name' => 'notes', 'label' => 'Notes', 'type' => 'textarea', 'tooltip' => 'Catatan tambahan untuk dokumen opening stock. Boleh dikosongkan jika tidak ada keterangan khusus.'],
     ],
     'itemFields' => [
-        ['name' => 'product_variant_id', 'label' => 'Variant ID', 'type' => 'number', 'value' => ''],
-        ['name' => 'quantity', 'label' => 'Qty', 'type' => 'number', 'value' => '0.0000'],
-        ['name' => 'minimum_quantity', 'label' => 'Min Qty', 'type' => 'number', 'value' => '0.0000'],
-        ['name' => 'reorder_quantity', 'label' => 'Reorder', 'type' => 'number', 'value' => '0.0000'],
-        ['name' => 'notes', 'label' => 'Catatan', 'type' => 'text', 'column' => 'col-md-3'],
+        ['name' => 'product_variant_id', 'label' => 'Variant ID', 'type' => 'number', 'value' => '', 'tooltip' => 'Isi jika stok awal ini khusus untuk varian tertentu. Boleh dikosongkan untuk produk utama tanpa varian.'],
+        ['name' => 'quantity', 'label' => 'Opening Stock', 'type' => 'number', 'value' => '0.0000', 'required' => true, 'tooltip' => 'Jumlah stok awal yang tersedia di lokasi ini saat mulai menggunakan sistem.'],
+        ['name' => 'minimum_quantity', 'label' => 'Minimum Stock', 'type' => 'number', 'value' => '0.0000', 'tooltip' => 'Batas minimum stok yang masih dianggap aman. Digunakan untuk membantu pemantauan stok, bukan menambah stok otomatis.'],
+        ['name' => 'reorder_quantity', 'label' => 'Reorder Point', 'type' => 'number', 'value' => '0.0000', 'tooltip' => 'Jumlah yang disarankan untuk dibeli ulang saat stok mulai menipis. Boleh diisi 0 jika belum memakai aturan reorder.'],
+        ['name' => 'notes', 'label' => 'Notes', 'type' => 'text', 'column' => 'col-md-3', 'tooltip' => 'Catatan tambahan untuk item opening stock ini.'],
     ],
 ])
 @endsection

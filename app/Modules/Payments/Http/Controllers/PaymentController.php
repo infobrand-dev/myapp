@@ -62,6 +62,7 @@ class PaymentController extends Controller
             'filters' => $filters,
             'paymentMethods' => $this->lookupService->paymentMethods(),
             'paymentStatusOptions' => $this->lookupService->paymentStatusOptions(),
+            'reconciliationStatusOptions' => $this->lookupService->reconciliationStatusOptions(),
             'paymentSourceOptions' => $this->lookupService->paymentSourceOptions(),
             'receivers' => $this->lookupService->receivers(),
         ]);
@@ -72,6 +73,7 @@ class PaymentController extends Controller
         return view('payments::create', [
             'paymentMethods' => $this->lookupService->paymentMethods(),
             'paymentSourceOptions' => $this->lookupService->paymentSourceOptions(),
+            'reconciliationStatusOptions' => $this->lookupService->reconciliationStatusOptions(),
             'payableTypeOptions' => $this->lookupService->payableTypeOptions(),
             'saleOptions' => $this->lookupService->saleOptions(),
             'saleReturnOptions' => $this->lookupService->saleReturnOptions(),
@@ -98,6 +100,7 @@ class PaymentController extends Controller
         return view('payments::show', [
             'payment' => $this->repository->findForDetail($payment),
             'paymentStatusOptions' => $this->lookupService->paymentStatusOptions(),
+            'reconciliationStatusOptions' => $this->lookupService->reconciliationStatusOptions(),
             'activities' => $payment->activities()->with('causer')->latest()->get(),
         ]);
     }

@@ -7,6 +7,7 @@ use App\Support\CurrencySettingsResolver;
 use App\Support\TenantContext;
 use App\Support\UserAccessManager;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -42,6 +43,12 @@ class StorePaymentRequest extends FormRequest
             'channel' => ['nullable', 'string', 'max:50'],
             'reference_number' => ['nullable', 'string', 'max:100'],
             'external_reference' => ['nullable', 'string', 'max:100'],
+            'proof_file' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
+            'reconciliation_status' => ['nullable', Rule::in([
+                \App\Modules\Payments\Models\Payment::RECONCILIATION_UNRECONCILED,
+                \App\Modules\Payments\Models\Payment::RECONCILIATION_IN_REVIEW,
+                \App\Modules\Payments\Models\Payment::RECONCILIATION_RECONCILED,
+            ])],
             'notes' => ['nullable', 'string'],
             'received_by' => $receivedByRules,
             'branch_id' => ['nullable', 'integer', 'min:1', Rule::exists('branches', 'id')->where(fn ($query) => $query
@@ -95,6 +102,7 @@ class StorePaymentRequest extends FormRequest
             'currency_code' => strtoupper((string) ($this->input('currency_code') ?: app(CurrencySettingsResolver::class)->defaultCurrency())),
             'source' => strtolower((string) ($this->input('source') ?: 'backoffice')),
             'branch_id' => $this->input('branch_id', $this->input('outlet_id')),
+            'reconciliation_status' => strtolower((string) ($this->input('reconciliation_status') ?: 'unreconciled')),
             'allocations' => $allocations,
         ]);
     }
@@ -117,6 +125,13 @@ class StorePaymentRequest extends FormRequest
             if ($allowedBranchIds !== null && !$allowedBranchIds->contains((int) $branchId)) {
                 $validator->errors()->add('branch_id', 'User tidak memiliki akses ke branch yang dipilih.');
             }
+        }
+
+        if ($this->input('reconciliation_status') === \App\Modules\Payments\Models\Payment::RECONCILIATION_RECONCILED
+            && !$this->file('proof_file') instanceof UploadedFile
+            && !$this->filled('reference_number')
+            && !$this->filled('external_reference')) {
+            $validator->errors()->add('reconciliation_status', 'Payment yang langsung ditandai reconciled sebaiknya memiliki bukti bayar atau reference.');
         }
     }
 

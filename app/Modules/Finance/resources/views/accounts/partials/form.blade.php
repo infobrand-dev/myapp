@@ -5,12 +5,20 @@
 
 <div class="row g-3">
     <div class="col-md-6">
-        <label class="form-label">Name <span class="text-danger">*</span></label>
+        @include('shared.accounting.field-label', [
+            'label' => 'Name',
+            'required' => true,
+            'tooltip' => 'Nama account yang akan muncul di form finance dan laporan kas, misalnya Kas Toko atau Bank BCA.',
+        ])
         <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', $account->name) }}" required>
         @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
     <div class="col-md-6">
-        <label class="form-label">Type <span class="text-danger">*</span></label>
+        @include('shared.accounting.field-label', [
+            'label' => 'Type',
+            'required' => true,
+            'tooltip' => 'Pilih jenis account sesuai tempat uang disimpan, seperti cash, bank, atau e-wallet. Tipe ini membantu pengelompokan saldo.',
+        ])
         <select name="account_type" class="form-select @error('account_type') is-invalid @enderror" required>
             @foreach($typeOptions as $value => $label)
                 <option value="{{ $value }}" @selected(old('account_type', $account->account_type ?: 'cash') === $value)>{{ $label }}</option>
@@ -20,7 +28,10 @@
     </div>
     @if($isAdvancedMode)
         <div class="col-md-6">
-            <label class="form-label">Account Number / Reference</label>
+            @include('shared.accounting.field-label', [
+                'label' => 'Account Number / Reference',
+                'tooltip' => 'Nomor rekening, nomor virtual account, atau kode referensi internal. Boleh dikosongkan jika account tidak punya nomor khusus.',
+            ])
             <input type="text" name="account_number" class="form-control @error('account_number') is-invalid @enderror" value="{{ old('account_number', $account->account_number) }}">
             @error('account_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>
@@ -37,9 +48,13 @@
                 <input type="checkbox" class="form-check-input" name="is_default" value="1" @checked(old('is_default', $account->is_default))>
                 <span class="form-check-label">Jadikan default account</span>
             </label>
+            <div class="form-hint">Account default akan dipilih otomatis saat user membuat transaksi finance baru.</div>
         </div>
         <div class="col-12">
-            <label class="form-label">Notes</label>
+            @include('shared.accounting.field-label', [
+                'label' => 'Notes',
+                'tooltip' => 'Catatan internal untuk kebutuhan tim, misalnya batas penggunaan atau tujuan account. Boleh dikosongkan.',
+            ])
             <textarea name="notes" class="form-control @error('notes') is-invalid @enderror" rows="{{ $notesRows ?? 4 }}">{{ old('notes', $account->notes) }}</textarea>
             @error('notes') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>

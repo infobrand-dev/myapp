@@ -1,6 +1,7 @@
 @php
     $isEdit = $product->exists;
     $isAdvancedMode = ($accountingUiMode ?? 'standard') === 'advanced';
+    $money = app(\App\Support\MoneyFormatter::class);
     $wholesaleLevelId = optional($priceLevels->firstWhere('code', 'wholesale'))->id;
     $memberLevelId = optional($priceLevels->firstWhere('code', 'member'))->id;
     $variantRows = old('variants', $product->variants->map(function ($variant) {
@@ -54,7 +55,10 @@
                 </div>
                 <div class="card-body row g-3">
                     <div class="col-md-4">
-                        <label class="form-label">Tipe produk</label>
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Product Type',
+                            'tooltip' => 'Simple product untuk barang biasa, variant product untuk produk dengan kombinasi pilihan, dan non-stock / service untuk jasa atau item tanpa stok.',
+                        ])
                         <select name="type" class="form-select" id="product-type">
                             <option value="simple" @selected(old('type', $product->type) === 'simple')>Simple product</option>
                             <option value="variant" @selected(old('type', $product->type) === 'variant')>Variant product</option>
@@ -62,7 +66,10 @@
                         </select>
                     </div>
                     <div class="col-md-8">
-                        <label class="form-label">Nama produk</label>
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Product Name',
+                            'required' => true,
+                        ])
                         <input type="text" name="name" class="form-control" value="{{ old('name', $product->name) }}" required>
                     </div>
                     <div class="col-md-4">
@@ -74,7 +81,10 @@
                         <input type="text" name="barcode" class="form-control" value="{{ old('barcode', $product->barcode) }}">
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Category</label>
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Category',
+                            'tooltip' => 'Category membantu pengelompokan produk di daftar dan laporan. Boleh dikosongkan jika belum butuh pengelompokan.',
+                        ])
                         <select name="category_id" class="form-select">
                             <option value="">Pilih category</option>
                             @foreach($categories as $category)
@@ -84,8 +94,23 @@
                         <input type="text" name="new_category_name" class="form-control mt-2" placeholder="Atau buat category baru" value="{{ old('new_category_name') }}">
                     </div>
                     @if($isAdvancedMode)
+                        <div class="col-md-6">
+                            @include('shared.accounting.field-label', [
+                                'label' => 'Default Supplier',
+                                'tooltip' => 'Supplier utama yang paling sering dipakai untuk produk ini. Dipakai sebagai acuan pembelian, bukan membuat purchase otomatis.',
+                            ])
+                            <select name="default_supplier_contact_id" class="form-select">
+                                <option value="">Pilih supplier default</option>
+                                @foreach($suppliers as $supplier)
+                                    <option value="{{ $supplier->id }}" @selected((string) old('default_supplier_contact_id', $product->default_supplier_contact_id) === (string) $supplier->id)>{{ $supplier->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                         <div class="col-md-4">
-                            <label class="form-label">Brand</label>
+                            @include('shared.accounting.field-label', [
+                                'label' => 'Brand',
+                                'tooltip' => 'Gunakan jika produk perlu dibedakan berdasarkan merek. Boleh dikosongkan untuk produk generik.',
+                            ])
                             <select name="brand_id" class="form-select">
                                 <option value="">Pilih brand</option>
                                 @foreach($brands as $brand)
@@ -95,7 +120,10 @@
                             <input type="text" name="new_brand_name" class="form-control mt-2" placeholder="Atau buat brand baru" value="{{ old('new_brand_name') }}">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Unit</label>
+                            @include('shared.accounting.field-label', [
+                                'label' => 'Unit',
+                                'tooltip' => 'Satuan dasar produk, misalnya pcs, box, atau liter. Berguna agar quantity di sales dan purchases lebih konsisten.',
+                            ])
                             <select name="unit_id" class="form-select">
                                 <option value="">Pilih unit</option>
                                 @foreach($units as $unit)
@@ -108,7 +136,10 @@
                             </div>
                         </div>
                         <div class="col-12">
-                            <label class="form-label">Deskripsi</label>
+                            @include('shared.accounting.field-label', [
+                                'label' => 'Description',
+                                'tooltip' => 'Deskripsi singkat produk untuk membantu tim internal memahami item ini. Boleh dikosongkan jika nama produk sudah cukup jelas.',
+                            ])
                             <textarea name="description" class="form-control" rows="4">{{ old('description', $product->description) }}</textarea>
                         </div>
                     @endif
@@ -118,14 +149,71 @@
             <div class="card mt-3">
                 <div class="card-header"><h3 class="card-title">Harga Produk</h3></div>
                 <div class="card-body row g-3">
-                    <div class="col-md-3"><label class="form-label">Harga beli</label><input type="number" step="0.01" min="0" name="cost_price" class="form-control" value="{{ old('cost_price', $product->cost_price ?? 0) }}" required></div>
-                    <div class="col-md-3"><label class="form-label">Harga jual</label><input type="number" step="0.01" min="0" name="sell_price" class="form-control" value="{{ old('sell_price', $product->sell_price ?? 0) }}" required></div>
+                    <div class="col-md-3">
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Cost Price',
+                            'required' => true,
+                            'tooltip' => 'Harga beli atau biaya pokok per unit. Nilai ini dipakai sebagai acuan margin dan pembelian.',
+                        ])
+                        <input type="number" step="0.01" min="0" name="cost_price" class="form-control" value="{{ old('cost_price', $product->cost_price ?? 0) }}" required>
+                    </div>
+                    <div class="col-md-3">
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Sell Price',
+                            'required' => true,
+                            'tooltip' => 'Harga jual default yang akan terisi saat produk dipilih di transaksi penjualan.',
+                        ])
+                        <input type="number" step="0.01" min="0" name="sell_price" class="form-control" value="{{ old('sell_price', $product->sell_price ?? 0) }}" required>
+                    </div>
                     @if($isAdvancedMode)
-                        <div class="col-md-3"><label class="form-label">Harga grosir default</label><input type="number" step="0.01" min="0" name="wholesale_price" class="form-control" value="{{ old('wholesale_price', $product->wholesale_price) }}"></div>
-                        <div class="col-md-3"><label class="form-label">Harga member default</label><input type="number" step="0.01" min="0" name="member_price" class="form-control" value="{{ old('member_price', $product->member_price) }}"></div>
+                        <div class="col-md-3">
+                            @include('shared.accounting.field-label', [
+                                'label' => 'Wholesale Price',
+                                'tooltip' => 'Harga default untuk penjualan grosir. Boleh dikosongkan jika belum membedakan harga grosir.',
+                            ])
+                            <input type="number" step="0.01" min="0" name="wholesale_price" class="form-control" value="{{ old('wholesale_price', $product->wholesale_price) }}">
+                        </div>
+                        <div class="col-md-3">
+                            @include('shared.accounting.field-label', [
+                                'label' => 'Member Price',
+                                'tooltip' => 'Harga default untuk pelanggan member atau langganan. Boleh dikosongkan jika belum punya skema member.',
+                            ])
+                            <input type="number" step="0.01" min="0" name="member_price" class="form-control" value="{{ old('member_price', $product->member_price) }}">
+                        </div>
                         <div class="col-12">
                             <div class="text-muted small">
                                 Harga grosir/member tersimpan sebagai level harga standar. Promo sementara dikelola di Discounts.
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            @include('shared.accounting.field-label', [
+                                'label' => 'Minimum Stock',
+                                'tooltip' => 'Batas aman stok untuk produk ini. Ini hanya parameter monitoring dan tidak menyimpan saldo stok.',
+                            ])
+                            <input type="number" step="0.0001" min="0" name="minimum_stock" class="form-control" value="{{ old('minimum_stock', $product->minimum_stock ?? 0) }}">
+                        </div>
+                        <div class="col-md-3">
+                            @include('shared.accounting.field-label', [
+                                'label' => 'Reorder Point',
+                                'tooltip' => 'Ambang stok saat produk mulai disarankan untuk dibeli ulang. Tetap dipakai sebagai acuan, bukan auto-purchase.',
+                            ])
+                            <input type="number" step="0.0001" min="0" name="reorder_point" class="form-control" value="{{ old('reorder_point', $product->reorder_point ?? 0) }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Margin Preview</label>
+                            <div class="border rounded px-3 py-2 bg-light">
+                                <div class="small text-muted">Perkiraan margin dari harga default</div>
+                                <div class="fw-semibold" data-margin-amount>
+                                    {{ $money->format(((float) old('sell_price', $product->sell_price ?? 0)) - ((float) old('cost_price', $product->cost_price ?? 0)), 'IDR') }}
+                                </div>
+                                <div class="small text-muted" data-margin-percent>
+                                    @php
+                                        $initialSellPrice = (float) old('sell_price', $product->sell_price ?? 0);
+                                        $initialCostPrice = (float) old('cost_price', $product->cost_price ?? 0);
+                                        $initialMarginPercent = $initialSellPrice > 0 ? round((($initialSellPrice - $initialCostPrice) / $initialSellPrice) * 100, 2) : null;
+                                    @endphp
+                                    {{ $initialMarginPercent !== null ? $initialMarginPercent.'% dari sell price' : 'Isi Cost Price dan Sell Price untuk melihat margin.' }}
+                                </div>
                             </div>
                         </div>
                     @endif
@@ -142,7 +230,10 @@
                     @foreach($priceRows ?: [['price_level_id' => '', 'price' => '', 'minimum_qty' => 1]] as $index => $priceRow)
                         <div class="row g-2 align-items-end mb-2 price-row">
                             <div class="col-md-5">
-                                <label class="form-label">Price level</label>
+                                @include('shared.accounting.field-label', [
+                                    'label' => 'Price Level',
+                                    'tooltip' => 'Gunakan untuk harga khusus berdasarkan tipe pelanggan atau minimum quantity tertentu.',
+                                ])
                                 <select name="price_levels[{{ $index }}][price_level_id]" class="form-select">
                                     <option value="">Pilih level</option>
                                     @foreach($priceLevels as $level)
@@ -151,8 +242,20 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-3"><label class="form-label">Harga</label><input type="number" min="0" step="0.01" name="price_levels[{{ $index }}][price]" class="form-control" value="{{ $priceRow['price'] ?? '' }}"></div>
-                            <div class="col-md-3"><label class="form-label">Min qty</label><input type="number" min="1" step="0.01" name="price_levels[{{ $index }}][minimum_qty]" class="form-control" value="{{ $priceRow['minimum_qty'] ?? 1 }}"></div>
+                            <div class="col-md-3">
+                                @include('shared.accounting.field-label', [
+                                    'label' => 'Price',
+                                    'tooltip' => 'Harga yang berlaku untuk level ini.',
+                                ])
+                                <input type="number" min="0" step="0.01" name="price_levels[{{ $index }}][price]" class="form-control" value="{{ $priceRow['price'] ?? '' }}">
+                            </div>
+                            <div class="col-md-3">
+                                @include('shared.accounting.field-label', [
+                                    'label' => 'Min Qty',
+                                    'tooltip' => 'Jumlah minimum pembelian agar harga level ini berlaku.',
+                                ])
+                                <input type="number" min="1" step="0.01" name="price_levels[{{ $index }}][minimum_qty]" class="form-control" value="{{ $priceRow['minimum_qty'] ?? 1 }}">
+                            </div>
                             <div class="col-md-1"><button type="button" class="btn btn-outline-danger w-100 remove-price-row"><i class="ti ti-x"></i></button></div>
                         </div>
                     @endforeach
@@ -185,7 +288,13 @@
                             <input type="hidden" name="variants[{{ $index }}][id]" value="{{ $variant['id'] ?? '' }}">
                             <div class="row g-3">
                                 <div class="col-md-4"><label class="form-label">Nama variant</label><input type="text" name="variants[{{ $index }}][name]" class="form-control" value="{{ $variant['name'] ?? '' }}"></div>
-                                <div class="col-md-4"><label class="form-label">Atribut</label><input type="text" name="variants[{{ $index }}][attribute_summary]" class="form-control" value="{{ $variant['attribute_summary'] ?? '' }}" placeholder="Ukuran:M|Warna:Merah"></div>
+                                <div class="col-md-4">
+                                    @include('shared.accounting.field-label', [
+                                        'label' => 'Variant',
+                                        'tooltip' => 'Gunakan untuk membedakan pilihan seperti ukuran atau warna. Format atribut membantu sistem membaca kombinasi varian.',
+                                    ])
+                                    <input type="text" name="variants[{{ $index }}][attribute_summary]" class="form-control" value="{{ $variant['attribute_summary'] ?? '' }}" placeholder="Ukuran:M|Warna:Merah">
+                                </div>
                                 <div class="col-md-4"><label class="form-label">SKU variant</label><input type="text" name="variants[{{ $index }}][sku]" class="form-control" value="{{ $variant['sku'] ?? '' }}"></div>
                                 <div class="col-md-3"><label class="form-label">Barcode</label><input type="text" name="variants[{{ $index }}][barcode]" class="form-control" value="{{ $variant['barcode'] ?? '' }}"></div>
                                 <div class="col-md-3"><label class="form-label">Harga beli</label><input type="number" min="0" step="0.01" name="variants[{{ $index }}][cost_price]" class="form-control" value="{{ $variant['cost_price'] ?? 0 }}"></div>
@@ -193,7 +302,14 @@
                                 <div class="col-md-3"><label class="form-label">Harga grosir default</label><input type="number" min="0" step="0.01" name="variants[{{ $index }}][wholesale_price]" class="form-control" value="{{ $variant['wholesale_price'] ?? '' }}"></div>
                                 <div class="col-md-3"><label class="form-label">Harga member default</label><input type="number" min="0" step="0.01" name="variants[{{ $index }}][member_price]" class="form-control" value="{{ $variant['member_price'] ?? '' }}"></div>
                                 <div class="col-md-3"><div class="form-check mt-4"><input type="hidden" name="variants[{{ $index }}][is_active]" value="0"><input class="form-check-input" type="checkbox" name="variants[{{ $index }}][is_active]" value="1" @checked((bool) ($variant['is_active'] ?? true))><label class="form-check-label">Active</label></div></div>
-                                <div class="col-md-2"><div class="form-check mt-4"><input type="hidden" name="variants[{{ $index }}][track_stock]" value="0"><input class="form-check-input" type="checkbox" name="variants[{{ $index }}][track_stock]" value="1" @checked((bool) ($variant['track_stock'] ?? true))><label class="form-check-label">Track stock</label></div></div>
+                                <div class="col-md-2">
+                                    <div class="form-check mt-4">
+                                        <input type="hidden" name="variants[{{ $index }}][track_stock]" value="0">
+                                        <input class="form-check-input" type="checkbox" name="variants[{{ $index }}][track_stock]" value="1" @checked((bool) ($variant['track_stock'] ?? true))>
+                                        <label class="form-check-label">Track stock</label>
+                                    </div>
+                                    <div class="form-hint">Aktifkan jika varian ini akan dikelola stoknya di Inventory.</div>
+                                </div>
                                 <div class="col-md-1 d-flex align-items-end"><button type="button" class="btn btn-outline-danger w-100 remove-variant-row"><i class="ti ti-trash"></i></button></div>
                             </div>
                         </div>
@@ -236,11 +352,34 @@
     const trackStockWrapper = document.getElementById('track-stock-wrapper');
     const variantRows = document.getElementById('variant-rows');
     const priceRows = document.getElementById('price-rows');
+    const costPriceField = document.querySelector('input[name="cost_price"]');
+    const sellPriceField = document.querySelector('input[name="sell_price"]');
+    const marginAmountField = document.querySelector('[data-margin-amount]');
+    const marginPercentField = document.querySelector('[data-margin-percent]');
+    const formatMoney = (value) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value || 0);
 
     const refreshVisibility = () => {
         const type = typeSelect?.value || 'simple';
         if (variantCard) variantCard.style.display = type === 'variant' ? '' : 'none';
         if (trackStockWrapper) trackStockWrapper.style.display = type === 'service' ? 'none' : '';
+    };
+
+    const refreshMarginPreview = () => {
+        if (!marginAmountField || !marginPercentField) {
+            return;
+        }
+
+        const cost = parseFloat(costPriceField?.value || '0');
+        const sell = parseFloat(sellPriceField?.value || '0');
+        const marginAmount = sell - cost;
+        const marginPercent = sell > 0 ? ((marginAmount / sell) * 100) : null;
+
+        marginAmountField.textContent = formatMoney(marginAmount);
+        marginPercentField.textContent = marginPercent === null
+            ? 'Isi Cost Price dan Sell Price untuk melihat margin.'
+            : `${marginPercent.toFixed(2)}% dari sell price`;
+        marginAmountField.classList.toggle('text-danger', marginAmount < 0);
+        marginAmountField.classList.toggle('text-success', marginAmount >= 0);
     };
 
     const reindexRows = (container, rowSelector) => {
@@ -300,7 +439,10 @@
     });
 
     typeSelect?.addEventListener('change', refreshVisibility);
+    costPriceField?.addEventListener('input', refreshMarginPreview);
+    sellPriceField?.addEventListener('input', refreshMarginPreview);
     refreshVisibility();
+    refreshMarginPreview();
 })();
 </script>
 @endpush

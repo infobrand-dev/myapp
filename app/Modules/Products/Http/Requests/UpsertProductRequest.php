@@ -2,6 +2,8 @@
 
 namespace App\Modules\Products\Http\Requests;
 
+use App\Modules\Contacts\Models\Contact;
+use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Products\Models\ProductBrand;
 use App\Modules\Products\Models\ProductCategory;
 use App\Modules\Products\Models\ProductMedia;
@@ -55,12 +57,15 @@ class UpsertProductRequest extends FormRequest
             'category_id' => ['nullable', 'integer', Rule::exists('product_categories', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()))],
             'brand_id' => ['nullable', 'integer', Rule::exists('product_brands', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()))],
             'unit_id' => ['nullable', 'integer', Rule::exists('product_units', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()))],
+            'default_supplier_contact_id' => ['nullable', 'integer', Rule::exists('contacts', 'id')->where(fn ($query) => ContactScope::applyVisibilityScope($query))],
             'new_category_name' => ['nullable', 'string', 'max:255'],
             'new_brand_name' => ['nullable', 'string', 'max:255'],
             'new_unit_name' => ['nullable', 'string', 'max:255'],
             'new_unit_code' => ['nullable', 'string', 'max:50'],
             'cost_price' => ['required', 'numeric', 'min:0'],
             'sell_price' => ['required', 'numeric', 'min:0'],
+            'minimum_stock' => ['nullable', 'numeric', 'min:0'],
+            'reorder_point' => ['nullable', 'numeric', 'min:0'],
             'wholesale_price' => ['nullable', 'numeric', 'min:0'],
             'member_price' => ['nullable', 'numeric', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
@@ -148,6 +153,9 @@ class UpsertProductRequest extends FormRequest
             'track_stock' => $type === 'service'
                 ? false
                 : ($this->has('track_stock') ? $this->boolean('track_stock') : true),
+            'default_supplier_contact_id' => $this->filled('default_supplier_contact_id') ? (int) $this->input('default_supplier_contact_id') : null,
+            'minimum_stock' => $this->filled('minimum_stock') ? $this->input('minimum_stock') : 0,
+            'reorder_point' => $this->filled('reorder_point') ? $this->input('reorder_point') : 0,
             'price_levels' => $priceLevels,
             'variants' => $variants,
         ]);
@@ -165,6 +173,12 @@ class UpsertProductRequest extends FormRequest
 
         if ($this->input('type') === 'variant' && $variants->isEmpty() && (!$productId || $variantsSubmitted)) {
             $validator->errors()->add('variants', 'Produk variant wajib memiliki minimal satu child variant.');
+        }
+
+        if ((float) $this->input('reorder_point', 0) > 0
+            && (float) $this->input('minimum_stock', 0) > 0
+            && (float) $this->input('reorder_point', 0) < (float) $this->input('minimum_stock', 0)) {
+            $validator->errors()->add('reorder_point', 'Reorder point sebaiknya sama dengan atau lebih besar dari minimum stock.');
         }
 
         $this->validateIdentityUniqueness($validator, trim((string) $this->input('sku')), trim((string) $this->input('barcode')), $productId, null, 'sku', 'barcode');
@@ -236,6 +250,9 @@ class UpsertProductRequest extends FormRequest
             ProductUnit::class,
             'Unit tidak tersedia untuk tenant aktif.'
         );
+        if ($this->input('default_supplier_contact_id') && !ContactScope::applyVisibilityScope(Contact::query())->find($this->input('default_supplier_contact_id'))) {
+            $validator->errors()->add('default_supplier_contact_id', 'Supplier default tidak tersedia untuk tenant aktif.');
+        }
 
         foreach ((array) $this->input('remove_gallery_media_ids', []) as $index => $mediaId) {
             if (!ProductMedia::query()->where('tenant_id', TenantContext::currentId())->find($mediaId)) {

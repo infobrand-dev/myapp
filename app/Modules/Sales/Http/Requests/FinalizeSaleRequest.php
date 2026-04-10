@@ -22,6 +22,7 @@ class FinalizeSaleRequest extends FormRequest
                 Sale::PAYMENT_PAID,
                 Sale::PAYMENT_REFUNDED,
             ])],
+            'due_date' => ['nullable', 'date'],
             'reason' => ['nullable', 'string'],
         ];
     }

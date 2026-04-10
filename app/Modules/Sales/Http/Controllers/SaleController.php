@@ -78,6 +78,7 @@ class SaleController extends Controller
             'source' => Sale::SOURCE_MANUAL,
             'payment_status' => Sale::PAYMENT_UNPAID,
             'transaction_date' => now(),
+            'due_date' => null,
             'currency_code' => $this->currencySettings->defaultCurrency(),
         ])));
     }

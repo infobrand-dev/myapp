@@ -112,6 +112,7 @@ class ProductController extends Controller
             'categories' => $this->lookupService->categories(),
             'brands' => $this->lookupService->brands(),
             'units' => $this->lookupService->units(),
+            'suppliers' => $this->lookupService->suppliers(),
             'priceLevels' => $this->lookupService->priceLevels(),
             'dependencies' => $this->lookupService->dependencyMap(),
         ];

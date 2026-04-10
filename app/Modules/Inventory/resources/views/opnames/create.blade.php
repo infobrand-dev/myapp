@@ -32,7 +32,11 @@
     <div class="card-body">
         <form method="GET" action="{{ route('inventory.opnames.create') }}" class="row g-3">
             <div class="col-md-6">
-                <label class="form-label">Lokasi / Outlet</label>
+                @include('shared.accounting.field-label', [
+                    'label' => 'Location',
+                    'required' => true,
+                    'tooltip' => 'Pilih lokasi untuk menampilkan snapshot stok sistem yang akan dijadikan dasar stock opname.',
+                ])
                 <select name="location_id" class="form-select" required>
                     <option value="">Pilih lokasi</option>
                     @foreach($locations as $location)
@@ -55,7 +59,11 @@
                 <div class="card-header"><h3 class="card-title">Header</h3></div>
                 <div class="card-body row g-3">
                     <div class="col-12">
-                        <label class="form-label">Lokasi / Outlet</label>
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Location',
+                            'required' => true,
+                            'tooltip' => 'Lokasi stock opname yang akan disimpan sebagai dokumen draft.',
+                        ])
                         <select name="inventory_location_id" class="form-select" required>
                             <option value="">Pilih lokasi</option>
                             @foreach($locations as $location)
@@ -64,11 +72,18 @@
                         </select>
                     </div>
                     <div class="col-12">
-                        <label class="form-label">Tanggal Opname</label>
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Opname Date',
+                            'required' => true,
+                            'tooltip' => 'Tanggal saat pemeriksaan stok fisik dilakukan atau mulai dianggap berlaku.',
+                        ])
                         <input type="date" name="opname_date" class="form-control" value="{{ old('opname_date', now()->toDateString()) }}" required>
                     </div>
                     <div class="col-12">
-                        <label class="form-label">Notes</label>
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Notes',
+                            'tooltip' => 'Catatan tambahan untuk sesi stock opname ini. Boleh dikosongkan jika tidak ada keterangan khusus.',
+                        ])
                         <textarea name="notes" class="form-control" rows="4">{{ old('notes') }}</textarea>
                     </div>
                 </div>

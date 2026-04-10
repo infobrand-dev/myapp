@@ -9,6 +9,7 @@
 @endphp
 
 @php
+    $isOverdue = $sale->isOverdue();
     $statusBadge = match($sale->status) {
         'finalized' => 'bg-green-lt text-green',
         'draft'     => 'bg-secondary-lt text-secondary',
@@ -31,6 +32,9 @@
             <p class="text-muted mb-0">
                 <span class="badge {{ $statusBadge }} me-1">{{ ucfirst($sale->status) }}</span>
                 <span class="badge {{ $payBadge }} me-1">{{ ucfirst($sale->payment_status) }}</span>
+                @if($isOverdue)
+                    <span class="badge bg-red-lt text-red me-1">Overdue</span>
+                @endif
                 {{ optional($sale->transaction_date)->format('d M Y, H:i') ?? '-' }}
                 @if($isAdvancedMode)
                     &middot; <span class="badge bg-blue-lt text-blue">{{ strtoupper($sale->source) }}</span>
@@ -313,6 +317,22 @@
                         </span>
                     </div>
                 </div>
+                @if($sale->due_date)
+                <hr class="m-0">
+                <div class="px-4 py-3">
+                    <div class="text-muted small mb-1"><i class="ti ti-calendar-due me-1"></i>Receivable</div>
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span class="text-muted">Due Date</span>
+                        <span>{{ $sale->due_date->format('d M Y') }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between small">
+                        <span class="text-muted">Status</span>
+                        <span class="{{ $isOverdue ? 'text-red fw-semibold' : 'text-muted' }}">
+                            {{ $isOverdue ? 'Overdue' : ((float) $sale->balance_due > 0 ? 'Open receivable' : 'Settled') }}
+                        </span>
+                    </div>
+                </div>
+                @endif
                 @if($sale->notes)
                 <hr class="m-0">
                 <div class="px-4 py-3">
@@ -475,6 +495,7 @@
         'branch_id' => 'Branch',
         'pos_cash_session_id' => 'POS session',
         'transaction_date' => 'Transaction date',
+        'due_date' => 'Due date',
         'subtotal' => 'Subtotal',
         'discount_total' => 'Discount',
         'tax_total' => 'Tax',

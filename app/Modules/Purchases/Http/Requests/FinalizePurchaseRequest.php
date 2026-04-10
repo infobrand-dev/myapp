@@ -15,6 +15,7 @@ class FinalizePurchaseRequest extends FormRequest
     {
         return [
             'purchase_date' => ['nullable', 'date'],
+            'due_date' => ['nullable', 'date'],
             'notes' => ['nullable', 'string'],
             'internal_notes' => ['nullable', 'string'],
             'reason' => ['nullable', 'string'],

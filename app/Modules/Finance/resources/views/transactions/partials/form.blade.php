@@ -29,7 +29,11 @@
     <div class="card-body">
         <div class="row g-3">
             <div class="col-md-4">
-                <label class="form-label">Type <span class="text-danger">*</span></label>
+                @include('shared.accounting.field-label', [
+                    'label' => 'Type',
+                    'required' => true,
+                    'tooltip' => 'Pilih jenis arus kas transaksi. Cash In untuk uang masuk, Cash Out untuk uang keluar non-beban, dan Expense untuk pengeluaran operasional.',
+                ])
                 <select name="transaction_type" id="finance-transaction-type" class="form-select @error('transaction_type') is-invalid @enderror" required>
                     @foreach($transactionTypeOptions as $value => $label)
                         <option value="{{ $value }}" @selected($selectedType === $value)>{{ $label }}</option>
@@ -38,17 +42,29 @@
                 @error('transaction_type') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
             <div class="col-md-4">
-                <label class="form-label">Date <span class="text-danger">*</span></label>
+                @include('shared.accounting.field-label', [
+                    'label' => 'Date',
+                    'required' => true,
+                    'tooltip' => 'Tanggal dan jam saat transaksi terjadi. Gunakan waktu yang paling mendekati kejadian sebenarnya agar laporan cash flow akurat.',
+                ])
                 <input type="datetime-local" name="transaction_date" class="form-control @error('transaction_date') is-invalid @enderror" value="{{ $selectedDate }}" required>
                 @error('transaction_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
             <div class="col-md-4">
-                <label class="form-label">Amount <span class="text-danger">*</span></label>
+                @include('shared.accounting.field-label', [
+                    'label' => 'Amount',
+                    'required' => true,
+                    'tooltip' => 'Isi nominal transaksi yang benar-benar terjadi. Nilai ini akan mempengaruhi ringkasan cash flow.',
+                ])
                 <input type="number" step="0.01" min="0.01" name="amount" class="form-control @error('amount') is-invalid @enderror" value="{{ $selectedAmount }}" required>
                 @error('amount') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
             <div class="col-md-6">
-                <label class="form-label">Account <span class="text-danger">*</span></label>
+                @include('shared.accounting.field-label', [
+                    'label' => 'Account',
+                    'required' => true,
+                    'tooltip' => 'Pilih akun kas, bank, atau e-wallet yang menerima atau mengeluarkan uang pada transaksi ini.',
+                ])
                 <select name="finance_account_id" class="form-select @error('finance_account_id') is-invalid @enderror" required>
                     <option value="">Select account</option>
                     @foreach($accounts as $account)
@@ -58,7 +74,11 @@
                 @error('finance_account_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
             <div class="col-md-6">
-                <label class="form-label">Category <span class="text-danger">*</span></label>
+                @include('shared.accounting.field-label', [
+                    'label' => 'Category',
+                    'required' => true,
+                    'tooltip' => 'Category membantu pengelompokan arus kas. Pilih category yang sesuai agar laporan finance lebih rapi.',
+                ])
                 <select name="finance_category_id" id="finance-category-select" class="form-select @error('finance_category_id') is-invalid @enderror" required>
                     <option value="">Select category</option>
                     @foreach($groupedCategories as $transactionType => $categoryGroup)
@@ -73,7 +93,10 @@
             </div>
             @if($isAdvancedMode)
                 <div class="col-md-3">
-                    <label class="form-label">Branch</label>
+                    @include('shared.accounting.field-label', [
+                        'label' => 'Branch',
+                        'tooltip' => 'Isi jika transaksi terkait branch tertentu. Jika dikosongkan, sistem memakai branch operasional default.',
+                    ])
                     <select name="branch_id" class="form-select @error('branch_id') is-invalid @enderror">
                         <option value="">Default Branch</option>
                         @foreach($branches as $branchOption)
@@ -88,10 +111,10 @@
                     @error('branch_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label d-inline-flex align-items-center gap-1">
-                        Cashier Session
-                        <span tabindex="0" class="text-muted" data-bs-toggle="tooltip" data-bs-placement="top" title="Fill this only if the transaction is related to a specific POS cashier session. Otherwise, leave it blank." style="cursor:help; line-height:1;"><i class="ti ti-info-circle"></i></span>
-                    </label>
+                    @include('shared.accounting.field-label', [
+                        'label' => 'Cashier Session',
+                        'tooltip' => 'Isi jika transaksi ini terkait sesi kasir POS tertentu. Jika tidak terkait POS, field ini boleh dikosongkan.',
+                    ])
                     <select name="pos_cash_session_id" class="form-select @error('pos_cash_session_id') is-invalid @enderror">
                         <option value="">Not linked to a cashier session</option>
                         @if($shiftEnabled)
@@ -107,7 +130,10 @@
                 </div>
             @endif
             <div class="col-12">
-                <label class="form-label">Notes</label>
+                @include('shared.accounting.field-label', [
+                    'label' => 'Notes',
+                    'tooltip' => 'Catatan tambahan untuk menjelaskan konteks transaksi. Boleh dikosongkan jika transaksinya sudah jelas.',
+                ])
                 <textarea name="notes" class="form-control @error('notes') is-invalid @enderror" rows="4">{{ $selectedNotes }}</textarea>
                 @error('notes') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
@@ -120,17 +146,3 @@
         </button>
     </div>
 </div>
-
-@once
-    @push('scripts')
-    <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (element) {
-            if (window.bootstrap && bootstrap.Tooltip) {
-                bootstrap.Tooltip.getOrCreateInstance(element);
-            }
-        });
-    });
-    </script>
-    @endpush
-@endonce

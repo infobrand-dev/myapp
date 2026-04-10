@@ -57,6 +57,7 @@ class CreateDraftPurchaseAction
                 'status' => Purchase::STATUS_DRAFT,
                 'payment_status' => Purchase::PAYMENT_UNPAID,
                 'purchase_date' => $data['purchase_date'],
+                'due_date' => $data['due_date'] ?? null,
                 'subtotal' => $totals['subtotal'],
                 'discount_total' => $totals['discount_total'],
                 'tax_total' => $totals['tax_total'],

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Products\Models;
 
+use App\Modules\Contacts\Models\Contact;
 use App\Support\NormalizesPgsqlBooleanAttributes;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
@@ -26,12 +27,15 @@ class Product extends Model
                 'category_id',
                 'brand_id',
                 'unit_id',
+                'default_supplier_contact_id',
                 'name',
                 'sku',
                 'barcode',
                 'description',
                 'cost_price',
                 'sell_price',
+                'minimum_stock',
+                'reorder_point',
                 'is_active',
                 'track_stock',
             ])
@@ -46,6 +50,7 @@ class Product extends Model
         'category_id',
         'brand_id',
         'unit_id',
+        'default_supplier_contact_id',
         'name',
         'slug',
         'sku',
@@ -53,6 +58,8 @@ class Product extends Model
         'description',
         'cost_price',
         'sell_price',
+        'minimum_stock',
+        'reorder_point',
         'is_active',
         'track_stock',
         'featured_image_path',
@@ -65,6 +72,8 @@ class Product extends Model
     protected $casts = [
         'cost_price' => 'decimal:2',
         'sell_price' => 'decimal:2',
+        'minimum_stock' => 'decimal:4',
+        'reorder_point' => 'decimal:4',
         'is_active' => 'boolean',
         'track_stock' => 'boolean',
         'meta' => 'array',
@@ -83,6 +92,11 @@ class Product extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(ProductUnit::class, 'unit_id');
+    }
+
+    public function defaultSupplier(): BelongsTo
+    {
+        return $this->belongsTo(Contact::class, 'default_supplier_contact_id');
     }
 
     public function creator(): BelongsTo
@@ -140,10 +154,28 @@ class Product extends Model
         return $this->memberPrice();
     }
 
+    public function getMarginAmountAttribute(): float
+    {
+        return round((float) $this->sell_price - (float) $this->cost_price, 2);
+    }
+
+    public function getMarginPercentAttribute(): ?float
+    {
+        $sellPrice = (float) $this->sell_price;
+
+        if ($sellPrice <= 0) {
+            return null;
+        }
+
+        return round(($this->margin_amount / $sellPrice) * 100, 2);
+    }
+
     private function priceForLevelCode(string $code): ?float
     {
         $price = $this->priceRows()
-            ->first(fn (ProductPrice $item) => $item->priceLevel?->code === $code);
+            ->first(function (ProductPrice $item) use ($code) {
+                return optional($item->priceLevel)->code === $code;
+            });
 
         return $price ? (float) $price->price : null;
     }

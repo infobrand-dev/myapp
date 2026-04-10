@@ -28,10 +28,12 @@ class Payment extends Model
                 'currency_code',
                 'paid_at',
                 'status',
+                'reconciliation_status',
                 'source',
                 'channel',
                 'reference_number',
                 'external_reference',
+                'proof_file_path',
                 'branch_id',
                 'notes',
                 'received_by',
@@ -46,6 +48,10 @@ class Payment extends Model
     public const STATUS_VOIDED = 'voided';
     public const STATUS_CANCELLED = 'cancelled';
     public const STATUS_REFUNDED = 'refunded';
+
+    public const RECONCILIATION_UNRECONCILED = 'unreconciled';
+    public const RECONCILIATION_IN_REVIEW = 'in_review';
+    public const RECONCILIATION_RECONCILED = 'reconciled';
 
     public const SOURCE_BACKOFFICE = 'backoffice';
     public const SOURCE_POS = 'pos';
@@ -62,10 +68,12 @@ class Payment extends Model
         'currency_code',
         'paid_at',
         'status',
+        'reconciliation_status',
         'source',
         'channel',
         'reference_number',
         'external_reference',
+        'proof_file_path',
         'branch_id',
         'pos_cash_session_id',
         'notes',
@@ -74,7 +82,9 @@ class Payment extends Model
         'created_by',
         'updated_by',
         'voided_by',
+        'reconciled_by',
         'voided_at',
+        'reconciled_at',
         'void_reason',
     ];
 
@@ -83,6 +93,7 @@ class Payment extends Model
         'paid_at' => 'datetime',
         'meta' => 'array',
         'voided_at' => 'datetime',
+        'reconciled_at' => 'datetime',
     ];
 
     public function method(): BelongsTo
@@ -140,9 +151,19 @@ class Payment extends Model
         return $this->belongsTo(User::class, 'voided_by');
     }
 
+    public function reconciler(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reconciled_by');
+    }
+
     public function isPosted(): bool
     {
         return $this->status === self::STATUS_POSTED;
+    }
+
+    public function hasProof(): bool
+    {
+        return !empty($this->proof_file_path);
     }
 
     public function resolveRouteBinding($value, $field = null)

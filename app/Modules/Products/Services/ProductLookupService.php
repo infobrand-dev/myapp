@@ -2,6 +2,8 @@
 
 namespace App\Modules\Products\Services;
 
+use App\Modules\Contacts\Models\Contact;
+use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductBrand;
 use App\Modules\Products\Models\ProductCategory;
@@ -18,10 +20,16 @@ use Illuminate\Support\Str;
 
 class ProductLookupService
 {
+    private MoneyFormatter $money;
+
+    private CurrencySettingsResolver $currencies;
+
     public function __construct(
-        private readonly MoneyFormatter $money,
-        private readonly CurrencySettingsResolver $currencies,
+        MoneyFormatter $money,
+        CurrencySettingsResolver $currencies
     ) {
+        $this->money = $money;
+        $this->currencies = $currencies;
     }
 
     /**
@@ -59,7 +67,7 @@ class ProductLookupService
                 'label'       => $product->name,
                 'description' => implode(' | ', array_filter([
                     $product->sku ? 'SKU: ' . $product->sku : null,
-                    $product->unit?->name ? 'Unit: ' . $product->unit->name : null,
+                    optional($product->unit)->name ? 'Unit: ' . optional($product->unit)->name : null,
                     'Sell: ' . $this->money->format((float) $product->sell_price, $currency),
                     'Cost: ' . $this->money->format((float) $product->cost_price, $currency),
                 ])),
@@ -131,6 +139,16 @@ class ProductLookupService
             'is_active'
         )
             ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+    }
+
+    public function suppliers(): Collection
+    {
+        return BooleanQuery::apply(
+            Contact::query()->tap(fn ($query) => ContactScope::applyVisibilityScope($query)),
+            'is_active'
+        )
             ->orderBy('name')
             ->get();
     }

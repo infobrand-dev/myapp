@@ -59,6 +59,7 @@ trait NormalizesSalePayload
             'contact_id' => $this->filled('contact_id') ? (int) $this->input('contact_id') : null,
             'items' => $items,
             'transaction_date' => $this->filled('transaction_date') ? $this->input('transaction_date') : now()->format('Y-m-d\TH:i'),
+            'due_date' => $this->filled('due_date') ? $this->input('due_date') : null,
             'payment_status' => $this->filled('payment_status') ? $this->input('payment_status') : 'unpaid',
             'source' => $this->filled('source') ? $this->input('source') : 'manual',
             'currency_code' => $this->filled('currency_code') ? strtoupper((string) $this->input('currency_code')) : app(CurrencySettingsResolver::class)->defaultCurrency(),

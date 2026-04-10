@@ -124,8 +124,11 @@ class ProductService
         $existingSlug = $existing ? $existing->slug : null;
         $existingBrandId = $existing ? $existing->brand_id : null;
         $existingUnitId = $existing ? $existing->unit_id : null;
+        $existingDefaultSupplierId = $existing ? $existing->default_supplier_contact_id : null;
         $existingDescription = $existing ? $existing->description : null;
         $existingTrackStock = $existing ? $existing->track_stock : true;
+        $existingMinimumStock = $existing ? $existing->minimum_stock : 0;
+        $existingReorderPoint = $existing ? $existing->reorder_point : 0;
 
         $slug = trim((string) ($data['slug'] ?? ''));
         if ($slug === '') {
@@ -138,6 +141,7 @@ class ProductService
             'category_id' => $data['category_id'] ?? null,
             'brand_id' => array_key_exists('brand_id', $data) ? ($data['brand_id'] ?? null) : $existingBrandId,
             'unit_id' => array_key_exists('unit_id', $data) ? ($data['unit_id'] ?? null) : $existingUnitId,
+            'default_supplier_contact_id' => array_key_exists('default_supplier_contact_id', $data) ? ($data['default_supplier_contact_id'] ?? null) : $existingDefaultSupplierId,
             'name' => trim((string) $data['name']),
             'slug' => $slug,
             'sku' => $this->nullableString($data['sku'] ?? null),
@@ -145,6 +149,8 @@ class ProductService
             'description' => array_key_exists('description', $data) ? $this->nullableString($data['description'] ?? null) : $existingDescription,
             'cost_price' => $data['cost_price'] ?? 0,
             'sell_price' => $data['sell_price'] ?? 0,
+            'minimum_stock' => array_key_exists('minimum_stock', $data) ? ($data['minimum_stock'] ?? 0) : $existingMinimumStock,
+            'reorder_point' => array_key_exists('reorder_point', $data) ? ($data['reorder_point'] ?? 0) : $existingReorderPoint,
             'is_active' => (bool) ($data['is_active'] ?? true),
             'track_stock' => $data['type'] === 'service'
                 ? false

@@ -1,26 +1,62 @@
 @extends('layouts.admin')
 
+@section('title', 'Payments')
+
 @section('content')
 @php
     $money = app(\App\Support\MoneyFormatter::class);
 @endphp
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h2 class="mb-0">Payments</h2>
-        <div class="text-muted small">Daftar pembayaran masuk dan keluar.</div>
-    </div>
-    <div class="btn-list">
-        @can('payments.create')
-            <a href="{{ route('payments.create') }}" class="btn btn-primary">Create Payment</a>
-        @endcan
+
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Keuangan</div>
+            <h2 class="page-title">Payments</h2>
+            <p class="text-muted mb-0">Daftar pembayaran masuk dan keluar.</p>
+        </div>
+        <div class="col-auto">
+            @can('payments.create')
+                <a href="{{ route('payments.create') }}" class="btn btn-primary">
+                    <i class="ti ti-plus me-1"></i>Buat Payment
+                </a>
+            @endcan
+        </div>
     </div>
 </div>
 
 <div class="row g-3 mb-3">
-    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Payments</div><div class="h2 mb-0">{{ $summary['total_count'] ?? 0 }}</div></div></div></div>
-    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Posted Amount</div><div class="h2 mb-0">{{ $money->format((float) ($summary['posted_amount'] ?? 0)) }}</div></div></div></div>
-    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Voided</div><div class="h2 mb-0 text-danger">{{ $summary['voided_count'] ?? 0 }}</div></div></div></div>
-    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Manual Source</div><div class="h2 mb-0">{{ $summary['manual_count'] ?? 0 }}</div></div></div></div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-muted small text-uppercase">Payments</div>
+                <div class="h2 mb-0">{{ $summary['total_count'] ?? 0 }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-muted small text-uppercase">Posted Amount</div>
+                <div class="h2 mb-0">{{ $money->format((float) ($summary['posted_amount'] ?? 0)) }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-muted small text-uppercase">Voided</div>
+                <div class="h2 mb-0 text-red">{{ $summary['voided_count'] ?? 0 }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-muted small text-uppercase">Manual Source</div>
+                <div class="h2 mb-0">{{ $summary['manual_count'] ?? 0 }}</div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="card mb-3">
@@ -75,7 +111,9 @@
                 <input type="date" name="date_to" class="form-control" value="{{ $filters['date_to'] ?? '' }}">
             </div>
             <div class="col-md-8 d-flex align-items-end gap-2">
-                <button type="submit" class="btn btn-outline-primary">Filter</button>
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="ti ti-filter me-1"></i>Filter
+                </button>
                 <a href="{{ route('payments.index') }}" class="btn btn-outline-secondary">Reset</a>
             </div>
         </form>
@@ -89,55 +127,79 @@
             <div class="text-muted small">Total nominal terfilter: {{ $money->format((float) ($summary['total_amount'] ?? 0)) }}</div>
         </div>
     </div>
-    <div class="table-responsive">
-        <table class="table table-vcenter">
-            <thead>
-                <tr>
-                    <th>Payment</th>
-                    <th>Paid At</th>
-                    <th>Method</th>
-                    <th>Allocation</th>
-                    <th>Amount</th>
-                    <th>Status</th>
-                    <th>Receiver</th>
-                    <th class="w-1"></th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($payments as $payment)
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-vcenter table-hover">
+                <thead>
                     <tr>
-                        <td>
-                            <a href="{{ route('payments.show', $payment) }}" class="fw-semibold text-decoration-none">{{ $payment->payment_number }}</a>
-                            <div class="text-muted small">{{ $payment->reference_number ?: ($payment->external_reference ?: '-') }}</div>
-                        </td>
-                        <td>{{ optional($payment->paid_at)->format('d M Y H:i') ?? '-' }}</td>
-                        <td>{{ optional($payment->method)->name ?: '-' }}</td>
-                        <td>
-                            @foreach($payment->allocations as $allocation)
-                                <div class="small">
-                                    @if($allocation->payable instanceof \App\Modules\Sales\Models\Sale)
-                                        {{ $allocation->payable->sale_number }} | {{ $allocation->payable->customer_name_snapshot ?: 'Guest' }}
-                                    @elseif($allocation->payable instanceof \App\Modules\Sales\Models\SaleReturn)
-                                        {{ $allocation->payable->return_number }} | {{ $allocation->payable->customer_name_snapshot ?: 'Guest' }}
-                                    @else
-                                        {{ class_basename($allocation->payable_type) }} #{{ $allocation->payable_id }}
-                                    @endif
-                                    : {{ $money->format((float) $allocation->amount, $payment->currency_code) }}
+                        <th>Payment</th>
+                        <th>Paid At</th>
+                        <th>Method</th>
+                        <th>Allocation</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Receiver</th>
+                        <th class="w-1"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($payments as $payment)
+                        <tr>
+                            <td>
+                                <a href="{{ route('payments.show', $payment) }}" class="fw-semibold text-decoration-none">{{ $payment->payment_number }}</a>
+                                <div class="text-muted small">{{ $payment->reference_number ?: ($payment->external_reference ?: '-') }}</div>
+                                @if($payment->hasProof())
+                                    <div class="text-muted small">Proof attached</div>
+                                @endif
+                            </td>
+                            <td>{{ optional($payment->paid_at)->format('d M Y H:i') ?? '-' }}</td>
+                            <td>{{ optional($payment->method)->name ?: '-' }}</td>
+                            <td>
+                                @foreach($payment->allocations as $allocation)
+                                    <div class="small">
+                                        @if($allocation->payable instanceof \App\Modules\Sales\Models\Sale)
+                                            {{ $allocation->payable->sale_number }} | {{ $allocation->payable->customer_name_snapshot ?: 'Guest' }}
+                                        @elseif($allocation->payable instanceof \App\Modules\Sales\Models\SaleReturn)
+                                            {{ $allocation->payable->return_number }} | {{ $allocation->payable->customer_name_snapshot ?: 'Guest' }}
+                                        @else
+                                            {{ class_basename($allocation->payable_type) }} #{{ $allocation->payable_id }}
+                                        @endif
+                                        : {{ $money->format((float) $allocation->amount, $payment->currency_code) }}
+                                    </div>
+                                @endforeach
+                            </td>
+                            <td>{{ $money->format((float) $payment->amount, $payment->currency_code) }}</td>
+                            <td>
+                                @if($payment->status === 'voided')
+                                    <span class="badge bg-red-lt text-red">{{ ucfirst($payment->status) }}</span>
+                                @else
+                                    <span class="badge bg-azure-lt text-azure">{{ ucfirst($payment->status) }}</span>
+                                @endif
+                                <div class="text-muted small mt-1">{{ $reconciliationStatusOptions[$payment->reconciliation_status] ?? ucfirst(str_replace('_', ' ', $payment->reconciliation_status)) }}</div>
+                            </td>
+                            <td>{{ optional($payment->receiver)->name ?: '-' }}</td>
+                            <td class="text-end align-middle">
+                                <div class="table-actions">
+                                    <a href="{{ route('payments.show', $payment) }}" class="btn btn-icon btn-sm btn-outline-secondary" title="Lihat Detail">
+                                        <i class="ti ti-eye"></i>
+                                    </a>
                                 </div>
-                            @endforeach
-                        </td>
-                        <td>{{ $money->format((float) $payment->amount, $payment->currency_code) }}</td>
-                        <td><span class="badge bg-{{ $payment->status === 'voided' ? 'red' : 'azure' }}-lt">{{ ucfirst($payment->status) }}</span></td>
-                        <td>{{ optional($payment->receiver)->name ?: '-' }}</td>
-                        <td class="text-end"><a href="{{ route('payments.show', $payment) }}" class="btn btn-sm btn-outline-secondary">Open</a></td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="8" class="text-center text-muted">Belum ada pembayaran.</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="8" class="text-center py-5">
+                                <i class="ti ti-cash text-muted d-block mb-2" style="font-size:2rem;"></i>
+                                <div class="text-muted mb-2">Belum ada pembayaran.</div>
+                                @can('payments.create')
+                                    <a href="{{ route('payments.create') }}" class="btn btn-sm btn-primary">Buat Payment Pertama</a>
+                                @endcan
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
     <div class="card-footer">
         {{ $payments->links() }}

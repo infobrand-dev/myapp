@@ -60,6 +60,7 @@ class UpdateDraftPurchaseAction
                 'supplier_invoice_number' => array_key_exists('supplier_invoice_number', $data) ? ($data['supplier_invoice_number'] ?? null) : $purchase->supplier_invoice_number,
                 'supplier_notes' => array_key_exists('supplier_notes', $data) ? ($data['supplier_notes'] ?? null) : $purchase->supplier_notes,
                 'purchase_date' => $data['purchase_date'],
+                'due_date' => array_key_exists('due_date', $data) ? ($data['due_date'] ?? null) : $purchase->due_date,
                 'subtotal' => $totals['subtotal'],
                 'discount_total' => $totals['discount_total'],
                 'tax_total' => $totals['tax_total'],

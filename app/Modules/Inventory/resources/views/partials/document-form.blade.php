@@ -17,7 +17,11 @@
                 <div class="card-body row g-3">
                     @foreach($metaFields as $field)
                         <div class="{{ $field['column'] ?? 'col-12' }}">
-                            <label class="form-label">{{ $field['label'] }}</label>
+                            @include('shared.accounting.field-label', [
+                                'label' => $field['label'],
+                                'tooltip' => $field['tooltip'] ?? '',
+                                'required' => (bool) ($field['required'] ?? false),
+                            ])
                             @if(($field['type'] ?? 'text') === 'select')
                                 <select name="{{ $field['name'] }}" class="form-select">
                                     @foreach($field['options'] as $value => $label)
@@ -43,7 +47,11 @@
                 <div class="card-body" id="item-rows">
                     <div class="row g-2 align-items-end item-row mb-2">
                         <div class="col-md-4">
-                            <label class="form-label">Produk</label>
+                            @include('shared.accounting.field-label', [
+                                'label' => 'Product',
+                                'tooltip' => 'Pilih produk yang stoknya akan diproses pada dokumen inventory ini.',
+                                'required' => true,
+                            ])
                             <select name="items[0][product_id]" class="form-select">
                                 <option value="">Pilih produk</option>
                                 @foreach($products as $product)
@@ -53,7 +61,11 @@
                         </div>
                         @foreach($itemFields as $field)
                             <div class="{{ $field['column'] ?? 'col-md-2' }}">
-                                <label class="form-label">{{ $field['label'] }}</label>
+                                @include('shared.accounting.field-label', [
+                                    'label' => $field['label'],
+                                    'tooltip' => $field['tooltip'] ?? '',
+                                    'required' => (bool) ($field['required'] ?? false),
+                                ])
                                 @if(($field['type'] ?? 'text') === 'select')
                                     <select name="items[0][{{ $field['name'] }}]" class="form-select">
                                         @foreach($field['options'] as $value => $label)

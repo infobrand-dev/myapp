@@ -33,6 +33,7 @@ class Sale extends Model
                 'branch_id',
                 'pos_cash_session_id',
                 'transaction_date',
+                'due_date',
                 'subtotal',
                 'discount_total',
                 'tax_total',
@@ -82,6 +83,7 @@ class Sale extends Model
         'branch_id',
         'pos_cash_session_id',
         'transaction_date',
+        'due_date',
         'finalized_at',
         'voided_at',
         'cancelled_at',
@@ -106,6 +108,7 @@ class Sale extends Model
     protected $casts = [
         'customer_snapshot' => 'array',
         'transaction_date' => 'datetime',
+        'due_date' => 'date',
         'finalized_at' => 'datetime',
         'voided_at' => 'datetime',
         'cancelled_at' => 'datetime',
@@ -197,6 +200,14 @@ class Sale extends Model
     public function isFinalized(): bool
     {
         return $this->status === self::STATUS_FINALIZED;
+    }
+
+    public function isOverdue(): bool
+    {
+        return $this->due_date !== null
+            && (float) $this->balance_due > 0
+            && $this->status === self::STATUS_FINALIZED
+            && $this->due_date->lt(now()->startOfDay());
     }
 
     public function resolveRouteBinding($value, $field = null)

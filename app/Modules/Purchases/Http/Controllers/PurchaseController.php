@@ -83,6 +83,7 @@ class PurchaseController extends Controller
             'status' => Purchase::STATUS_DRAFT,
             'payment_status' => Purchase::PAYMENT_UNPAID,
             'purchase_date' => now(),
+            'due_date' => null,
             'currency_code' => $this->currencySettings->defaultCurrency(),
         ])));
     }

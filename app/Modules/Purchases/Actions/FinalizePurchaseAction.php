@@ -70,6 +70,7 @@ class FinalizePurchaseAction
                 'supplier_snapshot' => $supplierSnapshot['payload'],
                 'status' => Purchase::STATUS_CONFIRMED,
                 'purchase_date' => $data['purchase_date'] ?? $purchase->purchase_date ?? now(),
+                'due_date' => array_key_exists('due_date', $data) ? ($data['due_date'] ?? null) : $purchase->due_date,
                 'confirmed_at' => now(),
                 'confirmed_by' => $actor ? $actor->id : null,
                 'updated_by' => $actor ? $actor->id : null,

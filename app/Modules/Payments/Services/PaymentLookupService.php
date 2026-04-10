@@ -30,6 +30,15 @@ class PaymentLookupService
         ];
     }
 
+    public function reconciliationStatusOptions(): array
+    {
+        return [
+            Payment::RECONCILIATION_UNRECONCILED => 'Unreconciled',
+            Payment::RECONCILIATION_IN_REVIEW => 'In Review',
+            Payment::RECONCILIATION_RECONCILED => 'Reconciled',
+        ];
+    }
+
     public function paymentSourceOptions(): array
     {
         return [

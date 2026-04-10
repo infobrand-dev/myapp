@@ -111,6 +111,14 @@
                                     {{ $sale->sale_number }}
                                 </a>
                                 <div class="text-muted small">{{ optional($sale->transaction_date)->format('d M Y, H:i') ?? '-' }}</div>
+                                @if($sale->due_date)
+                                    <div class="text-muted small">
+                                        Due {{ $sale->due_date->format('d M Y') }}
+                                        @if($sale->isOverdue())
+                                            <span class="text-red fw-semibold">· Overdue</span>
+                                        @endif
+                                    </div>
+                                @endif
                             </td>
                             <td>
                                 <div>{{ $sale->customer_name_snapshot ?: ($sale->contact?->name ?? 'Guest / Walk-in') }}</div>
@@ -123,6 +131,7 @@
                             <td>
                                 <div class="fw-medium">{{ $money->format((float) $sale->grand_total, $sale->currency_code) }}</div>
                                 <div class="text-muted small">Sub: {{ $money->format((float) $sale->subtotal, $sale->currency_code) }}</div>
+                                <div class="text-muted small">Due: {{ $money->format((float) $sale->balance_due, $sale->currency_code) }}</div>
                             </td>
                             <td>
                                 @php

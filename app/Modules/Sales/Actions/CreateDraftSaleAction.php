@@ -87,6 +87,7 @@ class CreateDraftSaleAction
                     'source' => $data['source'],
                     'branch_id' => $resolvedBranchId,
                     'transaction_date' => $data['transaction_date'],
+                    'due_date' => $data['due_date'] ?? null,
                     'subtotal' => $totals['subtotal'],
                     'discount_total' => $totals['discount_total'],
                     'tax_total' => $totals['tax_total'],

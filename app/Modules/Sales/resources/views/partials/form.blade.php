@@ -70,16 +70,34 @@
                     </div>
 
                     <div class="col-md-6">
-                        <label class="form-label">Transaction Date <span class="text-danger">*</span></label>
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Transaction Date',
+                            'required' => true,
+                            'tooltip' => 'Tanggal dan jam saat penjualan terjadi. Gunakan waktu transaksi sebenarnya agar laporan penjualan dan piutang akurat.',
+                        ])
                         <input type="datetime-local" name="transaction_date"
                             class="form-control @error('transaction_date') is-invalid @enderror"
                             value="{{ old('transaction_date', optional($sale->transaction_date)->format('Y-m-d\TH:i') ?? now()->format('Y-m-d\TH:i')) }}">
                         @error('transaction_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
+                    <div class="col-md-6">
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Due Date',
+                            'tooltip' => 'Tanggal jatuh tempo pembayaran penjualan ini. Boleh dikosongkan jika transaksi dibayar langsung saat itu juga.',
+                        ])
+                        <input type="date" name="due_date"
+                            class="form-control @error('due_date') is-invalid @enderror"
+                            value="{{ old('due_date', optional($sale->due_date)->format('Y-m-d')) }}">
+                        @error('due_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
 
                     @if($isAdvancedMode)
                         <div class="col-md-6">
-                            <label class="form-label">Currency <span class="text-danger">*</span></label>
+                            @include('shared.accounting.field-label', [
+                                'label' => 'Currency',
+                                'required' => true,
+                                'tooltip' => 'Kode mata uang transaksi, misalnya IDR atau USD. Ubah hanya jika memang menerima transaksi dalam mata uang lain.',
+                            ])
                             <input type="text" name="currency_code" maxlength="3"
                                 class="form-control @error('currency_code') is-invalid @enderror"
                                 value="{{ old('currency_code', $sale->currency_code ?: app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency()) }}">
@@ -87,7 +105,10 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label">Source</label>
+                            @include('shared.accounting.field-label', [
+                                'label' => 'Source',
+                                'tooltip' => 'Sumber asal transaksi, misalnya input manual, POS, atau integrasi lain. Berguna untuk pelacakan proses penjualan.',
+                            ])
                             <select name="source" class="form-select @error('source') is-invalid @enderror">
                                 @foreach($sourceOptions as $value => $label)
                                     <option value="{{ $value }}" @selected(old('source', $sale->source) === $value)>{{ $label }}</option>
@@ -101,7 +122,10 @@
                     @endif
 
                     <div class="col-md-6">
-                        <label class="form-label">Payment Status</label>
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Payment Status',
+                            'tooltip' => 'Menunjukkan apakah penjualan sudah dibayar penuh, sebagian, atau belum dibayar. Status ini membantu pemantauan piutang.',
+                        ])
                         <select name="payment_status" class="form-select @error('payment_status') is-invalid @enderror">
                             @foreach($paymentStatusOptions as $value => $label)
                                 <option value="{{ $value }}" @selected(old('payment_status', $sale->payment_status) === $value)>{{ $label }}</option>
@@ -112,7 +136,10 @@
 
                     @if($isAdvancedMode)
                         <div class="col-12">
-                            <label class="form-label">External Reference</label>
+                            @include('shared.accounting.field-label', [
+                                'label' => 'External Reference',
+                                'tooltip' => 'Nomor referensi dari sistem lain seperti POS, marketplace, atau API. Boleh dikosongkan jika transaksi dibuat langsung di aplikasi ini.',
+                            ])
                             <input type="text" name="external_reference"
                                 class="form-control @error('external_reference') is-invalid @enderror"
                                 placeholder="POS, API, or online order ref"
@@ -122,7 +149,10 @@
                     @endif
 
                     <div class="col-12">
-                        <label class="form-label">Notes</label>
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Notes',
+                            'tooltip' => 'Catatan umum untuk transaksi penjualan. Boleh dikosongkan jika tidak ada informasi tambahan.',
+                        ])
                         <textarea name="notes" rows="3"
                             class="form-control @error('notes') is-invalid @enderror">{{ old('notes', $sale->notes) }}</textarea>
                         @error('notes') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -177,20 +207,29 @@
                                             value="{{ $item['qty'] }}">
                                     </div>
                                     <div class="col-md-2">
-                                        <label class="form-label">Unit Price</label>
+                                        @include('shared.accounting.field-label', [
+                                            'label' => 'Unit Price',
+                                            'tooltip' => 'Harga jual per unit item ini. Nilai default diambil dari master product dan masih bisa disesuaikan bila perlu.',
+                                        ])
                                         <input type="number" min="0" step="0.01"
                                             name="items[{{ $index }}][unit_price]" class="form-control"
                                             value="{{ $item['unit_price'] }}" data-item-price>
                                     </div>
                                     @if($isAdvancedMode)
                                         <div class="col-md-1">
-                                            <label class="form-label">Disc.</label>
+                                            @include('shared.accounting.field-label', [
+                                                'label' => 'Disc.',
+                                                'tooltip' => 'Diskon nominal untuk item ini. Isi 0 jika tidak ada diskon khusus.',
+                                            ])
                                             <input type="number" min="0" step="0.01"
                                                 name="items[{{ $index }}][discount_total]" class="form-control"
                                                 value="{{ $item['discount_total'] }}">
                                         </div>
                                         <div class="col-md-1">
-                                            <label class="form-label">Tax</label>
+                                            @include('shared.accounting.field-label', [
+                                                'label' => 'Tax',
+                                                'tooltip' => 'Nilai pajak nominal untuk item ini. Isi hanya jika transaksi item memang dikenakan pajak.',
+                                            ])
                                             <input type="number" min="0" step="0.01"
                                                 name="items[{{ $index }}][tax_total]" class="form-control"
                                                 value="{{ $item['tax_total'] }}">
@@ -207,7 +246,10 @@
                                     </div>
                                     @if($isAdvancedMode)
                                         <div class="col-12">
-                                            <label class="form-label">Item Notes</label>
+                                            @include('shared.accounting.field-label', [
+                                                'label' => 'Internal Notes',
+                                                'tooltip' => 'Catatan internal untuk item ini, misalnya permintaan khusus atau keterangan tambahan. Boleh dikosongkan.',
+                                            ])
                                             <input type="text" name="items[{{ $index }}][notes]"
                                                 class="form-control" placeholder="Optional note for this item"
                                                 value="{{ $item['notes'] }}">

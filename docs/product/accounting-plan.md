@@ -51,3 +51,6 @@ Hindari klaim:
 - `accounting` adalah jalur utama yang aktif dijual lewat `/onboarding`
 - default public signup harus mengarahkan user ke paket `accounting`
 - `omnichannel` tetap ada sebagai product line berikutnya, tetapi bukan jalur utama sampai siap dijual penuh
+
+## Referensi roadmap
+- detail backlog fitur bisnis accounting ada di `docs/product/accounting-feature-roadmap.md`

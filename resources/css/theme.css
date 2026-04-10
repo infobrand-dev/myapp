@@ -2932,8 +2932,8 @@ body.landing-page {
 }
 
 .topbar-apps-icon {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 3rem;
+    height: 3rem;
     background: var(--tblr-bg-surface-secondary);
     flex-shrink: 0;
     transition: background .12s ease;
@@ -2943,7 +2943,7 @@ body.landing-page {
 }
 
 .topbar-apps-label {
-    font-size: .7rem;
+    font-size: .78rem;
     font-weight: 500;
     line-height: 1.25;
     color: inherit;

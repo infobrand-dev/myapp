@@ -71,7 +71,7 @@
 
     <div class="dropdown-menu dropdown-menu-end topbar-apps-dropdown shadow-sm p-2">
         <div class="px-1 pb-2 mb-1 border-bottom">
-            <span class="fw-semibold small text-secondary">Modul Aktif</span>
+            <span class="fw-semibold small text-secondary">Modules</span>
         </div>
         <div class="row row-cols-3 g-1 mx-0 mt-1">
             @foreach($appMenuModules as $appModule)
@@ -81,8 +81,8 @@
                     <a href="{{ route($firstRoute) }}"
                        class="topbar-apps-item d-flex flex-column align-items-center text-center text-decoration-none rounded p-2"
                        title="{{ $appModule['name'] }}">
-                        <div class="topbar-apps-icon d-flex align-items-center justify-content-center rounded mb-1">
-                            @include('shared.module-icon', ['module' => $appModule, 'size' => 26])
+                        <div class="topbar-apps-icon d-flex align-items-center justify-content-center rounded mb-2">
+                            @include('shared.module-icon', ['module' => $appModule, 'size' => 34])
                         </div>
                         <span class="topbar-apps-label">{{ $appModule['name'] }}</span>
                     </a>

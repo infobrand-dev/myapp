@@ -167,42 +167,47 @@
                             @include('shared.topbar-context-switcher', ['selectorId' => 'desktop-topbar'])
                         </div>
 
-                        {{-- User dropdown --}}
-                        <div class="dropdown">
-                            <button
-                                type="button"
-                                class="topbar-user-toggle"
-                                data-bs-toggle="dropdown"
-                                aria-expanded="false"
-                                aria-label="User menu"
-                            >
-                                <span class="topbar-user-avatar">
-                                    {{ strtoupper(substr(auth()->user()->name ?? '?', 0, 2)) }}
-                                </span>
-                                <span class="topbar-user-name d-none d-xl-block">{{ auth()->user()->name ?? '' }}</span>
-                                <i class="ti ti-chevron-down" style="font-size: 0.75rem; opacity: 0.6;" aria-hidden="true"></i>
-                            </button>
-                            <div class="dropdown-menu dropdown-menu-end shadow-sm" style="min-width: 12rem;">
-                                <div class="dropdown-header px-3 py-2">
-                                    <div class="fw-semibold text-truncate" style="max-width: 11rem;">{{ auth()->user()->name ?? '' }}</div>
-                                    <div class="small text-secondary text-truncate" style="max-width: 11rem;">{{ auth()->user()->email ?? '' }}</div>
+                        {{-- Right side: apps + user --}}
+                        <div class="d-flex align-items-center gap-2">
+                            @include('shared.topbar-apps-dropdown')
+
+                            {{-- User dropdown --}}
+                            <div class="dropdown">
+                                <button
+                                    type="button"
+                                    class="topbar-user-toggle"
+                                    data-bs-toggle="dropdown"
+                                    aria-expanded="false"
+                                    aria-label="User menu"
+                                >
+                                    <span class="topbar-user-avatar">
+                                        {{ strtoupper(substr(auth()->user()->name ?? '?', 0, 2)) }}
+                                    </span>
+                                    <span class="topbar-user-name d-none d-xl-block">{{ auth()->user()->name ?? '' }}</span>
+                                    <i class="ti ti-chevron-down" style="font-size: 0.75rem; opacity: 0.6;" aria-hidden="true"></i>
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end shadow-sm" style="min-width: 12rem;">
+                                    <div class="dropdown-header px-3 py-2">
+                                        <div class="fw-semibold text-truncate" style="max-width: 11rem;">{{ auth()->user()->name ?? '' }}</div>
+                                        <div class="small text-secondary text-truncate" style="max-width: 11rem;">{{ auth()->user()->email ?? '' }}</div>
+                                    </div>
+                                    <div class="dropdown-divider"></div>
+                                    <a class="dropdown-item" href="{{ route('profile.edit') }}">
+                                        <i class="ti ti-user me-2 opacity-60" aria-hidden="true"></i>Profile
+                                    </a>
+                                    @can('settings.view')
+                                    <a class="dropdown-item" href="{{ route('settings.general') }}">
+                                        <i class="ti ti-settings me-2 opacity-60" aria-hidden="true"></i>Settings
+                                    </a>
+                                    @endcan
+                                    <div class="dropdown-divider"></div>
+                                    <form method="POST" action="{{ route('logout') }}">
+                                        @csrf
+                                        <button type="submit" class="dropdown-item text-danger">
+                                            <i class="ti ti-logout me-2 opacity-70" aria-hidden="true"></i>Logout
+                                        </button>
+                                    </form>
                                 </div>
-                                <div class="dropdown-divider"></div>
-                                <a class="dropdown-item" href="{{ route('profile.edit') }}">
-                                    <i class="ti ti-user me-2 opacity-60" aria-hidden="true"></i>Profile
-                                </a>
-                                @can('settings.view')
-                                <a class="dropdown-item" href="{{ route('settings.general') }}">
-                                    <i class="ti ti-settings me-2 opacity-60" aria-hidden="true"></i>Settings
-                                </a>
-                                @endcan
-                                <div class="dropdown-divider"></div>
-                                <form method="POST" action="{{ route('logout') }}">
-                                    @csrf
-                                    <button type="submit" class="dropdown-item text-danger">
-                                        <i class="ti ti-logout me-2 opacity-70" aria-hidden="true"></i>Logout
-                                    </button>
-                                </form>
                             </div>
                         </div>
                     </div>
@@ -228,7 +233,8 @@
                             <x-app-logo variant="default" :height="28" class="mobile-topbar-logo" />
                         </a>
 
-                        <div class="ms-auto">
+                        <div class="ms-auto d-flex align-items-center gap-2">
+                            @include('shared.topbar-apps-dropdown')
                             <div class="dropdown">
                                 <button
                                     type="button"

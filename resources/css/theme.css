@@ -2892,3 +2892,94 @@ body.landing-page {
     background: var(--tblr-bg-surface-secondary);
     border-color: var(--tblr-border-color-translucent);
 }
+
+/* ============================================================
+   TOPBAR APPS DROPDOWN (My Apps)
+   ============================================================ */
+.topbar-apps-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    border-radius: var(--tblr-border-radius);
+    font-size: 1.15rem;
+    border: 1px solid var(--tblr-border-color);
+    color: var(--tblr-secondary);
+    background: transparent;
+    cursor: pointer;
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.topbar-apps-btn:hover,
+.topbar-apps-btn[aria-expanded="true"] {
+    background: var(--tblr-bg-surface-secondary);
+    color: var(--tblr-primary);
+    border-color: var(--tblr-border-color);
+}
+
+.topbar-apps-dropdown {
+    min-width: 262px;
+    max-width: 310px;
+}
+
+.topbar-apps-header {
+    border-bottom: 1px solid var(--tblr-border-color-translucent);
+}
+
+.topbar-apps-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: .2rem;
+}
+
+.topbar-apps-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .35rem;
+    padding: .6rem .3rem;
+    border-radius: var(--tblr-border-radius);
+    text-decoration: none;
+    color: var(--tblr-body-color);
+    transition: background .12s ease, color .12s ease;
+}
+.topbar-apps-item:hover {
+    background: var(--tblr-bg-surface-secondary);
+    color: var(--tblr-primary);
+    text-decoration: none;
+}
+
+.topbar-apps-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--tblr-border-radius);
+    background: var(--tblr-bg-surface-secondary);
+    flex-shrink: 0;
+    transition: background .12s ease;
+}
+.topbar-apps-item:hover .topbar-apps-icon {
+    background: var(--brand-primary-50);
+}
+
+.topbar-apps-label {
+    font-size: .7rem;
+    font-weight: 500;
+    text-align: center;
+    line-height: 1.25;
+    color: inherit;
+    max-width: 5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+[data-bs-theme="dark"] .topbar-apps-icon {
+    background: rgba(255, 255, 255, .06);
+}
+[data-bs-theme="dark"] .topbar-apps-item:hover .topbar-apps-icon {
+    background: rgba(45, 71, 204, .2);
+}

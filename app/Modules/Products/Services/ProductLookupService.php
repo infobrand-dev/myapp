@@ -16,6 +16,7 @@ use App\Support\MoneyFormatter;
 use App\Support\TenantContext;
 use DomainException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class ProductLookupService
@@ -203,7 +204,7 @@ class ProductLookupService
 
         $category = ProductCategory::query()->firstOrCreate(
             ['tenant_id' => TenantContext::currentId(), 'slug' => Str::slug($name)],
-            ['tenant_id' => TenantContext::currentId(), 'name' => $name, 'is_active' => true]
+            ['tenant_id' => TenantContext::currentId(), 'name' => $name, 'is_active' => $this->databaseBoolean(true)]
         );
 
         return (int) $category->id;
@@ -226,7 +227,7 @@ class ProductLookupService
 
         $brand = ProductBrand::query()->firstOrCreate(
             ['tenant_id' => TenantContext::currentId(), 'slug' => Str::slug($name)],
-            ['tenant_id' => TenantContext::currentId(), 'name' => $name, 'is_active' => true]
+            ['tenant_id' => TenantContext::currentId(), 'name' => $name, 'is_active' => $this->databaseBoolean(true)]
         );
 
         return (int) $brand->id;
@@ -254,9 +255,16 @@ class ProductLookupService
 
         $unit = ProductUnit::query()->firstOrCreate(
             ['tenant_id' => TenantContext::currentId(), 'code' => Str::upper($code)],
-            ['tenant_id' => TenantContext::currentId(), 'name' => $name, 'is_active' => true]
+            ['tenant_id' => TenantContext::currentId(), 'name' => $name, 'is_active' => $this->databaseBoolean(true)]
         );
 
         return (int) $unit->id;
+    }
+
+    private function databaseBoolean(bool $value): bool|string
+    {
+        return DB::connection()->getDriverName() === 'pgsql'
+            ? ($value ? 'true' : 'false')
+            : $value;
     }
 }

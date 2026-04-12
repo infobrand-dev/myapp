@@ -22,6 +22,10 @@ class ResolveTenantContext
             return $next($request);
         }
 
+        if ($response = $this->redirectGuestProtectedApexRoute($request)) {
+            return $response;
+        }
+
         if ($response = $this->redirectGuestAuthToTenantSubdomain($request)) {
             return $response;
         }
@@ -142,6 +146,41 @@ class ResolveTenantContext
             || $request->is('keamanan-data')
             || $request->is('kebijakan-privasi')
             || $request->is('syarat-ketentuan');
+    }
+
+    private function redirectGuestProtectedApexRoute(Request $request): ?Response
+    {
+        if (config('multitenancy.mode') !== 'saas') {
+            return null;
+        }
+
+        if ($request->user() || $request->attributes->get('tenant_id')) {
+            return null;
+        }
+
+        if (!$this->isProtectedShellRoute($request)) {
+            return null;
+        }
+
+        return redirect()->guest(route('login'));
+    }
+
+    private function isProtectedShellRoute(Request $request): bool
+    {
+        return $request->is('dashboard')
+            || $request->is('platform')
+            || $request->is('platform/*')
+            || $request->is('profile')
+            || $request->is('settings')
+            || $request->is('settings/*')
+            || $request->is('users')
+            || $request->is('users/*')
+            || $request->is('roles')
+            || $request->is('roles/*')
+            || $request->is('modules')
+            || $request->is('modules/*')
+            || $request->is('presence')
+            || $request->is('presence/*');
     }
 
     private function shouldBypassTenantContext(Request $request): bool

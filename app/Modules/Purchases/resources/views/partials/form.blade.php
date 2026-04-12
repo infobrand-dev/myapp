@@ -28,15 +28,20 @@
         : route('purchases.index');
 
     $purchasablesByKey = collect($purchasables)->keyBy('key');
+    $purchasableOptions = collect($purchasables)
+        ->map(function ($p) {
+            return [
+                'key' => $p['key'],
+                'label' => $p['label'],
+                'description' => $p['description'],
+                'unit_cost' => $p['unit_cost'],
+            ];
+        })
+        ->values();
 @endphp
 
 <script>
-    window._purchasables = @json($purchasables->map(fn($p) => [
-        'key'         => $p['key'],
-        'label'       => $p['label'],
-        'description' => $p['description'],
-        'unit_cost'   => $p['unit_cost'],
-    ])->values());
+    window._purchasables = @json($purchasableOptions);
 </script>
 
 <form method="POST" action="{{ $submitRoute }}">

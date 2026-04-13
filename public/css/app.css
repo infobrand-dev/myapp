@@ -2975,6 +2975,104 @@ body.landing-page {
     background: rgba(45, 71, 204, .2);
 }
 
+/* ── Tom Select — Tabler-consistent appearance ───────────────────────────── */
+/* Override bootstrap5 theme defaults so border/bg/focus match Tabler tokens */
+
+.ts-wrapper .ts-control,
+.ts-wrapper.single .ts-control,
+.ts-wrapper.multi .ts-control {
+    background-color: var(--tblr-bg-surface);
+    border-color: var(--tblr-border-color);
+    border-radius: var(--tblr-border-radius);
+    color: var(--tblr-body-color);
+    font-size: var(--tblr-body-font-size, 0.875rem);
+    min-height: calc(1.4285714em + 0.8571429rem + calc(var(--tblr-border-width) * 2));
+    transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+}
+
+/* Focus ring — matches Tabler's form-control:focus */
+.ts-wrapper.focus .ts-control {
+    border-color: var(--tblr-primary);
+    box-shadow: 0 0 0 0.25rem rgba(var(--tblr-primary-rgb), 0.2);
+    outline: 0;
+}
+
+/* is-invalid state */
+.ts-wrapper.is-invalid .ts-control,
+.ts-wrapper .ts-control.is-invalid {
+    border-color: var(--tblr-danger);
+}
+
+/* Dropdown panel */
+.ts-dropdown {
+    background-color: var(--tblr-bg-surface);
+    border-color: var(--tblr-border-color);
+    color: var(--tblr-body-color);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, .1);
+    font-size: var(--tblr-body-font-size, 0.875rem);
+    z-index: 1050;
+}
+
+.ts-dropdown .option {
+    color: var(--tblr-body-color);
+}
+
+.ts-dropdown .option:hover,
+.ts-dropdown .option.active {
+    background-color: var(--tblr-primary);
+    color: #fff;
+}
+
+.ts-dropdown .optgroup-header {
+    color: var(--tblr-muted, #6c757d);
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+/* Dark mode overrides */
+[data-bs-theme="dark"] .ts-wrapper .ts-control,
+[data-bs-theme="dark"] .ts-wrapper.single .ts-control,
+[data-bs-theme="dark"] .ts-wrapper.multi .ts-control {
+    background-color: var(--tblr-bg-surface);
+    border-color: var(--tblr-border-color);
+    color: var(--tblr-body-color);
+}
+
+[data-bs-theme="dark"] .ts-dropdown {
+    background-color: var(--tblr-bg-surface);
+    border-color: var(--tblr-border-color);
+    color: var(--tblr-body-color);
+}
+
+[data-bs-theme="dark"] .ts-dropdown .option {
+    color: var(--tblr-body-color);
+}
+
+[data-bs-theme="dark"] .ts-dropdown .option:hover,
+[data-bs-theme="dark"] .ts-dropdown .option.active {
+    background-color: var(--tblr-primary);
+    color: #fff;
+}
+
+/* Product autocomplete custom dropdown — Tabler-consistent */
+[data-item-dropdown] {
+    background: var(--tblr-bg-surface) !important;
+    border-color: var(--tblr-border-color) !important;
+    color: var(--tblr-body-color);
+}
+
+[data-item-dropdown] .item-option {
+    color: var(--tblr-body-color);
+}
+
+[data-item-dropdown] .item-option:hover,
+[data-item-dropdown] .item-option.is-active {
+    background-color: var(--tblr-primary);
+    color: #fff;
+}
+
 .conv-dashboard {
     --conv-shell-bg: #f8fafc;
     --conv-surface: #ffffff;

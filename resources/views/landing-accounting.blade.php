@@ -3,6 +3,46 @@
 @section('head_title', config('app.name') . ' Accounting - Paket sales, pembayaran, pembelian, stok, dan laporan operasional')
 @section('head_description', 'Meetra Accounting membantu bisnis merapikan penjualan, pembayaran, pembelian, stok, dan laporan operasional. Promo anniversary ke-2: gunakan kode MEETRA2ND untuk 50% off semua paket.')
 
+@push('head')
+<style>
+body.landing-page.accounting-anniversary-page .landing-topbar { top: 52px; z-index: 1030; }
+body.landing-page.accounting-anniversary-page .accounting-floating-promo { position: sticky; top: 0; z-index: 1040; background: radial-gradient(circle at 15% 50%, rgba(255,255,255,.22), transparent 28%), linear-gradient(90deg, #7f1d1d 0%, #dc2626 36%, #be123c 100%); color: #fff; box-shadow: 0 10px 24px rgba(127, 29, 29, .22); }
+body.landing-page.accounting-anniversary-page .accounting-floating-promo__inner { min-height: 52px; display: flex; align-items: center; justify-content: center; gap: .75rem; flex-wrap: wrap; text-align: center; padding: .6rem 0; }
+body.landing-page.accounting-anniversary-page .accounting-floating-promo__badge { display: inline-flex; align-items: center; gap: .45rem; padding: .35rem .8rem; border-radius: 999px; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22); font-size: .76rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+body.landing-page.accounting-anniversary-page .accounting-floating-promo__text { font-size: .95rem; font-weight: 600; }
+body.landing-page.accounting-anniversary-page .accounting-floating-promo__code { display: inline-flex; align-items: center; padding: .3rem .8rem; border-radius: 999px; background: rgba(17,24,39,.3); border: 1px solid rgba(255,255,255,.26); font-weight: 800; letter-spacing: .08em; }
+body.landing-page.accounting-anniversary-page .accounting-floating-promo__cta { display: inline-flex; align-items: center; padding: .45rem .95rem; border-radius: 999px; background: #fff; color: #991b1b; font-size: .82rem; font-weight: 800; text-decoration: none; box-shadow: 0 6px 16px rgba(0,0,0,.12); }
+body.landing-page.accounting-anniversary-page .accounting-floating-promo__cta:hover { color: #7f1d1d; text-decoration: none; }
+body.landing-page.accounting-anniversary-page .accounting-floating-promo__close { appearance: none; border: 0; width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: rgba(17,24,39,.22); color: #fff; font-size: 1rem; font-weight: 800; line-height: 1; cursor: pointer; }
+body.landing-page.accounting-anniversary-page .accounting-floating-promo__close:hover { background: rgba(17,24,39,.34); }
+body.landing-page.accounting-anniversary-page .accounting-floating-promo.is-hidden { display: none; }
+body.landing-page.accounting-anniversary-page .accounting-floating-promo.is-hidden + .landing-topbar { top: 0; }
+body.landing-page.accounting-anniversary-page .accounting-plan-pricing { margin-bottom: 1rem; }
+body.landing-page.accounting-anniversary-page .accounting-plan-original { color: #94a3b8; font-size: 1rem; font-weight: 700; text-decoration: line-through; text-decoration-thickness: 2px; margin-bottom: .15rem; }
+body.landing-page.accounting-anniversary-page .accounting-plan-final { display: flex; align-items: flex-end; gap: .65rem; flex-wrap: wrap; }
+body.landing-page.accounting-anniversary-page .accounting-plan-discount { display: inline-flex; align-items: center; padding: .28rem .65rem; border-radius: 999px; background: #fee2e2; color: #b91c1c; font-size: .75rem; font-weight: 800; letter-spacing: .03em; }
+@media (max-width: 991.98px) {
+    body.landing-page.accounting-anniversary-page .landing-topbar { top: 0; }
+    body.landing-page.accounting-anniversary-page .accounting-floating-promo { position: relative; }
+}
+</style>
+@endpush
+
+@section('topbar')
+<div class="accounting-floating-promo" id="accountingFloatingPromo">
+    <div class="container">
+        <div class="accounting-floating-promo__inner">
+            <span class="accounting-floating-promo__badge"><span>🎉</span><span>Meetra 2 Tahun</span></span>
+            <span class="accounting-floating-promo__text">Promo anniversary <strong>50% OFF</strong> semua paket Accounting</span>
+            <span class="accounting-floating-promo__code">MEETRA2ND</span>
+            <a href="#pricing" class="accounting-floating-promo__cta">Lihat Harga Promo</a>
+            <button type="button" class="accounting-floating-promo__close" id="accountingFloatingPromoClose" aria-label="Tutup banner promo">×</button>
+        </div>
+    </div>
+</div>
+@parent
+@endsection
+
 @section('content')
 @php
     $money = app(\App\Support\MoneyFormatter::class);
@@ -30,6 +70,8 @@
                 'interval_label'  => $plan->billing_interval_label,
                 'price'           => $money->format((float) ($sales['price'] ?? 0), strtoupper((string) ($sales['currency'] ?? 'IDR'))),
                 'price_value'     => (float) ($sales['price'] ?? 0),
+                'original_price'  => $money->format(round((float) ($sales['price'] ?? 0) * 2, 2), strtoupper((string) ($sales['currency'] ?? 'IDR'))),
+                'original_price_value' => round((float) ($sales['price'] ?? 0) * 2, 2),
                 'caption'         => (string) ($sales['description'] ?? ''),
                 'summary'         => (string) ($sales['tagline'] ?? ''),
                 'featured'        => (bool) ($sales['recommended'] ?? false),
@@ -68,9 +110,9 @@
     if ($plansByInterval->isEmpty()) {
         $plansByInterval = collect([
             'monthly' => collect([
-                ['name' => 'Starter', 'code' => 'accounting_starter', 'interval' => 'monthly', 'interval_label' => 'Bulanan', 'price' => 'Rp249.000', 'price_value' => 249000, 'original_2year' => null, 'caption' => 'Untuk UMKM yang ingin mulai rapi tanpa workflow berat.', 'summary' => 'Mulai dari sales, payments, finance, products, contacts, dan basic reports.', 'featured' => false, 'is_promo' => false, 'promo_label' => '', 'users' => 5, 'branches' => 1, 'products' => 250, 'contacts' => 1000, 'storage' => 1073741824, 'purchases' => false, 'inventory' => false, 'advanced_reports' => false, 'highlights' => [], 'features_list' => ['Sales untuk transaksi harian', 'Payments untuk pembayaran masuk dan keluar', 'Finance ringan untuk arus kas operasional', 'Products dan Contacts sebagai data utama', 'Basic reports untuk ringkasan cepat']],
-                ['name' => 'Growth', 'code' => 'accounting_growth', 'interval' => 'monthly', 'interval_label' => 'Bulanan', 'price' => 'Rp499.000', 'price_value' => 499000, 'original_2year' => null, 'caption' => 'Untuk bisnis yang mulai aktif dan butuh operasional lebih lengkap.', 'summary' => 'Semua fitur Starter ditambah purchases, inventory, dan full reports.', 'featured' => true, 'is_promo' => false, 'promo_label' => '', 'users' => 15, 'branches' => 3, 'products' => 2000, 'contacts' => 5000, 'storage' => 5368709120, 'purchases' => true, 'inventory' => true, 'advanced_reports' => true, 'highlights' => [], 'features_list' => ['Semua fitur Accounting Starter', 'Purchases untuk pembelian supplier', 'Inventory untuk kontrol stok', 'Full reports untuk pembacaan lebih detail', 'Kapasitas hingga 15 user dan 3 branch']],
-                ['name' => 'Scale', 'code' => 'accounting_scale', 'interval' => 'monthly', 'interval_label' => 'Bulanan', 'price' => 'Rp999.000', 'price_value' => 999000, 'original_2year' => null, 'caption' => 'Untuk operasional yang lebih padat dengan kapasitas lebih besar.', 'summary' => 'Isi fitur sama dengan Growth, dengan kapasitas yang lebih longgar.', 'featured' => false, 'is_promo' => false, 'promo_label' => '', 'users' => 50, 'branches' => 10, 'products' => 10000, 'contacts' => 20000, 'storage' => 21474836480, 'purchases' => true, 'inventory' => true, 'advanced_reports' => true, 'highlights' => [], 'features_list' => ['Semua fitur Accounting Growth', 'Cocok untuk multi-user dan multi-branch', 'Batas produk, kontak, dan storage lebih besar', 'Tetap bisa menambahkan POS sesuai kebutuhan', 'Lebih aman untuk operasional yang terus tumbuh']],
+                ['name' => 'Starter', 'code' => 'accounting_starter', 'interval' => 'monthly', 'interval_label' => 'Bulanan', 'price' => 'Rp249.000', 'price_value' => 249000, 'original_price' => 'Rp498.000', 'original_price_value' => 498000, 'original_2year' => null, 'caption' => 'Untuk UMKM yang ingin mulai rapi tanpa workflow berat.', 'summary' => 'Mulai dari sales, payments, finance, products, contacts, dan basic reports.', 'featured' => false, 'is_promo' => false, 'promo_label' => '', 'users' => 5, 'branches' => 1, 'products' => 250, 'contacts' => 1000, 'storage' => 1073741824, 'purchases' => false, 'inventory' => false, 'advanced_reports' => false, 'highlights' => [], 'features_list' => ['Sales untuk transaksi harian', 'Payments untuk pembayaran masuk dan keluar', 'Finance ringan untuk arus kas operasional', 'Products dan Contacts sebagai data utama', 'Basic reports untuk ringkasan cepat']],
+                ['name' => 'Growth', 'code' => 'accounting_growth', 'interval' => 'monthly', 'interval_label' => 'Bulanan', 'price' => 'Rp499.000', 'price_value' => 499000, 'original_price' => 'Rp998.000', 'original_price_value' => 998000, 'original_2year' => null, 'caption' => 'Untuk bisnis yang mulai aktif dan butuh operasional lebih lengkap.', 'summary' => 'Semua fitur Starter ditambah purchases, inventory, dan full reports.', 'featured' => true, 'is_promo' => false, 'promo_label' => '', 'users' => 15, 'branches' => 3, 'products' => 2000, 'contacts' => 5000, 'storage' => 5368709120, 'purchases' => true, 'inventory' => true, 'advanced_reports' => true, 'highlights' => [], 'features_list' => ['Semua fitur Accounting Starter', 'Purchases untuk pembelian supplier', 'Inventory untuk kontrol stok', 'Full reports untuk pembacaan lebih detail', 'Kapasitas hingga 15 user dan 3 branch']],
+                ['name' => 'Scale', 'code' => 'accounting_scale', 'interval' => 'monthly', 'interval_label' => 'Bulanan', 'price' => 'Rp999.000', 'price_value' => 999000, 'original_price' => 'Rp1.998.000', 'original_price_value' => 1998000, 'original_2year' => null, 'caption' => 'Untuk operasional yang lebih padat dengan kapasitas lebih besar.', 'summary' => 'Isi fitur sama dengan Growth, dengan kapasitas yang lebih longgar.', 'featured' => false, 'is_promo' => false, 'promo_label' => '', 'users' => 50, 'branches' => 10, 'products' => 10000, 'contacts' => 20000, 'storage' => 21474836480, 'purchases' => true, 'inventory' => true, 'advanced_reports' => true, 'highlights' => [], 'features_list' => ['Semua fitur Accounting Growth', 'Cocok untuk multi-user dan multi-branch', 'Batas produk, kontak, dan storage lebih besar', 'Tetap bisa menambahkan POS sesuai kebutuhan', 'Lebih aman untuk operasional yang terus tumbuh']],
             ]),
         ]);
     }
@@ -85,18 +127,6 @@
 @endphp
 
 {{-- ── Promo Banner ─────────────────────────────────────────────── --}}
-<div class="accounting-promo-bar">
-    <div class="container">
-        <div class="accounting-promo-bar__inner">
-            <span class="accounting-promo-bar__fire">🎉</span>
-            <strong>Anniversary ke-2 Meetra</strong>
-            <span class="accounting-promo-bar__sep">—</span>
-            <span>Pakai kode <strong>MEETRA2ND</strong> saat daftar dan dapatkan <em>50% off</em> semua paket.</span>
-            <a href="#pricing" class="accounting-promo-bar__cta">Daftar Sekarang</a>
-        </div>
-    </div>
-</div>
-
 <section id="overview" class="landing-hero py-5 py-lg-6">
     <div class="container py-lg-4">
         <div class="row g-5 align-items-center">
@@ -305,7 +335,13 @@
                                     @endif
                                     <div class="h3 fw-800 mb-1">Accounting {{ $plan['name'] }}</div>
                                     <div class="small text-muted mb-3">{{ $plan['caption'] }}</div>
-                                    <div class="display-6 fw-bold mb-2">{{ $plan['price'] }}</div>
+                                    <div class="accounting-plan-pricing">
+                                        <div class="accounting-plan-original">{{ $plan['original_price'] }}</div>
+                                        <div class="accounting-plan-final">
+                                            <div class="display-6 fw-bold mb-0">{{ $plan['price'] }}</div>
+                                            <span class="accounting-plan-discount">50% OFF</span>
+                                        </div>
+                                    </div>
                                     <div class="small text-muted mb-4">tagihan {{ strtolower($plan['interval_label']) }}</div>
                                     <p class="small mb-4">{{ $plan['summary'] }}</p>
                                     <div class="landing-checklist small mb-4">
@@ -345,7 +381,7 @@
                         @foreach ($comparisonPlans as $plan)
                             <th>
                                 <div class="fw-bold">Accounting {{ $plan['name'] }}</div>
-                                <div class="small text-muted">{{ $plan['price'] }}</div>
+                                <div class="small text-muted"><span class="text-decoration-line-through">{{ $plan['original_price'] }}</span> • {{ $plan['price'] }}</div>
                             </th>
                         @endforeach
                     </tr>
@@ -478,6 +514,26 @@
 @push('scripts')
 <script>
 (function () {
+    document.body.classList.add('accounting-anniversary-page');
+
+    var promoBanner = document.getElementById('accountingFloatingPromo');
+    var promoBannerClose = document.getElementById('accountingFloatingPromoClose');
+    var promoBannerStorageKey = 'landing-accounting-promo-hidden';
+
+    if (promoBanner && window.sessionStorage && sessionStorage.getItem(promoBannerStorageKey) === '1') {
+        promoBanner.classList.add('is-hidden');
+    }
+
+    if (promoBanner && promoBannerClose) {
+        promoBannerClose.addEventListener('click', function () {
+            promoBanner.classList.add('is-hidden');
+
+            if (window.sessionStorage) {
+                sessionStorage.setItem(promoBannerStorageKey, '1');
+            }
+        });
+    }
+
     var tabButtons = document.querySelectorAll('[data-tier-tab]');
     var tabPanes   = document.querySelectorAll('[data-tier-pane]');
 

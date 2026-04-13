@@ -9,6 +9,7 @@ use App\Models\AiUsageLog;
 use App\Models\PlatformInvoice;
 use App\Models\PlatformPlanOrder;
 use App\Models\PlatformPayment;
+use App\Models\PlatformPromoCode;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Models\TenantByoAiRequest;
@@ -19,6 +20,7 @@ use App\Services\AiUsageService;
 use App\Services\PlatformAffiliateService;
 use App\Services\PlatformManualPaymentService;
 use App\Services\PlatformMidtransBillingService;
+use App\Services\PlatformPromoCodeService;
 use App\Services\TenantOnboardingSalesService;
 use App\Support\ByoAiAddon;
 use App\Support\PlanFeature;
@@ -32,6 +34,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class PlatformOwnerController extends Controller
@@ -150,6 +153,15 @@ class PlatformOwnerController extends Controller
                 ->values()
             : collect();
 
+        $promoCodes = $this->promoTableReady()
+            ? PlatformPromoCode::query()
+                ->orderByDesc('is_active')
+                ->orderBy('expires_at')
+                ->orderBy('code')
+                ->limit(6)
+                ->get()
+            : collect();
+
         return view('platform.dashboard', [
             'stats' => $stats,
             'acquisitionSeries' => $acquisitionSeries,
@@ -159,7 +171,84 @@ class PlatformOwnerController extends Controller
             'tenantAiLeaderboard' => $tenantAiLeaderboard,
             'aiUsageReady' => $this->aiUsageTableReady(),
             'aiPricing' => $aiPricing->snapshot(),
+            'promoCodes' => $promoCodes,
+            'promoReady' => $this->promoTableReady(),
         ]);
+    }
+
+    public function promos(): View
+    {
+        $promoCodes = $this->promoTableReady()
+            ? PlatformPromoCode::query()
+                ->orderByDesc('is_active')
+                ->orderBy('expires_at')
+                ->orderBy('code')
+                ->get()
+            : collect();
+
+        return view('platform.promos.index', [
+            'promoCodes' => $promoCodes,
+            'promoReady' => $this->promoTableReady(),
+        ]);
+    }
+
+    public function storePromo(Request $request): RedirectResponse
+    {
+        if (!$this->promoTableReady()) {
+            return back()->with('error', 'Table promo platform belum tersedia. Jalankan migration terlebih dahulu.');
+        }
+
+        $data = $request->validate([
+            'code' => ['required', 'string', 'max:64', 'alpha_dash', Rule::unique('platform_promo_codes', 'code')],
+            'label' => ['required', 'string', 'max:255'],
+            'discount_percent' => ['required', 'integer', 'min:1', 'max:100'],
+            'product_lines' => ['nullable', 'array'],
+            'product_lines.*' => ['string', Rule::in(['accounting', 'omnichannel'])],
+            'expires_at' => ['nullable', 'date'],
+            'max_uses' => ['nullable', 'integer', 'min:1'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+
+        PlatformPromoCode::query()->create([
+            'code' => strtoupper(trim((string) $data['code'])),
+            'label' => $data['label'],
+            'discount_percent' => (int) $data['discount_percent'],
+            'applicable_product_lines' => empty($data['product_lines']) ? null : array_values($data['product_lines']),
+            'is_active' => (bool) ($data['is_active'] ?? false),
+            'expires_at' => $this->nullableCarbon($data['expires_at'] ?? null),
+            'max_uses' => $this->nullableLimit($data['max_uses'] ?? null),
+            'used_count' => 0,
+        ]);
+
+        return back()->with('status', 'Promo code platform berhasil dibuat.');
+    }
+
+    public function updatePromo(Request $request, PlatformPromoCode $promo): RedirectResponse
+    {
+        if (!$this->promoTableReady()) {
+            return back()->with('error', 'Table promo platform belum tersedia. Jalankan migration terlebih dahulu.');
+        }
+
+        $data = $request->validate([
+            'label' => ['required', 'string', 'max:255'],
+            'discount_percent' => ['required', 'integer', 'min:1', 'max:100'],
+            'product_lines' => ['nullable', 'array'],
+            'product_lines.*' => ['string', Rule::in(['accounting', 'omnichannel'])],
+            'expires_at' => ['nullable', 'date'],
+            'max_uses' => ['nullable', 'integer', 'min:1'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+
+        $promo->forceFill([
+            'label' => $data['label'],
+            'discount_percent' => (int) $data['discount_percent'],
+            'applicable_product_lines' => empty($data['product_lines']) ? null : array_values($data['product_lines']),
+            'is_active' => (bool) ($data['is_active'] ?? false),
+            'expires_at' => $this->nullableCarbon($data['expires_at'] ?? null),
+            'max_uses' => $this->nullableLimit($data['max_uses'] ?? null),
+        ])->save();
+
+        return back()->with('status', "Promo code {$promo->code} berhasil diperbarui.");
     }
 
     public function tenants(Request $request, TenantPlanManager $planManager): View
@@ -786,6 +875,8 @@ class PlatformOwnerController extends Controller
                 'tenant_subscription_id' => $subscription->id,
             ])->save();
 
+            app(PlatformPromoCodeService::class)->markOrderPaid($order);
+
             foreach ($order->invoices()->get() as $invoice) {
                 $invoice->forceFill([
                     'status' => 'paid',
@@ -968,6 +1059,8 @@ class PlatformOwnerController extends Controller
                     'tenant_subscription_id' => $subscription->id,
                 ])->save();
 
+                app(PlatformPromoCodeService::class)->markOrderPaid($order);
+
                 $welcomePayload = $onboardingSales->completePaidOnboarding(
                     $order->fresh(['tenant']),
                     $invoice->paid_at
@@ -1001,6 +1094,8 @@ class PlatformOwnerController extends Controller
         $order->forceFill([
             'status' => 'cancelled',
         ])->save();
+
+        app(PlatformPromoCodeService::class)->releaseOrderUsage($order);
 
         return back()->with('status', 'Order berhasil dibatalkan.');
     }
@@ -1071,6 +1166,8 @@ class PlatformOwnerController extends Controller
                 'tenant_subscription_id' => null,
                 'meta' => $orderMeta,
             ])->save();
+
+            app(PlatformPromoCodeService::class)->releaseOrderUsage($order);
 
             $affiliates->voidSale($order, 'platform_owner_void');
         });
@@ -1751,6 +1848,11 @@ class PlatformOwnerController extends Controller
     private function aiCreditTransactionsTableReady(): bool
     {
         return Schema::hasTable('ai_credit_transactions');
+    }
+
+    private function promoTableReady(): bool
+    {
+        return Schema::hasTable('platform_promo_codes');
     }
 
     private function sendPlatformInvoiceIssuedMail(PlatformInvoice $invoice): void

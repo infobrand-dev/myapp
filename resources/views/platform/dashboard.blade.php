@@ -20,6 +20,9 @@
                 <a href="{{ route('platform.plans.index') }}" class="btn btn-outline-secondary">
                     <i class="ti ti-badge-dollar-sign me-1"></i>Plans
                 </a>
+                <a href="{{ route('platform.promos.index') }}" class="btn btn-outline-secondary">
+                    <i class="ti ti-ticket me-1"></i>Promos
+                </a>
             </div>
         </div>
     </div>
@@ -182,6 +185,62 @@
                             <button type="submit" class="btn btn-outline-primary" @disabled(!($aiPricing['ready'] ?? false))>Simpan Pricing AI</button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h3 class="card-title mb-0">Promo Codes</h3>
+                    <a href="{{ route('platform.promos.index') }}" class="btn btn-sm btn-outline-secondary">Kelola promo</a>
+                </div>
+                <div class="card-body p-0">
+                    @if(!$promoReady)
+                        <div class="p-3 text-muted">Table promo platform belum tersedia.</div>
+                    @elseif($promoCodes->isEmpty())
+                        <div class="p-3 text-muted">Belum ada promo code platform.</div>
+                    @else
+                        <div class="table-responsive">
+                            <table class="table table-vcenter card-table">
+                                <thead>
+                                    <tr>
+                                        <th>Kode</th>
+                                        <th>Diskon</th>
+                                        <th>Produk</th>
+                                        <th>Pemakaian</th>
+                                        <th>Expire</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($promoCodes as $promo)
+                                        <tr>
+                                            <td>
+                                                <div class="fw-semibold">{{ $promo->code }}</div>
+                                                <div class="text-muted small">{{ $promo->label }}</div>
+                                            </td>
+                                            <td>{{ $promo->discount_percent }}%</td>
+                                            <td class="text-muted small">
+                                                {{ is_array($promo->applicable_product_lines) && count($promo->applicable_product_lines) ? implode(', ', $promo->applicable_product_lines) : 'Semua product line' }}
+                                            </td>
+                                            <td>{{ number_format((int) $promo->used_count) }} / {{ $promo->max_uses ? number_format((int) $promo->max_uses) : 'Unlimited' }}</td>
+                                            <td>{{ $promo->expires_at?->format('d/m/Y H:i') ?? 'No expiry' }}</td>
+                                            <td>
+                                                @if($promo->is_active)
+                                                    <span class="badge bg-green-lt text-green">Aktif</span>
+                                                @else
+                                                    <span class="badge bg-secondary-lt text-secondary">Nonaktif</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>

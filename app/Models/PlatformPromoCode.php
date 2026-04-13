@@ -71,6 +71,15 @@ class PlatformPromoCode extends Model
         $this->increment('used_count');
     }
 
+    public function decrementUsed(): void
+    {
+        if ($this->used_count <= 0) {
+            return;
+        }
+
+        $this->decrement('used_count');
+    }
+
     public static function findByCode(string $code): ?self
     {
         $normalized = strtoupper(trim($code));

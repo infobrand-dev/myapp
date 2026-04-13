@@ -25,6 +25,7 @@ class PlatformMidtransBillingService
     public function __construct(
         private readonly TenantOnboardingSalesService $onboardingSales,
         private readonly PlatformAffiliateService $affiliates,
+        private readonly PlatformPromoCodeService $promoCodes,
     ) {
     }
 
@@ -245,6 +246,8 @@ class PlatformMidtransBillingService
                         'payment_channel' => 'midtrans',
                         'tenant_subscription_id' => $subscription->id,
                     ])->save();
+
+                    $this->promoCodes->markOrderPaid($order);
 
                     $welcomePayload = $this->onboardingSales->completePaidOnboarding(
                         $order->fresh(['tenant']),

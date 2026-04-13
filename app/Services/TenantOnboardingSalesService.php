@@ -252,10 +252,6 @@ class TenantOnboardingSalesService
                 'meta' => $orderMeta,
             ]);
 
-            if ($promo) {
-                $promo->incrementUsed();
-            }
-
             $invoiceMeta = [
                 'source_order_id' => $order->id,
                 'created_from' => 'self_serve_onboarding',

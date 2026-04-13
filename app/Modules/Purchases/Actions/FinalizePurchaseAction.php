@@ -8,6 +8,8 @@ use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Purchases\Events\PurchaseFinalized;
 use App\Modules\Purchases\Models\Purchase;
 use App\Modules\Purchases\Services\PurchaseSnapshotService;
+use App\Support\AccountingJournalService;
+use App\Support\AccountingPeriodLockService;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
@@ -18,14 +20,20 @@ class FinalizePurchaseAction
 {
     private $syncPaymentSummary;
     private $snapshotService;
+    private $journalService;
+    private $periodLockService;
 
     public function __construct(
         SyncPurchasePaymentSummaryAction $syncPaymentSummary,
-        PurchaseSnapshotService $snapshotService
+        PurchaseSnapshotService $snapshotService,
+        AccountingJournalService $journalService,
+        AccountingPeriodLockService $periodLockService
     )
     {
         $this->syncPaymentSummary = $syncPaymentSummary;
         $this->snapshotService = $snapshotService;
+        $this->journalService = $journalService;
+        $this->periodLockService = $periodLockService;
     }
 
     public function execute(Purchase $purchase, array $data, ?User $actor = null): Purchase
@@ -48,6 +56,8 @@ class FinalizePurchaseAction
                     'purchase' => 'Hanya draft purchase yang dapat di-finalize.',
                 ]);
             }
+
+            $this->periodLockService->ensureDateOpen($purchase->purchase_date ?: now(), $purchase->branch_id, 'finalize purchase');
 
             if ($purchase->items->isEmpty()) {
                 throw ValidationException::withMessages([
@@ -105,14 +115,83 @@ class FinalizePurchaseAction
                 'event' => 'finalized',
                 'reason' => $data['reason'] ?? null,
                 'actor_id' => $actor ? $actor->id : null,
-                'meta' => ['purchase_number' => $purchase->purchase_number],
+                'meta' => [
+                    'purchase_number' => $purchase->purchase_number,
+                    'subtotal' => (float) $purchase->subtotal,
+                    'discount_total' => (float) $purchase->discount_total,
+                    'tax_total' => (float) $purchase->tax_total,
+                    'landed_cost_total' => (float) $purchase->landed_cost_total,
+                    'grand_total' => (float) $purchase->grand_total,
+                    'supplier_bill_status' => $purchase->supplier_bill_status,
+                ],
             ]);
 
-            return $this->syncPaymentSummary->execute($purchase)->load('items');
+            $purchase = $this->syncPaymentSummary->execute($purchase)->load('items');
+
+            $this->journalService->sync(
+                $purchase,
+                'purchase_finalized',
+                $purchase->purchase_date ?: now(),
+                $this->journalLines($purchase),
+                [
+                    'payment_status' => $purchase->payment_status,
+                    'grand_total' => (float) $purchase->grand_total,
+                ],
+                'Auto journal purchase ' . $purchase->purchase_number
+            );
+
+            return $purchase;
         });
 
         event(new PurchaseFinalized($purchase));
 
         return $purchase;
+    }
+
+    private function journalLines(Purchase $purchase): array
+    {
+        $lines = [
+            [
+                'account_code' => 'PURCHASES',
+                'account_name' => 'Purchases / Inventory',
+                'debit' => (float) $purchase->subtotal,
+                'credit' => 0,
+            ],
+            [
+                'account_code' => 'AP',
+                'account_name' => 'Accounts Payable',
+                'debit' => 0,
+                'credit' => (float) $purchase->grand_total,
+            ],
+        ];
+
+        if ((float) $purchase->tax_total > 0) {
+            $lines[] = [
+                'account_code' => 'PURCHASE_TAX',
+                'account_name' => 'Purchase Tax',
+                'debit' => (float) $purchase->tax_total,
+                'credit' => 0,
+            ];
+        }
+
+        if ((float) $purchase->landed_cost_total > 0) {
+            $lines[] = [
+                'account_code' => 'LANDED_COST',
+                'account_name' => 'Landed Cost',
+                'debit' => (float) $purchase->landed_cost_total,
+                'credit' => 0,
+            ];
+        }
+
+        if ((float) $purchase->discount_total > 0) {
+            $lines[] = [
+                'account_code' => 'PURCHASE_DISC',
+                'account_name' => 'Purchase Discount',
+                'debit' => 0,
+                'credit' => (float) $purchase->discount_total,
+            ];
+        }
+
+        return $lines;
     }
 }

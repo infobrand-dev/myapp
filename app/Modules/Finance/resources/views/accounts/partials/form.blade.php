@@ -35,6 +35,22 @@
             <input type="text" name="account_number" class="form-control @error('account_number') is-invalid @enderror" value="{{ old('account_number', $account->account_number) }}">
             @error('account_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>
+        <div class="col-md-3">
+            @include('shared.accounting.field-label', [
+                'label' => 'Opening Balance',
+                'tooltip' => 'Saldo awal account saat mulai memakai modul finance. Nilai ini menjadi titik awal running balance.',
+            ])
+            <input type="number" step="0.01" name="opening_balance" class="form-control @error('opening_balance') is-invalid @enderror" value="{{ old('opening_balance', $account->opening_balance ?? 0) }}">
+            @error('opening_balance') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
+        <div class="col-md-3">
+            @include('shared.accounting.field-label', [
+                'label' => 'Opening Balance Date',
+                'tooltip' => 'Tanggal efektif saldo awal account. Jika kosong, saldo awal dianggap baseline tanpa tanggal khusus.',
+            ])
+            <input type="date" name="opening_balance_date" class="form-control @error('opening_balance_date') is-invalid @enderror" value="{{ old('opening_balance_date', optional($account->opening_balance_date)->format('Y-m-d')) }}">
+            @error('opening_balance_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
     @endif
     <div class="col-md-6">
         <label class="form-check">

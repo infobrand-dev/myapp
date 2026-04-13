@@ -27,6 +27,8 @@ class FinanceAccount extends Model
                 'name',
                 'account_type',
                 'account_number',
+                'opening_balance',
+                'opening_balance_date',
                 'is_active',
                 'is_default',
                 'notes',
@@ -49,6 +51,8 @@ class FinanceAccount extends Model
         'slug',
         'account_type',
         'account_number',
+        'opening_balance',
+        'opening_balance_date',
         'is_active',
         'is_default',
         'notes',
@@ -57,6 +61,8 @@ class FinanceAccount extends Model
     ];
 
     protected $casts = [
+        'opening_balance' => 'decimal:2',
+        'opening_balance_date' => 'date',
         'is_active' => 'boolean',
         'is_default' => 'boolean',
     ];

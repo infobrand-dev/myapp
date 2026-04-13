@@ -3,6 +3,7 @@
 namespace App\Modules\Contacts\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\Company;
 use App\Modules\Contacts\Http\Requests\BulkDestroyContactRequest;
 use App\Modules\Contacts\Http\Requests\ImportContactRequest;
 use App\Modules\Contacts\Http\Requests\MergeContactRequest;
@@ -243,6 +244,7 @@ class ContactController extends Controller
 
         return view('contacts::create', [
             'contact' => $prefill,
+            'companies' => $this->companyOptions(),
             'contactLimitState' => $this->contactLimitState(),
         ]);
     }
@@ -274,7 +276,10 @@ class ContactController extends Controller
 
     public function edit(Contact $contact): View
     {
-        return view('contacts::edit', compact('contact'));
+        return view('contacts::edit', [
+            'contact' => $contact,
+            'companies' => $this->companyOptions(),
+        ]);
     }
 
     public function update(UpdateContactRequest $request, Contact $contact): RedirectResponse
@@ -424,6 +429,10 @@ class ContactController extends Controller
             'scope',
             'name',
             'company_name',
+            'payment_term_days',
+            'credit_limit',
+            'contact_person_name',
+            'contact_person_phone',
             'job_title',
             'email',
             'phone',
@@ -438,6 +447,9 @@ class ContactController extends Controller
             'state',
             'zip',
             'country',
+            'billing_address',
+            'shipping_address',
+            'tags',
             'notes',
             'is_active',
         ];
@@ -450,6 +462,10 @@ class ContactController extends Controller
             'company',
             'Budi Santoso',
             'PT Contoh Sukses',
+            '30',
+            '5000000',
+            'Ibu Rina',
+            '628123456780',
             'Event Coordinator',
             'budi@example.com',
             '0215551234',
@@ -464,6 +480,9 @@ class ContactController extends Controller
             'DKI Jakarta',
             '10220',
             'Indonesia',
+            'Jl. Sudirman No. 10 Lt. 5',
+            'Gudang Sentra Niaga Blok A',
+            'corporate,priority',
             'Prospek event 2026',
             '1',
         ];
@@ -664,6 +683,12 @@ class ContactController extends Controller
             'companynama' => 'company_name',
             'jobtitle' => 'job_title',
             'jabatan' => 'job_title',
+            'paymenttermdays' => 'payment_term_days',
+            'paymentterm' => 'payment_term_days',
+            'creditlimit' => 'credit_limit',
+            'contactpersonname' => 'contact_person_name',
+            'contactperson' => 'contact_person_name',
+            'contactpersonphone' => 'contact_person_phone',
             'email' => 'email',
             'phone' => 'phone',
             'telepon' => 'phone',
@@ -694,6 +719,11 @@ class ContactController extends Controller
             'kodepos' => 'zip',
             'country' => 'country',
             'negara' => 'country',
+            'billingaddress' => 'billing_address',
+            'shippingaddress' => 'shipping_address',
+            'tags' => 'tags_input',
+            'tag' => 'tags_input',
+            'segment' => 'tags_input',
             'notes' => 'notes',
             'catatan' => 'notes',
             'isactive' => 'is_active',
@@ -735,6 +765,10 @@ class ContactController extends Controller
             'scope' => strtolower(trim((string) ($payload['scope'] ?? ContactScope::LEVEL_COMPANY))),
             'name' => trim((string) ($payload['name'] ?? '')),
             'company_name' => trim((string) ($payload['company_name'] ?? '')),
+            'payment_term_days' => ($payload['payment_term_days'] ?? '') === '' ? null : (int) $payload['payment_term_days'],
+            'credit_limit' => ($payload['credit_limit'] ?? '') === '' ? null : (float) $payload['credit_limit'],
+            'contact_person_name' => $this->nullableString($payload['contact_person_name'] ?? null),
+            'contact_person_phone' => $this->nullableString($payload['contact_person_phone'] ?? null),
             'job_title' => $this->nullableString($payload['job_title'] ?? null),
             'email' => $this->nullableString($payload['email'] ?? null),
             'phone' => $this->nullableString($payload['phone'] ?? null),
@@ -749,6 +783,9 @@ class ContactController extends Controller
             'state' => $this->nullableString($payload['state'] ?? null),
             'zip' => $this->nullableString($payload['zip'] ?? null),
             'country' => $this->nullableString($payload['country'] ?? null),
+            'billing_address' => $this->nullableString($payload['billing_address'] ?? null),
+            'shipping_address' => $this->nullableString($payload['shipping_address'] ?? null),
+            'tags_input' => $this->nullableString($payload['tags_input'] ?? null),
             'notes' => $this->nullableString($payload['notes'] ?? null),
             'is_active' => $this->normalizeBoolean($payload['is_active'] ?? '1'),
         ], false);
@@ -863,6 +900,18 @@ class ContactController extends Controller
 
             $data[$field] = $normalized;
         }
+
+        $data['contact_person_phone'] = ContactPhoneNormalizer::normalize($this->nullableString($data['contact_person_phone'] ?? null));
+
+        $tags = collect(explode(',', (string) ($data['tags_input'] ?? '')))
+            ->map(fn ($tag) => trim($tag))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $data['tags'] = empty($tags) ? null : $tags;
+        unset($data['tags_input']);
 
         return $data;
     }
@@ -1045,6 +1094,14 @@ class ContactController extends Controller
     private function tenantId(): int
     {
         return TenantContext::currentId();
+    }
+
+    private function companyOptions()
+    {
+        return Company::query()
+            ->where('tenant_id', $this->tenantId())
+            ->orderBy('name')
+            ->get(['id', 'name']);
     }
 
     private function buildTemplateXlsx(array $rows): string

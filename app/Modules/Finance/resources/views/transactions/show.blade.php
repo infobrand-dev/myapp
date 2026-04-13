@@ -23,6 +23,9 @@
             <h2 class="page-title">{{ $transaction->transaction_number }}</h2>
             <p class="text-muted mb-0">
                 <span class="badge {{ $typeConfig['badge'] }} me-1">{{ $typeConfig['label'] }}</span>
+                @if($transaction->isTransfer())
+                    <span class="badge bg-azure-lt text-azure me-1">Transfer</span>
+                @endif
                 {{ $transaction->transaction_date ? $transaction->transaction_date->format('d M Y, H:i') : '-' }}
             </p>
         </div>
@@ -108,6 +111,14 @@
                             </div>
                             <div>{{ $transaction->category?->name ?? '-' }}</div>
                         </div>
+                        @if($transaction->isTransfer())
+                            <div class="col-sm-6">
+                                <div class="text-muted small mb-1">
+                                    <i class="ti ti-arrows-transfer-up me-1"></i>Target Account
+                                </div>
+                                <div>{{ $transaction->counterpartyAccount?->name ?? $transaction->transferPair?->account?->name ?? '-' }}</div>
+                            </div>
+                        @endif
                     </div>
                 </div>
 
@@ -145,6 +156,16 @@
                 </div>
                 @endif
 
+                @if($transaction->attachment_path)
+                <hr class="m-0">
+                <div class="px-4 py-3">
+                    <div class="text-muted small mb-1">
+                        <i class="ti ti-paperclip me-1"></i>Attachment
+                    </div>
+                    <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($transaction->attachment_path) }}" target="_blank" rel="noreferrer">Lihat bukti transaksi</a>
+                </div>
+                @endif
+
             </div>
         </div>
     </div>
@@ -168,6 +189,8 @@
         'finance_account_id' => 'Account',
         'finance_category_id' => 'Category',
         'notes' => 'Notes',
+        'counterparty_finance_account_id' => 'Target Account',
+        'attachment_path' => 'Attachment',
         'branch_id' => 'Branch',
         'pos_cash_session_id' => 'Shift',
     ],

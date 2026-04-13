@@ -2,17 +2,28 @@
 
 namespace App\Modules\Purchases\Actions;
 
+use App\Models\AccountingJournal;
 use App\Models\User;
 use App\Modules\Purchases\Events\PurchaseVoided;
 use App\Modules\Purchases\Models\Purchase;
+use App\Support\AccountingJournalService;
+use App\Support\AccountingPeriodLockService;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
+use App\Support\SensitiveActionApprovalService;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class VoidPurchaseAction
 {
+    public function __construct(
+        private readonly SensitiveActionApprovalService $approvalService,
+        private readonly AccountingPeriodLockService $periodLockService,
+        private readonly AccountingJournalService $journalService
+    ) {
+    }
+
     public function execute(Purchase $purchase, array $data, ?User $actor = null): Purchase
     {
         $purchase = DB::transaction(function () use ($purchase, $data, $actor) {
@@ -35,6 +46,16 @@ class VoidPurchaseAction
                     'purchase' => 'Purchase yang sudah memiliki receiving tidak boleh di-void langsung.',
                 ]);
             }
+
+            $this->periodLockService->ensureDateOpen($purchase->purchase_date ?: now(), $purchase->branch_id, 'void purchase');
+            $this->approvalService->ensureApprovedOrCreatePending(
+                'purchases',
+                'void_purchase',
+                $purchase,
+                ['reason' => $data['reason'], 'status' => $purchase->status],
+                $actor,
+                $data['reason']
+            );
 
             $fromStatus = $purchase->status;
             $purchase->update([
@@ -67,7 +88,37 @@ class VoidPurchaseAction
                 'event' => 'voided',
                 'reason' => $data['reason'],
                 'actor_id' => $actor ? $actor->id : null,
+                'meta' => [
+                    'grand_total' => (float) $purchase->grand_total,
+                    'payment_status' => $purchase->payment_status,
+                    'received_total_qty' => (float) $purchase->received_total_qty,
+                ],
             ]);
+
+            $originalJournal = AccountingJournal::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
+                ->where('entry_type', 'purchase_finalized')
+                ->where('source_type', Purchase::class)
+                ->where('source_id', $purchase->id)
+                ->with('lines')
+                ->first();
+
+            if ($originalJournal && $originalJournal->lines->isNotEmpty()) {
+                $this->journalService->sync(
+                    $purchase,
+                    'purchase_void',
+                    now(),
+                    $originalJournal->lines->map(fn ($line) => [
+                        'account_code' => $line->account_code,
+                        'account_name' => $line->account_name,
+                        'debit' => (float) $line->credit,
+                        'credit' => (float) $line->debit,
+                    ])->all(),
+                    ['reason' => $data['reason']],
+                    'Reversal journal purchase void ' . $purchase->purchase_number
+                );
+            }
 
             return $purchase->refresh();
         });

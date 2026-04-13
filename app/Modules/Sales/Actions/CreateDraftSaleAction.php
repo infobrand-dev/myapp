@@ -12,6 +12,7 @@ use App\Modules\Sales\Services\SaleSnapshotService;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
@@ -60,6 +61,7 @@ class CreateDraftSaleAction
             }
 
             $totals = $this->recalculateTotals->execute($data);
+            $attachmentPath = $this->storeAttachment($data['attachment'] ?? null);
             $contact = !empty($data['contact_id'])
                 ? ContactScope::applyVisibilityScope(Contact::query()->with('parentContact'))->find($data['contact_id'])
                 : null;
@@ -96,6 +98,8 @@ class CreateDraftSaleAction
                     'balance_due' => $totals['grand_total'],
                     'currency_code' => $data['currency_code'] ?? 'IDR',
                     'notes' => $data['notes'] ?? null,
+                    'customer_note' => $data['customer_note'] ?? null,
+                    'attachment_path' => $attachmentPath,
                     'totals_snapshot' => $totals['totals_snapshot'],
                     'meta' => $this->idempotencyService->mergeMeta([
                         'source_context' => $data['source_context'] ?? null,
@@ -150,5 +154,14 @@ class CreateDraftSaleAction
 
             return $row;
         }, $rows);
+    }
+
+    private function storeAttachment(mixed $attachment): ?string
+    {
+        if (!$attachment instanceof UploadedFile) {
+            return null;
+        }
+
+        return $attachment->store('sales/attachments', 'public');
     }
 }

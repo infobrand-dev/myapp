@@ -8,6 +8,10 @@
     </div>
 @endif
 
+@php
+    $initialItems = old('items', $initialItems ?? [['product_id' => '']]);
+@endphp
+
 <form method="POST" action="{{ $submitRoute }}">
     @csrf
     <div class="row g-3">
@@ -45,6 +49,7 @@
                     <button type="button" class="btn btn-outline-primary btn-sm" id="add-item-row">Tambah Item</button>
                 </div>
                 <div class="card-body" id="item-rows">
+                    @foreach($initialItems as $rowIndex => $row)
                     <div class="row g-2 align-items-end item-row mb-2">
                         <div class="col-md-4">
                             @include('shared.accounting.field-label', [
@@ -52,10 +57,10 @@
                                 'tooltip' => 'Pilih produk yang stoknya akan diproses pada dokumen inventory ini.',
                                 'required' => true,
                             ])
-                            <select name="items[0][product_id]" class="form-select">
+                            <select name="items[{{ $rowIndex }}][product_id]" class="form-select">
                                 <option value="">Pilih produk</option>
                                 @foreach($products as $product)
-                                    <option value="{{ $product->id }}">{{ $product->name }} ({{ $product->sku }})</option>
+                                    <option value="{{ $product->id }}" @selected((string) ($row['product_id'] ?? '') === (string) $product->id)>{{ $product->name }} ({{ $product->sku }})</option>
                                 @endforeach
                             </select>
                         </div>
@@ -67,13 +72,13 @@
                                     'required' => (bool) ($field['required'] ?? false),
                                 ])
                                 @if(($field['type'] ?? 'text') === 'select')
-                                    <select name="items[0][{{ $field['name'] }}]" class="form-select">
+                                    <select name="items[{{ $rowIndex }}][{{ $field['name'] }}]" class="form-select">
                                         @foreach($field['options'] as $value => $label)
-                                            <option value="{{ $value }}">{{ $label }}</option>
+                                            <option value="{{ $value }}" @selected((string) ($row[$field['name']] ?? $field['value'] ?? '') === (string) $value)>{{ $label }}</option>
                                         @endforeach
                                     </select>
                                 @else
-                                    <input type="{{ $field['type'] ?? 'text' }}" name="items[0][{{ $field['name'] }}]" class="form-control" value="{{ $field['value'] ?? '' }}">
+                                    <input type="{{ $field['type'] ?? 'text' }}" name="items[{{ $rowIndex }}][{{ $field['name'] }}]" class="form-control" value="{{ $row[$field['name']] ?? $field['value'] ?? '' }}">
                                 @endif
                             </div>
                         @endforeach
@@ -81,6 +86,7 @@
                             <button type="button" class="btn btn-outline-danger w-100 remove-item-row">X</button>
                         </div>
                     </div>
+                    @endforeach
                 </div>
             </div>
 

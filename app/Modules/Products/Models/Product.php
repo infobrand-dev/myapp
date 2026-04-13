@@ -129,6 +129,11 @@ class Product extends Model
         return $this->hasMany(ProductMedia::class, 'product_id')->orderBy('sort_order');
     }
 
+    public function priceHistories(): HasMany
+    {
+        return $this->hasMany(ProductPriceHistory::class, 'product_id')->latest('recorded_at');
+    }
+
     public function gallery(): HasMany
     {
         return $this->media()->where('collection_name', 'gallery');

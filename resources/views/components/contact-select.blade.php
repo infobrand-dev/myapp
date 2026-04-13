@@ -45,7 +45,7 @@ $detailUrl = ($currentId && Route::has('contacts.show'))
         {{ $label }}
         @if($required) <span class="text-danger">*</span> @endif
     </label>
-    <div class="d-flex gap-2 align-items-start">
+    <div class="d-flex gap-2 align-items-center">
         <div class="flex-grow-1">
             {{-- Hidden select that Tom Select attaches to --}}
             <select
@@ -72,22 +72,23 @@ $detailUrl = ($currentId && Route::has('contacts.show'))
             @endif
         </div>
 
-        {{-- Magnifier link to open contact detail in new tab --}}
+        {{-- Link to open contact detail in new tab --}}
         @if($showLink)
         <a id="{{ $uid }}-link"
            href="{{ $detailUrl ?? '#' }}"
            target="_blank"
            rel="noopener noreferrer"
-           class="btn btn-outline-secondary mt-0"
+           class="btn btn-icon btn-outline-secondary flex-shrink-0"
            title="Lihat detail contact"
-           style="display:{{ $currentId ? 'inline-flex' : 'none' }}; align-items:center; justify-content:center; height:2.223rem; padding:0 .6rem; flex-shrink:0;"
+           style="display:{{ $currentId ? 'inline-flex' : 'none' }};"
         >
-            <i class="ti ti-external-link" style="font-size:1rem;" aria-hidden="true"></i>
+            <i class="ti ti-external-link" aria-hidden="true"></i>
         </a>
         @endif
     </div>
 </div>
 
+@once
 @push('scripts')
 <script>
 (function () {
@@ -202,14 +203,16 @@ $detailUrl = ($currentId && Route::has('contacts.show'))
 })();
 </script>
 @endpush
+@endonce
 
+@once
 @push('styles')
-<link rel="stylesheet"
-    href="{{ asset('vendor/tom-select/tom-select.bootstrap5.min.css') }}"
-    id="tom-select-css">
-<script src="{{ asset('vendor/tom-select/tom-select.complete.min.js') }}"
-    id="tom-select-js"></script>
+<link rel="stylesheet" href="{{ asset('vendor/tom-select/tom-select.bootstrap5.min.css') }}">
 @endpush
+@push('scripts')
+<script src="{{ asset('vendor/tom-select/tom-select.complete.min.js') }}"></script>
+@endpush
+@endonce
 
 @else
 {{-- Fallback: contacts module not active or route doesn't exist --}}

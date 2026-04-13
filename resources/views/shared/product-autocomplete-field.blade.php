@@ -19,8 +19,8 @@
         name="{{ $keyName }}"
         value="{{ $selectedKey ?? '' }}"
         data-item-key>
-    <div class="position-absolute w-100 border rounded bg-white shadow-sm d-none"
-        style="top:calc(100% + 2px); z-index:1050; max-height:240px; overflow-y:auto;"
+    <div class="position-absolute w-100 border rounded d-none"
+        style="top:calc(100% + 2px); z-index:1050; max-height:240px; overflow-y:auto; background:var(--tblr-bg-surface); border-color:var(--tblr-border-color) !important; box-shadow:0 4px 16px rgba(0,0,0,.1);"
         data-item-dropdown></div>
 </div>
 <div class="form-hint" data-item-hint>

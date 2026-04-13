@@ -13,10 +13,13 @@
     $selectedAccountId = old('finance_account_id', $transaction->finance_account_id ?? $accountDefaultId);
     $selectedCategoryId = old('finance_category_id', $transaction->finance_category_id ?? null);
     $selectedType = old('transaction_type', $transaction->transaction_type ?? 'cash_out');
+    $selectedEntryMode = old('entry_mode', $transaction->isTransfer() ? \App\Modules\Finance\Models\FinanceTransaction::ENTRY_MODE_TRANSFER : \App\Modules\Finance\Models\FinanceTransaction::ENTRY_MODE_STANDARD);
+    $selectedCounterpartyAccountId = old('counterparty_finance_account_id', $transaction->counterparty_finance_account_id ?? optional($transaction->transferPair)->finance_account_id);
     $selectedDate = old('transaction_date', isset($transaction) && $transaction->transaction_date ? $transaction->transaction_date->format('Y-m-d\TH:i') : now()->format('Y-m-d\TH:i'));
     $selectedAmount = old('amount', $transaction->amount ?? null);
     $selectedShiftId = old('pos_cash_session_id', $transaction->pos_cash_session_id ?? null);
     $selectedNotes = old('notes', $transaction->notes ?? null);
+    $currentAttachmentPath = $transaction->attachment_path ?? null;
 @endphp
 
 <div class="card">
@@ -28,6 +31,18 @@
     </div>
     <div class="card-body">
         <div class="row g-3">
+            <div class="col-md-4">
+                @include('shared.accounting.field-label', [
+                    'label' => 'Entry Mode',
+                    'required' => true,
+                    'tooltip' => 'Gunakan standard untuk cash in, cash out, atau expense biasa. Gunakan transfer untuk memindahkan saldo antar account.',
+                ])
+                <select name="entry_mode" id="finance-entry-mode" class="form-select @error('entry_mode') is-invalid @enderror" required>
+                    <option value="{{ \App\Modules\Finance\Models\FinanceTransaction::ENTRY_MODE_STANDARD }}" @selected($selectedEntryMode === \App\Modules\Finance\Models\FinanceTransaction::ENTRY_MODE_STANDARD)>Standard</option>
+                    <option value="{{ \App\Modules\Finance\Models\FinanceTransaction::ENTRY_MODE_TRANSFER }}" @selected($selectedEntryMode === \App\Modules\Finance\Models\FinanceTransaction::ENTRY_MODE_TRANSFER)>Transfer Antar Account</option>
+                </select>
+                @error('entry_mode') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
             <div class="col-md-4">
                 @include('shared.accounting.field-label', [
                     'label' => 'Type',
@@ -77,9 +92,9 @@
                 @include('shared.accounting.field-label', [
                     'label' => 'Category',
                     'required' => true,
-                    'tooltip' => 'Category membantu pengelompokan arus kas. Pilih category yang sesuai agar laporan finance lebih rapi.',
+                    'tooltip' => 'Category membantu pengelompokan arus kas. Untuk transfer, category sistem akan dipilih otomatis.',
                 ])
-                <select name="finance_category_id" id="finance-category-select" class="form-select @error('finance_category_id') is-invalid @enderror" required>
+                <select name="finance_category_id" id="finance-category-select" class="form-select @error('finance_category_id') is-invalid @enderror">
                     <option value="">Select category</option>
                     @foreach($groupedCategories as $transactionType => $categoryGroup)
                         <optgroup label="{{ $categoryTypeLabels[$transactionType] ?? ucfirst(str_replace('_', ' ', $transactionType)) }}">
@@ -89,7 +104,21 @@
                         </optgroup>
                     @endforeach
                 </select>
+                <div class="form-hint" id="finance-category-hint">Untuk mode transfer, field ini tidak wajib dan akan diisi otomatis dengan kategori transfer sistem.</div>
                 @error('finance_category_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+            <div class="col-md-6" id="finance-counterparty-account-wrapper">
+                @include('shared.accounting.field-label', [
+                    'label' => 'Target Account',
+                    'tooltip' => 'Pilih account tujuan saat memindahkan saldo antar cash, bank, atau e-wallet.',
+                ])
+                <select name="counterparty_finance_account_id" id="finance-counterparty-account" class="form-select @error('counterparty_finance_account_id') is-invalid @enderror">
+                    <option value="">Select target account</option>
+                    @foreach($accounts as $account)
+                        <option value="{{ $account->id }}" @selected((string) $selectedCounterpartyAccountId === (string) $account->id)>{{ $account->name }} ({{ \App\Modules\Finance\Models\FinanceAccount::typeOptions()[$account->account_type] ?? $account->account_type }})</option>
+                    @endforeach
+                </select>
+                @error('counterparty_finance_account_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
             @if($isAdvancedMode)
                 <div class="col-md-3">
@@ -131,8 +160,19 @@
             @endif
             <div class="col-12">
                 @include('shared.accounting.field-label', [
+                    'label' => 'Attachment',
+                    'tooltip' => 'Unggah bukti transaksi seperti nota, mutasi bank, atau screenshot transfer jika tersedia.',
+                ])
+                <input type="file" name="attachment" class="form-control @error('attachment') is-invalid @enderror">
+                @if($currentAttachmentPath)
+                    <div class="form-hint">File saat ini: <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($currentAttachmentPath) }}" target="_blank" rel="noreferrer">Lihat lampiran</a></div>
+                @endif
+                @error('attachment') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+            <div class="col-12">
+                @include('shared.accounting.field-label', [
                     'label' => 'Notes',
-                    'tooltip' => 'Catatan tambahan untuk menjelaskan konteks transaksi. Boleh dikosongkan jika transaksinya sudah jelas.',
+                    'tooltip' => 'Catatan tambahan untuk menjelaskan konteks transaksi. Pada transfer, catatan ini disalin ke transaksi keluar dan masuk.',
                 ])
                 <textarea name="notes" class="form-control @error('notes') is-invalid @enderror" rows="4">{{ $selectedNotes }}</textarea>
                 @error('notes') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -146,3 +186,34 @@
         </button>
     </div>
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const entryModeInput = document.getElementById('finance-entry-mode');
+    const typeInput = document.getElementById('finance-transaction-type');
+    const categoryInput = document.getElementById('finance-category-select');
+    const categoryHint = document.getElementById('finance-category-hint');
+    const counterpartyWrapper = document.getElementById('finance-counterparty-account-wrapper');
+
+    if (!entryModeInput || !typeInput || !categoryInput || !counterpartyWrapper) {
+        return;
+    }
+
+    const syncFinanceEntryMode = () => {
+        const isTransfer = entryModeInput.value === '{{ \App\Modules\Finance\Models\FinanceTransaction::ENTRY_MODE_TRANSFER }}';
+        counterpartyWrapper.style.display = isTransfer ? '' : 'none';
+        categoryInput.required = !isTransfer;
+        categoryInput.disabled = isTransfer;
+        typeInput.value = isTransfer ? '{{ \App\Modules\Finance\Models\FinanceTransaction::TYPE_CASH_OUT }}' : typeInput.value;
+
+        if (categoryHint) {
+            categoryHint.style.display = isTransfer ? 'block' : 'none';
+        }
+    };
+
+    entryModeInput.addEventListener('change', syncFinanceEntryMode);
+    syncFinanceEntryMode();
+});
+</script>
+@endpush

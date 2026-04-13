@@ -26,64 +26,64 @@ Sudah diperbaiki:
 
 ## Prioritas 1
 ### Products
-- [ ] opening stock helper yang redirect atau terhubung ke workflow `inventory`
+- [x] opening stock helper yang redirect atau terhubung ke workflow `inventory`
 - [x] margin preview dari `cost_price` vs `sell_price`
 - [x] default supplier per product
-- [ ] riwayat harga beli dan harga jual
+- [x] riwayat harga beli dan harga jual
 - [x] minimum stock dan reorder point
 
 ### Sales
-- [ ] header-level discount
-- [ ] header-level tax
+- [x] header-level discount
+- [x] header-level tax
 - [x] due date / tempo untuk piutang
-- [ ] attachment dokumen transaksi
-- [ ] note internal vs note customer
+- [x] attachment dokumen transaksi
+- [x] note internal vs note customer
 - [x] status piutang yang lebih jelas di detail sale
 
 ### Payments
-- [ ] edit allocation setelah payment dibuat
-- [ ] overpayment dan underpayment handling
+- [x] edit allocation setelah payment dibuat
+- [x] overpayment dan underpayment handling
 - [x] upload bukti bayar
 - [x] reconciliation status
-- [ ] branch-aware payment posting yang lebih jelas
+- [x] branch-aware payment posting yang lebih jelas
 
 ### Finance
-- [ ] transfer antar account
-- [ ] running balance per account
-- [ ] cashbook view yang lebih eksplisit
-- [ ] attachment bukti transaksi
-- [ ] opening balance account
+- [x] transfer antar account
+- [x] running balance per account
+- [x] cashbook view yang lebih eksplisit
+- [x] attachment bukti transaksi
+- [x] opening balance account
 
 ## Prioritas 2
 ### Purchases
-- [ ] expected receive date
-- [ ] UX partial receiving yang lebih mudah
-- [ ] biaya tambahan pembelian / landed cost
+- [x] expected receive date
+- [x] UX partial receiving yang lebih mudah
+- [x] biaya tambahan pembelian / landed cost
 - [x] status hutang supplier yang lebih eksplisit
-- [ ] supplier bill tracking
+- [x] supplier bill tracking
 
 ### Contacts
-- [ ] payment term
-- [ ] credit limit
-- [ ] contact person
-- [ ] billing vs shipping address
-- [ ] segment atau tag customer/supplier
+- [x] payment term
+- [x] credit limit
+- [x] contact person
+- [x] billing vs shipping address
+- [x] segment atau tag customer/supplier
 
 ### Reports
-- [ ] laporan laba rugi sederhana
-- [ ] arus kas
-- [ ] aging piutang
-- [ ] aging hutang
-- [ ] margin per product
-- [ ] sales by customer
-- [ ] purchase by supplier
+- [x] laporan laba rugi sederhana
+- [x] arus kas
+- [x] aging piutang
+- [x] aging hutang
+- [x] margin per product
+- [x] sales by customer
+- [x] purchase by supplier
 
 ## Prioritas 3
-- [ ] auto journal dari sales, purchases, payments, refunds
-- [ ] period closing / lock transaksi
-- [ ] approval flow untuk void atau edit transaksi sensitif
-- [ ] import bulk untuk products, contacts, opening balance
-- [ ] audit trail yang lebih kaya untuk perubahan harga dan perubahan status
+- [x] auto journal dari sales, purchases, payments, refunds
+- [x] period closing / lock transaksi
+- [x] approval flow untuk void atau edit transaksi sensitif
+- [x] import bulk untuk products, contacts, opening balance
+- [x] audit trail yang lebih kaya untuk perubahan harga dan perubahan status
 
 ## Dampak ke Plan / Pricing
 - `Accounting Starter`: `products`, `sales`, `payments`, `finance`, `reports`, `contacts`
@@ -98,8 +98,8 @@ Implikasi:
 
 ## Urutan Eksekusi yang Disarankan
 1. [x] `products`: supplier default, margin preview, min stock, reorder point
-2. [ ] `sales`: due date, header discount/tax, attachment
-3. [ ] `payments`: proof of payment, better allocation management
-4. [ ] `finance`: transfer account, running balance, opening balance
-5. [ ] `purchases`: landed cost, expected receive date, supplier bill tracking
-6. [ ] `reports`: arus kas, aging, laba rugi sederhana
+2. [x] `sales`: due date, header discount/tax, attachment
+3. [x] `payments`: proof of payment, better allocation management
+4. [x] `finance`: transfer account, running balance, opening balance
+5. [x] `purchases`: landed cost, expected receive date, supplier bill tracking
+6. [x] `reports`: arus kas, aging, laba rugi sederhana

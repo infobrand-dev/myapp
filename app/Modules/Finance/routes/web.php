@@ -1,5 +1,8 @@
 <?php
 
+use App\Modules\Finance\Http\Controllers\AccountingApprovalController;
+use App\Modules\Finance\Http\Controllers\AccountingJournalController;
+use App\Modules\Finance\Http\Controllers\AccountingPeriodLockController;
 use App\Modules\Finance\Http\Controllers\FinanceCategoryController;
 use App\Modules\Finance\Http\Controllers\FinanceAccountController;
 use App\Modules\Finance\Http\Controllers\FinanceTransactionController;
@@ -10,12 +13,20 @@ Route::middleware(['web', 'auth', 'plan.feature:accounting'])
     ->name('finance.')
     ->group(function () {
         Route::get('/transactions', [FinanceTransactionController::class, 'index'])->middleware('permission:finance.view')->name('transactions.index');
+        Route::get('/transactions/cashbook', [FinanceTransactionController::class, 'cashbook'])->middleware('permission:finance.view')->name('transactions.cashbook');
         Route::get('/transactions/create', [FinanceTransactionController::class, 'create'])->middleware('permission:finance.create')->name('transactions.create');
         Route::post('/transactions', [FinanceTransactionController::class, 'store'])->middleware('permission:finance.create')->name('transactions.store');
         Route::get('/transactions/{transaction}', [FinanceTransactionController::class, 'show'])->middleware('permission:finance.view')->name('transactions.show');
         Route::get('/transactions/{transaction}/edit', [FinanceTransactionController::class, 'edit'])->middleware('permission:finance.create')->name('transactions.edit');
         Route::put('/transactions/{transaction}', [FinanceTransactionController::class, 'update'])->middleware('permission:finance.create')->name('transactions.update');
         Route::delete('/transactions/{transaction}', [FinanceTransactionController::class, 'destroy'])->middleware('permission:finance.create')->name('transactions.destroy');
+        Route::get('/journals', [AccountingJournalController::class, 'index'])->middleware('permission:finance.view-journal')->name('journals.index');
+        Route::get('/approvals', [AccountingApprovalController::class, 'index'])->middleware('permission:finance.approve-sensitive-transactions')->name('approvals.index');
+        Route::post('/approvals/{approvalRequest}/approve', [AccountingApprovalController::class, 'approve'])->middleware('permission:finance.approve-sensitive-transactions')->name('approvals.approve');
+        Route::post('/approvals/{approvalRequest}/reject', [AccountingApprovalController::class, 'reject'])->middleware('permission:finance.approve-sensitive-transactions')->name('approvals.reject');
+        Route::get('/period-locks', [AccountingPeriodLockController::class, 'index'])->middleware('permission:finance.manage-period-locks')->name('period-locks.index');
+        Route::post('/period-locks', [AccountingPeriodLockController::class, 'store'])->middleware('permission:finance.manage-period-locks')->name('period-locks.store');
+        Route::delete('/period-locks/{accountingPeriodLock}', [AccountingPeriodLockController::class, 'destroy'])->middleware('permission:finance.manage-period-locks')->name('period-locks.destroy');
 
         Route::get('/categories', [FinanceCategoryController::class, 'index'])->middleware('permission:finance.manage-categories')->name('categories.index');
         Route::post('/categories', [FinanceCategoryController::class, 'store'])->middleware('permission:finance.manage-categories')->name('categories.store');

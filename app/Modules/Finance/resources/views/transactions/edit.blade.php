@@ -29,7 +29,7 @@
     </div>
 @endif
 
-<form method="POST" action="{{ route('finance.transactions.update', $transaction) }}">
+<form method="POST" action="{{ route('finance.transactions.update', $transaction) }}" enctype="multipart/form-data">
     @csrf
     @method('PUT')
     @include('finance::transactions.partials.form', [

@@ -23,6 +23,8 @@ class StoreFinanceAccountRequest extends FormRequest
             'name' => ['required', 'string', 'max:100'],
             'account_type' => ['required', Rule::in(array_keys(FinanceAccount::typeOptions()))],
             'account_number' => ['nullable', 'string', 'max:100'],
+            'opening_balance' => ['nullable', 'numeric'],
+            'opening_balance_date' => ['nullable', 'date'],
             'is_active' => ['nullable', 'boolean'],
             'is_default' => ['nullable', 'boolean'],
             'notes' => ['nullable', 'string'],
@@ -35,5 +37,13 @@ class StoreFinanceAccountRequest extends FormRequest
                     ->where('company_id', CompanyContext::currentId())),
             ],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'opening_balance' => $this->input('opening_balance') === '' ? null : $this->input('opening_balance'),
+            'opening_balance_date' => $this->input('opening_balance_date') === '' ? null : $this->input('opening_balance_date'),
+        ]);
     }
 }

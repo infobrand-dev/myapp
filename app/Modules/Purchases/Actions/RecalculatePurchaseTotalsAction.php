@@ -105,15 +105,16 @@ class RecalculatePurchaseTotalsAction
             ];
         });
 
-        return $this->summaries($items);
+        return $this->summaries($items, $data);
     }
 
-    private function summaries(Collection $items): array
+    private function summaries(Collection $items, array $data): array
     {
         $subtotal = round($items->sum('line_subtotal'), 2);
         $discountTotal = round($items->sum('discount_total'), 2);
         $taxTotal = round($items->sum('tax_total'), 2);
-        $grandTotal = round($items->sum('line_total'), 2);
+        $landedCostTotal = round(max(0, (float) ($data['landed_cost_total'] ?? 0)), 2);
+        $grandTotal = round($items->sum('line_total') + $landedCostTotal, 2);
 
         if ($grandTotal < 0) {
             throw ValidationException::withMessages([
@@ -126,12 +127,14 @@ class RecalculatePurchaseTotalsAction
             'subtotal' => $subtotal,
             'discount_total' => $discountTotal,
             'tax_total' => $taxTotal,
+            'landed_cost_total' => $landedCostTotal,
             'grand_total' => $grandTotal,
             'totals_snapshot' => [
                 'item_count' => $items->count(),
                 'subtotal' => $subtotal,
                 'discount_total' => $discountTotal,
                 'tax_total' => $taxTotal,
+                'landed_cost_total' => $landedCostTotal,
                 'grand_total' => $grandTotal,
             ],
         ];

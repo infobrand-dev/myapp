@@ -105,10 +105,21 @@
                         </div>
                     </div>
                 @endif
+                @if($purchase->expected_receive_date)
+                    <div class="mb-3">
+                        <div class="text-muted small">Expected Receive</div>
+                        <div>{{ $purchase->expected_receive_date->format('d M Y') }}</div>
+                    </div>
+                @endif
                 @if($isAdvancedMode)
                     <div class="mb-3"><div class="text-muted small">Supplier Ref</div><div>{{ $purchase->supplier_reference ?: '-' }}</div><div class="text-muted small">Invoice: {{ $purchase->supplier_invoice_number ?: '-' }}</div></div>
+                    <div class="mb-3">
+                        <div class="text-muted small">Supplier Bill Tracking</div>
+                        <div>{{ $supplierBillStatusOptions[$purchase->supplier_bill_status] ?? ucfirst((string) $purchase->supplier_bill_status) }}</div>
+                        <div class="text-muted small">Received at: {{ optional($purchase->supplier_bill_received_at)->format('d M Y') ?: '-' }}</div>
+                    </div>
                 @endif
-                <div class="mb-3"><div class="text-muted small">Totals</div><div>Subtotal: {{ $money->format((float) $purchase->subtotal, $purchase->currency_code) }}</div><div>Discount: {{ $money->format((float) $purchase->discount_total, $purchase->currency_code) }}</div><div>Tax: {{ $money->format((float) $purchase->tax_total, $purchase->currency_code) }}</div><div class="fw-semibold">Grand: {{ $money->format((float) $purchase->grand_total, $purchase->currency_code) }}</div><div>Paid: {{ $money->format((float) $purchase->paid_total, $purchase->currency_code) }}</div><div>Balance: {{ $money->format((float) $purchase->balance_due, $purchase->currency_code) }}</div></div>
+                <div class="mb-3"><div class="text-muted small">Totals</div><div>Subtotal: {{ $money->format((float) $purchase->subtotal, $purchase->currency_code) }}</div><div>Discount: {{ $money->format((float) $purchase->discount_total, $purchase->currency_code) }}</div><div>Tax: {{ $money->format((float) $purchase->tax_total, $purchase->currency_code) }}</div><div>Landed Cost: {{ $money->format((float) $purchase->landed_cost_total, $purchase->currency_code) }}</div><div class="fw-semibold">Grand: {{ $money->format((float) $purchase->grand_total, $purchase->currency_code) }}</div><div>Paid: {{ $money->format((float) $purchase->paid_total, $purchase->currency_code) }}</div><div>Balance: {{ $money->format((float) $purchase->balance_due, $purchase->currency_code) }}</div></div>
                 <div class="mb-3"><div class="text-muted small">Notes</div><div>{{ $purchase->notes ?: '-' }}</div></div>
 
                 @if($purchase->status === 'draft')
@@ -163,12 +174,16 @@
         'payment_status' => 'Payment status',
         'purchase_date' => 'Purchase date',
         'due_date' => 'Due date',
+        'expected_receive_date' => 'Expected receive date',
         'subtotal' => 'Subtotal',
         'discount_total' => 'Discount',
         'tax_total' => 'Tax',
+        'landed_cost_total' => 'Landed cost',
         'grand_total' => 'Grand total',
         'paid_total' => 'Paid',
         'balance_due' => 'Balance due',
+        'supplier_bill_status' => 'Supplier bill status',
+        'supplier_bill_received_at' => 'Bill received date',
         'currency_code' => 'Currency',
         'notes' => 'Notes',
         'internal_notes' => 'Internal notes',

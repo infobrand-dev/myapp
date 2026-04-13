@@ -33,17 +33,27 @@ class Contact extends Model
         'vat',
         'company_registry',
         'industry',
+        'payment_term_days',
+        'credit_limit',
+        'contact_person_name',
+        'contact_person_phone',
         'street',
         'street2',
         'city',
         'state',
         'zip',
         'country',
+        'billing_address',
+        'shipping_address',
+        'tags',
         'notes',
         'is_active',
     ];
 
     protected $casts = [
+        'payment_term_days' => 'integer',
+        'credit_limit' => 'decimal:2',
+        'tags' => 'array',
         'is_active' => 'boolean',
     ];
 

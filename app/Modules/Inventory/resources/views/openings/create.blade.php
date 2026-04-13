@@ -23,6 +23,7 @@
     'submitRoute' => route('inventory.openings.store'),
     'cancelRoute' => route('inventory.openings.index'),
     'products' => $products,
+    'initialItems' => $initialItems ?? [],
     'metaFields' => [
         ['name' => 'inventory_location_id', 'label' => 'Location', 'type' => 'select', 'options' => $locations->pluck('name', 'id')->all(), 'required' => true, 'tooltip' => 'Lokasi penyimpanan stok awal yang akan dibuat. Pilih lokasi yang benar agar saldo awal tidak masuk ke gudang yang salah.'],
         ['name' => 'opening_date', 'label' => 'Opening Date', 'type' => 'date', 'value' => now()->toDateString(), 'column' => 'col-md-6', 'required' => true, 'tooltip' => 'Tanggal saat saldo awal stok mulai dianggap berlaku. Biasanya diisi tanggal mulai penggunaan sistem.'],

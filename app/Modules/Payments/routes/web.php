@@ -17,6 +17,8 @@ Route::middleware(['web', 'auth', 'plan.feature:accounting'])
         Route::get('/', [PaymentController::class, 'index'])->middleware('permission:payments.view')->name('index');
         Route::get('/create', [PaymentController::class, 'create'])->middleware('permission:payments.create')->name('create');
         Route::post('/', [PaymentController::class, 'store'])->middleware('permission:payments.create')->name('store');
+        Route::get('/{payment}/edit', [PaymentController::class, 'edit'])->middleware('permission:payments.create')->name('edit');
+        Route::put('/{payment}', [PaymentController::class, 'update'])->middleware('permission:payments.create')->name('update');
         Route::get('/{payment}', [PaymentController::class, 'show'])->middleware('permission:payments.view')->name('show');
         Route::post('/{payment}/void', [PaymentController::class, 'void'])->middleware('permission:payments.void')->name('void');
     });

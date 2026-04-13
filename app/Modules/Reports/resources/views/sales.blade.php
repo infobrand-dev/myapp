@@ -32,7 +32,7 @@
 <div class="row g-3 mb-3">
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Transactions</div><div class="fs-2 fw-bold">{{ $summary['transaction_count'] }}</div></div></div></div>
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Gross Sales</div><div class="fs-2 fw-bold">{{ $money->format((float) $summary['gross_total'], $currency) }}</div></div></div></div>
-    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Paid Total</div><div class="fs-2 fw-bold">{{ $money->format((float) $summary['paid_total'], $currency) }}</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Paid Total</div><div class="fs-2 fw-bold">{{ $money->format((float) $summary['paid_total'], $currency) }}</div><div class="text-muted small mt-1">Receivable: {{ $money->format((float) $summary['receivable_total'], $currency) }}</div></div></div></div>
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Item Qty</div><div class="fs-2 fw-bold">{{ number_format((float) $summary['item_qty'], 2, ',', '.') }}</div><div class="text-muted small mt-1">Avg ticket: {{ $money->format((float) $summary['average_ticket'], $currency) }}</div></div></div></div>
 </div>
 
@@ -56,7 +56,25 @@
         </tbody></table></div></div>
     </div>
     <div class="col-lg-6">
-        <div class="card"><div class="card-header"><h3 class="card-title mb-0">By Product</h3></div><div class="table-responsive"><table class="table table-vcenter"><thead><tr><th>Product</th><th>Qty</th><th>Transactions</th><th>Gross</th></tr></thead><tbody>
+        <div class="card"><div class="card-header"><h3 class="card-title mb-0">Margin per Product</h3></div><div class="table-responsive"><table class="table table-vcenter"><thead><tr><th>Product</th><th>Qty</th><th>Revenue</th><th>Margin</th></tr></thead><tbody>
+            @forelse($marginByProduct as $row)
+                <tr><td>{{ $row->product_name_snapshot }}@if($row->variant_name_snapshot)<div class="text-muted small">{{ $row->variant_name_snapshot }}</div>@endif</td><td>{{ number_format((float) $row->qty_sold, 2, ',', '.') }}</td><td>{{ $money->format((float) $row->revenue_total, $currency) }}</td><td>{{ $money->format((float) $row->estimated_margin_total, $currency) }}</td></tr>
+            @empty
+                <tr><td colspan="4" class="text-center text-muted">Tidak ada data.</td></tr>
+            @endforelse
+        </tbody></table></div></div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card"><div class="card-header"><h3 class="card-title mb-0">Sales by Customer</h3></div><div class="table-responsive"><table class="table table-vcenter"><thead><tr><th>Customer</th><th>Transactions</th><th>Gross</th><th>Paid</th></tr></thead><tbody>
+            @forelse($byCustomer as $row)
+                <tr><td>{{ $row->customer_name }}</td><td>{{ $row->transaction_count }}</td><td>{{ $money->format((float) $row->gross_total, $currency) }}</td><td>{{ $money->format((float) $row->paid_total, $currency) }}</td></tr>
+            @empty
+                <tr><td colspan="4" class="text-center text-muted">Tidak ada data.</td></tr>
+            @endforelse
+        </tbody></table></div></div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card"><div class="card-header"><h3 class="card-title mb-0">Volume by Product</h3></div><div class="table-responsive"><table class="table table-vcenter"><thead><tr><th>Product</th><th>Qty</th><th>Transactions</th><th>Gross</th></tr></thead><tbody>
             @forelse($byProduct as $row)
                 <tr><td>{{ $row->product_name_snapshot }}@if($row->variant_name_snapshot)<div class="text-muted small">{{ $row->variant_name_snapshot }}</div>@endif</td><td>{{ number_format((float) $row->qty_sold, 2, ',', '.') }}</td><td>{{ $row->transaction_count }}</td><td>{{ $money->format((float) $row->gross_total, $currency) }}</td></tr>
             @empty
@@ -65,11 +83,11 @@
         </tbody></table></div></div>
     </div>
     <div class="col-lg-6">
-        <div class="card"><div class="card-header"><h3 class="card-title mb-0">By Customer</h3></div><div class="table-responsive"><table class="table table-vcenter"><thead><tr><th>Customer</th><th>Transactions</th><th>Gross</th><th>Paid</th></tr></thead><tbody>
-            @forelse($byCustomer as $row)
-                <tr><td>{{ $row->customer_name }}</td><td>{{ $row->transaction_count }}</td><td>{{ $money->format((float) $row->gross_total, $currency) }}</td><td>{{ $money->format((float) $row->paid_total, $currency) }}</td></tr>
+        <div class="card"><div class="card-header"><h3 class="card-title mb-0">Aging Piutang</h3></div><div class="table-responsive"><table class="table table-vcenter"><thead><tr><th>Bucket</th><th>Transactions</th><th>Balance Due</th></tr></thead><tbody>
+            @forelse($receivableAging as $row)
+                <tr><td>{{ $row->aging_bucket }}</td><td>{{ $row->transaction_count }}</td><td>{{ $money->format((float) $row->balance_due_total, $currency) }}</td></tr>
             @empty
-                <tr><td colspan="4" class="text-center text-muted">Tidak ada data.</td></tr>
+                <tr><td colspan="3" class="text-center text-muted">Tidak ada data.</td></tr>
             @endforelse
         </tbody></table></div></div>
     </div>

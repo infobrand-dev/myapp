@@ -68,6 +68,15 @@ class PurchaseLookupService
         ];
     }
 
+    public function supplierBillStatusOptions(): array
+    {
+        return [
+            Purchase::BILL_PENDING => 'Pending Bill',
+            Purchase::BILL_RECEIVED => 'Bill Received',
+            Purchase::BILL_VERIFIED => 'Bill Verified',
+        ];
+    }
+
     public function dependencyMap(): array
     {
         return [

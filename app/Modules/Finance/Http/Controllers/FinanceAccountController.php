@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Finance\Http\Requests\StoreFinanceAccountRequest;
 use App\Modules\Finance\Http\Requests\UpdateFinanceAccountRequest;
 use App\Modules\Finance\Models\FinanceAccount;
+use App\Modules\Finance\Models\FinanceTransaction;
 use App\Modules\Finance\Services\FinanceAccountProvisioner;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
@@ -20,17 +21,37 @@ class FinanceAccountController extends Controller
     public function index(FinanceAccountProvisioner $provisioner): View
     {
         $companyId = $this->requireCurrentCompanyId();
+        $tenantId = TenantContext::currentId();
         $provisioner->ensureDefaults(TenantContext::currentId(), $companyId, auth()->id());
+
+        $balanceSubquery = FinanceTransaction::query()
+            ->selectRaw("finance_account_id, COALESCE(SUM(CASE WHEN transaction_type = ? THEN amount ELSE -amount END), 0) as balance_delta", ['cash_in'])
+            ->where('tenant_id', $tenantId)
+            ->where('company_id', $companyId)
+            ->groupBy('finance_account_id');
 
         return view('finance::accounts.index', [
             'accounts' => FinanceAccount::query()
-                ->where('tenant_id', TenantContext::currentId())
+                ->where('tenant_id', $tenantId)
                 ->where('company_id', $companyId)
                 ->withCount('transactions')
+                ->leftJoinSub($balanceSubquery, 'transaction_balances', function ($join) {
+                    $join->on('transaction_balances.finance_account_id', '=', 'finance_accounts.id');
+                })
+                ->select('finance_accounts.*')
+                ->selectRaw('COALESCE(transaction_balances.balance_delta, 0) as transaction_balance_delta')
                 ->orderByDesc('is_default')
                 ->orderBy('account_type')
                 ->orderBy('name')
-                ->get(),
+                ->get()
+                ->map(function (FinanceAccount $account) {
+                    $account->current_balance = round(
+                        (float) $account->opening_balance + (float) ($account->transaction_balance_delta ?? 0),
+                        2
+                    );
+
+                    return $account;
+                }),
             'typeOptions' => FinanceAccount::typeOptions(),
         ]);
     }
@@ -63,6 +84,8 @@ class FinanceAccountController extends Controller
                     : Str::slug((string) $request->input('name')) . '-' . Str::lower(Str::random(4)),
                 'account_type' => $request->input('account_type'),
                 'account_number' => $request->input('account_number'),
+                'opening_balance' => $request->input('opening_balance', 0),
+                'opening_balance_date' => $request->input('opening_balance_date'),
                 'is_active' => $request->boolean('is_active', true),
                 'is_default' => $isDefault,
                 'notes' => $request->input('notes'),
@@ -90,6 +113,8 @@ class FinanceAccountController extends Controller
                 'slug' => $request->filled('slug') ? Str::slug((string) $request->input('slug')) : $account->slug,
                 'account_type' => $request->input('account_type'),
                 'account_number' => $request->has('account_number') ? $request->input('account_number') : $account->account_number,
+                'opening_balance' => $request->has('opening_balance') ? ($request->input('opening_balance') ?? 0) : $account->opening_balance,
+                'opening_balance_date' => $request->has('opening_balance_date') ? $request->input('opening_balance_date') : $account->opening_balance_date,
                 'is_active' => $request->boolean('is_active'),
                 'is_default' => $isDefault,
                 'notes' => $request->has('notes') ? $request->input('notes') : $account->notes,

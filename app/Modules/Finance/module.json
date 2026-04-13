@@ -1,7 +1,7 @@
 {
     "slug":  "finance",
     "name":  "Finance",
-    "description":  "Cash flow operasional ringan untuk transaksi non-sales tanpa journal, ledger, atau COA formal.",
+    "description":  "Finance operasional untuk cash flow, transfer antar account, approval sensitif, period lock, dan auto-journal ringan tanpa COA formal penuh.",
     "provider":  "App\\Modules\\Finance\\FinanceServiceProvider",
     "version":  "1.0.0",
     "category":  "commerce",
@@ -20,6 +20,18 @@
                        {
                            "label":  "Finance Accounts",
                            "route":  "finance.accounts.index"
+                       },
+                       {
+                           "label":  "Finance Journals",
+                           "route":  "finance.journals.index"
+                       },
+                       {
+                           "label":  "Finance Approvals",
+                           "route":  "finance.approvals.index"
+                       },
+                       {
+                           "label":  "Finance Period Locks",
+                           "route":  "finance.period-locks.index"
                        }
                    ],
     "icon":  "resources/icons/icon.svg"

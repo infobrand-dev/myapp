@@ -15,7 +15,25 @@
             <h2 class="page-title">Transaksi Keuangan</h2>
             <p class="text-muted mb-0">Kas masuk, kas keluar, dan pengeluaran operasional. Company: {{ $company?->name ?? '-' }}</p>
         </div>
-        <div class="col-auto">
+        <div class="col-auto d-flex gap-2 flex-wrap">
+            @can('finance.view-journal')
+                <a href="{{ route('finance.journals.index') }}" class="btn btn-outline-secondary">
+                    <i class="ti ti-notebook me-1"></i>Journals
+                </a>
+            @endcan
+            @can('finance.approve-sensitive-transactions')
+                <a href="{{ route('finance.approvals.index') }}" class="btn btn-outline-secondary">
+                    <i class="ti ti-checkup-list me-1"></i>Approvals
+                </a>
+            @endcan
+            @can('finance.manage-period-locks')
+                <a href="{{ route('finance.period-locks.index') }}" class="btn btn-outline-secondary">
+                    <i class="ti ti-lock me-1"></i>Period Locks
+                </a>
+            @endcan
+            <a href="{{ route('finance.transactions.cashbook') }}" class="btn btn-outline-secondary me-2">
+                <i class="ti ti-book-2 me-1"></i>Cashbook
+            </a>
             <a href="{{ route('finance.transactions.create') }}" class="btn btn-primary">
                 <i class="ti ti-plus me-1"></i>Buat Transaksi
             </a>
@@ -121,6 +139,7 @@
                         <th>Account</th>
                         <th>Category</th>
                         <th>Amount</th>
+                        <th>Attachment</th>
                         <th>User</th>
                         <th>Branch</th>
                         @if($shiftEnabled)<th>Shift</th>@endif
@@ -132,7 +151,12 @@
                         <tr>
                             <td>{{ $transaction->transaction_number }}</td>
                             <td>{{ $transaction->transaction_date ? $transaction->transaction_date->format('d/m/Y H:i') : '-' }}</td>
-                            <td>{{ $transaction->transaction_type }}</td>
+                            <td>
+                                <div>{{ $transaction->transaction_type }}</div>
+                                @if($transaction->isTransfer())
+                                    <div class="text-muted small">Transfer ke {{ $transaction->counterpartyAccount?->name ?? '-' }}</div>
+                                @endif
+                            </td>
                             <td>
                                 @if($transaction->account)
                                     {{ $transaction->account->name }}
@@ -143,6 +167,13 @@
                             </td>
                             <td>{{ $transaction->category ? $transaction->category->name : '-' }}</td>
                             <td>{{ $money->format((float) $transaction->amount, $currency) }}</td>
+                            <td>
+                                @if($transaction->attachment_path)
+                                    <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($transaction->attachment_path) }}" target="_blank" rel="noreferrer">Lampiran</a>
+                                @else
+                                    -
+                                @endif
+                            </td>
                             <td>{{ $transaction->creator ? $transaction->creator->name : '-' }}</td>
                             <td>{{ $transaction->branch ? $transaction->branch->name : '-' }}</td>
                             @if($shiftEnabled)
@@ -168,7 +199,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ $shiftEnabled ? '10' : '9' }}" class="text-center py-5">
+                            <td colspan="{{ $shiftEnabled ? '11' : '10' }}" class="text-center py-5">
                                 <i class="ti ti-receipt text-muted d-block mb-2" style="font-size:2rem;"></i>
                                 <div class="text-muted mb-2">Belum ada transaksi.</div>
                                 <a href="{{ route('finance.transactions.create') }}" class="btn btn-sm btn-primary">Buat Transaksi</a>

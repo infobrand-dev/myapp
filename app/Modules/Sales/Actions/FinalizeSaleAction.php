@@ -8,6 +8,8 @@ use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Sales\Events\SaleFinalized;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Services\SaleSnapshotService;
+use App\Support\AccountingJournalService;
+use App\Support\AccountingPeriodLockService;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
@@ -20,17 +22,23 @@ class FinalizeSaleAction
     private $snapshotService;
     private $recordSalePayment;
     private $syncPaymentSummary;
+    private $journalService;
+    private $periodLockService;
 
     public function __construct(
         RecalculateSaleTotalsAction $recalculateTotals,
         SaleSnapshotService $snapshotService,
         RecordSalePaymentAction $recordSalePayment,
-        SyncSalePaymentSummaryAction $syncPaymentSummary
+        SyncSalePaymentSummaryAction $syncPaymentSummary,
+        AccountingJournalService $journalService,
+        AccountingPeriodLockService $periodLockService
     ) {
         $this->recalculateTotals = $recalculateTotals;
         $this->snapshotService = $snapshotService;
         $this->recordSalePayment = $recordSalePayment;
         $this->syncPaymentSummary = $syncPaymentSummary;
+        $this->journalService = $journalService;
+        $this->periodLockService = $periodLockService;
     }
 
     public function execute(Sale $sale, array $data, ?User $actor = null): Sale
@@ -50,7 +58,11 @@ class FinalizeSaleAction
                 ]);
             }
 
+            $this->periodLockService->ensureDateOpen($sale->transaction_date ?: now(), $sale->branch_id, 'finalize sale');
+
             $payload = [
+                'header_discount_total' => data_get($sale->totals_snapshot, 'header_discount_total', 0),
+                'header_tax_total' => data_get($sale->totals_snapshot, 'header_tax_total', 0),
                 'items' => $sale->items->map(fn ($item) => [
                     'product_id' => $item->product_id,
                     'product_variant_id' => $item->product_variant_id,
@@ -105,6 +117,10 @@ class FinalizeSaleAction
                 'meta' => [
                     'payment_status' => $sale->payment_status,
                     'source' => $sale->source,
+                    'subtotal' => (float) $sale->subtotal,
+                    'discount_total' => (float) $sale->discount_total,
+                    'tax_total' => (float) $sale->tax_total,
+                    'grand_total' => (float) $sale->grand_total,
                 ],
             ]);
 
@@ -122,6 +138,18 @@ class FinalizeSaleAction
                 $sale = $this->syncPaymentSummary->execute($sale, $data['payment_status'] ?? $sale->payment_status);
             }
 
+            $this->journalService->sync(
+                $sale,
+                'sale_finalized',
+                $sale->transaction_date ?: now(),
+                $this->journalLines($sale),
+                [
+                    'payment_status' => $sale->payment_status,
+                    'grand_total' => (float) $sale->grand_total,
+                ],
+                'Auto journal sale ' . $sale->sale_number
+            );
+
             return $sale->load('items', 'paymentAllocations.payment.method', 'statusHistories');
         });
 
@@ -138,5 +166,43 @@ class FinalizeSaleAction
 
             return $row;
         }, $rows);
+    }
+
+    private function journalLines(Sale $sale): array
+    {
+        $lines = [
+            [
+                'account_code' => 'AR',
+                'account_name' => 'Accounts Receivable',
+                'debit' => (float) $sale->grand_total,
+                'credit' => 0,
+            ],
+            [
+                'account_code' => 'SALES',
+                'account_name' => 'Sales Revenue',
+                'debit' => 0,
+                'credit' => (float) $sale->subtotal,
+            ],
+        ];
+
+        if ((float) $sale->discount_total > 0) {
+            $lines[] = [
+                'account_code' => 'SALES_DISC',
+                'account_name' => 'Sales Discount',
+                'debit' => (float) $sale->discount_total,
+                'credit' => 0,
+            ];
+        }
+
+        if ((float) $sale->tax_total > 0) {
+            $lines[] = [
+                'account_code' => 'SALES_TAX',
+                'account_name' => 'Sales Tax Payable',
+                'debit' => 0,
+                'credit' => (float) $sale->tax_total,
+            ];
+        }
+
+        return $lines;
     }
 }

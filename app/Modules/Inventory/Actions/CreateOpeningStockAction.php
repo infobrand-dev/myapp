@@ -7,6 +7,7 @@ use App\Modules\Inventory\Models\StockBalance;
 use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Inventory\Models\StockOpening;
 use App\Modules\Inventory\Services\StockMutationService;
+use App\Support\AccountingPeriodLockService;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
@@ -17,13 +18,18 @@ use Illuminate\Support\Str;
 
 class CreateOpeningStockAction
 {
-    public function __construct(private readonly StockMutationService $mutationService)
+    public function __construct(
+        private readonly StockMutationService $mutationService,
+        private readonly AccountingPeriodLockService $periodLockService
+    )
     {
     }
 
     public function execute(array $data, ?User $actor = null): StockOpening
     {
         return DB::transaction(function () use ($data, $actor) {
+            $this->periodLockService->ensureDateOpen($data['opening_date'] ?? now(), BranchContext::currentId(), 'opening stock');
+
             $opening = StockOpening::query()->create([
                 'tenant_id' => TenantContext::currentId(),
                 'company_id' => CompanyContext::currentId(),

@@ -10,7 +10,10 @@
             <h2 class="page-title">Opening Stock</h2>
             <p class="text-muted mb-0">Inisialisasi stok awal per lokasi.</p>
         </div>
-        <div class="col-auto">
+        <div class="col-auto d-flex gap-2">
+            <a href="{{ route('inventory.openings.import-page') }}" class="btn btn-outline-secondary">
+                <i class="ti ti-file-import me-1"></i>Import Opening
+            </a>
             <a href="{{ route('inventory.openings.create') }}" class="btn btn-primary">
                 <i class="ti ti-plus me-1"></i>Buat Opening
             </a>

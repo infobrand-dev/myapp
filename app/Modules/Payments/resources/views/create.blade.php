@@ -1,24 +1,42 @@
 @extends('layouts.admin')
 
-@section('title', 'Buat Payment')
+@section('title', ($payment ?? new \App\Modules\Payments\Models\Payment())->exists ? 'Edit Payment' : 'Buat Payment')
 
 @section('content')
 @php
     $money = app(\App\Support\MoneyFormatter::class);
     $isAdvancedMode = ($accountingUiMode ?? 'standard') === 'advanced';
+    $payment = $payment ?? new \App\Modules\Payments\Models\Payment();
+    $isEdit = $payment->exists;
+    $submitRoute = $isEdit ? route('payments.update', $payment) : route('payments.store');
+    $oldAllocations = old('allocations', $isEdit
+        ? $payment->allocations->map(fn ($allocation) => [
+            'payable_type' => $allocation->payable instanceof \App\Modules\Sales\Models\Sale ? 'sale'
+                : ($allocation->payable instanceof \App\Modules\Sales\Models\SaleReturn ? 'sale_return' : 'purchase'),
+            'payable_id' => $allocation->payable_id,
+            'amount' => $allocation->amount,
+        ])->all()
+        : [[
+            'payable_type' => $prefillSaleReturnId ? 'sale_return' : ($prefillPurchaseId ? 'purchase' : 'sale'),
+            'payable_id' => $prefillSaleReturnId ?: ($prefillPurchaseId ?: $prefillSaleId),
+            'amount' => old('amount'),
+        ]]);
 @endphp
 <div class="page-header d-flex align-items-center justify-content-between">
     <div>
         <div class="page-pretitle">Keuangan</div>
-        <h2 class="page-title">Buat Payment</h2>
+        <h2 class="page-title">{{ $isEdit ? 'Edit Payment' : 'Buat Payment' }}</h2>
     </div>
     <a href="{{ route('payments.index') }}" class="btn btn-outline-secondary">
         <i class="ti ti-arrow-left me-1"></i>Kembali
     </a>
 </div>
 
-<form method="POST" action="{{ route('payments.store') }}" class="row g-3" enctype="multipart/form-data">
+<form method="POST" action="{{ $submitRoute }}" class="row g-3" enctype="multipart/form-data">
     @csrf
+    @if($isEdit)
+        @method('PUT')
+    @endif
     <div class="col-lg-8">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center"><h3 class="card-title">Payment Detail</h3>@include('shared.accounting.mode-badge')</div>
@@ -32,7 +50,7 @@
                     <select name="payment_method_id" class="form-select" required>
                         <option value="">Pilih method</option>
                         @foreach($paymentMethods as $method)
-                            <option value="{{ $method->id }}" @selected(old('payment_method_id') == $method->id)>{{ $method->name }}</option>
+                            <option value="{{ $method->id }}" @selected(old('payment_method_id', $payment->payment_method_id) == $method->id)>{{ $method->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -42,7 +60,7 @@
                         'required' => true,
                         'tooltip' => 'Nominal pembayaran yang diterima atau dibayarkan. Nilai ini harus sama dengan total allocation.',
                     ])
-                    <input type="number" name="amount" min="0.01" step="0.01" class="form-control" value="{{ old('amount') }}" required data-payment-total>
+                    <input type="number" name="amount" min="0.01" step="0.01" class="form-control" value="{{ old('amount', $payment->amount) }}" required data-payment-total>
                     <div class="form-hint">Nominal payment harus sama dengan total allocation.</div>
                 </div>
                 <div class="col-md-4">
@@ -50,7 +68,7 @@
                         'label' => 'Paid At',
                         'tooltip' => 'Tanggal dan jam pembayaran benar-benar terjadi. Boleh disesuaikan jika input dilakukan belakangan.',
                     ])
-                    <input type="datetime-local" name="paid_at" class="form-control" value="{{ old('paid_at', now()->format('Y-m-d\\TH:i')) }}">
+                    <input type="datetime-local" name="paid_at" class="form-control" value="{{ old('paid_at', optional($payment->paid_at)->format('Y-m-d\\TH:i') ?: now()->format('Y-m-d\\TH:i')) }}">
                 </div>
                 @if($isAdvancedMode)
                     <div class="col-md-4">
@@ -60,7 +78,7 @@
                         ])
                         <select name="source" class="form-select">
                             @foreach($paymentSourceOptions as $value => $label)
-                                <option value="{{ $value }}" @selected(old('source', 'backoffice') === $value)>{{ $label }}</option>
+                                <option value="{{ $value }}" @selected(old('source', $payment->source ?: 'backoffice') === $value)>{{ $label }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -72,7 +90,7 @@
                         <select name="received_by" class="form-select">
                             <option value="">Auto current user</option>
                             @foreach($receivers as $receiver)
-                                <option value="{{ $receiver->id }}" @selected((string) old('received_by') === (string) $receiver->id)>{{ $receiver->name }}</option>
+                                <option value="{{ $receiver->id }}" @selected((string) old('received_by', $payment->received_by) === (string) $receiver->id)>{{ $receiver->name }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -81,14 +99,14 @@
                             'label' => 'Reference Number',
                             'tooltip' => 'Nomor referensi internal seperti nomor slip transfer atau bukti setor. Boleh dikosongkan jika tidak ada.',
                         ])
-                        <input type="text" name="reference_number" class="form-control" value="{{ old('reference_number') }}">
+                        <input type="text" name="reference_number" class="form-control" value="{{ old('reference_number', $payment->reference_number) }}">
                     </div>
                     <div class="col-md-6">
                         @include('shared.accounting.field-label', [
                             'label' => 'External Reference',
                             'tooltip' => 'Nomor referensi dari sistem lain seperti marketplace, gateway, atau POS. Berguna untuk pelacakan silang antar sistem.',
                         ])
-                        <input type="text" name="external_reference" class="form-control" value="{{ old('external_reference') }}">
+                        <input type="text" name="external_reference" class="form-control" value="{{ old('external_reference', $payment->external_reference) }}">
                     </div>
                     <div class="col-md-6">
                         @include('shared.accounting.field-label', [
@@ -96,6 +114,9 @@
                             'tooltip' => 'Upload bukti transfer, slip, atau dokumen pembayaran lain. Boleh dikosongkan jika belum tersedia.',
                         ])
                         <input type="file" name="proof_file" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
+                        @if($payment->proof_file_path)
+                            <div class="form-hint">Proof saat ini: <a href="{{ asset('storage/'.$payment->proof_file_path) }}" target="_blank" rel="noopener">lihat file</a></div>
+                        @endif
                     </div>
                     <div class="col-md-6">
                         @include('shared.accounting.field-label', [
@@ -104,20 +125,33 @@
                         ])
                         <select name="reconciliation_status" class="form-select">
                             @foreach($reconciliationStatusOptions as $value => $label)
-                                <option value="{{ $value }}" @selected(old('reconciliation_status', 'unreconciled') === $value)>{{ $label }}</option>
+                                <option value="{{ $value }}" @selected(old('reconciliation_status', $payment->reconciliation_status ?: 'unreconciled') === $value)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Branch Posting',
+                            'tooltip' => 'Cabang tempat payment ini diposting. Jika dikosongkan, gunakan branch transaksi atau branch aktif.',
+                        ])
+                        <select name="branch_id" class="form-select">
+                            <option value="">Auto from transaction / current branch</option>
+                            @foreach($branches as $branch)
+                                <option value="{{ $branch->id }}" @selected((string) old('branch_id', $payment->branch_id) === (string) $branch->id)>{{ $branch->name }}</option>
                             @endforeach
                         </select>
                     </div>
                 @else
-                    <input type="hidden" name="source" value="{{ old('source', 'backoffice') }}">
-                    <input type="hidden" name="reconciliation_status" value="{{ old('reconciliation_status', 'unreconciled') }}">
+                    <input type="hidden" name="source" value="{{ old('source', $payment->source ?: 'backoffice') }}">
+                    <input type="hidden" name="reconciliation_status" value="{{ old('reconciliation_status', $payment->reconciliation_status ?: 'unreconciled') }}">
+                    <input type="hidden" name="branch_id" value="{{ old('branch_id', $payment->branch_id) }}">
                 @endif
                 <div class="col-12">
                     @include('shared.accounting.field-label', [
                         'label' => 'Notes',
                         'tooltip' => 'Catatan tambahan untuk pembayaran ini. Boleh dikosongkan jika tidak ada keterangan khusus.',
                     ])
-                    <textarea name="notes" class="form-control" rows="3">{{ old('notes') }}</textarea>
+                    <textarea name="notes" class="form-control" rows="3">{{ old('notes', $payment->notes) }}</textarea>
                 </div>
             </div>
         </div>
@@ -134,13 +168,6 @@
                     <div class="small">Selisih: <span data-summary-difference>{{ $money->format(0, $defaultCurrency) }}</span></div>
                 </div>
                 <div class="row g-3 payment-allocation-list">
-                    @php
-                        $oldAllocations = old('allocations', [[
-                            'payable_type' => $prefillSaleReturnId ? 'sale_return' : ($prefillPurchaseId ? 'purchase' : 'sale'),
-                            'payable_id' => $prefillSaleReturnId ?: ($prefillPurchaseId ?: $prefillSaleId),
-                            'amount' => old('amount'),
-                        ]]);
-                    @endphp
                     @foreach($oldAllocations as $index => $allocation)
                         <div class="col-12 payment-allocation-item border rounded p-3">
                             <div class="mb-2">
@@ -186,6 +213,7 @@
                                 <input type="number" min="0.01" step="0.01" name="allocations[{{ $index }}][amount]" class="form-control" value="{{ $allocation['amount'] ?? '' }}" data-allocation-amount>
                             </div>
                             <div class="form-hint mt-2" data-transaction-summary>Pilih transaksi untuk melihat nominal outstanding.</div>
+                            <div class="form-hint" data-allocation-health></div>
                             @if($isAdvancedMode && $index > 0)
                                 <button type="button" class="btn btn-sm btn-outline-danger mt-2 remove-allocation">Remove</button>
                             @endif
@@ -201,7 +229,7 @@
         <div class="d-flex gap-2 mt-3">
             <a href="{{ route('payments.index') }}" class="btn btn-outline-secondary flex-fill">Batal</a>
             <button type="submit" class="btn btn-primary flex-fill">
-                <i class="ti ti-device-floppy me-1"></i>Simpan
+                        <i class="ti ti-device-floppy me-1"></i>{{ $isEdit ? 'Update' : 'Simpan' }}
             </button>
         </div>
     </div>
@@ -246,6 +274,7 @@
             <input type="number" min="0.01" step="0.01" class="form-control" data-name="amount" data-allocation-amount>
         </div>
         <div class="form-hint mb-2" data-transaction-summary>Pilih transaksi untuk melihat nominal outstanding.</div>
+        <div class="form-hint mb-2" data-allocation-health></div>
         @if($isAdvancedMode)
             <button type="button" class="btn btn-sm btn-outline-danger remove-allocation">Remove</button>
         @endif
@@ -279,6 +308,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const targetField = wrapper.querySelector('[name$="[payable_id]"]');
         const amountField = wrapper.querySelector('[data-allocation-amount]');
         const summaryField = wrapper.querySelector('[data-transaction-summary]');
+        const healthField = wrapper.querySelector('[data-allocation-health]');
 
         if (!typeField || !targetField) {
             return;
@@ -307,6 +337,22 @@ document.addEventListener('DOMContentLoaded', function () {
             summaryField.textContent = label !== ''
                 ? label + ' | Outstanding ' + formatCurrency(balance, currency)
                 : 'Pilih transaksi untuk melihat nominal outstanding.';
+        }
+
+        if (healthField) {
+            const currentAmount = parseNumber(amountField ? amountField.value : 0);
+            if (!activeOption || !activeOption.value || currentAmount <= 0) {
+                healthField.textContent = '';
+            } else if (currentAmount > balance) {
+                healthField.textContent = 'Overpayment pada transaksi ini: ' + formatCurrency(currentAmount - balance, currency);
+                healthField.className = 'form-hint text-danger';
+            } else if (currentAmount < balance) {
+                healthField.textContent = 'Underpayment / partial: sisa ' + formatCurrency(balance - currentAmount, currency);
+                healthField.className = 'form-hint text-warning';
+            } else {
+                healthField.textContent = 'Allocation tepat sama dengan outstanding.';
+                healthField.className = 'form-hint text-success';
+            }
         }
 
         if (amountField && activeOption && activeOption.value && (!amountField.value || parseNumber(amountField.value) <= 0)) {
@@ -365,6 +411,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     list.addEventListener('input', function (event) {
         if (event.target.matches('[data-allocation-amount]')) {
+            syncTargetOptions(event.target.closest('.payment-allocation-item'));
             syncTotals();
         }
     });

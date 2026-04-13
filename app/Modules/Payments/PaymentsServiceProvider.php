@@ -4,6 +4,7 @@ namespace App\Modules\Payments;
 
 use App\Modules\Payments\Actions\CreatePaymentAction;
 use App\Modules\Payments\Actions\RecalculatePaymentSummaryAction;
+use App\Modules\Payments\Actions\UpdatePaymentAction;
 use App\Modules\Payments\Actions\ValidatePayableTransactionAction;
 use App\Modules\Payments\Actions\VoidPaymentAction;
 use App\Modules\Payments\Models\Payment;
@@ -68,6 +69,7 @@ class PaymentsServiceProvider extends ServiceProvider
         $this->app->singleton(ValidatePayableTransactionAction::class);
         $this->app->singleton(RecalculatePaymentSummaryAction::class);
         $this->app->singleton(CreatePaymentAction::class);
+        $this->app->singleton(UpdatePaymentAction::class);
         $this->app->singleton(VoidPaymentAction::class);
     }
 

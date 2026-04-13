@@ -49,7 +49,7 @@
             <h3 class="card-title">Informasi Contact</h3>
         </div>
         <div class="card-body">
-            @include('contacts::_form', ['contact' => $contact])
+            @include('contacts::_form', ['contact' => $contact, 'companies' => $companies ?? collect()])
         </div>
         <div class="card-footer d-flex justify-content-end gap-2">
             <a href="{{ route('contacts.index') }}" class="btn btn-outline-secondary">Batal</a>

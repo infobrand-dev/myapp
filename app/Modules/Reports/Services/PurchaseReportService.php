@@ -20,6 +20,7 @@ class PurchaseReportService extends BaseReportService
             'summary' => $this->summary($filters),
             'supplierReport' => $this->supplierReport($filters),
             'receivedVsPending' => $this->receivedVsPending($filters),
+            'payableAging' => $this->payableAging($filters),
         ];
     }
 
@@ -77,6 +78,38 @@ class PurchaseReportService extends BaseReportService
             ->selectRaw('SUM(COALESCE(remaining_summary.remaining_qty, 0)) as remaining_qty')
             ->groupByRaw("CASE WHEN purchases.status = 'received' THEN 'Received' ELSE 'Pending / Partial' END")
             ->orderByDesc('grand_total')
+            ->get();
+    }
+
+    public function payableAging(array $filters)
+    {
+        $today = now()->toDateString();
+        $in7Days = now()->addDays(7)->toDateString();
+        $in30Days = now()->addDays(30)->toDateString();
+
+        return $this->purchaseBaseQuery($filters)
+            ->where('purchases.balance_due', '>', 0)
+            ->selectRaw("
+                CASE
+                    WHEN purchases.due_date IS NULL THEN 'No Due Date'
+                    WHEN DATE(purchases.due_date) < ? THEN 'Overdue'
+                    WHEN DATE(purchases.due_date) <= ? THEN 'Due <= 7 days'
+                    WHEN DATE(purchases.due_date) <= ? THEN 'Due <= 30 days'
+                    ELSE 'Due > 30 days'
+                END as aging_bucket
+            ", [$today, $in7Days, $in30Days])
+            ->selectRaw('COUNT(purchases.id) as purchase_count')
+            ->selectRaw('SUM(purchases.balance_due) as balance_due_total')
+            ->groupByRaw("
+                CASE
+                    WHEN purchases.due_date IS NULL THEN 'No Due Date'
+                    WHEN DATE(purchases.due_date) < ? THEN 'Overdue'
+                    WHEN DATE(purchases.due_date) <= ? THEN 'Due <= 7 days'
+                    WHEN DATE(purchases.due_date) <= ? THEN 'Due <= 30 days'
+                    ELSE 'Due > 30 days'
+                END
+            ", [$today, $in7Days, $in30Days])
+            ->orderByDesc('balance_due_total')
             ->get();
     }
 

@@ -23,6 +23,9 @@ class FinanceServiceProvider extends ServiceProvider
         'finance.view',
         'finance.create',
         'finance.manage-categories',
+        'finance.view-journal',
+        'finance.manage-period-locks',
+        'finance.approve-sensitive-transactions',
     ];
 
     public const DEFAULT_ROLE_PERMISSIONS = [
@@ -96,11 +99,13 @@ class FinanceServiceProvider extends ServiceProvider
 
             $cashIn = (float) ((clone $baseQuery)
                 ->where('transaction_type', FinanceTransaction::TYPE_CASH_IN)
+                ->whereNull('transfer_group_key')
                 ->whereBetween('transaction_date', [$monthStart, $monthEnd])
                 ->sum('amount'));
 
             $cashOut = (float) ((clone $baseQuery)
                 ->whereIn('transaction_type', [FinanceTransaction::TYPE_CASH_OUT, FinanceTransaction::TYPE_EXPENSE])
+                ->whereNull('transfer_group_key')
                 ->whereBetween('transaction_date', [$monthStart, $monthEnd])
                 ->sum('amount'));
 

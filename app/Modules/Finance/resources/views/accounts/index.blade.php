@@ -3,6 +3,10 @@
 @section('title', 'Finance Accounts')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+    $currency = app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency();
+@endphp
 <div class="page-header">
     <div class="row align-items-center">
         <div class="col">
@@ -56,6 +60,8 @@
                             <tr>
                                 <th>Name</th>
                                 <th>Type</th>
+                                <th>Opening</th>
+                                <th>Current</th>
                                 <th>Status</th>
                                 <th>Transactions</th>
                                 <th class="w-1"></th>
@@ -75,6 +81,14 @@
                                         @if($account->is_default)
                                             <span class="badge bg-primary-lt text-primary ms-1">Default</span>
                                         @endif
+                                    </td>
+                                    <td>
+                                        <div>{{ $money->format((float) $account->opening_balance, $currency) }}</div>
+                                        <div class="text-muted small">{{ $account->opening_balance_date?->format('d/m/Y') ?? 'No date' }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold">{{ $money->format((float) ($account->current_balance ?? 0), $currency) }}</div>
+                                        <a href="{{ route('finance.transactions.cashbook', ['finance_account_id' => $account->id]) }}" class="text-muted small">Lihat cashbook</a>
                                     </td>
                                     <td>
                                         @if($account->is_active)
@@ -114,7 +128,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="text-center py-5">
+                                    <td colspan="7" class="text-center py-5">
                                         <i class="ti ti-building-bank text-muted d-block mb-2" style="font-size:2rem;"></i>
                                         <div class="text-muted mb-2">Belum ada finance account.</div>
                                     </td>

@@ -41,10 +41,10 @@ class RecalculateSaleTotalsAction
             ->keyBy('id');
 
         $subtotal = 0.0;
-        $discountTotal = 0.0;
-        $taxTotal = 0.0;
+        $itemDiscountTotal = 0.0;
+        $itemTaxTotal = 0.0;
 
-        $items = $normalizedItems->map(function (array $item, int $index) use (&$subtotal, &$discountTotal, &$taxTotal, $products, $variants) {
+        $items = $normalizedItems->map(function (array $item, int $index) use (&$subtotal, &$itemDiscountTotal, &$itemTaxTotal, $products, $variants) {
             $product = $products->get((int) $item['product_id']);
             $variant = !empty($item['product_variant_id']) ? $variants->get((int) $item['product_variant_id']) : null;
 
@@ -76,8 +76,8 @@ class RecalculateSaleTotalsAction
             $snapshot = $this->snapshotService->productSnapshot($product, $variant);
 
             $subtotal += $lineSubtotal;
-            $discountTotal += $itemDiscount;
-            $taxTotal += $itemTax;
+            $itemDiscountTotal += $itemDiscount;
+            $itemTaxTotal += $itemTax;
 
             return [
                 'line_no' => $index + 1,
@@ -106,23 +106,31 @@ class RecalculateSaleTotalsAction
             ];
         })->all();
 
+        $headerDiscountTotal = round((float) ($data['header_discount_total'] ?? 0), 2);
+        $headerTaxTotal = round((float) ($data['header_tax_total'] ?? 0), 2);
+        $discountTotal = round($itemDiscountTotal + $headerDiscountTotal, 2);
+        $taxTotal = round($itemTaxTotal + $headerTaxTotal, 2);
         $grandTotal = round($subtotal - $discountTotal + $taxTotal, 2);
         if ($grandTotal < 0) {
             throw ValidationException::withMessages([
-                'items' => 'Grand total tidak boleh negatif.',
+                'header_discount_total' => 'Grand total tidak boleh negatif.',
             ]);
         }
 
         return [
             'items' => $items,
             'subtotal' => round($subtotal, 2),
-            'discount_total' => round($discountTotal, 2),
-            'tax_total' => round($taxTotal, 2),
+            'discount_total' => $discountTotal,
+            'tax_total' => $taxTotal,
             'grand_total' => $grandTotal,
             'totals_snapshot' => [
                 'subtotal' => round($subtotal, 2),
-                'discount_total' => round($discountTotal, 2),
-                'tax_total' => round($taxTotal, 2),
+                'item_discount_total' => round($itemDiscountTotal, 2),
+                'header_discount_total' => $headerDiscountTotal,
+                'discount_total' => $discountTotal,
+                'item_tax_total' => round($itemTaxTotal, 2),
+                'header_tax_total' => $headerTaxTotal,
+                'tax_total' => $taxTotal,
                 'grand_total' => $grandTotal,
             ],
         ];

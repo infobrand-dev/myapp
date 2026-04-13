@@ -333,11 +333,25 @@
                     </div>
                 </div>
                 @endif
-                @if($sale->notes)
+                @if($sale->customer_note)
                 <hr class="m-0">
                 <div class="px-4 py-3">
-                    <div class="text-muted small mb-1"><i class="ti ti-notes me-1"></i>Notes</div>
-                    <div class="small">{{ $sale->notes }}</div>
+                    <div class="text-muted small mb-1"><i class="ti ti-message-2 me-1"></i>Customer Note</div>
+                    <div class="small">{{ $sale->customer_note }}</div>
+                </div>
+                @endif
+                @if($sale->notes || $sale->attachment_path)
+                <hr class="m-0">
+                <div class="px-4 py-3">
+                    @if($sale->notes)
+                        <div class="text-muted small mb-1"><i class="ti ti-notes me-1"></i>Internal Notes</div>
+                        <div class="small mb-2">{{ $sale->notes }}</div>
+                    @endif
+                    @if($sale->attachment_path)
+                        <a href="{{ asset('storage/'.$sale->attachment_path) }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">
+                            <i class="ti ti-paperclip me-1"></i>Lihat Attachment
+                        </a>
+                    @endif
                 </div>
                 @endif
             </div>
@@ -504,6 +518,8 @@
         'balance_due' => 'Balance due',
         'currency_code' => 'Currency',
         'notes' => 'Notes',
+        'customer_note' => 'Customer note',
+        'attachment_path' => 'Attachment',
         'external_reference' => 'External reference',
     ],
     'money' => $money,

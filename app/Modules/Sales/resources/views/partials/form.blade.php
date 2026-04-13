@@ -1,5 +1,8 @@
 @php
     $isAdvancedMode = ($accountingUiMode ?? 'standard') === 'advanced';
+    $saleTotals = is_array($sale->totals_snapshot ?? null) ? $sale->totals_snapshot : [];
+    $headerDiscountTotal = old('header_discount_total', data_get($saleTotals, 'header_discount_total', 0));
+    $headerTaxTotal = old('header_tax_total', data_get($saleTotals, 'header_tax_total', 0));
     $saleItems = old('items', $sale->items->map(function ($item) {
         $key = $item->product_variant_id ? 'variant:' . $item->product_variant_id : 'product:' . $item->product_id;
         return [
@@ -148,13 +151,60 @@
 
                     <div class="col-12">
                         @include('shared.accounting.field-label', [
-                            'label' => 'Notes',
-                            'tooltip' => 'Catatan umum untuk transaksi penjualan. Boleh dikosongkan jika tidak ada informasi tambahan.',
+                            'label' => 'Internal Notes',
+                            'tooltip' => 'Catatan internal untuk tim. Tidak ditujukan untuk customer dan tidak perlu ikut dicetak di invoice.',
                         ])
                         <textarea name="notes" rows="3"
                             class="form-control @error('notes') is-invalid @enderror">{{ old('notes', $sale->notes) }}</textarea>
                         @error('notes') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
+                    <div class="col-12">
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Customer Note',
+                            'tooltip' => 'Catatan yang boleh dibaca customer, misalnya instruksi pengiriman, pesan invoice, atau kesepakatan ringkas.',
+                        ])
+                        <textarea name="customer_note" rows="2"
+                            class="form-control @error('customer_note') is-invalid @enderror">{{ old('customer_note', $sale->customer_note) }}</textarea>
+                        @error('customer_note') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+                    <div class="col-12">
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Attachment',
+                            'tooltip' => 'Upload dokumen pendukung transaksi seperti PO customer, form order, atau file pendukung lain.',
+                        ])
+                        <input type="file" name="attachment" class="form-control @error('attachment') is-invalid @enderror" accept=".jpg,.jpeg,.png,.pdf">
+                        @if($sale->attachment_path)
+                            <div class="form-hint">Attachment saat ini: <a href="{{ asset('storage/'.$sale->attachment_path) }}" target="_blank" rel="noopener">lihat file</a></div>
+                        @endif
+                        @error('attachment') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+
+                    @if($isAdvancedMode)
+                        <div class="col-md-6">
+                            @include('shared.accounting.field-label', [
+                                'label' => 'Header Discount',
+                                'tooltip' => 'Diskon nominal untuk seluruh transaksi, di luar diskon per item. Cocok untuk potongan invoice atau negosiasi final.',
+                            ])
+                            <input type="number" min="0" step="0.01" name="header_discount_total"
+                                class="form-control @error('header_discount_total') is-invalid @enderror"
+                                value="{{ $headerDiscountTotal }}">
+                            @error('header_discount_total') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+
+                        <div class="col-md-6">
+                            @include('shared.accounting.field-label', [
+                                'label' => 'Header Tax',
+                                'tooltip' => 'Pajak nominal untuk seluruh transaksi, di luar pajak per item. Isi jika pajak dihitung di level invoice.',
+                            ])
+                            <input type="number" min="0" step="0.01" name="header_tax_total"
+                                class="form-control @error('header_tax_total') is-invalid @enderror"
+                                value="{{ $headerTaxTotal }}">
+                            @error('header_tax_total') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+                    @else
+                        <input type="hidden" name="header_discount_total" value="{{ $headerDiscountTotal }}">
+                        <input type="hidden" name="header_tax_total" value="{{ $headerTaxTotal }}">
+                    @endif
                 </div>
             </div>
         </div>

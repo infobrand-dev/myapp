@@ -29,7 +29,7 @@
     </div>
 @endif
 
-<form method="POST" action="{{ route('finance.transactions.store') }}">
+<form method="POST" action="{{ route('finance.transactions.store') }}" enctype="multipart/form-data">
     @csrf
     @include('finance::transactions.partials.form', [
         'transaction' => new \App\Modules\Finance\Models\FinanceTransaction(),

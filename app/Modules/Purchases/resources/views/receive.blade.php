@@ -20,6 +20,10 @@
 
 <form method="POST" action="{{ route('purchases.receipts.store', $purchase) }}">
     @csrf
+    @php
+        $totalRemainingQty = round((float) $purchase->items->sum(fn ($item) => max(0, (float) $item->qty - (float) $item->qty_received)), 4);
+        $openLineCount = $purchase->items->filter(fn ($item) => max(0, (float) $item->qty - (float) $item->qty_received) > 0)->count();
+    @endphp
     <div class="row g-3">
         <div class="col-lg-4">
             <div class="card">
@@ -47,6 +51,32 @@
         </div>
 
         <div class="col-lg-8">
+            <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="text-muted small">Open Lines</div>
+                            <div class="fs-3 fw-bold">{{ $openLineCount }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="text-muted small">Remaining Qty</div>
+                            <div class="fs-3 fw-bold">{{ number_format($totalRemainingQty, 2, ',', '.') }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body d-flex gap-2 justify-content-end align-items-center h-100">
+                            <button type="button" class="btn btn-outline-primary btn-sm" data-fill-remaining>Receive All Remaining</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-clear-receipt>Clear</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="card">
                 <div class="card-header"><h3 class="card-title">Receipt Items</h3></div>
                 <div class="card-body p-0">
@@ -67,7 +97,12 @@
                                         <td>{{ number_format((float) $item->qty, 2, ',', '.') }}</td>
                                         <td>{{ number_format((float) $item->qty_received, 2, ',', '.') }}</td>
                                         <td>{{ number_format($remaining, 2, ',', '.') }}</td>
-                                        <td><input type="number" min="0" max="{{ $remaining }}" step="0.0001" name="items[{{ $loop->index }}][qty_received]" class="form-control" value="{{ $remaining > 0 ? $remaining : 0 }}"></td>
+                                        <td>
+                                            <div class="d-flex gap-2 align-items-center">
+                                                <input type="number" min="0" max="{{ $remaining }}" step="0.0001" name="items[{{ $loop->index }}][qty_received]" class="form-control" value="{{ $remaining > 0 ? $remaining : 0 }}" data-receipt-qty data-remaining="{{ $remaining }}">
+                                                <button type="button" class="btn btn-outline-primary btn-sm" data-set-remaining="{{ $remaining }}">All</button>
+                                            </div>
+                                        </td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -84,4 +119,39 @@
         </div>
     </div>
 </form>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const qtyInputs = Array.from(document.querySelectorAll('[data-receipt-qty]'));
+    const fillBtn = document.querySelector('[data-fill-remaining]');
+    const clearBtn = document.querySelector('[data-clear-receipt]');
+
+    if (fillBtn) {
+        fillBtn.addEventListener('click', function () {
+            qtyInputs.forEach((input) => {
+                input.value = input.dataset.remaining || 0;
+            });
+        });
+    }
+
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function () {
+            qtyInputs.forEach((input) => {
+                input.value = 0;
+            });
+        });
+    }
+
+    document.querySelectorAll('[data-set-remaining]').forEach((button) => {
+        button.addEventListener('click', function () {
+            const input = button.closest('td')?.querySelector('[data-receipt-qty]');
+            if (input) {
+                input.value = button.dataset.setRemaining || 0;
+            }
+        });
+    });
+});
+</script>
+@endpush
 @endsection

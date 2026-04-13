@@ -67,6 +67,24 @@
                     </div>
                 </div>
                 @if($isAdvancedMode)
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm table-vcenter">
+                            <thead><tr><th>Waktu</th><th>Level</th><th>Harga beli</th><th>Harga jual</th><th>Oleh</th></tr></thead>
+                            <tbody>
+                                @forelse($product->priceHistories->take(12) as $history)
+                                    <tr>
+                                        <td>{{ optional($history->recorded_at)->format('d M Y H:i') ?? '-' }}</td>
+                                        <td>{{ $history->variant?->name ?: 'Product' }}</td>
+                                        <td>{{ $money->format((float) $history->cost_price, $currency) }}</td>
+                                        <td>{{ $money->format((float) $history->sell_price, $currency) }}</td>
+                                        <td>{{ $history->changer?->name ?? '-' }}</td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="5" class="text-center text-muted">Riwayat harga belum ada.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-sm table-vcenter">
                             <thead><tr><th>Level</th><th>Minimum Qty</th><th>Harga</th></tr></thead>
@@ -132,6 +150,9 @@
                 </div>
                 @if(Route::has('inventory.stocks.index'))
                     <a href="{{ route('inventory.stocks.index', ['product_id' => $product->id]) }}" class="btn btn-primary w-100">Buka Inventory</a>
+                @endif
+                @if(Route::has('inventory.openings.create'))
+                    <a href="{{ route('inventory.openings.create', ['product_id' => $product->id]) }}" class="btn btn-outline-primary w-100 mt-2">Opening Stock Helper</a>
                 @endif
             </div>
         </div>

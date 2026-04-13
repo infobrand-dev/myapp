@@ -132,6 +132,7 @@
                         <th>Email</th>
                         <th>Telepon</th>
                         <th>Company</th>
+                        <th>Terms</th>
                         <th class="w-1"></th>
                     </tr>
                 </thead>
@@ -176,7 +177,20 @@
                         </td>
                         <td class="text-muted">{{ $contact->email ?? '—' }}</td>
                         <td class="text-muted">{{ $contact->phone ?? $contact->mobile ?? '—' }}</td>
-                        <td class="text-muted">{{ $contact->parentContact?->name ?? '—' }}</td>
+                        <td class="text-muted">
+                            <div>{{ $contact->parentContact?->name ?? '—' }}</div>
+                            @if(!empty($contact->tags))
+                                <div class="mt-1">
+                                    @foreach(array_slice($contact->tags, 0, 2) as $tag)
+                                        <span class="badge bg-azure-lt text-azure me-1">{{ $tag }}</span>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </td>
+                        <td class="text-muted">
+                            <div>{{ $contact->payment_term_days !== null ? $contact->payment_term_days . ' hari' : '—' }}</div>
+                            <div class="small">{{ $contact->credit_limit !== null ? app(\App\Support\MoneyFormatter::class)->format((float) $contact->credit_limit, app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency()) : '—' }}</div>
+                        </td>
                         <td class="text-end align-middle">
                             <div class="table-actions">
                                 @foreach($hooks->render('contacts.index.row_actions', ['contact' => $contact]) as $hookedAction)
@@ -204,7 +218,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="text-center py-5">
+                        <td colspan="7" class="text-center py-5">
                             <i class="ti ti-address-book text-muted d-block mb-2" style="font-size:2rem;"></i>
                             @if($hasFilters)
                                 <div class="text-muted mb-2">Tidak ada kontak yang cocok dengan filter aktif.</div>

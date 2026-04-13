@@ -60,6 +60,9 @@
                                 <a href="{{ route('purchases.show', $purchase) }}" class="text-decoration-none fw-semibold">{{ $purchase->purchase_number }}</a>
                                 <div class="text-muted small">{{ optional($purchase->purchase_date)->format('d M Y H:i') ?? '-' }}</div>
                                 <div class="text-muted small">{{ $purchase->supplier_invoice_number ?: '-' }}</div>
+                                @if($purchase->expected_receive_date)
+                                    <div class="text-muted small">ETA {{ $purchase->expected_receive_date->format('d M Y') }}</div>
+                                @endif
                                 @if($purchase->due_date)
                                     <div class="text-muted small">
                                         Due {{ $purchase->due_date->format('d M Y') }}
@@ -73,12 +76,14 @@
                             <td>{{ $purchase->items_count }}</td>
                             <td>
                                 <div>Grand: {{ $money->format((float) $purchase->grand_total, $purchase->currency_code) }}</div>
+                                <div class="text-muted small">Landed: {{ $money->format((float) $purchase->landed_cost_total, $purchase->currency_code) }}</div>
                                 <div class="text-muted small">Paid: {{ $money->format((float) $purchase->paid_total, $purchase->currency_code) }}</div>
                                 <div class="text-muted small">Due: {{ $money->format((float) $purchase->balance_due, $purchase->currency_code) }}</div>
                             </td>
                             <td>
                                 <div><span class="badge bg-secondary-lt text-secondary">{{ $statusOptions[$purchase->status] ?? ucfirst($purchase->status) }}</span></div>
                                 <div class="text-muted small">{{ $paymentStatusOptions[$purchase->payment_status] ?? ucfirst($purchase->payment_status) }}</div>
+                                <div class="text-muted small">Bill: {{ ucfirst(str_replace('_', ' ', (string) $purchase->supplier_bill_status)) }}</div>
                             </td>
                             <td class="text-end align-middle">
                                 <div class="table-actions">

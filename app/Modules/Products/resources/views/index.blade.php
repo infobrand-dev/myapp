@@ -9,7 +9,10 @@
         <h2 class="mb-0">Products</h2>
         <div class="text-muted small">Master produk dengan harga, varian, dan barcode.</div>
     </div>
-    <a href="{{ route('products.create') }}" class="btn btn-primary">Tambah Product</a>
+    <div class="d-flex gap-2">
+        <a href="{{ route('products.import-page') }}" class="btn btn-outline-secondary">Import Products</a>
+        <a href="{{ route('products.create') }}" class="btn btn-primary">Tambah Product</a>
+    </div>
 </div>
 
 <div class="card mb-3">

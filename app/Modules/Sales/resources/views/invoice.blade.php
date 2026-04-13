@@ -39,6 +39,10 @@
                 <div class="text-muted small">{{ $sale->customer_email_snapshot ?: '-' }}</div>
                 <div class="text-muted small">{{ $sale->customer_phone_snapshot ?: '-' }}</div>
                 <div class="text-muted small">{{ $sale->customer_address_snapshot ?: '-' }}</div>
+                @if($sale->customer_note)
+                    <div class="text-muted small mt-2">Catatan customer</div>
+                    <div class="small">{{ $sale->customer_note }}</div>
+                @endif
             </div>
             <div class="col-md-6 text-md-end">
                 <div class="text-muted small">Payment status</div>

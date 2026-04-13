@@ -22,6 +22,9 @@ Route::middleware(['web', 'auth', 'plan.feature:accounting', 'plan.feature:inven
         Route::get('/movements', [StockMovementController::class, 'index'])->middleware('permission:inventory.view-movement')->name('movements.index');
 
         Route::get('/openings', [OpeningStockController::class, 'index'])->middleware('permission:inventory.manage-opening-stock')->name('openings.index');
+        Route::get('/openings/import', [OpeningStockController::class, 'importPage'])->middleware('permission:inventory.manage-opening-stock')->name('openings.import-page');
+        Route::get('/openings/import/template/{format}', [OpeningStockController::class, 'downloadTemplate'])->middleware('permission:inventory.manage-opening-stock')->name('openings.import-template');
+        Route::post('/openings/import', [OpeningStockController::class, 'import'])->middleware('permission:inventory.manage-opening-stock')->name('openings.import');
         Route::get('/openings/create', [OpeningStockController::class, 'create'])->middleware('permission:inventory.manage-opening-stock')->name('openings.create');
         Route::post('/openings', [OpeningStockController::class, 'store'])->middleware('permission:inventory.manage-opening-stock')->name('openings.store');
 

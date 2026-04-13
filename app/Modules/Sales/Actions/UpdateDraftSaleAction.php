@@ -11,7 +11,9 @@ use App\Modules\Sales\Services\SaleSnapshotService;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class UpdateDraftSaleAction
@@ -52,6 +54,7 @@ class UpdateDraftSaleAction
                 ? (int) $data['branch_id']
                 : ($sale->branch_id ?: BranchContext::currentOrDefaultId($actor, CompanyContext::currentId()));
             $totals = $this->recalculateTotals->execute($data);
+            $attachmentPath = $this->storeAttachment($data['attachment'] ?? null);
             $contact = !empty($data['contact_id'])
                 ? ContactScope::applyVisibilityScope(Contact::query()->with('parentContact'))->find($data['contact_id'])
                 : null;
@@ -78,6 +81,8 @@ class UpdateDraftSaleAction
                 'balance_due' => $totals['grand_total'],
                 'currency_code' => $data['currency_code'] ?? $sale->currency_code,
                 'notes' => $data['notes'] ?? null,
+                'customer_note' => $data['customer_note'] ?? null,
+                'attachment_path' => $attachmentPath ?: $sale->attachment_path,
                 'totals_snapshot' => $totals['totals_snapshot'],
                 'meta' => $this->idempotencyService->mergeMeta(array_merge($sale->meta ?? [], [
                     'source_context' => $data['source_context'] ?? ($sale->meta['source_context'] ?? null),
@@ -88,6 +93,10 @@ class UpdateDraftSaleAction
             $sale->items()->delete();
             $sale->items()->createMany($this->withTenantId($totals['items']));
             $sale = $this->syncPaymentSummary->execute($sale, $data['payment_status']);
+
+            if ($attachmentPath && $sale->getOriginal('attachment_path') && $sale->getOriginal('attachment_path') !== $attachmentPath) {
+                Storage::disk('public')->delete($sale->getOriginal('attachment_path'));
+            }
 
             return $sale->load('items');
         });
@@ -101,5 +110,14 @@ class UpdateDraftSaleAction
 
             return $row;
         }, $rows);
+    }
+
+    private function storeAttachment(mixed $attachment): ?string
+    {
+        if (!$attachment instanceof UploadedFile) {
+            return null;
+        }
+
+        return $attachment->store('sales/attachments', 'public');
     }
 }

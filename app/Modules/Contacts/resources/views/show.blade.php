@@ -5,6 +5,8 @@
 @section('content')
 @php
     $hooks = app(\App\Support\HookManager::class);
+    $money = app(\App\Support\MoneyFormatter::class);
+    $currency = app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency();
 @endphp
 
 <div class="page-header">
@@ -74,6 +76,12 @@
                     <dt class="col-sm-4 text-muted fw-normal">Industry</dt>
                     <dd class="col-sm-8">{{ $contact->industry ?? '-' }}</dd>
 
+                    <dt class="col-sm-4 text-muted fw-normal">Payment Term</dt>
+                    <dd class="col-sm-8">{{ $contact->payment_term_days !== null ? $contact->payment_term_days . ' hari' : '-' }}</dd>
+
+                    <dt class="col-sm-4 text-muted fw-normal">Credit Limit</dt>
+                    <dd class="col-sm-8">{{ $contact->credit_limit !== null ? $money->format((float) $contact->credit_limit, $currency) : '-' }}</dd>
+
                     <dt class="col-sm-4 text-muted fw-normal">VAT/NPWP</dt>
                     <dd class="col-sm-8">{{ $contact->vat ?? '-' }}</dd>
 
@@ -92,6 +100,27 @@
                     <dd class="col-sm-8">
                         @if($contact->parentContact)
                             <a href="{{ route('contacts.show', $contact->parentContact) }}">{{ $contact->parentContact->name }}</a>
+                        @else
+                            -
+                        @endif
+                    </dd>
+
+                    <dt class="col-sm-4 text-muted fw-normal">Contact Person</dt>
+                    <dd class="col-sm-8">
+                        @if($contact->contact_person_name || $contact->contact_person_phone)
+                            <div>{{ $contact->contact_person_name ?? '-' }}</div>
+                            <div class="text-muted small">{{ $contact->contact_person_phone ?? '-' }}</div>
+                        @else
+                            -
+                        @endif
+                    </dd>
+
+                    <dt class="col-sm-4 text-muted fw-normal">Tags</dt>
+                    <dd class="col-sm-8">
+                        @if(!empty($contact->tags))
+                            @foreach($contact->tags as $tag)
+                                <span class="badge bg-azure-lt text-azure me-1">{{ $tag }}</span>
+                            @endforeach
                         @else
                             -
                         @endif
@@ -127,6 +156,22 @@
                 @else
                     <span class="text-muted">Belum ada alamat.</span>
                 @endif
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header">
+                <h3 class="card-title">Billing vs Shipping</h3>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="text-muted small">Billing Address</div>
+                    <div>{{ $contact->billing_address ?: '-' }}</div>
+                </div>
+                <div>
+                    <div class="text-muted small">Shipping Address</div>
+                    <div>{{ $contact->shipping_address ?: '-' }}</div>
+                </div>
             </div>
         </div>
 

@@ -20,4 +20,9 @@ class PaymentPolicy
     {
         return $user->can('payments.void') && $this->view($user, $payment);
     }
+
+    public function update(User $user, Payment $payment): bool
+    {
+        return $user->can('payments.create') && $this->view($user, $payment);
+    }
 }

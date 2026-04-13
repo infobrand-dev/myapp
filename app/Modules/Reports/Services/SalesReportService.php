@@ -25,8 +25,10 @@ class SalesReportService extends BaseReportService
             'summary' => $this->summary($filters),
             'byDate' => $this->byDate($filters),
             'byProduct' => $this->byProduct($filters),
+            'marginByProduct' => $this->marginByProduct($filters),
             'byCustomer' => $this->byCustomer($filters),
             'byCashier' => $this->byCashier($filters),
+            'receivableAging' => $this->receivableAging($filters),
         ];
     }
 
@@ -36,12 +38,14 @@ class SalesReportService extends BaseReportService
         $transactionCount = (clone $baseQuery)->count('sales.id');
         $grossTotal = round((float) (clone $baseQuery)->sum('sales.grand_total'), 2);
         $paidTotal = round((float) (clone $baseQuery)->sum('sales.paid_total'), 2);
+        $receivableTotal = round((float) (clone $baseQuery)->sum('sales.balance_due'), 2);
         $itemQty = round((float) $this->saleItemsBaseQuery($filters)->sum('sale_items.qty'), 2);
 
         return [
             'transaction_count' => $transactionCount,
             'gross_total' => $grossTotal,
             'paid_total' => $paidTotal,
+            'receivable_total' => $receivableTotal,
             'item_qty' => $itemQty,
             'average_ticket' => $transactionCount > 0 ? round($grossTotal / $transactionCount, 2) : 0,
         ];
@@ -83,6 +87,55 @@ class SalesReportService extends BaseReportService
             ->groupBy('sales.customer_name_snapshot')
             ->orderByDesc('gross_total')
             ->limit(self::MAX_BREAKDOWN_ROWS)
+            ->get();
+    }
+
+    public function marginByProduct(array $filters)
+    {
+        return $this->saleItemsBaseQuery($filters)
+            ->leftJoin('products', 'products.id', '=', 'sale_items.product_id')
+            ->leftJoin('product_variants', 'product_variants.id', '=', 'sale_items.product_variant_id')
+            ->selectRaw('sale_items.product_name_snapshot')
+            ->selectRaw('sale_items.variant_name_snapshot')
+            ->selectRaw('SUM(sale_items.qty) as qty_sold')
+            ->selectRaw('SUM(sale_items.line_total) as revenue_total')
+            ->selectRaw('SUM(COALESCE(product_variants.cost_price, products.cost_price, 0) * sale_items.qty) as estimated_cost_total')
+            ->selectRaw('SUM(sale_items.line_total - (COALESCE(product_variants.cost_price, products.cost_price, 0) * sale_items.qty)) as estimated_margin_total')
+            ->groupBy('sale_items.product_id', 'sale_items.product_variant_id', 'sale_items.product_name_snapshot', 'sale_items.variant_name_snapshot')
+            ->orderByDesc('estimated_margin_total')
+            ->limit(self::MAX_BREAKDOWN_ROWS)
+            ->get();
+    }
+
+    public function receivableAging(array $filters)
+    {
+        $today = now()->toDateString();
+        $in7Days = now()->addDays(7)->toDateString();
+        $in30Days = now()->addDays(30)->toDateString();
+
+        return $this->salesBaseQuery($filters)
+            ->where('sales.balance_due', '>', 0)
+            ->selectRaw("
+                CASE
+                    WHEN sales.due_date IS NULL THEN 'No Due Date'
+                    WHEN DATE(sales.due_date) < ? THEN 'Overdue'
+                    WHEN DATE(sales.due_date) <= ? THEN 'Due <= 7 days'
+                    WHEN DATE(sales.due_date) <= ? THEN 'Due <= 30 days'
+                    ELSE 'Due > 30 days'
+                END as aging_bucket
+            ", [$today, $in7Days, $in30Days])
+            ->selectRaw('COUNT(sales.id) as transaction_count')
+            ->selectRaw('SUM(sales.balance_due) as balance_due_total')
+            ->groupByRaw("
+                CASE
+                    WHEN sales.due_date IS NULL THEN 'No Due Date'
+                    WHEN DATE(sales.due_date) < ? THEN 'Overdue'
+                    WHEN DATE(sales.due_date) <= ? THEN 'Due <= 7 days'
+                    WHEN DATE(sales.due_date) <= ? THEN 'Due <= 30 days'
+                    ELSE 'Due > 30 days'
+                END
+            ", [$today, $in7Days, $in30Days])
+            ->orderByDesc('balance_due_total')
             ->get();
     }
 

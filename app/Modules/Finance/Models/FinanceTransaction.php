@@ -27,6 +27,9 @@ class FinanceTransaction extends Model
                 'amount',
                 'finance_account_id',
                 'finance_category_id',
+                'counterparty_finance_account_id',
+                'transfer_pair_transaction_id',
+                'attachment_path',
                 'notes',
                 'branch_id',
                 'pos_cash_session_id',
@@ -39,6 +42,8 @@ class FinanceTransaction extends Model
     public const TYPE_CASH_IN = 'cash_in';
     public const TYPE_CASH_OUT = 'cash_out';
     public const TYPE_EXPENSE = 'expense';
+    public const ENTRY_MODE_STANDARD = 'standard';
+    public const ENTRY_MODE_TRANSFER = 'transfer';
 
     protected $table = 'finance_transactions';
 
@@ -51,6 +56,10 @@ class FinanceTransaction extends Model
         'amount',
         'finance_account_id',
         'finance_category_id',
+        'counterparty_finance_account_id',
+        'transfer_group_key',
+        'transfer_pair_transaction_id',
+        'attachment_path',
         'notes',
         'branch_id',
         'pos_cash_session_id',
@@ -84,6 +93,20 @@ class FinanceTransaction extends Model
         return $this->belongsTo(Company::class);
     }
 
+    public function counterpartyAccount(): BelongsTo
+    {
+        return $this->belongsTo(FinanceAccount::class, 'counterparty_finance_account_id')
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId());
+    }
+
+    public function transferPair(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'transfer_pair_transaction_id')
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId());
+    }
+
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
@@ -109,6 +132,11 @@ class FinanceTransaction extends Model
     public function isCashOut(): bool
     {
         return in_array($this->transaction_type, [self::TYPE_CASH_OUT, self::TYPE_EXPENSE], true);
+    }
+
+    public function isTransfer(): bool
+    {
+        return filled($this->transfer_group_key);
     }
 
     public function resolveRouteBinding($value, $field = null)

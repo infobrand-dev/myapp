@@ -7,6 +7,7 @@ use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
 use App\Modules\Purchases\Http\Requests\Concerns\NormalizesPurchasePayload;
+use App\Modules\Purchases\Models\Purchase;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -32,10 +33,18 @@ class StoreDraftPurchaseRequest extends FormRequest
             'contact_id' => ['required', 'integer', Rule::exists('contacts', 'id')->where(fn ($query) => ContactScope::applyVisibilityScope($query))],
             'purchase_date' => ['required', 'date'],
             'due_date' => ['nullable', 'date'],
+            'expected_receive_date' => ['nullable', 'date'],
             'supplier_reference' => ['nullable', 'string', 'max:100'],
             'supplier_invoice_number' => ['nullable', 'string', 'max:100'],
+            'supplier_bill_status' => ['nullable', Rule::in([
+                Purchase::BILL_PENDING,
+                Purchase::BILL_RECEIVED,
+                Purchase::BILL_VERIFIED,
+            ])],
+            'supplier_bill_received_at' => ['nullable', 'date'],
             'supplier_notes' => ['nullable', 'string'],
             'currency_code' => ['required', 'string', 'max:10'],
+            'landed_cost_total' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
             'internal_notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],

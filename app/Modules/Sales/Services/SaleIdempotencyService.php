@@ -24,7 +24,10 @@ class SaleIdempotencyService
             'payment_status' => (string) $sale->payment_status,
             'transaction_date' => $this->normalizeDateTime(optional($sale->transaction_date)->toDateTimeString()),
             'currency_code' => strtoupper((string) $sale->currency_code),
+            'header_discount_total' => $this->normalizeNumber(data_get($sale->totals_snapshot, 'header_discount_total', 0), 2),
+            'header_tax_total' => $this->normalizeNumber(data_get($sale->totals_snapshot, 'header_tax_total', 0), 2),
             'notes' => $this->nullableString($sale->notes),
+            'customer_note' => $this->nullableString($sale->customer_note),
             'items' => $sale->items
                 ->sortBy('line_no')
                 ->values()
@@ -67,7 +70,10 @@ class SaleIdempotencyService
             'payment_status' => (string) ($data['payment_status'] ?? ''),
             'transaction_date' => $this->normalizeDateTime($data['transaction_date'] ?? null),
             'currency_code' => strtoupper((string) ($data['currency_code'] ?? 'IDR')),
+            'header_discount_total' => $this->normalizeNumber($data['header_discount_total'] ?? 0, 2),
+            'header_tax_total' => $this->normalizeNumber($data['header_tax_total'] ?? 0, 2),
             'notes' => $this->nullableString($data['notes'] ?? null),
+            'customer_note' => $this->nullableString($data['customer_note'] ?? null),
             'items' => collect($data['items'] ?? [])
                 ->filter(fn ($item) => is_array($item))
                 ->values()

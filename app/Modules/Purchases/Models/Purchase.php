@@ -31,11 +31,15 @@ class Purchase extends Model
                 'supplier_notes',
                 'status',
                 'payment_status',
+                'supplier_bill_status',
                 'purchase_date',
                 'due_date',
+                'expected_receive_date',
+                'supplier_bill_received_at',
                 'subtotal',
                 'discount_total',
                 'tax_total',
+                'landed_cost_total',
                 'grand_total',
                 'paid_total',
                 'balance_due',
@@ -60,6 +64,9 @@ class Purchase extends Model
     public const PAYMENT_PARTIAL = 'partial';
     public const PAYMENT_PAID = 'paid';
     public const PAYMENT_OVERPAID = 'overpaid';
+    public const BILL_PENDING = 'pending';
+    public const BILL_RECEIVED = 'received';
+    public const BILL_VERIFIED = 'verified';
 
     protected $fillable = [
         'tenant_id',
@@ -77,14 +84,18 @@ class Purchase extends Model
         'supplier_notes',
         'status',
         'payment_status',
+        'supplier_bill_status',
         'purchase_date',
         'due_date',
+        'expected_receive_date',
+        'supplier_bill_received_at',
         'confirmed_at',
         'cancelled_at',
         'voided_at',
         'subtotal',
         'discount_total',
         'tax_total',
+        'landed_cost_total',
         'grand_total',
         'received_total_qty',
         'paid_total',
@@ -107,12 +118,15 @@ class Purchase extends Model
         'supplier_snapshot' => 'array',
         'purchase_date' => 'datetime',
         'due_date' => 'date',
+        'expected_receive_date' => 'date',
+        'supplier_bill_received_at' => 'date',
         'confirmed_at' => 'datetime',
         'cancelled_at' => 'datetime',
         'voided_at' => 'datetime',
         'subtotal' => 'decimal:2',
         'discount_total' => 'decimal:2',
         'tax_total' => 'decimal:2',
+        'landed_cost_total' => 'decimal:2',
         'grand_total' => 'decimal:2',
         'received_total_qty' => 'decimal:4',
         'paid_total' => 'decimal:2',

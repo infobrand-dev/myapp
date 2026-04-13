@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Inventory\Services\StockMutationService;
 use App\Modules\Purchases\Models\Purchase;
 use App\Modules\Purchases\Services\PurchaseNumberService;
+use App\Support\AccountingPeriodLockService;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
@@ -16,13 +17,16 @@ class ReceivePurchaseGoodsAction
 {
     private $numberService;
     private $syncPaymentSummary;
+    private $periodLockService;
 
     public function __construct(
         PurchaseNumberService $numberService,
-        SyncPurchasePaymentSummaryAction $syncPaymentSummary
+        SyncPurchasePaymentSummaryAction $syncPaymentSummary,
+        AccountingPeriodLockService $periodLockService
     ) {
         $this->numberService = $numberService;
         $this->syncPaymentSummary = $syncPaymentSummary;
+        $this->periodLockService = $periodLockService;
     }
 
     public function execute(Purchase $purchase, array $data, ?User $actor = null): Purchase
@@ -41,6 +45,12 @@ class ReceivePurchaseGoodsAction
                     'purchase' => 'Receiving hanya dapat dilakukan untuk purchase yang sudah confirmed/partial received.',
                 ]);
             }
+
+            $this->periodLockService->ensureDateOpen(
+                $data['receipt_date'] ?? now(),
+                $purchase->branch_id,
+                'purchase receiving'
+            );
 
             $receiptRows = collect($data['items'] ?? [])
                 ->filter(fn ($row) => is_array($row) && (float) ($row['qty_received'] ?? 0) > 0)

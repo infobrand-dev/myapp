@@ -151,6 +151,55 @@ class SalesWorkflowTest extends TestCase
         $this->assertDatabaseCount('sale_items', 1);
     }
 
+    public function test_header_discount_and_tax_are_included_in_sale_totals(): void
+    {
+        $user = $this->salesUser([
+            'sales.create',
+            'sales.view',
+            'sales.finalize',
+        ]);
+        $contact = $this->customer();
+        $product = $this->product('Produk Header', 'HDR-001', 'produk-header');
+
+        $sale = app(CreateDraftSaleAction::class)->execute([
+            'contact_id' => $contact->id,
+            'source' => 'manual',
+            'payment_status' => 'unpaid',
+            'transaction_date' => now()->format('Y-m-d H:i:s'),
+            'currency_code' => 'IDR',
+            'header_discount_total' => 2500,
+            'header_tax_total' => 750,
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'qty' => 2,
+                    'unit_price' => 20000,
+                    'discount_total' => 1000,
+                    'tax_total' => 500,
+                ],
+            ],
+        ], $user);
+
+        $sale->refresh();
+
+        $this->assertEquals(40000.00, (float) $sale->subtotal);
+        $this->assertEquals(3500.00, (float) $sale->discount_total);
+        $this->assertEquals(1250.00, (float) $sale->tax_total);
+        $this->assertEquals(37750.00, (float) $sale->grand_total);
+        $this->assertSame(2500.0, (float) data_get($sale->totals_snapshot, 'header_discount_total'));
+        $this->assertSame(750.0, (float) data_get($sale->totals_snapshot, 'header_tax_total'));
+
+        $sale = app(FinalizeSaleAction::class)->execute($sale, [
+            'payment_status' => 'unpaid',
+        ], $user);
+
+        $sale->refresh();
+
+        $this->assertEquals(3500.00, (float) $sale->discount_total);
+        $this->assertEquals(1250.00, (float) $sale->tax_total);
+        $this->assertEquals(37750.00, (float) $sale->grand_total);
+    }
+
     public function test_finalizing_sale_dispatches_event_and_prevents_future_draft_edit(): void
     {
         Event::fake([SaleFinalized::class]);

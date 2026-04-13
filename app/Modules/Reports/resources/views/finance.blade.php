@@ -31,6 +31,34 @@
     <div class="col-md-4"><div class="card"><div class="card-body"><div class="text-muted small">Net</div><div class="fs-2 fw-bold {{ $summary['net_total'] >= 0 ? 'text-primary' : 'text-danger' }}">{{ $money->format((float) $summary['net_total'], $currency) }}</div></div></div></div>
 </div>
 
+<div class="row g-3 mb-3">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header"><h3 class="card-title mb-0">Arus Kas</h3></div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2"><span class="text-muted">Operating inflow</span><span>{{ $money->format((float) $cashFlowSummary['operating_inflow'], $currency) }}</span></div>
+                <div class="d-flex justify-content-between mb-2"><span class="text-muted">Operating outflow</span><span>{{ $money->format((float) $cashFlowSummary['operating_outflow'], $currency) }}</span></div>
+                <div class="d-flex justify-content-between mb-2"><span class="text-muted">Expense outflow</span><span>{{ $money->format((float) $cashFlowSummary['expense_outflow'], $currency) }}</span></div>
+                <hr>
+                <div class="d-flex justify-content-between fw-semibold"><span>Net cash flow</span><span>{{ $money->format((float) $cashFlowSummary['net_cash_flow'], $currency) }}</span></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header"><h3 class="card-title mb-0">Laba Rugi Sederhana</h3></div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2"><span class="text-muted">Revenue</span><span>{{ $money->format((float) $profitLoss['revenue'], $currency) }}</span></div>
+                <div class="d-flex justify-content-between mb-2"><span class="text-muted">Estimated COGS</span><span>{{ $money->format((float) $profitLoss['estimated_cogs'], $currency) }}</span></div>
+                <div class="d-flex justify-content-between mb-2"><span class="text-muted">Gross profit</span><span>{{ $money->format((float) $profitLoss['gross_profit'], $currency) }}</span></div>
+                <div class="d-flex justify-content-between mb-2"><span class="text-muted">Operating expenses</span><span>{{ $money->format((float) $profitLoss['operating_expenses'], $currency) }}</span></div>
+                <hr>
+                <div class="d-flex justify-content-between fw-semibold"><span>Net profit</span><span>{{ $money->format((float) $profitLoss['net_profit'], $currency) }}</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row g-3">
     <div class="col-lg-7">
         <div class="card"><div class="card-header"><h3 class="card-title mb-0">Cash In / Out by Date</h3></div><div class="table-responsive"><table class="table table-vcenter"><thead><tr><th>Date</th><th>Cash In</th><th>Cash Out</th></tr></thead><tbody>

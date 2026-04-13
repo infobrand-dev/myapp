@@ -18,6 +18,11 @@
     </div>
     <div class="d-flex align-items-center gap-2">
         @include('shared.accounting.mode-badge')
+        @can('update', $payment)
+            <a href="{{ route('payments.edit', $payment) }}" class="btn btn-outline-primary">
+                <i class="ti ti-pencil me-1"></i>Edit Payment
+            </a>
+        @endcan
         <a href="{{ route('payments.index') }}" class="btn btn-outline-secondary">
             <i class="ti ti-arrow-left me-1"></i>Kembali
         </a>
@@ -36,6 +41,7 @@
                             <th>Target</th>
                             <th>Reference</th>
                             <th>Amount</th>
+                            <th>Status</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -54,6 +60,16 @@
                                     @endif
                                 </td>
                                 <td>{{ $money->format((float) $allocation->amount, $payment->currency_code) }}</td>
+                                <td class="text-muted small">
+                                    @php
+                                        $balance = $allocation->payable instanceof \App\Modules\Sales\Models\Sale
+                                            ? (float) $allocation->payable->balance_due
+                                            : ($allocation->payable instanceof \App\Modules\Sales\Models\SaleReturn
+                                                ? (float) $allocation->payable->refund_balance
+                                                : (float) ($allocation->payable->balance_due ?? 0));
+                                    @endphp
+                                    {{ (float) $allocation->amount > $balance ? 'Overpayment' : ((float) $allocation->amount < $balance ? 'Partial' : 'Exact') }}
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -103,6 +119,7 @@
                     <div class="text-muted small">Status</div>
                     <div class="fw-semibold">{{ $paymentStatusOptions[$payment->status] ?? ucfirst($payment->status) }}</div>
                     <div class="text-muted small mt-1">Reconciliation: {{ $reconciliationStatusOptions[$payment->reconciliation_status] ?? ucfirst(str_replace('_', ' ', $payment->reconciliation_status)) }}</div>
+                    <div class="text-muted small mt-1">Branch: {{ $payment->branch?->name ?? '-' }}</div>
                 </div>
                 <div class="mb-3">
                     <div class="text-muted small">Amount</div>

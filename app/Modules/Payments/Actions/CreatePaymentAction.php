@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\Payments\Services\PaymentNumberService;
+use App\Support\AccountingJournalService;
+use App\Support\AccountingPeriodLockService;
 use App\Support\BooleanQuery;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
@@ -22,21 +24,28 @@ class CreatePaymentAction
     private $numberService;
     private $validatePayableTransaction;
     private $recalculatePaymentSummary;
+    private $journalService;
+    private $periodLockService;
 
     public function __construct(
         PaymentNumberService $numberService,
         ValidatePayableTransactionAction $validatePayableTransaction,
-        RecalculatePaymentSummaryAction $recalculatePaymentSummary
+        RecalculatePaymentSummaryAction $recalculatePaymentSummary,
+        AccountingJournalService $journalService,
+        AccountingPeriodLockService $periodLockService
     ) {
         $this->numberService = $numberService;
         $this->validatePayableTransaction = $validatePayableTransaction;
         $this->recalculatePaymentSummary = $recalculatePaymentSummary;
+        $this->journalService = $journalService;
+        $this->periodLockService = $periodLockService;
     }
 
     public function execute(array $data, ?User $actor = null): Payment
     {
         return DB::transaction(function () use ($data, $actor) {
             $paidAt = !empty($data['paid_at']) ? Carbon::parse($data['paid_at']) : now();
+            $this->periodLockService->ensureDateOpen($paidAt, $data['branch_id'] ?? null, 'create payment');
 
             $method = BooleanQuery::apply(
                 PaymentMethod::query()
@@ -139,11 +148,28 @@ class CreatePaymentAction
                 'to_status' => Payment::STATUS_POSTED,
                 'event' => 'created',
                 'reason' => null,
-                'meta' => ['allocation_count' => $allocations->count()],
+                'meta' => [
+                    'allocation_count' => $allocations->count(),
+                    'allocation_total' => $allocationTotal,
+                    'reconciliation_status' => $reconciliationStatus,
+                    'payable_types' => $allocations->pluck('payable_type')->unique()->values()->all(),
+                ],
                 'actor_id' => $actor ? $actor->id : null,
             ]);
 
             $this->recalculateSummaries($payables);
+
+            $this->journalService->sync(
+                $payment,
+                'payment_posted',
+                $paidAt,
+                $this->journalLines($payment, $allocations),
+                [
+                    'amount' => (float) $payment->amount,
+                    'kind' => data_get($payment->meta, 'kind'),
+                ],
+                'Auto journal payment ' . $payment->payment_number
+            );
 
             return $payment->load(['method', 'receiver', 'allocations.payable']);
         });
@@ -187,5 +213,52 @@ class CreatePaymentAction
         }
 
         return $proofFile->store('payments/proofs', 'public');
+    }
+
+    private function journalLines(Payment $payment, Collection $allocations): array
+    {
+        $cashAccountName = 'Cash/Bank - ' . ($payment->method?->name ?? 'Payment');
+        $lines = [];
+
+        foreach ($allocations as $allocation) {
+            $type = (string) ($allocation['payable_type'] ?? '');
+            $amount = round((float) ($allocation['amount'] ?? 0), 2);
+            $kind = (string) data_get($allocation, 'meta.kind', data_get($payment->meta, 'kind', ''));
+
+            if ($amount <= 0) {
+                continue;
+            }
+
+            if ($type === 'sale') {
+                $lines[] = ['account_code' => 'CASH', 'account_name' => $cashAccountName, 'debit' => $amount, 'credit' => 0];
+                $lines[] = ['account_code' => 'AR', 'account_name' => 'Accounts Receivable', 'debit' => 0, 'credit' => $amount];
+            } elseif ($type === 'purchase') {
+                $lines[] = ['account_code' => 'AP', 'account_name' => 'Accounts Payable', 'debit' => $amount, 'credit' => 0];
+                $lines[] = ['account_code' => 'CASH', 'account_name' => $cashAccountName, 'debit' => 0, 'credit' => $amount];
+            } elseif ($type === 'sale_return' || $kind === 'refund') {
+                $lines[] = ['account_code' => 'SALES_REFUND', 'account_name' => 'Sales Refund', 'debit' => $amount, 'credit' => 0];
+                $lines[] = ['account_code' => 'CASH', 'account_name' => $cashAccountName, 'debit' => 0, 'credit' => $amount];
+            }
+        }
+
+        return $this->aggregateLines($lines);
+    }
+
+    private function aggregateLines(array $lines): array
+    {
+        return collect($lines)
+            ->groupBy(fn (array $line) => $line['account_code'] . '|' . $line['account_name'])
+            ->map(function (Collection $rows) {
+                $first = $rows->first();
+
+                return [
+                    'account_code' => $first['account_code'],
+                    'account_name' => $first['account_name'],
+                    'debit' => round((float) $rows->sum('debit'), 2),
+                    'credit' => round((float) $rows->sum('credit'), 2),
+                ];
+            })
+            ->values()
+            ->all();
     }
 }

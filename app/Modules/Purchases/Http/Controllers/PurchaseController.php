@@ -102,6 +102,7 @@ class PurchaseController extends Controller
             'purchase' => $this->repository->findForDetail($purchase),
             'statusOptions' => $this->lookupService->statusOptions(),
             'paymentStatusOptions' => $this->lookupService->paymentStatusOptions(),
+            'supplierBillStatusOptions' => $this->lookupService->supplierBillStatusOptions(),
             'activities' => $purchase->activities()->with('causer')->latest()->get(),
         ]);
     }
@@ -179,6 +180,7 @@ class PurchaseController extends Controller
             'purchase' => $purchase->loadMissing('items'),
             'purchasables' => $this->lookupService->purchasables(),
             'paymentStatusOptions' => $this->lookupService->paymentStatusOptions(),
+            'supplierBillStatusOptions' => $this->lookupService->supplierBillStatusOptions(),
         ];
     }
 

@@ -93,6 +93,16 @@
                             value="{{ old('due_date', optional($purchase->due_date)->format('Y-m-d')) }}">
                         @error('due_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
+                    <div class="col-md-6">
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Expected Receive Date',
+                            'tooltip' => 'Target tanggal barang diperkirakan tiba dari supplier untuk membantu workflow receiving.',
+                        ])
+                        <input type="date" name="expected_receive_date"
+                            class="form-control @error('expected_receive_date') is-invalid @enderror"
+                            value="{{ old('expected_receive_date', optional($purchase->expected_receive_date)->format('Y-m-d')) }}">
+                        @error('expected_receive_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
 
                     @if($isAdvancedMode)
                         <div class="col-md-6">
@@ -132,6 +142,30 @@
                                 value="{{ old('supplier_invoice_number', $purchase->supplier_invoice_number) }}">
                             @error('supplier_invoice_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
+
+                        <div class="col-md-6">
+                            @include('shared.accounting.field-label', [
+                                'label' => 'Supplier Bill Status',
+                                'tooltip' => 'Lacak status dokumen tagihan supplier agar follow-up payable dan verifikasi invoice lebih jelas.',
+                            ])
+                            <select name="supplier_bill_status" class="form-select @error('supplier_bill_status') is-invalid @enderror">
+                                @foreach($supplierBillStatusOptions as $value => $label)
+                                    <option value="{{ $value }}" @selected(old('supplier_bill_status', $purchase->supplier_bill_status ?: \App\Modules\Purchases\Models\Purchase::BILL_PENDING) === $value)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            @error('supplier_bill_status') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+
+                        <div class="col-md-6">
+                            @include('shared.accounting.field-label', [
+                                'label' => 'Bill Received Date',
+                                'tooltip' => 'Tanggal invoice supplier diterima secara fisik atau digital.',
+                            ])
+                            <input type="date" name="supplier_bill_received_at"
+                                class="form-control @error('supplier_bill_received_at') is-invalid @enderror"
+                                value="{{ old('supplier_bill_received_at', optional($purchase->supplier_bill_received_at)->format('Y-m-d')) }}">
+                            @error('supplier_bill_received_at') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
                     @endif
 
                     <div class="col-12">
@@ -165,6 +199,17 @@
                                 class="form-control @error('supplier_notes') is-invalid @enderror">{{ old('supplier_notes', $purchase->supplier_notes) }}</textarea>
                             @error('supplier_notes') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             <div class="form-hint">Catatan yang akan dilihat supplier.</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            @include('shared.accounting.field-label', [
+                                'label' => 'Landed Cost',
+                                'tooltip' => 'Biaya tambahan pembelian seperti ongkir, handling, atau bea yang ikut menambah total pembelian.',
+                            ])
+                            <input type="number" min="0" step="0.01" name="landed_cost_total"
+                                class="form-control @error('landed_cost_total') is-invalid @enderror"
+                                value="{{ old('landed_cost_total', $purchase->landed_cost_total ?? 0) }}">
+                            @error('landed_cost_total') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                     @endif
                 </div>

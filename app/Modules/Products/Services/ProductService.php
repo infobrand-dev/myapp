@@ -8,6 +8,7 @@ use App\Modules\Products\Models\ProductMedia;
 use App\Modules\Products\Models\ProductOptionGroup;
 use App\Modules\Products\Models\ProductOptionValue;
 use App\Modules\Products\Models\ProductPriceLevel;
+use App\Modules\Products\Models\ProductPriceHistory;
 use App\Modules\Products\Models\ProductVariant;
 use App\Services\TenantStorageUsageService;
 use App\Support\PlanLimit;
@@ -36,6 +37,7 @@ class ProductService
 
             $product = Product::query()->create($this->productPayload($data, $actor, true));
             $this->syncProductGraph($product, $data);
+            $this->recordProductPriceHistory($product, 'created', $actor);
 
             return $product->fresh();
         });
@@ -45,9 +47,12 @@ class ProductService
     {
         return DB::transaction(function () use ($product, $data, $actor) {
             $data = $this->lookupService->resolveLookupIds($data);
+            $originalProduct = clone $product;
+            $originalVariants = $product->variants()->get()->keyBy('id');
 
             $product->update($this->productPayload($data, $actor, false, $product));
-            $this->syncProductGraph($product, $data);
+            $this->syncProductGraph($product, $data, $actor, $originalVariants);
+            $this->recordProductPriceHistory($product, 'updated', $actor, $originalProduct);
 
             return $product->fresh();
         });
@@ -87,7 +92,7 @@ class ProductService
         }
     }
 
-    private function syncProductGraph(Product $product, array $data): void
+    private function syncProductGraph(Product $product, array $data, ?User $actor = null, $originalVariants = null): void
     {
         if (
             array_key_exists('price_levels', $data)
@@ -115,7 +120,7 @@ class ProductService
         }
 
         if (array_key_exists('variants', $data) || $product->type !== 'variant') {
-            $this->syncVariants($product, $data['variants'] ?? []);
+            $this->syncVariants($product, $data['variants'] ?? [], $actor, $originalVariants ?? collect());
         }
     }
 
@@ -281,7 +286,7 @@ class ProductService
         }
     }
 
-    private function syncVariants(Product $product, array $variants): void
+    private function syncVariants(Product $product, array $variants, ?User $actor = null, $originalVariants = null): void
     {
         if ($product->type !== 'variant') {
             $product->variants()->get()->each(function (ProductVariant $variant) {
@@ -326,6 +331,14 @@ class ProductService
                     'wholesale' => $variantData['wholesale_price'] ?? null,
                     'member' => $variantData['member_price'] ?? null,
                 ])
+            );
+
+            $this->recordVariantPriceHistory(
+                $product,
+                $variant,
+                $variant->wasRecentlyCreated ? 'created' : 'updated',
+                $actor,
+                $originalVariants?->get($variant->id)
             );
 
             $keptIds[] = $variant->id;
@@ -526,5 +539,65 @@ class ProductService
             ->filter(fn (array $row) => !empty($row['price_level_id']) && $row['price'] !== null && $row['price'] !== '')
             ->values()
             ->all();
+    }
+
+    private function recordProductPriceHistory(Product $product, string $reason, ?User $actor = null, ?Product $original = null): void
+    {
+        if ($original
+            && (float) $original->cost_price === (float) $product->cost_price
+            && (float) $original->sell_price === (float) $product->sell_price) {
+            return;
+        }
+
+        ProductPriceHistory::query()->create([
+            'tenant_id' => TenantContext::currentId(),
+            'product_id' => $product->id,
+            'cost_price' => $product->cost_price,
+            'sell_price' => $product->sell_price,
+            'reason' => $reason,
+            'meta' => [
+                'level' => 'product',
+                'product_name' => $product->name,
+                'sku' => $product->sku,
+                'previous_cost_price' => $original ? (float) $original->cost_price : null,
+                'previous_sell_price' => $original ? (float) $original->sell_price : null,
+                'delta_cost_price' => $original ? round((float) $product->cost_price - (float) $original->cost_price, 2) : (float) $product->cost_price,
+                'delta_sell_price' => $original ? round((float) $product->sell_price - (float) $original->sell_price, 2) : (float) $product->sell_price,
+                'changed_by_name' => $actor?->name,
+            ],
+            'changed_by' => $actor?->id,
+            'recorded_at' => now(),
+        ]);
+    }
+
+    private function recordVariantPriceHistory(Product $product, ProductVariant $variant, string $reason, ?User $actor = null, ?ProductVariant $original = null): void
+    {
+        if ($original
+            && (float) $original->cost_price === (float) $variant->cost_price
+            && (float) $original->sell_price === (float) $variant->sell_price) {
+            return;
+        }
+
+        ProductPriceHistory::query()->create([
+            'tenant_id' => TenantContext::currentId(),
+            'product_id' => $product->id,
+            'product_variant_id' => $variant->id,
+            'cost_price' => $variant->cost_price,
+            'sell_price' => $variant->sell_price,
+            'reason' => $reason,
+            'meta' => [
+                'level' => 'variant',
+                'product_name' => $product->name,
+                'variant_name' => $variant->name,
+                'sku' => $variant->sku,
+                'previous_cost_price' => $original ? (float) $original->cost_price : null,
+                'previous_sell_price' => $original ? (float) $original->sell_price : null,
+                'delta_cost_price' => $original ? round((float) $variant->cost_price - (float) $original->cost_price, 2) : (float) $variant->cost_price,
+                'delta_sell_price' => $original ? round((float) $variant->sell_price - (float) $original->sell_price, 2) : (float) $variant->sell_price,
+                'changed_by_name' => $actor?->name,
+            ],
+            'changed_by' => $actor?->id,
+            'recorded_at' => now(),
+        ]);
     }
 }

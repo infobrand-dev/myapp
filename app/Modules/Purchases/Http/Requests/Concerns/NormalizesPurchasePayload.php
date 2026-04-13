@@ -60,6 +60,9 @@ trait NormalizesPurchasePayload
             'items' => $items,
             'purchase_date' => $this->filled('purchase_date') ? $this->input('purchase_date') : now()->format('Y-m-d\TH:i'),
             'due_date' => $this->filled('due_date') ? $this->input('due_date') : null,
+            'expected_receive_date' => $this->filled('expected_receive_date') ? $this->input('expected_receive_date') : null,
+            'supplier_bill_received_at' => $this->filled('supplier_bill_received_at') ? $this->input('supplier_bill_received_at') : null,
+            'landed_cost_total' => ($this->input('landed_cost_total', '') === '' ? 0 : $this->input('landed_cost_total', 0)),
             'currency_code' => $this->filled('currency_code') ? strtoupper((string) $this->input('currency_code')) : app(CurrencySettingsResolver::class)->defaultCurrency(),
         ]);
     }

@@ -32,7 +32,7 @@
 
 <div class="row g-3">
     <div class="col-lg-7">
-        <div class="card"><div class="card-header"><h3 class="card-title mb-0">Supplier Report</h3></div><div class="table-responsive"><table class="table table-vcenter"><thead><tr><th>Supplier</th><th>Purchases</th><th>Grand Total</th><th>Balance Due</th></tr></thead><tbody>
+        <div class="card"><div class="card-header"><h3 class="card-title mb-0">Purchase by Supplier</h3></div><div class="table-responsive"><table class="table table-vcenter"><thead><tr><th>Supplier</th><th>Purchases</th><th>Grand Total</th><th>Balance Due</th></tr></thead><tbody>
             @forelse($supplierReport as $row)
                 <tr><td>{{ $row->supplier_name }}</td><td>{{ $row->purchase_count }}</td><td>{{ $money->format((float) $row->grand_total, $currency) }}</td><td>{{ $money->format((float) $row->balance_due_total, $currency) }}</td></tr>
             @empty
@@ -46,6 +46,15 @@
                 <tr><td>{{ $row->receipt_bucket }}</td><td>{{ $row->purchase_count }}</td><td>{{ $money->format((float) $row->grand_total, $currency) }}</td><td>{{ number_format((float) $row->remaining_qty, 2, ',', '.') }}</td></tr>
             @empty
                 <tr><td colspan="4" class="text-center text-muted">Tidak ada data.</td></tr>
+            @endforelse
+        </tbody></table></div></div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card"><div class="card-header"><h3 class="card-title mb-0">Aging Hutang</h3></div><div class="table-responsive"><table class="table table-vcenter"><thead><tr><th>Bucket</th><th>Purchases</th><th>Balance Due</th></tr></thead><tbody>
+            @forelse($payableAging as $row)
+                <tr><td>{{ $row->aging_bucket }}</td><td>{{ $row->purchase_count }}</td><td>{{ $money->format((float) $row->balance_due_total, $currency) }}</td></tr>
+            @empty
+                <tr><td colspan="3" class="text-center text-muted">Tidak ada data.</td></tr>
             @endforelse
         </tbody></table></div></div>
     </div>

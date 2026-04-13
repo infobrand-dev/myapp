@@ -102,48 +102,60 @@ class PaymentLookupService
         return $options;
     }
 
-    public function saleOptions(): Collection
+    public function saleOptions(?int $includePaymentId = null): Collection
     {
-        return Sale::query()
+        $query = Sale::query()
             ->where('tenant_id', TenantContext::currentId())
             ->where('company_id', CompanyContext::currentId())
             ->tap(fn ($query) => BranchContext::applyScope($query))
             ->where('status', Sale::STATUS_FINALIZED)
-            ->whereNotIn('payment_status', [Sale::PAYMENT_PAID, Sale::PAYMENT_OVERPAID])
             ->orderByDesc('transaction_date')
-            ->limit(self::MAX_LOOKUP_ROWS)
-            ->get(['id', 'sale_number', 'customer_name_snapshot', 'grand_total', 'paid_total', 'balance_due']);
+            ->limit(self::MAX_LOOKUP_ROWS);
+
+        if ($includePaymentId === null) {
+            $query->whereNotIn('payment_status', [Sale::PAYMENT_PAID, Sale::PAYMENT_OVERPAID]);
+        }
+
+        return $query->get(['id', 'sale_number', 'customer_name_snapshot', 'grand_total', 'paid_total', 'balance_due', 'branch_id']);
     }
 
-    public function saleReturnOptions(): Collection
+    public function saleReturnOptions(?int $includePaymentId = null): Collection
     {
-        return SaleReturn::query()
+        $query = SaleReturn::query()
             ->where('tenant_id', TenantContext::currentId())
             ->where('company_id', CompanyContext::currentId())
             ->tap(fn ($query) => BranchContext::applyScope($query))
             ->where('status', SaleReturn::STATUS_FINALIZED)
             ->refundRequired()
-            ->whereNotIn('refund_status', [SaleReturn::REFUND_REFUNDED, SaleReturn::REFUND_SKIPPED])
             ->orderByDesc('return_date')
-            ->limit(self::MAX_LOOKUP_ROWS)
-            ->get(['id', 'return_number', 'sale_number_snapshot', 'customer_name_snapshot', 'grand_total', 'refunded_total', 'refund_balance']);
+            ->limit(self::MAX_LOOKUP_ROWS);
+
+        if ($includePaymentId === null) {
+            $query->whereNotIn('refund_status', [SaleReturn::REFUND_REFUNDED, SaleReturn::REFUND_SKIPPED]);
+        }
+
+        return $query->get(['id', 'return_number', 'sale_number_snapshot', 'customer_name_snapshot', 'grand_total', 'refunded_total', 'refund_balance', 'branch_id']);
     }
 
-    public function purchaseOptions(): Collection
+    public function purchaseOptions(?int $includePaymentId = null): Collection
     {
         if (!$this->purchaseModuleReady()) {
             return collect();
         }
 
-        return Purchase::query()
+        $query = Purchase::query()
             ->where('tenant_id', TenantContext::currentId())
             ->where('company_id', CompanyContext::currentId())
             ->tap(fn ($query) => BranchContext::applyScope($query))
             ->whereIn('status', [Purchase::STATUS_CONFIRMED, Purchase::STATUS_PARTIAL_RECEIVED, Purchase::STATUS_RECEIVED])
-            ->whereNotIn('payment_status', [Purchase::PAYMENT_PAID, Purchase::PAYMENT_OVERPAID])
             ->orderByDesc('purchase_date')
-            ->limit(self::MAX_LOOKUP_ROWS)
-            ->get(['id', 'purchase_number', 'supplier_name_snapshot', 'grand_total', 'paid_total', 'balance_due']);
+            ->limit(self::MAX_LOOKUP_ROWS);
+
+        if ($includePaymentId === null) {
+            $query->whereNotIn('payment_status', [Purchase::PAYMENT_PAID, Purchase::PAYMENT_OVERPAID]);
+        }
+
+        return $query->get(['id', 'purchase_number', 'supplier_name_snapshot', 'grand_total', 'paid_total', 'balance_due', 'branch_id']);
     }
 
     private function purchaseModuleReady(): bool

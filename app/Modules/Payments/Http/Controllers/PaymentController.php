@@ -4,8 +4,10 @@ namespace App\Modules\Payments\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Payments\Actions\CreatePaymentAction;
+use App\Modules\Payments\Actions\UpdatePaymentAction;
 use App\Modules\Payments\Actions\VoidPaymentAction;
 use App\Modules\Payments\Http\Requests\StorePaymentRequest;
+use App\Modules\Payments\Http\Requests\UpdatePaymentRequest;
 use App\Modules\Payments\Http\Requests\VoidPaymentRequest;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Repositories\PaymentRepository;
@@ -20,6 +22,7 @@ class PaymentController extends Controller
     private $repository;
     private $lookupService;
     private $createPayment;
+    private $updatePayment;
     private $voidPayment;
     private $currencySettings;
 
@@ -27,12 +30,14 @@ class PaymentController extends Controller
         PaymentRepository $repository,
         PaymentLookupService $lookupService,
         CreatePaymentAction $createPayment,
+        UpdatePaymentAction $updatePayment,
         VoidPaymentAction $voidPayment,
         CurrencySettingsResolver $currencySettings
     ) {
         $this->repository = $repository;
         $this->lookupService = $lookupService;
         $this->createPayment = $createPayment;
+        $this->updatePayment = $updatePayment;
         $this->voidPayment = $voidPayment;
         $this->currencySettings = $currencySettings;
     }
@@ -71,6 +76,7 @@ class PaymentController extends Controller
     public function create(Request $request): View
     {
         return view('payments::create', [
+            'payment' => new Payment(),
             'paymentMethods' => $this->lookupService->paymentMethods(),
             'paymentSourceOptions' => $this->lookupService->paymentSourceOptions(),
             'reconciliationStatusOptions' => $this->lookupService->reconciliationStatusOptions(),
@@ -83,6 +89,12 @@ class PaymentController extends Controller
             'prefillSaleId' => $request->integer('sale_id') ?: null,
             'prefillSaleReturnId' => $request->integer('sale_return_id') ?: null,
             'prefillPurchaseId' => $request->integer('purchase_id') ?: null,
+            'branches' => \App\Models\Branch::query()
+                ->where('tenant_id', \App\Support\TenantContext::currentId())
+                ->where('company_id', \App\Support\CompanyContext::currentId())
+                ->active()
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 
@@ -103,6 +115,44 @@ class PaymentController extends Controller
             'reconciliationStatusOptions' => $this->lookupService->reconciliationStatusOptions(),
             'activities' => $payment->activities()->with('causer')->latest()->get(),
         ]);
+    }
+
+    public function edit(Payment $payment): View
+    {
+        $this->authorize('update', $payment);
+
+        $payment = $this->repository->findForDetail($payment);
+
+        return view('payments::create', [
+            'payment' => $payment,
+            'paymentMethods' => $this->lookupService->paymentMethods(),
+            'paymentSourceOptions' => $this->lookupService->paymentSourceOptions(),
+            'reconciliationStatusOptions' => $this->lookupService->reconciliationStatusOptions(),
+            'payableTypeOptions' => $this->lookupService->payableTypeOptions(),
+            'saleOptions' => $this->lookupService->saleOptions($payment->id),
+            'saleReturnOptions' => $this->lookupService->saleReturnOptions($payment->id),
+            'purchaseOptions' => $this->lookupService->purchaseOptions($payment->id),
+            'receivers' => $this->lookupService->receivers(),
+            'defaultCurrency' => $this->currencySettings->defaultCurrency(),
+            'prefillSaleId' => null,
+            'prefillSaleReturnId' => null,
+            'prefillPurchaseId' => null,
+            'branches' => \App\Models\Branch::query()
+                ->where('tenant_id', \App\Support\TenantContext::currentId())
+                ->where('company_id', \App\Support\CompanyContext::currentId())
+                ->active()
+                ->orderBy('name')
+                ->get(),
+        ]);
+    }
+
+    public function update(UpdatePaymentRequest $request, Payment $payment): RedirectResponse
+    {
+        $this->authorize('update', $payment);
+
+        $payment = $this->updatePayment->execute($payment, $request->validated(), $request->user());
+
+        return redirect()->route('payments.show', $payment)->with('status', 'Pembayaran diperbarui.');
     }
 
     public function void(VoidPaymentRequest $request, Payment $payment): RedirectResponse

@@ -42,6 +42,8 @@ class Sale extends Model
                 'balance_due',
                 'currency_code',
                 'notes',
+                'customer_note',
+                'attachment_path',
                 'external_reference',
             ])
             ->logOnlyDirty()
@@ -95,6 +97,8 @@ class Sale extends Model
         'balance_due',
         'currency_code',
         'notes',
+        'customer_note',
+        'attachment_path',
         'void_reason',
         'totals_snapshot',
         'meta',

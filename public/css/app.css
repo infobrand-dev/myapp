@@ -2107,7 +2107,10 @@ body.landing-page {
 .accounting-tier-nav { display: inline-flex; flex-wrap: wrap; gap: .5rem; padding: .4rem; border: 1px solid rgba(15,23,42,.08); border-radius: 999px; background: #fff; }
 .accounting-tier-btn { border: 0; background: transparent; border-radius: 999px; padding: .7rem 1rem; font-weight: 700; color: #475569; }
 .accounting-tier-btn.active { background: #0f172a; color: #fff; }
+.accounting-tier-btn--promo { color: #b91c1c; }
+.accounting-tier-btn--promo.active { background: linear-gradient(135deg, #dc2626 0%, #9f1239 100%); color: #fff; }
 .accounting-tier-badge { display: block; font-size: .72rem; font-weight: 700; color: #2563eb; }
+.accounting-tier-badge--promo { color: #dc2626; }
 .accounting-tier-pane { display: none; }
 .accounting-tier-pane.active { display: block; }
 .accounting-plan-card { border: 1px solid rgba(15,23,42,.08); border-radius: 30px; background: #fff; padding: 1.8rem; height: 100%; box-shadow: 0 22px 45px rgba(15,23,42,.08); }
@@ -2115,6 +2118,31 @@ body.landing-page {
 .accounting-plan-card.featured .text-muted,
 .accounting-plan-card.featured .small { color: rgba(255,255,255,.76) !important; }
 .accounting-plan-badge { display: inline-flex; padding: .35rem .75rem; border-radius: 999px; background: #dbeafe; color: #1d4ed8; font-size: .78rem; font-weight: 700; }
+
+/* Promo plan card */
+.accounting-plan-card--promo { border-color: #fca5a5; background: linear-gradient(180deg, #fff0f0 0%, #fff 60%); }
+.accounting-plan-card--promo.featured { background: linear-gradient(180deg, #991b1b 0%, #450a0a 100%); border-color: transparent; }
+.accounting-plan-promo-tag { display: inline-flex; align-items: center; gap: .3rem; padding: .3rem .75rem; border-radius: 999px; background: #dc2626; color: #fff; font-size: .75rem; font-weight: 700; letter-spacing: .02em; }
+
+/* Promo callout inside tier pane */
+.accounting-promo-callout { border-radius: 20px; background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #7c3aed 100%); color: #fff; padding: 1.6rem 2rem; }
+.accounting-promo-callout__inner { display: flex; align-items: center; justify-content: space-between; gap: 2rem; flex-wrap: wrap; }
+.accounting-promo-callout__tag { display: inline-flex; background: rgba(255,255,255,.15); border-radius: 999px; padding: .25rem .75rem; font-size: .75rem; font-weight: 700; margin-bottom: .6rem; letter-spacing: .03em; }
+.accounting-promo-callout__title { font-size: 1.35rem; font-weight: 800; margin-bottom: .4rem; line-height: 1.25; }
+.accounting-promo-callout__desc { font-size: .88rem; opacity: .82; max-width: 560px; }
+.accounting-promo-callout__right { text-align: center; flex-shrink: 0; }
+.accounting-promo-callout__saving { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; opacity: .7; margin-bottom: .1rem; }
+.accounting-promo-callout__pct { font-size: 4rem; font-weight: 900; line-height: 1; color: #fbbf24; }
+.accounting-promo-callout__note { font-size: .72rem; opacity: .7; margin-top: .2rem; }
+@media (max-width: 575.98px) { .accounting-promo-callout__inner { flex-direction: column; text-align: center; } .accounting-promo-callout__desc { max-width: 100%; } }
+
+/* Top promo announcement bar */
+.accounting-promo-bar { background: linear-gradient(90deg, #dc2626 0%, #9f1239 100%); color: #fff; padding: .65rem 0; font-size: .875rem; }
+.accounting-promo-bar__inner { display: flex; align-items: center; justify-content: center; gap: .6rem; flex-wrap: wrap; text-align: center; }
+.accounting-promo-bar__fire { font-size: 1.1rem; }
+.accounting-promo-bar__sep { opacity: .6; }
+.accounting-promo-bar__cta { display: inline-flex; align-items: center; padding: .25rem .85rem; border-radius: 999px; background: rgba(255,255,255,.2); color: #fff; font-weight: 700; font-size: .8rem; text-decoration: none; border: 1px solid rgba(255,255,255,.35); transition: background .15s; white-space: nowrap; }
+.accounting-promo-bar__cta:hover { background: rgba(255,255,255,.3); color: #fff; }
 .accounting-metric-card { border: 1px solid rgba(15,23,42,.08); border-radius: 24px; background: #fff; padding: 1.25rem; text-align: center; height: 100%; }
 .accounting-proof-card { border: 1px solid rgba(15,23,42,.08); border-radius: 24px; background: #fff; padding: 1.4rem; height: 100%; box-shadow: 0 18px 38px rgba(15,23,42,.05); }
 .accounting-addon-card { border: 1px dashed rgba(15,23,42,.18); border-radius: 24px; background: #fff; padding: 1.25rem; height: 100%; }

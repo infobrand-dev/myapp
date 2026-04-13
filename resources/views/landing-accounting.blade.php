@@ -1,7 +1,7 @@
 @extends('layouts.landing')
 
 @section('head_title', config('app.name') . ' Accounting - Paket sales, pembayaran, pembelian, stok, dan laporan operasional')
-@section('head_description', 'Meetra Accounting membantu bisnis merapikan penjualan, pembayaran, pembelian, stok, dan laporan operasional dengan paket bulanan, 6 bulanan, tahunan, serta free trial 14 hari.')
+@section('head_description', 'Meetra Accounting membantu bisnis merapikan penjualan, pembayaran, pembelian, stok, dan laporan operasional. Promo anniversary ke-2: gunakan kode MEETRA2ND untuk 50% off semua paket.')
 
 @section('content')
 @php
@@ -9,9 +9,9 @@
     $plansCollection = collect($publicPlans ?? []);
     $intervalOrder = ['monthly', 'semiannual', 'yearly'];
     $intervalMeta = [
-        'monthly' => ['label' => 'Bulanan', 'desc' => 'Mulai fleksibel tanpa komitmen panjang.', 'badge' => null],
-        'semiannual' => ['label' => '6 Bulanan', 'desc' => 'Lebih hemat untuk komitmen 6 bulan.', 'badge' => 'Hemat ~10%'],
-        'yearly' => ['label' => 'Tahunan', 'desc' => 'Paling hemat untuk komitmen tahunan.', 'badge' => 'Hemat ~17%'],
+        'monthly'    => ['label' => 'Bulanan',  'desc' => 'Mulai fleksibel tanpa komitmen panjang.', 'badge' => null],
+        'semiannual' => ['label' => '6 Bulanan','desc' => 'Lebih hemat untuk komitmen 6 bulan.', 'badge' => 'Hemat ~10%'],
+        'yearly'     => ['label' => 'Tahunan',  'desc' => 'Paling hemat untuk komitmen tahunan.', 'badge' => 'Hemat ~17%'],
     ];
 
     $plansByInterval = $plansCollection
@@ -23,26 +23,26 @@
             $isStarter = strtolower($name) === 'starter';
 
             return [
-                'name' => $name,
-                'code' => $plan->code,
-                'sort_order' => (int) ($plan->sort_order ?? 0),
-                'interval' => (string) $plan->billing_interval,
-                'interval_label' => $plan->billing_interval_label,
-                'price' => $money->format((float) ($sales['price'] ?? 0), strtoupper((string) ($sales['currency'] ?? 'IDR'))),
-                'price_value' => (float) ($sales['price'] ?? 0),
-                'caption' => (string) ($sales['description'] ?? ''),
-                'summary' => (string) ($sales['tagline'] ?? ''),
-                'featured' => (bool) ($sales['recommended'] ?? false),
-                'users' => (int) ($limits[\App\Support\PlanLimit::USERS] ?? 0),
-                'branches' => (int) ($limits[\App\Support\PlanLimit::BRANCHES] ?? 0),
-                'products' => (int) ($limits[\App\Support\PlanLimit::PRODUCTS] ?? 0),
-                'contacts' => (int) ($limits[\App\Support\PlanLimit::CONTACTS] ?? 0),
-                'storage' => (int) ($limits[\App\Support\PlanLimit::TOTAL_STORAGE_BYTES] ?? 0),
-                'purchases' => !empty($features[\App\Support\PlanFeature::PURCHASES]),
-                'inventory' => !empty($features[\App\Support\PlanFeature::INVENTORY]),
-                'advanced_reports' => !empty($features[\App\Support\PlanFeature::ADVANCED_REPORTS]),
-                'highlights' => array_values((array) ($sales['highlights'] ?? [])),
-                'features_list' => $isStarter
+                'name'            => $name,
+                'code'            => $plan->code,
+                'sort_order'      => (int) ($plan->sort_order ?? 0),
+                'interval'        => (string) $plan->billing_interval,
+                'interval_label'  => $plan->billing_interval_label,
+                'price'           => $money->format((float) ($sales['price'] ?? 0), strtoupper((string) ($sales['currency'] ?? 'IDR'))),
+                'price_value'     => (float) ($sales['price'] ?? 0),
+                'caption'         => (string) ($sales['description'] ?? ''),
+                'summary'         => (string) ($sales['tagline'] ?? ''),
+                'featured'        => (bool) ($sales['recommended'] ?? false),
+                'users'           => (int) ($limits[\App\Support\PlanLimit::USERS] ?? 0),
+                'branches'        => (int) ($limits[\App\Support\PlanLimit::BRANCHES] ?? 0),
+                'products'        => (int) ($limits[\App\Support\PlanLimit::PRODUCTS] ?? 0),
+                'contacts'        => (int) ($limits[\App\Support\PlanLimit::CONTACTS] ?? 0),
+                'storage'         => (int) ($limits[\App\Support\PlanLimit::TOTAL_STORAGE_BYTES] ?? 0),
+                'purchases'       => !empty($features[\App\Support\PlanFeature::PURCHASES]),
+                'inventory'       => !empty($features[\App\Support\PlanFeature::INVENTORY]),
+                'advanced_reports'=> !empty($features[\App\Support\PlanFeature::ADVANCED_REPORTS]),
+                'highlights'      => array_values((array) ($sales['highlights'] ?? [])),
+                'features_list'   => $isStarter
                     ? [
                         'Sales untuk transaksi harian',
                         'Payments untuk pembayaran masuk dan keluar',
@@ -68,21 +68,34 @@
     if ($plansByInterval->isEmpty()) {
         $plansByInterval = collect([
             'monthly' => collect([
-                ['name' => 'Starter', 'code' => 'accounting_starter', 'interval' => 'monthly', 'interval_label' => 'Bulanan', 'price' => 'Rp249.000', 'caption' => 'Untuk UMKM yang ingin mulai rapi tanpa workflow berat.', 'summary' => 'Mulai dari sales, payments, finance, products, contacts, dan basic reports.', 'featured' => false, 'users' => 5, 'branches' => 1, 'products' => 250, 'contacts' => 1000, 'storage' => 1073741824, 'purchases' => false, 'inventory' => false, 'advanced_reports' => false, 'highlights' => ['Sales, products, dan contacts operasional', 'Payments dan finance ringan', 'Basic reports untuk pembacaan harian'], 'features_list' => ['Sales untuk transaksi harian', 'Payments untuk pembayaran masuk dan keluar', 'Finance ringan untuk arus kas operasional', 'Products dan Contacts sebagai data utama', 'Basic reports untuk ringkasan cepat']],
-                ['name' => 'Growth', 'code' => 'accounting_growth', 'interval' => 'monthly', 'interval_label' => 'Bulanan', 'price' => 'Rp499.000', 'caption' => 'Untuk bisnis yang mulai aktif dan butuh operasional lebih lengkap.', 'summary' => 'Semua fitur Starter ditambah purchases, inventory, dan full reports.', 'featured' => true, 'users' => 15, 'branches' => 3, 'products' => 2000, 'contacts' => 5000, 'storage' => 5368709120, 'purchases' => true, 'inventory' => true, 'advanced_reports' => true, 'highlights' => ['Semua capability Starter', 'Purchases dan inventory aktif', 'Full reports operasional'], 'features_list' => ['Semua fitur Accounting Starter', 'Purchases untuk pembelian supplier', 'Inventory untuk kontrol stok', 'Full reports untuk pembacaan lebih detail', 'Kapasitas hingga 15 user dan 3 branch']],
-                ['name' => 'Scale', 'code' => 'accounting_scale', 'interval' => 'monthly', 'interval_label' => 'Bulanan', 'price' => 'Rp999.000', 'caption' => 'Untuk operasional yang lebih padat dengan kapasitas lebih besar.', 'summary' => 'Isi fitur sama dengan Growth, dengan kapasitas yang lebih longgar.', 'featured' => false, 'users' => 50, 'branches' => 10, 'products' => 10000, 'contacts' => 20000, 'storage' => 21474836480, 'purchases' => true, 'inventory' => true, 'advanced_reports' => true, 'highlights' => ['Semua capability Growth', 'Kapasitas besar untuk user dan branch', 'Storage, produk, dan kontak lebih besar'], 'features_list' => ['Semua fitur Accounting Growth', 'Cocok untuk multi-user dan multi-branch', 'Batas produk, kontak, dan storage lebih besar', 'Tetap bisa menambahkan POS sesuai kebutuhan', 'Lebih aman untuk operasional yang terus tumbuh']],
+                ['name' => 'Starter', 'code' => 'accounting_starter', 'interval' => 'monthly', 'interval_label' => 'Bulanan', 'price' => 'Rp249.000', 'price_value' => 249000, 'original_2year' => null, 'caption' => 'Untuk UMKM yang ingin mulai rapi tanpa workflow berat.', 'summary' => 'Mulai dari sales, payments, finance, products, contacts, dan basic reports.', 'featured' => false, 'is_promo' => false, 'promo_label' => '', 'users' => 5, 'branches' => 1, 'products' => 250, 'contacts' => 1000, 'storage' => 1073741824, 'purchases' => false, 'inventory' => false, 'advanced_reports' => false, 'highlights' => [], 'features_list' => ['Sales untuk transaksi harian', 'Payments untuk pembayaran masuk dan keluar', 'Finance ringan untuk arus kas operasional', 'Products dan Contacts sebagai data utama', 'Basic reports untuk ringkasan cepat']],
+                ['name' => 'Growth', 'code' => 'accounting_growth', 'interval' => 'monthly', 'interval_label' => 'Bulanan', 'price' => 'Rp499.000', 'price_value' => 499000, 'original_2year' => null, 'caption' => 'Untuk bisnis yang mulai aktif dan butuh operasional lebih lengkap.', 'summary' => 'Semua fitur Starter ditambah purchases, inventory, dan full reports.', 'featured' => true, 'is_promo' => false, 'promo_label' => '', 'users' => 15, 'branches' => 3, 'products' => 2000, 'contacts' => 5000, 'storage' => 5368709120, 'purchases' => true, 'inventory' => true, 'advanced_reports' => true, 'highlights' => [], 'features_list' => ['Semua fitur Accounting Starter', 'Purchases untuk pembelian supplier', 'Inventory untuk kontrol stok', 'Full reports untuk pembacaan lebih detail', 'Kapasitas hingga 15 user dan 3 branch']],
+                ['name' => 'Scale', 'code' => 'accounting_scale', 'interval' => 'monthly', 'interval_label' => 'Bulanan', 'price' => 'Rp999.000', 'price_value' => 999000, 'original_2year' => null, 'caption' => 'Untuk operasional yang lebih padat dengan kapasitas lebih besar.', 'summary' => 'Isi fitur sama dengan Growth, dengan kapasitas yang lebih longgar.', 'featured' => false, 'is_promo' => false, 'promo_label' => '', 'users' => 50, 'branches' => 10, 'products' => 10000, 'contacts' => 20000, 'storage' => 21474836480, 'purchases' => true, 'inventory' => true, 'advanced_reports' => true, 'highlights' => [], 'features_list' => ['Semua fitur Accounting Growth', 'Cocok untuk multi-user dan multi-branch', 'Batas produk, kontak, dan storage lebih besar', 'Tetap bisa menambahkan POS sesuai kebutuhan', 'Lebih aman untuk operasional yang terus tumbuh']],
             ]),
         ]);
     }
 
-    $defaultInterval = collect($intervalOrder)->first(fn ($interval) => $plansByInterval->has($interval)) ?? 'monthly';
-    $comparisonPlans = $plansByInterval->get($defaultInterval, collect())->values();
+    $defaultInterval = collect($intervalOrder)->first(fn ($i) => $plansByInterval->has($i)) ?? 'monthly';
+    $comparisonPlans = $plansByInterval->get('monthly', $plansByInterval->first())->values();
     $testimonials = [
         ['quote' => 'Sebelumnya admin kami catat pembayaran, penjualan, dan stok di tempat yang berbeda. Setelah pakai Meetra Accounting, pekerjaan harian jauh lebih enak dipantau.', 'name' => 'Rina', 'role' => 'Owner, toko bahan bangunan'],
         ['quote' => 'Yang paling terasa itu tim jadi tidak bingung lagi cari data customer, invoice, atau status pembayaran. Semua lebih nyambung.', 'name' => 'Dimas', 'role' => 'Manager Operasional, distributor lokal'],
         ['quote' => 'Kami mulai dari paket simple dulu. Saat transaksi makin ramai, tinggal naik paket tanpa pindah sistem dan tanpa reset cara kerja tim.', 'name' => 'Ayu', 'role' => 'Finance Admin, bisnis retail multi-cabang'],
     ];
 @endphp
+
+{{-- ── Promo Banner ─────────────────────────────────────────────── --}}
+<div class="accounting-promo-bar">
+    <div class="container">
+        <div class="accounting-promo-bar__inner">
+            <span class="accounting-promo-bar__fire">🎉</span>
+            <strong>Anniversary ke-2 Meetra</strong>
+            <span class="accounting-promo-bar__sep">—</span>
+            <span>Pakai kode <strong>MEETRA2ND</strong> saat daftar dan dapatkan <em>50% off</em> semua paket.</span>
+            <a href="#pricing" class="accounting-promo-bar__cta">Daftar Sekarang</a>
+        </div>
+    </div>
+</div>
 
 <section id="overview" class="landing-hero py-5 py-lg-6">
     <div class="container py-lg-4">
@@ -98,10 +111,9 @@
                     Mulai dari penjualan, pembayaran, dan kas. Tambah pembelian, stok, dan laporan saat bisnis tumbuh — semua dalam satu workspace.
                 </p>
                 <div class="d-flex flex-wrap gap-3 mb-3">
-                    <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'plan' => 'accounting_growth', 'trial' => 1]) }}" class="btn btn-lg btn-dark">Coba Gratis 14 Hari</a>
-                    <a href="#pricing" class="btn btn-lg btn-outline-dark">Lihat Paket</a>
+                    <a href="{{ route('onboarding.create', ['product_line' => 'accounting']) }}" class="btn btn-lg btn-dark">Daftar Sekarang</a>
+                    <a href="#pricing" class="btn btn-lg btn-outline-dark">Lihat Semua Paket</a>
                 </div>
-                <div class="small text-muted mb-4">Tanpa kartu kredit. Setelah trial selesai, Anda bisa lanjut ke paket berbayar yang paling cocok.</div>
                 <div class="d-flex flex-wrap gap-2">
                     <span class="landing-pill">Sales</span>
                     <span class="landing-pill">Payments</span>
@@ -132,8 +144,8 @@
         <div class="row g-3">
             <div class="col-md-3">
                 <div class="accounting-metric-card">
-                    <div class="fw-bold" style="font-size:2rem; line-height:1; color:#1d4ed8;">14 Hari</div>
-                    <div class="small text-muted mt-2">Free trial untuk mulai mencoba workflow accounting</div>
+                    <div class="fw-bold" style="font-size:2rem; line-height:1; color:#dc2626;">50%</div>
+                    <div class="small text-muted mt-2">Off semua paket dengan kode anniversary <strong>MEETRA2ND</strong></div>
                 </div>
             </div>
             <div class="col-md-3">
@@ -150,8 +162,8 @@
             </div>
             <div class="col-md-3">
                 <div class="accounting-metric-card">
-                    <div class="fw-bold" style="font-size:2rem; line-height:1; color:#ea580c;">12 Bulan</div>
-                    <div class="small text-muted mt-2">Ada opsi tahunan dengan harga lebih hemat</div>
+                    <div class="fw-bold" style="font-size:2rem; line-height:1; color:#ea580c;">2nd</div>
+                    <div class="small text-muted mt-2">Anniversary Meetra — promo kode aktif untuk semua paket</div>
                 </div>
             </div>
         </div>
@@ -248,18 +260,21 @@
     </div>
 </section>
 
+{{-- ── Pricing ──────────────────────────────────────────────────── --}}
 <section id="pricing" class="py-5 py-lg-6">
     <div class="container">
         <div class="text-center mb-5">
             <div class="landing-eyebrow mb-2">Paket & Harga</div>
             <h2 class="landing-section-title">Pilih billing yang paling pas: bulanan, 6 bulanan, atau tahunan.</h2>
-            <p class="landing-subtext mx-auto">Kalau masih ingin mencoba, pakai free trial 14 hari. Kalau sudah yakin, pilih periode yang paling cocok untuk ritme bisnis Anda.</p>
+            <p class="landing-subtext mx-auto">Gunakan kode <strong>MEETRA2ND</strong> saat daftar untuk promo anniversary 50% off semua paket.</p>
             <div class="d-flex justify-content-center mt-4">
                 <div class="accounting-tier-nav">
                     @foreach ($intervalOrder as $interval)
                         @php $meta = $intervalMeta[$interval] ?? null; @endphp
                         @if($meta && $plansByInterval->has($interval))
-                            <button type="button" class="accounting-tier-btn {{ $interval === $defaultInterval ? 'active' : '' }}" data-tier-tab="{{ $interval }}">
+                            <button type="button"
+                                class="accounting-tier-btn {{ $interval === $defaultInterval ? 'active' : '' }}"
+                                data-tier-tab="{{ $interval }}">
                                 {{ $meta['label'] }}
                                 @if($meta['badge'])
                                     <span class="accounting-tier-badge">{{ $meta['badge'] }}</span>
@@ -278,7 +293,9 @@
             @endphp
             @if($meta && $intervalPlans->isNotEmpty())
                 <div class="accounting-tier-pane {{ $interval === $defaultInterval ? 'active' : '' }}" data-tier-pane="{{ $interval }}">
+
                     <div class="text-center small text-muted mb-4">{{ $meta['desc'] }}</div>
+
                     <div class="row g-4">
                         @foreach ($intervalPlans as $plan)
                             <div class="col-lg-4">
@@ -297,11 +314,9 @@
                                         @endforeach
                                         <div><i class="ti ti-check text-success"></i> POS tersedia sebagai add-on opsional</div>
                                     </div>
-                                    <div class="d-grid gap-2">
-                                        <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'plan' => $plan['code'], 'trial' => 1]) }}" class="btn {{ !empty($plan['featured']) ? 'btn-light' : 'btn-dark' }} btn-lg">
-                                            Coba Gratis 14 Hari
-                                        </a>
-                                        <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'plan' => $plan['code']]) }}" class="btn {{ !empty($plan['featured']) ? 'btn-outline-light' : 'btn-outline-dark' }}">
+                                    <div class="d-grid">
+                                        <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'plan' => $plan['code']]) }}"
+                                            class="btn {{ !empty($plan['featured']) ? 'btn-light' : 'btn-dark' }} btn-lg">
                                             Daftar Paket Ini
                                         </a>
                                     </div>
@@ -320,7 +335,7 @@
         <div class="text-center mb-5">
             <div class="landing-eyebrow mb-2">Perbandingan Paket</div>
             <h2 class="landing-section-title">Bandingkan fitur inti antar paket.</h2>
-            <p class="landing-subtext mx-auto">Tabel ini memakai paket {{ $intervalMeta[$defaultInterval]['label'] ?? 'Bulanan' }} sebagai pembanding utama. Di layar kecil, tabel bisa digeser ke samping.</p>
+            <p class="landing-subtext mx-auto">Tabel ini memakai paket Bulanan sebagai pembanding utama. Di layar kecil, tabel bisa digeser ke samping.</p>
         </div>
         <div class="accounting-compare-wrap">
             <table class="accounting-compare-table">
@@ -347,7 +362,6 @@
                     <tr><td>Produk</td>@foreach ($comparisonPlans as $plan)<td>{{ number_format($plan['products'], 0, ',', '.') }}</td>@endforeach</tr>
                     <tr><td>Kontak</td>@foreach ($comparisonPlans as $plan)<td>{{ number_format($plan['contacts'], 0, ',', '.') }}</td>@endforeach</tr>
                     <tr><td>Storage workspace</td>@foreach ($comparisonPlans as $plan)<td>{{ number_format((int) round($plan['storage'] / 1073741824), 0, ',', '.') }} GB</td>@endforeach</tr>
-                    <tr><td>Free trial 14 hari</td>@foreach ($comparisonPlans as $plan)<td><a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'plan' => $plan['code'], 'trial' => 1]) }}">Mulai trial</a></td>@endforeach</tr>
                 </tbody>
             </table>
         </div>
@@ -404,7 +418,7 @@
             @foreach ($testimonials as $testimonial)
                 <div class="col-lg-4">
                     <div class="accounting-proof-card">
-                        <div class="mb-3" style="font-size:2rem; line-height:1; color:#1d4ed8;">“</div>
+                        <div class="mb-3" style="font-size:2rem; line-height:1; color:#1d4ed8;">"</div>
                         <p class="small text-muted mb-4">{{ $testimonial['quote'] }}</p>
                         <div class="fw-bold">{{ $testimonial['name'] }}</div>
                         <div class="small text-muted">{{ $testimonial['role'] }}</div>
@@ -446,11 +460,14 @@
 <section class="py-5 py-lg-6">
     <div class="container">
         <div class="landing-panel p-4 p-lg-5 text-center">
-            <div class="landing-eyebrow mb-2">Mulai Lebih Cepat</div>
-            <h2 class="landing-section-title mb-3">Coba dulu 14 hari, lalu lanjutkan ke paket yang paling pas.</h2>
-            <p class="landing-subtext mx-auto mb-4" style="max-width:760px;">Kalau Anda masih ingin merasakan alurnya, mulai dari free trial. Kalau sudah yakin, pilih paket bulanan, 6 bulanan, atau tahunan yang paling cocok untuk ritme bisnis Anda.</p>
+            <div class="landing-eyebrow mb-2">🎉 Meetra Anniversary ke-2</div>
+            <h2 class="landing-section-title mb-3">Promo 50% off semua paket Accounting.</h2>
+            <p class="landing-subtext mx-auto mb-4" style="max-width:760px;">Dalam rangka anniversary ke-2 Meetra, semua paket Accounting mendapatkan diskon 50%. Gunakan kode promo <strong>MEETRA2ND</strong> saat mengisi form pendaftaran.</p>
+            <div class="d-flex flex-wrap justify-content-center align-items-center gap-3 mb-4">
+                <div class="px-4 py-2 rounded fw-bold" style="font-size:1.5rem; letter-spacing:.12em; background:#1e293b; color:#fff; border-radius:8px;">MEETRA2ND</div>
+            </div>
             <div class="d-flex flex-wrap justify-content-center gap-3">
-                <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'plan' => 'accounting_growth', 'trial' => 1]) }}" class="btn btn-dark btn-lg">Mulai Free Trial 14 Hari</a>
+                <a href="{{ route('onboarding.create', ['product_line' => 'accounting']) }}" class="btn btn-dark btn-lg">Daftar &amp; Pakai Kode Promo</a>
                 <a href="#pricing" class="btn btn-outline-dark btn-lg">Lihat Semua Paket</a>
             </div>
         </div>
@@ -462,7 +479,7 @@
 <script>
 (function () {
     var tabButtons = document.querySelectorAll('[data-tier-tab]');
-    var tabPanes = document.querySelectorAll('[data-tier-pane]');
+    var tabPanes   = document.querySelectorAll('[data-tier-pane]');
 
     tabButtons.forEach(function (button) {
         button.addEventListener('click', function () {

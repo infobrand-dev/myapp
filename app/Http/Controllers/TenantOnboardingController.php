@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PlatformPromoCode;
 use App\Models\SubscriptionPlan;
 use App\Services\PlatformAffiliateService;
 use App\Services\PlatformManualPaymentService;
@@ -73,6 +74,7 @@ class TenantOnboardingController extends Controller
             'password' => ['required', 'confirmed', Password::defaults()],
             'payment_method' => ['nullable', 'string', Rule::in(['midtrans', 'bank_transfer'])],
             'trial' => ['nullable', 'boolean'],
+            'promo_code' => ['nullable', 'string', 'max:64'],
         ], [
             'slug.regex' => 'Subdomain hanya boleh huruf kecil, angka, dan tanda hubung, dan tidak boleh diawali/diakhiri tanda hubung.',
             'slug.not_in' => 'Subdomain tersebut tidak tersedia. Pilih nama lain.',
@@ -123,7 +125,9 @@ class TenantOnboardingController extends Controller
             return redirect()->away($sales->tenantLoginUrl($result['tenant']) . '&trial=1');
         }
 
-        $result = $sales->createPendingWorkspace($data, $plan, $data['payment_method']);
+        $promo = $this->resolvePromoCode($data['promo_code'] ?? null, $plan->productLine());
+
+        $result = $sales->createPendingWorkspace($data, $plan, $data['payment_method'], $promo);
         $affiliateService->attachReferralToOrder($request, $result['order'], $result['tenant'], $plan);
         $invoice = $result['invoice']->fresh(['tenant', 'plan', 'order']);
 
@@ -177,5 +181,22 @@ class TenantOnboardingController extends Controller
         }
 
         return filter_var($request->input('trial', $request->query('trial')), FILTER_VALIDATE_BOOL);
+    }
+
+    private function resolvePromoCode(?string $code, ?string $productLine): ?PlatformPromoCode
+    {
+        if (empty($code)) {
+            return null;
+        }
+
+        $promo = PlatformPromoCode::findByCode($code);
+
+        if (! $promo || ! $promo->isUsable($productLine)) {
+            throw ValidationException::withMessages([
+                'promo_code' => 'Kode promo tidak valid atau sudah tidak berlaku.',
+            ]);
+        }
+
+        return $promo;
     }
 }

@@ -268,6 +268,30 @@
             @if(!$trialRequested)
                 <div class="d-flex align-items-center gap-2 mb-3">
                     <div class="border-top flex-grow-1"></div>
+                    <span class="text-muted small px-2">Kode promo</span>
+                    <div class="border-top flex-grow-1"></div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label">Kode Promo <span class="text-muted small fw-normal">(opsional)</span></label>
+                    <input
+                        type="text"
+                        name="promo_code"
+                        id="promo_code"
+                        class="form-control text-uppercase @error('promo_code') is-invalid @enderror"
+                        value="{{ old('promo_code') }}"
+                        placeholder="Masukkan kode promo jika ada"
+                        autocomplete="off"
+                        style="letter-spacing:0.08em;"
+                    >
+                    @error('promo_code')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                    <div class="form-hint">Contoh: <strong>MEETRA2ND</strong> untuk promo anniversary 50% off.</div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <div class="border-top flex-grow-1"></div>
                     <span class="text-muted small px-2">Metode pembayaran</span>
                     <div class="border-top flex-grow-1"></div>
                 </div>

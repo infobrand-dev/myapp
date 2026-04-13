@@ -7,6 +7,7 @@ use App\Mail\TenantWelcomeMail;
 use App\Models\PlatformInvoice;
 use App\Models\PlatformInvoiceItem;
 use App\Models\PlatformPlanOrder;
+use App\Models\PlatformPromoCode;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Models\TenantSubscription;
@@ -174,10 +175,12 @@ class TenantOnboardingSalesService
             ->first() ?? $plan;
     }
 
-    public function createPendingWorkspace(array $data, SubscriptionPlan $plan, string $paymentChannel = 'midtrans'): array
+    public function createPendingWorkspace(array $data, SubscriptionPlan $plan, string $paymentChannel = 'midtrans', ?PlatformPromoCode $promo = null): array
     {
-        return DB::transaction(function () use ($data, $plan, $paymentChannel): array {
+        return DB::transaction(function () use ($data, $plan, $paymentChannel, $promo): array {
             $salesMeta = $this->salesMeta($plan);
+            $originalPrice = (float) ($salesMeta['price'] ?? 0);
+            $finalPrice = $promo ? $promo->applyDiscount($originalPrice) : $originalPrice;
             $startsAt = now();
             $tenant = Tenant::query()->create([
                 'name' => $data['company_name'],
@@ -216,29 +219,54 @@ class TenantOnboardingSalesService
 
             app(WorkspaceContextProvisioner::class)->ensureForTenant($tenant->id, $user);
 
+            $orderMeta = [
+                'created_from' => 'self_serve_onboarding',
+                'admin_name' => $data['name'],
+                'admin_email' => $data['email'],
+                'tenant_slug' => $tenant->slug,
+                'plan_code' => $plan->code,
+                'selected_payment_method' => $paymentChannel,
+                'sales_meta_snapshot' => $salesMeta,
+            ];
+
+            if ($promo) {
+                $orderMeta['promo_code'] = $promo->code;
+                $orderMeta['promo_label'] = $promo->label;
+                $orderMeta['promo_discount_percent'] = $promo->discount_percent;
+                $orderMeta['original_price'] = $originalPrice;
+            }
+
             $order = PlatformPlanOrder::query()->create([
                 'tenant_id' => $tenant->id,
                 'subscription_plan_id' => $plan->id,
                 'product_line' => $plan->productLine() ?: 'default',
                 'order_number' => $this->nextOrderNumber(),
                 'status' => 'pending',
-                'amount' => (float) ($salesMeta['price'] ?? 0),
+                'amount' => $finalPrice,
                 'currency' => (string) ($salesMeta['currency'] ?? 'IDR'),
                 'billing_period' => $plan->billing_interval ?: 'monthly',
                 'buyer_email' => $data['email'],
                 'payment_channel' => $paymentChannel,
                 'starts_at' => $startsAt,
                 'ends_at' => $this->resolveEndsAt($plan->billing_interval, $startsAt),
-                'meta' => [
-                    'created_from' => 'self_serve_onboarding',
-                    'admin_name' => $data['name'],
-                    'admin_email' => $data['email'],
-                    'tenant_slug' => $tenant->slug,
-                    'plan_code' => $plan->code,
-                    'selected_payment_method' => $paymentChannel,
-                    'sales_meta_snapshot' => $salesMeta,
-                ],
+                'meta' => $orderMeta,
             ]);
+
+            if ($promo) {
+                $promo->incrementUsed();
+            }
+
+            $invoiceMeta = [
+                'source_order_id' => $order->id,
+                'created_from' => 'self_serve_onboarding',
+                'selected_payment_method' => $paymentChannel,
+            ];
+
+            if ($promo) {
+                $invoiceMeta['promo_code'] = $promo->code;
+                $invoiceMeta['promo_discount_percent'] = $promo->discount_percent;
+                $invoiceMeta['original_price'] = $originalPrice;
+            }
 
             $invoice = PlatformInvoice::query()->create([
                 'tenant_id' => $tenant->id,
@@ -247,30 +275,33 @@ class TenantOnboardingSalesService
                 'product_line' => $order->product_line,
                 'invoice_number' => $this->nextInvoiceNumber(),
                 'status' => 'issued',
-                'amount' => $order->amount,
+                'amount' => $finalPrice,
                 'currency' => $order->currency,
                 'issued_at' => now(),
                 'due_at' => now()->addDays(1),
-                'meta' => [
-                    'source_order_id' => $order->id,
-                    'created_from' => 'self_serve_onboarding',
-                    'selected_payment_method' => $paymentChannel,
-                ],
+                'meta' => $invoiceMeta,
             ]);
+
+            $invoiceItemDescription = (string) ($salesMeta['tagline'] ?? $salesMeta['description'] ?? $plan->display_name);
+            if ($promo) {
+                $invoiceItemDescription .= ' (Promo ' . $promo->discount_percent . '% — ' . $promo->code . ')';
+            }
 
             PlatformInvoiceItem::query()->create([
                 'platform_invoice_id' => $invoice->id,
                 'item_type' => 'plan',
                 'item_code' => $plan->code,
                 'name' => $plan->display_name,
-                'description' => (string) ($salesMeta['tagline'] ?? $salesMeta['description'] ?? $plan->display_name),
+                'description' => $invoiceItemDescription,
                 'quantity' => 1,
-                'unit_price' => $order->amount,
-                'total_price' => $order->amount,
+                'unit_price' => $finalPrice,
+                'total_price' => $finalPrice,
                 'meta' => [
                     'subscription_plan_id' => $plan->id,
                     'billing_interval' => $plan->billing_interval,
                     'source' => 'self_serve_onboarding',
+                    'promo_code' => $promo?->code,
+                    'original_price' => $promo ? $originalPrice : null,
                 ],
             ]);
 
@@ -486,7 +517,7 @@ class TenantOnboardingSalesService
     {
         return match ($billingInterval) {
             'semiannual', 'biannual', 'half_yearly', '6_months', '6-months' => $startsAt->copy()->addMonths(6),
-            'yearly' => $startsAt->copy()->addYear(),
+            'yearly', 'annual' => $startsAt->copy()->addYear(),
             'monthly' => $startsAt->copy()->addMonth(),
             default => null,
         };

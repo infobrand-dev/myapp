@@ -68,10 +68,10 @@ body.landing-page.accounting-anniversary-page .accounting-plan-discount { displa
                 'sort_order'      => (int) ($plan->sort_order ?? 0),
                 'interval'        => (string) $plan->billing_interval,
                 'interval_label'  => $plan->billing_interval_label,
-                'price'           => $money->format((float) ($sales['price'] ?? 0), strtoupper((string) ($sales['currency'] ?? 'IDR'))),
-                'price_value'     => (float) ($sales['price'] ?? 0),
-                'original_price'  => $money->format(round((float) ($sales['price'] ?? 0) * 2, 2), strtoupper((string) ($sales['currency'] ?? 'IDR'))),
-                'original_price_value' => round((float) ($sales['price'] ?? 0) * 2, 2),
+                'price'           => $money->format(round((float) ($sales['price'] ?? 0) * 0.5, 2), strtoupper((string) ($sales['currency'] ?? 'IDR'))),
+                'price_value'     => round((float) ($sales['price'] ?? 0) * 0.5, 2),
+                'original_price'  => $money->format((float) ($sales['price'] ?? 0), strtoupper((string) ($sales['currency'] ?? 'IDR'))),
+                'original_price_value' => (float) ($sales['price'] ?? 0),
                 'caption'         => (string) ($sales['description'] ?? ''),
                 'summary'         => (string) ($sales['tagline'] ?? ''),
                 'featured'        => (bool) ($sales['recommended'] ?? false),
@@ -110,9 +110,9 @@ body.landing-page.accounting-anniversary-page .accounting-plan-discount { displa
     if ($plansByInterval->isEmpty()) {
         $plansByInterval = collect([
             'monthly' => collect([
-                ['name' => 'Starter', 'code' => 'accounting_starter', 'interval' => 'monthly', 'interval_label' => 'Bulanan', 'price' => 'Rp249.000', 'price_value' => 249000, 'original_price' => 'Rp498.000', 'original_price_value' => 498000, 'original_2year' => null, 'caption' => 'Untuk UMKM yang ingin mulai rapi tanpa workflow berat.', 'summary' => 'Mulai dari sales, payments, finance, products, contacts, dan basic reports.', 'featured' => false, 'is_promo' => false, 'promo_label' => '', 'users' => 5, 'branches' => 1, 'products' => 250, 'contacts' => 1000, 'storage' => 1073741824, 'purchases' => false, 'inventory' => false, 'advanced_reports' => false, 'highlights' => [], 'features_list' => ['Sales untuk transaksi harian', 'Payments untuk pembayaran masuk dan keluar', 'Finance ringan untuk arus kas operasional', 'Products dan Contacts sebagai data utama', 'Basic reports untuk ringkasan cepat']],
-                ['name' => 'Growth', 'code' => 'accounting_growth', 'interval' => 'monthly', 'interval_label' => 'Bulanan', 'price' => 'Rp499.000', 'price_value' => 499000, 'original_price' => 'Rp998.000', 'original_price_value' => 998000, 'original_2year' => null, 'caption' => 'Untuk bisnis yang mulai aktif dan butuh operasional lebih lengkap.', 'summary' => 'Semua fitur Starter ditambah purchases, inventory, dan full reports.', 'featured' => true, 'is_promo' => false, 'promo_label' => '', 'users' => 15, 'branches' => 3, 'products' => 2000, 'contacts' => 5000, 'storage' => 5368709120, 'purchases' => true, 'inventory' => true, 'advanced_reports' => true, 'highlights' => [], 'features_list' => ['Semua fitur Accounting Starter', 'Purchases untuk pembelian supplier', 'Inventory untuk kontrol stok', 'Full reports untuk pembacaan lebih detail', 'Kapasitas hingga 15 user dan 3 branch']],
-                ['name' => 'Scale', 'code' => 'accounting_scale', 'interval' => 'monthly', 'interval_label' => 'Bulanan', 'price' => 'Rp999.000', 'price_value' => 999000, 'original_price' => 'Rp1.998.000', 'original_price_value' => 1998000, 'original_2year' => null, 'caption' => 'Untuk operasional yang lebih padat dengan kapasitas lebih besar.', 'summary' => 'Isi fitur sama dengan Growth, dengan kapasitas yang lebih longgar.', 'featured' => false, 'is_promo' => false, 'promo_label' => '', 'users' => 50, 'branches' => 10, 'products' => 10000, 'contacts' => 20000, 'storage' => 21474836480, 'purchases' => true, 'inventory' => true, 'advanced_reports' => true, 'highlights' => [], 'features_list' => ['Semua fitur Accounting Growth', 'Cocok untuk multi-user dan multi-branch', 'Batas produk, kontak, dan storage lebih besar', 'Tetap bisa menambahkan POS sesuai kebutuhan', 'Lebih aman untuk operasional yang terus tumbuh']],
+                ['name' => 'Starter', 'code' => 'accounting_starter', 'interval' => 'monthly', 'interval_label' => 'Bulanan', 'price' => 'Rp124.500', 'price_value' => 124500, 'original_price' => 'Rp249.000', 'original_price_value' => 249000, 'original_2year' => null, 'caption' => 'Untuk UMKM yang ingin mulai rapi tanpa workflow berat.', 'summary' => 'Mulai dari sales, payments, finance, products, contacts, dan basic reports.', 'featured' => false, 'is_promo' => false, 'promo_label' => '', 'users' => 5, 'branches' => 1, 'products' => 250, 'contacts' => 1000, 'storage' => 1073741824, 'purchases' => false, 'inventory' => false, 'advanced_reports' => false, 'highlights' => [], 'features_list' => ['Sales untuk transaksi harian', 'Payments untuk pembayaran masuk dan keluar', 'Finance ringan untuk arus kas operasional', 'Products dan Contacts sebagai data utama', 'Basic reports untuk ringkasan cepat']],
+                ['name' => 'Growth', 'code' => 'accounting_growth', 'interval' => 'monthly', 'interval_label' => 'Bulanan', 'price' => 'Rp249.500', 'price_value' => 249500, 'original_price' => 'Rp499.000', 'original_price_value' => 499000, 'original_2year' => null, 'caption' => 'Untuk bisnis yang mulai aktif dan butuh operasional lebih lengkap.', 'summary' => 'Semua fitur Starter ditambah purchases, inventory, dan full reports.', 'featured' => true, 'is_promo' => false, 'promo_label' => '', 'users' => 15, 'branches' => 3, 'products' => 2000, 'contacts' => 5000, 'storage' => 5368709120, 'purchases' => true, 'inventory' => true, 'advanced_reports' => true, 'highlights' => [], 'features_list' => ['Semua fitur Accounting Starter', 'Purchases untuk pembelian supplier', 'Inventory untuk kontrol stok', 'Full reports untuk pembacaan lebih detail', 'Kapasitas hingga 15 user dan 3 branch']],
+                ['name' => 'Scale', 'code' => 'accounting_scale', 'interval' => 'monthly', 'interval_label' => 'Bulanan', 'price' => 'Rp499.500', 'price_value' => 499500, 'original_price' => 'Rp999.000', 'original_price_value' => 999000, 'original_2year' => null, 'caption' => 'Untuk operasional yang lebih padat dengan kapasitas lebih besar.', 'summary' => 'Isi fitur sama dengan Growth, dengan kapasitas yang lebih longgar.', 'featured' => false, 'is_promo' => false, 'promo_label' => '', 'users' => 50, 'branches' => 10, 'products' => 10000, 'contacts' => 20000, 'storage' => 21474836480, 'purchases' => true, 'inventory' => true, 'advanced_reports' => true, 'highlights' => [], 'features_list' => ['Semua fitur Accounting Growth', 'Cocok untuk multi-user dan multi-branch', 'Batas produk, kontak, dan storage lebih besar', 'Tetap bisa menambahkan POS sesuai kebutuhan', 'Lebih aman untuk operasional yang terus tumbuh']],
             ]),
         ]);
     }
@@ -141,7 +141,7 @@ body.landing-page.accounting-anniversary-page .accounting-plan-discount { displa
                     Mulai dari penjualan, pembayaran, dan kas. Tambah pembelian, stok, dan laporan saat bisnis tumbuh — semua dalam satu workspace.
                 </p>
                 <div class="d-flex flex-wrap gap-3 mb-3">
-                    <a href="{{ route('onboarding.create', ['product_line' => 'accounting']) }}" class="btn btn-lg btn-dark">Daftar Sekarang</a>
+                    <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'promo_code' => 'MEETRA2ND']) }}" class="btn btn-lg btn-dark">Daftar Sekarang</a>
                     <a href="#pricing" class="btn btn-lg btn-outline-dark">Lihat Semua Paket</a>
                 </div>
                 <div class="d-flex flex-wrap gap-2">
@@ -351,7 +351,7 @@ body.landing-page.accounting-anniversary-page .accounting-plan-discount { displa
                                         <div><i class="ti ti-check text-success"></i> POS tersedia sebagai add-on opsional</div>
                                     </div>
                                     <div class="d-grid">
-                                        <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'plan' => $plan['code']]) }}"
+                                        <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'plan' => $plan['code'], 'promo_code' => 'MEETRA2ND']) }}"
                                             class="btn {{ !empty($plan['featured']) ? 'btn-light' : 'btn-dark' }} btn-lg">
                                             Daftar Paket Ini
                                         </a>
@@ -503,7 +503,7 @@ body.landing-page.accounting-anniversary-page .accounting-plan-discount { displa
                 <div class="px-4 py-2 rounded fw-bold" style="font-size:1.5rem; letter-spacing:.12em; background:#1e293b; color:#fff; border-radius:8px;">MEETRA2ND</div>
             </div>
             <div class="d-flex flex-wrap justify-content-center gap-3">
-                <a href="{{ route('onboarding.create', ['product_line' => 'accounting']) }}" class="btn btn-dark btn-lg">Daftar &amp; Pakai Kode Promo</a>
+                <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'promo_code' => 'MEETRA2ND']) }}" class="btn btn-dark btn-lg">Daftar &amp; Pakai Kode Promo</a>
                 <a href="#pricing" class="btn btn-outline-dark btn-lg">Lihat Semua Paket</a>
             </div>
         </div>

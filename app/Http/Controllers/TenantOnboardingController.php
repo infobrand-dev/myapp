@@ -26,6 +26,14 @@ class TenantOnboardingController extends Controller
         $affiliate = $affiliateService->captureFromRequest($request);
         $productLine = $this->requestedPublicProductLine($request);
         $trialRequested = $this->wantsTrial($request, $productLine);
+        $promoCode = strtoupper(trim((string) $request->query('promo_code', '')));
+        $promoPreview = $promoCode !== ''
+            ? PlatformPromoCode::findByCode($promoCode)
+            : null;
+
+        if (!$promoPreview || !$promoPreview->isUsable($productLine)) {
+            $promoPreview = null;
+        }
 
         $preferredPlanId = $sales->resolvePublicPlanIdByCode((string) request()->query('plan'), $productLine);
 
@@ -38,6 +46,8 @@ class TenantOnboardingController extends Controller
             'productLine' => $productLine,
             'productLineLabel' => $this->productLineLabel($productLine),
             'trialRequested' => $trialRequested,
+            'promoCode' => $promoPreview ? (string) $promoPreview->code : '',
+            'promoPreview' => $promoPreview,
         ]);
     }
 
@@ -168,10 +178,11 @@ class TenantOnboardingController extends Controller
 
     private function productLineLabel(string $productLine): string
     {
-        return match ($productLine) {
-            'accounting' => 'Accounting',
-            default => 'Omnichannel',
-        };
+        if ($productLine === 'accounting') {
+            return 'Accounting';
+        }
+
+        return 'Omnichannel';
     }
 
     private function wantsTrial(Request $request, string $productLine): bool

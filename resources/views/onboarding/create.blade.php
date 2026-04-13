@@ -5,6 +5,7 @@
             $productLineKey = strtolower((string) ($productLine ?? 'accounting'));
             $isAccounting = $productLineKey === 'accounting';
             $trialRequested = !empty($trialRequested);
+            $promoDiscountPercent = (!$trialRequested && !empty($promoPreview)) ? (int) ($promoPreview->discount_percent ?? 0) : 0;
             $lineTitle = $isAccounting ? 'Mulai workspace Accounting Anda' : 'Mulai workspace Omnichannel Anda';
             $lineIntro = $trialRequested
                 ? 'Mulai free trial 14 hari untuk paket Accounting pilihan Anda. Tidak perlu bayar di awal.'
@@ -54,6 +55,10 @@
             <div class="alert alert-success py-2 px-3 small">
                 Free trial aktif selama <strong>14 hari</strong>. Setelah form dikirim, workspace langsung dibuat dan siap login.
             </div>
+        @elseif($promoDiscountPercent > 0)
+            <div class="alert alert-danger py-2 px-3 small">
+                Promo <strong>{{ $promoCode }}</strong> aktif. Harga di bawah ini sudah menampilkan potongan <strong>{{ $promoDiscountPercent }}%</strong>.
+            </div>
         @endif
 
         <form method="POST" action="{{ route('onboarding.store') }}">
@@ -86,6 +91,10 @@
                                     $features = (array) ($plan->features ?? []);
                                     $limits = (array) ($plan->limits ?? []);
                                     $priceCurrency = strtoupper((string) ($sales['currency'] ?? 'IDR'));
+                                    $basePrice = (float) ($sales['price'] ?? 0);
+                                    $promoPrice = $promoDiscountPercent > 0
+                                        ? round($basePrice * (1 - ($promoDiscountPercent / 100)), 2)
+                                        : $basePrice;
                                     $recommended = (bool) ($sales['recommended'] ?? false);
                                     $fit = (string) ($sales['audience'] ?? ($isAccounting ? 'Paket accounting untuk operasional bisnis' : 'Paket omnichannel'));
                                 @endphp
@@ -118,7 +127,13 @@
                                                     <div class="text-muted small mt-2">{{ $sales['tagline'] ?? 'Paket omnichannel' }}</div>
                                                 </div>
                                                 <div class="text-end">
-                                                    <div class="fw-bold fs-5">{{ $money->format((float) ($sales['price'] ?? 0), $priceCurrency) }}</div>
+                                                    @if($promoDiscountPercent > 0)
+                                                        <div class="text-muted small text-decoration-line-through">{{ $money->format($basePrice, $priceCurrency) }}</div>
+                                                        <div class="fw-bold fs-5">{{ $money->format($promoPrice, $priceCurrency) }}</div>
+                                                        <div class="small text-danger fw-semibold">{{ $promoDiscountPercent }}% OFF</div>
+                                                    @else
+                                                        <div class="fw-bold fs-5">{{ $money->format($basePrice, $priceCurrency) }}</div>
+                                                    @endif
                                                     <div class="text-muted small">Paket {{ strtolower($plan->billing_interval_label) }}</div>
                                                 </div>
                                             </div>
@@ -279,7 +294,7 @@
                         name="promo_code"
                         id="promo_code"
                         class="form-control text-uppercase @error('promo_code') is-invalid @enderror"
-                        value="{{ old('promo_code') }}"
+                        value="{{ old('promo_code', $promoCode ?? '') }}"
                         placeholder="Masukkan kode promo jika ada"
                         autocomplete="off"
                         style="letter-spacing:0.08em;"

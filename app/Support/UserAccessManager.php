@@ -22,7 +22,7 @@ class UserAccessManager
         if ($allowedCompanies->isEmpty()) {
             $allowedCompanies = Company::query()
                 ->where('tenant_id', $tenantId)
-                ->where('is_active', true)
+                ->active()
                 ->orderBy('id')
                 ->limit(1)
                 ->pluck('id');

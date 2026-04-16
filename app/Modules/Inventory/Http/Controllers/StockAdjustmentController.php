@@ -39,9 +39,9 @@ class StockAdjustmentController extends Controller
             ->where('tenant_id', TenantContext::currentId())
             ->with(['variants' => fn ($query) => $query
                 ->where('tenant_id', TenantContext::currentId())
-                ->where('track_stock', true)
+                ->trackingStock()
                 ->orderBy('position')])
-            ->where('track_stock', true)
+            ->trackingStock()
             ->orderBy('name')
             ->get();
 

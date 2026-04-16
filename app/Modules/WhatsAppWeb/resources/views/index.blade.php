@@ -1,6 +1,157 @@
 @extends('layouts.admin')
 
+@section('title', 'WhatsApp Web')
+
 @section('content')
+
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Conversations</div>
+            <h2 class="page-title">WhatsApp Web</h2>
+        </div>
+        @can('whatsapp_web.manage_settings')
+        <div class="col-auto">
+            <a href="{{ route('whatsappweb.settings.edit') }}" class="btn btn-outline-secondary">
+                <i class="ti ti-settings me-1"></i>Settings
+            </a>
+        </div>
+        @endcan
+    </div>
+</div>
+
+{{-- ============================================================
+     PANEL OFFLINE — tampil saat bridge tidak dapat dijangkau
+     JS akan sembunyikan panel ini begitu bridge berhasil dikontak
+     ============================================================ --}}
+<div id="wa-offline-panel" class="{{ $bridgeStatus['reachable'] ? 'd-none' : '' }} mb-4">
+
+    <div class="alert alert-danger mb-3">
+        <div class="d-flex align-items-start gap-2">
+            <i class="ti ti-wifi-off" style="font-size:1.2rem; margin-top:2px; color:var(--tblr-danger);"></i>
+            <div>
+                <div class="fw-semibold">WhatsApp Web Bridge tidak aktif</div>
+                <div class="text-muted small mt-1">{{ $bridgeStatus['error'] ?? 'Bridge tidak dapat dijangkau.' }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title mb-0">
+                <i class="ti ti-server me-2"></i>Background Services yang Harus Berjalan
+            </h3>
+        </div>
+        <div class="list-group list-group-flush">
+
+            {{-- 1. Bridge Server --}}
+            <div class="list-group-item py-3">
+                <div class="d-flex align-items-start gap-3">
+                    <i class="ti ti-brand-whatsapp mt-1" style="font-size:1.3rem; color:var(--tblr-green);"></i>
+                    <div class="flex-fill">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="fw-semibold">1. Node.js WhatsApp Web Bridge</span>
+                            <span class="badge bg-red-lt text-red">Offline</span>
+                        </div>
+                        <p class="text-muted small mb-2">
+                            Server Node.js yang menghubungkan WhatsApp Web (bukan API resmi) dengan aplikasi ini.
+                            Harus berjalan terus-menerus di server, terpisah dari PHP/Laravel.
+                        </p>
+                        <div class="mb-2">
+                            <div class="text-muted small mb-1">Development / pertama kali:</div>
+                            <code class="d-block user-select-all bg-dark text-white px-3 py-2 rounded small">
+                                cd {{ base_path('app/Modules/WhatsAppWeb/node') }} && npm install && node server.js
+                            </code>
+                        </div>
+                        <div class="mb-2">
+                            <div class="text-muted small mb-1">Production (PM2 — recommended):</div>
+                            <code class="d-block user-select-all bg-dark text-white px-3 py-2 rounded small">
+                                pm2 start server.js --name wa-bridge --cwd {{ base_path('app/Modules/WhatsAppWeb/node') }}
+                            </code>
+                        </div>
+                        <div class="text-muted small">
+                            Bridge berjalan di port <strong>3020</strong> secara default (ubah via env <code>WHATSAPP_WEB_PORT</code>).
+                            URL yang dikonfigurasi: <code>{{ $bridgeUrl ?: '(belum diisi)' }}</code>
+                        </div>
+                        @if($bridgeStatus['url_missing'] ?? false)
+                            <div class="mt-2">
+                                <a href="{{ route('whatsappweb.settings.edit') }}" class="btn btn-sm btn-primary">
+                                    <i class="ti ti-settings me-1"></i>Konfigurasi Bridge URL
+                                </a>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            {{-- 2. Queue Worker --}}
+            <div class="list-group-item py-3">
+                <div class="d-flex align-items-start gap-3">
+                    <i class="ti ti-stack-2 mt-1" style="font-size:1.3rem; color:var(--tblr-azure);"></i>
+                    <div class="flex-fill">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="fw-semibold">2. Laravel Queue Worker</span>
+                            <span class="badge bg-secondary-lt text-secondary">Perlu dicek manual</span>
+                        </div>
+                        <p class="text-muted small mb-2">
+                            Memproses pengiriman pesan WhatsApp keluar (<code>SendWhatsAppWebMessage</code> job) secara
+                            asynchronous. Tanpa worker ini, pesan yang dikirim agen tidak akan terkirim ke WhatsApp.
+                        </p>
+                        <code class="d-block user-select-all bg-dark text-white px-3 py-2 rounded small">
+                            php artisan queue:work --tries=3 --timeout=120
+                        </code>
+                        <div class="text-muted small mt-1">Gunakan Supervisor atau PM2 agar otomatis restart jika crash.</div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- 3. Scheduler --}}
+            <div class="list-group-item py-3">
+                <div class="d-flex align-items-start gap-3">
+                    <i class="ti ti-clock mt-1" style="font-size:1.3rem; color:var(--tblr-azure);"></i>
+                    <div class="flex-fill">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="fw-semibold">3. Laravel Scheduler (Cron)</span>
+                            <span class="badge bg-secondary-lt text-secondary">Perlu dicek manual</span>
+                        </div>
+                        <p class="text-muted small mb-2">
+                            Menjalankan tugas terjadwal seperti pengecekan kesehatan koneksi WhatsApp setiap 10 menit.
+                            Harus dipanggil setiap menit oleh cron di server.
+                        </p>
+                        <code class="d-block user-select-all bg-dark text-white px-3 py-2 rounded small">
+                            * * * * * php {{ base_path() }}/artisan schedule:run >> /dev/null 2>&1
+                        </code>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <p class="text-muted small mb-0" id="wa-offline-hint">
+                Setelah bridge berjalan, status akan terdeteksi otomatis — atau klik <strong>Cek Ulang</strong>.
+            </p>
+            <div class="d-flex gap-2">
+                @can('whatsapp_web.manage_settings')
+                <a href="{{ route('whatsappweb.settings.edit') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="ti ti-settings me-1"></i>Settings
+                </a>
+                <button type="button" class="btn btn-success btn-sm" id="wa-start-btn"
+                    data-start-url="{{ route('whatsappweb.bridge.start') }}"
+                    data-stop-url="{{ route('whatsappweb.bridge.stop') }}">
+                    <i class="ti ti-player-play me-1"></i>Start Bridge
+                </button>
+                @endcan
+                <button type="button" class="btn btn-primary btn-sm" id="wa-recheck-btn">
+                    <i class="ti ti-refresh me-1"></i>Cek Ulang
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- ============================================================
+     MAIN PANEL — state connect (QR) dan state chat (connected)
+     ============================================================ --}}
 <div id="whatsapp-web"
     data-bridge-url="{{ $bridgeUrl }}"
     data-bridge-token="{{ $bridgeToken ?? '' }}"
@@ -8,6 +159,7 @@
     data-send-url-template="{{ route('whatsappweb.chats.messages.send', ['chatId' => '__CHAT_ID__']) }}"
     data-sync-url-template="{{ route('whatsappweb.chats.sync', ['chatId' => '__CHAT_ID__']) }}"
     data-sync-active-url="{{ route('whatsappweb.sync.active') }}">
+
     {{-- QR / Connect state --}}
     <div id="wa-connect" class="row g-3">
         <div class="col-lg-6 mx-auto">
@@ -76,6 +228,7 @@
         </div>
     </div>
 </div>
+
 @endsection
 
 @push('scripts')
@@ -92,6 +245,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusEl = document.getElementById('wa-status');
     const qrEl = document.getElementById('wa-qr');
     const refreshBtn = document.getElementById('wa-refresh');
+    const recheckBtn = document.getElementById('wa-recheck-btn');
+    const offlinePanel = document.getElementById('wa-offline-panel');
     const logoutBtn = document.getElementById('wa-logout');
     const logoutBtn2 = document.getElementById('wa-logout-2');
     const chatListEl = document.getElementById('wa-chat-list');
@@ -130,6 +285,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const clearSyncFeedback = () => {
         syncFeedback?.classList.add('d-none');
+    };
+
+    const showOfflinePanel = () => offlinePanel?.classList.remove('d-none');
+    const hideOfflinePanel = () => {
+        offlinePanel?.classList.add('d-none');
+        // Bridge came online — stop aggressive polling, resume normal 20s interval
+        if (aggressivePollTimer) {
+            clearInterval(aggressivePollTimer);
+            aggressivePollTimer = null;
+        }
+    };
+
+    // Aggressive polling after start command (3s x 20 = max 60s then back to normal)
+    let aggressivePollCount = 0;
+    let aggressivePollTimer = null;
+    const startAggressivePoll = () => {
+        aggressivePollCount = 0;
+        clearInterval(aggressivePollTimer);
+        aggressivePollTimer = setInterval(async () => {
+            aggressivePollCount++;
+            await loadStatus();
+            if (aggressivePollCount >= 20) {
+                clearInterval(aggressivePollTimer);
+            }
+        }, 3000);
     };
 
     const toggleState = (ready) => {
@@ -178,28 +358,28 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-        const renderMessages = (messages) => {
-            messagesEl.innerHTML = '';
-            if (!messages.length) {
-                messagesEl.innerHTML = '<div class="text-muted small">Belum ada pesan.</div>';
-                return;
-            }
-            messages.forEach((msg) => {
-                const bubble = document.createElement('div');
-                bubble.className = `mb-2 d-flex ${msg.fromMe ? 'justify-content-end' : 'justify-content-start'}`;
-                const timeClass = msg.fromMe ? 'text-white-50' : 'text-muted';
-                const typeBadge = msg.type && msg.type !== 'chat'
-                    ? `<span class="badge bg-azure-lt text-azure me-2">${msg.type}</span>`
-                    : '';
-                const authorLabel = msg.author && !msg.fromMe ? `<div class="small fw-bold mb-1">${msg.author}</div>` : '';
-                bubble.innerHTML = `<div class="px-3 py-2 rounded ${msg.fromMe ? 'bg-primary text-white' : 'bg-white border'}" style="max-width: 70%;">
-                    ${authorLabel}
-                    <div class="small">${typeBadge}${msg.body}</div>
-                    <div class="${timeClass} small mt-1">${msg.timestamp}</div>
-                </div>`;
-                messagesEl.appendChild(bubble);
-            });
-            messagesEl.scrollTop = messagesEl.scrollHeight;
+    const renderMessages = (messages) => {
+        messagesEl.innerHTML = '';
+        if (!messages.length) {
+            messagesEl.innerHTML = '<div class="text-muted small">Belum ada pesan.</div>';
+            return;
+        }
+        messages.forEach((msg) => {
+            const bubble = document.createElement('div');
+            bubble.className = `mb-2 d-flex ${msg.fromMe ? 'justify-content-end' : 'justify-content-start'}`;
+            const timeClass = msg.fromMe ? 'text-white-50' : 'text-muted';
+            const typeBadge = msg.type && msg.type !== 'chat'
+                ? `<span class="badge bg-azure-lt text-azure me-2">${msg.type}</span>`
+                : '';
+            const authorLabel = msg.author && !msg.fromMe ? `<div class="small fw-bold mb-1">${msg.author}</div>` : '';
+            bubble.innerHTML = `<div class="px-3 py-2 rounded ${msg.fromMe ? 'bg-primary text-white' : 'bg-white border'}" style="max-width: 70%;">
+                ${authorLabel}
+                <div class="small">${typeBadge}${msg.body}</div>
+                <div class="${timeClass} small mt-1">${msg.timestamp}</div>
+            </div>`;
+            messagesEl.appendChild(bubble);
+        });
+        messagesEl.scrollTop = messagesEl.scrollHeight;
     };
 
     const handleStatusPayload = (data) => {
@@ -224,10 +404,12 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await api('/status');
             const data = await response.json();
+            hideOfflinePanel();
             handleStatusPayload(data);
         } catch (error) {
             setStatus('danger', 'Gagal terhubung ke bridge server.');
             toggleState(false);
+            showOfflinePanel();
         }
     };
 
@@ -252,6 +434,42 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     refreshBtn.addEventListener('click', loadStatus);
+    recheckBtn?.addEventListener('click', loadStatus);
+
+    const startBtn = document.getElementById('wa-start-btn');
+    const hintEl   = document.getElementById('wa-offline-hint');
+
+    startBtn?.addEventListener('click', async () => {
+        const startUrl = startBtn.dataset.startUrl;
+        startBtn.disabled = true;
+        startBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Starting...';
+        if (hintEl) hintEl.textContent = 'Mengirim perintah start ke server...';
+
+        try {
+            const response = await fetch(startUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                },
+            });
+            const data = await response.json();
+
+            if (data.ok) {
+                if (hintEl) hintEl.textContent = data.message + ' Polling setiap 3 detik...';
+                startAggressivePoll();
+            } else {
+                if (hintEl) hintEl.innerHTML = '<span class="text-danger"><i class="ti ti-alert-circle me-1"></i>' + data.message + '</span>';
+            }
+        } catch (e) {
+            if (hintEl) hintEl.innerHTML = '<span class="text-danger">Gagal menghubungi server.</span>';
+        } finally {
+            startBtn.disabled = false;
+            startBtn.innerHTML = '<i class="ti ti-player-play me-1"></i>Start Bridge';
+        }
+    });
+
     [logoutBtn, logoutBtn2].forEach(btn => btn?.addEventListener('click', async () => {
         await api('/logout', { method: 'POST' });
         await loadStatus();

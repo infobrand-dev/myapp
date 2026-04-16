@@ -45,7 +45,7 @@ class OpeningStockController extends Controller
             'locations' => $stocks->locations(),
             'products' => Product::query()
                 ->where('tenant_id', TenantContext::currentId())
-                ->where('track_stock', true)
+                ->trackingStock()
                 ->orderBy('name')
                 ->get(),
             'initialItems' => $prefillProduct ? [[

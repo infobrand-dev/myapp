@@ -5,11 +5,13 @@ namespace App\Modules\Products\Models;
 use App\Modules\Contacts\Models\Contact;
 use App\Support\NormalizesPgsqlBooleanAttributes;
 use App\Support\TenantContext;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -78,6 +80,17 @@ class Product extends Model
         'track_stock' => 'boolean',
         'meta' => 'array',
     ];
+
+    public function scopeTrackingStock(Builder $query): Builder
+    {
+        $column = $query->qualifyColumn('track_stock');
+
+        if (DB::connection($this->getConnectionName())->getDriverName() === 'pgsql') {
+            return $query->whereRaw($column . ' is true');
+        }
+
+        return $query->where('track_stock', true);
+    }
 
     public function category(): BelongsTo
     {

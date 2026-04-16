@@ -77,6 +77,136 @@
         </div>
     </div>
 
+    {{-- ====================================================
+         Background Services
+         Tiga proses server yang harus berjalan di production.
+         Bridge dicek otomatis; queue & scheduler manual.
+         ==================================================== --}}
+    @php
+        $bridgeUrlCheck     = collect($checks)->firstWhere('key', 'whatsapp_web_bridge_url');
+        $bridgeRuntimeCheck = collect($checks)->firstWhere('key', 'whatsapp_web_bridge_runtime');
+        $showBridgeSection  = $bridgeUrlCheck !== null;
+        $bridgeOnline       = $bridgeRuntimeCheck ? ($bridgeRuntimeCheck['status'] === 'pass') : null;
+        $bridgeUrlMissing   = $bridgeUrlCheck ? ($bridgeUrlCheck['status'] !== 'pass') : false;
+    @endphp
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3 class="card-title mb-0">Background Services</h3>
+        </div>
+        <div class="card-body text-muted small mb-0 pb-0">
+            Tiga proses ini harus berjalan di server secara bersamaan. Queue worker dan scheduler tidak dapat dicek secara otomatis dari sini — verifikasi manual wajib dilakukan sebelum launch.
+        </div>
+        <div class="list-group list-group-flush">
+
+            {{-- 1. Queue Worker --}}
+            <div class="list-group-item py-3">
+                <div class="d-flex align-items-start gap-3">
+                    <i class="ti ti-stack-2 mt-1" style="font-size:1.3rem; color:var(--tblr-azure);"></i>
+                    <div class="flex-fill">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="fw-semibold">Laravel Queue Worker</span>
+                            <span class="badge bg-secondary-lt text-secondary">Perlu dicek manual</span>
+                        </div>
+                        <p class="text-muted small mb-2">
+                            Memproses job asynchronous: pengiriman pesan WhatsApp, email, blast campaign, dll.
+                            Tanpa worker ini semua job tertumpuk di antrian dan tidak tereksekusi.
+                        </p>
+                        <code class="d-block bg-dark text-white px-3 py-2 rounded small">
+                            php artisan queue:work --tries=3 --timeout=120
+                        </code>
+                        <div class="text-muted small mt-1">
+                            Gunakan <strong>Supervisor</strong> atau <strong>PM2</strong> agar otomatis restart jika crash.
+                            Cek item <code>queue_connection</code> di tabel audit di bawah.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- 2. Scheduler --}}
+            <div class="list-group-item py-3">
+                <div class="d-flex align-items-start gap-3">
+                    <i class="ti ti-clock mt-1" style="font-size:1.3rem; color:var(--tblr-azure);"></i>
+                    <div class="flex-fill">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="fw-semibold">Laravel Scheduler (Cron)</span>
+                            <span class="badge bg-secondary-lt text-secondary">Perlu dicek manual</span>
+                        </div>
+                        <p class="text-muted small mb-2">
+                            Menjalankan task terjadwal: health check WhatsApp instance setiap 10 menit,
+                            dispatch blast terjadwal setiap menit, pruning webhook payload setiap malam.
+                        </p>
+                        <code class="d-block bg-dark text-white px-3 py-2 rounded small">
+                            * * * * * php {{ base_path() }}/artisan schedule:run >> /dev/null 2>&1
+                        </code>
+                    </div>
+                </div>
+            </div>
+
+            {{-- 3. WhatsApp Web Bridge (hanya tampil jika modul aktif) --}}
+            @if($showBridgeSection)
+            <div class="list-group-item py-3">
+                <div class="d-flex align-items-start gap-3">
+                    <i class="ti ti-brand-whatsapp mt-1" style="font-size:1.3rem; color:var(--tblr-green);"></i>
+                    <div class="flex-fill">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="fw-semibold">Node.js WhatsApp Web Bridge</span>
+                            @if($bridgeOnline === true)
+                                <span class="badge bg-green-lt text-green">Online</span>
+                            @elseif($bridgeOnline === false)
+                                <span class="badge bg-red-lt text-red">Offline</span>
+                            @elseif($bridgeUrlMissing)
+                                <span class="badge bg-orange-lt text-orange">URL belum diisi</span>
+                            @else
+                                <span class="badge bg-secondary-lt text-secondary">Tidak dicek</span>
+                            @endif
+                        </div>
+                        <p class="text-muted small mb-2">
+                            Server Node.js yang menghubungkan WhatsApp Web (non-API) dengan aplikasi.
+                            Harus berjalan di luar PHP — proses terpisah di server.
+                        </p>
+
+                        @if($bridgeOnline === false || $bridgeUrlMissing)
+                        <div class="mb-2">
+                            <div class="text-muted small mb-1">Start bridge (production via PM2):</div>
+                            <code class="d-block bg-dark text-white px-3 py-2 rounded small">
+                                pm2 start server.js --name wa-bridge --cwd {{ base_path('app/Modules/WhatsAppWeb/node') }}
+                            </code>
+                        </div>
+                        @endif
+
+                        @if($bridgeUrlCheck && $bridgeUrlCheck['status'] !== 'pass')
+                        <div class="text-muted small mb-1">
+                            <i class="ti ti-alert-triangle text-orange me-1"></i>
+                            {{ $bridgeUrlCheck['hint'] }}
+                        </div>
+                        @endif
+
+                        @if($bridgeRuntimeCheck && $bridgeRuntimeCheck['status'] !== 'pass')
+                        <div class="text-muted small mb-2">
+                            <i class="ti ti-alert-circle text-red me-1"></i>
+                            {{ $bridgeRuntimeCheck['hint'] }}
+                            @if($bridgeRuntimeCheck['value'] !== '-')
+                                <code class="ms-1">{{ $bridgeRuntimeCheck['value'] }}</code>
+                            @endif
+                        </div>
+                        @endif
+
+                        @if($bridgeOnline !== true)
+                        <div class="mt-2">
+                            <a href="{{ route('whatsappweb.settings.edit') }}" class="btn btn-sm btn-outline-primary">
+                                <i class="ti ti-settings me-1"></i>Buka WhatsApp Web Settings
+                            </a>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+            @endif
+
+        </div>
+    </div>
+
     @if(!$ready)
         <div class="alert alert-danger mb-4">
             Masih ada blocker go-live. Fokus utamanya adalah item `FAIL`, terutama tenancy, session/cookie, queue, billing platform, mail, dan Midtrans.

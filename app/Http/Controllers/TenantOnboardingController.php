@@ -67,7 +67,7 @@ class TenantOnboardingController extends Controller
                 'required',
                 'integer',
                 Rule::exists('subscription_plans', 'id')->where(
-                    fn ($query) => $query->where('is_active', true)->where('is_public', true)
+                    fn ($query) => $query->whereRaw('is_active = TRUE')->whereRaw('is_public = TRUE')
                 ),
             ],
             'company_name' => ['required', 'string', 'max:100'],

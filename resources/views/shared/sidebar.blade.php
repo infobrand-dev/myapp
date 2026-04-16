@@ -60,14 +60,14 @@
 
 <aside class="navbar navbar-vertical navbar-expand-lg border-end {{ $platformAdminHost ? 'sidebar-platform-shell' : '' }}" role="navigation" aria-label="Main navigation">
     <div class="container-fluid">
-        <div class="sidebar-brand-wrap d-flex align-items-center w-100 px-1 py-3 border-bottom">
+        <div class="sidebar-brand-wrap d-flex align-items-center w-100 px-2 py-3 border-bottom">
             {{-- Mobile: close button on the left --}}
             <button type="button" class="sidebar-close-btn d-lg-none me-2" id="sidebar-close-btn" aria-label="Tutup menu">
                 <i class="ti ti-x" style="font-size:1.1rem;" aria-hidden="true"></i>
             </button>
             <a href="{{ route($brandHomeRoute) }}" class="navbar-brand sidebar-brand mb-0 text-decoration-none d-inline-flex align-items-center" aria-label="{{ config('app.name') }}">
                 {{-- Full logo — hidden in mini mode --}}
-                <x-app-logo variant="default" :height="34" class="sidebar-brand-logo" />
+                <x-app-logo variant="default" :height="36" class="sidebar-brand-logo" />
                 {{-- Icon-only logo — shown in mini mode --}}
                 <img src="{{ asset('brand/logo-icon.png') }}" alt="{{ config('app.name') }}" height="32" class="sidebar-brand-icon" />
             </a>

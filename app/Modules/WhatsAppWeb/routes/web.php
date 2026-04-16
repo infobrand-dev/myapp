@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\WhatsAppWeb\Http\Controllers\BridgeProcessController;
 use App\Modules\WhatsAppWeb\Http\Controllers\WhatsAppWebController;
 use App\Modules\WhatsAppWeb\Http\Controllers\ChatController;
 use App\Modules\WhatsAppWeb\Http\Controllers\ConversationSyncController;
@@ -26,6 +27,8 @@ Route::middleware(['web', 'auth', 'plan.feature:whatsapp_web', 'permission:whats
         Route::middleware('permission:whatsapp_web.manage_settings')->group(function () {
             Route::get('/settings', [SettingsController::class, 'edit'])->name('settings.edit');
             Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
+            Route::post('/bridge/start', [BridgeProcessController::class, 'start'])->name('bridge.start');
+            Route::post('/bridge/stop', [BridgeProcessController::class, 'stop'])->name('bridge.stop');
         });
     });
 

@@ -118,6 +118,15 @@
     </div>
     <div class="col-md-3">
         @include('shared.accounting.field-label', [
+            'label' => 'Tax Name',
+            'tooltip' => 'Nama legal pada profil pajak partner, misalnya nama PKP atau nama di NPWP.',
+        ])
+        <input type="text" name="tax_name" class="form-control @error('tax_name') is-invalid @enderror"
+            value="{{ old('tax_name', $contact->tax_name ?? '') }}">
+        @error('tax_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+    <div class="col-md-3">
+        @include('shared.accounting.field-label', [
             'label' => 'Company Registry',
             'tooltip' => 'Nomor izin usaha resmi seperti NIB, SIUP, atau TDP. Dipakai untuk keperluan dokumen legal dan verifikasi vendor.',
         ])
@@ -153,6 +162,16 @@
             placeholder="retail, vip, supplier-priority">
         <div class="form-hint">Separate with commas.</div>
         @error('tags_input') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+    <div class="col-md-3 d-flex align-items-end">
+        <div class="w-100">
+            <label class="form-label d-block">Tax Profile</label>
+            <label class="form-check form-switch mb-0 mt-1">
+                <input class="form-check-input" type="checkbox" name="tax_is_pkp" value="1"
+                    {{ old('tax_is_pkp', $contact->tax_is_pkp ?? false) ? 'checked' : '' }}>
+                <span class="form-check-label">PKP / taxable entity</span>
+            </label>
+        </div>
     </div>
 </div>
 
@@ -208,6 +227,15 @@
         <textarea name="shipping_address" class="form-control @error('shipping_address') is-invalid @enderror" rows="3"
             placeholder="If different from main address">{{ old('shipping_address', $contact->shipping_address ?? '') }}</textarea>
         @error('shipping_address') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+    <div class="col-md-6">
+        @include('shared.accounting.field-label', [
+            'label' => 'Tax Address',
+            'tooltip' => 'Alamat yang dipakai pada dokumen perpajakan. Boleh sama dengan billing address jika tidak ada perbedaan.',
+        ])
+        <textarea name="tax_address" class="form-control @error('tax_address') is-invalid @enderror" rows="3"
+            placeholder="Tax / NPWP address">{{ old('tax_address', $contact->tax_address ?? '') }}</textarea>
+        @error('tax_address') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 </div>
 

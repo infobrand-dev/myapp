@@ -14,8 +14,13 @@
             <h2 class="page-title">Finance Accounts</h2>
             <p class="text-muted mb-0">Pisahkan sumber dana operasional seperti cash, bank, dan e-wallet tanpa memisah domain transaksi finance.</p>
         </div>
+        <div class="col-auto">
+            @include('shared.accounting.mode-badge')
+        </div>
     </div>
 </div>
+
+@include('finance::partials.accounting-nav')
 
 @if($errors->any())
     <div class="alert alert-danger">

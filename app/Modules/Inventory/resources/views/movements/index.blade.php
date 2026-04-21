@@ -3,6 +3,10 @@
 @section('title', 'Stock Movements')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+    $currency = app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency();
+@endphp
 <div class="page-header">
     <div class="row align-items-center">
         <div class="col">
@@ -38,7 +42,7 @@
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-vcenter table-hover">
-                <thead><tr><th>Waktu</th><th>Produk</th><th>Type</th><th>Lokasi</th><th>Before</th><th>Qty</th><th>After</th><th>Ref</th></tr></thead>
+                <thead><tr><th>Waktu</th><th>Produk</th><th>Type</th><th>Lokasi</th><th>Before</th><th>Qty</th><th>After</th><th>Unit Cost</th><th>Value</th><th>Ref</th></tr></thead>
                 <tbody>
                     @forelse($movements as $movement)
                         <tr>
@@ -49,11 +53,13 @@
                             <td>{{ number_format((float) $movement->before_quantity, 2, ',', '.') }}</td>
                             <td>{{ $movement->direction === 'out' ? '-' : '+' }}{{ number_format((float) $movement->quantity, 2, ',', '.') }}</td>
                             <td>{{ number_format((float) $movement->after_quantity, 2, ',', '.') }}</td>
+                            <td>{{ $money->format((float) $movement->unit_cost, $currency) }}</td>
+                            <td>{{ $money->format((float) $movement->movement_value, $currency) }}</td>
                             <td>{{ $movement->reference_type ? class_basename($movement->reference_type) . '#' . $movement->reference_id : '-' }}</td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center py-5">
+                            <td colspan="10" class="text-center py-5">
                                 <i class="ti ti-history text-muted d-block mb-2" style="font-size:2rem;"></i>
                                 <div class="text-muted">Belum ada movement.</div>
                             </td>

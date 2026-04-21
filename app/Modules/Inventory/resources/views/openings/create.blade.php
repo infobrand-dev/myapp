@@ -32,6 +32,7 @@
     'itemFields' => [
         ['name' => 'product_variant_id', 'label' => 'Variant ID', 'type' => 'number', 'value' => '', 'tooltip' => 'Isi jika stok awal ini khusus untuk varian tertentu. Boleh dikosongkan untuk produk utama tanpa varian.'],
         ['name' => 'quantity', 'label' => 'Opening Stock', 'type' => 'number', 'value' => '0.0000', 'required' => true, 'tooltip' => 'Jumlah stok awal yang tersedia di lokasi ini saat mulai menggunakan sistem.'],
+        ['name' => 'unit_cost', 'label' => 'Unit Cost', 'type' => 'number', 'value' => '0.00', 'tooltip' => 'Biaya per unit untuk valuasi opening stock. Jika dikosongkan atau 0, sistem fallback ke cost_price produk/varian.'],
         ['name' => 'minimum_quantity', 'label' => 'Minimum Stock', 'type' => 'number', 'value' => '0.0000', 'tooltip' => 'Batas minimum stok yang masih dianggap aman. Digunakan untuk membantu pemantauan stok, bukan menambah stok otomatis.'],
         ['name' => 'reorder_quantity', 'label' => 'Reorder Point', 'type' => 'number', 'value' => '0.0000', 'tooltip' => 'Jumlah yang disarankan untuk dibeli ulang saat stok mulai menipis. Boleh diisi 0 jika belum memakai aturan reorder.'],
         ['name' => 'notes', 'label' => 'Notes', 'type' => 'text', 'column' => 'col-md-3', 'tooltip' => 'Catatan tambahan untuk item opening stock ini.'],

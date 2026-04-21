@@ -27,6 +27,7 @@ class StockRepository
         return [
             'total_items' => (clone $query)->count(),
             'out_of_stock' => (clone $query)->where('current_quantity', '<=', 0)->count(),
+            'inventory_value_total' => round((float) (clone $query)->sum('inventory_value'), 2),
             'low_stock' => (clone $query)
                 ->where('current_quantity', '>', 0)
                 ->whereColumn('current_quantity', '<=', 'minimum_quantity')

@@ -9,6 +9,9 @@ use Illuminate\Support\Str;
 
 class AccountingJournalService
 {
+    public const STATUS_DRAFT = 'draft';
+    public const STATUS_POSTED = 'posted';
+
     public function sync(Model $source, string $entryType, string|\DateTimeInterface $entryDate, array $lines, array $meta = [], ?string $description = null): AccountingJournal
     {
         $tenantId = TenantContext::currentId();
@@ -60,6 +63,60 @@ class AccountingJournalService
         return $journal->load('lines');
     }
 
+    public function createManual(
+        string|\DateTimeInterface $entryDate,
+        array $lines,
+        string $status = self::STATUS_DRAFT,
+        ?string $description = null,
+        ?int $branchId = null,
+        array $meta = []
+    ): AccountingJournal {
+        return $this->persistManualJournal(
+            new AccountingJournal(),
+            $entryDate,
+            $lines,
+            $status,
+            $description,
+            $branchId,
+            $meta
+        );
+    }
+
+    public function updateManual(
+        AccountingJournal $journal,
+        string|\DateTimeInterface $entryDate,
+        array $lines,
+        string $status = self::STATUS_DRAFT,
+        ?string $description = null,
+        ?int $branchId = null,
+        array $meta = []
+    ): AccountingJournal {
+        return $this->persistManualJournal(
+            $journal,
+            $entryDate,
+            $lines,
+            $status,
+            $description,
+            $branchId,
+            $meta
+        );
+    }
+
+    public function postManual(AccountingJournal $journal): AccountingJournal
+    {
+        if ($journal->status === self::STATUS_POSTED) {
+            return $journal->load('lines');
+        }
+
+        $journal->fill([
+            'status' => self::STATUS_POSTED,
+            'updated_by' => auth()->id(),
+        ]);
+        $journal->save();
+
+        return $journal->load('lines');
+    }
+
     private function normalizeLines(array $lines): array
     {
         $normalized = collect($lines)
@@ -70,7 +127,7 @@ class AccountingJournalService
                     'account_name' => (string) ($line['account_name'] ?? ''),
                     'debit' => round((float) ($line['debit'] ?? 0), 2),
                     'credit' => round((float) ($line['credit'] ?? 0), 2),
-                    'meta' => $line['meta'] ?? null,
+                    'meta' => $line['meta'] ?? $this->lineMeta($line),
                 ];
             })
             ->filter(fn (array $line) => $line['account_code'] !== '' && ($line['debit'] > 0 || $line['credit'] > 0))
@@ -84,6 +141,78 @@ class AccountingJournalService
         }
 
         return $normalized->all();
+    }
+
+    private function persistManualJournal(
+        AccountingJournal $journal,
+        string|\DateTimeInterface $entryDate,
+        array $lines,
+        string $status,
+        ?string $description,
+        ?int $branchId,
+        array $meta
+    ): AccountingJournal {
+        $tenantId = TenantContext::currentId();
+        $companyId = CompanyContext::currentId();
+        $resolvedDate = Carbon::parse($entryDate);
+        $normalizedStatus = $status === self::STATUS_POSTED ? self::STATUS_POSTED : self::STATUS_DRAFT;
+        $normalizedLines = $this->normalizeLines($lines);
+
+        $journal->fill([
+            'tenant_id' => $tenantId,
+            'company_id' => $companyId,
+            'branch_id' => $branchId,
+            'entry_type' => 'manual',
+            'journal_number' => $journal->journal_number ?: $this->journalNumber('manual', $resolvedDate),
+            'entry_date' => $resolvedDate,
+            'status' => $normalizedStatus,
+            'description' => $description,
+            'meta' => $meta,
+            'updated_by' => auth()->id(),
+        ]);
+
+        if (!$journal->exists) {
+            $journal->source_type = 'manual:' . (string) Str::uuid();
+            $journal->source_id = 0;
+            $journal->created_by = auth()->id();
+            $journal->save();
+            $journal->forceFill([
+                'source_type' => AccountingJournal::class,
+                'source_id' => $journal->id,
+            ])->save();
+        } else {
+            $journal->save();
+        }
+
+        $journal->lines()->delete();
+        foreach ($normalizedLines as $index => $line) {
+            $journal->lines()->create([
+                'tenant_id' => $tenantId,
+                'company_id' => $companyId,
+                'branch_id' => $branchId,
+                'line_no' => $index + 1,
+                'account_code' => $line['account_code'],
+                'account_name' => $line['account_name'],
+                'debit' => $line['debit'],
+                'credit' => $line['credit'],
+                'meta' => $line['meta'] ?? null,
+            ]);
+        }
+
+        return $journal->load('lines');
+    }
+
+    private function lineMeta(array $line): ?array
+    {
+        $notes = trim((string) ($line['notes'] ?? ''));
+
+        if ($notes === '') {
+            return null;
+        }
+
+        return [
+            'notes' => $notes,
+        ];
     }
 
     private function journalNumber(string $entryType, Carbon $entryDate): string

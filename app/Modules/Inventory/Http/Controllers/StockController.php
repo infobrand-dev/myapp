@@ -4,12 +4,16 @@ namespace App\Modules\Inventory\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Inventory\Repositories\StockRepository;
+use App\Support\CurrencySettingsResolver;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class StockController extends Controller
 {
-    public function __construct(private readonly StockRepository $stocks)
+    public function __construct(
+        private readonly StockRepository $stocks,
+        private readonly CurrencySettingsResolver $currencySettings
+    )
     {
     }
 
@@ -22,6 +26,7 @@ class StockController extends Controller
             'summary' => $this->stocks->summary($filters),
             'locations' => $this->stocks->locations(),
             'filters' => $filters,
+            'currency' => $this->currencySettings->defaultCurrency(),
         ]);
     }
 
@@ -29,6 +34,7 @@ class StockController extends Controller
     {
         return view('inventory::stocks.show', [
             'stock' => $this->stocks->findOrFail($stock),
+            'currency' => $this->currencySettings->defaultCurrency(),
         ]);
     }
 }

@@ -24,6 +24,7 @@ class StockMutationService
             $before = round((float) $stock->current_quantity, 4);
             $qty = round((float) $payload['quantity'], 4);
             $after = $payload['direction'] === 'in' ? $before + $qty : $before - $qty;
+            $valuation = $this->resolveValuation($stock, $product, $variant, $payload, $before, $after, $qty);
 
             if ($after < 0 && !$stock->allow_negative_stock && !($payload['allow_negative_stock'] ?? false)) {
                 throw new DomainException('Stok tidak boleh negatif.');
@@ -33,6 +34,8 @@ class StockMutationService
                 'current_quantity' => $after,
                 'minimum_quantity' => $payload['minimum_quantity'] ?? $stock->minimum_quantity,
                 'reorder_quantity' => $payload['reorder_quantity'] ?? $stock->reorder_quantity,
+                'average_unit_cost' => $valuation['average_unit_cost'],
+                'inventory_value' => $valuation['after_value'],
                 'allow_negative_stock' => (bool) ($payload['allow_negative_stock'] ?? $stock->allow_negative_stock),
                 'last_movement_at' => $payload['occurred_at'] ?? now(),
             ]);
@@ -52,6 +55,10 @@ class StockMutationService
                 'quantity' => $qty,
                 'before_quantity' => $before,
                 'after_quantity' => $after,
+                'unit_cost' => $valuation['unit_cost'],
+                'movement_value' => $valuation['movement_value'],
+                'before_value' => $valuation['before_value'],
+                'after_value' => $valuation['after_value'],
                 'reference_type' => $payload['reference_type'] ?? null,
                 'reference_id' => $payload['reference_id'] ?? null,
                 'reason_code' => $payload['reason_code'] ?? null,
@@ -93,6 +100,10 @@ class StockMutationService
                 'quantity' => $qty,
                 'before_quantity' => (float) $stock->current_quantity,
                 'after_quantity' => (float) $stock->current_quantity,
+                'unit_cost' => $this->stockAverageUnitCost($stock),
+                'movement_value' => 0,
+                'before_value' => $this->stockInventoryValue($stock),
+                'after_value' => $this->stockInventoryValue($stock),
                 'reference_type' => $payload['reference_type'] ?? null,
                 'reference_id' => $payload['reference_id'] ?? null,
                 'reason_code' => $payload['reason_code'] ?? 'reservation',
@@ -137,6 +148,10 @@ class StockMutationService
                 'quantity' => $qty,
                 'before_quantity' => (float) $stock->current_quantity,
                 'after_quantity' => (float) $stock->current_quantity,
+                'unit_cost' => $this->stockAverageUnitCost($stock),
+                'movement_value' => 0,
+                'before_value' => $this->stockInventoryValue($stock),
+                'after_value' => $this->stockInventoryValue($stock),
                 'reference_type' => $payload['reference_type'] ?? null,
                 'reference_id' => $payload['reference_id'] ?? null,
                 'reason_code' => $payload['reason_code'] ?? 'reservation_release',
@@ -164,6 +179,7 @@ class StockMutationService
             $beforeReserved = round((float) $stock->reserved_quantity, 4);
             $after = round($before - $qty, 4);
             $afterReserved = round($beforeReserved - $qty, 4);
+            $valuation = $this->resolveValuation($stock, $product, $variant, $payload, $before, $after, $qty);
 
             if ($qty <= 0) {
                 throw new DomainException('Quantity penjualan reserved harus lebih besar dari 0.');
@@ -181,6 +197,8 @@ class StockMutationService
             $stock->reserved_quantity = max(0, $afterReserved);
             $stock->minimum_quantity = $payload['minimum_quantity'] ?? $stock->minimum_quantity;
             $stock->reorder_quantity = $payload['reorder_quantity'] ?? $stock->reorder_quantity;
+            $stock->average_unit_cost = $valuation['average_unit_cost'];
+            $stock->inventory_value = $valuation['after_value'];
             $stock->allow_negative_stock = (bool) ($payload['allow_negative_stock'] ?? $stock->allow_negative_stock);
             $stock->last_movement_at = $payload['occurred_at'] ?? now();
             $stock->save();
@@ -191,6 +209,10 @@ class StockMutationService
                 'quantity' => $qty,
                 'before_quantity' => $before,
                 'after_quantity' => $after,
+                'unit_cost' => $valuation['unit_cost'],
+                'movement_value' => $valuation['movement_value'],
+                'before_value' => $valuation['before_value'],
+                'after_value' => $valuation['after_value'],
                 'reference_type' => $payload['reference_type'] ?? null,
                 'reference_id' => $payload['reference_id'] ?? null,
                 'reason_code' => $payload['reason_code'] ?? 'sale_reserved',
@@ -316,6 +338,10 @@ class StockMutationService
             'quantity' => $payload['quantity'],
             'before_quantity' => $payload['before_quantity'],
             'after_quantity' => $payload['after_quantity'],
+            'unit_cost' => round((float) ($payload['unit_cost'] ?? 0), 2),
+            'movement_value' => round((float) ($payload['movement_value'] ?? 0), 2),
+            'before_value' => round((float) ($payload['before_value'] ?? 0), 2),
+            'after_value' => round((float) ($payload['after_value'] ?? 0), 2),
             'reference_type' => $payload['reference_type'] ?? null,
             'reference_id' => $payload['reference_id'] ?? null,
             'reason_code' => $payload['reason_code'] ?? null,
@@ -330,5 +356,81 @@ class StockMutationService
     private function normalizeQuantity(mixed $quantity): float
     {
         return round((float) $quantity, 4);
+    }
+
+    private function resolveValuation(
+        StockBalance $stock,
+        Product $product,
+        ?ProductVariant $variant,
+        array $payload,
+        float $beforeQuantity,
+        float $afterQuantity,
+        float $quantity
+    ): array {
+        $beforeValue = $this->stockInventoryValue($stock);
+        $averageUnitCost = $this->stockAverageUnitCost($stock);
+
+        if (($payload['direction'] ?? null) === 'in') {
+            $unitCost = $this->resolveIncomingUnitCost($stock, $product, $variant, $payload);
+            $movementValue = round($quantity * $unitCost, 2);
+            $afterValue = round($beforeValue + $movementValue, 2);
+            $nextAverage = $afterQuantity > 0 ? round($afterValue / $afterQuantity, 2) : 0.0;
+
+            return [
+                'unit_cost' => $unitCost,
+                'movement_value' => $movementValue,
+                'before_value' => $beforeValue,
+                'after_value' => $afterValue,
+                'average_unit_cost' => $nextAverage,
+            ];
+        }
+
+        $unitCost = round((float) ($payload['unit_cost'] ?? $averageUnitCost), 2);
+        $movementValue = round($quantity * $unitCost, 2);
+        $afterValue = round($beforeValue - $movementValue, 2);
+        $nextAverage = $afterQuantity > 0
+            ? round($afterValue / $afterQuantity, 2)
+            : ($afterQuantity < 0 ? $unitCost : 0.0);
+
+        return [
+            'unit_cost' => $unitCost,
+            'movement_value' => $movementValue,
+            'before_value' => $beforeValue,
+            'after_value' => $afterValue,
+            'average_unit_cost' => $nextAverage,
+        ];
+    }
+
+    private function resolveIncomingUnitCost(
+        StockBalance $stock,
+        Product $product,
+        ?ProductVariant $variant,
+        array $payload
+    ): float {
+        if (isset($payload['unit_cost']) && is_numeric($payload['unit_cost']) && (float) $payload['unit_cost'] > 0) {
+            return round((float) $payload['unit_cost'], 2);
+        }
+
+        $metaUnitCost = data_get($payload, 'meta.unit_cost');
+        if (is_numeric($metaUnitCost) && (float) $metaUnitCost > 0) {
+            return round((float) $metaUnitCost, 2);
+        }
+
+        $productUnitCost = $variant ? (float) $variant->cost_price : (float) $product->cost_price;
+        if ($productUnitCost > 0) {
+            return round($productUnitCost, 2);
+        }
+
+        return $this->stockAverageUnitCost($stock);
+    }
+
+    private function stockAverageUnitCost(StockBalance $stock): float
+    {
+        return round((float) $stock->average_unit_cost, 2);
+    }
+
+    private function stockInventoryValue(StockBalance $stock): float
+    {
+        return round((float) $stock->inventory_value, 2);
     }
 }

@@ -32,6 +32,7 @@ class StoreOpeningStockRequest extends FormRequest
             'items.*.product_id' => ['required', 'integer', Rule::exists('products', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()))],
             'items.*.product_variant_id' => ['nullable', 'integer', Rule::exists('product_variants', 'id')->where(fn ($query) => $query->where('tenant_id', TenantContext::currentId()))],
             'items.*.quantity' => ['required', 'numeric', 'gt:0'],
+            'items.*.unit_cost' => ['nullable', 'numeric', 'min:0'],
             'items.*.minimum_quantity' => ['nullable', 'numeric', 'min:0'],
             'items.*.reorder_quantity' => ['nullable', 'numeric', 'min:0'],
             'items.*.notes' => ['nullable', 'string'],

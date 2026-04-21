@@ -26,9 +26,7 @@
             @endif
         @endcan
         @can('reports.finance')
-            @if($hasAdvancedReports)
             <a href="{{ route('reports.finance') }}" class="btn {{ request()->routeIs('reports.finance') ? 'btn-primary' : 'btn-outline-primary' }}">Finance</a>
-            @endif
         @endcan
         @can('reports.pos')
             @if($hasAdvancedReports && $planManager->hasFeature(\App\Support\PlanFeature::POINT_OF_SALE))
@@ -36,4 +34,10 @@
             @endif
         @endcan
     </div>
+    @if(($accountingUiMode ?? 'standard') === 'advanced' && request()->routeIs('reports.finance'))
+        <div class="form-hint mt-2">
+            Advanced mode membuka output accounting formal di halaman ini seperti <strong>trial balance</strong>, <strong>general ledger</strong>, dan <strong>balance sheet provisional</strong>.
+            Standard mode tetap menampilkan ringkasan finance inti agar halaman tidak terlalu padat.
+        </div>
+    @endif
 </div>

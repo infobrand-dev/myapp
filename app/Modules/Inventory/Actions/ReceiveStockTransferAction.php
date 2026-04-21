@@ -3,6 +3,7 @@
 namespace App\Modules\Inventory\Actions;
 
 use App\Models\User;
+use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Inventory\Models\StockTransfer;
 use App\Modules\Inventory\Services\StockMutationService;
 use App\Support\BranchContext;
@@ -40,6 +41,9 @@ class ReceiveStockTransferAction
 
             foreach ($transfer->items as $item) {
                 $received = $item->sent_quantity > 0 ? $item->sent_quantity : $item->requested_quantity;
+                $transferOutMovement = $item->transfer_out_movement_id
+                    ? StockMovement::query()->find($item->transfer_out_movement_id)
+                    : null;
 
                 $movement = $this->mutationService->record([
                     'product_id' => $item->product_id,
@@ -48,6 +52,7 @@ class ReceiveStockTransferAction
                     'movement_type' => 'transfer_in',
                     'direction' => 'in',
                     'quantity' => $received,
+                    'unit_cost' => $transferOutMovement ? (float) $transferOutMovement->unit_cost : null,
                     'reference_type' => StockTransfer::class,
                     'reference_id' => $transfer->id,
                     'reason_text' => $transfer->notes ?? 'Transfer in',

@@ -22,6 +22,14 @@
                            "route":  "finance.accounts.index"
                        },
                        {
+                           "label":  "Chart of Accounts",
+                           "route":  "finance.chart-accounts.index"
+                       },
+                       {
+                           "label":  "Finance Taxes",
+                           "route":  "finance.taxes.index"
+                       },
+                       {
                            "label":  "Finance Journals",
                            "route":  "finance.journals.index"
                        },

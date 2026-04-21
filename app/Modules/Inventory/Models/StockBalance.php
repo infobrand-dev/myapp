@@ -27,6 +27,8 @@ class StockBalance extends Model
         'reserved_quantity',
         'minimum_quantity',
         'reorder_quantity',
+        'average_unit_cost',
+        'inventory_value',
         'allow_negative_stock',
         'last_movement_at',
         'meta',
@@ -37,6 +39,8 @@ class StockBalance extends Model
         'reserved_quantity' => 'decimal:4',
         'minimum_quantity' => 'decimal:4',
         'reorder_quantity' => 'decimal:4',
+        'average_unit_cost' => 'decimal:2',
+        'inventory_value' => 'decimal:2',
         'allow_negative_stock' => 'boolean',
         'last_movement_at' => 'datetime',
         'meta' => 'array',
@@ -81,5 +85,10 @@ class StockBalance extends Model
         }
 
         return 'in_stock';
+    }
+
+    public function inventoryValueAmount(): float
+    {
+        return round((float) $this->inventory_value, 2);
     }
 }

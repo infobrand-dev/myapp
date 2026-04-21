@@ -23,7 +23,10 @@ class FinanceServiceProvider extends ServiceProvider
         'finance.view',
         'finance.create',
         'finance.manage-categories',
+        'finance.manage-coa',
+        'finance.manage-tax',
         'finance.view-journal',
+        'finance.manage-journal',
         'finance.manage-period-locks',
         'finance.approve-sensitive-transactions',
     ];

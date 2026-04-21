@@ -31,6 +31,7 @@ class Contact extends Model
         'mobile',
         'website',
         'vat',
+        'tax_name',
         'company_registry',
         'industry',
         'payment_term_days',
@@ -45,6 +46,8 @@ class Contact extends Model
         'country',
         'billing_address',
         'shipping_address',
+        'tax_address',
+        'tax_is_pkp',
         'tags',
         'notes',
         'is_active',
@@ -53,6 +56,7 @@ class Contact extends Model
     protected $casts = [
         'payment_term_days' => 'integer',
         'credit_limit' => 'decimal:2',
+        'tax_is_pkp' => 'boolean',
         'tags' => 'array',
         'is_active' => 'boolean',
     ];

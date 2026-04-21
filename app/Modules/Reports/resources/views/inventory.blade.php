@@ -1,9 +1,13 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+    $currency = app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency();
+@endphp
 <div class="mb-3">
     <h2 class="mb-0">Inventory Reports</h2>
-    <div class="text-muted small">Data stok dan mutasi dari modul Inventory.</div>
+    <div class="text-muted small">Data stok, mutasi, dan valuation dari modul Inventory.</div>
 </div>
 
 @include('reports::partials.nav')
@@ -25,16 +29,16 @@
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Stock Rows</div><div class="fs-2 fw-bold">{{ $summary['stock_rows'] }}</div></div></div></div>
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Total Qty</div><div class="fs-2 fw-bold">{{ number_format((float) $summary['total_quantity'], 2, ',', '.') }}</div></div></div></div>
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Low Stock</div><div class="fs-2 fw-bold text-warning">{{ $summary['low_stock_count'] }}</div></div></div></div>
-    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Movement Rows</div><div class="fs-2 fw-bold">{{ $summary['movement_count'] }}</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Inventory Value</div><div class="h4 fw-bold">{{ $money->format((float) $summary['total_inventory_value'], $currency) }}</div><div class="text-muted small mt-1">{{ $summary['movement_count'] }} movement rows</div></div></div></div>
 </div>
 
 <div class="row g-3">
     <div class="col-xl-7">
-        <div class="card"><div class="card-header"><h3 class="card-title mb-0">Stock List</h3></div><div class="table-responsive"><table class="table table-vcenter"><thead><tr><th>Product</th><th>Location</th><th>Current</th><th>Reserved</th><th>Available</th></tr></thead><tbody>
+        <div class="card"><div class="card-header"><h3 class="card-title mb-0">Stock List</h3></div><div class="table-responsive"><table class="table table-vcenter"><thead><tr><th>Product</th><th>Location</th><th>Current</th><th>Reserved</th><th>Available</th><th>Avg Cost</th><th>Value</th></tr></thead><tbody>
             @forelse($stockList as $row)
-                <tr><td>{{ $row->product_name }}@if($row->variant_name)<div class="text-muted small">{{ $row->variant_name }}</div>@endif</td><td>{{ $row->location_name }}</td><td>{{ number_format((float) $row->current_quantity, 2, ',', '.') }}</td><td>{{ number_format((float) $row->reserved_quantity, 2, ',', '.') }}</td><td>{{ number_format((float) $row->available_quantity, 2, ',', '.') }}</td></tr>
+                <tr><td>{{ $row->product_name }}@if($row->variant_name)<div class="text-muted small">{{ $row->variant_name }}</div>@endif</td><td>{{ $row->location_name }}</td><td>{{ number_format((float) $row->current_quantity, 2, ',', '.') }}</td><td>{{ number_format((float) $row->reserved_quantity, 2, ',', '.') }}</td><td>{{ number_format((float) $row->available_quantity, 2, ',', '.') }}</td><td>{{ $money->format((float) $row->average_unit_cost, $currency) }}</td><td>{{ $money->format((float) $row->inventory_value, $currency) }}</td></tr>
             @empty
-                <tr><td colspan="5" class="text-center text-muted">Tidak ada data.</td></tr>
+                <tr><td colspan="7" class="text-center text-muted">Tidak ada data.</td></tr>
             @endforelse
         </tbody></table></div></div>
     </div>
@@ -44,6 +48,15 @@
                 <tr><td>{{ $row->product_name }}@if($row->variant_name)<div class="text-muted small">{{ $row->variant_name }}</div>@endif</td><td>{{ $row->location_name }}</td><td>{{ number_format((float) $row->current_quantity, 2, ',', '.') }}</td><td>{{ number_format((float) $row->minimum_quantity, 2, ',', '.') }}</td></tr>
             @empty
                 <tr><td colspan="4" class="text-center text-muted">Tidak ada data.</td></tr>
+            @endforelse
+        </tbody></table></div></div>
+    </div>
+    <div class="col-12">
+        <div class="card"><div class="card-header d-flex justify-content-between align-items-center"><h3 class="card-title mb-0">Stock Valuation</h3><div class="text-muted small">Movement value total: {{ $money->format((float) $summary['movement_value_total'], $currency) }}</div></div><div class="table-responsive"><table class="table table-vcenter"><thead><tr><th>Product</th><th>Location</th><th>Current Qty</th><th>Avg Cost</th><th>Inventory Value</th></tr></thead><tbody>
+            @forelse($stockValuation as $row)
+                <tr><td>{{ $row->product_name }}@if($row->variant_name)<div class="text-muted small">{{ $row->variant_name }}</div>@endif</td><td>{{ $row->location_name }}</td><td>{{ number_format((float) $row->current_quantity, 2, ',', '.') }}</td><td>{{ $money->format((float) $row->average_unit_cost, $currency) }}</td><td>{{ $money->format((float) $row->inventory_value, $currency) }}</td></tr>
+            @empty
+                <tr><td colspan="5" class="text-center text-muted">Belum ada stok bernilai.</td></tr>
             @endforelse
         </tbody></table></div></div>
     </div>

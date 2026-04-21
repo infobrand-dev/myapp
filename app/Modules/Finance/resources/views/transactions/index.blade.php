@@ -41,6 +41,8 @@
     </div>
 </div>
 
+@include('finance::partials.accounting-nav')
+
 <div class="row g-3 mb-3">
     <div class="col-md-4">
         <div class="card">

@@ -3,8 +3,10 @@
 use App\Modules\Finance\Http\Controllers\AccountingApprovalController;
 use App\Modules\Finance\Http\Controllers\AccountingJournalController;
 use App\Modules\Finance\Http\Controllers\AccountingPeriodLockController;
+use App\Modules\Finance\Http\Controllers\ChartOfAccountController;
 use App\Modules\Finance\Http\Controllers\FinanceCategoryController;
 use App\Modules\Finance\Http\Controllers\FinanceAccountController;
+use App\Modules\Finance\Http\Controllers\FinanceTaxRateController;
 use App\Modules\Finance\Http\Controllers\FinanceTransactionController;
 use Illuminate\Support\Facades\Route;
 
@@ -20,7 +22,22 @@ Route::middleware(['web', 'auth', 'plan.feature:accounting'])
         Route::get('/transactions/{transaction}/edit', [FinanceTransactionController::class, 'edit'])->middleware('permission:finance.create')->name('transactions.edit');
         Route::put('/transactions/{transaction}', [FinanceTransactionController::class, 'update'])->middleware('permission:finance.create')->name('transactions.update');
         Route::delete('/transactions/{transaction}', [FinanceTransactionController::class, 'destroy'])->middleware('permission:finance.create')->name('transactions.destroy');
+        Route::get('/chart-of-accounts', [ChartOfAccountController::class, 'index'])->middleware('permission:finance.manage-coa')->name('chart-accounts.index');
+        Route::post('/chart-of-accounts', [ChartOfAccountController::class, 'store'])->middleware('permission:finance.manage-coa')->name('chart-accounts.store');
+        Route::get('/chart-of-accounts/{chartOfAccount}/edit', [ChartOfAccountController::class, 'edit'])->middleware('permission:finance.manage-coa')->name('chart-accounts.edit');
+        Route::put('/chart-of-accounts/{chartOfAccount}', [ChartOfAccountController::class, 'update'])->middleware('permission:finance.manage-coa')->name('chart-accounts.update');
+        Route::delete('/chart-of-accounts/{chartOfAccount}', [ChartOfAccountController::class, 'destroy'])->middleware('permission:finance.manage-coa')->name('chart-accounts.destroy');
+        Route::get('/taxes', [FinanceTaxRateController::class, 'index'])->middleware('permission:finance.manage-tax')->name('taxes.index');
+        Route::post('/taxes', [FinanceTaxRateController::class, 'store'])->middleware('permission:finance.manage-tax')->name('taxes.store');
+        Route::get('/taxes/{taxRate}/edit', [FinanceTaxRateController::class, 'edit'])->middleware('permission:finance.manage-tax')->name('taxes.edit');
+        Route::put('/taxes/{taxRate}', [FinanceTaxRateController::class, 'update'])->middleware('permission:finance.manage-tax')->name('taxes.update');
+        Route::delete('/taxes/{taxRate}', [FinanceTaxRateController::class, 'destroy'])->middleware('permission:finance.manage-tax')->name('taxes.destroy');
         Route::get('/journals', [AccountingJournalController::class, 'index'])->middleware('permission:finance.view-journal')->name('journals.index');
+        Route::get('/journals/create', [AccountingJournalController::class, 'create'])->middleware('permission:finance.manage-journal')->name('journals.create');
+        Route::post('/journals', [AccountingJournalController::class, 'store'])->middleware('permission:finance.manage-journal')->name('journals.store');
+        Route::get('/journals/{journal}/edit', [AccountingJournalController::class, 'edit'])->middleware('permission:finance.manage-journal')->name('journals.edit');
+        Route::put('/journals/{journal}', [AccountingJournalController::class, 'update'])->middleware('permission:finance.manage-journal')->name('journals.update');
+        Route::post('/journals/{journal}/post', [AccountingJournalController::class, 'post'])->middleware('permission:finance.manage-journal')->name('journals.post');
         Route::get('/approvals', [AccountingApprovalController::class, 'index'])->middleware('permission:finance.approve-sensitive-transactions')->name('approvals.index');
         Route::post('/approvals/{approvalRequest}/approve', [AccountingApprovalController::class, 'approve'])->middleware('permission:finance.approve-sensitive-transactions')->name('approvals.approve');
         Route::post('/approvals/{approvalRequest}/reject', [AccountingApprovalController::class, 'reject'])->middleware('permission:finance.approve-sensitive-transactions')->name('approvals.reject');

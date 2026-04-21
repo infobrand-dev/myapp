@@ -49,6 +49,8 @@
     </div>
 </div>
 
+@include('finance::partials.accounting-nav')
+
 {{-- Amount Hero --}}
 <div class="card mb-3">
     <div class="card-body">

@@ -107,6 +107,7 @@ class CreateOpeningStockAction
                     'movement_type' => 'opening_stock',
                     'direction' => 'in',
                     'quantity' => $item['quantity'],
+                    'unit_cost' => $item['unit_cost'] ?? null,
                     'minimum_quantity' => $item['minimum_quantity'] ?? 0,
                     'reorder_quantity' => $item['reorder_quantity'] ?? 0,
                     'reference_type' => StockOpening::class,
@@ -114,6 +115,9 @@ class CreateOpeningStockAction
                     'reason_text' => $data['notes'] ?? 'Opening stock',
                     'occurred_at' => $data['opening_date'] . ' 00:00:00',
                     'performed_by' => $actor,
+                    'meta' => [
+                        'unit_cost' => isset($item['unit_cost']) ? round((float) $item['unit_cost'], 2) : null,
+                    ],
                 ]);
 
                 $opening->items()->create([ 

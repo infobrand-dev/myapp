@@ -3,6 +3,9 @@
 @section('title', 'Detail Stok')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+@endphp
 <div class="page-header">
     <div class="row align-items-center">
         <div class="col">
@@ -26,6 +29,8 @@
                 <div class="mb-2"><div class="text-muted small">Current</div><div class="h3 mb-0">{{ number_format((float) $stock->current_quantity, 2, ',', '.') }}</div></div>
                 <div class="mb-2"><div class="text-muted small">Reserved</div><div>{{ number_format((float) $stock->reserved_quantity, 2, ',', '.') }}</div></div>
                 <div class="mb-2"><div class="text-muted small">Available</div><div>{{ number_format($stock->availableQuantity(), 2, ',', '.') }}</div></div>
+                <div class="mb-2"><div class="text-muted small">Average Unit Cost</div><div>{{ $money->format((float) $stock->average_unit_cost, $currency) }}</div></div>
+                <div class="mb-2"><div class="text-muted small">Inventory Value</div><div>{{ $money->format((float) $stock->inventory_value, $currency) }}</div></div>
                 <div class="mb-2"><div class="text-muted small">Minimum</div><div>{{ number_format((float) $stock->minimum_quantity, 2, ',', '.') }}</div></div>
                 <div><div class="text-muted small">Reorder</div><div>{{ number_format((float) $stock->reorder_quantity, 2, ',', '.') }}</div></div>
             </div>
@@ -37,9 +42,14 @@
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-vcenter">
-                        <thead><tr><th>Waktu</th><th>Tipe</th><th>Ref</th><th>Before</th><th>Qty</th><th>After</th><th>User</th></tr></thead>
+                        <thead><tr><th>Waktu</th><th>Tipe</th><th>Ref</th><th>Before</th><th>Qty</th><th>After</th><th>Unit Cost</th><th>Value Impact</th><th>After Value</th><th>User</th></tr></thead>
                         <tbody>
                             @forelse($stock->movements()->with('performer')->orderByDesc('occurred_at')->orderByDesc('id')->get() as $movement)
+                                @php
+                                    $signedMovementValue = in_array($movement->direction, ['out'], true)
+                                        ? -1 * (float) $movement->movement_value
+                                        : (float) $movement->movement_value;
+                                @endphp
                                 <tr>
                                     <td>{{ $movement->occurred_at?->format('d/m/Y H:i') }}</td>
                                     <td>{{ $movement->movement_type }}</td>
@@ -47,11 +57,14 @@
                                     <td>{{ number_format((float) $movement->before_quantity, 2, ',', '.') }}</td>
                                     <td>{{ $movement->direction === 'out' ? '-' : '+' }}{{ number_format((float) $movement->quantity, 2, ',', '.') }}</td>
                                     <td>{{ number_format((float) $movement->after_quantity, 2, ',', '.') }}</td>
+                                    <td>{{ $money->format((float) $movement->unit_cost, $currency) }}</td>
+                                    <td class="{{ $signedMovementValue < 0 ? 'text-danger' : 'text-success' }}">{{ $money->format($signedMovementValue, $currency) }}</td>
+                                    <td>{{ $money->format((float) $movement->after_value, $currency) }}</td>
                                     <td>{{ $movement->performer?->name ?? '-' }}</td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="text-center py-5">
+                                    <td colspan="10" class="text-center py-5">
                                         <i class="ti ti-history text-muted d-block mb-2" style="font-size:2rem;"></i>
                                         <div class="text-muted">Belum ada mutasi.</div>
                                     </td>

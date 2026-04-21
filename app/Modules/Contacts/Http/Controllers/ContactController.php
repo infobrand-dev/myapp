@@ -197,6 +197,7 @@ class ContactController extends Controller
                         'mobile' => $normalized['mobile'],
                         'website' => $normalized['website'],
                         'vat' => $normalized['vat'],
+                        'tax_name' => $normalized['tax_name'],
                         'company_registry' => $normalized['company_registry'],
                         'industry' => $normalized['industry'],
                         'street' => $normalized['street'],
@@ -205,6 +206,10 @@ class ContactController extends Controller
                         'state' => $normalized['state'],
                         'zip' => $normalized['zip'],
                         'country' => $normalized['country'],
+                        'billing_address' => $normalized['billing_address'],
+                        'shipping_address' => $normalized['shipping_address'],
+                        'tax_address' => $normalized['tax_address'],
+                        'tax_is_pkp' => $normalized['tax_is_pkp'],
                         'notes' => $normalized['notes'],
                         'is_active' => $normalized['is_active'],
                     ]);
@@ -255,6 +260,7 @@ class ContactController extends Controller
 
         $data = $this->validatedData($request);
         $data['is_active'] = $request->boolean('is_active');
+        $data['tax_is_pkp'] = $request->boolean('tax_is_pkp');
         if ($data['type'] === 'company') {
             $data['parent_contact_id'] = null;
         }
@@ -286,6 +292,7 @@ class ContactController extends Controller
     {
         $data = $this->validatedData($request);
         $data['is_active'] = $request->boolean('is_active');
+        $data['tax_is_pkp'] = $request->boolean('tax_is_pkp');
         if ($data['type'] === 'company') {
             $data['parent_contact_id'] = null;
         }
@@ -439,6 +446,7 @@ class ContactController extends Controller
             'mobile',
             'website',
             'vat',
+            'tax_name',
             'company_registry',
             'industry',
             'street',
@@ -449,6 +457,8 @@ class ContactController extends Controller
             'country',
             'billing_address',
             'shipping_address',
+            'tax_address',
+            'tax_is_pkp',
             'tags',
             'notes',
             'is_active',
@@ -472,6 +482,7 @@ class ContactController extends Controller
             '628123456789',
             'https://contoh.co.id',
             '',
+            'PT Contoh Sukses',
             '',
             'Event Organizer',
             'Jl. Sudirman No. 10',
@@ -482,6 +493,8 @@ class ContactController extends Controller
             'Indonesia',
             'Jl. Sudirman No. 10 Lt. 5',
             'Gudang Sentra Niaga Blok A',
+            'Jl. Sudirman No. 10 Lt. 5',
+            '1',
             'corporate,priority',
             'Prospek event 2026',
             '1',
@@ -699,6 +712,10 @@ class ContactController extends Controller
             'nomorhp' => 'mobile',
             'website' => 'website',
             'vat' => 'vat',
+            'npwp' => 'vat',
+            'taxid' => 'vat',
+            'taxname' => 'tax_name',
+            'namapajak' => 'tax_name',
             'companyregistry' => 'company_registry',
             'nib' => 'company_registry',
             'industry' => 'industry',
@@ -721,6 +738,8 @@ class ContactController extends Controller
             'negara' => 'country',
             'billingaddress' => 'billing_address',
             'shippingaddress' => 'shipping_address',
+            'taxaddress' => 'tax_address',
+            'alamatpajak' => 'tax_address',
             'tags' => 'tags_input',
             'tag' => 'tags_input',
             'segment' => 'tags_input',
@@ -775,6 +794,7 @@ class ContactController extends Controller
             'mobile' => $this->nullableString($payload['mobile'] ?? null),
             'website' => $this->nullableString($payload['website'] ?? null),
             'vat' => $this->nullableString($payload['vat'] ?? null),
+            'tax_name' => $this->nullableString($payload['tax_name'] ?? null),
             'company_registry' => $this->nullableString($payload['company_registry'] ?? null),
             'industry' => $this->nullableString($payload['industry'] ?? null),
             'street' => $this->nullableString($payload['street'] ?? null),
@@ -785,8 +805,10 @@ class ContactController extends Controller
             'country' => $this->nullableString($payload['country'] ?? null),
             'billing_address' => $this->nullableString($payload['billing_address'] ?? null),
             'shipping_address' => $this->nullableString($payload['shipping_address'] ?? null),
+            'tax_address' => $this->nullableString($payload['tax_address'] ?? null),
             'tags_input' => $this->nullableString($payload['tags_input'] ?? null),
             'notes' => $this->nullableString($payload['notes'] ?? null),
+            'tax_is_pkp' => $this->normalizeBoolean($payload['tax_is_pkp'] ?? '0'),
             'is_active' => $this->normalizeBoolean($payload['is_active'] ?? '1'),
         ], false);
     }
@@ -902,6 +924,7 @@ class ContactController extends Controller
         }
 
         $data['contact_person_phone'] = ContactPhoneNormalizer::normalize($this->nullableString($data['contact_person_phone'] ?? null));
+        $data['tax_is_pkp'] = (bool) ($data['tax_is_pkp'] ?? false);
 
         $tags = collect(explode(',', (string) ($data['tags_input'] ?? '')))
             ->map(fn ($tag) => trim($tag))
@@ -1025,6 +1048,7 @@ class ContactController extends Controller
             'mobile',
             'website',
             'vat',
+            'tax_name',
             'company_registry',
             'industry',
             'street',
@@ -1033,6 +1057,10 @@ class ContactController extends Controller
             'state',
             'zip',
             'country',
+            'billing_address',
+            'shipping_address',
+            'tax_address',
+            'tax_is_pkp',
         ];
 
         foreach ($fillableFields as $field) {

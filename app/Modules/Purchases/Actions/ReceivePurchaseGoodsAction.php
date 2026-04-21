@@ -129,6 +129,7 @@ class ReceivePurchaseGoodsAction
                     'movement_type' => 'purchase_receipt',
                     'direction' => 'in',
                     'quantity' => $receiveQty,
+                    'unit_cost' => (float) $purchaseItem->unit_cost,
                     'reference_type' => $receipt->getMorphClass(),
                     'reference_id' => $receipt->getKey(),
                     'reason_code' => 'purchase_receipt',
@@ -140,6 +141,7 @@ class ReceivePurchaseGoodsAction
                         'purchase_id' => $purchase->id,
                         'purchase_number' => $purchase->purchase_number,
                         'purchase_item_id' => $purchaseItem->id,
+                        'unit_cost' => (float) $purchaseItem->unit_cost,
                     ],
                 ]);
 

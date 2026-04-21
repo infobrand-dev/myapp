@@ -20,6 +20,7 @@ class InventoryReportService extends BaseReportService
         return [
             'summary' => $this->summary($filters),
             'stockList' => $this->stockList($filters),
+            'stockValuation' => $this->stockValuation($filters),
             'lowStock' => $this->lowStock($filters),
             'stockMovement' => $this->stockMovement($filters),
             'adjustments' => $this->adjustments($filters),
@@ -35,11 +36,13 @@ class InventoryReportService extends BaseReportService
         return [
             'stock_rows' => (clone $stockQuery)->count('inventory_stocks.id'),
             'total_quantity' => round((float) (clone $stockQuery)->sum('inventory_stocks.current_quantity'), 2),
+            'total_inventory_value' => round((float) (clone $stockQuery)->sum('inventory_stocks.inventory_value'), 2),
             'low_stock_count' => (clone $stockQuery)
                 ->whereColumn('inventory_stocks.current_quantity', '<=', 'inventory_stocks.minimum_quantity')
                 ->where('inventory_stocks.minimum_quantity', '>', 0)
                 ->count('inventory_stocks.id'),
             'movement_count' => (clone $movementQuery)->count('inventory_stock_movements.id'),
+            'movement_value_total' => round((float) (clone $movementQuery)->sum('inventory_stock_movements.movement_value'), 2),
         ];
     }
 
@@ -49,6 +52,16 @@ class InventoryReportService extends BaseReportService
             ->select('inventory_stocks.*', 'products.name as product_name', 'product_variants.name as variant_name', 'inventory_locations.name as location_name')
             ->selectRaw('(inventory_stocks.current_quantity - inventory_stocks.reserved_quantity) as available_quantity')
             ->orderBy('products.name')
+            ->limit(20)
+            ->get();
+    }
+
+    public function stockValuation(array $filters)
+    {
+        return $this->stockBaseQuery($filters)
+            ->select('inventory_stocks.*', 'products.name as product_name', 'product_variants.name as variant_name', 'inventory_locations.name as location_name')
+            ->where('inventory_stocks.current_quantity', '!=', 0)
+            ->orderByDesc('inventory_stocks.inventory_value')
             ->limit(20)
             ->get();
     }

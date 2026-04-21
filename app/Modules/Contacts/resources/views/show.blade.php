@@ -85,6 +85,12 @@
                     <dt class="col-sm-4 text-muted fw-normal">VAT/NPWP</dt>
                     <dd class="col-sm-8">{{ $contact->vat ?? '-' }}</dd>
 
+                    <dt class="col-sm-4 text-muted fw-normal">Tax Name</dt>
+                    <dd class="col-sm-8">{{ $contact->tax_name ?? '-' }}</dd>
+
+                    <dt class="col-sm-4 text-muted fw-normal">PKP</dt>
+                    <dd class="col-sm-8">{{ $contact->tax_is_pkp ? 'Ya' : 'Tidak' }}</dd>
+
                     <dt class="col-sm-4 text-muted fw-normal">Company Registry</dt>
                     <dd class="col-sm-8">{{ $contact->company_registry ?? '-' }}</dd>
 
@@ -171,6 +177,10 @@
                 <div>
                     <div class="text-muted small">Shipping Address</div>
                     <div>{{ $contact->shipping_address ?: '-' }}</div>
+                </div>
+                <div class="mt-3">
+                    <div class="text-muted small">Tax Address</div>
+                    <div>{{ $contact->tax_address ?: '-' }}</div>
                 </div>
             </div>
         </div>

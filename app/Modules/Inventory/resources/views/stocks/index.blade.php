@@ -3,6 +3,9 @@
 @section('title', 'Stock List')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+@endphp
 <div class="page-header">
     <div class="row align-items-center">
         <div class="col">
@@ -21,7 +24,7 @@
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Items</div><div class="h2 mb-0">{{ $summary['total_items'] ?? 0 }}</div></div></div></div>
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Out of Stock</div><div class="h2 mb-0 text-danger">{{ $summary['out_of_stock'] ?? 0 }}</div></div></div></div>
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Reserved Risk</div><div class="h2 mb-0 text-orange">{{ $summary['reserved_risk'] ?? 0 }}</div></div></div></div>
-    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Reorder Candidates</div><div class="h2 mb-0">{{ $summary['reorder_candidates'] ?? 0 }}</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Inventory Value</div><div class="h4 mb-0">{{ $money->format((float) ($summary['inventory_value_total'] ?? 0), $currency) }}</div><div class="text-muted small mt-1">{{ $summary['reorder_candidates'] ?? 0 }} reorder candidates</div></div></div></div>
 </div>
 
 <div class="card mb-3">
@@ -65,7 +68,7 @@
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-vcenter table-hover">
-                <thead><tr><th>Produk</th><th>Lokasi</th><th>Current</th><th>Reserved</th><th>Available</th><th>Reorder</th><th>Status</th><th class="w-1"></th></tr></thead>
+                <thead><tr><th>Produk</th><th>Lokasi</th><th>Current</th><th>Reserved</th><th>Available</th><th>Avg Cost</th><th>Value</th><th>Reorder</th><th>Status</th><th class="w-1"></th></tr></thead>
                 <tbody>
                     @forelse($stocks as $stock)
                         @php
@@ -83,6 +86,8 @@
                             <td>{{ number_format((float) $stock->current_quantity, 2, ',', '.') }}</td>
                             <td>{{ number_format((float) $stock->reserved_quantity, 2, ',', '.') }}</td>
                             <td class="{{ $available <= 0 && (float) $stock->current_quantity > 0 ? 'text-orange fw-semibold' : '' }}">{{ number_format($available, 2, ',', '.') }}</td>
+                            <td>{{ $money->format((float) $stock->average_unit_cost, $currency) }}</td>
+                            <td>{{ $money->format((float) $stock->inventory_value, $currency) }}</td>
                             <td>{{ number_format((float) $stock->reorder_quantity, 2, ',', '.') }}</td>
                             <td>
                                 <span class="badge bg-{{ $statusClass }}-lt text-{{ $statusClass }}">{{ $status }}</span>
@@ -100,7 +105,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center py-5">
+                            <td colspan="10" class="text-center py-5">
                                 <i class="ti ti-package text-muted d-block mb-2" style="font-size:2rem;"></i>
                                 <div class="text-muted">Belum ada saldo stok.</div>
                             </td>

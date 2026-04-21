@@ -1,86 +1,124 @@
 # Jurnal Manual
 
-Jurnal manual digunakan untuk mencatat transaksi atau penyesuaian yang tidak bisa dilakukan melalui modul Sales, Purchases, atau Finance secara langsung — misalnya koreksi saldo, biaya yang belum ada modulnya, atau penyesuaian akhir periode.
+Jurnal manual digunakan untuk mencatat transaksi atau penyesuaian yang tidak bisa dilakukan melalui modul operasional — misalnya koreksi saldo, biaya penyusutan, atau penyesuaian akhir periode.
 
-> Fitur ini tersedia di **Mode Advanced**.
+> Fitur ini tersedia di **Mode Advanced** → **Finance → Jurnal Manual**.
 
 ---
 
 ## Kapan Menggunakan Jurnal Manual?
 
-- Koreksi pencatatan yang salah
-- Mencatat biaya di luar transaksi rutin (contoh: biaya penyusutan aset)
-- Penyesuaian saldo akhir periode (accrual, prepaid)
-- Pencatatan transaksi non-kas seperti hutang modal atau piutang lain-lain
+Gunakan jurnal manual untuk:
+- Koreksi pencatatan yang salah (tanpa menghapus jurnal lama)
+- Biaya yang tidak punya modul tersendiri: penyusutan aset, amortisasi
+- Penyesuaian akhir periode: accrued expense, prepaid, deferred revenue
+- Pencatatan non-kas: hutang modal, piutang lain-lain, setoran modal
 
-Untuk transaksi rutin seperti penjualan, pembayaran, dan pembelian, **gunakan modul yang sesuai** — jangan input manual. Jurnal otomatis dari modul-modul tersebut lebih akurat dan terintegrasi.
+**Jangan** gunakan jurnal manual untuk transaksi rutin seperti penjualan, pembelian, atau pembayaran — gunakan modul yang sesuai agar integrasi antar modul tetap benar.
 
 ---
 
 ## Membuat Jurnal Manual
 
-1. Buka **Finance → Jurnal Manual**
-2. Klik **Buat Jurnal Baru**
-3. Isi informasi jurnal:
-   - **Tanggal** — tanggal efektif jurnal, bukan tanggal input
-   - **Referensi** — nomor referensi opsional (misal: nomor memo internal)
-   - **Keterangan** — deskripsi singkat tujuan jurnal ini
-4. Tambahkan baris debit dan kredit:
-   - Pilih **Akun** dari daftar Chart of Accounts
-   - Isi **Nominal** di kolom Debit atau Kredit
-   - Tambahkan keterangan per baris jika perlu
-5. Pastikan **Total Debit = Total Kredit** sebelum menyimpan
-6. Klik **Simpan sebagai Draft** atau langsung **Post**
+1. Buka **Finance → Jurnal Manual → Buat Jurnal Baru**
+2. Isi header jurnal:
+
+   | Field | Keterangan |
+   |-------|-----------|
+   | **Tanggal** | Tanggal efektif, bukan tanggal input |
+   | **Referensi** | Nomor memo internal (opsional) |
+   | **Keterangan** | Deskripsi singkat tujuan jurnal |
+
+3. Tambahkan baris entri — minimal 2 baris (satu debit, satu kredit):
+
+   | Field | Keterangan |
+   |-------|-----------|
+   | **Akun** | Pilih dari Chart of Accounts |
+   | **Keterangan baris** | Deskripsi spesifik baris ini (opsional) |
+   | **Debit** | Isi nominal jika baris ini debit |
+   | **Kredit** | Isi nominal jika baris ini kredit |
+
+4. Pastikan **Total Debit = Total Kredit** — tombol Post baru aktif jika sudah seimbang
+5. Pilih **Simpan Draft** atau langsung **Post**
 
 ---
 
 ## Status Jurnal
 
 ### Draft
-Jurnal sudah tersimpan tapi belum dikunci. Anda masih bisa mengubah semua baris, nominal, dan tanggal. Jurnal draft **belum memengaruhi** laporan keuangan.
+- Tersimpan tapi belum dikunci
+- Masih bisa diedit: akun, nominal, tanggal, keterangan
+- **Belum memengaruhi** saldo akun dan laporan keuangan
+- Cocok untuk menyimpan pekerjaan yang belum selesai atau menunggu review
 
 ### Posted
-Jurnal sudah dikunci dan mulai memengaruhi saldo akun serta laporan keuangan. Jurnal yang sudah diposting **tidak bisa diedit**.
+- Dikunci dan mulai memengaruhi saldo akun serta semua laporan
+- **Tidak bisa diedit** — untuk koreksi, buat jurnal baru dengan entri berlawanan
+- Dicatat di audit trail dengan timestamp dan user yang memposting
 
 ---
 
 ## Aturan Debit & Kredit
 
-| Jenis Akun | Saldo Normal | Menambah dengan | Mengurangi dengan |
-|------------|-------------|-----------------|-------------------|
-| Aset | Debit | Debit | Kredit |
-| Kewajiban | Kredit | Kredit | Debit |
-| Ekuitas | Kredit | Kredit | Debit |
-| Pendapatan | Kredit | Kredit | Debit |
-| Beban | Debit | Debit | Kredit |
-
-**Contoh:** Mencatat beban sewa bulan ini sebesar Rp 5.000.000
-
-| # | Akun | Debit | Kredit |
-|---|------|-------|--------|
-| 1 | Beban Sewa | 5.000.000 | — |
-| 2 | Kas / Bank | — | 5.000.000 |
+| Jenis Akun | Untuk Menambah | Untuk Mengurangi |
+|------------|---------------|-----------------|
+| **Aset** (kas, piutang, persediaan) | Debit | Kredit |
+| **Kewajiban** (hutang) | Kredit | Debit |
+| **Ekuitas** (modal) | Kredit | Debit |
+| **Pendapatan** | Kredit | Debit |
+| **Beban** (biaya) | Debit | Kredit |
 
 ---
 
-## Melihat Riwayat Jurnal
+## Contoh Jurnal
 
-Semua jurnal — baik otomatis maupun manual — bisa dilihat di **Finance → Jurnal**. Gunakan filter untuk mempersempit berdasarkan:
+### Mencatat Beban Sewa Bulanan (dibayar tunai)
 
-- Rentang tanggal
-- Status (draft / posted)
-- Akun yang terlibat
-- Referensi atau keterangan
+| Akun | Debit | Kredit |
+|------|-------|--------|
+| Beban Sewa | 5.000.000 | — |
+| Kas | — | 5.000.000 |
+
+### Mencatat Penyusutan Kendaraan
+
+| Akun | Debit | Kredit |
+|------|-------|--------|
+| Beban Penyusutan | 2.500.000 | — |
+| Akumulasi Penyusutan Kendaraan | — | 2.500.000 |
+
+### Koreksi Salah Kategori Beban
+
+Misalnya beban operasional Rp 1.000.000 terlanjur masuk ke akun yang salah:
+
+**Jurnal koreksi (membalik entri lama):**
+
+| Akun | Debit | Kredit |
+|------|-------|--------|
+| Beban yang Salah | — | 1.000.000 |
+| Beban yang Benar | 1.000.000 | — |
+
+---
+
+## Melihat Semua Jurnal
+
+Buka **Finance → Jurnal** untuk melihat seluruh jurnal — baik otomatis maupun manual.
+
+Filter yang tersedia:
+- **Status** — Draft atau Posted
+- **Periode** — rentang tanggal
+- **Sumber** — manual, dari Sales, dari Purchases, dll
+
+Klik baris jurnal untuk melihat detail entri dan link ke dokumen sumber jika ada.
 
 ---
 
 ## Pertanyaan Umum
 
-**Bisakah jurnal yang sudah diposting dibatalkan?**
-Jurnal posted tidak bisa diedit atau dihapus langsung. Jika ada kesalahan, buat jurnal koreksi dengan entri yang berlawanan (reversal) pada periode yang sama atau periode berikutnya.
+**Bisakah jurnal posted dibatalkan?**
+Tidak bisa dihapus, tapi bisa dibuat jurnal koreksi (reversal) dengan entri yang berlawanan. Ini cara yang benar secara akuntansi karena menjaga audit trail tetap bersih.
 
-**Apakah ada batas jumlah baris dalam satu jurnal?**
-Tidak ada batas. Satu jurnal bisa memiliki banyak baris selama total debit dan kredit tetap seimbang.
+**Kenapa tombol Post tidak aktif?**
+Total debit dan kredit belum sama. Periksa kembali setiap baris — pastikan tidak ada angka yang tertukar antara kolom debit dan kredit.
 
-**Kenapa tombol Post tidak muncul?**
-Tombol Post hanya aktif jika total debit sama persis dengan total kredit. Periksa kembali nominal di setiap baris.
+**Apakah ada batas jumlah baris?**
+Tidak ada batas. Satu jurnal bisa memiliki banyak baris selama total debit = total kredit.

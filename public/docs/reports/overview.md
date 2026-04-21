@@ -1,121 +1,135 @@
-# Reports — Laporan Keuangan
+# Reports — Laporan Keuangan & Analitik
 
-Modul Reports menyediakan seluruh laporan keuangan dan analitik bisnis Anda — dari laporan operasional harian hingga laporan keuangan formal.
+Modul Reports menyediakan semua laporan untuk memahami kondisi keuangan dan performa bisnis Anda. Semua laporan bersifat **read-only** — data diambil dari transaksi di modul lain secara real-time.
 
 ---
 
-## Laporan yang Tersedia
+## Daftar Laporan
 
-### Laporan Keuangan
+### Laporan Keuangan Formal
 
 | Laporan | Fungsi |
 |---------|--------|
-| [Laba Rugi](profit-loss.md) | Pendapatan, beban, dan keuntungan dalam periode tertentu |
-| [Neraca](../accounting/balance-sheet.md) | Posisi keuangan pada tanggal tertentu |
-| [Arus Kas](cash-flow.md) | Aliran kas masuk dan keluar |
-| [Trial Balance](../accounting/trial-balance.md) | Ringkasan saldo semua akun |
-| [Buku Besar](../accounting/general-ledger.md) | Riwayat mutasi per akun |
+| **Laba Rugi** | Pendapatan, beban, dan laba/rugi bersih dalam periode tertentu |
+| **Neraca** | Posisi keuangan (aset, kewajiban, ekuitas) pada tanggal tertentu |
+| **Arus Kas** | Aliran kas masuk dan keluar berdasarkan kategori |
+| **Trial Balance** | Ringkasan saldo semua akun — verifikasi keseimbangan pembukuan |
+| **Buku Besar** | Riwayat mutasi per akun dengan drill-down ke transaksi |
 
 ### Laporan Piutang & Hutang
 
 | Laporan | Fungsi |
 |---------|--------|
-| [Aging Piutang](aging-receivable.md) | Piutang customer dikelompokkan per umur tagihan |
-| [Aging Hutang](aging-payable.md) | Hutang supplier dikelompokkan per umur tagihan |
+| **Aging Piutang** | Piutang customer dikelompokkan per umur tagihan |
+| **Aging Hutang** | Hutang supplier dikelompokkan per umur tagihan |
 
 ### Laporan Penjualan & Pembelian
 
 | Laporan | Fungsi |
 |---------|--------|
-| [Penjualan per Customer](sales-by-customer.md) | Total penjualan dikelompokkan per customer |
-| [Pembelian per Supplier](purchase-by-supplier.md) | Total pembelian dikelompokkan per supplier |
-| [Margin per Produk](product-margin.md) | Perbandingan harga jual vs harga pokok per produk |
+| **Penjualan per Customer** | Total penjualan dan pembayaran dikelompokkan per customer |
+| **Pembelian per Supplier** | Total pembelian dan hutang dikelompokkan per supplier |
+| **Margin per Produk** | Harga jual vs harga pokok — identifikasi produk paling menguntungkan |
 
 ### Laporan Inventori
 
 | Laporan | Fungsi |
 |---------|--------|
-| [Valuasi Stok](../inventory/valuation.md) | Nilai total persediaan berdasarkan harga pokok |
+| **Valuasi Stok** | Nilai total persediaan berdasarkan harga pokok moving average |
 
 ---
 
-## Cara Membuka Laporan
+## Membuka Laporan
 
 1. Buka **Reports** dari menu navigasi
 2. Pilih laporan yang diinginkan
-3. Tentukan **periode** (tanggal mulai dan tanggal akhir)
-4. Opsional: filter berdasarkan perusahaan, cabang, atau dimensi lain
-5. Klik **Tampilkan**
+3. Atur filter (minimal pilih periode)
+4. Klik **Tampilkan**
+
+**Filter umum yang tersedia:**
+- Rentang tanggal atau bulan
+- Perusahaan (jika multi-entitas)
+- Cabang (jika multi-lokasi)
 
 ---
 
-## Filter yang Tersedia
+## Laporan Laba Rugi
 
-Sebagian besar laporan mendukung filter berikut:
+Menampilkan performa keuangan dalam periode tertentu:
 
-- **Periode** — bulan, kuartal, tahun, atau rentang tanggal custom
-- **Perusahaan** — jika Anda mengelola beberapa entitas
-- **Cabang** — jika bisnis Anda memiliki beberapa lokasi
+```
+  Pendapatan Penjualan             Rp xxx
+− Retur & Diskon                   Rp xxx
+= Pendapatan Bersih                Rp xxx
+
+− Harga Pokok Penjualan (HPP)      Rp xxx
+= Laba Kotor                       Rp xxx
+
+− Beban Operasional                Rp xxx
+  (Gaji, Sewa, Utilitas, dll)
+= Laba Operasional                 Rp xxx
+
++/− Pendapatan / Beban Lain-lain   Rp xxx
+= Laba Bersih                      Rp xxx
+```
+
+**Yang perlu diperhatikan:**
+- **Laba Kotor negatif** → harga jual di bawah harga pokok, perlu review harga
+- **Beban operasional terlalu besar** → identifikasi kategori beban terbesar
+- **Bandingkan antar periode** untuk melihat tren
+
+---
+
+## Aging Piutang
+
+Menampilkan semua piutang yang belum lunas, dikelompokkan berdasarkan berapa lama sudah jatuh tempo:
+
+| Kolom | Arti |
+|-------|------|
+| **Belum Jatuh Tempo** | Invoice aktif yang belum lewat due date |
+| **1–30 Hari** | Terlambat 1 sampai 30 hari |
+| **31–60 Hari** | Terlambat 31 sampai 60 hari |
+| **61–90 Hari** | Terlambat 61 sampai 90 hari |
+| **> 90 Hari** | Terlambat lebih dari 90 hari — risiko tidak tertagih tinggi |
+
+> Prioritaskan penagihan ke customer di kolom paling kanan. Semakin lama piutang tidak dibayar, semakin besar risiko macet.
+
+---
+
+## Margin per Produk
+
+Laporan ini membandingkan harga jual rata-rata dengan harga pokok untuk setiap produk dalam periode yang dipilih:
+
+| Kolom | Arti |
+|-------|------|
+| Produk | Nama produk |
+| Qty Terjual | Jumlah unit yang terjual |
+| Total Pendapatan | Harga jual × qty |
+| Total HPP | Harga pokok × qty |
+| Laba Kotor | Pendapatan − HPP |
+| Margin % | (Laba Kotor ÷ Pendapatan) × 100 |
+
+Gunakan laporan ini untuk mengidentifikasi produk mana yang paling menguntungkan dan mana yang margin-nya terlalu tipis.
+
+---
+
+## Arus Kas
+
+Laporan arus kas menampilkan semua pergerakan kas dan bank dalam periode tertentu, dibagi per kategori:
+
+- **Operasional** — kas dari penjualan, pembayaran beban
+- **Investasi** — pembelian aset
+- **Pendanaan** — setoran modal, pinjaman
+
+Berguna untuk memahami dari mana uang datang dan ke mana perginya, terpisah dari laporan laba rugi yang berbasis akrual.
 
 ---
 
 ## Ekspor Laporan
 
-Semua laporan bisa diekspor ke **Excel** untuk keperluan:
-- Pelaporan ke stakeholder atau investor
-- Analisis lebih lanjut
-- Pengarsipan
+Semua laporan bisa diekspor ke **Excel**. Klik tombol **Ekspor** di pojok kanan atas.
 
-Klik tombol **Ekspor** atau **Download** di pojok kanan atas halaman laporan.
-
----
-
-## Laporan Aging — Panduan Cepat
-
-### Aging Piutang
-
-Menampilkan piutang yang belum dibayar, dikelompokkan berdasarkan berapa lama sudah jatuh tempo:
-
-| Kolom | Artinya |
-|-------|---------|
-| Belum Jatuh Tempo | Invoice yang belum jatuh tempo |
-| 1–30 Hari | Terlambat 1–30 hari |
-| 31–60 Hari | Terlambat 31–60 hari |
-| 61–90 Hari | Terlambat 61–90 hari |
-| > 90 Hari | Terlambat lebih dari 90 hari |
-
-Prioritaskan penagihan ke customer di kolom paling kanan — semakin lama tidak dibayar, semakin besar risiko tidak tertagih.
-
-### Aging Hutang
-
-Sama seperti aging piutang, tapi menampilkan hutang Anda ke supplier. Gunakan laporan ini untuk merencanakan pembayaran agar tidak ada hutang yang terlewat jatuh tempo.
-
----
-
-## Laporan Laba Rugi — Cara Membaca
-
-Laporan Laba Rugi menampilkan:
-
-```
-Pendapatan Penjualan
-- Harga Pokok Penjualan (HPP)
-= Laba Kotor
-
-- Beban Operasional
-= Laba Operasional
-
-+/- Pendapatan / Beban Lain-lain
-= Laba Bersih
-```
-
-**Laba Kotor** menunjukkan efisiensi produksi atau pembelian barang.
-**Laba Bersih** menunjukkan keuntungan setelah semua biaya operasional.
-
----
-
-## Tips Menggunakan Laporan
-
-- **Bandingkan antar periode** — Lihat laba rugi bulan ini vs bulan lalu untuk mendeteksi tren
-- **Pantau aging piutang mingguan** — Jangan tunggu akhir bulan untuk tahu piutang mana yang menunggak
-- **Gunakan margin per produk** — Identifikasi produk mana yang paling menguntungkan dan mana yang margin-nya tipis
-- **Rekonsiliasi sebelum tutup buku** — Sebelum akhir periode, pastikan trial balance seimbang dan neraca tidak ada anomali
+Gunakan ekspor untuk:
+- Laporan ke investor atau bank
+- Analisis pivot di Excel
+- Arsip laporan bulanan/tahunan

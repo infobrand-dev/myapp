@@ -1,59 +1,102 @@
-# Accounting & Pembukuan
+# Accounting — Overview
 
-Meetra menggunakan sistem pembukuan **double-entry** — setiap transaksi yang Anda buat (penjualan, pembelian, pembayaran) otomatis dicatat sebagai jurnal akuntansi tanpa perlu input manual.
+Meetra menggunakan sistem **double-entry bookkeeping** — setiap transaksi selalu menghasilkan dua sisi pencatatan (debit dan kredit) yang seimbang. Prinsip ini menjamin laporan keuangan yang akurat dan bisa diaudit.
 
-## Mode Tampilan
+Yang membuat Meetra berbeda: **Anda tidak perlu memahami akuntansi untuk menggunakannya sehari-hari.** Jurnal terbentuk otomatis dari setiap transaksi. Fitur akuntansi formal seperti COA, jurnal manual, dan laporan GL tersedia untuk staf keuangan yang memang membutuhkannya.
 
-Meetra menyediakan dua mode yang bisa Anda pilih sesuai kebutuhan:
+---
 
-**Mode Standard**
-Cocok untuk pemilik usaha yang ingin fokus ke transaksi harian. Menampilkan ringkasan yang mudah dipahami tanpa istilah teknis akuntansi.
+## Dua Mode Tampilan
 
-**Mode Advanced**
-Cocok untuk staf keuangan atau akuntan. Menampilkan seluruh fitur termasuk jurnal manual, chart of accounts, dan audit trail lengkap.
+Meetra menyediakan dua mode yang bisa dipilih per workspace:
 
-Untuk mengubah mode, buka **Pengaturan → Tampilan Accounting**.
+### Mode Standard
+Untuk pemilik usaha dan operator harian. Menampilkan transaksi, faktur, dan ringkasan keuangan dalam bahasa yang mudah dipahami — tanpa istilah teknis akuntansi.
 
-## Cara Kerja
+### Mode Advanced
+Untuk staf keuangan dan akuntan. Membuka akses ke:
+- Chart of Accounts (COA) dan pengelolaan akun
+- Jurnal manual dengan validasi debit/kredit
+- Audit trail detail setiap perubahan
+- Period lock dan governance jurnal
+- Approval flow untuk transaksi sensitif
 
-Setiap kali Anda mencatat transaksi — misalnya membuat invoice penjualan atau mencatat pembayaran — Meetra otomatis membuat jurnal akuntansi di balik layar. Anda tidak perlu menginput debit/kredit secara manual untuk transaksi rutin.
+Untuk mengubah mode: **Pengaturan → Tampilan Accounting**.
 
-Jurnal manual tetap tersedia jika Anda perlu mencatat koreksi atau transaksi yang tidak berasal dari modul lain.
+---
 
-## Fitur Utama
+## Alur Accounting di Meetra
 
-### Chart of Accounts (COA)
-Daftar akun keuangan yang menjadi dasar seluruh pencatatan. Meetra menyediakan struktur akun default yang sudah siap pakai, dan Anda bisa menyesuaikannya sesuai kebutuhan bisnis.
+```
+Transaksi Operasional            Accounting Layer
+─────────────────────────────────────────────────────
+Invoice Penjualan   ──┐
+Penerimaan Barang   ──┤──▶  Auto Journal (Posted)  ──▶  GL / Buku Besar
+Pembayaran Masuk    ──┤
+Kas Keluar          ──┘
 
-[Pelajari Chart of Accounts →](coa.md)
+                         +  Jurnal Manual (Draft → Post)
 
-### Jurnal Manual
-Untuk mencatat transaksi yang tidak tercakup otomatis, seperti koreksi, penyesuaian akhir periode, atau pencatatan biaya khusus.
+                         ──▶  Trial Balance  ──▶  Neraca & Laba Rugi
+```
 
-[Pelajari Jurnal Manual →](manual-journal.md)
+Semua jurnal otomatis langsung masuk ke status **posted** dan tidak bisa diedit — hanya bisa dibatalkan dengan jurnal koreksi. Jurnal manual bisa disimpan sebagai **draft** dulu sebelum diposting.
 
-### Trial Balance
-Ringkasan saldo semua akun dalam satu periode. Berguna untuk memverifikasi bahwa total debit dan kredit seimbang sebelum menyusun laporan keuangan.
+---
 
-[Lihat Trial Balance →](trial-balance.md)
+## Modul dalam Ekosistem Accounting
 
-### Buku Besar
-Riwayat seluruh mutasi per akun. Anda bisa memfilter berdasarkan akun, periode, cabang, atau perusahaan.
+| Modul | Fungsi Utama |
+|-------|-------------|
+| [Products](/products/overview) | Master produk, harga, margin, stok awal |
+| [Sales](/sales/overview) | Invoice penjualan, piutang, retur |
+| [Purchases](/purchases/overview) | Pembelian supplier, receiving, hutang |
+| [Payments](/payments/overview) | Terima & bayar, alokasi, bukti bayar |
+| [Inventory](/inventory/overview) | Stok fisik, mutasi, valuasi persediaan |
+| [Finance](/finance/overview) | Kas & bank, jurnal manual, period lock |
+| [Contacts](/contacts/overview) | Customer, supplier, profil pajak (NPWP) |
+| [Reports](/reports/overview) | Laba rugi, neraca, arus kas, aging, GL |
 
-[Lihat Buku Besar →](general-ledger.md)
+---
 
-### Neraca
-Laporan posisi keuangan yang menampilkan aset, kewajiban, dan ekuitas pada tanggal tertentu.
+## Jurnal Otomatis
 
-[Lihat Neraca →](balance-sheet.md)
+Meetra membuat jurnal akuntansi secara otomatis untuk setiap transaksi:
 
-## Pertanyaan Umum
+| Transaksi | Debit | Kredit |
+|-----------|-------|--------|
+| Finalize invoice penjualan | Piutang Usaha | Pendapatan Penjualan |
+| Terima pembayaran dari customer | Kas / Bank | Piutang Usaha |
+| Finalize purchase dari supplier | Persediaan / Beban | Hutang Usaha |
+| Bayar hutang ke supplier | Hutang Usaha | Kas / Bank |
+| Kas masuk (non-invoice) | Kas / Bank | Akun sesuai kategori |
+| Kas keluar (non-purchase) | Akun sesuai kategori | Kas / Bank |
 
-**Apakah saya harus mengerti akuntansi untuk menggunakan Meetra?**
-Tidak. Untuk operasional sehari-hari (buat invoice, catat pembayaran, lihat laporan), Anda tidak perlu memahami akuntansi. Jurnal terbentuk otomatis.
+> Untuk melihat jurnal dari suatu transaksi, buka detail transaksi dan klik **Lihat Jurnal**.
 
-**Bisakah jurnal yang sudah diposting diubah?**
-Jurnal yang sudah diposting tidak bisa diedit langsung untuk menjaga integritas data. Jika ada kesalahan, gunakan fitur jurnal koreksi (reversal).
+---
 
-**Bagaimana cara melihat dari mana asal sebuah jurnal?**
-Setiap jurnal memiliki referensi ke dokumen sumbernya. Klik nomor jurnal untuk melihat detail dan link ke transaksi asalnya.
+## Period Lock
+
+Setelah periode akuntansi selesai dan laporan sudah diverifikasi, Anda bisa **mengunci periode** agar tidak ada transaksi baru yang bisa diposting ke tanggal tersebut. Ini mencegah perubahan tidak sengaja pada data historis.
+
+Buka **Finance → Period Lock** untuk mengelola kunci periode.
+
+---
+
+## Approval Flow
+
+Untuk aksi sensitif seperti void transaksi atau edit yang memengaruhi jurnal, Meetra menyediakan approval flow sederhana. Aksi tersebut tidak langsung dieksekusi — perlu disetujui oleh user dengan role yang memiliki izin approval.
+
+---
+
+## Import Data Awal
+
+Sebelum mulai bertransaksi, Anda bisa import data awal secara bulk via file Excel/CSV:
+
+| Data | Modul |
+|------|-------|
+| Daftar produk | Products → Import |
+| Daftar customer & supplier | Contacts → Import |
+| Saldo pembuka akun | Finance → Opening Balance |
+| Stok awal | Inventory → Stok Awal |

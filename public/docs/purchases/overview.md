@@ -1,74 +1,90 @@
-# Purchases — Pembelian
+# Purchases — Pembelian & Supplier
 
-Modul Purchases mengelola transaksi pembelian dari supplier — mulai dari pencatatan pembelian, penerimaan barang, hingga pembayaran hutang.
-
----
-
-## Alur Pembelian di Meetra
-
-```
-Buat Purchase (Draft)
-        ↓
-   Finalize Purchase
-        ↓
-  Terima Barang (Receiving)
-        ↓
-  Bayar Supplier
-        ↓
-     Lunas
-```
-
-Purchase yang di-finalize mencatat hutang ke supplier. Saat barang diterima, stok otomatis bertambah.
+Modul Purchases mengelola transaksi pembelian dari supplier — mulai dari pencatatan pembelian, penerimaan barang parsial, biaya tambahan, hingga pelunasan hutang.
 
 ---
 
-## Membuat Purchase Baru
+## Alur Pembelian
+
+```
+Buat Purchase  →  Finalize  →  Terima Barang  →  Bayar Supplier  →  Lunas
+   (Draft)                      (Receiving)       (Payments)
+
+                   ↓                  ↓
+          Hutang Usaha tercatat   Stok bertambah
+          Auto Journal di GL      Harga pokok diupdate
+```
+
+---
+
+## Membuat Purchase
 
 1. Buka **Purchases → Buat Purchase**
-2. Pilih **supplier**
-3. Isi **tanggal purchase** dan **tanggal estimasi terima** (opsional)
+2. Pilih **supplier** dari Contacts
+3. Isi **tanggal purchase** dan **estimasi tanggal terima** (opsional — berguna untuk monitoring)
 4. Tambahkan item yang dibeli:
    - Pilih produk
    - Isi kuantitas dan harga beli
-5. Tambahkan **biaya tambahan** seperti ongkir atau biaya import (landed cost) jika ada
-6. Isi catatan untuk supplier jika perlu
-7. Lampirkan dokumen (PO, surat penawaran supplier) jika ada
-8. Klik **Simpan Draft** atau **Finalize**
+5. Tambahkan biaya tambahan jika ada (lihat Landed Cost di bawah)
+6. Lampirkan dokumen (PO, surat penawaran) jika perlu
+7. Pilih **Simpan Draft** atau **Finalize**
 
 ---
 
 ## Status Purchase
 
-| Status | Artinya |
-|--------|---------|
+| Status | Arti |
+|--------|------|
 | **Draft** | Tersimpan, belum memengaruhi hutang atau stok |
-| **Finalized** | Aktif, hutang supplier tercatat |
-| **Partially Received** | Sebagian barang sudah diterima |
-| **Received** | Semua barang sudah diterima |
-| **Partially Paid** | Sudah ada pembayaran tapi belum lunas |
+| **Finalized** | Aktif, hutang supplier tercatat di GL |
+| **Partially Received** | Sebagian item sudah diterima |
+| **Received** | Semua item sudah diterima |
+| **Partially Paid** | Sudah ada pembayaran, belum lunas |
 | **Paid** | Lunas |
-| **Overdue** | Sudah lewat jatuh tempo, belum lunas |
+| **Overdue** | Melewati jatuh tempo, belum lunas |
 
 ---
 
 ## Penerimaan Barang (Receiving)
 
-Saat barang dari supplier tiba:
-1. Buka purchase yang bersangkutan
-2. Klik **Terima Barang**
-3. Periksa daftar item dan isi **jumlah yang diterima** (bisa sebagian jika pengiriman partial)
-4. Konfirmasi penerimaan
+Meetra mendukung **partial receiving** — Anda bisa menerima barang sebagian demi sebagian jika supplier mengirim dalam beberapa tahap.
 
-Stok barang yang diterima langsung bertambah dan harga pokok persediaan diperbarui otomatis menggunakan metode **moving average**.
+**Cara menerima barang:**
+1. Buka detail purchase yang sudah di-finalize
+2. Klik **Terima Barang**
+3. Isi jumlah yang diterima untuk setiap item (tidak harus semua sekaligus)
+4. Konfirmasi
+
+Setiap penerimaan:
+- Menambah stok barang di Inventory
+- Memperbarui harga pokok rata-rata (moving average)
+- Status purchase berubah ke Partially Received atau Received
+
+Jika barang diterima dalam 3 termin, cukup lakukan proses Terima Barang sebanyak 3 kali dengan jumlah masing-masing.
 
 ---
 
-## Biaya Tambahan (Landed Cost)
+## Landed Cost (Biaya Tambahan)
 
-Biaya tambahan seperti ongkos kirim, bea masuk, atau biaya handling bisa ditambahkan ke purchase:
-- Buka form purchase, scroll ke bagian **Biaya Tambahan**
-- Isi jenis biaya dan nominalnya
-- Biaya ini akan ditambahkan ke total purchase dan memengaruhi harga pokok barang yang diterima
+Biaya pengadaan selain harga beli — seperti ongkos kirim, bea masuk, biaya handling — bisa ditambahkan ke purchase agar masuk ke harga pokok barang.
+
+**Cara menambahkan:**
+1. Di form purchase, scroll ke bagian **Biaya Tambahan**
+2. Klik **Tambah Biaya**
+3. Pilih jenis biaya dan isi nominal
+4. Biaya ini akan ditambahkan ke total purchase dan dialokasikan ke harga pokok item
+
+Contoh: Beli 100 unit @ Rp 10.000 + ongkir Rp 500.000 → harga pokok per unit menjadi Rp 10.500.
+
+---
+
+## Supplier Bill Tracking
+
+Setiap purchase yang di-finalize otomatis membuat **hutang supplier** yang bisa dipantau. Status hutang ditampilkan di halaman detail purchase:
+
+- **Belum dibayar** — total hutang masih penuh
+- **Dibayar sebagian** — ada pembayaran tapi belum lunas, lengkap dengan sisa yang masih terutang
+- **Lunas** — semua hutang sudah dilunasi
 
 ---
 
@@ -76,27 +92,19 @@ Biaya tambahan seperti ongkos kirim, bea masuk, atau biaya handling bisa ditamba
 
 ### Indikator Overdue
 
-Purchase yang sudah melewati jatuh tempo pembayaran ditandai dengan label **Overdue**. Filter daftar purchase dengan status Overdue untuk melihat tagihan yang perlu segera dibayar.
+Purchase yang melewati jatuh tempo ditandai label **Overdue**. Filter daftar dengan status Overdue untuk melihat tagihan yang perlu segera dibayar.
 
 ### Aging Hutang
 
-Untuk melihat ringkasan hutang ke semua supplier berdasarkan umur hutang, buka **Reports → Aging Hutang**.
+Untuk ringkasan hutang ke semua supplier dikelompokkan berdasarkan umurnya, buka **Reports → Aging Hutang**.
 
 ---
 
 ## Riwayat Harga Beli
 
-Meetra menyimpan riwayat harga beli untuk setiap produk dari setiap supplier. Ini berguna untuk:
-- Membandingkan harga antar supplier
+Meetra menyimpan riwayat harga beli setiap produk dari setiap supplier. Berguna untuk:
+- Membandingkan harga antar supplier sebelum memutuskan pembelian
 - Melihat tren kenaikan harga bahan baku
-- Mengisi harga beli di purchase baru dengan referensi harga sebelumnya
+- Mengisi harga di purchase baru dengan referensi harga terakhir
 
-Buka **Products → detail produk → Riwayat Harga** untuk melihatnya.
-
----
-
-## Supplier Default per Produk
-
-Setiap produk bisa dikonfigurasi supplier defaultnya. Saat membuat purchase dan memilih produk tersebut, supplier akan terisi otomatis — mengurangi potensi salah pilih supplier.
-
-Atur di **Products → edit produk → Supplier Default**.
+Akses di **Products → detail produk → Riwayat Harga**.

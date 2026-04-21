@@ -1,71 +1,97 @@
-# Sales — Penjualan
+# Sales — Penjualan & Invoice
 
-Modul Sales mengelola seluruh proses penjualan — mulai dari membuat invoice, memantau status piutang, hingga menerima pembayaran dari customer.
-
----
-
-## Alur Penjualan di Meetra
-
-```
-Buat Invoice (Draft)
-      ↓
-  Finalize Invoice
-      ↓
-  Terima Pembayaran
-      ↓
-  Lunas / Tutup
-```
-
-Invoice yang di-finalize otomatis membuat jurnal akuntansi dan mencatat piutang ke customer.
+Modul Sales mengelola seluruh siklus penjualan — dari membuat invoice, memantau status piutang, menerima pembayaran, hingga retur barang.
 
 ---
 
-## Invoice Penjualan
+## Alur Penjualan
 
-### Membuat Invoice Baru
+```
+Buat Invoice  →  Finalize  →  Terima Pembayaran  →  Lunas
+   (Draft)                        (Payments)
+                    ↓
+           Auto Journal di GL:
+           Debit Piutang Usaha
+           Kredit Pendapatan Penjualan
+```
+
+Invoice yang di-finalize langsung mencatat piutang dan membuat jurnal akuntansi secara otomatis.
+
+---
+
+## Membuat Invoice
 
 1. Buka **Sales → Buat Invoice**
-2. Pilih **customer** (atau tambah baru langsung dari sini)
-3. Isi **tanggal invoice** dan **jatuh tempo**
+2. Pilih **customer** dari daftar Contacts, atau tambah customer baru langsung dari sini
+3. Isi **tanggal invoice** dan **jatuh tempo** (due date)
 4. Tambahkan item:
-   - Pilih produk dari daftar, atau ketik nama produk/jasa secara manual
-   - Isi kuantitas dan harga
-5. Tambahkan **diskon** di level item atau di level total invoice
-6. Tambahkan **pajak** jika dikenakan
-7. Isi **catatan internal** (tidak muncul di invoice) atau **catatan untuk customer**
-8. Lampirkan dokumen pendukung jika ada (PO customer, kontrak, dll)
-9. Klik **Simpan Draft** atau langsung **Finalize**
-
-### Status Invoice
-
-| Status | Artinya |
-|--------|---------|
-| **Draft** | Invoice tersimpan, belum dikirim, belum memengaruhi piutang |
-| **Finalized** | Invoice aktif, piutang tercatat, menunggu pembayaran |
-| **Partially Paid** | Sudah ada pembayaran tapi belum lunas |
-| **Paid** | Lunas |
-| **Overdue** | Sudah lewat jatuh tempo, belum lunas |
+   - Pilih produk dari daftar atau ketik nama produk/jasa manual
+   - Isi kuantitas dan harga satuan
+   - Tambahkan diskon per item jika ada
+5. Isi informasi tambahan (lihat bagian di bawah)
+6. Pilih **Simpan Draft** atau langsung **Finalize**
 
 ---
 
 ## Diskon
 
-Meetra mendukung dua jenis diskon:
+Meetra mendukung diskon di dua level sekaligus:
 
-**Diskon per item** — berlaku hanya untuk baris item tertentu. Isi di kolom Diskon saat menambah item.
+**Diskon per item** — berlaku untuk satu baris produk. Isi di kolom Diskon saat menambahkan item. Bisa berupa persentase (%) atau nominal (Rp).
 
-**Diskon header** — berlaku untuk total invoice sebelum pajak. Isi di bagian bawah form invoice.
+**Diskon header** — berlaku untuk total invoice sebelum pajak. Isi di bagian bawah form.
 
-Keduanya bisa dipakai sekaligus. Urutan perhitungan: harga item → diskon item → subtotal → diskon header → pajak → total.
+Urutan perhitungan:
+```
+Harga Item × Qty  →  Diskon Item  →  Subtotal
+Subtotal semua item  →  Diskon Header  →  Sebelum Pajak
+Sebelum Pajak  →  + Pajak  →  Total Invoice
+```
 
 ---
 
-## Pajak di Invoice
+## Pajak
 
-Jika bisnis Anda memungut PPN atau pajak lain:
-1. Pastikan master pajak sudah diatur di **Finance → Pajak**
-2. Di form invoice, pilih pajak yang berlaku
-3. Meetra akan menghitung dan menambahkan nominal pajak ke total invoice
+Untuk menambahkan pajak ke invoice:
+1. Pastikan master pajak sudah diatur di **Finance → Master Pajak**
+2. Di form invoice, pilih pajak yang berlaku di bagian **Pajak**
+3. Meetra menghitung dan menampilkan nominal pajak secara otomatis
+
+Pajak berlaku di level header (semua item kena pajak yang sama) atau bisa berbeda per item.
+
+---
+
+## Catatan
+
+Invoice mendukung dua jenis catatan:
+
+| Jenis | Terlihat oleh | Gunakan untuk |
+|-------|--------------|--------------|
+| **Catatan untuk Customer** | Customer (muncul di invoice) | Instruksi pengiriman, syarat pembayaran, pesan khusus |
+| **Catatan Internal** | Tim internal saja | Koordinasi internal, konteks order, reminder |
+
+---
+
+## Lampiran
+
+Setiap invoice bisa dilampiri file pendukung (PDF, gambar, maksimal beberapa MB per file):
+- PO dari customer
+- Kontrak atau perjanjian
+- Bukti pengiriman
+
+Klik ikon **Lampiran** di halaman detail invoice untuk menambah atau melihat file.
+
+---
+
+## Status Invoice
+
+| Status | Arti | Aksi yang Tersedia |
+|--------|------|--------------------|
+| **Draft** | Tersimpan, belum aktif | Edit, Finalize, Hapus |
+| **Finalized** | Aktif, piutang tercatat | Terima Pembayaran, Buat Retur |
+| **Partially Paid** | Dibayar sebagian | Terima Pembayaran Lanjutan |
+| **Paid** | Lunas | Lihat Detail |
+| **Overdue** | Lewat jatuh tempo, belum lunas | Terima Pembayaran, Kirim Pengingat |
 
 ---
 
@@ -73,34 +99,34 @@ Jika bisnis Anda memungut PPN atau pajak lain:
 
 ### Indikator Overdue
 
-Invoice yang sudah melewati jatuh tempo ditandai dengan label **Overdue** berwarna merah di daftar invoice. Anda bisa filter daftar invoice berdasarkan status untuk fokus ke yang perlu ditagih.
+Invoice yang melewati jatuh tempo ditandai label **Overdue** berwarna merah di daftar. Filter daftar invoice dengan status **Overdue** untuk fokus ke tagihan yang perlu dikejar.
+
+### Due Date Otomatis
+
+Jika customer memiliki **Payment Term** yang diatur di Contacts (misal: Net 30), jatuh tempo invoice akan terisi otomatis saat customer dipilih — tidak perlu isi manual setiap kali.
 
 ### Aging Piutang
 
-Untuk melihat ringkasan piutang semua customer berdasarkan umur piutang (0-30 hari, 31-60 hari, dst), buka **Reports → Aging Piutang**.
+Untuk melihat semua piutang per customer dikelompokkan berdasarkan umurnya, buka **Reports → Aging Piutang**.
 
 ---
 
 ## Retur Penjualan
 
-Jika customer mengembalikan barang:
-1. Buka invoice yang bersangkutan
+Jika customer mengembalikan barang atau ada pembatalan sebagian:
+
+1. Buka detail invoice yang bersangkutan
 2. Klik **Buat Retur**
-3. Pilih item yang dikembalikan dan jumlahnya
+3. Pilih item yang diretur dan jumlahnya
 4. Konfirmasi
 
-Retur akan otomatis mengurangi saldo piutang dan membalikkan jurnal pendapatan untuk item yang diretur.
+Efek retur:
+- Saldo piutang berkurang
+- Stok barang bertambah kembali (jika produk stockable)
+- Jurnal akuntansi dibuat otomatis untuk membalik pendapatan dan piutang
 
 ---
 
-## Lampiran Dokumen
+## Audit Trail
 
-Setiap invoice bisa dilampiri file pendukung (PDF, gambar). Lampiran berguna untuk menyimpan PO dari customer, bukti pengiriman, atau kontrak yang relevan. Klik ikon **Lampiran** di halaman detail invoice.
-
----
-
-## Tips
-
-- Isi **jatuh tempo** di setiap invoice agar sistem bisa mendeteksi piutang yang sudah lewat waktu
-- Gunakan **catatan internal** untuk komunikasi dengan tim, bukan untuk customer
-- Jika customer sering membeli, simpan terlebih dahulu di **Contacts** dengan payment term defaultnya agar jatuh tempo terisi otomatis
+Setiap perubahan status invoice — dari draft ke finalized, dari unpaid ke paid, retur — dicatat di **Audit Trail** dengan timestamp dan nama user yang melakukan aksi. Buka di **Mode Advanced** untuk melihat detail lengkapnya.

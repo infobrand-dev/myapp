@@ -34,6 +34,10 @@
                            "route":  "finance.journals.index"
                        },
                        {
+                           "label":  "Finance Reconciliation",
+                           "route":  "finance.reconciliations.index"
+                       },
+                       {
                            "label":  "Finance Approvals",
                            "route":  "finance.approvals.index"
                        },

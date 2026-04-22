@@ -179,6 +179,7 @@ class PurchaseController extends Controller
         return [
             'purchase' => $purchase->loadMissing('items'),
             'purchasables' => $this->lookupService->purchasables(),
+            'purchaseTaxOptions' => $this->lookupService->purchaseTaxOptions(),
             'paymentStatusOptions' => $this->lookupService->paymentStatusOptions(),
             'supplierBillStatusOptions' => $this->lookupService->supplierBillStatusOptions(),
         ];

@@ -40,6 +40,11 @@ class AccountingJournal extends Model
         return $this->belongsTo(self::class, 'reversal_of_journal_id');
     }
 
+    public function reversals(): HasMany
+    {
+        return $this->hasMany(self::class, 'reversal_of_journal_id')->latest('entry_date');
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -48,5 +53,22 @@ class AccountingJournal extends Model
     public function updater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function canBeReversed(): bool
+    {
+        if ($this->status !== 'posted') {
+            return false;
+        }
+
+        if ($this->reversal_of_journal_id !== null) {
+            return false;
+        }
+
+        if ($this->relationLoaded('reversals')) {
+            return $this->reversals->isEmpty();
+        }
+
+        return !$this->reversals()->exists();
     }
 }

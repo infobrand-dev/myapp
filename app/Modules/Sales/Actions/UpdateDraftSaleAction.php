@@ -85,7 +85,8 @@ class UpdateDraftSaleAction
                 'attachment_path' => $attachmentPath ?: $sale->attachment_path,
                 'totals_snapshot' => $totals['totals_snapshot'],
                 'meta' => $this->idempotencyService->mergeMeta(array_merge($sale->meta ?? [], [
-                    'source_context' => $data['source_context'] ?? ($sale->meta['source_context'] ?? null),
+                    'source_context' => $this->sourceContext($sale, $data),
+                    'tax' => $this->taxContext($totals),
                 ]), $data),
                 'updated_by' => $actor ? $actor->id : null,
             ]);
@@ -119,5 +120,39 @@ class UpdateDraftSaleAction
         }
 
         return $attachment->store('sales/attachments', 'public');
+    }
+
+    private function sourceContext(Sale $sale, array $data): ?array
+    {
+        $context = is_array($data['source_context'] ?? null)
+            ? $data['source_context']
+            : (is_array(data_get($sale->meta, 'source_context')) ? data_get($sale->meta, 'source_context') : []);
+
+        $inventoryLocationId = isset($data['inventory_location_id']) && $data['inventory_location_id'] !== null && $data['inventory_location_id'] !== ''
+            ? (int) $data['inventory_location_id']
+            : (isset($context['inventory_location_id']) ? (int) $context['inventory_location_id'] : null);
+
+        if ($inventoryLocationId) {
+            $context['inventory_location_id'] = $inventoryLocationId;
+        } else {
+            unset($context['inventory_location_id']);
+        }
+
+        return $context !== [] ? $context : null;
+    }
+
+    private function taxContext(array $totals): ?array
+    {
+        $context = data_get($totals, 'tax_context');
+
+        if (!is_array($context)) {
+            return null;
+        }
+
+        if (empty($context['tax_rate_id']) && empty($context['tax_snapshot'])) {
+            return null;
+        }
+
+        return $context;
     }
 }

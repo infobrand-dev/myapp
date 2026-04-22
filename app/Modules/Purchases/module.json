@@ -13,6 +13,14 @@
                  ],
     "navigation":  [
                        {
+                           "label":  "Purchase Requests",
+                           "route":  "purchases.requests.index"
+                       },
+                       {
+                           "label":  "Purchase Orders",
+                           "route":  "purchases.orders.index"
+                       },
+                       {
                            "label":  "Purchases",
                            "route":  "purchases.index"
                        }

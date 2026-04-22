@@ -5,11 +5,20 @@ namespace App\Modules\Sales\Actions;
 use App\Models\User;
 use App\Modules\Inventory\Services\StockMutationService;
 use App\Modules\Sales\Models\SaleReturn;
+use App\Support\AccountingJournalService;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
 class IntegrateReturnToInventoryAction
 {
+    private $journalService;
+
+    public function __construct(AccountingJournalService $journalService)
+    {
+        $this->journalService = $journalService;
+    }
+
     public function execute(SaleReturn $saleReturn, ?User $actor = null): SaleReturn
     {
         if (!$saleReturn->inventory_restock_required) {
@@ -39,12 +48,14 @@ class IntegrateReturnToInventoryAction
 
         try {
             DB::transaction(function () use ($saleReturn, $stockMutation, $actor) {
+                $movements = collect();
+
                 foreach ($saleReturn->items as $item) {
                     if (!$item->product_id) {
                         continue;
                     }
 
-                    $stockMutation->record([
+                    $movement = $stockMutation->record([
                         'product_id' => $item->product_id,
                         'product_variant_id' => $item->product_variant_id,
                         'inventory_location_id' => $saleReturn->inventory_location_id,
@@ -64,6 +75,24 @@ class IntegrateReturnToInventoryAction
                             'sale_item_id' => $item->sale_item_id,
                         ],
                     ]);
+
+                    $movements->push($movement);
+                }
+
+                $journalLines = $this->inventoryJournalLines($movements);
+                if (!empty($journalLines)) {
+                    $this->journalService->sync(
+                        $saleReturn,
+                        'sale_return_inventory',
+                        $saleReturn->finalized_at ?: now(),
+                        $journalLines,
+                        [
+                            'inventory_location_id' => $saleReturn->inventory_location_id,
+                            'movement_count' => $movements->count(),
+                            'return_number' => $saleReturn->return_number,
+                        ],
+                        'Auto journal inventory sales return ' . $saleReturn->return_number
+                    );
                 }
             });
         } catch (Throwable $exception) {
@@ -92,5 +121,29 @@ class IntegrateReturnToInventoryAction
         ]);
 
         return $saleReturn->refresh();
+    }
+
+    private function inventoryJournalLines(Collection $movements): array
+    {
+        $inventoryValue = round((float) $movements->sum('movement_value'), 2);
+
+        if ($inventoryValue <= 0) {
+            return [];
+        }
+
+        return [
+            [
+                'account_code' => 'INVENTORY',
+                'account_name' => 'Inventory',
+                'debit' => $inventoryValue,
+                'credit' => 0,
+            ],
+            [
+                'account_code' => 'COGS',
+                'account_name' => 'Cost of Goods Sold',
+                'debit' => 0,
+                'credit' => $inventoryValue,
+            ],
+        ];
     }
 }

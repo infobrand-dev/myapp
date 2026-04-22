@@ -80,7 +80,18 @@
                     <div class="border rounded p-3 mb-2">
                         <div class="d-flex justify-content-between">
                             <div><div class="fw-semibold">{{ $receipt->receipt_number }}</div><div class="text-muted small">{{ optional($receipt->receipt_date)->format('d M Y H:i') ?? '-' }}</div></div>
-                            <div class="text-end"><div>{{ optional($receipt->inventoryLocation)->name ?: '-' }}</div><div class="text-muted small">Qty: {{ number_format((float) $receipt->total_received_qty, 2, ',', '.') }}</div></div>
+                            <div class="text-end">
+                                <div>{{ optional($receipt->inventoryLocation)->name ?: '-' }}</div>
+                                <div class="text-muted small">Qty: {{ number_format((float) $receipt->total_received_qty, 2, ',', '.') }}</div>
+                                @if($receipt->inventoryJournal)
+                                    <div class="text-muted small">
+                                        Journal:
+                                        <a href="{{ route('finance.journals.show', $receipt->inventoryJournal) }}">
+                                            {{ $receipt->inventoryJournal->journal_number }}
+                                        </a>
+                                    </div>
+                                @endif
+                            </div>
                         </div>
                     </div>
                 @empty

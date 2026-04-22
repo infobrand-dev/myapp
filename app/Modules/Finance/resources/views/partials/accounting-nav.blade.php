@@ -16,9 +16,14 @@
         @endcan
         @can('finance.manage-tax')
             <a href="{{ route('finance.taxes.index') }}" class="btn {{ request()->routeIs('finance.taxes.*') ? 'btn-primary' : 'btn-outline-primary' }}">Taxes</a>
+            <a href="{{ route('finance.tax-documents.index') }}" class="btn {{ request()->routeIs('finance.tax-documents.*') ? 'btn-primary' : 'btn-outline-primary' }}">Tax Register</a>
         @endcan
         @can('finance.view-journal')
             <a href="{{ route('finance.journals.index') }}" class="btn {{ request()->routeIs('finance.journals.*') ? 'btn-primary' : 'btn-outline-primary' }}">Journals</a>
+        @endcan
+        @can('finance.manage-reconciliation')
+            <a href="{{ route('finance.reconciliations.index') }}" class="btn {{ request()->routeIs('finance.reconciliations.*') ? 'btn-primary' : 'btn-outline-primary' }}">Reconciliation</a>
+            <a href="{{ route('finance.reconciliations.outstanding') }}" class="btn {{ request()->routeIs('finance.reconciliations.outstanding') ? 'btn-primary' : 'btn-outline-primary' }}">Outstanding</a>
         @endcan
         @can('finance.approve-sensitive-transactions')
             <a href="{{ route('finance.approvals.index') }}" class="btn {{ request()->routeIs('finance.approvals.*') ? 'btn-primary' : 'btn-outline-primary' }}">Approvals</a>

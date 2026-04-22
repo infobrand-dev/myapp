@@ -3,6 +3,7 @@
 namespace App\Modules\Inventory\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\AccountingJournal;
 use App\Modules\Inventory\Actions\CreateOpeningStockAction;
 use App\Modules\Inventory\Http\Requests\ImportOpeningStockRequest;
 use App\Modules\Inventory\Http\Requests\StoreOpeningStockRequest;
@@ -24,14 +25,25 @@ class OpeningStockController extends Controller
 
     public function index(): View
     {
+        $openings = StockOpening::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
+            ->with(['location', 'creator'])
+            ->tap(fn ($query) => BranchContext::applyScope($query))
+            ->latest()
+            ->paginate(15);
+
+        $journals = AccountingJournal::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
+            ->where('source_type', StockOpening::class)
+            ->whereIn('source_id', $openings->getCollection()->pluck('id')->all())
+            ->get()
+            ->keyBy('source_id');
+
         return view('inventory::openings.index', [
-            'openings' => StockOpening::query()
-                ->where('tenant_id', TenantContext::currentId())
-                ->where('company_id', CompanyContext::currentId())
-                ->with(['location', 'creator'])
-                ->tap(fn ($query) => BranchContext::applyScope($query))
-                ->latest()
-                ->paginate(15),
+            'openings' => $openings,
+            'journals' => $journals,
         ]);
     }
 

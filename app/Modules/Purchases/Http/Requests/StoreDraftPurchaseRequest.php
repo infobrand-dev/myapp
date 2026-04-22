@@ -4,10 +4,12 @@ namespace App\Modules\Purchases\Http\Requests;
 
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Contacts\Support\ContactScope;
+use App\Modules\Finance\Models\FinanceTaxRate;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
 use App\Modules\Purchases\Http\Requests\Concerns\NormalizesPurchasePayload;
 use App\Modules\Purchases\Models\Purchase;
+use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -32,6 +34,11 @@ class StoreDraftPurchaseRequest extends FormRequest
         return [
             'contact_id' => ['required', 'integer', Rule::exists('contacts', 'id')->where(fn ($query) => ContactScope::applyVisibilityScope($query))],
             'purchase_date' => ['required', 'date'],
+            'tax_rate_id' => ['nullable', 'integer', Rule::exists('finance_tax_rates', 'id')->where(fn ($query) => $query
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
+                ->where('tax_type', FinanceTaxRate::TYPE_PURCHASE)
+                ->where('is_active', true))],
             'due_date' => ['nullable', 'date'],
             'expected_receive_date' => ['nullable', 'date'],
             'supplier_reference' => ['nullable', 'string', 'max:100'],
@@ -70,6 +77,17 @@ class StoreDraftPurchaseRequest extends FormRequest
         $contactId = $this->input('contact_id');
         if ($contactId && !ContactScope::applyVisibilityScope(Contact::query())->find($contactId)) {
             $validator->errors()->add('contact_id', 'Supplier tidak tersedia untuk tenant aktif.');
+        }
+
+        $taxRateId = $this->input('tax_rate_id');
+        if ($taxRateId && !FinanceTaxRate::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
+            ->where('tax_type', FinanceTaxRate::TYPE_PURCHASE)
+            ->where('is_active', true)
+            ->find($taxRateId)
+        ) {
+            $validator->errors()->add('tax_rate_id', 'Tax master purchase tidak tersedia untuk tenant aktif.');
         }
 
         foreach ((array) $this->input('items', []) as $index => $item) {

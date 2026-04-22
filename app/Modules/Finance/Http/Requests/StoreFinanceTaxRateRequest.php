@@ -12,7 +12,7 @@ class StoreFinanceTaxRateRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('finance.manage-tax') ?? false;
+        return $this->user() ? (bool) $this->user()->can('finance.manage-tax') : false;
     }
 
     public function rules(): array
@@ -28,11 +28,18 @@ class StoreFinanceTaxRateRequest extends FormRequest
             ],
             'name' => ['required', 'string', 'max:150'],
             'tax_type' => ['required', Rule::in(array_keys(FinanceTaxRate::taxTypeOptions()))],
+            'tax_scope' => ['nullable', Rule::in(array_keys(FinanceTaxRate::taxScopeOptions()))],
+            'jurisdiction_code' => ['nullable', 'string', 'max:10'],
+            'legal_basis' => ['nullable', 'string', 'max:150'],
+            'document_label' => ['nullable', 'string', 'max:100'],
+            'requires_tax_number' => ['nullable', 'boolean'],
+            'requires_counterparty_tax_id' => ['nullable', 'boolean'],
             'rate_percent' => ['required', 'numeric', 'min:0', 'max:100'],
             'is_inclusive' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
             'sales_account_code' => ['nullable', 'string', 'max:100'],
             'purchase_account_code' => ['nullable', 'string', 'max:100'],
+            'withholding_account_code' => ['nullable', 'string', 'max:100'],
             'description' => ['nullable', 'string'],
         ];
     }

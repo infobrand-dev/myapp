@@ -1,5 +1,6 @@
 - [Home](/)
 - [Pengenalan & Setup Awal](getting-started.md)
+- [Kamus Istilah](glossary.md)
 
 ---
 

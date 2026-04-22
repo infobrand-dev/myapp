@@ -117,6 +117,14 @@
                     <div>Refunded: {{ $money->format((float) $saleReturn->refunded_total, $saleReturn->currency_code) }}</div>
                     <div>Refund Balance: {{ $money->format((float) $saleReturn->refund_balance, $saleReturn->currency_code) }}</div>
                 </div>
+                <div class="mb-3">
+                    <div class="text-muted small">Accounting Journals</div>
+                    @forelse(($journals ?? collect()) as $journal)
+                        <div><a href="{{ route('finance.journals.show', $journal->id) }}">{{ $journal->entry_type }} - {{ $journal->journal_number ?: ('Journal #' . $journal->id) }}</a></div>
+                    @empty
+                        <div class="text-muted">Belum ada journal.</div>
+                    @endforelse
+                </div>
 
                 @if($saleReturn->status === 'draft')
                     <form method="POST" action="{{ route('sales.returns.cancel', $saleReturn) }}" class="mb-3">

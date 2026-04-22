@@ -26,6 +26,7 @@
     $cancelRoute = $purchase->exists
         ? route('purchases.show', $purchase)
         : route('purchases.index');
+    $selectedPurchaseTaxId = old('tax_rate_id', data_get($purchase->meta, 'tax.tax_rate_id'));
 
     $purchasablesByKey = collect($purchasables)->keyBy('key');
     $purchasableOptions = collect($purchasables)
@@ -211,7 +212,31 @@
                                 value="{{ old('landed_cost_total', $purchase->landed_cost_total ?? 0) }}">
                             @error('landed_cost_total') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
+
+                        @if(($purchaseTaxOptions ?? collect())->isNotEmpty())
+                            <div class="col-md-6">
+                                @include('shared.accounting.field-label', [
+                                    'label' => 'Tax Master',
+                                    'tooltip' => 'Opsional. Jika dipilih, tax purchase dihitung otomatis dari tax master purchase yang aktif. Saat ini auto-apply hanya mendukung tax exclusive.',
+                                ])
+                                <select name="tax_rate_id" class="form-select @error('tax_rate_id') is-invalid @enderror">
+                                    <option value="">Tanpa tax master</option>
+                                    @foreach($purchaseTaxOptions as $taxOption)
+                                        <option value="{{ $taxOption->id }}" @selected((string) $selectedPurchaseTaxId === (string) $taxOption->id)>
+                                            {{ $taxOption->name }} ({{ $taxOption->code }}) - {{ number_format((float) $taxOption->rate_percent, 2) }}%
+                                            @if($taxOption->is_inclusive) - Inclusive @else - Exclusive @endif
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div class="form-hint">Jika tax master dipilih, tax per item akan diabaikan dan sistem menghitung tax purchase otomatis dari subtotal setelah diskon.</div>
+                                @error('tax_rate_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                        @endif
                     @endif
+
+                    @unless($isAdvancedMode)
+                        <input type="hidden" name="tax_rate_id" value="{{ $selectedPurchaseTaxId }}">
+                    @endunless
                 </div>
             </div>
         </div>

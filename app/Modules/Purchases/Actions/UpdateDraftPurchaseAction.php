@@ -48,6 +48,8 @@ class UpdateDraftPurchaseAction
             $totals = $this->recalculateTotals->execute($data);
             $supplier = ContactScope::applyVisibilityScope(Contact::query()->with('parentContact'))->find($data['contact_id']);
             $snapshot = $this->snapshotService->supplierSnapshot($supplier);
+            $meta = $purchase->meta ?? [];
+            $meta['tax'] = $this->taxContext($totals);
 
             $purchase->update([
                 'contact_id' => $supplier ? $supplier->id : null,
@@ -74,6 +76,7 @@ class UpdateDraftPurchaseAction
                 'notes' => $data['notes'] ?? null,
                 'internal_notes' => array_key_exists('internal_notes', $data) ? ($data['internal_notes'] ?? null) : $purchase->internal_notes,
                 'totals_snapshot' => $totals['totals_snapshot'],
+                'meta' => $meta,
                 'updated_by' => $actor ? $actor->id : null,
             ]);
 
@@ -93,5 +96,20 @@ class UpdateDraftPurchaseAction
 
             return $row;
         }, $rows);
+    }
+
+    private function taxContext(array $totals): ?array
+    {
+        $context = data_get($totals, 'tax_context');
+
+        if (!is_array($context)) {
+            return null;
+        }
+
+        if (empty($context['tax_rate_id']) && empty($context['tax_snapshot'])) {
+            return null;
+        }
+
+        return $context;
     }
 }

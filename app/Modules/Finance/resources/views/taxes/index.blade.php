@@ -42,7 +42,7 @@
         <div class="alert alert-secondary mb-3">
             <strong>Mode mapping:</strong>
             standard = kode, nama, tarif, status, dan rekap dasar.
-            advanced = seluruh standard + tax type, akun COA sales/purchase, inclusive flag, dan deskripsi.
+            advanced = seluruh standard + tax type, tax scope Indonesia, akun COA sales/purchase/withholding, kebutuhan nomor dokumen pajak, dan metadata legal.
         </div>
         <form method="GET" class="row g-3">
             <div class="col-md-3">
@@ -77,6 +77,56 @@
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Posted Journal Tax</div><div class="small">Sales credit: {{ $money->format((float) $summary['sales_tax_journal_credit'], $currency) }}</div><div class="small">Purchase debit: {{ $money->format((float) $summary['purchase_tax_journal_debit'], $currency) }}</div></div></div></div>
 </div>
 
+<div class="card mb-3">
+    <div class="card-header">
+        <h3 class="card-title">Rekap Pajak per Tax Code</h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-vcenter table-hover">
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Rate</th>
+                        <th>Sales Tax</th>
+                        <th>Purchase Tax</th>
+                        <th>Net</th>
+                        <th>Docs</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($summary['by_tax_code'] as $taxRow)
+                        <tr>
+                            <td class="fw-semibold">
+                                {{ $taxRow['code'] }}
+                                @if($taxRow['is_unmapped'])
+                                    <div class="text-muted small">Perlu mapping</div>
+                                @endif
+                            </td>
+                            <td>{{ $taxRow['name'] }}</td>
+                            <td>{{ $taxRow['rate_percent'] !== null ? number_format((float) $taxRow['rate_percent'], 2, ',', '.') . '%' : '-' }}</td>
+                            <td>{{ $money->format((float) $taxRow['sales_tax_total'], $currency) }}</td>
+                            <td>{{ $money->format((float) $taxRow['purchase_tax_total'], $currency) }}</td>
+                            <td class="{{ $taxRow['net_tax_total'] >= 0 ? 'text-danger' : 'text-success' }}">{{ $money->format((float) $taxRow['net_tax_total'], $currency) }}</td>
+                            <td>
+                                <div class="small">{{ $taxRow['transaction_count'] }} transaksi</div>
+                                @if(!empty($taxRow['source_documents']))
+                                    <div class="text-muted small">{{ implode(', ', $taxRow['source_documents']) }}</div>
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">Belum ada transaksi pajak untuk filter ini.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 <div class="row g-3">
     <div class="col-lg-4">
         <div class="card">
@@ -109,6 +159,7 @@
                                 <th>Name</th>
                                 @if($isAdvancedMode)
                                     <th>Type</th>
+                                    <th>Scope</th>
                                 @endif
                                 <th>Rate</th>
                                 <th>Status</th>
@@ -130,22 +181,30 @@
                                     </td>
                                     @if($isAdvancedMode)
                                         <td>{{ $taxTypeOptions[$taxRate->tax_type] ?? $taxRate->tax_type }}</td>
+                                        <td>{{ $taxScopeOptions[$taxRate->tax_scope] ?? ($taxRate->tax_scope ?: '-') }}</td>
                                     @endif
                                     <td>
                                         <div>{{ number_format((float) $taxRate->rate_percent, 2, ',', '.') }}%</div>
                                         @if($isAdvancedMode && $taxRate->is_inclusive)
                                             <div class="text-muted small">Inclusive</div>
                                         @endif
+                                        @if($isAdvancedMode && $taxRate->legal_basis)
+                                            <div class="text-muted small">{{ $taxRate->legal_basis }}</div>
+                                        @endif
                                     </td>
                                     <td>
                                         <span class="badge {{ $taxRate->is_active ? 'bg-green-lt text-green' : 'bg-secondary-lt text-secondary' }}">
                                             {{ $taxRate->is_active ? 'Aktif' : 'Nonaktif' }}
                                         </span>
+                                        @if($isAdvancedMode && $taxRate->requires_tax_number)
+                                            <div class="text-muted small">Perlu nomor pajak</div>
+                                        @endif
                                     </td>
                                     @if($isAdvancedMode)
                                         <td>
                                             <div class="small">Sales: {{ $taxRate->sales_account_code ?: '-' }}</div>
                                             <div class="small">Purchase: {{ $taxRate->purchase_account_code ?: '-' }}</div>
+                                            <div class="small">Withholding: {{ $taxRate->withholding_account_code ?: '-' }}</div>
                                         </td>
                                     @endif
                                     <td class="text-end align-middle">
@@ -165,7 +224,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="{{ $isAdvancedMode ? '7' : '5' }}" class="text-center py-5 text-muted">Belum ada master pajak.</td>
+                                    <td colspan="{{ $isAdvancedMode ? '8' : '5' }}" class="text-center py-5 text-muted">Belum ada master pajak.</td>
                                 </tr>
                             @endforelse
                         </tbody>

@@ -6,7 +6,11 @@ use App\Modules\Sales\Actions\CancelDraftSaleAction;
 use App\Modules\Sales\Actions\CancelDraftReturnAction;
 use App\Modules\Sales\Actions\CalculateReturnTotalsAction;
 use App\Modules\Sales\Actions\CreateDraftSaleAction;
+use App\Modules\Sales\Actions\CreateSaleOrderAction;
+use App\Modules\Sales\Actions\CreateSaleQuotationAction;
 use App\Modules\Sales\Actions\CreateSalesReturnAction;
+use App\Modules\Sales\Actions\ConvertSaleOrderToSaleAction;
+use App\Modules\Sales\Actions\ConvertSaleQuotationToSaleAction;
 use App\Modules\Sales\Actions\FinalizeSaleAction;
 use App\Modules\Sales\Actions\FinalizeSalesReturnAction;
 use App\Modules\Sales\Actions\IntegrateRefundToPaymentsAction;
@@ -16,6 +20,8 @@ use App\Modules\Sales\Actions\RecordSalePaymentAction;
 use App\Modules\Sales\Actions\SyncSalePaymentSummaryAction;
 use App\Modules\Sales\Actions\SyncSaleReturnRefundSummaryAction;
 use App\Modules\Sales\Actions\UpdateDraftSaleAction;
+use App\Modules\Sales\Actions\UpdateSaleOrderAction;
+use App\Modules\Sales\Actions\UpdateSaleQuotationAction;
 use App\Modules\Sales\Actions\ValidateReturnableItemsAction;
 use App\Modules\Sales\Actions\VoidSaleAction;
 use App\Modules\Sales\Events\SaleFinalized;
@@ -23,13 +29,17 @@ use App\Modules\Sales\Events\SaleVoided;
 use App\Modules\Sales\Listeners\DispatchFinalizedSaleHooks;
 use App\Modules\Sales\Listeners\DispatchVoidedSaleHooks;
 use App\Modules\Sales\Models\Sale;
+use App\Modules\Sales\Repositories\SaleOrderRepository;
 use App\Modules\Sales\Repositories\SaleRepository;
+use App\Modules\Sales\Repositories\SaleQuotationRepository;
 use App\Modules\Sales\Repositories\SaleReturnRepository;
 use App\Modules\Sales\Services\SaleIntegrationPayloadBuilder;
 use App\Modules\Sales\Services\SaleIdempotencyService;
 use App\Modules\Sales\Services\SaleLookupService;
 use App\Modules\Sales\Services\SaleNumberService;
+use App\Modules\Sales\Services\SaleOrderNumberService;
 use App\Modules\Sales\Services\SalePaymentSummaryService;
+use App\Modules\Sales\Services\SaleQuotationNumberService;
 use App\Modules\Sales\Services\SaleReturnCalculationService;
 use App\Modules\Sales\Services\SaleReturnLookupService;
 use App\Modules\Sales\Services\SaleReturnNumberService;
@@ -59,6 +69,16 @@ class SalesServiceProvider extends ServiceProvider
         'sales.cancel-draft',
         'sales.void',
         'sales.print',
+        'sales_order.view',
+        'sales_order.create',
+        'sales_order.update_draft',
+        'sales_order.approve',
+        'sales_order.convert',
+        'sales_quotation.view',
+        'sales_quotation.create',
+        'sales_quotation.update_draft',
+        'sales_quotation.approve',
+        'sales_quotation.convert',
         'sales_return.view',
         'sales_return.create',
         'sales_return.finalize',
@@ -78,6 +98,16 @@ class SalesServiceProvider extends ServiceProvider
             'sales.finalize',
             'sales.cancel-draft',
             'sales.print',
+            'sales_order.view',
+            'sales_order.create',
+            'sales_order.update_draft',
+            'sales_order.approve',
+            'sales_order.convert',
+            'sales_quotation.view',
+            'sales_quotation.create',
+            'sales_quotation.update_draft',
+            'sales_quotation.approve',
+            'sales_quotation.convert',
             'sales_return.view',
             'sales_return.create',
             'sales_return.finalize',
@@ -93,6 +123,16 @@ class SalesServiceProvider extends ServiceProvider
             'sales.finalize',
             'sales.cancel-draft',
             'sales.print',
+            'sales_order.view',
+            'sales_order.create',
+            'sales_order.update_draft',
+            'sales_order.approve',
+            'sales_order.convert',
+            'sales_quotation.view',
+            'sales_quotation.create',
+            'sales_quotation.update_draft',
+            'sales_quotation.approve',
+            'sales_quotation.convert',
             'sales_return.view',
             'sales_return.create',
             'sales_return.finalize',
@@ -103,6 +143,8 @@ class SalesServiceProvider extends ServiceProvider
         'Cashier' => [
             'sales.view',
             'sales.print',
+            'sales_order.view',
+            'sales_quotation.view',
             'sales_return.view',
             'sales_return.print',
             'sales_return.view_own',
@@ -111,13 +153,17 @@ class SalesServiceProvider extends ServiceProvider
 
     public function register(): void
     {
+        $this->app->singleton(SaleOrderRepository::class);
         $this->app->singleton(SaleRepository::class);
+        $this->app->singleton(SaleQuotationRepository::class);
         $this->app->singleton(SaleReturnRepository::class);
         $this->app->singleton(SaleLookupService::class);
         $this->app->singleton(SaleReturnLookupService::class);
         $this->app->singleton(SaleIntegrationPayloadBuilder::class);
         $this->app->singleton(SaleIdempotencyService::class);
         $this->app->singleton(SaleNumberService::class);
+        $this->app->singleton(SaleOrderNumberService::class);
+        $this->app->singleton(SaleQuotationNumberService::class);
         $this->app->singleton(SaleReturnNumberService::class);
         $this->app->singleton(SalePaymentSummaryService::class);
         $this->app->singleton(SaleReturnCalculationService::class);
@@ -129,8 +175,14 @@ class SalesServiceProvider extends ServiceProvider
         $this->app->singleton(ValidateReturnableItemsAction::class);
         $this->app->singleton(CalculateReturnTotalsAction::class);
         $this->app->singleton(CreateDraftSaleAction::class);
+        $this->app->singleton(CreateSaleOrderAction::class);
+        $this->app->singleton(CreateSaleQuotationAction::class);
         $this->app->singleton(UpdateDraftSaleAction::class);
+        $this->app->singleton(UpdateSaleOrderAction::class);
+        $this->app->singleton(UpdateSaleQuotationAction::class);
         $this->app->singleton(FinalizeSaleAction::class);
+        $this->app->singleton(ConvertSaleOrderToSaleAction::class);
+        $this->app->singleton(ConvertSaleQuotationToSaleAction::class);
         $this->app->singleton(VoidSaleAction::class);
         $this->app->singleton(CancelDraftSaleAction::class);
         $this->app->singleton(IntegrateReturnToInventoryAction::class);

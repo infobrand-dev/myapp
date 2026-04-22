@@ -4,13 +4,17 @@ namespace App\Modules\Sales\Http\Requests;
 
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Contacts\Support\ContactScope;
+use App\Modules\Finance\Models\FinanceTaxRate;
+use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
 use App\Modules\Sales\Http\Requests\Concerns\NormalizesSalePayload;
 use App\Modules\Sales\Models\Sale;
+use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
@@ -25,9 +29,24 @@ class StoreDraftSaleRequest extends FormRequest
 
     public function rules(): array
     {
+        $inventoryLocationRules = ['nullable', 'integer'];
+
+        if (class_exists(InventoryLocation::class) && Schema::hasTable('inventory_locations')) {
+            $inventoryLocationRules[] = Rule::exists('inventory_locations', 'id')->where(fn ($query) => BranchContext::applyScope(
+                $query->where('tenant_id', TenantContext::currentId())
+                    ->where('company_id', CompanyContext::currentId())
+            ));
+        }
+
         return [
             'external_reference' => ['nullable', 'string', 'max:100'],
             'contact_id' => ['nullable', 'integer', Rule::exists('contacts', 'id')->where(fn ($query) => ContactScope::applyVisibilityScope($query))],
+            'inventory_location_id' => $inventoryLocationRules,
+            'tax_rate_id' => ['nullable', 'integer', Rule::exists('finance_tax_rates', 'id')->where(fn ($query) => $query
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
+                ->where('tax_type', FinanceTaxRate::TYPE_SALES)
+                ->where('is_active', true))],
             'payment_status' => ['required', Rule::in([
                 Sale::PAYMENT_UNPAID,
                 Sale::PAYMENT_PARTIAL,
@@ -94,6 +113,30 @@ class StoreDraftSaleRequest extends FormRequest
         $contactId = $this->input('contact_id');
         if ($contactId && !ContactScope::applyVisibilityScope(Contact::query())->find($contactId)) {
             $validator->errors()->add('contact_id', 'Contact tidak tersedia untuk tenant aktif.');
+        }
+
+        $taxRateId = $this->input('tax_rate_id');
+        if ($taxRateId && !FinanceTaxRate::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
+            ->where('tax_type', FinanceTaxRate::TYPE_SALES)
+            ->where('is_active', true)
+            ->find($taxRateId)
+        ) {
+            $validator->errors()->add('tax_rate_id', 'Tax master sales tidak tersedia untuk tenant aktif.');
+        }
+
+        $inventoryLocationId = $this->input('inventory_location_id');
+        if ($inventoryLocationId
+            && class_exists(InventoryLocation::class)
+            && Schema::hasTable('inventory_locations')
+            && !InventoryLocation::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
+                ->tap(fn ($query) => BranchContext::applyScope($query))
+                ->find($inventoryLocationId)
+        ) {
+            $validator->errors()->add('inventory_location_id', 'Lokasi inventory tidak tersedia untuk tenant aktif.');
         }
 
         foreach ((array) $this->input('items', []) as $index => $item) {

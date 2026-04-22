@@ -27,6 +27,7 @@ class FinanceServiceProvider extends ServiceProvider
         'finance.manage-tax',
         'finance.view-journal',
         'finance.manage-journal',
+        'finance.manage-reconciliation',
         'finance.manage-period-locks',
         'finance.approve-sensitive-transactions',
     ];

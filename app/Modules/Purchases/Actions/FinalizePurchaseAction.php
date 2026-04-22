@@ -8,10 +8,13 @@ use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Purchases\Events\PurchaseFinalized;
 use App\Modules\Purchases\Models\Purchase;
 use App\Modules\Purchases\Services\PurchaseSnapshotService;
+use App\Modules\Finance\Services\TaxDocumentSyncService;
 use App\Support\AccountingJournalService;
 use App\Support\AccountingPeriodLockService;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
+use App\Support\DocumentWorkflowService;
+use App\Support\SensitiveActionApprovalService;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -22,18 +25,27 @@ class FinalizePurchaseAction
     private $snapshotService;
     private $journalService;
     private $periodLockService;
+    private $documentWorkflow;
+    private $approvalService;
+    private $taxDocumentSyncService;
 
     public function __construct(
         SyncPurchasePaymentSummaryAction $syncPaymentSummary,
         PurchaseSnapshotService $snapshotService,
         AccountingJournalService $journalService,
-        AccountingPeriodLockService $periodLockService
+        AccountingPeriodLockService $periodLockService,
+        DocumentWorkflowService $documentWorkflow,
+        SensitiveActionApprovalService $approvalService,
+        TaxDocumentSyncService $taxDocumentSyncService
     )
     {
         $this->syncPaymentSummary = $syncPaymentSummary;
         $this->snapshotService = $snapshotService;
         $this->journalService = $journalService;
         $this->periodLockService = $periodLockService;
+        $this->documentWorkflow = $documentWorkflow;
+        $this->approvalService = $approvalService;
+        $this->taxDocumentSyncService = $taxDocumentSyncService;
     }
 
     public function execute(Purchase $purchase, array $data, ?User $actor = null): Purchase
@@ -55,6 +67,22 @@ class FinalizePurchaseAction
                 throw ValidationException::withMessages([
                     'purchase' => 'Hanya draft purchase yang dapat di-finalize.',
                 ]);
+            }
+
+            if ($this->documentWorkflow->requiresApprovalBeforeFinalize('purchase', $purchase->company_id, $purchase->branch_id)) {
+                $this->approvalService->ensureApprovedOrCreatePending(
+                    'purchases',
+                    'finalize-purchase',
+                    $purchase,
+                    [
+                        'purchase_number' => $purchase->purchase_number,
+                        'purchase_date' => optional($purchase->purchase_date)->toDateTimeString(),
+                        'grand_total' => (float) $purchase->grand_total,
+                        'payment_status' => $purchase->payment_status,
+                    ],
+                    $actor,
+                    'Finalize purchase memerlukan approval sesuai workflow dokumen.'
+                );
             }
 
             $this->periodLockService->ensureDateOpen($purchase->purchase_date ?: now(), $purchase->branch_id, 'finalize purchase');
@@ -139,6 +167,8 @@ class FinalizePurchaseAction
                 ],
                 'Auto journal purchase ' . $purchase->purchase_number
             );
+
+            $this->taxDocumentSyncService->syncFromSource($purchase, $actor);
 
             return $purchase;
         });

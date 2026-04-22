@@ -18,6 +18,16 @@
     <label class="form-label">Sort Order</label>
     <input type="number" name="sort_order" min="0" class="form-control" value="{{ old('sort_order', $method->sort_order ?? 0) }}">
 </div>
+<div class="col-md-12">
+    <label class="form-label">Finance Account</label>
+    <select name="finance_account_id" class="form-select">
+        <option value="">Belum dipetakan</option>
+        @foreach(($financeAccounts ?? collect()) as $account)
+            <option value="{{ $account->id }}" @selected((string) old('finance_account_id', $method->finance_account_id) === (string) $account->id)>{{ $account->name }}</option>
+        @endforeach
+    </select>
+    <div class="form-hint">Mapping ini menjadi source of truth account kas/bank/e-wallet untuk reconciliation formal di masa depan.</div>
+</div>
 <div class="col-md-6">
     <label class="form-check mt-4">
         <input type="checkbox" name="requires_reference" value="1" class="form-check-input" @checked(old('requires_reference', $method->requires_reference))>

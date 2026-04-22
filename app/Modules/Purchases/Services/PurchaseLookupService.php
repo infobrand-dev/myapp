@@ -4,6 +4,8 @@ namespace App\Modules\Purchases\Services;
 
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Contacts\Support\ContactScope;
+use App\Modules\Finance\Models\FinanceTaxRate;
+use App\Modules\Finance\Services\TransactionTaxService;
 use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Products\Services\ProductLookupService;
 use App\Modules\Purchases\Models\Purchase;
@@ -15,6 +17,7 @@ class PurchaseLookupService
 {
     public function __construct(
         private readonly ProductLookupService $productLookup,
+        private readonly TransactionTaxService $transactionTaxService,
     ) {
     }
 
@@ -44,6 +47,11 @@ class PurchaseLookupService
         )
             ->orderBy('name')
             ->get();
+    }
+
+    public function purchaseTaxOptions(): Collection
+    {
+        return $this->transactionTaxService->options(FinanceTaxRate::TYPE_PURCHASE);
     }
 
     public function statusOptions(): array

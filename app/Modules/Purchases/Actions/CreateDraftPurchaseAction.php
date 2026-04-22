@@ -73,7 +73,10 @@ class CreateDraftPurchaseAction
                 'notes' => $data['notes'] ?? null,
                 'internal_notes' => $data['internal_notes'] ?? null,
                 'totals_snapshot' => $totals['totals_snapshot'],
-                'meta' => ['draft_created_from' => 'manual'],
+                'meta' => array_filter([
+                    'draft_created_from' => 'manual',
+                    'tax' => $this->taxContext($totals),
+                ], fn ($value) => $value !== null),
                 'created_by' => $actor ? $actor->id : null,
                 'updated_by' => $actor ? $actor->id : null,
             ]);
@@ -105,5 +108,20 @@ class CreateDraftPurchaseAction
 
             return $row;
         }, $rows);
+    }
+
+    private function taxContext(array $totals): ?array
+    {
+        $context = data_get($totals, 'tax_context');
+
+        if (!is_array($context)) {
+            return null;
+        }
+
+        if (empty($context['tax_rate_id']) && empty($context['tax_snapshot'])) {
+            return null;
+        }
+
+        return $context;
     }
 }

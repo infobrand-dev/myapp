@@ -217,7 +217,8 @@ class CreatePaymentAction
 
     private function journalLines(Payment $payment, Collection $allocations): array
     {
-        $cashAccountName = 'Cash/Bank - ' . ($payment->method?->name ?? 'Payment');
+        $methodName = $payment->method ? $payment->method->name : 'Payment';
+        $cashAccountName = 'Cash/Bank - ' . $methodName;
         $lines = [];
 
         foreach ($allocations as $allocation) {
@@ -236,7 +237,7 @@ class CreatePaymentAction
                 $lines[] = ['account_code' => 'AP', 'account_name' => 'Accounts Payable', 'debit' => $amount, 'credit' => 0];
                 $lines[] = ['account_code' => 'CASH', 'account_name' => $cashAccountName, 'debit' => 0, 'credit' => $amount];
             } elseif ($type === 'sale_return' || $kind === 'refund') {
-                $lines[] = ['account_code' => 'SALES_REFUND', 'account_name' => 'Sales Refund', 'debit' => $amount, 'credit' => 0];
+                $lines[] = ['account_code' => 'AR', 'account_name' => 'Accounts Receivable', 'debit' => $amount, 'credit' => 0];
                 $lines[] = ['account_code' => 'CASH', 'account_name' => $cashAccountName, 'debit' => 0, 'credit' => $amount];
             }
         }

@@ -3,6 +3,7 @@
 namespace App\Modules\Payments\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Finance\Models\FinanceAccount;
 use App\Modules\Payments\Http\Requests\StorePaymentMethodRequest;
 use App\Modules\Payments\Http\Requests\UpdatePaymentMethodRequest;
 use App\Modules\Payments\Models\PaymentMethod;
@@ -31,10 +32,18 @@ class PaymentMethodController extends Controller
             'methods' => PaymentMethod::query()
                 ->where('tenant_id', TenantContext::currentId())
                 ->where('company_id', $companyId)
+                ->with('financeAccount')
                 ->orderBy('sort_order')
                 ->orderBy('name')
                 ->get(),
             'typeOptions' => $this->lookupService->paymentMethodTypeOptions(),
+            'financeAccounts' => FinanceAccount::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', $companyId)
+                ->active()
+                ->orderByDesc('is_default')
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 
@@ -62,6 +71,13 @@ class PaymentMethodController extends Controller
         return view('payments::methods.edit', [
             'method' => $method,
             'typeOptions' => $this->lookupService->paymentMethodTypeOptions(),
+            'financeAccounts' => FinanceAccount::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', $this->requireCurrentCompanyId())
+                ->active()
+                ->orderByDesc('is_default')
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 

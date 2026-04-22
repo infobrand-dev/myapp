@@ -40,6 +40,16 @@
                 <div class="mb-2"><div class="text-muted small">Reason Code</div><div>{{ $adjustment->reason_code }}</div></div>
                 <div class="mb-2"><div class="text-muted small">Reason</div><div>{{ $adjustment->reason_text }}</div></div>
                 <div class="mb-2"><div class="text-muted small">Notes</div><div>{{ $adjustment->notes ?: '-' }}</div></div>
+                <div class="mb-2">
+                    <div class="text-muted small">Journal</div>
+                    <div>
+                        @if(!empty($journal))
+                            <a href="{{ route('finance.journals.show', $journal->id) }}">{{ $journal->journal_number ?: ('Journal #' . $journal->id) }}</a>
+                        @else
+                            -
+                        @endif
+                    </div>
+                </div>
                 <div class="mb-2"><div class="text-muted small">Dibuat Oleh</div><div>{{ $adjustment->creator?->name ?: '-' }}</div></div>
                 <div class="mb-2"><div class="text-muted small">Dibuat Pada</div><div>{{ $adjustment->created_at?->format('d/m/Y H:i') }}</div></div>
                 <div><div class="text-muted small">Finalized</div><div>{{ $adjustment->finalized_at ? ($adjustment->finalizer?->name . ' | ' . $adjustment->finalized_at->format('d/m/Y H:i')) : '-' }}</div></div>

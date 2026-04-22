@@ -4,6 +4,9 @@ namespace App\Modules\Sales\Services;
 
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Contacts\Support\ContactScope;
+use App\Modules\Finance\Models\FinanceTaxRate;
+use App\Modules\Finance\Services\TransactionTaxService;
+use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\Products\Services\ProductLookupService;
 use App\Modules\Sales\Models\Sale;
@@ -12,11 +15,13 @@ use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 class SaleLookupService
 {
     public function __construct(
         private readonly ProductLookupService $productLookup,
+        private readonly TransactionTaxService $transactionTaxService,
     ) {
     }
 
@@ -93,6 +98,27 @@ class SaleLookupService
         BranchContext::applyScope($query);
 
         return $query->get();
+    }
+
+    public function inventoryLocationOptions(): Collection
+    {
+        if (!class_exists(InventoryLocation::class) || !Schema::hasTable('inventory_locations')) {
+            return collect();
+        }
+
+        return InventoryLocation::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
+            ->tap(fn ($query) => BranchContext::applyScope($query))
+            ->where('is_active', true)
+            ->orderByDesc('is_default')
+            ->orderBy('name')
+            ->get(['id', 'name', 'code', 'is_default']);
+    }
+
+    public function salesTaxOptions(): Collection
+    {
+        return $this->transactionTaxService->options(FinanceTaxRate::TYPE_SALES);
     }
 
     public function dependencyMap(): array

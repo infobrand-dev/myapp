@@ -2,6 +2,8 @@
 
 namespace App\Modules\Purchases\Actions;
 
+use App\Modules\Finance\Models\FinanceTaxRate;
+use App\Modules\Finance\Services\TransactionTaxService;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
 use App\Modules\Purchases\Services\PurchaseSnapshotService;
@@ -12,10 +14,12 @@ use Illuminate\Validation\ValidationException;
 class RecalculatePurchaseTotalsAction
 {
     private $snapshotService;
+    private $transactionTaxService;
 
-    public function __construct(PurchaseSnapshotService $snapshotService)
+    public function __construct(PurchaseSnapshotService $snapshotService, TransactionTaxService $transactionTaxService)
     {
         $this->snapshotService = $snapshotService;
+        $this->transactionTaxService = $transactionTaxService;
     }
 
     public function execute(array $data): array
@@ -30,7 +34,13 @@ class RecalculatePurchaseTotalsAction
             ]);
         }
 
-        $items = $rows->map(function (array $item, int $index) {
+        $taxRate = $this->transactionTaxService->resolve(
+            !empty($data['tax_rate_id']) ? (int) $data['tax_rate_id'] : null,
+            FinanceTaxRate::TYPE_PURCHASE
+        );
+        $usesTaxMaster = $taxRate !== null;
+
+        $items = $rows->map(function (array $item, int $index) use ($usesTaxMaster) {
             $product = Product::query()
                 ->with('unit')
                 ->where('tenant_id', TenantContext::currentId())
@@ -56,7 +66,7 @@ class RecalculatePurchaseTotalsAction
             $qty = round((float) ($item['qty'] ?? 0), 4);
             $unitCost = round((float) ($item['unit_cost'] ?? 0), 2);
             $discountTotal = round(max(0, (float) ($item['discount_total'] ?? 0)), 2);
-            $taxTotal = round(max(0, (float) ($item['tax_total'] ?? 0)), 2);
+            $taxTotal = $usesTaxMaster ? 0.0 : round(max(0, (float) ($item['tax_total'] ?? 0)), 2);
 
             if ($qty <= 0) {
                 throw ValidationException::withMessages([
@@ -105,16 +115,30 @@ class RecalculatePurchaseTotalsAction
             ];
         });
 
-        return $this->summaries($items, $data);
+        return $this->summaries($items, $data, $taxRate);
     }
 
-    private function summaries(Collection $items, array $data): array
+    private function summaries(Collection $items, array $data, ?FinanceTaxRate $taxRate = null): array
     {
         $subtotal = round($items->sum('line_subtotal'), 2);
         $discountTotal = round($items->sum('discount_total'), 2);
-        $taxTotal = round($items->sum('tax_total'), 2);
+        $taxCalculation = $taxRate
+            ? $this->transactionTaxService->calculate(
+                round($subtotal - $discountTotal, 2),
+                $taxRate,
+                'tax_rate_id'
+            )
+            : [
+                'tax_total' => round($items->sum('tax_total'), 2),
+                'taxable_base' => round($subtotal - $discountTotal, 2),
+                'is_auto_applied' => false,
+                'snapshot' => null,
+            ];
+        $taxTotal = round((float) $taxCalculation['tax_total'], 2);
         $landedCostTotal = round(max(0, (float) ($data['landed_cost_total'] ?? 0)), 2);
-        $grandTotal = round($items->sum('line_total') + $landedCostTotal, 2);
+        $grandTotal = $taxRate
+            ? round($subtotal - $discountTotal + $taxTotal + $landedCostTotal, 2)
+            : round($items->sum('line_total') + $landedCostTotal, 2);
 
         if ($grandTotal < 0) {
             throw ValidationException::withMessages([
@@ -136,6 +160,15 @@ class RecalculatePurchaseTotalsAction
                 'tax_total' => $taxTotal,
                 'landed_cost_total' => $landedCostTotal,
                 'grand_total' => $grandTotal,
+                'tax_rate_id' => $taxRate?->id,
+                'tax_auto_applied' => (bool) $taxCalculation['is_auto_applied'],
+                'tax_snapshot' => $taxCalculation['snapshot'],
+            ],
+            'tax_context' => [
+                'tax_rate_id' => $taxRate?->id,
+                'tax_total' => $taxTotal,
+                'is_auto_applied' => (bool) $taxCalculation['is_auto_applied'],
+                'tax_snapshot' => $taxCalculation['snapshot'],
             ],
         ];
     }

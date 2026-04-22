@@ -8,6 +8,87 @@
 - jangan membuat module baru yang terlalu generik seperti `foundation` atau `master-data`; owner module harus mengikuti domain yang benar.
 - selama fase sekarang, prioritas utama adalah fungsi bisnis yang usable; test coverage boleh menyusul, tetapi status verifikasi harus ditandai jelas.
 
+## Layer Big Picture
+Roadmap ini tidak boleh dibaca sebagai "semua item setara penting". Untuk menjaga arah produk tetap masuk akal, item harus dibaca per layer kematangan.
+
+### Layer 1: Foundation / Dasar
+Layer ini adalah batas minimum agar produk layak disebut sudah punya accounting operasional dasar.
+
+Isi utamanya:
+- transaksi inti `sales`, `purchases`, `payments`, `finance`
+- `products`, `contacts`, dan `inventory` sebagai source data operasional
+- auto journal dasar
+- manual journal
+- `draft vs posted`
+- trial balance
+- general ledger
+- balance sheet awal / provisional
+- tax master dasar
+- numbering dokumen lintas modul
+- workflow approval dasar per dokumen bila diperlukan tenant
+
+Prinsip layer ini:
+- fokus pada transaksi benar-benar tercatat
+- jurnal dan report dasar harus nyambung
+- PostgreSQL / Supabase-safe lebih penting daripada kosmetik
+- belum wajib punya kontrol internal tingkat enterprise
+
+### Layer 2: Operational / Menengah
+Layer ini membuat accounting bukan cuma "bisa jalan", tetapi nyaman dipakai harian dan siap diperluas.
+
+Isi utamanya:
+- document flow komersial dan procurement lebih lengkap
+- costing dan valuation makin akurat
+- rekonsiliasi inventory ke GL
+- tax workflow yang lebih formal
+- bank reconciliation formal
+- drill-down auditability
+- reversal journal formal
+- report yang lebih konsisten dan tidak terlalu bergantung fallback
+
+Prinsip layer ini:
+- menutup gap bisnis yang paling sering bikin angka operasional dan angka accounting tidak sinkron
+- membuat user tidak perlu kerja manual terlalu banyak di luar sistem
+
+### Layer 3: Control & Governance / Lengkap
+Layer ini adalah level kontrol formal. Ini penting, tetapi bukan syarat agar fondasi accounting dianggap sudah ada.
+
+Isi utamanya:
+- `maker-checker`
+- approval matrix lintas modul
+- control backdate / override / write-off
+- separation of duties
+- closing governance yang lebih formal
+- audit trail sensitif dan monitoring exception yang lebih kuat
+
+Prinsip layer ini:
+- layer ini menaikkan maturity governance
+- jangan tarik item layer ini ke depan sebelum gap foundation dan operational yang kritikal tertutup
+
+## Fokus Big Picture Saat Ini
+Untuk fase sekarang, fokus utama bukan menambah fitur pinggiran, tetapi menutup gap besar yang masih menghambat bentuk accounting yang utuh.
+
+### Fondasi yang sudah cukup kuat
+- GL dasar sudah ada: manual journal, posted journal, trial balance, ledger, neraca awal
+- inventory costing dasar sudah mulai ada: moving average snapshot, stock valuation, auto COGS journal
+- tax dasar sudah ada: master tax, mapping akun pajak, tax profile partner, rekap dasar
+- document lifecycle dasar sudah ada: quotation, sales order, purchase request, purchase order, approval rule per dokumen
+
+### Gap big picture yang masih paling penting
+- `inventory costing` belum lengkap untuk edge case procurement, return, adjustment, dan rekonsiliasi ke GL
+- `bank reconciliation formal` fondasinya sekarang sudah mulai ada, dan import mutasi + suggested matching awal sudah mencakup payment serta finance transaction dasar; exception handling dasar untuk line yang tidak bisa dimatch juga sudah mulai ada, format import bank umum dan duplicate candidate dasar juga sudah mulai ditangani, tetapi matching lintas source yang lebih kaya dan rule yang lebih cerdas masih belum ada
+- `tax workflow formal` sekarang sudah punya fondasi inti Indonesia-ready lewat tax scope master, metadata legal, tax register formal untuk PPN/PPh dasar, draft export CSV untuk register serta e-Faktur awal, auto-generate register dasar dari sale/purchase bertax, dan numbering dokumen pajak formal; tetapi export perpajakan final, e-Faktur resmi, dan automation yang lebih dalam masih belum lengkap
+- `commercial document flow` sudah ada fondasi, tetapi belum sepenuhnya matang sebagai flow operasional penuh
+- `balance sheet` masih belum closing-grade, tetapi sekarang klasifikasi sudah lebih kuat karena mulai memakai metadata + parent grouping COA dan membawa current earnings sementara ke equity
+
+### Yang belum perlu didorong ke depan
+- `maker-checker` formal
+- approval matrix lintas modul penuh
+- governance enterprise lain yang berguna, tetapi berada di layer lengkap
+
+Artinya:
+- jika masih ada gap besar di costing, reconciliation, tax formal, dan document flow, maka area itu harus diprioritaskan sebelum kontrol enterprise lanjutan
+
 ## Aturan Eksekusi Hemat Token
 Agar pengerjaan tetap hemat API credit / token dan tidak boros konteks, eksekusi roadmap dilakukan per batch domain, bukan menyapu semua item kecil secara paralel.
 
@@ -64,8 +145,8 @@ Bagian ini khusus untuk membedakan:
 - [ ] migrate + smoke test inventory valuation columns terhadap database target
 - [ ] migrate + smoke test tax master dan tax profile partner terhadap database target
 - [ ] verifikasi purchase receipt, opening stock, transfer, adjustment, dan return terhadap moving average hasil nyata
-- [ ] integrasi auto-apply tax master ke draft sales dan purchases
-- [ ] rekap pajak formal per tax code, bukan hanya total sales/purchase tax
+- [x] integrasi auto-apply tax master ke draft sales dan purchases
+- [x] rekap pajak formal per tax code, bukan hanya total sales/purchase tax
 
 ## Rencana Module Ownership
 Bagian ini menjelaskan rencana penempatan fitur agar pengembangan accounting tidak berubah menjadi kumpulan module acak tanpa boundary.
@@ -157,6 +238,8 @@ Checklist ini memetakan proses accounting end-to-end agar roadmap tidak berhenti
 ### 1. Master Data / Foundation
 - [-] `chart of accounts (COA)` formal ringan sudah ada, tetapi masih perlu pendalaman mapping dan governance lanjutan
   owner module: `finance` dulu, kandidat pindah ke `accounting` jika domain formal membesar
+- [x] fondasi `document numbering rules` lintas dokumen dengan scope `company -> branch override` sudah disiapkan untuk ekspansi jangka panjang
+  owner module: core settings + owner module dokumen masing-masing
 - [x] `customer / supplier`
   owner module: `contacts`
 - [x] `produk / inventory`
@@ -171,9 +254,9 @@ Checklist ini memetakan proses accounting end-to-end agar roadmap tidak berhenti
   owner module: `contacts`
 
 ### 2. Sales / Penjualan
-- [ ] `quotation`
+- [x] `quotation`
   owner module: `sales`
-- [ ] `sales order`
+- [x] `sales order`
   owner module: `sales`
 - [-] `invoice / sale` dasar sudah ada, tetapi flow dokumen komersial penuh belum lengkap
   owner module: `sales`
@@ -185,11 +268,13 @@ Checklist ini memetakan proses accounting end-to-end agar roadmap tidak berhenti
   owner module: `sales` + `payments`, report turunannya di `reports`
 - [-] `revenue posting` otomatis dasar sudah ada lewat auto journal, tetapi flow accounting formal masih perlu diperdalam
   owner module: `finance` untuk journal governance, `reports` untuk output laporan
+- [-] `sales return` sekarang sudah membuat journal reversal revenue saat finalized dan reversal inventory/COGS saat restock inventory terjadi, tetapi write-off/credit memo formal masih belum lengkap
+  owner module: `sales` untuk source document, `finance` untuk journal governance
 
 ### 3. Purchase / Pembelian
-- [ ] `purchase request`
+- [x] `purchase request`
   owner module: `purchases`
-- [ ] `purchase order`
+- [x] `purchase order`
   owner module: `purchases`
 - [-] `bill / invoice supplier` dasar sudah ada lewat purchase draft/finalize, tetapi flow procurement formal belum lengkap
   owner module: `purchases`
@@ -197,7 +282,7 @@ Checklist ini memetakan proses accounting end-to-end agar roadmap tidak berhenti
   owner module: `payments`
 - [-] `hutang` dasar sudah ada, tetapi kontrol write-off, debit note, dan settlement penuh belum lengkap
   owner module: `purchases` + `payments`, report turunannya di `reports`
-- [-] `biaya / inventory posting` dasar sudah ada, tetapi kontrol accounting formal masih perlu diperdalam
+- [-] `biaya / inventory posting` sekarang sudah mencakup purchase finalized ke `PURCHASES` dan purchase receipt reclass ke `INVENTORY`, tetapi kontrol accounting formal masih perlu diperdalam
   owner module: `finance` untuk journal governance, `inventory` untuk valuation source
 
 ### 4. Inventory
@@ -209,21 +294,25 @@ Checklist ini memetakan proses accounting end-to-end agar roadmap tidak berhenti
   owner module: `inventory`
 - [-] `HPP / costing method` awal `moving average` untuk valuation stock snapshot sudah mulai ada
   owner module: `inventory`, jurnal turunannya di `finance`
-- [-] `stock valuation` dasar per stock/location/report sudah mulai ada, tetapi rekonsiliasi formal ke GL belum selesai
+- [-] `stock valuation` dasar per stock/location/report sudah mulai ada, dan rekonsiliasi inventory vs GL sekarang sudah punya panel agregat + detail per source document; purchase receipt, opening stock, stock adjustment, dan sales return restock sudah terhubung, tetapi posting inventory edge case lain masih belum lengkap
   owner module: `inventory`, report di `reports`
-- [ ] `COGS journal` otomatis yang konsisten dari pergerakan inventory ke penjualan
+- [x] `COGS journal` otomatis saat sale finalized bila sale membawa konteks `inventory_location_id`, memakai moving average inventory sebagai source valuasi
   owner module: `finance`, source movement tetap dari `inventory`
+- [-] `stock adjustment` sekarang sudah membuat journal inventory adjustment saat finalized, tetapi opening stock, sales return, dan procurement edge case lain masih perlu ditutup
+  owner module: `inventory` untuk movement source, `finance` untuk journal governance
+- [-] `opening stock` sekarang sudah membuat journal opening inventory ke `INVENTORY` vs `OPENING_BAL_EQUITY`, tetapi procurement edge case lanjutan dan flow inventory lain masih perlu ditutup
+  owner module: `inventory` untuk movement source, `finance` untuk journal governance
 
 ### 5. Cash & Bank
 - [x] `kas masuk / keluar`
   owner module: `finance`
 - [x] `transfer antar rekening`
   owner module: `finance`
-- [-] `rekonsiliasi bank` dasar mulai ada lewat reconciliation status, tetapi belum formal
+- [-] `rekonsiliasi bank` sekarang sudah punya sesi reconciliation formal per finance account dan periode, candidate payment dari payment method yang dipetakan ke account, import bank statement, manual override match ke payment atau finance transaction, status `exception/ignored` dasar per statement line, serta duplicate candidate dasar saat import; namun matching formal lintas source dan exception handling lanjutan belum lengkap
   owner module: `payments` + `finance`
-- [ ] `import mutasi bank`
+- [-] `import mutasi bank` dasar CSV/XLSX ke sesi reconciliation sudah ada, dan alias header tanggal/amount/debit/credit dasar mulai didukung; tetapi normalisasi format bank yang lebih kaya masih belum lengkap
   owner module: `finance`
-- [ ] `matching bank statement` ke payment / finance transaction
+- [-] `matching bank statement` ke payment dan finance transaction dasar sudah mulai ada, termasuk manual override per line, suggestion lintas source dasar, dan duplicate candidate dasar; exception status dasar juga sudah mulai ada, tetapi matching lintas source yang lebih kaya, rule scoring yang lebih cerdas, dan exception handling lanjutan belum lengkap
   owner module: `payments` + `finance`
 
 ### 6. General Ledger / Jurnal
@@ -235,13 +324,13 @@ Checklist ini memetakan proses accounting end-to-end agar roadmap tidak berhenti
   owner module: `finance`
 - [x] `draft vs posted journal` yang formal
   owner module: `finance`
-- [ ] `reversal journal`
+- [x] `reversal journal`
   owner module: `finance`
 - [x] `trial balance`
   owner module: `reports` untuk output, dengan governance source di `finance`
 - [x] `general ledger / buku besar` formal dengan drill-down
   owner module: `reports` untuk output, dengan governance source di `finance`
-- [-] `balance sheet / neraca` yang berbasis GL dengan dukungan COA ringan, tetapi belum closing-grade
+- [-] `balance sheet / neraca` yang berbasis GL dengan dukungan COA ringan, parent grouping COA, dan current earnings sementara ke equity, tetapi belum closing-grade
   owner module: `reports` untuk output, dengan governance source di `finance`
 
 ### 7. Reporting
@@ -257,7 +346,7 @@ Checklist ini memetakan proses accounting end-to-end agar roadmap tidak berhenti
   owner module: `reports`
 - [x] `trial balance`
   owner module: `reports`
-- [ ] `drill-down report` dari laporan ke jurnal dan dokumen sumber
+- [x] `drill-down report` dari laporan ke jurnal dan dokumen sumber
   owner module: `reports`
 
 ### 8. Tax / Pajak
@@ -269,11 +358,11 @@ Checklist ini memetakan proses accounting end-to-end agar roadmap tidak berhenti
   owner module: kandidat `tax` bila domain sudah formal
 - [-] `PPN masukan`
   owner module: kandidat `tax` bila domain sudah formal
-- [ ] `PPh / withholding tax`
+- [-] `PPh / withholding tax`
   owner module: kandidat `tax`
 - [-] `NPWP customer / supplier`
   owner module: `contacts`
-- [ ] `faktur pajak`
+- [-] `faktur pajak`
   owner module: kandidat `tax`
 - [ ] `export / integrasi e-Faktur`
   owner module: kandidat `tax`
@@ -293,20 +382,20 @@ Masih banyak pekerjaan, tetapi bukan berarti fondasinya kosong. Yang paling besa
 
 ### Paling krusial
 - [-] `COA + GL formal` fondasi awal sudah ada, tetapi masih butuh reversal, mapping lebih kaya, dan closing governance
-- [ ] `inventory costing / HPP formal` agar penjualan barang benar-benar masuk ke accounting
-- [-] `tax management` fondasi master dan rekap dasar sudah ada, tetapi auto-apply dan lifecycle formal belum lengkap
+- [-] `inventory costing / HPP formal` fondasi makin lengkap karena purchase receipt, opening stock, adjustment, sale COGS, dan sales return restock sudah masuk GL; namun coverage edge case dan governance costing masih belum penuh
+- [-] `tax management` fondasi master dan rekap dasar sudah ada, tax scope Indonesia-ready, tax register formal dasar, draft export CSV awal, auto-generate register dari sale/purchase bertax, dan numbering dokumen pajak formal juga sudah ada; tetapi lifecycle formal penuh dan integrasi resmi masih belum lengkap
 
 ### Perlu segera setelah fondasi
-- [ ] `sales document flow` lengkap: quotation -> sales order -> invoice -> receive payment -> return
-- [ ] `purchase document flow` lengkap: purchase request -> purchase order -> supplier bill -> payment
-- [ ] `bank reconciliation` formal
-- [ ] `reporting formal` seperti neraca, trial balance, buku besar
+- [-] `sales document flow` mulai ada lewat quotation -> draft sale, tetapi sales order dan lifecycle penuh masih belum lengkap
+- [-] `purchase document flow` mulai ada lewat purchase request -> purchase order -> draft purchase, tetapi approval/lifecycle penuh masih belum lengkap
+- [-] `bank reconciliation` formal dasar per account/periode sudah ada, termasuk import statement, suggested matching lintas source awal, duplicate candidate dasar, dan manual override per line; tetapi matching lintas source dan exception flow belum lengkap
+- [-] `reporting formal` seperti neraca, trial balance, buku besar
 
 ### Penguat operasional dan kontrol
 - [-] `manual journal`, `reversal`, dan `posted journal control`
 - [ ] `approval matrix` lintas modul
 - [ ] `maker-checker` untuk aksi berisiko tinggi
-- [ ] `drill-down auditability` dari report -> journal -> source document
+- [x] `drill-down auditability` dari report -> journal -> source document
 
 ## Prioritas 1
 ### Products
@@ -374,7 +463,7 @@ Masih banyak pekerjaan, tetapi bukan berarti fondasinya kosong. Yang paling besa
 - [-] COA formal ringan yang bisa dikelola tenant tanpa hardcode struktur akun
 - [x] manual journal yang lengkap dengan debit/credit validation
 - [x] status journal `draft` vs `posted`
-- [ ] reversal journal dan pembatalan yang audit-safe
+- [x] reversal journal dan pembatalan yang audit-safe
 - [x] trial balance
 - [x] buku besar / general ledger dengan filter akun, periode, company, branch
 - [-] neraca berbasis GL + COA ringan
@@ -382,16 +471,18 @@ Masih banyak pekerjaan, tetapi bukan berarti fondasinya kosong. Yang paling besa
 ### Inventory Costing
 - [-] pilih dan implementasikan metode costing awal, saat ini `moving average` dasar untuk snapshot valuation
 - [x] stock valuation report dasar
-- [ ] auto journal HPP / COGS saat sale finalized
-- [ ] rekonsiliasi inventory value vs akun persediaan di GL
+- [x] auto journal HPP / COGS saat sale finalized
+- [-] rekonsiliasi inventory value vs akun persediaan di GL sudah punya panel agregat + detail per source document, dan posting inventory dari purchase receipt sekarang sudah formal; tetapi gap posting edge case lain masih perlu ditutup
+- [-] stock adjustment sudah punya auto journal ke `INVENTORY` vs `INV_ADJ_GAIN` / `INV_ADJ_LOSS`, tetapi edge case inventory lain masih belum lengkap
+- [-] opening stock sudah punya auto journal ke `INVENTORY` vs `OPENING_BAL_EQUITY`, tetapi edge case inventory lain masih belum lengkap
 
 ### Tax
 - [-] master pajak dan tax rate
-- [ ] mapping pajak ke sales dan purchases
+- [x] mapping pajak ke sales dan purchases
 - [-] akun pajak keluaran dan masukan
 - [-] NPWP customer / supplier
 - [-] rekap pajak per periode
-- [ ] draft struktur faktur pajak / export data pajak
+- [-] draft struktur faktur pajak / export data pajak
 
 ## Prioritas 5
 ### Sales & Purchase Document Flow
@@ -399,19 +490,19 @@ Masih banyak pekerjaan, tetapi bukan berarti fondasinya kosong. Yang paling besa
 - [ ] sales order
 - [ ] purchase request
 - [ ] purchase order
-- [ ] status lifecycle dokumen yang konsisten dari pre-transaction ke invoice / bill
-- [ ] approval per dokumen sebelum finalize bila dibutuhkan
+- [x] status lifecycle dokumen yang konsisten dari pre-transaction ke invoice / bill
+- [x] approval per dokumen sebelum finalize atau convert bisa diatur dari settings dokumen
 
 ### Cash & Bank
-- [ ] bank reconciliation formal
-- [ ] import mutasi bank
-- [ ] auto matching mutasi ke payment / finance transaction
-- [ ] outstanding unreconciled transaction view
+- [-] bank reconciliation formal
+- [-] import mutasi bank
+- [-] auto matching mutasi ke payment / finance transaction
+- [x] outstanding unreconciled transaction view
 
 ### Controls & Audit
 - [ ] approval matrix lintas modul
 - [ ] maker-checker untuk void, edit nominal besar, backdate, write-off
-- [ ] drill-down dari laporan ke jurnal dan dokumen sumber
+- [x] drill-down dari laporan ke jurnal dan dokumen sumber
 - [ ] penguatan audit trail untuk perubahan master data sensitif
 
 ## Dampak ke Plan / Pricing
@@ -433,8 +524,8 @@ Implikasi:
 5. [x] `purchases`: landed cost, expected receive date, supplier bill tracking
 6. [x] `reports`: arus kas, aging, laba rugi sederhana
 7. [-] `GL / COA formal`: manual journal, trial balance, buku besar, neraca provisional
-8. [-] `inventory costing`: moving average dasar dan stock valuation sudah mulai ada, auto journal HPP belum
-9. [-] `tax`: master pajak dasar, NPWP/tax profile partner, dan rekap pajak dasar sudah ada
+8. [-] `inventory costing`: moving average dasar, stock valuation, dan auto journal HPP dari sale ber-location sudah ada; rekonsiliasi inventory ke GL masih tersisa
+9. [-] `tax`: master pajak dasar, NPWP/tax profile partner, rekap pajak dasar, tax scope Indonesia-ready, tax register formal dasar, auto-generate register dari sale/purchase bertax, dan numbering dokumen pajak formal sudah ada
 10. [ ] `document flow`: quotation, sales order, purchase request, purchase order
-11. [ ] `cash & bank`: bank reconciliation formal dan import mutasi
+11. [-] `cash & bank`: bank reconciliation formal dasar, import mutasi dengan normalisasi header dasar, suggested matching lintas source awal, manual override dasar, outstanding unreconciled view, duplicate candidate dasar, dan exception status dasar sudah ada; flow exception dan matching lanjutan masih belum
 12. [ ] `controls`: approval matrix, maker-checker, audit drill-down

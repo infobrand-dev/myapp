@@ -17,6 +17,14 @@
                     },
     "navigation":  [
                        {
+                           "label":  "Sales Orders",
+                           "route":  "sales.orders.index"
+                       },
+                       {
+                           "label":  "Quotations",
+                           "route":  "sales.quotations.index"
+                       },
+                       {
                            "label":  "Sales",
                            "route":  "sales.index"
                        },

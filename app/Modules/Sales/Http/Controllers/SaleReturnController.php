@@ -3,6 +3,7 @@
 namespace App\Modules\Sales\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\AccountingJournal;
 use App\Modules\Sales\Actions\CancelDraftReturnAction;
 use App\Modules\Sales\Actions\CreateSalesReturnAction;
 use App\Modules\Sales\Actions\FinalizeSalesReturnAction;
@@ -89,8 +90,18 @@ class SaleReturnController extends Controller
             );
         }
 
+        $saleReturn = $this->repository->findForDetail($saleReturn);
+        $journals = AccountingJournal::query()
+            ->where('tenant_id', $saleReturn->tenant_id)
+            ->where('company_id', $saleReturn->company_id)
+            ->where('source_type', SaleReturn::class)
+            ->where('source_id', $saleReturn->id)
+            ->orderBy('entry_date')
+            ->get();
+
         return view('sales::returns.show', [
-            'saleReturn' => $this->repository->findForDetail($saleReturn),
+            'saleReturn' => $saleReturn,
+            'journals' => $journals,
             'statusOptions' => $this->lookupService->statusOptions(),
             'refundStatusOptions' => $this->lookupService->refundStatusOptions(),
             'inventoryStatusOptions' => $this->lookupService->inventoryStatusOptions(),

@@ -4,6 +4,8 @@ namespace App\Modules\Sales\Actions;
 
 use App\Models\AccountingJournal;
 use App\Models\User;
+use App\Modules\Inventory\Models\StockMovement;
+use App\Modules\Inventory\Services\StockMutationService;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Sales\Events\SaleVoided;
 use App\Modules\Sales\Models\Sale;
@@ -14,6 +16,7 @@ use App\Support\CompanyContext;
 use App\Support\SensitiveActionApprovalService;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class VoidSaleAction
@@ -105,30 +108,9 @@ class VoidSaleAction
                 ],
             ]);
 
-            $originalJournal = AccountingJournal::query()
-                ->where('tenant_id', TenantContext::currentId())
-                ->where('company_id', CompanyContext::currentId())
-                ->where('entry_type', 'sale_finalized')
-                ->where('source_type', Sale::class)
-                ->where('source_id', $sale->id)
-                ->with('lines')
-                ->first();
-
-            if ($originalJournal && $originalJournal->lines->isNotEmpty()) {
-                $this->journalService->sync(
-                    $sale,
-                    'sale_void',
-                    now(),
-                    $originalJournal->lines->map(fn ($line) => [
-                        'account_code' => $line->account_code,
-                        'account_name' => $line->account_name,
-                        'debit' => (float) $line->credit,
-                        'credit' => (float) $line->debit,
-                    ])->all(),
-                    ['reason' => $reason],
-                    'Reversal journal sale void ' . $sale->sale_number
-                );
-            }
+            $this->restoreInventory($sale, $reason, $actor);
+            $this->reverseJournal($sale, 'sale_finalized', 'sale_void', $reason, 'Reversal journal sale void ');
+            $this->reverseJournal($sale, 'sale_cogs', 'sale_cogs_void', $reason, 'Reversal journal COGS void ');
 
             return $sale->load('voidLogs', 'statusHistories');
         });
@@ -136,5 +118,80 @@ class VoidSaleAction
         event(new SaleVoided($sale));
 
         return $sale;
+    }
+
+    private function reverseJournal(Sale $sale, string $entryType, string $reversalEntryType, string $reason, string $descriptionPrefix): void
+    {
+        $originalJournal = AccountingJournal::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
+            ->where('entry_type', $entryType)
+            ->where('source_type', Sale::class)
+            ->where('source_id', $sale->id)
+            ->with('lines')
+            ->first();
+
+        if (!$originalJournal || $originalJournal->lines->isEmpty()) {
+            return;
+        }
+
+        $this->journalService->sync(
+            $sale,
+            $reversalEntryType,
+            now(),
+            $originalJournal->lines->map(fn ($line) => [
+                'account_code' => $line->account_code,
+                'account_name' => $line->account_name,
+                'debit' => (float) $line->credit,
+                'credit' => (float) $line->debit,
+            ])->all(),
+            ['reason' => $reason],
+            $descriptionPrefix . $sale->sale_number
+        );
+    }
+
+    private function restoreInventory(Sale $sale, string $reason, ?User $actor = null): void
+    {
+        if (!class_exists(StockMutationService::class)
+            || !class_exists(StockMovement::class)
+            || !Schema::hasTable('inventory_stock_movements')
+        ) {
+            return;
+        }
+
+        /** @var StockMutationService $stockMutation */
+        $stockMutation = app(StockMutationService::class);
+
+        $movements = StockMovement::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
+            ->where('reference_type', Sale::class)
+            ->where('reference_id', $sale->id)
+            ->where('movement_type', 'sale_finalized')
+            ->where('direction', 'out')
+            ->get();
+
+        foreach ($movements as $movement) {
+            $stockMutation->record([
+                'product_id' => $movement->product_id,
+                'product_variant_id' => $movement->product_variant_id,
+                'inventory_location_id' => $movement->inventory_location_id,
+                'movement_type' => 'sale_void_restore',
+                'direction' => 'in',
+                'quantity' => (float) $movement->quantity,
+                'unit_cost' => (float) $movement->unit_cost,
+                'reference_type' => $sale->getMorphClass(),
+                'reference_id' => $sale->getKey(),
+                'reason_code' => 'sale_void_restore',
+                'reason_text' => $reason,
+                'occurred_at' => now(),
+                'performed_by' => $actor ? $actor->id : null,
+                'approved_by' => $actor ? $actor->id : null,
+                'meta' => [
+                    'reversed_movement_id' => $movement->id,
+                    'sale_number' => $sale->sale_number,
+                ],
+            ]);
+        }
     }
 }

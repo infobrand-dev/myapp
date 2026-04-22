@@ -3,6 +3,8 @@
 namespace App\Modules\Payments\Http\Requests;
 
 use App\Modules\Payments\Models\PaymentMethod;
+use App\Support\CompanyContext;
+use App\Support\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -27,6 +29,10 @@ class StorePaymentMethodRequest extends FormRequest
                 PaymentMethod::TYPE_QRIS,
                 PaymentMethod::TYPE_MANUAL,
             ])],
+            'finance_account_id' => ['nullable', 'integer', Rule::exists('finance_accounts', 'id')->where(function ($query) {
+                $query->where('tenant_id', TenantContext::currentId())
+                    ->where('company_id', CompanyContext::currentId());
+            })],
             'requires_reference' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],

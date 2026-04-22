@@ -52,28 +52,54 @@
             $badgeClass = $journal->status === 'posted' ? 'bg-green-lt text-green' : 'bg-yellow-lt text-yellow';
             $debitTotal = (float) $journal->lines->sum('debit');
             $creditTotal = (float) $journal->lines->sum('credit');
+            $sourceReference = $sourceReferences[$journal->id] ?? [];
         @endphp
         <div class="card mb-3">
             <div class="card-header d-flex justify-content-between align-items-start gap-3 flex-wrap">
                 <div>
-                    <div class="fw-bold">{{ $journal->entry_type }} - {{ $journal->journal_number ?? 'Auto' }}</div>
+                    <div class="fw-bold">
+                        <a href="{{ route('finance.journals.show', $journal->id) }}">{{ $journal->entry_type }} - {{ $journal->journal_number ?? 'Auto' }}</a>
+                    </div>
                     <div class="text-muted small">{{ optional($journal->entry_date)->format('Y-m-d H:i') }} | {{ $journal->description }}</div>
+                    <div class="text-muted small mt-1">
+                        Source:
+                        @if($sourceReference['source_url'] ?? false)
+                            <a href="{{ $sourceReference['source_url'] }}">{{ $sourceReference['source_label'] }}</a>
+                        @else
+                            {{ $sourceReference['source_label'] ?? '-' }}
+                        @endif
+                    </div>
                     <div class="mt-2">
                         <span class="badge {{ $badgeClass }}">{{ strtoupper($journal->status) }}</span>
                         @if(($journal->meta['manual'] ?? false) === true)
                             <span class="badge bg-blue-lt text-blue">MANUAL</span>
+                        @endif
+                        @if($journal->reversal_of_journal_id)
+                            <span class="badge bg-red-lt text-red">REVERSAL</span>
+                        @elseif(!$journal->canBeReversed())
+                            <span class="badge bg-secondary-lt text-secondary">REVERSED</span>
                         @endif
                     </div>
                 </div>
                 @can('finance.manage-journal')
                     @if($journal->entry_type === 'manual')
                         <div class="d-flex gap-2">
+                            <a href="{{ route('finance.journals.show', $journal->id) }}" class="btn btn-outline-secondary btn-sm">View</a>
                             @if($journal->status !== 'posted')
                                 <a href="{{ route('finance.journals.edit', $journal->id) }}" class="btn btn-outline-primary btn-sm">Edit</a>
                                 <form method="POST" action="{{ route('finance.journals.post', $journal->id) }}">
                                     @csrf
                                     <button type="submit" class="btn btn-primary btn-sm">Post</button>
                                 </form>
+                            @elseif($journal->canBeReversed())
+                                <a href="{{ route('finance.journals.show', $journal->id) }}#journal-reverse-form" class="btn btn-outline-danger btn-sm">Reverse</a>
+                            @endif
+                        </div>
+                    @else
+                        <div class="d-flex gap-2">
+                            <a href="{{ route('finance.journals.show', $journal->id) }}" class="btn btn-outline-secondary btn-sm">View</a>
+                            @if($journal->canBeReversed())
+                                <a href="{{ route('finance.journals.show', $journal->id) }}#journal-reverse-form" class="btn btn-outline-danger btn-sm">Reverse</a>
                             @endif
                         </div>
                     @endif

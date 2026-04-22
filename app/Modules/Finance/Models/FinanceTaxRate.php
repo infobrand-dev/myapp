@@ -17,6 +17,14 @@ class FinanceTaxRate extends Model
     public const TYPE_WITHHOLDING = 'withholding';
     public const TYPE_OTHER = 'other';
 
+    public const SCOPE_GENERAL = 'general';
+    public const SCOPE_PPN_OUTPUT = 'ppn_output';
+    public const SCOPE_PPN_INPUT = 'ppn_input';
+    public const SCOPE_PPH_21 = 'pph_21';
+    public const SCOPE_PPH_23 = 'pph_23';
+    public const SCOPE_PPH_22 = 'pph_22';
+    public const SCOPE_PPH_FINAL = 'pph_final';
+
     protected $table = 'finance_tax_rates';
 
     protected $fillable = [
@@ -25,11 +33,18 @@ class FinanceTaxRate extends Model
         'code',
         'name',
         'tax_type',
+        'tax_scope',
+        'jurisdiction_code',
+        'legal_basis',
+        'document_label',
+        'requires_tax_number',
+        'requires_counterparty_tax_id',
         'rate_percent',
         'is_inclusive',
         'is_active',
         'sales_account_code',
         'purchase_account_code',
+        'withholding_account_code',
         'description',
         'created_by',
         'updated_by',
@@ -37,6 +52,8 @@ class FinanceTaxRate extends Model
 
     protected $casts = [
         'rate_percent' => 'decimal:4',
+        'requires_tax_number' => 'boolean',
+        'requires_counterparty_tax_id' => 'boolean',
         'is_inclusive' => 'boolean',
         'is_active' => 'boolean',
     ];
@@ -61,6 +78,19 @@ class FinanceTaxRate extends Model
             self::TYPE_PURCHASE => 'Purchase Tax / PPN Masukan',
             self::TYPE_WITHHOLDING => 'Withholding / PPh',
             self::TYPE_OTHER => 'Other',
+        ];
+    }
+
+    public static function taxScopeOptions(): array
+    {
+        return [
+            self::SCOPE_GENERAL => 'General',
+            self::SCOPE_PPN_OUTPUT => 'PPN Keluaran',
+            self::SCOPE_PPN_INPUT => 'PPN Masukan',
+            self::SCOPE_PPH_21 => 'PPh 21',
+            self::SCOPE_PPH_23 => 'PPh 23',
+            self::SCOPE_PPH_22 => 'PPh 22',
+            self::SCOPE_PPH_FINAL => 'PPh Final',
         ];
     }
 }

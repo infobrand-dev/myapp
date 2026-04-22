@@ -3,6 +3,7 @@
 namespace App\Modules\Inventory\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\AccountingJournal;
 use App\Modules\Inventory\Actions\CreateStockAdjustmentAction;
 use App\Modules\Inventory\Actions\FinalizeStockAdjustmentAction;
 use App\Modules\Inventory\Http\Requests\StoreStockAdjustmentRequest;
@@ -61,15 +62,25 @@ class StockAdjustmentController extends Controller
 
     public function show(StockAdjustment $adjustment): View
     {
+        $adjustment->load([
+            'location',
+            'creator',
+            'finalizer',
+            'items.product',
+            'items.variant',
+            'items.movement',
+        ]);
+
+        $journal = AccountingJournal::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
+            ->where('source_type', StockAdjustment::class)
+            ->where('source_id', $adjustment->id)
+            ->first();
+
         return view('inventory::adjustments.show', [
-            'adjustment' => $adjustment->load([
-                'location',
-                'creator',
-                'finalizer',
-                'items.product',
-                'items.variant',
-                'items.movement',
-            ]),
+            'adjustment' => $adjustment,
+            'journal' => $journal,
         ]);
     }
 

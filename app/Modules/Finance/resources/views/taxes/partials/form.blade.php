@@ -23,14 +23,45 @@
             </select>
             @error('tax_type') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>
+        <div class="col-md-4">
+            <label class="form-label">Tax Scope</label>
+            <select name="tax_scope" class="form-select @error('tax_scope') is-invalid @enderror">
+                @foreach($taxScopeOptions as $value => $label)
+                    <option value="{{ $value }}" @selected(old('tax_scope', $taxRate->tax_scope ?: \App\Modules\Finance\Models\FinanceTaxRate::SCOPE_GENERAL) === $value)>{{ $label }}</option>
+                @endforeach
+            </select>
+            @error('tax_scope') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
     @else
         <input type="hidden" name="tax_type" value="{{ old('tax_type', $taxRate->tax_type ?: \App\Modules\Finance\Models\FinanceTaxRate::TYPE_SALES) }}">
+        <input type="hidden" name="tax_scope" value="{{ old('tax_scope', $taxRate->tax_scope ?: \App\Modules\Finance\Models\FinanceTaxRate::SCOPE_GENERAL) }}">
     @endif
     <div class="col-md-4">
         <label class="form-label">Rate %</label>
         <input type="number" min="0" max="100" step="0.0001" name="rate_percent" class="form-control @error('rate_percent') is-invalid @enderror" value="{{ old('rate_percent', $taxRate->rate_percent ?: 0) }}" required>
         @error('rate_percent') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
+    @if($isAdvancedMode)
+        <div class="col-md-4">
+            <label class="form-label">Jurisdiction</label>
+            <input type="text" name="jurisdiction_code" class="form-control @error('jurisdiction_code') is-invalid @enderror" value="{{ old('jurisdiction_code', $taxRate->jurisdiction_code ?: 'ID') }}">
+            @error('jurisdiction_code') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Legal Basis</label>
+            <input type="text" name="legal_basis" class="form-control @error('legal_basis') is-invalid @enderror" value="{{ old('legal_basis', $taxRate->legal_basis) }}" placeholder="Contoh: PPN 11% / PPh 23">
+            @error('legal_basis') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Document Label</label>
+            <input type="text" name="document_label" class="form-control @error('document_label') is-invalid @enderror" value="{{ old('document_label', $taxRate->document_label) }}" placeholder="Contoh: Faktur Pajak / Bukti Potong">
+            @error('document_label') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
+    @else
+        <input type="hidden" name="jurisdiction_code" value="{{ old('jurisdiction_code', $taxRate->jurisdiction_code ?: 'ID') }}">
+        <input type="hidden" name="legal_basis" value="{{ old('legal_basis', $taxRate->legal_basis) }}">
+        <input type="hidden" name="document_label" value="{{ old('document_label', $taxRate->document_label) }}">
+    @endif
     <div class="col-md-4 d-flex align-items-end">
         <div class="w-100">
             <label class="form-label d-block">Status</label>
@@ -43,8 +74,18 @@
                     <input class="form-check-input" type="checkbox" name="is_inclusive" value="1" {{ old('is_inclusive', $taxRate->is_inclusive ?? false) ? 'checked' : '' }}>
                     <span class="form-check-label">Tax Inclusive</span>
                 </label>
+                <label class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" name="requires_tax_number" value="1" {{ old('requires_tax_number', $taxRate->requires_tax_number ?? false) ? 'checked' : '' }}>
+                    <span class="form-check-label">Butuh nomor dokumen pajak</span>
+                </label>
+                <label class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" name="requires_counterparty_tax_id" value="1" {{ old('requires_counterparty_tax_id', $taxRate->requires_counterparty_tax_id ?? false) ? 'checked' : '' }}>
+                    <span class="form-check-label">Butuh NPWP/NIK lawan transaksi</span>
+                </label>
             @else
                 <input type="hidden" name="is_inclusive" value="{{ old('is_inclusive', $taxRate->is_inclusive ?? false) ? 1 : 0 }}">
+                <input type="hidden" name="requires_tax_number" value="{{ old('requires_tax_number', $taxRate->requires_tax_number ?? false) ? 1 : 0 }}">
+                <input type="hidden" name="requires_counterparty_tax_id" value="{{ old('requires_counterparty_tax_id', $taxRate->requires_counterparty_tax_id ?? false) ? 1 : 0 }}">
             @endif
         </div>
     </div>
@@ -69,6 +110,16 @@
             </select>
             @error('purchase_account_code') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>
+        <div class="col-md-6">
+            <label class="form-label">Withholding Tax Account</label>
+            <select name="withholding_account_code" class="form-select @error('withholding_account_code') is-invalid @enderror">
+                <option value="">None</option>
+                @foreach($chartOfAccountOptions as $account)
+                    <option value="{{ $account->code }}" @selected(old('withholding_account_code', $taxRate->withholding_account_code) === $account->code)>{{ $account->code }} - {{ $account->name }}</option>
+                @endforeach
+            </select>
+            @error('withholding_account_code') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
         <div class="col-12">
             <label class="form-label">Description</label>
             <textarea name="description" class="form-control @error('description') is-invalid @enderror" rows="3">{{ old('description', $taxRate->description) }}</textarea>
@@ -77,6 +128,7 @@
     @else
         <input type="hidden" name="sales_account_code" value="{{ old('sales_account_code', $taxRate->sales_account_code) }}">
         <input type="hidden" name="purchase_account_code" value="{{ old('purchase_account_code', $taxRate->purchase_account_code) }}">
+        <input type="hidden" name="withholding_account_code" value="{{ old('withholding_account_code', $taxRate->withholding_account_code) }}">
         <input type="hidden" name="description" value="{{ old('description', $taxRate->description) }}">
     @endif
 </div>

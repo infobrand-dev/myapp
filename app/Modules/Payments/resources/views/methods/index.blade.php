@@ -41,6 +41,7 @@
                                 <th>Name</th>
                                 <th>Code</th>
                                 <th>Type</th>
+                                <th>Finance Account</th>
                                 <th>Reference</th>
                                 <th>Status</th>
                                 <th class="w-1"></th>
@@ -55,6 +56,7 @@
                                     </td>
                                     <td>{{ $method->code }}</td>
                                     <td>{{ $typeOptions[$method->type] ?? ucfirst(str_replace('_', ' ', $method->type)) }}</td>
+                                    <td>{{ optional($method->financeAccount)->name ?: '-' }}</td>
                                     <td>
                                         @if($method->requires_reference)
                                             <span class="badge bg-azure-lt text-azure">Required</span>
@@ -88,7 +90,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="text-center py-5">
+                                    <td colspan="7" class="text-center py-5">
                                         <i class="ti ti-credit-card text-muted d-block mb-2" style="font-size:2rem;"></i>
                                         <div class="text-muted mb-2">Belum ada metode pembayaran.</div>
                                     </td>

@@ -54,3 +54,4 @@ Hindari klaim:
 
 ## Referensi roadmap
 - detail backlog fitur bisnis accounting ada di `docs/product/accounting-feature-roadmap.md`
+- detail cara kerja operasional accounting saat ini ada di `docs/product/accounting-operational-flow.md`

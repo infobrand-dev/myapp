@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Inventory\Services\StockMutationService;
 use App\Modules\Purchases\Models\Purchase;
 use App\Modules\Purchases\Services\PurchaseNumberService;
+use App\Support\AccountingJournalService;
 use App\Support\AccountingPeriodLockService;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
@@ -18,15 +19,18 @@ class ReceivePurchaseGoodsAction
     private $numberService;
     private $syncPaymentSummary;
     private $periodLockService;
+    private $journalService;
 
     public function __construct(
         PurchaseNumberService $numberService,
         SyncPurchasePaymentSummaryAction $syncPaymentSummary,
-        AccountingPeriodLockService $periodLockService
+        AccountingPeriodLockService $periodLockService,
+        AccountingJournalService $journalService
     ) {
         $this->numberService = $numberService;
         $this->syncPaymentSummary = $syncPaymentSummary;
         $this->periodLockService = $periodLockService;
+        $this->journalService = $journalService;
     }
 
     public function execute(Purchase $purchase, array $data, ?User $actor = null): Purchase
@@ -106,6 +110,7 @@ class ReceivePurchaseGoodsAction
             ]);
 
             $totalReceivedQty = 0;
+            $totalInventoryValue = 0;
             foreach ($receiptRows as $index => $row) {
                 $purchaseItem = $purchase->items->firstWhere('id', (int) ($row['purchase_item_id'] ?? 0));
                 if (!$purchaseItem) {
@@ -166,6 +171,7 @@ class ReceivePurchaseGoodsAction
                 ]);
 
                 $totalReceivedQty += $receiveQty;
+                $totalInventoryValue += (float) ($movement->movement_value ?? ($receiveQty * (float) $purchaseItem->unit_cost));
             }
 
             $freshItems = $purchase->items()->get();
@@ -186,6 +192,8 @@ class ReceivePurchaseGoodsAction
                     ],
                 ],
             ]);
+
+            $this->syncInventoryJournal($purchase, $receipt, $totalInventoryValue);
 
             $purchase->update([
                 'status' => $nextStatus,
@@ -214,5 +222,43 @@ class ReceivePurchaseGoodsAction
 
             return $this->syncPaymentSummary->execute($purchase)->load('items', 'receipts.items');
         });
+    }
+
+    private function syncInventoryJournal(Purchase $purchase, $receipt, float $inventoryValue): void
+    {
+        $inventoryValue = round($inventoryValue, 2);
+
+        if ($inventoryValue <= 0) {
+            return;
+        }
+
+        $this->journalService->sync(
+            $receipt,
+            'purchase_receipt_inventory',
+            $receipt->receipt_date ?: now(),
+            [
+                [
+                    'account_code' => 'INVENTORY',
+                    'account_name' => 'Inventory',
+                    'debit' => $inventoryValue,
+                    'credit' => 0,
+                ],
+                [
+                    'account_code' => 'PURCHASES',
+                    'account_name' => 'Purchases / Inventory',
+                    'debit' => 0,
+                    'credit' => $inventoryValue,
+                ],
+            ],
+            [
+                'purchase_id' => $purchase->id,
+                'purchase_number' => $purchase->purchase_number,
+                'receipt_number' => $receipt->receipt_number,
+                'inventory_location_id' => $receipt->inventory_location_id,
+                'inventory_value' => $inventoryValue,
+                'received_qty' => (float) $receipt->total_received_qty,
+            ],
+            'Auto journal purchase receipt ' . $receipt->receipt_number
+        );
     }
 }

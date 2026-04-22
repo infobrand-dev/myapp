@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Branch;
 use App\Models\Company;
+use App\Models\DocumentNumberingRule;
 use App\Models\DocumentSetting;
+use App\Models\DocumentWorkflowRule;
 use App\Models\PlatformInvoice;
 use App\Models\TenantByoAiRequest;
 use App\Services\AiCreditPricingService;
@@ -12,7 +14,9 @@ use App\Models\User;
 use App\Support\ByoAiAddon;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
+use App\Support\DocumentNumberingService;
 use App\Support\DocumentSettingsResolver;
+use App\Support\DocumentWorkflowService;
 use App\Support\CurrencySettingsResolver;
 use App\Support\ModuleManager;
 use App\Support\PlanFeature;
@@ -116,8 +120,8 @@ class SettingsController extends Controller
         $allModules = collect($modules->all());
         $activeModules = $allModules->where('installed', true)->where('active', true)->values();
         $installedModules = $allModules->where('installed', true)->values();
-        $featureKeys = collect(array_keys((array) ($plan?->features ?? [])))
-            ->merge(array_keys((array) ($subscription?->feature_overrides ?? [])))
+        $featureKeys = collect(array_keys((array) ($plan ? $plan->features : [])))
+            ->merge(array_keys((array) ($subscription ? $subscription->feature_overrides : [])))
             ->unique()
             ->values();
         $availableFeatures = $featureKeys
@@ -376,25 +380,46 @@ class SettingsController extends Controller
         $company = $this->requireCurrentCompany();
         $branch = BranchContext::currentBranch();
         $tenantId = TenantContext::currentId();
+        $documentNumbering = app(DocumentNumberingService::class);
+        $documentWorkflow = app(DocumentWorkflowService::class);
 
         $data = $request->validate([
-            'company_invoice_prefix' => ['nullable', 'string', 'max:30'],
-            'company_invoice_padding' => ['required', 'integer', 'min:1', 'max:12'],
-            'company_invoice_next_number' => ['required', 'integer', 'min:1'],
-            'company_invoice_reset_period' => ['nullable', Rule::in(['never', 'monthly', 'yearly'])],
+            'company_numbering' => ['nullable', 'array'],
+            'company_numbering.*' => ['nullable', 'array'],
+            'company_numbering.*.prefix' => ['nullable', 'string', 'max:30'],
+            'company_numbering.*.number_format' => ['nullable', 'string', 'max:120'],
+            'company_numbering.*.padding' => ['nullable', 'integer', 'min:1', 'max:12'],
+            'company_numbering.*.next_number' => ['nullable', 'integer', 'min:1'],
+            'company_numbering.*.reset_period' => ['nullable', Rule::in(['never', 'monthly', 'yearly'])],
             'company_document_header' => ['nullable', 'string'],
             'company_document_footer' => ['nullable', 'string'],
             'company_receipt_footer' => ['nullable', 'string'],
             'company_notes' => ['nullable', 'string'],
-            'branch_invoice_prefix' => ['nullable', 'string', 'max:30'],
-            'branch_invoice_padding' => ['nullable', 'integer', 'min:1', 'max:12'],
-            'branch_invoice_next_number' => ['nullable', 'integer', 'min:1'],
-            'branch_invoice_reset_period' => ['nullable', Rule::in(['never', 'monthly', 'yearly'])],
+            'branch_numbering' => ['nullable', 'array'],
+            'branch_numbering.*' => ['nullable', 'array'],
+            'branch_numbering.*.prefix' => ['nullable', 'string', 'max:30'],
+            'branch_numbering.*.number_format' => ['nullable', 'string', 'max:120'],
+            'branch_numbering.*.padding' => ['nullable', 'integer', 'min:1', 'max:12'],
+            'branch_numbering.*.next_number' => ['nullable', 'integer', 'min:1'],
+            'branch_numbering.*.reset_period' => ['nullable', Rule::in(['never', 'monthly', 'yearly'])],
+            'company_workflow' => ['nullable', 'array'],
+            'company_workflow.*' => ['nullable', 'array'],
+            'company_workflow.*.requires_approval_before_conversion' => ['nullable', 'boolean'],
+            'company_workflow.*.requires_approval_before_finalize' => ['nullable', 'boolean'],
+            'branch_workflow' => ['nullable', 'array'],
+            'branch_workflow.*' => ['nullable', 'array'],
+            'branch_workflow.*.requires_approval_before_conversion' => ['nullable', 'boolean'],
+            'branch_workflow.*.requires_approval_before_finalize' => ['nullable', 'boolean'],
             'branch_document_header' => ['nullable', 'string'],
             'branch_document_footer' => ['nullable', 'string'],
             'branch_receipt_footer' => ['nullable', 'string'],
             'branch_notes' => ['nullable', 'string'],
         ]);
+
+        $this->assertValidDocumentTypes($data['company_numbering'] ?? []);
+        $this->assertValidDocumentTypes($data['branch_numbering'] ?? []);
+        $this->assertValidWorkflowTypes($data['company_workflow'] ?? []);
+        $this->assertValidWorkflowTypes($data['branch_workflow'] ?? []);
 
         DocumentSetting::query()->updateOrCreate(
             [
@@ -403,16 +428,49 @@ class SettingsController extends Controller
                 'branch_id' => null,
             ],
             [
-                'invoice_prefix' => $data['company_invoice_prefix'] ?: null,
-                'invoice_padding' => $data['company_invoice_padding'],
-                'invoice_next_number' => $data['company_invoice_next_number'],
-                'invoice_reset_period' => $data['company_invoice_reset_period'] ?: 'never',
                 'document_header' => $data['company_document_header'] ?: null,
                 'document_footer' => $data['company_document_footer'] ?: null,
                 'receipt_footer' => $data['company_receipt_footer'] ?: null,
                 'notes' => $data['company_notes'] ?: null,
             ]
         );
+
+        foreach (DocumentNumberingRule::supportedDocumentTypes() as $documentType) {
+            $rule = $documentNumbering->upsertRule(
+                $tenantId,
+                $company->id,
+                null,
+                $documentType,
+                $data['company_numbering'][$documentType] ?? []
+            );
+
+            if ($documentType === 'sale') {
+                DocumentSetting::query()->updateOrCreate(
+                    [
+                        'tenant_id' => $tenantId,
+                        'company_id' => $company->id,
+                        'branch_id' => null,
+                    ],
+                    [
+                        'invoice_prefix' => $rule->prefix,
+                        'invoice_padding' => $rule->padding,
+                        'invoice_next_number' => $rule->next_number,
+                        'invoice_last_period' => $rule->last_period,
+                        'invoice_reset_period' => $rule->reset_period,
+                    ]
+                );
+            }
+        }
+
+        foreach (DocumentWorkflowRule::supportedDocumentTypes() as $documentType) {
+            $documentWorkflow->upsertRule(
+                $tenantId,
+                $company->id,
+                null,
+                $documentType,
+                $data['company_workflow'][$documentType] ?? []
+            );
+        }
 
         if ($branch) {
             DocumentSetting::query()->updateOrCreate(
@@ -422,16 +480,49 @@ class SettingsController extends Controller
                     'branch_id' => $branch->id,
                 ],
                 [
-                    'invoice_prefix' => $data['branch_invoice_prefix'] ?: null,
-                    'invoice_padding' => $data['branch_invoice_padding'] ?: 5,
-                    'invoice_next_number' => $data['branch_invoice_next_number'] ?: 1,
-                    'invoice_reset_period' => $data['branch_invoice_reset_period'] ?: 'never',
                     'document_header' => $data['branch_document_header'] ?: null,
                     'document_footer' => $data['branch_document_footer'] ?: null,
                     'receipt_footer' => $data['branch_receipt_footer'] ?: null,
                     'notes' => $data['branch_notes'] ?: null,
                 ]
             );
+
+            foreach (DocumentNumberingRule::supportedDocumentTypes() as $documentType) {
+                $rule = $documentNumbering->upsertRule(
+                    $tenantId,
+                    $company->id,
+                    $branch->id,
+                    $documentType,
+                    $data['branch_numbering'][$documentType] ?? []
+                );
+
+                if ($documentType === 'sale') {
+                    DocumentSetting::query()->updateOrCreate(
+                        [
+                            'tenant_id' => $tenantId,
+                            'company_id' => $company->id,
+                            'branch_id' => $branch->id,
+                        ],
+                        [
+                            'invoice_prefix' => $rule->prefix,
+                            'invoice_padding' => $rule->padding,
+                            'invoice_next_number' => $rule->next_number,
+                            'invoice_last_period' => $rule->last_period,
+                            'invoice_reset_period' => $rule->reset_period,
+                        ]
+                    );
+                }
+            }
+
+            foreach (DocumentWorkflowRule::supportedDocumentTypes() as $documentType) {
+                $documentWorkflow->upsertRule(
+                    $tenantId,
+                    $company->id,
+                    $branch->id,
+                    $documentType,
+                    $data['branch_workflow'][$documentType] ?? []
+                );
+            }
         }
 
         return redirect()->route('settings.documents')->with('status', 'Document settings berhasil disimpan.');
@@ -509,14 +600,14 @@ class SettingsController extends Controller
 
         TenantByoAiRequest::query()->create([
             'tenant_id' => $tenantId,
-            'requested_by' => $user?->id,
+            'requested_by' => $user ? $user->id : null,
             'status' => ByoAiAddon::REQUEST_STATUS_PENDING,
             'preferred_provider' => $data['preferred_provider'],
             'intended_volume' => $data['intended_volume'],
             'chatbot_account_count' => $data['chatbot_account_count'] ?? null,
             'channel_count' => $data['channel_count'] ?? null,
-            'technical_contact_name' => $data['technical_contact_name'] ?: ($user?->name ?: null),
-            'technical_contact_email' => $data['technical_contact_email'] ?: ($user?->email ?: null),
+            'technical_contact_name' => $data['technical_contact_name'] ?: ($user ? $user->name : null),
+            'technical_contact_email' => $data['technical_contact_email'] ?: ($user ? $user->email : null),
             'notes' => $data['notes'] ?: null,
             'meta' => [
                 'requested_from' => 'settings_addons',
@@ -655,7 +746,7 @@ class SettingsController extends Controller
                 'label' => 'Documents',
                 'route' => 'settings.documents',
                 'icon' => 'ti ti-file-description',
-                'description' => 'Pengaturan invoice, receipt, dan numbering.',
+                'description' => 'Pengaturan template dokumen dan numbering per jenis dokumen.',
             ],
             'access' => [
                 'label' => 'Users & Access',
@@ -669,6 +760,32 @@ class SettingsController extends Controller
     private function currencySettingsLocked(): bool
     {
         return true;
+    }
+
+    private function assertValidDocumentTypes(array $rows): void
+    {
+        $supported = DocumentNumberingRule::supportedDocumentTypes();
+
+        foreach (array_keys($rows) as $documentType) {
+            if (!in_array($documentType, $supported, true)) {
+                throw ValidationException::withMessages([
+                    'document_type' => 'Document type `'.$documentType.'` tidak didukung.',
+                ]);
+            }
+        }
+    }
+
+    private function assertValidWorkflowTypes(array $rows): void
+    {
+        $supported = DocumentWorkflowRule::supportedDocumentTypes();
+
+        foreach (array_keys($rows) as $documentType) {
+            if (!in_array($documentType, $supported, true)) {
+                throw ValidationException::withMessages([
+                    'document_type' => 'Workflow type `'.$documentType.'` tidak didukung.',
+                ]);
+            }
+        }
     }
 
     private function stats(

@@ -153,6 +153,8 @@ class SaleController extends Controller
         return [
             'sale' => $sale->loadMissing('items'),
             'sellables' => $this->lookupService->sellables(),
+            'inventoryLocations' => $this->lookupService->inventoryLocationOptions(),
+            'salesTaxOptions' => $this->lookupService->salesTaxOptions(),
             'paymentStatusOptions' => $this->lookupService->paymentStatusOptions(),
             'paymentMethodOptions' => $this->lookupService->paymentMethodOptions(),
             'sourceOptions' => $this->lookupService->sourceOptions(),

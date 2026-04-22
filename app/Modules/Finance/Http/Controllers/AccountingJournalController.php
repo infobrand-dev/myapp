@@ -4,9 +4,12 @@ namespace App\Modules\Finance\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\AccountingJournal;
+use App\Modules\Finance\Actions\ReverseAccountingJournalAction;
+use App\Modules\Finance\Http\Requests\ReverseAccountingJournalRequest;
 use App\Modules\Finance\Http\Requests\StoreManualAccountingJournalRequest;
 use App\Modules\Finance\Http\Requests\UpdateManualAccountingJournalRequest;
 use App\Modules\Finance\Models\ChartOfAccount;
+use App\Support\AccountingSourceReferenceService;
 use App\Support\AccountingJournalService;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
@@ -17,8 +20,19 @@ use Illuminate\View\View;
 
 class AccountingJournalController extends Controller
 {
-    public function __construct(private readonly AccountingJournalService $journalService)
+    private $journalService;
+    private $sourceReferenceService;
+    private $reverseJournalAction;
+
+    public function __construct(
+        AccountingJournalService $journalService,
+        AccountingSourceReferenceService $sourceReferenceService,
+        ReverseAccountingJournalAction $reverseJournalAction
+    )
     {
+        $this->journalService = $journalService;
+        $this->sourceReferenceService = $sourceReferenceService;
+        $this->reverseJournalAction = $reverseJournalAction;
     }
 
     public function index(Request $request): View
@@ -28,7 +42,7 @@ class AccountingJournalController extends Controller
         $journals = AccountingJournal::query()
             ->where('tenant_id', TenantContext::currentId())
             ->where('company_id', CompanyContext::currentId())
-            ->with('lines')
+            ->with(['lines', 'reversals'])
             ->when(!empty($filters['entry_type']), fn ($query) => $query->where('entry_type', $filters['entry_type']))
             ->when(!empty($filters['status']), fn ($query) => $query->where('status', $filters['status']))
             ->when(!empty($filters['date_from']), fn ($query) => $query->whereDate('entry_date', '>=', $filters['date_from']))
@@ -43,7 +57,48 @@ class AccountingJournalController extends Controller
         return view('finance::governance.journals', [
             'journals' => $journals,
             'filters' => $filters,
+            'sourceReferences' => $this->sourceReferenceService->buildForJournals($journals->getCollection()),
         ]);
+    }
+
+    public function show(int $journal): View
+    {
+        $journal = AccountingJournal::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
+            ->with(['lines', 'creator', 'updater', 'reversalOf', 'reversals'])
+            ->when(BranchContext::currentId(), function ($query) {
+                return $query->where(function ($inner) {
+                    $inner->whereNull('branch_id')->orWhere('branch_id', BranchContext::currentId());
+                });
+            })
+            ->findOrFail($journal);
+
+        $sourceReferences = $this->sourceReferenceService->buildForJournals([$journal]);
+
+        return view('finance::governance.show', [
+            'journal' => $journal,
+            'sourceReference' => $sourceReferences[$journal->id] ?? [],
+        ]);
+    }
+
+    public function reverse(ReverseAccountingJournalRequest $request, int $journal): RedirectResponse
+    {
+        $journal = AccountingJournal::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
+            ->when(BranchContext::currentId(), function ($query) {
+                return $query->where(function ($inner) {
+                    $inner->whereNull('branch_id')->orWhere('branch_id', BranchContext::currentId());
+                });
+            })
+            ->findOrFail($journal);
+
+        $reversal = $this->reverseJournalAction->execute($journal, $request->validated(), $request->user());
+
+        return redirect()
+            ->route('finance.journals.show', $reversal->id)
+            ->with('status', 'Journal reversal ' . ($reversal->journal_number ?: ('#' . $reversal->id)) . ' berhasil dibuat.');
     }
 
     public function create(): View

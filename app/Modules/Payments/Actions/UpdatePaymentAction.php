@@ -21,13 +21,24 @@ use Illuminate\Validation\ValidationException;
 
 class UpdatePaymentAction
 {
+    private $validatePayableTransaction;
+    private $recalculatePaymentSummary;
+    private $approvalService;
+    private $periodLockService;
+    private $journalService;
+
     public function __construct(
-        private readonly ValidatePayableTransactionAction $validatePayableTransaction,
-        private readonly RecalculatePaymentSummaryAction $recalculatePaymentSummary,
-        private readonly SensitiveActionApprovalService $approvalService,
-        private readonly AccountingPeriodLockService $periodLockService,
-        private readonly AccountingJournalService $journalService
+        ValidatePayableTransactionAction $validatePayableTransaction,
+        RecalculatePaymentSummaryAction $recalculatePaymentSummary,
+        SensitiveActionApprovalService $approvalService,
+        AccountingPeriodLockService $periodLockService,
+        AccountingJournalService $journalService
     ) {
+        $this->validatePayableTransaction = $validatePayableTransaction;
+        $this->recalculatePaymentSummary = $recalculatePaymentSummary;
+        $this->approvalService = $approvalService;
+        $this->periodLockService = $periodLockService;
+        $this->journalService = $journalService;
     }
 
     public function execute(Payment $payment, array $data, ?User $actor = null): Payment
@@ -96,6 +107,7 @@ class UpdatePaymentAction
             $oldAmount = (float) $payment->amount;
             $oldProof = $payment->proof_file_path;
             $newProof = $this->storeProofFile($data['proof_file'] ?? null);
+            $actorId = $actor ? $actor->id : null;
 
             $payment->update([
                 'payment_method_id' => $method->id,
@@ -110,9 +122,9 @@ class UpdatePaymentAction
                 'proof_file_path' => $newProof ?: $payment->proof_file_path,
                 'branch_id' => array_key_exists('branch_id', $data) ? ($data['branch_id'] ? (int) $data['branch_id'] : null) : $payment->branch_id,
                 'notes' => $data['notes'] ?? null,
-                'received_by' => $data['received_by'] ?? ($actor ? $actor->id : $payment->received_by),
-                'updated_by' => $actor ? $actor->id : $payment->updated_by,
-                'reconciled_by' => ($data['reconciliation_status'] ?? $payment->reconciliation_status) === Payment::RECONCILIATION_RECONCILED ? ($actor?->id ?? $payment->reconciled_by) : null,
+                'received_by' => $data['received_by'] ?? ($actorId ?: $payment->received_by),
+                'updated_by' => $actorId ?: $payment->updated_by,
+                'reconciled_by' => ($data['reconciliation_status'] ?? $payment->reconciliation_status) === Payment::RECONCILIATION_RECONCILED ? ($actorId ?: $payment->reconciled_by) : null,
                 'reconciled_at' => ($data['reconciliation_status'] ?? $payment->reconciliation_status) === Payment::RECONCILIATION_RECONCILED ? now() : null,
             ]);
 
@@ -140,7 +152,7 @@ class UpdatePaymentAction
                 'from_status' => $payment->status,
                 'to_status' => $payment->status,
                 'event' => 'updated',
-                'actor_id' => $actor?->id,
+                'actor_id' => $actorId,
                 'meta' => [
                     'allocation_count' => $allocations->count(),
                     'old_amount' => $oldAmount,
@@ -191,7 +203,8 @@ class UpdatePaymentAction
 
     private function journalLines(Payment $payment, Collection $allocations): array
     {
-        $cashAccountName = 'Cash/Bank - ' . ($payment->method?->name ?? 'Payment');
+        $methodName = $payment->method ? $payment->method->name : 'Payment';
+        $cashAccountName = 'Cash/Bank - ' . $methodName;
         $lines = [];
 
         foreach ($allocations as $allocation) {
@@ -206,7 +219,7 @@ class UpdatePaymentAction
                 $lines[] = ['account_code' => 'AP', 'account_name' => 'Accounts Payable', 'debit' => $amount, 'credit' => 0];
                 $lines[] = ['account_code' => 'CASH', 'account_name' => $cashAccountName, 'debit' => 0, 'credit' => $amount];
             } elseif ($type === 'sale_return' || $kind === 'refund') {
-                $lines[] = ['account_code' => 'SALES_REFUND', 'account_name' => 'Sales Refund', 'debit' => $amount, 'credit' => 0];
+                $lines[] = ['account_code' => 'AR', 'account_name' => 'Accounts Receivable', 'debit' => $amount, 'credit' => 0];
                 $lines[] = ['account_code' => 'CASH', 'account_name' => $cashAccountName, 'debit' => 0, 'credit' => $amount];
             }
         }

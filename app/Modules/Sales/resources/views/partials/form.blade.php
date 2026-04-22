@@ -3,6 +3,7 @@
     $saleTotals = is_array($sale->totals_snapshot ?? null) ? $sale->totals_snapshot : [];
     $headerDiscountTotal = old('header_discount_total', data_get($saleTotals, 'header_discount_total', 0));
     $headerTaxTotal = old('header_tax_total', data_get($saleTotals, 'header_tax_total', 0));
+    $selectedSalesTaxId = old('tax_rate_id', data_get($sale->meta, 'tax.tax_rate_id'));
     $saleItems = old('items', $sale->items->map(function ($item) {
         $key = $item->product_variant_id ? 'variant:' . $item->product_variant_id : 'product:' . $item->product_id;
         return [
@@ -117,9 +118,56 @@
                             </select>
                             @error('source') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
+
+                        @if(($inventoryLocations ?? collect())->isNotEmpty())
+                            @php
+                                $selectedInventoryLocationId = old(
+                                    'inventory_location_id',
+                                    data_get($sale->meta, 'source_context.inventory_location_id')
+                                );
+                            @endphp
+                            <div class="col-12">
+                                @include('shared.accounting.field-label', [
+                                    'label' => 'Inventory Location',
+                                    'tooltip' => 'Opsional. Jika diisi, finalize sale akan mengurangi stok dari location ini dan membentuk jurnal HPP otomatis dari moving average inventory.',
+                                ])
+                                <select name="inventory_location_id" class="form-select @error('inventory_location_id') is-invalid @enderror">
+                                    <option value="">Tanpa integrasi inventory</option>
+                                    @foreach($inventoryLocations as $location)
+                                        <option value="{{ $location->id }}" @selected((string) $selectedInventoryLocationId === (string) $location->id)>
+                                            {{ $location->name }} ({{ $location->code }})@if($location->is_default) - Default @endif
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div class="form-hint">Biarkan kosong bila penjualan ini tidak boleh langsung memotong stok.</div>
+                                @error('inventory_location_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                        @endif
+
+                        @if(($salesTaxOptions ?? collect())->isNotEmpty())
+                            <div class="col-12">
+                                @include('shared.accounting.field-label', [
+                                    'label' => 'Tax Master',
+                                    'tooltip' => 'Opsional. Jika dipilih, pajak sale akan dihitung otomatis dari tax master sales yang aktif. Saat ini auto-apply hanya mendukung tax exclusive.',
+                                ])
+                                <select name="tax_rate_id" class="form-select @error('tax_rate_id') is-invalid @enderror">
+                                    <option value="">Tanpa tax master</option>
+                                    @foreach($salesTaxOptions as $taxOption)
+                                        <option value="{{ $taxOption->id }}" @selected((string) $selectedSalesTaxId === (string) $taxOption->id)>
+                                            {{ $taxOption->name }} ({{ $taxOption->code }}) - {{ number_format((float) $taxOption->rate_percent, 2) }}%
+                                            @if($taxOption->is_inclusive) - Inclusive @else - Exclusive @endif
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div class="form-hint">Jika tax master dipilih, tax per item akan diabaikan dan sistem menghitung tax header otomatis.</div>
+                                @error('tax_rate_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                        @endif
                     @else
                         <input type="hidden" name="currency_code" value="{{ old('currency_code', $sale->currency_code ?: app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency()) }}">
                         <input type="hidden" name="source" value="{{ old('source', $sale->source ?: \App\Modules\Sales\Models\Sale::SOURCE_MANUAL) }}">
+                        <input type="hidden" name="inventory_location_id" value="{{ old('inventory_location_id', data_get($sale->meta, 'source_context.inventory_location_id')) }}">
+                        <input type="hidden" name="tax_rate_id" value="{{ $selectedSalesTaxId }}">
                     @endif
 
                     <div class="col-md-6">

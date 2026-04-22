@@ -5,15 +5,20 @@ namespace App\Modules\Sales\Actions;
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Contacts\Support\ContactScope;
+use App\Modules\Inventory\Services\StockMutationService;
 use App\Modules\Sales\Events\SaleFinalized;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Services\SaleSnapshotService;
+use App\Modules\Finance\Services\TaxDocumentSyncService;
 use App\Support\AccountingJournalService;
 use App\Support\AccountingPeriodLockService;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
+use App\Support\DocumentWorkflowService;
+use App\Support\SensitiveActionApprovalService;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class FinalizeSaleAction
@@ -24,6 +29,9 @@ class FinalizeSaleAction
     private $syncPaymentSummary;
     private $journalService;
     private $periodLockService;
+    private $documentWorkflow;
+    private $approvalService;
+    private $taxDocumentSyncService;
 
     public function __construct(
         RecalculateSaleTotalsAction $recalculateTotals,
@@ -31,7 +39,10 @@ class FinalizeSaleAction
         RecordSalePaymentAction $recordSalePayment,
         SyncSalePaymentSummaryAction $syncPaymentSummary,
         AccountingJournalService $journalService,
-        AccountingPeriodLockService $periodLockService
+        AccountingPeriodLockService $periodLockService,
+        DocumentWorkflowService $documentWorkflow,
+        SensitiveActionApprovalService $approvalService,
+        TaxDocumentSyncService $taxDocumentSyncService
     ) {
         $this->recalculateTotals = $recalculateTotals;
         $this->snapshotService = $snapshotService;
@@ -39,6 +50,9 @@ class FinalizeSaleAction
         $this->syncPaymentSummary = $syncPaymentSummary;
         $this->journalService = $journalService;
         $this->periodLockService = $periodLockService;
+        $this->documentWorkflow = $documentWorkflow;
+        $this->approvalService = $approvalService;
+        $this->taxDocumentSyncService = $taxDocumentSyncService;
     }
 
     public function execute(Sale $sale, array $data, ?User $actor = null): Sale
@@ -56,6 +70,22 @@ class FinalizeSaleAction
                 throw ValidationException::withMessages([
                     'sale' => 'Hanya draft sale yang dapat di-finalize.',
                 ]);
+            }
+
+            if ($this->documentWorkflow->requiresApprovalBeforeFinalize('sale', $sale->company_id, $sale->branch_id)) {
+                $this->approvalService->ensureApprovedOrCreatePending(
+                    'sales',
+                    'finalize-sale',
+                    $sale,
+                    [
+                        'sale_number' => $sale->sale_number,
+                        'transaction_date' => optional($sale->transaction_date)->toDateTimeString(),
+                        'grand_total' => (float) $sale->grand_total,
+                        'payment_status' => $sale->payment_status,
+                    ],
+                    $actor,
+                    'Finalize sale memerlukan approval sesuai workflow dokumen.'
+                );
             }
 
             $this->periodLockService->ensureDateOpen($sale->transaction_date ?: now(), $sale->branch_id, 'finalize sale');
@@ -138,6 +168,8 @@ class FinalizeSaleAction
                 $sale = $this->syncPaymentSummary->execute($sale, $data['payment_status'] ?? $sale->payment_status);
             }
 
+            $inventoryIntegration = $this->integrateInventory($sale, $actor);
+
             $this->journalService->sync(
                 $sale,
                 'sale_finalized',
@@ -149,6 +181,23 @@ class FinalizeSaleAction
                 ],
                 'Auto journal sale ' . $sale->sale_number
             );
+
+            if (($inventoryIntegration['cogs_total'] ?? 0) > 0) {
+                $this->journalService->sync(
+                    $sale,
+                    'sale_cogs',
+                    $sale->transaction_date ?: now(),
+                    $this->cogsJournalLines((float) $inventoryIntegration['cogs_total']),
+                    [
+                        'inventory_location_id' => $inventoryIntegration['inventory_location_id'] ?? null,
+                        'movement_count' => count($inventoryIntegration['movements'] ?? []),
+                        'cogs_total' => (float) $inventoryIntegration['cogs_total'],
+                    ],
+                    'Auto journal COGS sale ' . $sale->sale_number
+                );
+            }
+
+            $this->taxDocumentSyncService->syncFromSource($sale, $actor);
 
             return $sale->load('items', 'paymentAllocations.payment.method', 'statusHistories');
         });
@@ -204,5 +253,126 @@ class FinalizeSaleAction
         }
 
         return $lines;
+    }
+
+    private function cogsJournalLines(float $cogsTotal): array
+    {
+        return [
+            [
+                'account_code' => 'COGS',
+                'account_name' => 'Cost of Goods Sold',
+                'debit' => $cogsTotal,
+                'credit' => 0,
+            ],
+            [
+                'account_code' => 'INVENTORY',
+                'account_name' => 'Inventory',
+                'debit' => 0,
+                'credit' => $cogsTotal,
+            ],
+        ];
+    }
+
+    private function integrateInventory(Sale $sale, ?User $actor = null): array
+    {
+        if (!class_exists(StockMutationService::class)
+            || !Schema::hasTable('inventory_locations')
+            || !Schema::hasTable('inventory_stock_movements')
+        ) {
+            return [
+                'inventory_location_id' => null,
+                'cogs_total' => 0.0,
+                'movements' => [],
+            ];
+        }
+
+        $sale->loadMissing(['items.product', 'items.variant']);
+
+        $stockableItems = $sale->items->filter(function ($item) {
+            if (!$item->product || !(bool) $item->product->track_stock) {
+                return false;
+            }
+
+            if ($item->variant && !(bool) $item->variant->track_stock) {
+                return false;
+            }
+
+            return true;
+        })->values();
+
+        if ($stockableItems->isEmpty()) {
+            return [
+                'inventory_location_id' => null,
+                'cogs_total' => 0.0,
+                'movements' => [],
+            ];
+        }
+
+        $inventoryLocationId = $this->inventoryLocationId($sale);
+        if (!$inventoryLocationId) {
+            return [
+                'inventory_location_id' => null,
+                'cogs_total' => 0.0,
+                'movements' => [],
+            ];
+        }
+
+        /** @var StockMutationService $stockMutation */
+        $stockMutation = app(StockMutationService::class);
+
+        $movements = $stockableItems->map(function ($item) use ($sale, $inventoryLocationId, $stockMutation, $actor) {
+            return $stockMutation->record([
+                'product_id' => $item->product_id,
+                'product_variant_id' => $item->product_variant_id,
+                'inventory_location_id' => $inventoryLocationId,
+                'movement_type' => 'sale_finalized',
+                'direction' => 'out',
+                'quantity' => (float) $item->qty,
+                'reference_type' => $sale->getMorphClass(),
+                'reference_id' => $sale->getKey(),
+                'reason_code' => 'sale_finalized',
+                'reason_text' => 'Sale ' . $sale->sale_number,
+                'occurred_at' => $sale->transaction_date ?: now(),
+                'performed_by' => $actor ? $actor->id : null,
+                'approved_by' => $actor ? $actor->id : null,
+                'meta' => [
+                    'sale_id' => $sale->id,
+                    'sale_number' => $sale->sale_number,
+                    'sale_item_id' => $item->id,
+                ],
+            ]);
+        });
+
+        $meta = $sale->meta ?? [];
+        $meta['inventory'] = [
+            'status' => 'completed',
+            'inventory_location_id' => $inventoryLocationId,
+            'movement_count' => $movements->count(),
+            'processed_at' => now()->toDateTimeString(),
+            'cogs_total' => round((float) $movements->sum('movement_value'), 2),
+        ];
+        $sale->forceFill([
+            'meta' => $meta,
+        ])->save();
+
+        return [
+            'inventory_location_id' => $inventoryLocationId,
+            'cogs_total' => round((float) $movements->sum('movement_value'), 2),
+            'movements' => $movements->map(fn ($movement) => [
+                'id' => $movement->id,
+                'product_id' => $movement->product_id,
+                'product_variant_id' => $movement->product_variant_id,
+                'quantity' => (float) $movement->quantity,
+                'movement_value' => (float) $movement->movement_value,
+            ])->all(),
+        ];
+    }
+
+    private function inventoryLocationId(Sale $sale): ?int
+    {
+        $locationId = data_get($sale->meta, 'source_context.inventory_location_id')
+            ?? data_get($sale->meta, 'inventory_location_id');
+
+        return $locationId ? (int) $locationId : null;
     }
 }

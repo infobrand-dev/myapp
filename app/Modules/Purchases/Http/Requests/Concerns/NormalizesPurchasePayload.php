@@ -57,6 +57,7 @@ trait NormalizesPurchasePayload
 
         $this->merge([
             'contact_id' => $this->filled('contact_id') ? (int) $this->input('contact_id') : null,
+            'tax_rate_id' => $this->filled('tax_rate_id') ? (int) $this->input('tax_rate_id') : null,
             'items' => $items,
             'purchase_date' => $this->filled('purchase_date') ? $this->input('purchase_date') : now()->format('Y-m-d\TH:i'),
             'due_date' => $this->filled('due_date') ? $this->input('due_date') : null,

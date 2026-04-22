@@ -14,6 +14,7 @@ use App\Modules\Reports\Services\PosReportService;
 use App\Modules\Reports\Services\PurchaseReportService;
 use App\Modules\Reports\Services\SalesReportService;
 use App\Modules\Sales\Models\Sale;
+use App\Support\AccountingSourceReferenceService;
 use App\Support\BooleanQuery;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -79,9 +80,12 @@ class ReportsController extends Controller
         ]);
     }
 
-    public function finance(Request $request, FinanceReportService $service): View
+    public function finance(Request $request, FinanceReportService $service, AccountingSourceReferenceService $sourceReferenceService): View
     {
         $filters = $service->filters($request->all());
+        $reportData = $service->data($filters);
+        $generalLedgerRows = collect($reportData['generalLedger'] ?? [])->flatten(1);
+        $inventoryReconciliationDetailRows = collect($reportData['inventoryGlReconciliationDetails'] ?? []);
 
         return view('reports::finance', [
             'filters' => $filters,
@@ -89,7 +93,9 @@ class ReportsController extends Controller
                 ->orderBy('transaction_type')
                 ->orderBy('name')
                 ->get(['id', 'name']),
-            ...$service->data($filters),
+            'journalReferences' => $sourceReferenceService->buildForJournals($generalLedgerRows),
+            'inventorySourceReferences' => $sourceReferenceService->buildForSources($inventoryReconciliationDetailRows),
+            ...$reportData,
         ]);
     }
 

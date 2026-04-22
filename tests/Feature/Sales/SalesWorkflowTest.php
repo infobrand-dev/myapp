@@ -2,9 +2,12 @@
 
 namespace Tests\Feature\Sales;
 
+use App\Models\AccountingJournal;
 use App\Models\Company;
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Inventory\Models\InventoryLocation;
+use App\Modules\Inventory\Services\StockMutationService;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\PaymentsServiceProvider;
 use App\Modules\Products\Models\Product;
@@ -44,10 +47,15 @@ class SalesWorkflowTest extends TestCase
 
         $this->migrateModulePaths([
             'app/Modules/Contacts/database/migrations',
+            'app/Modules/Inventory/database/migrations',
             'app/Modules/Products/database/migrations',
             'app/Modules/Payments/database/migrations',
             'app/Modules/Sales/database/migrations',
         ]);
+        $this->artisan('migrate', [
+            '--path' => 'database/migrations/2026_04_12_130000_create_accounting_governance_tables.php',
+            '--realpath' => false,
+        ])->run();
 
         $this->bootstrapDefaultOperationalContext();
 
@@ -261,6 +269,85 @@ class SalesWorkflowTest extends TestCase
                 ],
             ],
         ], $user);
+    }
+
+    public function test_finalizing_sale_with_inventory_location_posts_cogs_journal_and_reduces_stock(): void
+    {
+        $user = $this->salesUser([
+            'sales.create',
+            'sales.view',
+            'sales.finalize',
+        ]);
+        $contact = $this->customer();
+        $product = $this->product('Produk HPP', 'COGS-001', 'produk-hpp');
+        $location = InventoryLocation::query()->create([
+            'tenant_id' => 1,
+            'company_id' => 1,
+            'branch_id' => null,
+            'code' => 'COGS-MAIN',
+            'name' => 'Gudang HPP',
+            'type' => 'warehouse',
+            'is_default' => true,
+            'is_active' => true,
+        ]);
+
+        app(StockMutationService::class)->record([
+            'product_id' => $product->id,
+            'inventory_location_id' => $location->id,
+            'movement_type' => 'opening_stock',
+            'direction' => 'in',
+            'quantity' => 10,
+            'unit_cost' => 10000,
+        ]);
+
+        $sale = app(CreateDraftSaleAction::class)->execute([
+            'contact_id' => $contact->id,
+            'inventory_location_id' => $location->id,
+            'source' => 'manual',
+            'payment_status' => 'unpaid',
+            'transaction_date' => now()->format('Y-m-d H:i:s'),
+            'currency_code' => 'IDR',
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'qty' => 2,
+                    'unit_price' => 15000,
+                    'discount_total' => 0,
+                    'tax_total' => 0,
+                ],
+            ],
+        ], $user);
+
+        $sale = app(FinalizeSaleAction::class)->execute($sale, [
+            'payment_status' => 'unpaid',
+        ], $user);
+
+        $this->assertDatabaseHas('inventory_stocks', [
+            'product_id' => $product->id,
+            'inventory_location_id' => $location->id,
+            'current_quantity' => 8,
+        ]);
+
+        $this->assertDatabaseHas('inventory_stock_movements', [
+            'reference_type' => Sale::class,
+            'reference_id' => $sale->id,
+            'movement_type' => 'sale_finalized',
+            'direction' => 'out',
+            'quantity' => 2,
+            'unit_cost' => 10000,
+            'movement_value' => 20000,
+        ]);
+
+        $journal = AccountingJournal::query()
+            ->where('entry_type', 'sale_cogs')
+            ->where('source_type', Sale::class)
+            ->where('source_id', $sale->id)
+            ->with('lines')
+            ->firstOrFail();
+
+        $this->assertCount(2, $journal->lines);
+        $this->assertSame(20000.0, (float) $journal->lines->firstWhere('account_code', 'COGS')->debit);
+        $this->assertSame(20000.0, (float) $journal->lines->firstWhere('account_code', 'INVENTORY')->credit);
     }
 
     public function test_voiding_finalized_sale_requires_reason_and_dispatches_event(): void

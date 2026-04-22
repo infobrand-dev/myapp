@@ -2,6 +2,7 @@
 
 namespace App\Modules\Inventory\Actions;
 
+use App\Support\AccountingJournalService;
 use App\Models\User;
 use App\Modules\Inventory\Models\StockBalance;
 use App\Modules\Inventory\Models\StockMovement;
@@ -14,21 +15,31 @@ use App\Support\TenantContext;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 class CreateOpeningStockAction
 {
+    private $mutationService;
+    private $periodLockService;
+    private $journalService;
+
     public function __construct(
-        private readonly StockMutationService $mutationService,
-        private readonly AccountingPeriodLockService $periodLockService
+        StockMutationService $mutationService,
+        AccountingPeriodLockService $periodLockService,
+        AccountingJournalService $journalService
     )
     {
+        $this->mutationService = $mutationService;
+        $this->periodLockService = $periodLockService;
+        $this->journalService = $journalService;
     }
 
     public function execute(array $data, ?User $actor = null): StockOpening
     {
         return DB::transaction(function () use ($data, $actor) {
             $this->periodLockService->ensureDateOpen($data['opening_date'] ?? now(), BranchContext::currentId(), 'opening stock');
+            $actorId = $actor ? $actor->id : null;
 
             $opening = StockOpening::query()->create([
                 'tenant_id' => TenantContext::currentId(),
@@ -39,10 +50,12 @@ class CreateOpeningStockAction
                 'opening_date' => $data['opening_date'],
                 'status' => 'posted',
                 'notes' => $data['notes'] ?? null,
-                'created_by' => $actor?->id,
-                'posted_by' => $actor?->id,
+                'created_by' => $actorId,
+                'posted_by' => $actorId,
                 'posted_at' => now(),
             ]);
+
+            $movements = collect();
 
             foreach ($data['items'] as $item) {
                 $stockKey = $this->mutationService->stockKey(
@@ -132,9 +145,52 @@ class CreateOpeningStockAction
                     'movement_id' => $movement->id,
                     'notes' => $item['notes'] ?? null,
                 ]);
+
+                $movements->push($movement);
+            }
+
+            $journalLines = $this->journalLines($movements);
+
+            if (!empty($journalLines)) {
+                $this->journalService->sync(
+                    $opening,
+                    'opening_stock',
+                    $data['opening_date'] . ' 00:00:00',
+                    $journalLines,
+                    [
+                        'inventory_location_id' => (int) $data['inventory_location_id'],
+                        'movement_count' => $movements->count(),
+                        'opening_code' => $opening->code,
+                    ],
+                    'Auto journal opening stock ' . $opening->code
+                );
             }
 
             return $opening->load(['location', 'items.product', 'items.variant']);
         });
+    }
+
+    private function journalLines(Collection $movements): array
+    {
+        $inventoryValue = round((float) $movements->sum('movement_value'), 2);
+
+        if ($inventoryValue <= 0) {
+            return [];
+        }
+
+        return [
+            [
+                'account_code' => 'INVENTORY',
+                'account_name' => 'Inventory',
+                'debit' => $inventoryValue,
+                'credit' => 0,
+            ],
+            [
+                'account_code' => 'OPENING_BAL_EQUITY',
+                'account_name' => 'Opening Balance Equity',
+                'debit' => 0,
+                'credit' => $inventoryValue,
+            ],
+        ];
     }
 }

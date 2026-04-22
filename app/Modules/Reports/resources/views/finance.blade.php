@@ -5,6 +5,12 @@
     $money = app(\App\Support\MoneyFormatter::class);
     $currency = app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency();
     $isAdvancedMode = ($accountingUiMode ?? 'standard') === 'advanced';
+    $ledgerFilterBase = array_filter([
+        'date_from' => $filters['date_from'] ?? null,
+        'date_to' => $filters['date_to'] ?? null,
+        'finance_category_id' => $filters['finance_category_id'] ?? null,
+        'transaction_type' => $filters['transaction_type'] ?? null,
+    ], fn ($value) => $value !== null && $value !== '');
 @endphp
 <div class="mb-3">
     <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
@@ -64,7 +70,15 @@
             <div class="card-header"><h3 class="card-title mb-0">Laba Rugi Sederhana</h3></div>
             <div class="card-body">
                 <div class="d-flex justify-content-between mb-2"><span class="text-muted">Revenue</span><span>{{ $money->format((float) $profitLoss['revenue'], $currency) }}</span></div>
-                <div class="d-flex justify-content-between mb-2"><span class="text-muted">Estimated COGS</span><span>{{ $money->format((float) $profitLoss['estimated_cogs'], $currency) }}</span></div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">
+                        {{ $profitLoss['cogs_basis'] === 'actual_gl' ? 'Actual COGS (GL)' : 'Estimated COGS' }}
+                    </span>
+                    <span>{{ $money->format((float) $profitLoss['cogs'], $currency) }}</span>
+                </div>
+                @if($profitLoss['cogs_basis'] === 'actual_gl')
+                    <div class="text-muted small mb-2">Fallback estimasi dari snapshot item: {{ $money->format((float) $profitLoss['estimated_cogs'], $currency) }}</div>
+                @endif
                 <div class="d-flex justify-content-between mb-2"><span class="text-muted">Gross profit</span><span>{{ $money->format((float) $profitLoss['gross_profit'], $currency) }}</span></div>
                 <div class="d-flex justify-content-between mb-2"><span class="text-muted">Operating expenses</span><span>{{ $money->format((float) $profitLoss['operating_expenses'], $currency) }}</span></div>
                 <hr>
@@ -97,6 +111,106 @@
 
 @if($isAdvancedMode)
     <div class="row g-3 mt-1">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                    <div>
+                        <h3 class="card-title mb-0">Inventory vs GL Reconciliation</h3>
+                        <div class="text-muted small">{{ $inventoryGlReconciliation['basis'] }}</div>
+                    </div>
+                    <span class="badge {{ $inventoryGlReconciliation['difference_status'] === 'balanced' ? 'bg-green-lt text-green' : 'bg-yellow-lt text-yellow' }}">
+                        {{ $inventoryGlReconciliation['difference_status'] === 'balanced' ? 'BALANCED' : 'CHECK REQUIRED' }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-muted small">Inventory Valuation</div>
+                                <div class="fs-3 fw-bold">{{ $money->format((float) $inventoryGlReconciliation['inventory_stock_value'], $currency) }}</div>
+                                <div class="text-muted small mt-1">Nilai stok terkini dari `inventory_stocks`.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-muted small">GL Inventory Balance</div>
+                                <div class="fs-3 fw-bold">{{ $money->format((float) $inventoryGlReconciliation['inventory_gl_balance'], $currency) }}</div>
+                                <div class="text-muted small mt-1">Saldo akun `INVENTORY` dari posted journal.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-muted small">Difference</div>
+                                <div class="fs-3 fw-bold {{ abs((float) $inventoryGlReconciliation['difference']) < 0.01 ? 'text-green' : 'text-yellow' }}">
+                                    {{ $money->format((float) $inventoryGlReconciliation['difference'], $currency) }}
+                                </div>
+                                <div class="text-muted small mt-1">Selisih valuation inventory terhadap GL.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                    <div>
+                        <h3 class="card-title mb-0">Inventory vs GL Detail</h3>
+                        <div class="text-muted small">Membandingkan efek valuasi movement inventory per source document terhadap impact akun `INVENTORY` di GL pada periode aktif.</div>
+                    </div>
+                    <span class="text-muted small">Source yang belum punya impact GL inventory akan terlihat sebagai `Missing GL`.</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-vcenter mb-0">
+                        <thead>
+                            <tr>
+                                <th>Source Document</th>
+                                <th class="text-end">Movements</th>
+                                <th class="text-end">Inventory Effect</th>
+                                <th class="text-end">GL Inventory Effect</th>
+                                <th class="text-end">Difference</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($inventoryGlReconciliationDetails as $row)
+                                @php
+                                    $sourceReference = $inventorySourceReferences[$row['source_type'] . ':' . $row['source_id']] ?? [];
+                                    $statusClass = $row['status'] === 'balanced'
+                                        ? 'bg-green-lt text-green'
+                                        : ($row['status'] === 'missing_gl' ? 'bg-yellow-lt text-yellow' : 'bg-red-lt text-red');
+                                    $statusLabel = $row['status'] === 'balanced'
+                                        ? 'BALANCED'
+                                        : ($row['status'] === 'missing_gl' ? 'MISSING GL' : 'GAP');
+                                @endphp
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">
+                                            @if($sourceReference['source_url'] ?? false)
+                                                <a href="{{ $sourceReference['source_url'] }}">{{ $sourceReference['source_label'] }}</a>
+                                            @else
+                                                {{ $sourceReference['source_label'] ?? ($row['source_type'] . '#' . $row['source_id']) }}
+                                            @endif
+                                        </div>
+                                        <div class="text-muted small">{{ $sourceReference['source_type_label'] ?? 'Source Document' }}</div>
+                                        @if($row['last_occurred_at'])
+                                            <div class="text-muted small">{{ \Illuminate\Support\Carbon::parse($row['last_occurred_at'])->format('d/m/Y H:i') }}</div>
+                                        @endif
+                                    </td>
+                                    <td class="text-end">{{ number_format((float) $row['movement_count'], 0, ',', '.') }}</td>
+                                    <td class="text-end">{{ $money->format((float) $row['inventory_effect'], $currency) }}</td>
+                                    <td class="text-end">{{ $money->format((float) $row['gl_inventory_effect'], $currency) }}</td>
+                                    <td class="text-end {{ abs((float) $row['difference']) < 0.01 ? 'text-green' : 'text-yellow' }}">{{ $money->format((float) $row['difference'], $currency) }}</td>
+                                    <td><span class="badge {{ $statusClass }}">{{ $statusLabel }}</span></td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="6" class="text-center text-muted">Belum ada source movement inventory bernilai dalam periode ini.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
         <div class="col-xl-5">
             <div class="card">
                 <div class="card-header"><h3 class="card-title mb-0">Trial Balance</h3></div>
@@ -120,7 +234,11 @@
                                     $trialCreditTotal += (float) $row->credit_total;
                                 @endphp
                                 <tr>
-                                    <td>{{ $row->account_code }} - {{ $row->account_name }}</td>
+                                    <td>
+                                        <a href="{{ route('reports.finance', array_merge($ledgerFilterBase, ['account_code' => $row->account_code])) }}">
+                                            {{ $row->account_code }} - {{ $row->account_name }}
+                                        </a>
+                                    </td>
                                     <td class="text-end">{{ $money->format((float) $row->debit_total, $currency) }}</td>
                                     <td class="text-end">{{ $money->format((float) $row->credit_total, $currency) }}</td>
                                 </tr>
@@ -155,7 +273,11 @@
                         <tbody>
                             @forelse($ledgerSummary as $row)
                                 <tr>
-                                    <td>{{ $row->account_code }} - {{ $row->account_name }}</td>
+                                    <td>
+                                        <a href="{{ route('reports.finance', array_merge($ledgerFilterBase, ['account_code' => $row->account_code])) }}">
+                                            {{ $row->account_code }} - {{ $row->account_name }}
+                                        </a>
+                                    </td>
                                     <td class="text-end">{{ $row->line_count }}</td>
                                     <td class="text-end">{{ $money->format((float) $row->debit_total, $currency) }}</td>
                                     <td class="text-end">{{ $money->format((float) $row->credit_total, $currency) }}</td>
@@ -203,12 +325,29 @@
                                 @foreach($entries as $entry)
                                     @php
                                         $runningBalance += (float) $entry->debit - (float) $entry->credit;
+                                        $sourceReference = $journalReferences[$entry->id] ?? [];
                                     @endphp
                                     <tr>
                                         <td>{{ optional(\Illuminate\Support\Carbon::parse($entry->entry_date))->format('d/m/Y H:i') }}</td>
                                         <td>
-                                            <div>{{ $entry->journal_number ?: '-' }}</div>
+                                            <div>
+                                                @if($sourceReference['journal_url'] ?? false)
+                                                    <a href="{{ $sourceReference['journal_url'] }}">{{ $entry->journal_number ?: '-' }}</a>
+                                                @else
+                                                    {{ $entry->journal_number ?: '-' }}
+                                                @endif
+                                            </div>
                                             <div class="text-muted small">{{ $entry->entry_type }} / {{ strtoupper($entry->status) }}</div>
+                                            @if($sourceReference['source_label'] ?? false)
+                                                <div class="text-muted small">
+                                                    Source:
+                                                    @if($sourceReference['source_url'] ?? false)
+                                                        <a href="{{ $sourceReference['source_url'] }}">{{ $sourceReference['source_label'] }}</a>
+                                                    @else
+                                                        {{ $sourceReference['source_label'] }}
+                                                    @endif
+                                                </div>
+                                            @endif
                                         </td>
                                         <td>
                                             <div>{{ $entry->description ?: '-' }}</div>
@@ -236,6 +375,7 @@
             <div>
                 <h3 class="card-title mb-0">Balance Sheet</h3>
                 <div class="text-muted small">{{ $balanceSheet['basis'] }}</div>
+                <div class="text-muted small">Jika akun retained earnings formal belum tersedia, current earnings periode aktif akan dibawa sementara ke equity.</div>
             </div>
             <span class="badge {{ $balanceSheet['is_balanced'] ? 'bg-green-lt text-green' : 'bg-yellow-lt text-yellow' }}">
                 {{ $balanceSheet['is_balanced'] ? 'BALANCED' : 'PROVISIONAL' }}

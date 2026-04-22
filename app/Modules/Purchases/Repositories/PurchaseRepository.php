@@ -2,6 +2,7 @@
 
 namespace App\Modules\Purchases\Repositories;
 
+use App\Models\AccountingJournal;
 use App\Modules\Purchases\Models\Purchase;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
@@ -65,7 +66,21 @@ class PurchaseRepository
 
         BranchContext::applyScope($query);
 
-        return $query->findOrFail($purchase->id);
+        $purchase = $query->findOrFail($purchase->id);
+
+        $receiptJournals = AccountingJournal::query()
+            ->where('tenant_id', $this->tenantId())
+            ->where('company_id', $this->companyId())
+            ->where('source_type', \App\Modules\Purchases\Models\PurchaseReceipt::class)
+            ->whereIn('source_id', $purchase->receipts->pluck('id')->all())
+            ->get()
+            ->keyBy('source_id');
+
+        $purchase->receipts->each(function ($receipt) use ($receiptJournals) {
+            $receipt->setRelation('inventoryJournal', $receiptJournals->get($receipt->id));
+        });
+
+        return $purchase;
     }
 
     public function findForEdit(Purchase $purchase): Purchase

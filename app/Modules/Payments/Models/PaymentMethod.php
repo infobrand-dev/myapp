@@ -4,6 +4,7 @@ namespace App\Modules\Payments\Models;
 
 use App\Models\Company;
 use App\Models\User;
+use App\Modules\Finance\Models\FinanceAccount;
 use App\Support\CompanyContext;
 use App\Support\NormalizesPgsqlBooleanAttributes;
 use App\Support\TenantContext;
@@ -37,6 +38,7 @@ class PaymentMethod extends Model
         'code',
         'name',
         'type',
+        'finance_account_id',
         'requires_reference',
         'is_active',
         'is_system',
@@ -58,6 +60,11 @@ class PaymentMethod extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function financeAccount(): BelongsTo
+    {
+        return $this->belongsTo(FinanceAccount::class, 'finance_account_id');
     }
 
     public function company(): BelongsTo

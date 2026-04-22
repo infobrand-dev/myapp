@@ -58,6 +58,8 @@ trait NormalizesSalePayload
 
         $this->merge([
             'contact_id' => $this->filled('contact_id') ? (int) $this->input('contact_id') : null,
+            'inventory_location_id' => $this->filled('inventory_location_id') ? (int) $this->input('inventory_location_id') : null,
+            'tax_rate_id' => $this->filled('tax_rate_id') ? (int) $this->input('tax_rate_id') : null,
             'items' => $items,
             'header_discount_total' => ($this->input('header_discount_total', '') === '' ? 0 : $this->input('header_discount_total')),
             'header_tax_total' => ($this->input('header_tax_total', '') === '' ? 0 : $this->input('header_tax_total')),

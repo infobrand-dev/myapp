@@ -2,6 +2,7 @@
 
 use App\Modules\Finance\Http\Controllers\AccountingApprovalController;
 use App\Modules\Finance\Http\Controllers\AccountingJournalController;
+use App\Modules\Finance\Http\Controllers\AccountingPeriodClosingController;
 use App\Modules\Finance\Http\Controllers\AccountingPeriodLockController;
 use App\Modules\Finance\Http\Controllers\BankReconciliationController;
 use App\Modules\Finance\Http\Controllers\ChartOfAccountController;
@@ -58,6 +59,8 @@ Route::middleware(['web', 'auth', 'plan.feature:accounting'])
         Route::get('/approvals', [AccountingApprovalController::class, 'index'])->middleware('permission:finance.approve-sensitive-transactions')->name('approvals.index');
         Route::post('/approvals/{approvalRequest}/approve', [AccountingApprovalController::class, 'approve'])->middleware('permission:finance.approve-sensitive-transactions')->name('approvals.approve');
         Route::post('/approvals/{approvalRequest}/reject', [AccountingApprovalController::class, 'reject'])->middleware('permission:finance.approve-sensitive-transactions')->name('approvals.reject');
+        Route::get('/period-closings', [AccountingPeriodClosingController::class, 'index'])->middleware('permission:finance.manage-period-locks')->name('period-closings.index');
+        Route::post('/period-closings', [AccountingPeriodClosingController::class, 'store'])->middleware('permission:finance.manage-period-locks')->name('period-closings.store');
         Route::get('/period-locks', [AccountingPeriodLockController::class, 'index'])->middleware('permission:finance.manage-period-locks')->name('period-locks.index');
         Route::post('/period-locks', [AccountingPeriodLockController::class, 'store'])->middleware('permission:finance.manage-period-locks')->name('period-locks.store');
         Route::delete('/period-locks/{accountingPeriodLock}', [AccountingPeriodLockController::class, 'destroy'])->middleware('permission:finance.manage-period-locks')->name('period-locks.destroy');

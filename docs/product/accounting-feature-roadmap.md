@@ -79,7 +79,7 @@ Untuk fase sekarang, fokus utama bukan menambah fitur pinggiran, tetapi menutup 
 - `bank reconciliation formal` fondasinya sekarang sudah mulai ada, dan import mutasi + suggested matching awal sudah mencakup payment serta finance transaction dasar; exception handling dasar untuk line yang tidak bisa dimatch juga sudah mulai ada, format import bank umum dan duplicate candidate dasar juga sudah mulai ditangani, tetapi matching lintas source yang lebih kaya dan rule yang lebih cerdas masih belum ada
 - `tax workflow formal` sekarang sudah punya fondasi inti Indonesia-ready lewat tax scope master, metadata legal, tax register formal untuk PPN/PPh dasar, draft export CSV untuk register serta e-Faktur awal, auto-generate register dasar dari sale/purchase bertax, dan numbering dokumen pajak formal; tetapi export perpajakan final, e-Faktur resmi, dan automation yang lebih dalam masih belum lengkap
 - `commercial document flow` sudah ada fondasi, tetapi belum sepenuhnya matang sebagai flow operasional penuh
-- `balance sheet` masih belum closing-grade, tetapi sekarang klasifikasi sudah lebih kuat karena mulai memakai metadata + parent grouping COA dan membawa current earnings sementara ke equity
+- `balance sheet` sudah mulai masuk arah closing-grade karena period closing awal dapat memindahkan laba/rugi ke retained earnings dan mengunci periode, tetapi reopen/reverse closing governance belum lengkap
 
 ### Yang belum perlu didorong ke depan
 - `maker-checker` formal
@@ -132,6 +132,9 @@ Bagian ini khusus untuk membedakan:
 - [x] inventory valuation dasar: moving average snapshot, inventory value per stock, dan tampilan valuation di inventory/report
 - [x] tax master dasar di `finance`: tax rate, mapping akun pajak, dan rekap pajak dasar
 - [x] tax profile partner dasar di `contacts`: NPWP/Tax ID, tax name, tax address, dan status PKP
+- [x] penyesuaian neraca setelah COA formal tersedia: memakai metadata COA, parent grouping, subtotal grup, dan current earnings sementara
+- [x] export finance report formal dasar: Trial Balance CSV, General Ledger CSV, dan Balance Sheet CSV
+- [x] period closing awal: membuat closing journal laba/rugi ke retained earnings dan auto period lock
 
 ### Belum dijalankan atau belum lengkap
 - [ ] edit manual journal di browser flow penuh
@@ -139,7 +142,7 @@ Bagian ini khusus untuk membedakan:
 - [ ] regression test untuk journal auto-posting dari sales, purchases, payments setelah perubahan terbaru
 - [ ] integration test antara finance journal governance dan reports
 - [ ] verifikasi fungsi neraca terhadap kombinasi akun asset / liability / equity yang lebih beragam
-- [ ] penyesuaian neraca setelah COA formal tersedia
+- [ ] reopen / reverse period closing dengan governance formal
 - [ ] acceptance test untuk workflow accounting per batch berikutnya
 - [ ] migrate + smoke test COA terhadap database target
 - [ ] migrate + smoke test inventory valuation columns terhadap database target
@@ -330,13 +333,17 @@ Checklist ini memetakan proses accounting end-to-end agar roadmap tidak berhenti
   owner module: `reports` untuk output, dengan governance source di `finance`
 - [x] `general ledger / buku besar` formal dengan drill-down
   owner module: `reports` untuk output, dengan governance source di `finance`
-- [-] `balance sheet / neraca` yang berbasis GL dengan dukungan COA ringan, parent grouping COA, dan current earnings sementara ke equity, tetapi belum closing-grade
+- [x] `balance sheet / neraca provisional` yang berbasis GL dengan dukungan COA ringan, parent grouping COA, subtotal grup, export CSV, dan current earnings sementara ke equity
+  owner module: `reports` untuk output, dengan governance source di `finance`
+- [-] `balance sheet / neraca closing-grade` sudah punya period closing awal dan retained earnings journal permanen, tetapi reopen/reverse closing governance belum lengkap
   owner module: `reports` untuk output, dengan governance source di `finance`
 
 ### 7. Reporting
 - [x] `laba rugi` sederhana
   owner module: `reports`
-- [-] `neraca`
+- [x] `neraca provisional` sekarang sudah punya grouping COA, subtotal grup, dan export CSV
+  owner module: `reports`
+- [-] `neraca closing-grade` sudah punya closing process awal dan retained earnings permanen, tetapi governance reopen/reverse belum lengkap
   owner module: `reports`
 - [x] `arus kas`
   owner module: `reports`
@@ -364,7 +371,7 @@ Checklist ini memetakan proses accounting end-to-end agar roadmap tidak berhenti
   owner module: `contacts`
 - [-] `faktur pajak`
   owner module: kandidat `tax`
-- [ ] `export / integrasi e-Faktur`
+- [-] `export / integrasi e-Faktur` sudah punya draft CSV PPN keluaran, tetapi belum format final resmi / integrasi
   owner module: kandidat `tax`
 
 ### 9. User, Permission, Approval, Audit
@@ -381,18 +388,18 @@ Checklist ini memetakan proses accounting end-to-end agar roadmap tidak berhenti
 Masih banyak pekerjaan, tetapi bukan berarti fondasinya kosong. Yang paling besar justru ada di area yang membuat sistem naik kelas dari operasional transaksi menjadi accounting formal.
 
 ### Paling krusial
-- [-] `COA + GL formal` fondasi awal sudah ada, tetapi masih butuh reversal, mapping lebih kaya, dan closing governance
+- [-] `COA + GL formal` fondasi awal sudah ada, termasuk period closing awal, tetapi masih butuh mapping lebih kaya dan closing governance lanjutan
 - [-] `inventory costing / HPP formal` fondasi makin lengkap karena purchase receipt, opening stock, adjustment, sale COGS, dan sales return restock sudah masuk GL; namun coverage edge case dan governance costing masih belum penuh
 - [-] `tax management` fondasi master dan rekap dasar sudah ada, tax scope Indonesia-ready, tax register formal dasar, draft export CSV awal, auto-generate register dari sale/purchase bertax, dan numbering dokumen pajak formal juga sudah ada; tetapi lifecycle formal penuh dan integrasi resmi masih belum lengkap
 
 ### Perlu segera setelah fondasi
-- [-] `sales document flow` mulai ada lewat quotation -> draft sale, tetapi sales order dan lifecycle penuh masih belum lengkap
+- [-] `sales document flow` mulai ada lewat quotation dan sales order ke draft sale, tetapi lifecycle komersial penuh masih belum lengkap
 - [-] `purchase document flow` mulai ada lewat purchase request -> purchase order -> draft purchase, tetapi approval/lifecycle penuh masih belum lengkap
 - [-] `bank reconciliation` formal dasar per account/periode sudah ada, termasuk import statement, suggested matching lintas source awal, duplicate candidate dasar, dan manual override per line; tetapi matching lintas source dan exception flow belum lengkap
-- [-] `reporting formal` seperti neraca, trial balance, buku besar
+- [-] `reporting formal` seperti neraca, trial balance, dan buku besar sudah lebih usable dengan drill-down, export CSV formal, serta period closing awal; gap utama tersisa governance reopen/reverse closing dan validasi kombinasi akun lebih luas
 
 ### Penguat operasional dan kontrol
-- [-] `manual journal`, `reversal`, dan `posted journal control`
+- [-] `manual journal`, `reversal`, `posted journal control`, dan period closing awal
 - [ ] `approval matrix` lintas modul
 - [ ] `maker-checker` untuk aksi berisiko tinggi
 - [x] `drill-down auditability` dari report -> journal -> source document
@@ -466,7 +473,8 @@ Masih banyak pekerjaan, tetapi bukan berarti fondasinya kosong. Yang paling besa
 - [x] reversal journal dan pembatalan yang audit-safe
 - [x] trial balance
 - [x] buku besar / general ledger dengan filter akun, periode, company, branch
-- [-] neraca berbasis GL + COA ringan
+- [x] neraca provisional berbasis GL + COA ringan, subtotal grup, current earnings sementara, dan export CSV formal
+- [-] neraca closing-grade sudah punya closing process awal dan retained earnings permanen, tetapi reopen/reverse closing governance belum lengkap
 
 ### Inventory Costing
 - [-] pilih dan implementasikan metode costing awal, saat ini `moving average` dasar untuk snapshot valuation
@@ -482,14 +490,14 @@ Masih banyak pekerjaan, tetapi bukan berarti fondasinya kosong. Yang paling besa
 - [-] akun pajak keluaran dan masukan
 - [-] NPWP customer / supplier
 - [-] rekap pajak per periode
-- [-] draft struktur faktur pajak / export data pajak
+- [x] draft struktur faktur pajak / export data pajak dasar
 
 ## Prioritas 5
 ### Sales & Purchase Document Flow
-- [ ] quotation
-- [ ] sales order
-- [ ] purchase request
-- [ ] purchase order
+- [x] quotation
+- [x] sales order
+- [x] purchase request
+- [x] purchase order
 - [x] status lifecycle dokumen yang konsisten dari pre-transaction ke invoice / bill
 - [x] approval per dokumen sebelum finalize atau convert bisa diatur dari settings dokumen
 
@@ -523,9 +531,9 @@ Implikasi:
 4. [x] `finance`: transfer account, running balance, opening balance
 5. [x] `purchases`: landed cost, expected receive date, supplier bill tracking
 6. [x] `reports`: arus kas, aging, laba rugi sederhana
-7. [-] `GL / COA formal`: manual journal, trial balance, buku besar, neraca provisional
+7. [-] `GL / COA formal`: manual journal, trial balance, buku besar, neraca provisional, dan period closing awal
 8. [-] `inventory costing`: moving average dasar, stock valuation, dan auto journal HPP dari sale ber-location sudah ada; rekonsiliasi inventory ke GL masih tersisa
 9. [-] `tax`: master pajak dasar, NPWP/tax profile partner, rekap pajak dasar, tax scope Indonesia-ready, tax register formal dasar, auto-generate register dari sale/purchase bertax, dan numbering dokumen pajak formal sudah ada
-10. [ ] `document flow`: quotation, sales order, purchase request, purchase order
+10. [-] `document flow`: quotation, sales order, purchase request, dan purchase order sudah ada; flow komersial/procurement penuh masih perlu diperdalam
 11. [-] `cash & bank`: bank reconciliation formal dasar, import mutasi dengan normalisasi header dasar, suggested matching lintas source awal, manual override dasar, outstanding unreconciled view, duplicate candidate dasar, dan exception status dasar sudah ada; flow exception dan matching lanjutan masih belum
 12. [ ] `controls`: approval matrix, maker-checker, audit drill-down

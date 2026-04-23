@@ -13,5 +13,8 @@ Route::middleware(['web', 'auth', 'permission:reports.view', 'plan.feature:accou
         Route::get('/inventory', [ReportsController::class, 'inventory'])->middleware(['permission:reports.inventory', 'plan.feature:advanced_reports', 'plan.feature:inventory'])->name('inventory');
         Route::get('/purchases', [ReportsController::class, 'purchases'])->middleware(['permission:reports.purchases', 'plan.feature:advanced_reports', 'plan.feature:purchases'])->name('purchases');
         Route::get('/finance', [ReportsController::class, 'finance'])->middleware(['permission:reports.finance', 'plan.feature:advanced_reports'])->name('finance');
+        Route::get('/finance/export/trial-balance', [ReportsController::class, 'exportFinanceTrialBalance'])->middleware(['permission:reports.finance', 'plan.feature:advanced_reports'])->name('finance.export.trial-balance');
+        Route::get('/finance/export/general-ledger', [ReportsController::class, 'exportFinanceGeneralLedger'])->middleware(['permission:reports.finance', 'plan.feature:advanced_reports'])->name('finance.export.general-ledger');
+        Route::get('/finance/export/balance-sheet', [ReportsController::class, 'exportFinanceBalanceSheet'])->middleware(['permission:reports.finance', 'plan.feature:advanced_reports'])->name('finance.export.balance-sheet');
         Route::get('/pos', [ReportsController::class, 'pos'])->middleware(['permission:reports.pos', 'plan.feature:advanced_reports', 'plan.feature:point_of_sale'])->name('pos');
     });

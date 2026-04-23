@@ -13,13 +13,14 @@ return new class extends Migration
             $table->unsignedBigInteger('tenant_id')->default(1);
             $table->unsignedBigInteger('company_id');
             $table->unsignedBigInteger('branch_id')->nullable();
+            $table->string('sequence_scope_key', 80)->default('company');
             $table->string('document_type', 50);
             $table->string('sequence_date', 8);
             $table->unsignedBigInteger('last_number')->default(0);
             $table->timestamps();
 
             $table->unique(
-                ['tenant_id', 'company_id', 'branch_id', 'document_type', 'sequence_date'],
+                ['tenant_id', 'company_id', 'sequence_scope_key', 'document_type', 'sequence_date'],
                 'finance_tax_document_sequences_unique'
             );
         });

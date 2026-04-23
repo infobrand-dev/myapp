@@ -408,11 +408,12 @@ Artinya:
 Maka:
 - jika `document_number` masih kosong, sistem sekarang mencoba generate nomor dokumen pajak otomatis
 - numbering mengikuti fondasi `document_numbering_rules` yang sama dengan dokumen lain
-- jika belum ada rule khusus, sistem memakai fallback sequence tax document internal
+- jika belum ada rule khusus, sistem memakai fallback sequence tax document internal per company/branch scope dan periode bulan
 
 Artinya:
 - tax register draft tetap fleksibel saat data perpajakan belum lengkap
 - saat dokumen dianggap formal, identitas nomornya menjadi stabil dan siap dipakai untuk export atau proses lanjutan
+- fallback sequence memakai scope key eksplisit agar unique constraint tetap aman di PostgreSQL / Supabase walaupun `branch_id` nullable
 
 ### Jika tax register bertipe PPh / withholding
 Maka:
@@ -469,11 +470,30 @@ Balance sheet di report advanced sekarang:
 - membaca saldo akun dari posted journal / trial balance
 - mencoba memakai metadata `Chart of Accounts` bila tersedia
 - memakai parent COA sebagai grouping report bila parent sudah disusun
+- menampilkan subtotal per group agar struktur neraca lebih mudah direview
 - membawa `current earnings` periode aktif ke equity sementara jika akun retained earnings formal belum ada
+- bisa diexport ke CSV bersama trial balance dan general ledger
 
 Artinya:
 - neraca sekarang lebih dekat ke struktur accounting formal daripada sekadar heuristic kode akun
-- tetapi ini masih belum dianggap closing-grade karena proses tutup buku formal dan retained earnings permanen belum diposting khusus
+- jika periode sudah di-closing, retained earnings berasal dari journal closing permanen
+- jika periode belum di-closing, current earnings masih dibawa sementara agar neraca provisional tetap terbaca
+- reopen/reverse closing governance belum lengkap, jadi period closing harus dipakai hati-hati oleh user finance
+
+## Period Closing Saat Ini
+Period closing awal sekarang:
+- membaca saldo akun laba/rugi dari posted journal sesuai periode
+- memakai metadata COA `profit_loss` bila tersedia
+- memakai fallback kode akun untuk data lama seperti `SALES`, `COGS`, `PURCHASES`, `SALES_DISC`, dan akun nominal lain yang umum
+- membuat journal `period_closing`
+- menutup akun revenue dan expense ke `RETAINED_EARNINGS`
+- membuat period lock otomatis untuk periode yang sudah ditutup
+
+Artinya:
+- retained earnings tidak hanya simulasi report lagi setelah closing dibuat
+- journal closing menjadi bukti formal perpindahan laba/rugi periode ke equity
+- company-level closing mencakup semua branch, sedangkan branch-level closing hanya mencakup branch yang dipilih
+- sistem mencegah closing periode yang sama pada scope company/branch yang konflik
 
 ## Rekonsiliasi Inventory vs GL
 Finance report sekarang punya panel rekonsiliasi:

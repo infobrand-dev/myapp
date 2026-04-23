@@ -53,7 +53,8 @@ class TaxDocumentNumberService
 
     private function fallbackNumber(string $documentType, \DateTimeInterface $date, ?int $branchId = null): string
     {
-        $sequenceDate = $date->format('Ymd');
+        $sequenceDate = $date->format('Ym');
+        $scopeKey = $branchId === null ? 'company' : ('branch:' . $branchId);
         $prefixMap = [
             'tax_output_vat' => 'FPK-' . $date->format('Ym'),
             'tax_input_vat' => 'FPM-' . $date->format('Ym'),
@@ -61,44 +62,48 @@ class TaxDocumentNumberService
         ];
         $prefix = isset($prefixMap[$documentType]) ? $prefixMap[$documentType] : ('TAX-' . $date->format('Ym'));
 
-        $query = DB::table('finance_tax_document_sequences')
-            ->where('tenant_id', TenantContext::currentId())
-            ->where('company_id', CompanyContext::currentId())
-            ->where('document_type', $documentType)
-            ->where('sequence_date', $sequenceDate);
+        return DB::transaction(function () use ($documentType, $date, $branchId, $sequenceDate, $scopeKey, $prefix) {
+            $query = DB::table('finance_tax_document_sequences')
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
+                ->where('sequence_scope_key', $scopeKey)
+                ->where('document_type', $documentType)
+                ->where('sequence_date', $sequenceDate);
 
-        if ($branchId === null) {
-            $query->whereNull('branch_id');
-        } else {
-            $query->where('branch_id', $branchId);
-        }
-
-        $row = $query->lockForUpdate()->first();
-
-        if (!$row) {
-            DB::table('finance_tax_document_sequences')->insert([
-                'tenant_id' => TenantContext::currentId(),
-                'company_id' => CompanyContext::currentId(),
-                'branch_id' => $branchId,
-                'document_type' => $documentType,
-                'sequence_date' => $sequenceDate,
-                'last_number' => 0,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            if ($branchId === null) {
+                $query->whereNull('branch_id');
+            } else {
+                $query->where('branch_id', $branchId);
+            }
 
             $row = $query->lockForUpdate()->first();
-        }
 
-        $nextNumber = ((int) $row->last_number) + 1;
+            if (!$row) {
+                DB::table('finance_tax_document_sequences')->insert([
+                    'tenant_id' => TenantContext::currentId(),
+                    'company_id' => CompanyContext::currentId(),
+                    'branch_id' => $branchId,
+                    'sequence_scope_key' => $scopeKey,
+                    'document_type' => $documentType,
+                    'sequence_date' => $sequenceDate,
+                    'last_number' => 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
 
-        DB::table('finance_tax_document_sequences')
-            ->where('id', $row->id)
-            ->update([
-                'last_number' => $nextNumber,
-                'updated_at' => now(),
-            ]);
+                $row = $query->lockForUpdate()->first();
+            }
 
-        return sprintf('%s-%04d', $prefix, $nextNumber);
+            $nextNumber = ((int) $row->last_number) + 1;
+
+            DB::table('finance_tax_document_sequences')
+                ->where('id', $row->id)
+                ->update([
+                    'last_number' => $nextNumber,
+                    'updated_at' => now(),
+                ]);
+
+            return sprintf('%s-%04d', $prefix, $nextNumber);
+        });
     }
 }

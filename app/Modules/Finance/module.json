@@ -44,6 +44,10 @@
                        {
                            "label":  "Finance Period Locks",
                            "route":  "finance.period-locks.index"
+                       },
+                       {
+                           "label":  "Finance Period Closings",
+                           "route":  "finance.period-closings.index"
                        }
                    ],
     "icon":  "resources/icons/icon.svg"

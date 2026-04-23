@@ -41,7 +41,7 @@
             <div class="col-md-3"><label class="form-label">Category</label><select name="finance_category_id" class="form-select"><option value="">All</option>@foreach($categories as $category)<option value="{{ $category->id }}" @selected((string) $filters['finance_category_id'] === (string) $category->id)>{{ $category->name }}</option>@endforeach</select></div>
             <div class="col-md-2"><label class="form-label">Type</label><input type="text" name="transaction_type" class="form-control" value="{{ $filters['transaction_type'] }}" placeholder="cash_in, cash_out, expense"></div>
             <div class="col-md-3"><label class="form-label">GL Account</label><select name="account_code" class="form-select"><option value="">All</option>@foreach($accountOptions as $accountOption)<option value="{{ $accountOption->account_code }}" @selected($filters['account_code'] === $accountOption->account_code)>{{ $accountOption->account_code }} - {{ $accountOption->account_name }}</option>@endforeach</select></div>
-            <div class="col-12 d-flex gap-2"><button class="btn btn-primary">Filter</button><a href="{{ route('reports.finance') }}" class="btn btn-outline-secondary">Reset</a></div>
+            <div class="col-12 d-flex gap-2 flex-wrap"><button class="btn btn-primary">Filter</button><a href="{{ route('reports.finance') }}" class="btn btn-outline-secondary">Reset</a></div>
         </form>
     </div>
 </div>
@@ -111,6 +111,21 @@
 
 @if($isAdvancedMode)
     <div class="row g-3 mt-1">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                    <div>
+                        <div class="fw-semibold">Export Formal Report</div>
+                        <div class="text-muted small">CSV mengikuti filter periode, company, branch, dan account yang aktif.</div>
+                    </div>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="{{ route('reports.finance.export.trial-balance', request()->query()) }}" class="btn btn-outline-primary">Trial Balance CSV</a>
+                        <a href="{{ route('reports.finance.export.general-ledger', request()->query()) }}" class="btn btn-outline-primary">General Ledger CSV</a>
+                        <a href="{{ route('reports.finance.export.balance-sheet', request()->query()) }}" class="btn btn-outline-primary">Balance Sheet CSV</a>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="col-12">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
@@ -396,6 +411,10 @@
                                             <span>{{ $money->format((float) $row['balance'], $currency) }}</span>
                                         </div>
                                     @endforeach
+                                    <div class="d-flex justify-content-between mt-2 fw-semibold">
+                                        <span>{{ $group }} Total</span>
+                                        <span>{{ $money->format((float) $rows->sum('balance'), $currency) }}</span>
+                                    </div>
                                 </div>
                             @empty
                                 <div class="text-muted">Belum ada akun asset yang dapat diklasifikasikan.</div>
@@ -421,6 +440,10 @@
                                             <span>{{ $money->format((float) $row['balance'], $currency) }}</span>
                                         </div>
                                     @endforeach
+                                    <div class="d-flex justify-content-between mt-2 fw-semibold">
+                                        <span>{{ $group }} Total</span>
+                                        <span>{{ $money->format((float) $rows->sum('balance'), $currency) }}</span>
+                                    </div>
                                 </div>
                             @empty
                                 <div class="text-muted">Belum ada akun liability yang dapat diklasifikasikan.</div>
@@ -445,6 +468,10 @@
                                             <span>{{ $money->format((float) $row['balance'], $currency) }}</span>
                                         </div>
                                     @endforeach
+                                    <div class="d-flex justify-content-between mt-2 fw-semibold">
+                                        <span>{{ $group }} Total</span>
+                                        <span>{{ $money->format((float) $rows->sum('balance'), $currency) }}</span>
+                                    </div>
                                 </div>
                             @empty
                                 <div class="text-muted">Belum ada akun equity yang dapat diklasifikasikan.</div>

@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Support\AccountingPeriodLockService;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
+use App\Support\SensitiveActionApprovalService;
 use App\Support\TenantContext;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -15,10 +16,12 @@ use Illuminate\Validation\ValidationException;
 class ReverseAccountingJournalAction
 {
     private $periodLockService;
+    private $approvalService;
 
-    public function __construct(AccountingPeriodLockService $periodLockService)
+    public function __construct(AccountingPeriodLockService $periodLockService, SensitiveActionApprovalService $approvalService)
     {
         $this->periodLockService = $periodLockService;
+        $this->approvalService = $approvalService;
     }
 
     public function execute(AccountingJournal $journal, array $data, ?User $actor = null): AccountingJournal
@@ -46,6 +49,22 @@ class ReverseAccountingJournalAction
             $reason = trim((string) ($data['reason'] ?? ''));
 
             $this->periodLockService->ensureDateOpen($entryDate, $journal->branch_id, 'reverse journal');
+            $this->approvalService->ensureApprovedOrCreatePending(
+                'finance',
+                'reverse_journal',
+                $journal,
+                [
+                    'amount' => round((float) $journal->lines->sum('debit'), 2),
+                    'journal_number' => $journal->journal_number,
+                    '_action_date' => $entryDate->toDateTimeString(),
+                    '_maker_ids' => array_values(array_unique(array_filter([
+                        (int) $journal->created_by,
+                        (int) $journal->updated_by,
+                    ]))),
+                ],
+                $actor,
+                $reason !== '' ? $reason : ('Reverse journal ' . ($journal->journal_number ?: ('#' . $journal->id)))
+            );
 
             $reversal = new AccountingJournal();
             $reversal->fill([

@@ -15,17 +15,22 @@ use Illuminate\Validation\ValidationException;
 
 class VoidPaymentAction
 {
-
     private $recalculatePaymentSummary;
+    private $approvalService;
+    private $periodLockService;
+    private $journalService;
 
     public function __construct(
         RecalculatePaymentSummaryAction $recalculatePaymentSummary,
-        private readonly SensitiveActionApprovalService $approvalService,
-        private readonly AccountingPeriodLockService $periodLockService,
-        private readonly AccountingJournalService $journalService
+        SensitiveActionApprovalService $approvalService,
+        AccountingPeriodLockService $periodLockService,
+        AccountingJournalService $journalService
     )
     {
         $this->recalculatePaymentSummary = $recalculatePaymentSummary;
+        $this->approvalService = $approvalService;
+        $this->periodLockService = $periodLockService;
+        $this->journalService = $journalService;
     }
 
     public function execute(Payment $payment, array $data, ?User $actor = null): Payment
@@ -56,7 +61,16 @@ class VoidPaymentAction
                 'payments',
                 'void_payment',
                 $payment,
-                ['reason' => $reason, 'amount' => (float) $payment->amount],
+                [
+                    'reason' => $reason,
+                    'amount' => (float) $payment->amount,
+                    '_action_date' => optional($payment->paid_at)->toDateTimeString(),
+                    '_maker_ids' => array_values(array_unique(array_filter([
+                        (int) $payment->created_by,
+                        (int) $payment->updated_by,
+                        (int) $payment->received_by,
+                    ]))),
+                ],
                 $actor,
                 $reason
             );

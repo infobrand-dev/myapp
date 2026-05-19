@@ -1,5 +1,7 @@
 @extends('layouts.admin')
 
+@section('title', 'Percakapan')
+
 @section('content')
 @php
     $conversationMeta = is_array($conversation->metadata) ? $conversation->metadata : [];
@@ -21,6 +23,21 @@
         'read' => 'Dibaca',
         'failed' => 'Gagal',
     ];
+    $activeChannel = strtolower($conversation->channel ?? 'internal');
+    $activeChannelBadgeClass = match(true) {
+        in_array($activeChannel, ['wa_api', 'wa_web', 'wa_bro', 'whatsapp']) => 'cbadge-wa',
+        in_array($activeChannel, ['social_dm', 'social']) => 'cbadge-social',
+        $activeChannel === 'live_chat' => 'cbadge-livechat',
+        $activeChannel === 'internal' => 'cbadge-internal',
+        default => 'cbadge-default',
+    };
+    $activeChannelBadgeIcon = match(true) {
+        in_array($activeChannel, ['wa_api', 'wa_web', 'wa_bro', 'whatsapp']) => 'ti-brand-whatsapp',
+        in_array($activeChannel, ['social_dm', 'social']) => 'ti-brand-instagram',
+        $activeChannel === 'live_chat' => 'ti-message-circle',
+        $activeChannel === 'internal' => 'ti-users',
+        default => 'ti-message',
+    };
 @endphp
 {{--
 <style>
@@ -751,37 +768,39 @@
     .conv-dashboard .user-search-item:hover {
         background: rgba(32, 107, 196, 0.08);
     }
-    .conv-dashboard .user-search-note {
-        padding: .55rem .65rem;
-        font-size: .78rem;
-        color: var(--conv-muted);
-    }
-</style>
 --}}
 <div class="conv-dashboard mobile-view-inbox" id="conv-dashboard-root">
 <div class="conv-page-head d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0 fw-semibold">Conversations</h2>
-        <div class="conv-page-subtitle">Unified inbox for handling customer and internal conversations across channels.</div>
+        <div class="conv-page-subtitle">Unified inbox — percakapan lintas channel dalam satu tampilan.</div>
     </div>
     <div class="btn-list conv-page-actions">
-        <a href="{{ route('conversations.index') }}" class="btn btn-outline-secondary">Kembali</a>
-        <button type="button" class="btn btn-outline-primary d-none" id="enable-web-notif-btn">Aktifkan Notifikasi</button>
+        <a href="{{ route('conversations.index') }}" class="btn btn-outline-secondary">
+            <i class="ti ti-arrow-left me-1"></i>Kembali
+        </a>
+        <button type="button" class="btn btn-outline-primary d-none" id="enable-web-notif-btn">
+            <i class="ti ti-bell me-1"></i>Aktifkan Notifikasi
+        </button>
         @foreach($hooks->render('conversations.show.actions', ['conversation' => $conversation, 'user' => auth()->user()]) as $hookedAction)
             {!! $hookedAction !!}
         @endforeach
         @if($conversation->owner_id === auth()->id())
             <form method="POST" action="{{ route('conversations.release', $conversation) }}" class="d-inline">
                 @csrf
-                <button class="btn btn-outline-secondary" type="submit">Release</button>
+                <button class="btn btn-outline-secondary" type="submit">
+                    <i class="ti ti-lock-open me-1"></i>Release
+                </button>
             </form>
         @elseif(!$conversation->owner_id || optional($conversation->locked_until)->isPast())
             <form method="POST" action="{{ route('conversations.claim', $conversation) }}" class="d-inline">
                 @csrf
-                <button class="btn btn-primary" type="submit">Claim</button>
+                <button class="btn btn-primary" type="submit">
+                    <i class="ti ti-lock me-1"></i>Claim
+                </button>
             </form>
         @else
-            <span class="badge text-bg-secondary">Locked <span id="lock-remaining">{{ optional($conversation->locked_until)->format('H:i') }}</span></span>
+            <span class="badge bg-secondary-lt text-secondary">Locked <span id="lock-remaining">{{ optional($conversation->locked_until)->format('H:i') }}</span></span>
         @endif
     </div>
 </div>
@@ -834,20 +853,38 @@
                     @endphp
                     @php
                         $isUnsigned = !$c->owner_id || optional($c->locked_until)->isPast();
+                        $listChannelBadgeClass = match(true) {
+                            in_array($channel, ['wa_api', 'wa_web', 'wa_bro', 'whatsapp']) => 'cbadge-wa',
+                            in_array($channel, ['social_dm', 'social']) => 'cbadge-social',
+                            $channel === 'live_chat' => 'cbadge-livechat',
+                            $channel === 'internal' => 'cbadge-internal',
+                            default => 'cbadge-default',
+                        };
+                        $listChannelBadgeIcon = match(true) {
+                            in_array($channel, ['wa_api', 'wa_web', 'wa_bro', 'whatsapp']) => 'ti-brand-whatsapp',
+                            in_array($channel, ['social_dm', 'social']) => 'ti-brand-instagram',
+                            $channel === 'live_chat' => 'ti-message-circle',
+                            $channel === 'internal' => 'ti-users',
+                            default => 'ti-message',
+                        };
                     @endphp
                     <a href="{{ route('conversations.show', $c) }}"
                        class="list-group-item list-group-item-action d-flex justify-content-between align-items-start conv-item {{ $c->id === $conversation->id ? 'active' : '' }}"
                        data-name="{{ mb_strtolower($c->contact_name ?? $c->contact_external_id ?? 'internal') }}"
                        data-assignment="{{ $isUnsigned ? 'unsigned' : 'assigned' }}"
-                       data-unread-count="{{ (int) ($c->effective_unread_count ?? 0) }}">
+                       data-unread-count="{{ (int) ($c->effective_unread_count ?? 0) }}"
+                       data-conv-target="{{ route('conversations.data', $c) }}">
                         <div class="d-flex align-items-start gap-2 me-2">
-                            <span class="inbox-avatar">
-                                @if($listAvatar)
-                                    <img src="{{ $listAvatar }}" alt="{{ $listName }}">
-                                @else
-                                    <span class="chat-avatar-fallback {{ $listAvatarTone }}">{{ $listInitials ?: '?' }}</span>
-                                @endif
-                            </span>
+                            <div class="conv-avatar-wrap">
+                                <span class="inbox-avatar">
+                                    @if($listAvatar)
+                                        <img src="{{ $listAvatar }}" alt="{{ $listName }}">
+                                    @else
+                                        <span class="chat-avatar-fallback {{ $listAvatarTone }}">{{ $listInitials ?: '?' }}</span>
+                                    @endif
+                                </span>
+                                <span class="conv-channel-badge {{ $listChannelBadgeClass }}" aria-hidden="true"><i class="ti {{ $listChannelBadgeIcon }}"></i></span>
+                            </div>
                             <div>
                                 <div class="fw-semibold">{{ $listName }}</div>
                                 <div class="conv-item-snippet">
@@ -859,7 +896,7 @@
                             </div>
                         </div>
                         @if((int) ($c->effective_unread_count ?? 0) > 0)
-                            <span class="badge text-bg-danger">{{ (int) $c->effective_unread_count }}</span>
+                            <span class="badge bg-orange-lt text-orange fw-bold">{{ (int) $c->effective_unread_count }}</span>
                         @endif
                     </a>
                 @empty
@@ -901,15 +938,18 @@
                         </button>
                     </div>
                     <div class="d-flex align-items-center gap-2 flex-grow-1">
-                    <div class="chat-contact-avatar">
-                        @if($activeAvatar)
-                            <img src="{{ $activeAvatar }}" alt="{{ $activeContactName }}">
-                        @else
-                            <span class="chat-avatar-fallback {{ $activeAvatarTone }}">{{ $activeInitials ?: '?' }}</span>
-                        @endif
+                    <div class="conv-avatar-wrap" id="chat-header-avatar-wrap">
+                        <div class="chat-contact-avatar" id="chat-header-avatar">
+                            @if($activeAvatar)
+                                <img src="{{ $activeAvatar }}" alt="{{ $activeContactName }}">
+                            @else
+                                <span class="chat-avatar-fallback {{ $activeAvatarTone }}">{{ $activeInitials ?: '?' }}</span>
+                            @endif
+                        </div>
+                        <span class="conv-channel-badge {{ $activeChannelBadgeClass }}" id="chat-header-channel-badge" aria-hidden="true"><i class="ti {{ $activeChannelBadgeIcon }}"></i></span>
                     </div>
                     <div>
-                        <div class="chat-contact-name">{{ $activeContactName }}</div>
+                        <div class="chat-contact-name" id="chat-header-name">{{ $activeContactName }}</div>
                         <div class="chat-contact-last" id="chat-last-message-time" data-default-text="Last Message: {{ $activeLastMessageTime }}">Last Message: {{ $activeLastMessageTime }}</div>
                     </div>
                     </div>
@@ -1088,7 +1128,9 @@
                                     <input type="text" class="form-control" id="tpl_lang" placeholder="Lang" disabled>
                                 </div>
                                 <div class="col-md-2">
-                                    <button class="btn btn-success w-100" type="submit" {{ $canReply ? '' : 'disabled' }}>Kirim</button>
+                                    <button class="btn btn-primary w-100" type="submit" {{ $canReply ? '' : 'disabled' }}>
+                                        <i class="ti ti-send me-1"></i>Kirim
+                                    </button>
                                 </div>
                             </div>
                             <div id="tpl-vars" class="row g-2 mt-2"></div>
@@ -1134,45 +1176,249 @@
 <script src="{{ mix('js/modules/conversations/show.js') }}" defer></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const chatPane = document.getElementById('chat-pane');
-
-    if (!chatPane) {
-        return;
+    // ── Scroll to bottom helper ──────────────────────────────────────
+    function scrollPaneToBottom(pane) {
+        if (!pane) return;
+        const rows = pane.querySelectorAll('.chat-row[data-message-id]');
+        const last = rows.length ? rows[rows.length - 1] : null;
+        if (last) last.scrollIntoView({ block: 'end', behavior: 'auto' });
+        pane.scrollTop = pane.scrollHeight;
     }
 
-    const forceConversationBottom = () => {
-        const rows = chatPane.querySelectorAll('.chat-row[data-message-id]');
-        const lastRow = rows.length ? rows[rows.length - 1] : null;
-
-        if (lastRow) {
-            lastRow.scrollIntoView({
-                block: 'end',
-                behavior: 'auto',
-            });
-        }
-
-        chatPane.scrollTop = chatPane.scrollHeight;
-    };
-
-    const scheduleForceBottom = () => {
-        requestAnimationFrame(() => {
-            forceConversationBottom();
-            requestAnimationFrame(forceConversationBottom);
+    function scheduleBottom(pane) {
+        requestAnimationFrame(function () {
+            scrollPaneToBottom(pane);
+            requestAnimationFrame(function () { scrollPaneToBottom(pane); });
         });
-    };
+    }
 
-    scheduleForceBottom();
-    setTimeout(scheduleForceBottom, 60);
-    setTimeout(scheduleForceBottom, 180);
-    setTimeout(scheduleForceBottom, 360);
+    const initialPane = document.getElementById('chat-pane');
+    if (initialPane) {
+        scheduleBottom(initialPane);
+        setTimeout(function () { scheduleBottom(initialPane); }, 60);
+        setTimeout(function () { scheduleBottom(initialPane); }, 360);
+        window.addEventListener('load', function () { scheduleBottom(document.getElementById('chat-pane')); });
+        window.addEventListener('resize', function () { scheduleBottom(document.getElementById('chat-pane')); });
+        initialPane.querySelectorAll('img, video').forEach(function (m) {
+            m.addEventListener('load', function () { scheduleBottom(document.getElementById('chat-pane')); }, { once: true });
+            m.addEventListener('loadedmetadata', function () { scheduleBottom(document.getElementById('chat-pane')); }, { once: true });
+        });
+    }
 
-    window.addEventListener('load', scheduleForceBottom);
-    window.addEventListener('pageshow', scheduleForceBottom);
-    window.addEventListener('resize', scheduleForceBottom);
+    // ── Conversation switcher ────────────────────────────────────────
+    var _pollTimer = null;
+    var _currentConvId = null;
 
-    chatPane.querySelectorAll('img, video').forEach((media) => {
-        media.addEventListener('load', scheduleForceBottom, { once: true });
-        media.addEventListener('loadedmetadata', scheduleForceBottom, { once: true });
+    function stopPolling() {
+        if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+    }
+
+    var TONES = ['avatar-tone-1', 'avatar-tone-2', 'avatar-tone-3', 'avatar-tone-4', 'avatar-tone-5'];
+    function strTone(str) {
+        var h = 0;
+        for (var i = 0; i < str.length; i++) { h = (Math.imul(31, h) + str.charCodeAt(i)) | 0; }
+        return TONES[Math.abs(h) % TONES.length];
+    }
+    function initials(name) {
+        var parts = (name || '').trim().split(/\s+/);
+        return ((parts[0] || '').charAt(0) + (parts[1] || '').charAt(0)).toUpperCase() || '?';
+    }
+    function esc(s) {
+        return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function avatarHtml(name, avatarUrl, sizeClass) {
+        if (avatarUrl) {
+            return '<img src="' + esc(avatarUrl) + '" alt="' + esc(name) + '">';
+        }
+        var tone = strTone(name);
+        return '<span class="chat-avatar-fallback ' + tone + '">' + esc(initials(name)) + '</span>';
+    }
+
+    function channelBadgeInfo(channel) {
+        var ch = (channel || '').toLowerCase();
+        if (['wa_api','wa_web','wa_bro','whatsapp'].indexOf(ch) >= 0) return { cls: 'cbadge-wa', icon: 'ti-brand-whatsapp' };
+        if (['social_dm','social'].indexOf(ch) >= 0)                  return { cls: 'cbadge-social', icon: 'ti-brand-instagram' };
+        if (ch === 'live_chat')                                        return { cls: 'cbadge-livechat', icon: 'ti-message-circle' };
+        if (ch === 'internal')                                         return { cls: 'cbadge-internal', icon: 'ti-users' };
+        return { cls: 'cbadge-default', icon: 'ti-message' };
+    }
+
+    function renderMediaHtml(msg) {
+        var url = msg.media_url || '';
+        var isHttp = /^https?:\/\//.test(url) || url.charAt(0) === '/';
+        var type = (msg.type || '').toLowerCase();
+        var name = msg.filename || msg.body || 'Document';
+        var mime = msg.media_mime || '';
+        if (type === 'image' && isHttp) {
+            return '<div class="chat-media"><a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer"><img src="' + esc(url) + '" alt="' + esc(msg.body || 'Image') + '"></a></div>';
+        }
+        if (type === 'video' && isHttp) {
+            return '<div class="chat-media"><video controls preload="metadata"><source src="' + esc(url) + '" type="' + esc(mime || 'video/mp4') + '"></video></div>';
+        }
+        if (type === 'audio' && isHttp) {
+            return '<div class="chat-media"><audio controls preload="none"><source src="' + esc(url) + '" type="' + esc(mime || 'audio/mpeg') + '"></audio></div>';
+        }
+        if ((type === 'document' || type === 'file')) {
+            var card = isHttp
+                ? '<a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" class="chat-file-card">'
+                : '<div class="chat-file-card">';
+            var cardEnd = isHttp ? '</a>' : '</div>';
+            return '<div class="chat-media">' + card + '<span class="chat-file-icon">FILE</span><span><span class="chat-file-name d-block">' + esc(name) + '</span><span class="chat-file-meta d-block">' + esc(mime || type.toUpperCase()) + '</span></span>' + cardEnd + '</div>';
+        }
+        return '';
+    }
+
+    function renderMessage(msg) {
+        var dir = msg.direction === 'out' ? 'out' : 'in';
+        var senderName = (msg.user && msg.user.name) ? msg.user.name : (dir === 'out' ? 'You' : 'System');
+        var senderAvatar = (msg.user && msg.user.avatar) ? msg.user.avatar : null;
+        var statusLabel = msg.status_label || msg.status || '';
+        var stateText = (dir === 'out' ? 'Keluar' : 'Masuk') + (statusLabel ? ' | ' + statusLabel : '');
+        var templateBadge = msg.type === 'template' ? '<div class="badge bg-azure-lt text-azure mb-1">WA Template</div>' : '';
+        var mediaHtml = renderMediaHtml(msg);
+        var bodyHtml = msg.body ? '<div>' + esc(msg.body) + '</div>' : '';
+
+        return '<div class="chat-row chat-row-' + dir + ' d-flex align-items-end gap-2" data-message-id="' + esc(msg.id) + '">' +
+            '<div class="chat-avatar">' + avatarHtml(senderName, senderAvatar) + '</div>' +
+            '<div class="chat-bubble chat-bubble-' + dir + '">' +
+                '<div class="chat-head d-flex align-items-center justify-content-between gap-2">' +
+                    '<span class="chat-sender">' + esc(senderName) + '</span>' +
+                    '<span class="chat-state">' + esc(stateText) + '</span>' +
+                '</div>' +
+                '<div class="chat-message-body">' + templateBadge + mediaHtml + bodyHtml + '</div>' +
+                '<div class="chat-meta">' + esc(msg.created_at || '') + '</div>' +
+            '</div>' +
+        '</div>';
+    }
+
+    function replaceChatPane(data) {
+        var oldPane = document.getElementById('chat-pane');
+        if (!oldPane) return null;
+        var newPane = document.createElement('div');
+        newPane.className = oldPane.className;
+        newPane.id = 'chat-pane';
+        var loaderClass = data.has_more ? '' : 'd-none';
+        newPane.innerHTML =
+            '<div id="chat-history-sentinel" class="h-0"></div>' +
+            '<div id="chat-loader" class="chat-loader ' + loaderClass + '">Scroll up to load older messages...</div>' +
+            (data.messages || []).map(renderMessage).join('');
+        oldPane.parentNode.replaceChild(newPane, oldPane);
+        newPane.querySelectorAll('img, video').forEach(function (m) {
+            m.addEventListener('load', function () { scheduleBottom(newPane); }, { once: true });
+            m.addEventListener('loadedmetadata', function () { scheduleBottom(newPane); }, { once: true });
+        });
+        return newPane;
+    }
+
+    function updateHeader(data) {
+        var nameEl = document.getElementById('chat-header-name');
+        var lastEl = document.getElementById('chat-last-message-time');
+        var avatarEl = document.getElementById('chat-header-avatar');
+        var badgeEl = document.getElementById('chat-header-channel-badge');
+        if (nameEl) nameEl.textContent = data.contact_name || '';
+        if (lastEl) { var lmt = data.last_message_at ? 'Last Message: ' + data.last_message_at : '—'; lastEl.textContent = lmt; }
+        if (avatarEl) { avatarEl.innerHTML = avatarHtml(data.contact_name || '', data.avatar || null); }
+        if (badgeEl) {
+            var bi = channelBadgeInfo(data.channel);
+            badgeEl.className = 'conv-channel-badge ' + bi.cls;
+            badgeEl.innerHTML = '<i class="ti ' + bi.icon + '"></i>';
+        }
+    }
+
+    function updateForms(data) {
+        var sendUrl = (data.endpoints || {}).send || '';
+        ['send-form', 'media-form', 'template-form'].forEach(function (id) {
+            var f = document.getElementById(id);
+            if (f && sendUrl) f.setAttribute('action', sendUrl);
+        });
+    }
+
+    function startPolling(data) {
+        stopPolling();
+        var latestId = data.latest_message_id || 0;
+        var convId = data.id;
+        var sinceUrl = (data.endpoints || {}).messages_since || '';
+        if (!sinceUrl) return;
+        _currentConvId = convId;
+        _pollTimer = setInterval(function () {
+            if (_currentConvId !== convId) { stopPolling(); return; }
+            var pane = document.getElementById('chat-pane');
+            if (!pane) return;
+            fetch(sinceUrl + '?after_id=' + latestId, {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+            }).then(function (r) {
+                if (!r.ok) return;
+                return r.json();
+            }).then(function (result) {
+                if (!result || !result.messages || !result.messages.length) return;
+                var currentPane = document.getElementById('chat-pane');
+                if (!currentPane || _currentConvId !== convId) return;
+                result.messages.forEach(function (msg) {
+                    if (!currentPane.querySelector('[data-message-id="' + msg.id + '"]')) {
+                        currentPane.insertAdjacentHTML('beforeend', renderMessage(msg));
+                    }
+                });
+                latestId = result.latest_id || latestId;
+                scheduleBottom(currentPane);
+            }).catch(function () {});
+        }, 3000);
+    }
+
+    function switchConversation(dataUrl, showUrl) {
+        document.querySelectorAll('.conv-item[data-conv-target]').forEach(function (el) {
+            el.classList.toggle('active', el.dataset.convTarget === dataUrl);
+        });
+        var oldPane = document.getElementById('chat-pane');
+        if (!oldPane) return;
+        var loadingPane = document.createElement('div');
+        loadingPane.className = oldPane.className;
+        loadingPane.id = 'chat-pane';
+        loadingPane.innerHTML = '<div class="text-center py-5 text-muted"><div class="spinner-border spinner-border-sm" role="status"></div><div class="mt-2 small">Memuat percakapan...</div></div>';
+        oldPane.parentNode.replaceChild(loadingPane, oldPane);
+        stopPolling();
+        fetch(dataUrl, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+            .then(function (data) {
+                var newPane = replaceChatPane(data);
+                if (newPane) {
+                    requestAnimationFrame(function () {
+                        scrollPaneToBottom(newPane);
+                        requestAnimationFrame(function () { scrollPaneToBottom(newPane); });
+                    });
+                }
+                updateHeader(data);
+                updateForms(data);
+                history.pushState({ convDataUrl: dataUrl, convShowUrl: showUrl }, '', showUrl);
+                startPolling(data);
+                var root = document.getElementById('conv-dashboard-root');
+                if (root && window.innerWidth < 992) {
+                    root.classList.remove('mobile-view-inbox');
+                    root.classList.add('mobile-view-chat');
+                }
+            })
+            .catch(function () {
+                var ep = document.getElementById('chat-pane');
+                if (ep) ep.innerHTML = '<div class="alert alert-danger m-3">Gagal memuat percakapan.</div>';
+            });
+    }
+
+    var dashRoot = document.getElementById('conv-dashboard-root');
+    if (dashRoot) {
+        dashRoot.addEventListener('click', function (e) {
+            var item = e.target.closest('.conv-item[data-conv-target]');
+            if (!item) return;
+            e.preventDefault();
+            var dataUrl = item.dataset.convTarget;
+            var showUrl = item.getAttribute('href');
+            if (dataUrl && showUrl) switchConversation(dataUrl, showUrl);
+        });
+    }
+
+    window.addEventListener('popstate', function (e) {
+        if (e.state && e.state.convShowUrl) {
+            window.location.href = e.state.convShowUrl;
+        }
     });
 });
 </script>

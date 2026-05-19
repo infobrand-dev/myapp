@@ -38,6 +38,7 @@ Route::middleware(['web', 'auth', 'plan.feature:accounting'])
         Route::get('/tax-register', [FinanceTaxDocumentController::class, 'index'])->middleware('permission:finance.manage-tax')->name('tax-documents.index');
         Route::get('/tax-register/export', [FinanceTaxDocumentController::class, 'exportRegister'])->middleware('permission:finance.manage-tax')->name('tax-documents.export');
         Route::get('/tax-register/export-efaktur-draft', [FinanceTaxDocumentController::class, 'exportEfakturDraft'])->middleware('permission:finance.manage-tax')->name('tax-documents.export-efaktur-draft');
+        Route::get('/tax-register/export-withholding-draft', [FinanceTaxDocumentController::class, 'exportWithholdingDraft'])->middleware('permission:finance.manage-tax')->name('tax-documents.export-withholding-draft');
         Route::post('/tax-register', [FinanceTaxDocumentController::class, 'store'])->middleware('permission:finance.manage-tax')->name('tax-documents.store');
         Route::get('/tax-register/{taxDocument}/edit', [FinanceTaxDocumentController::class, 'edit'])->middleware('permission:finance.manage-tax')->name('tax-documents.edit');
         Route::put('/tax-register/{taxDocument}', [FinanceTaxDocumentController::class, 'update'])->middleware('permission:finance.manage-tax')->name('tax-documents.update');
@@ -57,10 +58,13 @@ Route::middleware(['web', 'auth', 'plan.feature:accounting'])
         Route::post('/reconciliations/{reconciliation}/statement-lines/{statementLine}/resolve', [BankReconciliationController::class, 'resolveStatementLine'])->middleware('permission:finance.manage-reconciliation')->name('reconciliations.statement-lines.resolve');
         Route::post('/reconciliations/{reconciliation}/complete', [BankReconciliationController::class, 'complete'])->middleware('permission:finance.manage-reconciliation')->name('reconciliations.complete');
         Route::get('/approvals', [AccountingApprovalController::class, 'index'])->middleware('permission:finance.approve-sensitive-transactions')->name('approvals.index');
+        Route::post('/approvals/rules', [AccountingApprovalController::class, 'storeRule'])->middleware('permission:finance.approve-sensitive-transactions')->name('approvals.rules.store');
+        Route::delete('/approvals/rules/{approvalMatrixRule}', [AccountingApprovalController::class, 'destroyRule'])->middleware('permission:finance.approve-sensitive-transactions')->name('approvals.rules.destroy');
         Route::post('/approvals/{approvalRequest}/approve', [AccountingApprovalController::class, 'approve'])->middleware('permission:finance.approve-sensitive-transactions')->name('approvals.approve');
         Route::post('/approvals/{approvalRequest}/reject', [AccountingApprovalController::class, 'reject'])->middleware('permission:finance.approve-sensitive-transactions')->name('approvals.reject');
         Route::get('/period-closings', [AccountingPeriodClosingController::class, 'index'])->middleware('permission:finance.manage-period-locks')->name('period-closings.index');
         Route::post('/period-closings', [AccountingPeriodClosingController::class, 'store'])->middleware('permission:finance.manage-period-locks')->name('period-closings.store');
+        Route::post('/period-closings/{accountingPeriodClosing}/reopen', [AccountingPeriodClosingController::class, 'reopen'])->middleware('permission:finance.manage-period-locks')->name('period-closings.reopen');
         Route::get('/period-locks', [AccountingPeriodLockController::class, 'index'])->middleware('permission:finance.manage-period-locks')->name('period-locks.index');
         Route::post('/period-locks', [AccountingPeriodLockController::class, 'store'])->middleware('permission:finance.manage-period-locks')->name('period-locks.store');
         Route::delete('/period-locks/{accountingPeriodLock}', [AccountingPeriodLockController::class, 'destroy'])->middleware('permission:finance.manage-period-locks')->name('period-locks.destroy');

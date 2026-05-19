@@ -14,20 +14,24 @@ use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use App\Modules\Finance\Services\TaxDocumentNumberService;
+use App\Modules\Finance\Services\TaxWithholdingJournalService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\View\View;
 
 class FinanceTaxDocumentController extends Controller
 {
     private $taxDocumentNumberService;
+    private $taxWithholdingJournalService;
 
-    public function __construct(TaxDocumentNumberService $taxDocumentNumberService)
+    public function __construct(TaxDocumentNumberService $taxDocumentNumberService, TaxWithholdingJournalService $taxWithholdingJournalService)
     {
         $this->taxDocumentNumberService = $taxDocumentNumberService;
+        $this->taxWithholdingJournalService = $taxWithholdingJournalService;
     }
 
     public function index(Request $request): View
@@ -35,7 +39,7 @@ class FinanceTaxDocumentController extends Controller
         $filters = $this->filtersFromRequest($request);
 
         $documents = $this->filteredDocumentsQuery($filters)
-            ->with(['taxRate', 'contact', 'sourceDocument', 'creator'])
+            ->with(['taxRate', 'contact', 'sourceDocument', 'creator', 'replacedDocument'])
             ->latest('document_date')
             ->latest('id')
             ->paginate(20)
@@ -47,6 +51,7 @@ class FinanceTaxDocumentController extends Controller
             'documentTypeOptions' => FinanceTaxDocument::documentTypeOptions(),
             'documentStatusOptions' => FinanceTaxDocument::documentStatusOptions(),
             'taxRateOptions' => $this->taxRateOptions(),
+            'replaceableDocumentOptions' => $this->replaceableDocumentOptions(null),
             'sourceOptions' => $this->sourceOptions(),
             'summary' => $this->summary($filters),
             'defaultPeriodMonth' => (int) now()->month,
@@ -58,7 +63,7 @@ class FinanceTaxDocumentController extends Controller
     {
         $filters = $this->filtersFromRequest($request);
         $documents = $this->filteredDocumentsQuery($filters)
-            ->with(['taxRate', 'sourceDocument'])
+            ->with(['taxRate', 'sourceDocument', 'replacedDocument'])
             ->orderBy('document_date')
             ->orderBy('id')
             ->get();
@@ -68,6 +73,7 @@ class FinanceTaxDocumentController extends Controller
             'Document Status',
             'Tax Period',
             'Document Number',
+            'Replaces Document Number',
             'External Number',
             'Transaction Date',
             'Document Date',
@@ -82,6 +88,7 @@ class FinanceTaxDocumentController extends Controller
             'Source Type',
             'Source Number',
             'Reference Note',
+            'Status Reason',
         ];
 
         $fileName = 'tax-register-' . now()->format('Ymd-His') . '.csv';
@@ -96,6 +103,7 @@ class FinanceTaxDocumentController extends Controller
                     $this->documentStatusLabel($document),
                     sprintf('%02d/%04d', (int) $document->tax_period_month, (int) $document->tax_period_year),
                     $document->document_number,
+                    $document->replacedDocument ? $document->replacedDocument->document_number : null,
                     $document->external_document_number,
                     optional($document->transaction_date)->format('Y-m-d'),
                     optional($document->document_date)->format('Y-m-d'),
@@ -110,6 +118,7 @@ class FinanceTaxDocumentController extends Controller
                     $this->sourceTypeLabel($document),
                     $this->sourceNumber($document),
                     $document->reference_note,
+                    $document->status_reason,
                 ]);
             }
 
@@ -185,6 +194,92 @@ class FinanceTaxDocumentController extends Controller
         ]);
     }
 
+    public function exportWithholdingDraft(Request $request): StreamedResponse
+    {
+        $filters = $this->filtersFromRequest($request);
+        if ($filters['document_type'] === '') {
+            $filters['document_type'] = FinanceTaxDocument::TYPE_WITHHOLDING;
+        }
+
+        $documents = $this->filteredDocumentsQuery($filters)
+            ->with(['taxRate', 'sourceDocument', 'replacedDocument'])
+            ->where('document_type', FinanceTaxDocument::TYPE_WITHHOLDING)
+            ->orderBy('document_date')
+            ->orderBy('id')
+            ->get();
+
+        $headers = [
+            'document_status',
+            'withholding_direction',
+            'tax_period_month',
+            'tax_period_year',
+            'document_number',
+            'external_document_number',
+            'transaction_date',
+            'document_date',
+            'source_type',
+            'source_number',
+            'counterparty_name',
+            'counterparty_tax_id',
+            'counterparty_tax_name',
+            'counterparty_tax_address',
+            'tax_code',
+            'tax_scope',
+            'legal_basis',
+            'taxable_base',
+            'tax_amount',
+            'withheld_amount',
+            'currency_code',
+            'withholding_account_code',
+            'reference_note',
+            'status_reason',
+            'replaces_document_number',
+        ];
+
+        $fileName = 'withholding-draft-' . now()->format('Ymd-His') . '.csv';
+
+        return response()->streamDownload(function () use ($documents, $headers) {
+            $stream = fopen('php://output', 'w');
+            fputcsv($stream, $headers);
+
+            foreach ($documents as $document) {
+                $direction = $this->withholdingDirection($document);
+
+                fputcsv($stream, [
+                    $document->document_status,
+                    $direction,
+                    (int) $document->tax_period_month,
+                    (int) $document->tax_period_year,
+                    $document->document_number,
+                    $document->external_document_number,
+                    optional($document->transaction_date)->format('Y-m-d'),
+                    optional($document->document_date)->format('Y-m-d'),
+                    $this->sourceTypeLabel($document),
+                    $this->sourceNumber($document),
+                    $document->counterparty_name_snapshot,
+                    $document->counterparty_tax_id_snapshot,
+                    $document->counterparty_tax_name_snapshot,
+                    $document->counterparty_tax_address_snapshot,
+                    optional($document->taxRate)->code,
+                    optional($document->taxRate)->tax_scope ?: data_get($document->meta, 'tax_scope'),
+                    optional($document->taxRate)->legal_basis ?: data_get($document->meta, 'legal_basis'),
+                    round((float) $document->taxable_base, 2),
+                    round((float) $document->tax_amount, 2),
+                    round((float) $document->withheld_amount, 2),
+                    $document->currency_code,
+                    $this->withholdingAccountCode($document, $direction),
+                    $document->reference_note,
+                    $document->status_reason,
+                    $document->replacedDocument ? $document->replacedDocument->document_number : null,
+                ]);
+            }
+
+            fclose($stream);
+        }, $fileName, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
     public function edit(FinanceTaxDocument $taxDocument): View
     {
         return view('finance::tax-documents.edit', [
@@ -192,6 +287,7 @@ class FinanceTaxDocumentController extends Controller
             'documentTypeOptions' => FinanceTaxDocument::documentTypeOptions(),
             'documentStatusOptions' => FinanceTaxDocument::documentStatusOptions(),
             'taxRateOptions' => $this->taxRateOptions(),
+            'replaceableDocumentOptions' => $this->replaceableDocumentOptions($taxDocument),
             'sourceOptions' => $this->sourceOptions(),
         ]);
     }
@@ -199,13 +295,14 @@ class FinanceTaxDocumentController extends Controller
     public function store(StoreFinanceTaxDocumentRequest $request): RedirectResponse
     {
         $payload = $this->buildPayload($request);
-        FinanceTaxDocument::query()->create($payload + [
+        $taxDocument = FinanceTaxDocument::query()->create($payload + [
             'tenant_id' => TenantContext::currentId(),
             'company_id' => CompanyContext::currentId(),
             'branch_id' => BranchContext::currentId(),
             'created_by' => optional($request->user())->id,
             'updated_by' => optional($request->user())->id,
         ]);
+        $this->taxWithholdingJournalService->sync($taxDocument->fresh(['taxRate']));
 
         return redirect()->route('finance.tax-documents.index')->with('status', 'Dokumen register pajak ditambahkan.');
     }
@@ -215,6 +312,7 @@ class FinanceTaxDocumentController extends Controller
         $taxDocument->update($this->buildPayload($request) + [
             'updated_by' => optional($request->user())->id,
         ]);
+        $this->taxWithholdingJournalService->sync($taxDocument->fresh(['taxRate']));
 
         return redirect()->route('finance.tax-documents.index')->with('status', 'Dokumen register pajak diperbarui.');
     }
@@ -250,6 +348,9 @@ class FinanceTaxDocumentController extends Controller
             $documentDate,
             $currentDocument
         );
+        $this->validateLifecycle($request, $taxRate, $documentStatus, $documentNumber, $counterpartyTaxId, $currentDocument);
+        $statusTimestamps = $this->statusTimestamps($documentStatus, $currentDocument);
+        $baseMeta = is_array(optional($currentDocument)->meta) ? $currentDocument->meta : [];
 
         return [
             'source_document_type' => $sourceDocument ? get_class($sourceDocument) : null,
@@ -258,6 +359,7 @@ class FinanceTaxDocumentController extends Controller
             'finance_tax_rate_id' => $taxRate ? $taxRate->id : null,
             'document_type' => $request->input('document_type'),
             'document_status' => $documentStatus,
+            'replaces_tax_document_id' => $this->resolveReplacedDocumentId($request, $documentStatus, $currentDocument),
             'document_number' => $documentNumber,
             'external_document_number' => $this->nullableString($request->input('external_document_number')),
             'transaction_date' => $transactionDate ? $transactionDate->toDateString() : null,
@@ -273,7 +375,11 @@ class FinanceTaxDocumentController extends Controller
             'withheld_amount' => round((float) ($request->input('withheld_amount') ?: 0), 2),
             'currency_code' => strtoupper((string) ($request->input('currency_code') ?: 'IDR')),
             'reference_note' => $request->input('reference_note'),
-            'meta' => [
+            'status_reason' => $this->nullableString($request->input('status_reason')),
+            'issued_at' => $statusTimestamps['issued_at'],
+            'replaced_at' => $statusTimestamps['replaced_at'],
+            'cancelled_at' => $statusTimestamps['cancelled_at'],
+            'meta' => array_merge($baseMeta, [
                 'source_reference' => $request->input('source_reference'),
                 'tax_scope' => $taxRate ? $taxRate->tax_scope : null,
                 'legal_basis' => $taxRate ? $taxRate->legal_basis : null,
@@ -281,7 +387,9 @@ class FinanceTaxDocumentController extends Controller
                 'requires_tax_number' => $taxRate ? (bool) $taxRate->requires_tax_number : false,
                 'requires_counterparty_tax_id' => $taxRate ? (bool) $taxRate->requires_counterparty_tax_id : false,
                 'number_auto_generated' => $documentNumber !== null && !$request->filled('document_number'),
-            ],
+                'lifecycle_last_changed_at' => now()->toDateTimeString(),
+                'lifecycle_status_reason' => $this->nullableString($request->input('status_reason')),
+            ]),
         ];
     }
 
@@ -293,6 +401,24 @@ class FinanceTaxDocumentController extends Controller
             ->active()
             ->orderBy('tax_type')
             ->orderBy('code')
+            ->get();
+    }
+
+    private function replaceableDocumentOptions($currentDocument): Collection
+    {
+        return FinanceTaxDocument::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
+            ->whereIn('document_status', [FinanceTaxDocument::STATUS_ISSUED, FinanceTaxDocument::STATUS_REPLACED])
+            ->when($currentDocument, function ($query) use ($currentDocument) {
+                $query->where('id', '!=', $currentDocument->id)
+                    ->where('document_type', $currentDocument->document_type);
+            })
+            ->tap(function ($query) {
+                BranchContext::applyScope($query);
+            })
+            ->latest('document_date')
+            ->limit(50)
             ->get();
     }
 
@@ -503,6 +629,33 @@ class FinanceTaxDocumentController extends Controller
         return null;
     }
 
+    private function withholdingDirection(FinanceTaxDocument $document): string
+    {
+        $metaDirection = (string) data_get($document->meta, 'withholding_direction', '');
+        if ($metaDirection !== '') {
+            return $metaDirection;
+        }
+
+        if ($document->source_document_type === Purchase::class) {
+            return 'payable';
+        }
+
+        if ($document->source_document_type === Sale::class) {
+            return 'receivable';
+        }
+
+        return 'payable';
+    }
+
+    private function withholdingAccountCode(FinanceTaxDocument $document, string $direction): string
+    {
+        if ($document->taxRate && $document->taxRate->withholding_account_code) {
+            return (string) $document->taxRate->withholding_account_code;
+        }
+
+        return $direction === 'receivable' ? 'PPH_RECEIVABLE' : 'PPH_PAYABLE';
+    }
+
     private function resolveDocumentNumber($requestedNumber, string $documentStatus, string $documentType, Carbon $documentDate, $currentDocument): ?string
     {
         $manualNumber = $this->nullableString($requestedNumber);
@@ -524,5 +677,105 @@ class FinanceTaxDocumentController extends Controller
             $documentDate,
             BranchContext::currentOrDefaultId()
         );
+    }
+
+    private function validateLifecycle(Request $request, ?FinanceTaxRate $taxRate, string $documentStatus, ?string $documentNumber, ?string $counterpartyTaxId, $currentDocument): void
+    {
+        if ($currentDocument && $currentDocument->document_status !== FinanceTaxDocument::STATUS_DRAFT && $documentStatus === FinanceTaxDocument::STATUS_DRAFT) {
+            throw ValidationException::withMessages([
+                'document_status' => 'Dokumen pajak formal tidak boleh dikembalikan ke draft.',
+            ]);
+        }
+
+        if ($currentDocument
+            && in_array($currentDocument->document_status, [FinanceTaxDocument::STATUS_CANCELLED, FinanceTaxDocument::STATUS_REPLACED], true)
+            && $documentStatus !== $currentDocument->document_status) {
+            throw ValidationException::withMessages([
+                'document_status' => 'Dokumen pajak cancelled/replaced bersifat terminal dan tidak boleh diganti statusnya.',
+            ]);
+        }
+
+        if ($taxRate && (bool) $taxRate->requires_counterparty_tax_id && $documentStatus !== FinanceTaxDocument::STATUS_DRAFT && $this->nullableString($counterpartyTaxId) === null) {
+            throw ValidationException::withMessages([
+                'counterparty_tax_id_snapshot' => 'Counterparty Tax ID wajib diisi untuk tax master ini.',
+            ]);
+        }
+
+        if ($taxRate && (bool) $taxRate->requires_tax_number && $documentStatus !== FinanceTaxDocument::STATUS_DRAFT && $this->nullableString($documentNumber) === null) {
+            throw ValidationException::withMessages([
+                'document_number' => 'Document Number wajib ada sebelum tax register menjadi formal.',
+            ]);
+        }
+
+        if (in_array($documentStatus, [FinanceTaxDocument::STATUS_CANCELLED, FinanceTaxDocument::STATUS_REPLACED], true)
+            && $this->nullableString($request->input('status_reason')) === null) {
+            throw ValidationException::withMessages([
+                'status_reason' => 'Status reason wajib diisi untuk dokumen pajak cancelled/replaced.',
+            ]);
+        }
+
+        if ($documentStatus === FinanceTaxDocument::STATUS_REPLACED && !$request->input('replaces_tax_document_id')) {
+            throw ValidationException::withMessages([
+                'replaces_tax_document_id' => 'Dokumen pengganti wajib memilih dokumen pajak yang diganti.',
+            ]);
+        }
+    }
+
+    private function resolveReplacedDocumentId(Request $request, string $documentStatus, $currentDocument): ?int
+    {
+        if ($documentStatus !== FinanceTaxDocument::STATUS_REPLACED) {
+            return null;
+        }
+
+        $replaceId = (int) $request->input('replaces_tax_document_id');
+
+        if ($replaceId <= 0) {
+            return null;
+        }
+
+        $query = FinanceTaxDocument::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
+            ->where('id', $replaceId)
+            ->whereIn('document_status', [FinanceTaxDocument::STATUS_ISSUED, FinanceTaxDocument::STATUS_REPLACED]);
+
+        if ($currentDocument) {
+            $query->where('id', '!=', $currentDocument->id);
+        }
+
+        $document = $query->first();
+
+        if (!$document) {
+            throw ValidationException::withMessages([
+                'replaces_tax_document_id' => 'Dokumen pajak yang diganti tidak ditemukan atau belum formal.',
+            ]);
+        }
+
+        return (int) $document->id;
+    }
+
+    private function statusTimestamps(string $documentStatus, $currentDocument): array
+    {
+        $issuedAt = $currentDocument ? $currentDocument->issued_at : null;
+        $replacedAt = $currentDocument ? $currentDocument->replaced_at : null;
+        $cancelledAt = $currentDocument ? $currentDocument->cancelled_at : null;
+
+        if ($documentStatus === FinanceTaxDocument::STATUS_ISSUED && !$issuedAt) {
+            $issuedAt = now();
+        }
+
+        if ($documentStatus === FinanceTaxDocument::STATUS_REPLACED && !$replacedAt) {
+            $replacedAt = now();
+        }
+
+        if ($documentStatus === FinanceTaxDocument::STATUS_CANCELLED && !$cancelledAt) {
+            $cancelledAt = now();
+        }
+
+        return [
+            'issued_at' => $issuedAt,
+            'replaced_at' => $replacedAt,
+            'cancelled_at' => $cancelledAt,
+        ];
     }
 }

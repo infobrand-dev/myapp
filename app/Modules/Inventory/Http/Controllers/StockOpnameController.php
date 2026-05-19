@@ -3,11 +3,13 @@
 namespace App\Modules\Inventory\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\AccountingJournal;
 use App\Modules\Inventory\Actions\CreateStockOpnameAction;
 use App\Modules\Inventory\Actions\FinalizeStockOpnameAction;
 use App\Modules\Inventory\Actions\UpdateStockOpnameAction;
 use App\Modules\Inventory\Http\Requests\StoreStockOpnameRequest;
 use App\Modules\Inventory\Http\Requests\UpdateStockOpnameRequest;
+use App\Modules\Inventory\Models\StockAdjustment;
 use App\Modules\Inventory\Models\StockOpname;
 use App\Modules\Inventory\Repositories\StockRepository;
 use App\Support\BranchContext;
@@ -65,15 +67,28 @@ class StockOpnameController extends Controller
 
     public function show(StockOpname $opname): View
     {
+        $opname->load([
+            'location',
+            'creator',
+            'finalizer',
+            'adjustment',
+            'items.product',
+            'items.variant',
+        ]);
+
+        $journal = null;
+        if ($opname->adjustment) {
+            $journal = AccountingJournal::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
+                ->where('source_type', StockAdjustment::class)
+                ->where('source_id', $opname->adjustment->id)
+                ->first();
+        }
+
         return view('inventory::opnames.show', [
-            'opname' => $opname->load([
-                'location',
-                'creator',
-                'finalizer',
-                'adjustment',
-                'items.product',
-                'items.variant',
-            ]),
+            'opname' => $opname,
+            'journal' => $journal,
         ]);
     }
 

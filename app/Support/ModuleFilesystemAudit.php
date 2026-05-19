@@ -68,9 +68,7 @@ class ModuleFilesystemAudit
         }
 
         $migrationDir = ModulePath::migrationDirectory($base);
-        if ($migrationDir === null || !ModulePath::hasMigrationFiles($base)) {
-            $issues[] = 'module migrations missing or empty';
-        } else {
+        if ($migrationDir !== null && ModulePath::hasMigrationFiles($base)) {
             $expectedMigrationDir = str_starts_with(str_replace('\\', '/', $migrationDir), str_replace('\\', '/', $base . '/Database/Migrations'))
                 ? 'Database/Migrations'
                 : 'database/migrations';
@@ -78,6 +76,8 @@ class ModuleFilesystemAudit
             if (!$this->hasExactNestedPath($base, $expectedMigrationDir)) {
                 $issues[] = 'module migration directory casing mismatch: ' . $expectedMigrationDir;
             }
+        } elseif (File::isDirectory($base . '/Database') || File::isDirectory($base . '/database')) {
+            $issues[] = 'module migrations missing or empty';
         }
 
         if (!File::isDirectory($base . '/resources/views')) {

@@ -7,6 +7,7 @@ use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ApprovalRequest extends Model
 {
@@ -25,6 +26,8 @@ class ApprovalRequest extends Model
         'subject_id',
         'subject_label',
         'status',
+        'required_approvals',
+        'current_approvals',
         'payload_hash',
         'payload',
         'reason',
@@ -37,6 +40,8 @@ class ApprovalRequest extends Model
 
     protected $casts = [
         'payload' => 'array',
+        'required_approvals' => 'integer',
+        'current_approvals' => 'integer',
         'decided_at' => 'datetime',
         'consumed_at' => 'datetime',
     ];
@@ -49,6 +54,17 @@ class ApprovalRequest extends Model
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function decisions(): HasMany
+    {
+        return $this->hasMany(ApprovalRequestDecision::class, 'approval_request_id')->latest('decided_at');
+    }
+
+    public function isFullyApproved(): bool
+    {
+        return $this->status === self::STATUS_APPROVED
+            && (int) $this->current_approvals >= max(1, (int) $this->required_approvals);
     }
 
     public function resolveRouteBinding($value, $field = null)

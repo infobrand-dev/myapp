@@ -20,6 +20,7 @@ class StoreFinanceTaxDocumentRequest extends FormRequest
             'document_status' => ['required', Rule::in(array_keys(FinanceTaxDocument::documentStatusOptions()))],
             'source_reference' => ['nullable', 'string', 'max:50'],
             'finance_tax_rate_id' => ['nullable', 'integer'],
+            'replaces_tax_document_id' => ['nullable', 'integer'],
             'document_number' => ['nullable', 'string', 'max:100'],
             'external_document_number' => ['nullable', 'string', 'max:100'],
             'document_date' => ['required', 'date'],
@@ -35,6 +36,7 @@ class StoreFinanceTaxDocumentRequest extends FormRequest
             'counterparty_tax_name_snapshot' => ['nullable', 'string', 'max:255'],
             'counterparty_tax_address_snapshot' => ['nullable', 'string'],
             'reference_note' => ['nullable', 'string'],
+            'status_reason' => ['nullable', 'string'],
         ];
     }
 }

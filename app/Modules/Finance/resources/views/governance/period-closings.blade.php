@@ -70,22 +70,36 @@
                                 <th class="text-end">Net Income</th>
                                 <th>Journal</th>
                                 <th>Closed By</th>
+                                <th>Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse ($closings as $closing)
+                                @php
+                                    $isReopened = $closing->status === 'reopened';
+                                    $statusClass = $isReopened ? 'bg-yellow-lt text-yellow' : 'bg-green-lt text-green';
+                                    $canReopen = auth()->user() && auth()->user()->can('finance.manage-period-locks') && $closing->canBeReopened();
+                                @endphp
                                 <tr>
                                     <td>
                                         <div>{{ $closing->period_start->format('Y-m-d') }} s/d {{ $closing->period_end->format('Y-m-d') }}</div>
                                         <div class="text-muted small">{{ $closing->closing_scope_key }}</div>
                                     </td>
-                                    <td><span class="badge bg-green-lt text-green">{{ strtoupper($closing->status) }}</span></td>
+                                    <td>
+                                        <span class="badge {{ $statusClass }}">{{ strtoupper($closing->status) }}</span>
+                                        @if($closing->reopened_at)
+                                            <div class="text-muted small mt-1">{{ $closing->reopened_at->format('Y-m-d H:i') }}</div>
+                                        @endif
+                                    </td>
                                     <td class="text-end">{{ $money->format((float) $closing->revenue_total, $currency) }}</td>
                                     <td class="text-end">{{ $money->format((float) $closing->expense_total, $currency) }}</td>
                                     <td class="text-end {{ (float) $closing->net_income >= 0 ? 'text-green' : 'text-red' }}">{{ $money->format((float) $closing->net_income, $currency) }}</td>
                                     <td>
                                         @if($closing->closingJournal)
                                             <a href="{{ route('finance.journals.show', $closing->closingJournal->id) }}">{{ $closing->closingJournal->journal_number ?: ('Journal #' . $closing->closingJournal->id) }}</a>
+                                            @if($closing->reopeningJournal)
+                                                <div class="text-muted small">Reversal: <a href="{{ route('finance.journals.show', $closing->reopeningJournal->id) }}">{{ $closing->reopeningJournal->journal_number ?: ('Journal #' . $closing->reopeningJournal->id) }}</a></div>
+                                            @endif
                                         @else
                                             -
                                         @endif
@@ -93,11 +107,28 @@
                                     <td>
                                         <div>{{ $closing->closer ? $closing->closer->name : '-' }}</div>
                                         <div class="text-muted small">{{ $closing->closed_at ? $closing->closed_at->format('Y-m-d H:i') : '-' }}</div>
+                                        @if($closing->reopener)
+                                            <div class="text-muted small mt-1">Reopen: {{ $closing->reopener->name }}</div>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($canReopen)
+                                            <form method="POST" action="{{ route('finance.period-closings.reopen', $closing->id) }}" class="d-grid gap-2">
+                                                @csrf
+                                                <input type="datetime-local" name="entry_date" class="form-control form-control-sm" value="{{ old('entry_date', now()->format('Y-m-d\TH:i')) }}">
+                                                <input type="text" name="reason" class="form-control form-control-sm" maxlength="500" value="{{ old('reason') }}" placeholder="Alasan reopen">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">Reopen</button>
+                                            </form>
+                                        @elseif($closing->status === 'reopened')
+                                            <span class="text-muted small">Sudah di-reopen</span>
+                                        @else
+                                            <span class="text-muted small">Tidak tersedia</span>
+                                        @endif
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted py-4">Belum ada period closing.</td>
+                                    <td colspan="8" class="text-center text-muted py-4">Belum ada period closing.</td>
                                 </tr>
                             @endforelse
                         </tbody>

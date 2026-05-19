@@ -33,6 +33,7 @@ class FinanceTaxDocument extends Model
         'finance_tax_rate_id',
         'document_type',
         'document_status',
+        'replaces_tax_document_id',
         'document_number',
         'external_document_number',
         'transaction_date',
@@ -48,6 +49,10 @@ class FinanceTaxDocument extends Model
         'withheld_amount',
         'currency_code',
         'reference_note',
+        'status_reason',
+        'issued_at',
+        'replaced_at',
+        'cancelled_at',
         'meta',
         'created_by',
         'updated_by',
@@ -59,6 +64,9 @@ class FinanceTaxDocument extends Model
         'taxable_base' => 'decimal:2',
         'tax_amount' => 'decimal:2',
         'withheld_amount' => 'decimal:2',
+        'issued_at' => 'datetime',
+        'replaced_at' => 'datetime',
+        'cancelled_at' => 'datetime',
         'meta' => 'array',
     ];
 
@@ -90,6 +98,11 @@ class FinanceTaxDocument extends Model
     public function updater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function replacedDocument(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'replaces_tax_document_id');
     }
 
     public function resolveRouteBinding($value, $field = null)

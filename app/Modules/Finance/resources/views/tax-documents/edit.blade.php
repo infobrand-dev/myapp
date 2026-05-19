@@ -27,6 +27,7 @@
                 'documentTypeOptions' => $documentTypeOptions,
                 'documentStatusOptions' => $documentStatusOptions,
                 'taxRateOptions' => $taxRateOptions,
+                'replaceableDocumentOptions' => $replaceableDocumentOptions,
                 'sourceOptions' => $sourceOptions,
                 'defaultPeriodMonth' => (int) now()->month,
                 'defaultPeriodYear' => (int) now()->year,

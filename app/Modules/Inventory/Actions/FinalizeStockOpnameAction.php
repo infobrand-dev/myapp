@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Inventory\Models\StockBalance;
 use App\Modules\Inventory\Models\StockOpname;
 use App\Modules\Inventory\Services\StockMutationService;
+use App\Support\AccountingPeriodLockService;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
@@ -20,14 +21,18 @@ class FinalizeStockOpnameAction
 
     private $mutationService;
 
+    private $periodLockService;
+
     public function __construct(
         CreateStockAdjustmentAction $createAdjustment,
         FinalizeStockAdjustmentAction $finalizeAdjustment,
-        StockMutationService $mutationService
+        StockMutationService $mutationService,
+        AccountingPeriodLockService $periodLockService
     ) {
         $this->createAdjustment = $createAdjustment;
         $this->finalizeAdjustment = $finalizeAdjustment;
         $this->mutationService = $mutationService;
+        $this->periodLockService = $periodLockService;
     }
 
     public function execute(StockOpname $opname, ?User $actor = null): StockOpname
@@ -49,13 +54,22 @@ class FinalizeStockOpnameAction
                 throw new DomainException('Stock opname tidak memiliki item.');
             }
 
+            $this->periodLockService->ensureDateOpen(
+                $opname->opname_date,
+                $opname->branch_id,
+                'stock opname'
+            );
+
             $adjustmentItems = [];
+            $countedItems = 0;
+            $differenceItems = 0;
 
             foreach ($opname->items as $item) {
                 if ($item->physical_quantity === null) {
                     throw new DomainException('Semua item stock opname harus memiliki stok fisik sebelum finalize.');
                 }
 
+                $countedItems++;
                 $stockKey = $this->mutationService->stockKey(
                     (int) $item->product_id,
                     $item->product_variant_id ? (int) $item->product_variant_id : null,
@@ -84,12 +98,13 @@ class FinalizeStockOpnameAction
                     continue;
                 }
 
+                $differenceItems++;
                 $adjustmentItems[] = [
                     'product_id' => $item->product_id,
                     'product_variant_id' => $item->product_variant_id,
                     'direction' => $adjustmentQuantity > 0 ? 'in' : 'out',
                     'quantity' => abs($adjustmentQuantity),
-                    'notes' => 'Stock opname ' . $opname->code . ' | selisih snapshot ' . number_format((float) $item->difference_quantity, 4, '.', ''),
+                    'notes' => 'Stock opname ' . $opname->code . ' item #' . $item->id . ' | selisih snapshot ' . number_format((float) $item->difference_quantity, 4, '.', ''),
                 ];
             }
 
@@ -102,6 +117,13 @@ class FinalizeStockOpnameAction
                     'reason_code' => 'stock_opname',
                     'reason_text' => 'Adjustment hasil stock opname ' . $opname->code,
                     'notes' => $opname->notes,
+                    'meta' => [
+                        'created_via' => 'stock_opname',
+                        'source_opname_id' => $opname->id,
+                        'source_opname_code' => $opname->code,
+                        'counted_item_count' => $countedItems,
+                        'difference_item_count' => $differenceItems,
+                    ],
                     'items' => $adjustmentItems,
                 ], $actor);
 
@@ -113,6 +135,13 @@ class FinalizeStockOpnameAction
                 'finalized_by' => $actor ? $actor->id : null,
                 'finalized_at' => now(),
                 'adjustment_id' => $adjustment ? $adjustment->id : null,
+                'meta' => array_merge($opname->meta ?? [], [
+                    'counted_item_count' => $countedItems,
+                    'difference_item_count' => $differenceItems,
+                    'has_adjustment' => $adjustment !== null,
+                    'adjustment_code' => $adjustment ? $adjustment->code : null,
+                    'finalization_note' => $adjustment ? 'Adjustment created from stock opname variance.' : 'No variance. Stock opname finalized without stock movement.',
+                ]),
             ])->save();
 
             return $opname->load([

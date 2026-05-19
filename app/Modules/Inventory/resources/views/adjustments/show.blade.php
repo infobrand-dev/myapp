@@ -39,6 +39,17 @@
                 <div class="mb-2"><div class="text-muted small">Lokasi</div><div>{{ $adjustment->location?->name }}</div></div>
                 <div class="mb-2"><div class="text-muted small">Reason Code</div><div>{{ $adjustment->reason_code }}</div></div>
                 <div class="mb-2"><div class="text-muted small">Reason</div><div>{{ $adjustment->reason_text }}</div></div>
+                <div class="mb-2">
+                    <div class="text-muted small">Source</div>
+                    <div>
+                        @if(!empty($sourceOpname))
+                            Stock Opname:
+                            <a href="{{ route('inventory.opnames.show', $sourceOpname) }}">{{ $sourceOpname->code }}</a>
+                        @else
+                            {{ data_get($adjustment->meta, 'created_via', 'manual') }}
+                        @endif
+                    </div>
+                </div>
                 <div class="mb-2"><div class="text-muted small">Notes</div><div>{{ $adjustment->notes ?: '-' }}</div></div>
                 <div class="mb-2">
                     <div class="text-muted small">Journal</div>

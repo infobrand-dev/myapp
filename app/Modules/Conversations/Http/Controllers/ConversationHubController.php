@@ -230,6 +230,80 @@ class ConversationHubController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    public function data(Request $request, Conversation $conversation): JsonResponse
+    {
+        $user = $request->user();
+        $this->authorizeView($conversation, $user);
+
+        $this->markConversationReadForUser($conversation, $user->id);
+        $conversation->refresh();
+        $conversation->load(['owner', 'participants.user']);
+
+        $initialMessages = ConversationMessage::query()
+            ->where('tenant_id', $this->tenantId())
+            ->with('user:id,name,avatar')
+            ->where('conversation_id', $conversation->id)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit(30)
+            ->get()
+            ->sortBy([['created_at', 'asc'], ['id', 'asc']])
+            ->values();
+
+        $oldestMessageId = $initialMessages->first()->id ?? null;
+        $latestMessageId = $initialMessages->last()->id ?? null;
+        $hasMoreMessages = $oldestMessageId ? $this->hasOlderMessages($conversation, $oldestMessageId) : false;
+
+        $channelManager = app(ConversationChannelManager::class);
+        $channelUi = [
+            'show_ai_bot' => $channelManager->hasUiFeature($conversation, 'show_ai_bot'),
+            'show_media_composer' => $channelManager->hasUiFeature($conversation, 'show_media_composer'),
+            'show_template_composer' => $channelManager->hasUiFeature($conversation, 'show_template_composer'),
+        ];
+
+        $conversationMeta = is_array($conversation->metadata) ? $conversation->metadata : [];
+        $isOwner = (int) ($conversation->owner_id ?? 0) === (int) $user->id;
+        $isParticipant = $conversation->participants->contains(fn ($p) => (int) $p->user_id === (int) $user->id);
+        $isSuperAdmin = $user->hasRole('Super-admin');
+        $canReply = $isOwner || $isParticipant || $isSuperAdmin;
+
+        $avatar = data_get($conversationMeta, 'avatar')
+            ?? data_get($conversationMeta, 'photo_url')
+            ?? data_get($conversationMeta, 'profile_pic')
+            ?? null;
+        if (!$avatar && strtolower($conversation->channel ?? 'internal') === 'internal') {
+            $otherParticipant = $conversation->participants->firstWhere('user_id', '!=', $user->id);
+            $avatar = $otherParticipant?->user?->avatar;
+        }
+        if ($avatar && !\Illuminate\Support\Str::startsWith($avatar, ['http://', 'https://', '/'])) {
+            $avatar = asset('storage/' . ltrim($avatar, '/'));
+        }
+
+        return response()->json([
+            'id' => $conversation->id,
+            'contact_name' => $conversation->contact_name ?? $conversation->contact_external_id ?? 'Internal',
+            'channel' => $conversation->channel,
+            'status' => $conversation->status,
+            'last_message_at' => optional($conversation->last_message_at)->diffForHumans() ?? null,
+            'owner' => $conversation->owner ? ['id' => $conversation->owner->id, 'name' => $conversation->owner->name] : null,
+            'locked_until' => optional($conversation->locked_until)->toIso8601String(),
+            'avatar' => $avatar,
+            'can_reply' => $canReply,
+            'channel_ui' => $channelUi,
+            'messages' => $initialMessages->map(fn ($msg) => $this->messagePayload($msg))->values(),
+            'oldest_message_id' => $oldestMessageId,
+            'latest_message_id' => $latestMessageId,
+            'has_more' => $hasMoreMessages,
+            'endpoints' => [
+                'messages' => route('conversations.messages', $conversation),
+                'messages_since' => route('conversations.messages.since', $conversation),
+                'mark_read' => route('conversations.read', $conversation),
+                'send' => route('conversations.send', $conversation),
+                'show' => route('conversations.show', $conversation),
+            ],
+        ]);
+    }
+
     public function messages(Request $request, Conversation $conversation): JsonResponse
     {
         $user = $request->user();

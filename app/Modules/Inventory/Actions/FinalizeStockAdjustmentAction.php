@@ -74,10 +74,10 @@ class FinalizeStockAdjustmentAction
                     'occurred_at' => $adjustment->adjustment_date->toDateString() . ' 00:00:00',
                     'performed_by' => $adjustment->created_by,
                     'approved_by' => $actor,
-                    'meta' => [
+                    'meta' => array_merge([
                         'adjustment_item_id' => $item->id,
                         'adjustment_notes' => $adjustment->notes,
-                    ],
+                    ], $this->sourceMeta($adjustment)),
                 ]);
 
                 $item->forceFill([
@@ -110,7 +110,7 @@ class FinalizeStockAdjustmentAction
                                 ? (float) $movement->movement_value
                                 : -(float) $movement->movement_value;
                         }), 2),
-                    ],
+                    ] + $this->sourceMeta($adjustment),
                     'Auto journal stock adjustment ' . $adjustment->code
                 );
             }
@@ -187,5 +187,20 @@ class FinalizeStockAdjustmentAction
             })
             ->values()
             ->all();
+    }
+
+    private function sourceMeta(StockAdjustment $adjustment): array
+    {
+        $meta = is_array($adjustment->meta) ? $adjustment->meta : [];
+
+        if (($meta['created_via'] ?? null) !== 'stock_opname') {
+            return [];
+        }
+
+        return [
+            'created_via' => 'stock_opname',
+            'source_opname_id' => $meta['source_opname_id'] ?? null,
+            'source_opname_code' => $meta['source_opname_code'] ?? null,
+        ];
     }
 }

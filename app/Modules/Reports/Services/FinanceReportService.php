@@ -442,6 +442,8 @@ class FinanceReportService extends BaseReportService
                 'sale_return',
                 'sale_void_restore',
                 'stock_adjustment',
+                'transfer_out',
+                'transfer_in',
             ]);
     }
 

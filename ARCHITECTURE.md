@@ -39,6 +39,7 @@
 - Keep root framework paths focused on app-shell concerns unless the feature is part of the non-optional base product.
 - Do not place optional business logic, routes, views, migrations, assets, or provider wiring in core files.
 - Each module should stay self-contained under its own folder, including routes, migrations, views, services, actions, and bootstrapping.
+- If a domain is sold as an optional module or bundle component, its business schema and implementation should stay owned by that module instead of drifting into core.
 - `module.json` is the source of truth for module metadata such as slug, name, provider, version, description, category, `requires`, and navigation items.
 - `module.json` is also the source of truth for each module's sidebar/icon metadata. Module SVG assets should live with the owning module, and shared UI should reuse those assets instead of redefining icons per page.
 

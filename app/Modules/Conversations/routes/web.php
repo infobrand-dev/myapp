@@ -12,6 +12,7 @@ Route::middleware(['web', 'auth', 'plan.feature:conversations', 'permission:conv
         Route::get('/users/search', [ConversationHubController::class, 'searchUsers'])->middleware('permission:conversations.manage')->name('users.search');
         Route::post('/start', [ConversationHubController::class, 'start'])->middleware('permission:conversations.manage')->name('start');
         Route::get('/{conversation}', [ConversationHubController::class, 'show'])->name('show');
+        Route::get('/{conversation}/data', [ConversationHubController::class, 'data'])->name('data');
         Route::get('/{conversation}/messages', [ConversationHubController::class, 'messages'])->name('messages');
         Route::get('/{conversation}/messages/since', [ConversationHubController::class, 'messagesSince'])->name('messages.since');
         Route::post('/{conversation}/read', [ConversationHubController::class, 'read'])

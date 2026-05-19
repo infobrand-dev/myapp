@@ -155,6 +155,17 @@ php artisan migrate --path=app/Modules/Finance/Database/Migrations --force
 php artisan migrate --path=app/Modules/Finance/Database/Migrations/2026_04_08_150000_create_finance_accounts_and_link_transactions.php --force
 ```
 
+## Boundary audit
+Untuk audit boundary antara `core` dan `modules`:
+
+```bash
+php artisan modules:audit-boundaries
+```
+
+Command ini menandai dua kebocoran utama:
+- file core yang langsung mengimpor class dari `App\\Modules\\*`
+- migration core yang langsung membuat atau mengubah tabel milik module
+
 ## Sentry
 - Paket monitoring yang dipakai: `sentry/sentry-laravel`
 - Isi minimal di `.env` production:

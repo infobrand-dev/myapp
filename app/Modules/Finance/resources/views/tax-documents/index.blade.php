@@ -17,6 +17,7 @@
         </div>
         <div class="col-auto d-flex gap-2">
             <a href="{{ route('finance.tax-documents.export', request()->query()) }}" class="btn btn-outline-secondary">Export Register CSV</a>
+            <a href="{{ route('finance.tax-documents.export-withholding-draft', request()->query()) }}" class="btn btn-outline-secondary">Draft Bukti Potong CSV</a>
             <a href="{{ route('finance.tax-documents.export-efaktur-draft', request()->query()) }}" class="btn btn-outline-primary">Draft e-Faktur CSV</a>
         </div>
     </div>
@@ -40,6 +41,7 @@
 <div class="alert alert-secondary mb-3">
     <strong>Catatan export:</strong>
     `Export Register CSV` dipakai untuk register internal dan review operasional.
+    `Draft Bukti Potong CSV` dipakai untuk draft register PPh/withholding internal agar finance bisa review arah potong, lawan transaksi, dan nilai potong.
     `Draft e-Faktur CSV` adalah struktur awal PPN keluaran dari tax register, belum final integrasi e-Faktur resmi.
 </div>
 
@@ -101,6 +103,7 @@
                         'documentTypeOptions' => $documentTypeOptions,
                         'documentStatusOptions' => $documentStatusOptions,
                         'taxRateOptions' => $taxRateOptions,
+                        'replaceableDocumentOptions' => $replaceableDocumentOptions,
                         'sourceOptions' => $sourceOptions,
                     ])
                 </div>
@@ -164,6 +167,12 @@
                                         <span class="badge bg-{{ $document->document_status === 'issued' ? 'green' : ($document->document_status === 'draft' ? 'secondary' : 'yellow') }}-lt text-{{ $document->document_status === 'issued' ? 'green' : ($document->document_status === 'draft' ? 'secondary' : 'yellow') }}">
                                             {{ $documentStatusOptions[$document->document_status] ?? $document->document_status }}
                                         </span>
+                                        @if($document->replacedDocument)
+                                            <div class="text-muted small mt-1">Replaces: {{ $document->replacedDocument->document_number ?: ('#' . $document->replacedDocument->id) }}</div>
+                                        @endif
+                                        @if($document->status_reason)
+                                            <div class="text-muted small mt-1">{{ $document->status_reason }}</div>
+                                        @endif
                                     </td>
                                     <td class="text-end">
                                         <a href="{{ route('finance.tax-documents.edit', $document) }}" class="btn btn-icon btn-sm btn-outline-primary">

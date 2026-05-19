@@ -67,6 +67,12 @@ class UpdatePaymentAction
                 [
                     'amount' => round((float) ($data['amount'] ?? $payment->amount), 2),
                     'allocations' => $data['allocations'] ?? [],
+                    '_action_date' => $targetPaidAt->toDateTimeString(),
+                    '_maker_ids' => array_values(array_unique(array_filter([
+                        (int) $payment->created_by,
+                        (int) $payment->updated_by,
+                        (int) $payment->received_by,
+                    ]))),
                 ],
                 $actor,
                 'Edit payment posted'

@@ -27,9 +27,9 @@ class CreateStockAdjustmentAction
                 'reason_text' => $data['reason_text'],
                 'notes' => $data['notes'] ?? null,
                 'created_by' => $actor ? $actor->id : null,
-                'meta' => [
+                'meta' => array_merge([
                     'created_via' => 'inventory_stock_adjustment',
-                ],
+                ], $data['meta'] ?? []),
             ]);
 
             foreach ($data['items'] as $item) {

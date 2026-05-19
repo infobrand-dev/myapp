@@ -16,6 +16,7 @@
             @endforeach
         </select>
         @error('document_status') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        <div class="form-hint">Status formal seperti issued/replaced/cancelled akan membuat nomor dokumen stabil.</div>
     </div>
     <div class="col-md-4">
         <label class="form-label">Tax Master</label>
@@ -59,6 +60,7 @@
     <div class="col-md-3">
         <label class="form-label">Document Number</label>
         <input type="text" name="document_number" class="form-control @error('document_number') is-invalid @enderror" value="{{ old('document_number', $taxDocument->document_number) }}">
+        <div class="form-hint">Kosongkan saat draft. Saat status formal, nomor akan dibuat otomatis bila rule numbering tersedia.</div>
         @error('document_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
     <div class="col-md-3">
@@ -85,6 +87,25 @@
         <label class="form-label">Tax Period Year</label>
         <input type="number" min="2000" max="2999" name="tax_period_year" class="form-control @error('tax_period_year') is-invalid @enderror" value="{{ old('tax_period_year', $taxDocument->tax_period_year ?: $defaultPeriodYear) }}" required>
         @error('tax_period_year') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">Replaces Tax Document</label>
+        <select name="replaces_tax_document_id" class="form-select @error('replaces_tax_document_id') is-invalid @enderror">
+            <option value="">Tidak mengganti dokumen lain</option>
+            @foreach(($replaceableDocumentOptions ?? collect()) as $replaceableDocument)
+                <option value="{{ $replaceableDocument->id }}" @selected((string) old('replaces_tax_document_id', $taxDocument->replaces_tax_document_id) === (string) $replaceableDocument->id)>
+                    {{ $replaceableDocument->document_number ?: ('Tax Document #' . $replaceableDocument->id) }} | {{ $replaceableDocument->counterparty_name_snapshot ?: '-' }}
+                </option>
+            @endforeach
+        </select>
+        <div class="form-hint">Wajib diisi jika status dokumen adalah replaced.</div>
+        @error('replaces_tax_document_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">Status Reason</label>
+        <input type="text" name="status_reason" class="form-control @error('status_reason') is-invalid @enderror" value="{{ old('status_reason', $taxDocument->status_reason) }}" placeholder="Alasan cancelled/replaced atau catatan lifecycle">
+        <div class="form-hint">Wajib untuk status cancelled atau replaced.</div>
+        @error('status_reason') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
     <div class="col-md-3">
         <label class="form-label">Taxable Base</label>
@@ -131,4 +152,16 @@
         <textarea name="reference_note" class="form-control @error('reference_note') is-invalid @enderror" rows="3">{{ old('reference_note', $taxDocument->reference_note) }}</textarea>
         @error('reference_note') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
+    @if($taxDocument->exists)
+        <div class="col-12">
+            <div class="border rounded p-3 bg-light">
+                <div class="fw-semibold mb-2">Lifecycle Audit</div>
+                <div class="row g-2 small text-muted">
+                    <div class="col-md-4">Issued: {{ $taxDocument->issued_at ? $taxDocument->issued_at->format('Y-m-d H:i') : '-' }}</div>
+                    <div class="col-md-4">Replaced: {{ $taxDocument->replaced_at ? $taxDocument->replaced_at->format('Y-m-d H:i') : '-' }}</div>
+                    <div class="col-md-4">Cancelled: {{ $taxDocument->cancelled_at ? $taxDocument->cancelled_at->format('Y-m-d H:i') : '-' }}</div>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>

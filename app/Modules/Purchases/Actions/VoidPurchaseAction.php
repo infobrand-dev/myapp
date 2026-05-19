@@ -17,11 +17,18 @@ use Illuminate\Validation\ValidationException;
 
 class VoidPurchaseAction
 {
+    private $approvalService;
+    private $periodLockService;
+    private $journalService;
+
     public function __construct(
-        private readonly SensitiveActionApprovalService $approvalService,
-        private readonly AccountingPeriodLockService $periodLockService,
-        private readonly AccountingJournalService $journalService
+        SensitiveActionApprovalService $approvalService,
+        AccountingPeriodLockService $periodLockService,
+        AccountingJournalService $journalService
     ) {
+        $this->approvalService = $approvalService;
+        $this->periodLockService = $periodLockService;
+        $this->journalService = $journalService;
     }
 
     public function execute(Purchase $purchase, array $data, ?User $actor = null): Purchase
@@ -52,7 +59,17 @@ class VoidPurchaseAction
                 'purchases',
                 'void_purchase',
                 $purchase,
-                ['reason' => $data['reason'], 'status' => $purchase->status],
+                [
+                    'reason' => $data['reason'],
+                    'status' => $purchase->status,
+                    'amount' => (float) $purchase->grand_total,
+                    '_action_date' => optional($purchase->purchase_date)->toDateTimeString(),
+                    '_maker_ids' => array_values(array_unique(array_filter([
+                        (int) $purchase->created_by,
+                        (int) $purchase->updated_by,
+                        (int) $purchase->confirmed_by,
+                    ]))),
+                ],
                 $actor,
                 $data['reason']
             );

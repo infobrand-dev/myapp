@@ -357,6 +357,11 @@ class FinanceTransactionController extends Controller
             [
                 'amount' => (float) $request->input('amount', $transaction->amount),
                 'transaction_type' => $request->input('transaction_type', $transaction->transaction_type),
+                '_action_date' => $request->input('transaction_date', $transaction->transaction_date),
+                '_maker_ids' => array_values(array_unique(array_filter([
+                    (int) $transaction->created_by,
+                    (int) $transaction->updated_by,
+                ]))),
             ],
             $request->user(),
             'Edit finance transaction'
@@ -407,7 +412,15 @@ class FinanceTransactionController extends Controller
             'finance',
             'delete_transaction',
             $transaction,
-            ['amount' => (float) $transaction->amount, 'transaction_type' => $transaction->transaction_type],
+            [
+                'amount' => (float) $transaction->amount,
+                'transaction_type' => $transaction->transaction_type,
+                '_action_date' => $transaction->transaction_date,
+                '_maker_ids' => array_values(array_unique(array_filter([
+                    (int) $transaction->created_by,
+                    (int) $transaction->updated_by,
+                ]))),
+            ],
             request()->user(),
             'Delete finance transaction'
         );
@@ -447,7 +460,7 @@ class FinanceTransactionController extends Controller
                     ->where('company_id', $companyId)
                     ->where('transaction_number', $number)
                     ->exists();
-            } catch (QueryException) {
+            } catch (QueryException $exception) {
                 $exists = false;
             }
 
@@ -576,7 +589,7 @@ class FinanceTransactionController extends Controller
             ? $transaction
             : $transaction->transferPair;
 
-        $target = $source?->transferPair;
+        $target = $source ? $source->transferPair : null;
 
         if (!$source) {
             throw ValidationException::withMessages([

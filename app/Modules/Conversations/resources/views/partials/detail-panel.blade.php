@@ -13,7 +13,7 @@
             <div class="detail-row">
                 <span class="detail-key">Live Chat</span>
                 <span class="detail-value">
-                    <span class="badge {{ $conversation->status === 'closed' ? 'text-bg-secondary' : 'text-bg-success' }}">
+                    <span class="badge {{ $conversation->status === 'closed' ? 'bg-secondary-lt text-secondary' : 'bg-green-lt text-green' }}">
                         {{ $conversation->status === 'closed' ? 'Closed' : 'Open' }}
                     </span>
                 </span>
@@ -42,14 +42,14 @@
                 <span class="detail-key">AI Bot</span>
                 <span class="detail-value">
                     @if($needsHuman)
-                        <span class="badge text-bg-warning">Paused (Need Human)</span>
+                        <span class="badge bg-orange-lt text-orange">Paused (Need Human)</span>
                         @if($handoffAt)
                             <div class="text-muted small mt-1">{{ \Illuminate\Support\Carbon::parse($handoffAt)->diffForHumans() }}</div>
                         @endif
                     @elseif($botPaused)
-                        <span class="badge text-bg-warning">Paused</span>
+                        <span class="badge bg-orange-lt text-orange">Paused</span>
                     @else
-                        <span class="badge text-bg-success">Active</span>
+                        <span class="badge bg-green-lt text-green">Active</span>
                     @endif
                 </span>
             </div>

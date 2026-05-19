@@ -21,11 +21,18 @@ use Illuminate\Validation\ValidationException;
 
 class VoidSaleAction
 {
+    private $approvalService;
+    private $periodLockService;
+    private $journalService;
+
     public function __construct(
-        private readonly SensitiveActionApprovalService $approvalService,
-        private readonly AccountingPeriodLockService $periodLockService,
-        private readonly AccountingJournalService $journalService
+        SensitiveActionApprovalService $approvalService,
+        AccountingPeriodLockService $periodLockService,
+        AccountingJournalService $journalService
     ) {
+        $this->approvalService = $approvalService;
+        $this->periodLockService = $periodLockService;
+        $this->journalService = $journalService;
     }
 
     public function execute(Sale $sale, array $data, ?User $actor = null): Sale
@@ -67,7 +74,17 @@ class VoidSaleAction
                 'sales',
                 'void_sale',
                 $sale,
-                ['reason' => $reason, 'status' => $sale->status],
+                [
+                    'reason' => $reason,
+                    'status' => $sale->status,
+                    'amount' => (float) $sale->grand_total,
+                    '_action_date' => optional($sale->transaction_date)->toDateTimeString(),
+                    '_maker_ids' => array_values(array_unique(array_filter([
+                        (int) $sale->created_by,
+                        (int) $sale->updated_by,
+                        (int) $sale->finalized_by,
+                    ]))),
+                ],
                 $actor,
                 $reason
             );

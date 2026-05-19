@@ -8,6 +8,7 @@ use App\Modules\Inventory\Actions\CreateStockAdjustmentAction;
 use App\Modules\Inventory\Actions\FinalizeStockAdjustmentAction;
 use App\Modules\Inventory\Http\Requests\StoreStockAdjustmentRequest;
 use App\Modules\Inventory\Models\StockAdjustment;
+use App\Modules\Inventory\Models\StockOpname;
 use App\Modules\Inventory\Repositories\StockRepository;
 use App\Modules\Products\Models\Product;
 use App\Support\BranchContext;
@@ -77,10 +78,21 @@ class StockAdjustmentController extends Controller
             ->where('source_type', StockAdjustment::class)
             ->where('source_id', $adjustment->id)
             ->first();
+        $sourceOpname = null;
+        $meta = is_array($adjustment->meta) ? $adjustment->meta : [];
+
+        if (($meta['created_via'] ?? null) === 'stock_opname' && !empty($meta['source_opname_id'])) {
+            $sourceOpname = StockOpname::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
+                ->where('id', $meta['source_opname_id'])
+                ->first();
+        }
 
         return view('inventory::adjustments.show', [
             'adjustment' => $adjustment,
             'journal' => $journal,
+            'sourceOpname' => $sourceOpname,
         ]);
     }
 

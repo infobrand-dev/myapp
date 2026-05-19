@@ -13,6 +13,7 @@ use App\Support\AccountingSourceReferenceService;
 use App\Support\AccountingJournalService;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
+use App\Support\SensitiveActionApprovalService;
 use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
@@ -170,9 +171,25 @@ class AccountingJournalController extends Controller
             ->with('status', 'Manual journal ' . $journal->journal_number . ' berhasil diperbarui.');
     }
 
-    public function post(int $journal): RedirectResponse
+    public function post(int $journal, SensitiveActionApprovalService $approvalService): RedirectResponse
     {
         $journal = $this->manualJournal($journal);
+        $approvalService->ensureApprovedOrCreatePending(
+            'finance',
+            'post_manual_journal',
+            $journal,
+            [
+                'amount' => round((float) $journal->lines->sum('debit'), 2),
+                'journal_number' => $journal->journal_number,
+                '_action_date' => optional($journal->entry_date)->toDateTimeString(),
+                '_maker_ids' => array_values(array_unique(array_filter([
+                    (int) $journal->created_by,
+                    (int) $journal->updated_by,
+                ]))),
+            ],
+            request()->user(),
+            'Post manual journal'
+        );
         $this->journalService->postManual($journal);
 
         return redirect()

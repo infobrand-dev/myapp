@@ -62,10 +62,31 @@
                             @if($opname->adjustment)
                                 <a href="{{ route('inventory.adjustments.show', $opname->adjustment) }}">{{ $opname->adjustment->code }}</a>
                             @else
-                                -
+                                <span class="text-muted">Tidak ada adjustment</span>
+                            @endif
+                        </div>
+                        @if($opname->isFinalized() && !$opname->adjustment)
+                            <div class="text-muted small mt-1">Opname final tanpa selisih stok yang perlu diposting.</div>
+                        @endif
+                    </div>
+                    <div class="col-12">
+                        <div class="text-muted small">Accounting Journal</div>
+                        <div>
+                            @if(!empty($journal))
+                                <a href="{{ route('finance.journals.show', $journal->id) }}">{{ $journal->journal_number ?: ('Journal #' . $journal->id) }}</a>
+                            @else
+                                <span class="text-muted">-</span>
                             @endif
                         </div>
                     </div>
+                    @if($opname->isFinalized())
+                        <div class="col-12">
+                            <div class="text-muted small">Audit Summary</div>
+                            <div>Counted items: {{ (int) data_get($opname->meta, 'counted_item_count', $opname->items->count()) }}</div>
+                            <div>Variance items: {{ (int) data_get($opname->meta, 'difference_item_count', 0) }}</div>
+                            <div class="text-muted small">{{ data_get($opname->meta, 'finalization_note') }}</div>
+                        </div>
+                    @endif
                     <div class="col-12">
                         <div class="text-muted small">Finalized</div>
                         <div>{{ $opname->finalized_at ? (($opname->finalizer ? $opname->finalizer->name : '-') . ' | ' . $opname->finalized_at->format('d/m/Y H:i')) : '-' }}</div>

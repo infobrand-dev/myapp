@@ -110,6 +110,17 @@ class TaxDocumentSyncService
             ->first();
 
         if ($taxDocument) {
+            if ($taxDocument->document_status !== FinanceTaxDocument::STATUS_DRAFT) {
+                $meta = is_array($taxDocument->meta) ? $taxDocument->meta : [];
+                $meta['last_source_sync_skipped_at'] = now()->toDateTimeString();
+                $meta['last_source_sync_skipped_reason'] = 'Tax document already formal. Source sync does not overwrite issued/replaced/cancelled register.';
+                $taxDocument->meta = $meta;
+                $taxDocument->updated_by = $actor ? $actor->id : null;
+                $taxDocument->save();
+
+                return $taxDocument;
+            }
+
             $taxDocument->fill($attributes);
             $taxDocument->updated_by = $actor ? $actor->id : null;
             $taxDocument->save();

@@ -49,7 +49,7 @@
             </nav>
             <div class="d-flex align-items-center gap-2">
                 <a href="{{ route('workspace.finder') }}" class="btn btn-outline-dark btn-sm d-none d-md-inline-flex">Login Workspace</a>
-                <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'plan' => 'accounting_growth', 'trial' => 1]) }}" class="btn btn-dark btn-sm">Free Trial</a>
+                <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'plan' => 'accounting_growth']) }}" class="btn btn-dark btn-sm">Mulai Sekarang</a>
             </div>
         </div>
     </div>

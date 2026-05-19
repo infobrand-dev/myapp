@@ -65,6 +65,17 @@ class ChartOfAccount extends Model
         return $query->where('is_active', true);
     }
 
+    public function scopePostable(Builder $query): Builder
+    {
+        $column = $query->qualifyColumn('is_postable');
+
+        if (DB::connection($this->getConnectionName())->getDriverName() === 'pgsql') {
+            return $query->whereRaw($column . ' is true');
+        }
+
+        return $query->where('is_postable', true);
+    }
+
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);

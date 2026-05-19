@@ -185,7 +185,7 @@ class TenantOnboardingSalesService
             $tenant = Tenant::query()->create([
                 'name' => $data['company_name'],
                 'slug' => $data['slug'],
-                'is_active' => false,
+                'is_active' => $this->databaseBoolean(false),
                 'meta' => [
                     'onboarding_status' => 'pending_payment',
                     'requested_plan_code' => $plan->code,
@@ -316,7 +316,7 @@ class TenantOnboardingSalesService
             $tenant = Tenant::query()->create([
                 'name' => $data['company_name'],
                 'slug' => $data['slug'],
-                'is_active' => true,
+                'is_active' => $this->databaseBoolean(true),
                 'meta' => [
                     'onboarding_status' => 'trialing',
                     'requested_plan_code' => $plan->code,
@@ -420,7 +420,7 @@ class TenantOnboardingSalesService
 
         if (!$wasActive || ($tenantMeta['onboarding_status'] ?? null) !== 'active') {
             $tenant->forceFill([
-                'is_active' => true,
+                'is_active' => $this->databaseBoolean(true),
                 'meta' => $tenantMeta,
             ])->save();
         } else {
@@ -536,5 +536,12 @@ class TenantOnboardingSalesService
     private function nextInvoiceNumber(): string
     {
         return 'INV-PLATFORM-' . now()->format('YmdHis') . '-' . str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+    }
+
+    private function databaseBoolean(bool $value): bool|string
+    {
+        return DB::connection()->getDriverName() === 'pgsql'
+            ? ($value ? 'true' : 'false')
+            : $value;
     }
 }

@@ -220,9 +220,9 @@ class AccountingJournalController extends Controller
 
         return ChartOfAccount::query()
             ->active()
+            ->postable()
             ->where('tenant_id', TenantContext::currentId())
             ->where('company_id', $companyId)
-            ->where('is_postable', true)
             ->orderBy('sort_order')
             ->orderBy('code')
             ->get(['code', 'name']);

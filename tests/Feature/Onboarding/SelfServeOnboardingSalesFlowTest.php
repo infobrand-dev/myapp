@@ -158,6 +158,24 @@ class SelfServeOnboardingSalesFlowTest extends TestCase
         Mail::assertNotQueued(TenantWelcomeMail::class);
     }
 
+    public function test_trial_query_no_longer_bypasses_payment_selection(): void
+    {
+        $response = $this->post(route('onboarding.store', ['trial' => 1]), [
+            'subscription_plan_id' => SubscriptionPlan::query()->where('code', 'growth-v2')->value('id'),
+            'company_name' => 'Trial Attempt',
+            'slug' => 'trial-attempt',
+            'name' => 'Owner Trial',
+            'email' => 'owner-trial@test.test',
+            'password' => 'Secret123!!',
+            'password_confirmation' => 'Secret123!!',
+        ]);
+
+        $response->assertSessionHasErrors('payment_method');
+        $this->assertDatabaseMissing('tenants', [
+            'slug' => 'trial-attempt',
+        ]);
+    }
+
     public function test_midtrans_settlement_activates_tenant_subscription_and_welcome_email_for_self_serve_onboarding(): void
     {
         Mail::fake();

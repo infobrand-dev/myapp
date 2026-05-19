@@ -207,7 +207,7 @@
             <h2 class="landing-section-title mb-3">Produk terbaik adalah yang bisa dicoba langsung.</h2>
             <p class="landing-subtext mx-auto mb-4" style="max-width:640px;">Tidak perlu percaya kata-kata kami saja. Daftar, buat workspace, dan rasakan sendiri apakah Meetra sesuai dengan cara bisnis Anda bekerja.</p>
             <div class="d-flex flex-wrap justify-content-center gap-3">
-                <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'plan' => 'accounting_growth', 'trial' => 1]) }}" class="btn btn-dark btn-lg">Coba Gratis 14 Hari</a>
+                <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'plan' => 'accounting_growth']) }}" class="btn btn-dark btn-lg">Daftar Sekarang</a>
                 <a href="{{ route('landing.accounting') }}" class="btn btn-outline-dark btn-lg">Lihat Produk</a>
             </div>
         </div>

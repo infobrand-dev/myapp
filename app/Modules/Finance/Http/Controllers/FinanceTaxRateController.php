@@ -117,7 +117,7 @@ class FinanceTaxRateController extends Controller
         return ChartOfAccount::query()
             ->where('tenant_id', TenantContext::currentId())
             ->where('company_id', CompanyContext::currentId())
-            ->where('is_postable', true)
+            ->postable()
             ->orderBy('sort_order')
             ->orderBy('code')
             ->get(['code', 'name']);

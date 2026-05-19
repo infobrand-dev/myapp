@@ -25,7 +25,6 @@ class TenantOnboardingController extends Controller
 
         $affiliate = $affiliateService->captureFromRequest($request);
         $productLine = $this->requestedPublicProductLine($request);
-        $trialRequested = $this->wantsTrial($request, $productLine);
         $promoCode = strtoupper(trim((string) $request->query('promo_code', '')));
         $promoPreview = $promoCode !== ''
             ? PlatformPromoCode::findByCode($promoCode)
@@ -45,7 +44,6 @@ class TenantOnboardingController extends Controller
             'midtransReady' => $midtrans->isConfigured(),
             'productLine' => $productLine,
             'productLineLabel' => $this->productLineLabel($productLine),
-            'trialRequested' => $trialRequested,
             'promoCode' => $promoPreview ? (string) $promoPreview->code : '',
             'promoPreview' => $promoPreview,
         ]);
@@ -82,8 +80,7 @@ class TenantOnboardingController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
             'password' => ['required', 'confirmed', Password::defaults()],
-            'payment_method' => ['nullable', 'string', Rule::in(['midtrans', 'bank_transfer'])],
-            'trial' => ['nullable', 'boolean'],
+            'payment_method' => ['required', 'string', Rule::in(['midtrans', 'bank_transfer'])],
             'promo_code' => ['nullable', 'string', 'max:64'],
         ], [
             'slug.regex' => 'Subdomain hanya boleh huruf kecil, angka, dan tanda hubung, dan tidak boleh diawali/diakhiri tanda hubung.',
@@ -91,21 +88,13 @@ class TenantOnboardingController extends Controller
             'slug.unique' => 'Subdomain tersebut sudah dipakai. Pilih nama lain.',
         ]);
 
-        $trialRequested = $this->wantsTrial($request, $this->requestedPublicProductLine($request));
-
-        if (!$trialRequested && empty($data['payment_method'])) {
-            throw ValidationException::withMessages([
-                'payment_method' => 'Pilih metode pembayaran untuk melanjutkan pendaftaran.',
-            ]);
-        }
-
-        if (!$trialRequested && $data['payment_method'] === 'bank_transfer' && !$manualPayment->isConfigured()) {
+        if ($data['payment_method'] === 'bank_transfer' && !$manualPayment->isConfigured()) {
             throw ValidationException::withMessages([
                 'payment_method' => 'Transfer bank manual belum tersedia saat ini.',
             ]);
         }
 
-        if (!$trialRequested && $data['payment_method'] === 'midtrans' && !$midtrans->isConfigured()) {
+        if ($data['payment_method'] === 'midtrans' && !$midtrans->isConfigured()) {
             throw ValidationException::withMessages([
                 'payment_method' => 'Pembayaran Midtrans belum tersedia saat ini.',
             ]);
@@ -121,18 +110,6 @@ class TenantOnboardingController extends Controller
             throw ValidationException::withMessages([
                 'subscription_plan_id' => 'Plan yang dipilih belum tersedia di alur pendaftaran publik saat ini.',
             ]);
-        }
-
-        if ($trialRequested) {
-            if ($plan->productLine() !== 'accounting') {
-                throw ValidationException::withMessages([
-                    'subscription_plan_id' => 'Free trial 14 hari saat ini hanya tersedia untuk paket Accounting.',
-                ]);
-            }
-
-            $result = $sales->createTrialWorkspace($data, $plan, 14);
-
-            return redirect()->away($sales->tenantLoginUrl($result['tenant']) . '&trial=1');
         }
 
         $promo = $this->resolvePromoCode($data['promo_code'] ?? null, $plan->productLine());
@@ -183,15 +160,6 @@ class TenantOnboardingController extends Controller
         }
 
         return 'Omnichannel';
-    }
-
-    private function wantsTrial(Request $request, string $productLine): bool
-    {
-        if ($productLine !== 'accounting') {
-            return false;
-        }
-
-        return filter_var($request->input('trial', $request->query('trial')), FILTER_VALIDATE_BOOL);
     }
 
     private function resolvePromoCode(?string $code, ?string $productLine): ?PlatformPromoCode

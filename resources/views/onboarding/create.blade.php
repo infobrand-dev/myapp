@@ -4,14 +4,11 @@
             $money = app(\App\Support\MoneyFormatter::class);
             $productLineKey = strtolower((string) ($productLine ?? 'accounting'));
             $isAccounting = $productLineKey === 'accounting';
-            $trialRequested = !empty($trialRequested);
-            $promoDiscountPercent = (!$trialRequested && !empty($promoPreview)) ? (int) ($promoPreview->discount_percent ?? 0) : 0;
+            $promoDiscountPercent = !empty($promoPreview) ? (int) ($promoPreview->discount_percent ?? 0) : 0;
             $lineTitle = $isAccounting ? 'Mulai workspace Accounting Anda' : 'Mulai workspace Omnichannel Anda';
-            $lineIntro = $trialRequested
-                ? 'Mulai free trial 14 hari untuk paket Accounting pilihan Anda. Tidak perlu bayar di awal.'
-                : ($isAccounting
+            $lineIntro = $isAccounting
                 ? 'Pilih paket Accounting, buat workspace, lalu lanjutkan ke pembayaran untuk mengaktifkan workflow transaksi yang Anda butuhkan.'
-                : 'Pilih paket Omnichannel, buat workspace, lalu lanjutkan ke pembayaran untuk mengaktifkan modul yang Anda beli.');
+                : 'Pilih paket Omnichannel, buat workspace, lalu lanjutkan ke pembayaran untuk mengaktifkan modul yang Anda beli.';
             $intervalHeadings = $isAccounting
                 ? [
                     'monthly' => [
@@ -51,11 +48,7 @@
                 Anda mendaftar melalui partner affiliate <strong>{{ $affiliate->name }}</strong>.
             </div>
         @endif
-        @if($trialRequested)
-            <div class="alert alert-success py-2 px-3 small">
-                Free trial aktif selama <strong>14 hari</strong>. Setelah form dikirim, workspace langsung dibuat dan siap login.
-            </div>
-        @elseif($promoDiscountPercent > 0)
+        @if($promoDiscountPercent > 0)
             <div class="alert alert-danger py-2 px-3 small">
                 Promo <strong>{{ $promoCode }}</strong> aktif. Harga di bawah ini sudah menampilkan potongan <strong>{{ $promoDiscountPercent }}%</strong>.
             </div>
@@ -64,9 +57,6 @@
         <form method="POST" action="{{ route('onboarding.store') }}">
             @csrf
             <input type="hidden" name="product_line" value="{{ $productLineKey }}">
-            @if($trialRequested)
-                <input type="hidden" name="trial" value="1">
-            @endif
 
             <div class="mb-4" x-data="{ selected: {{ old('subscription_plan_id', $preferredPlanId ?: ($plans->first()->id ?? 0)) }} }">
                 @php
@@ -280,89 +270,87 @@
                 <x-input id="password_confirmation" type="password" name="password_confirmation" required />
             </div>
 
-            @if(!$trialRequested)
-                <div class="d-flex align-items-center gap-2 mb-3">
-                    <div class="border-top flex-grow-1"></div>
-                    <span class="text-muted small px-2">Kode promo</span>
-                    <div class="border-top flex-grow-1"></div>
-                </div>
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="border-top flex-grow-1"></div>
+                <span class="text-muted small px-2">Kode promo</span>
+                <div class="border-top flex-grow-1"></div>
+            </div>
 
-                <div class="mb-4">
-                    <label class="form-label">Kode Promo <span class="text-muted small fw-normal">(opsional)</span></label>
-                    <input
-                        type="text"
-                        name="promo_code"
-                        id="promo_code"
-                        class="form-control text-uppercase @error('promo_code') is-invalid @enderror"
-                        value="{{ old('promo_code', $promoCode ?? '') }}"
-                        placeholder="Masukkan kode promo jika ada"
-                        autocomplete="off"
-                        style="letter-spacing:0.08em;"
-                    >
-                    @error('promo_code')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                    <div class="form-hint">Contoh: <strong>MEETRA2ND</strong> untuk promo anniversary 50% off.</div>
-                </div>
+            <div class="mb-4">
+                <label class="form-label">Kode Promo <span class="text-muted small fw-normal">(opsional)</span></label>
+                <input
+                    type="text"
+                    name="promo_code"
+                    id="promo_code"
+                    class="form-control text-uppercase @error('promo_code') is-invalid @enderror"
+                    value="{{ old('promo_code', $promoCode ?? '') }}"
+                    placeholder="Masukkan kode promo jika ada"
+                    autocomplete="off"
+                    style="letter-spacing:0.08em;"
+                >
+                @error('promo_code')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+                <div class="form-hint">Contoh: <strong>MEETRA2ND</strong> untuk promo anniversary 50% off.</div>
+            </div>
 
-                <div class="d-flex align-items-center gap-2 mb-3">
-                    <div class="border-top flex-grow-1"></div>
-                    <span class="text-muted small px-2">Metode pembayaran</span>
-                    <div class="border-top flex-grow-1"></div>
-                </div>
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="border-top flex-grow-1"></div>
+                <span class="text-muted small px-2">Metode pembayaran</span>
+                <div class="border-top flex-grow-1"></div>
+            </div>
 
-                <div class="mb-4">
-                    <label class="form-label fw-semibold">Pilih pembayaran</label>
-                    <div class="vstack gap-3">
-                        @if($midtransReady)
-                            <label class="card border p-3">
-                                <div class="d-flex align-items-start gap-3">
-                                    <input
-                                        class="form-check-input mt-1"
-                                        type="radio"
-                                        name="payment_method"
-                                        value="midtrans"
-                                        @checked(old('payment_method', $manualPaymentReady ? 'midtrans' : 'bank_transfer') === 'midtrans')
-                                        required
-                                    >
-                                    <div>
-                                        <div class="fw-semibold">Midtrans</div>
-                                        <div class="text-muted small">Pembayaran online. Aktivasi otomatis setelah pembayaran sukses.</div>
-                                    </div>
+            <div class="mb-4">
+                <label class="form-label fw-semibold">Pilih pembayaran</label>
+                <div class="vstack gap-3">
+                    @if($midtransReady)
+                        <label class="card border p-3">
+                            <div class="d-flex align-items-start gap-3">
+                                <input
+                                    class="form-check-input mt-1"
+                                    type="radio"
+                                    name="payment_method"
+                                    value="midtrans"
+                                    @checked(old('payment_method', $manualPaymentReady ? 'midtrans' : 'bank_transfer') === 'midtrans')
+                                    required
+                                >
+                                <div>
+                                    <div class="fw-semibold">Midtrans</div>
+                                    <div class="text-muted small">Pembayaran online. Aktivasi otomatis setelah pembayaran sukses.</div>
                                 </div>
-                            </label>
-                        @endif
-
-                        @if($manualPaymentReady)
-                            <label class="card border p-3">
-                                <div class="d-flex align-items-start gap-3">
-                                    <input
-                                        class="form-check-input mt-1"
-                                        type="radio"
-                                        name="payment_method"
-                                        value="bank_transfer"
-                                        @checked(old('payment_method') === 'bank_transfer')
-                                        required
-                                    >
-                                    <div>
-                                        <div class="fw-semibold">Transfer Bank</div>
-                                        <div class="text-muted small">Pembayaran manual dengan nominal unik. Aktivasi maksimal 1x24 jam setelah verifikasi.</div>
-                                    </div>
-                                </div>
-                            </label>
-                        @endif
-
-                        @if(!$midtransReady && !$manualPaymentReady)
-                            <div class="alert alert-warning mb-0">
-                                Belum ada metode pembayaran yang tersedia saat ini. Hubungi tim kami untuk proses aktivasi manual.
                             </div>
-                        @endif
-                    </div>
+                        </label>
+                    @endif
+
+                    @if($manualPaymentReady)
+                        <label class="card border p-3">
+                            <div class="d-flex align-items-start gap-3">
+                                <input
+                                    class="form-check-input mt-1"
+                                    type="radio"
+                                    name="payment_method"
+                                    value="bank_transfer"
+                                    @checked(old('payment_method') === 'bank_transfer')
+                                    required
+                                >
+                                <div>
+                                    <div class="fw-semibold">Transfer Bank</div>
+                                    <div class="text-muted small">Pembayaran manual dengan nominal unik. Aktivasi maksimal 1x24 jam setelah verifikasi.</div>
+                                </div>
+                            </div>
+                        </label>
+                    @endif
+
+                    @if(!$midtransReady && !$manualPaymentReady)
+                        <div class="alert alert-warning mb-0">
+                            Belum ada metode pembayaran yang tersedia saat ini. Hubungi tim kami untuk proses aktivasi manual.
+                        </div>
+                    @endif
                 </div>
-            @endif
+            </div>
 
             <x-button class="w-100" :disabled="$plans->isEmpty()">
-                {{ $trialRequested ? __('Mulai Free Trial 14 Hari') : __('Lanjut ke Pembayaran') }}
+                {{ __('Lanjut ke Pembayaran') }}
             </x-button>
         </form>
     </x-auth-card>

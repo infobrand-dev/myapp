@@ -36,6 +36,7 @@ class FinanceReportService extends BaseReportService
             'balanceSheet' => $this->balanceSheet($filters),
             'inventoryGlReconciliation' => $this->inventoryGlReconciliation($filters),
             'inventoryGlReconciliationDetails' => $this->inventoryGlReconciliationDetails($filters),
+            'inventoryCostingDiagnostics' => $this->inventoryCostingDiagnostics($filters),
         ];
     }
 
@@ -375,6 +376,97 @@ class FinanceReportService extends BaseReportService
                 'last_occurred_at' => $row->last_occurred_at,
             ];
         });
+    }
+
+    public function inventoryCostingDiagnostics(array $filters): array
+    {
+        if (!Schema::hasTable('inventory_stocks')) {
+            return [
+                'summary' => [
+                    'negative_stock_count' => 0,
+                    'negative_value_count' => 0,
+                    'zero_qty_nonzero_value_count' => 0,
+                    'missing_cost_basis_count' => 0,
+                    'movement_gap_count' => 0,
+                ],
+                'stock_issues' => collect(),
+                'movement_issues' => collect(),
+            ];
+        }
+
+        $stockBase = DB::table('inventory_stocks')
+            ->leftJoin('products', 'products.id', '=', 'inventory_stocks.product_id')
+            ->leftJoin('product_variants', 'product_variants.id', '=', 'inventory_stocks.product_variant_id')
+            ->leftJoin('inventory_locations', 'inventory_locations.id', '=', 'inventory_stocks.inventory_location_id');
+        $this->applyTenantCompanyBranchScope($stockBase, 'inventory_stocks');
+
+        $stockIssues = (clone $stockBase)
+            ->select([
+                'inventory_stocks.id',
+                'inventory_stocks.current_quantity',
+                'inventory_stocks.reserved_quantity',
+                'inventory_stocks.average_unit_cost',
+                'inventory_stocks.inventory_value',
+                'products.name as product_name',
+                'product_variants.name as variant_name',
+                'inventory_locations.name as location_name',
+            ])
+            ->selectRaw("
+                CASE
+                    WHEN inventory_stocks.current_quantity < 0 THEN 'negative_stock'
+                    WHEN inventory_stocks.inventory_value < 0 THEN 'negative_inventory_value'
+                    WHEN inventory_stocks.current_quantity = 0 AND ABS(inventory_stocks.inventory_value) >= 0.01 THEN 'zero_qty_nonzero_value'
+                    WHEN inventory_stocks.current_quantity > 0 AND inventory_stocks.average_unit_cost <= 0 THEN 'missing_cost_basis'
+                    WHEN inventory_stocks.reserved_quantity > inventory_stocks.current_quantity THEN 'reserved_exceeds_stock'
+                    ELSE null
+                END as issue_type
+            ")
+            ->where(function ($query) {
+                $query->where('inventory_stocks.current_quantity', '<', 0)
+                    ->orWhere('inventory_stocks.inventory_value', '<', 0)
+                    ->orWhere(function ($nested) {
+                        $nested->where('inventory_stocks.current_quantity', 0)
+                            ->whereRaw('ABS(inventory_stocks.inventory_value) >= 0.01');
+                    })
+                    ->orWhere(function ($nested) {
+                        $nested->where('inventory_stocks.current_quantity', '>', 0)
+                            ->where('inventory_stocks.average_unit_cost', '<=', 0);
+                    })
+                    ->orWhereColumn('inventory_stocks.reserved_quantity', '>', 'inventory_stocks.current_quantity');
+            })
+            ->orderByRaw("
+                CASE
+                    WHEN inventory_stocks.current_quantity < 0 THEN 1
+                    WHEN inventory_stocks.inventory_value < 0 THEN 2
+                    WHEN inventory_stocks.current_quantity = 0 AND ABS(inventory_stocks.inventory_value) >= 0.01 THEN 3
+                    WHEN inventory_stocks.current_quantity > 0 AND inventory_stocks.average_unit_cost <= 0 THEN 4
+                    ELSE 5
+                END
+            ")
+            ->limit(20)
+            ->get();
+
+        $movementIssues = $this->inventoryGlReconciliationDetails($filters)
+            ->filter(fn (array $row) => in_array($row['status'], ['missing_gl', 'gap'], true))
+            ->values();
+
+        return [
+            'summary' => [
+                'negative_stock_count' => (clone $stockBase)->where('inventory_stocks.current_quantity', '<', 0)->count('inventory_stocks.id'),
+                'negative_value_count' => (clone $stockBase)->where('inventory_stocks.inventory_value', '<', 0)->count('inventory_stocks.id'),
+                'zero_qty_nonzero_value_count' => (clone $stockBase)
+                    ->where('inventory_stocks.current_quantity', 0)
+                    ->whereRaw('ABS(inventory_stocks.inventory_value) >= 0.01')
+                    ->count('inventory_stocks.id'),
+                'missing_cost_basis_count' => (clone $stockBase)
+                    ->where('inventory_stocks.current_quantity', '>', 0)
+                    ->where('inventory_stocks.average_unit_cost', '<=', 0)
+                    ->count('inventory_stocks.id'),
+                'movement_gap_count' => $movementIssues->count(),
+            ],
+            'stock_issues' => $stockIssues,
+            'movement_issues' => $movementIssues->take(10),
+        ];
     }
 
     private function chartOfAccountsByCode(): array

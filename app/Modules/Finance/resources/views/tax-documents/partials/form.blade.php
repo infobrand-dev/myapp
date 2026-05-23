@@ -135,19 +135,19 @@
             <option value="payable" @selected($withholdingDirectionValue === 'payable')>Payable</option>
             <option value="receivable" @selected($withholdingDirectionValue === 'receivable')>Receivable</option>
         </select>
-        <div class="form-hint">Dipakai terutama untuk dokumen PPh/withholding agar arah jurnal dan export draft lebih eksplisit.</div>
+        <div class="form-hint">Dipakai terutama untuk dokumen PPh/withholding agar arah jurnal dan export final app-side lebih eksplisit.</div>
         @error('withholding_direction') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
     <div class="col-md-3">
         <label class="form-label">e-Faktur Transaction Code</label>
         <input type="text" name="efaktur_transaction_code" class="form-control @error('efaktur_transaction_code') is-invalid @enderror" value="{{ old('efaktur_transaction_code', data_get($taxDocument->meta, 'efaktur_transaction_code', '01')) }}">
-        <div class="form-hint">Kode transaksi PPN keluaran untuk draft export e-Faktur. Default saat ini `01`.</div>
+        <div class="form-hint">Kode transaksi PPN keluaran untuk export e-Faktur. Default saat ini `01`.</div>
         @error('efaktur_transaction_code') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
     <div class="col-md-3">
         <label class="form-label">e-Faktur Additional Code</label>
         <input type="text" name="efaktur_additional_code" class="form-control @error('efaktur_additional_code') is-invalid @enderror" value="{{ old('efaktur_additional_code', data_get($taxDocument->meta, 'efaktur_additional_code')) }}">
-        <div class="form-hint">Kode tambahan opsional untuk review export PPN jika tenant butuh format internal sebelum finalisasi resmi.</div>
+        <div class="form-hint">Kode tambahan opsional untuk export PPN jika tenant butuh metadata compliance tambahan.</div>
         @error('efaktur_additional_code') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
     <div class="col-md-6">

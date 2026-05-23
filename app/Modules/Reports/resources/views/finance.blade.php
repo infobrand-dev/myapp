@@ -226,6 +226,99 @@
                 </div>
             </div>
         </div>
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                    <div>
+                        <h3 class="card-title mb-0">Inventory Costing Diagnostics</h3>
+                        <div class="text-muted small">Deteksi edge case costing yang perlu ditinjau sebelum mismatch membesar di valuation atau GL.</div>
+                    </div>
+                    <span class="badge {{ array_sum($inventoryCostingDiagnostics['summary']) === 0 ? 'bg-green-lt text-green' : 'bg-yellow-lt text-yellow' }}">
+                        {{ array_sum($inventoryCostingDiagnostics['summary']) === 0 ? 'CLEAN' : 'CHECK REQUIRED' }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-2"><div class="border rounded p-3 h-100"><div class="text-muted small">Negative Stock</div><div class="fs-4 fw-bold">{{ $inventoryCostingDiagnostics['summary']['negative_stock_count'] }}</div></div></div>
+                        <div class="col-md-2"><div class="border rounded p-3 h-100"><div class="text-muted small">Negative Value</div><div class="fs-4 fw-bold">{{ $inventoryCostingDiagnostics['summary']['negative_value_count'] }}</div></div></div>
+                        <div class="col-md-3"><div class="border rounded p-3 h-100"><div class="text-muted small">Zero Qty / Non-zero Value</div><div class="fs-4 fw-bold">{{ $inventoryCostingDiagnostics['summary']['zero_qty_nonzero_value_count'] }}</div></div></div>
+                        <div class="col-md-2"><div class="border rounded p-3 h-100"><div class="text-muted small">Missing Cost Basis</div><div class="fs-4 fw-bold">{{ $inventoryCostingDiagnostics['summary']['missing_cost_basis_count'] }}</div></div></div>
+                        <div class="col-md-3"><div class="border rounded p-3 h-100"><div class="text-muted small">Movement Gap / Missing GL</div><div class="fs-4 fw-bold">{{ $inventoryCostingDiagnostics['summary']['movement_gap_count'] }}</div></div></div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-lg-6">
+                            <div class="table-responsive">
+                                <table class="table table-vcenter mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Stock Issue</th>
+                                            <th class="text-end">Qty</th>
+                                            <th class="text-end">Avg Cost</th>
+                                            <th class="text-end">Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($inventoryCostingDiagnostics['stock_issues'] as $issue)
+                                            <tr>
+                                                <td>
+                                                    <div class="fw-semibold">{{ $issue->product_name }}{{ $issue->variant_name ? ' / ' . $issue->variant_name : '' }}</div>
+                                                    <div class="text-muted small">{{ $issue->location_name ?: 'No location' }}</div>
+                                                    <div class="text-muted small">{{ str_replace('_', ' ', (string) $issue->issue_type) }}</div>
+                                                </td>
+                                                <td class="text-end">{{ number_format((float) $issue->current_quantity, 2, ',', '.') }}</td>
+                                                <td class="text-end">{{ $money->format((float) $issue->average_unit_cost, $currency) }}</td>
+                                                <td class="text-end">{{ $money->format((float) $issue->inventory_value, $currency) }}</td>
+                                            </tr>
+                                        @empty
+                                            <tr><td colspan="4" class="text-center text-muted">Tidak ada anomaly stock utama.</td></tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="table-responsive">
+                                <table class="table table-vcenter mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Movement Issue</th>
+                                            <th class="text-end">Inventory</th>
+                                            <th class="text-end">GL</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($inventoryCostingDiagnostics['movement_issues'] as $row)
+                                            @php
+                                                $sourceReference = $inventorySourceReferences[$row['source_type'] . ':' . $row['source_id']] ?? [];
+                                            @endphp
+                                            <tr>
+                                                <td>
+                                                    <div class="fw-semibold">
+                                                        @if($sourceReference['source_url'] ?? false)
+                                                            <a href="{{ $sourceReference['source_url'] }}">{{ $sourceReference['source_label'] }}</a>
+                                                        @else
+                                                            {{ $sourceReference['source_label'] ?? ($row['source_type'] . '#' . $row['source_id']) }}
+                                                        @endif
+                                                    </div>
+                                                    <div class="text-muted small">{{ $sourceReference['source_type_label'] ?? 'Source' }}</div>
+                                                </td>
+                                                <td class="text-end">{{ $money->format((float) $row['inventory_effect'], $currency) }}</td>
+                                                <td class="text-end">{{ $money->format((float) $row['gl_inventory_effect'], $currency) }}</td>
+                                                <td><span class="badge {{ $row['status'] === 'missing_gl' ? 'bg-yellow-lt text-yellow' : 'bg-red-lt text-red' }}">{{ strtoupper(str_replace('_', ' ', $row['status'])) }}</span></td>
+                                            </tr>
+                                        @empty
+                                            <tr><td colspan="4" class="text-center text-muted">Tidak ada movement gap utama.</td></tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="col-xl-5">
             <div class="card">
                 <div class="card-header"><h3 class="card-title mb-0">Trial Balance</h3></div>

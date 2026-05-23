@@ -26,7 +26,7 @@ return new class extends Migration
 
             $table->index(['tenant_id', 'is_active', 'created_at']);
 
-            if (in_array(DB::getDriverName(), ['mysql', 'pgsql'], true)) {
+            if (DB::getDriverName() === 'pgsql') {
                 $table->fullText('title', 'shortlinks_title_fulltext');
             }
         });

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Purchases\Http\Requests;
 
+use App\Http\Requests\Concerns\InteractsWithFeatureMode;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Finance\Models\FinanceTaxRate;
@@ -17,11 +18,16 @@ use Illuminate\Validation\Validator;
 
 class StoreDraftPurchaseRequest extends FormRequest
 {
+    use InteractsWithFeatureMode;
     use NormalizesPurchasePayload;
 
     protected function prepareForValidation(): void
     {
         $this->normalizePurchasePayload();
+
+        $this->merge(
+            app(\App\Support\ModeAwarePayloadSanitizer::class)->sanitizePurchase($this, $this->route('purchase'))
+        );
     }
 
     public function authorize(): bool

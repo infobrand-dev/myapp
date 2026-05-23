@@ -14,7 +14,7 @@ Dokumen arsitektur terkait:
 ### 1. Prasyarat
 - PHP `>= 8.2`
 - Composer
-- MySQL atau MariaDB
+- PostgreSQL `>= 15` untuk lokal dan production
 - Node.js + npm
 
 ### 2. Clone project
@@ -42,6 +42,23 @@ Lalu isi minimal:
 - `DB_DATABASE`
 - `DB_USERNAME`
 - `DB_PASSWORD`
+- `DB_SSLMODE`
+
+Default lokal yang direkomendasikan:
+```env
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=myapp
+DB_USERNAME=postgres
+DB_PASSWORD=
+DB_SSLMODE=disable
+```
+
+Catatan production:
+- Untuk Supabase, gunakan `DB_CONNECTION=pgsql`.
+- Isi host, database, username, dan password dari project Supabase.
+- Biasanya `DB_SSLMODE=require`.
 
 ### 5. Generate app key
 ```bash
@@ -119,7 +136,38 @@ Jalankan audit readiness production:
 php artisan golive:audit
 ```
 
-Command ini memeriksa critical path env dan runtime seperti tenancy mode, session cookie, queue, tabel billing platform, mail, dan Midtrans.
+Command ini memeriksa critical path env dan runtime seperti tenancy mode, session cookie, queue, tabel billing platform, mail, Midtrans, serta notification center / web push.
+
+## PostgreSQL dan Supabase
+- Database target utama aplikasi ini adalah PostgreSQL.
+- Local development sebaiknya memakai PostgreSQL juga agar perilaku migration, JSON, boolean, index, dan query runtime sama dengan production.
+- Untuk fitur chatbot embeddings di PostgreSQL/Supabase, extension `vector` harus tersedia. Migration akan mencoba menjalankan `CREATE EXTENSION IF NOT EXISTS vector`.
+- Jika role database tidak diizinkan membuat extension, aktifkan `vector` lebih dulu dari dashboard atau SQL editor Supabase.
+
+## Notifications and web push
+- Notification center tersedia di area app lewat bell topbar dan halaman `/notifications`.
+- Web push memakai browser Push API + service worker `public/sw.js`.
+- Production env yang perlu diisi:
+  - `NOTIFICATION_VAPID_SUBJECT`
+  - `NOTIFICATION_VAPID_PUBLIC_KEY`
+  - `NOTIFICATION_VAPID_PRIVATE_KEY`
+- Pastikan PHP OpenSSL aktif dan curve `prime256v1` tersedia.
+- Setelah mengubah env, jalankan:
+
+```bash
+php artisan optimize:clear
+```
+
+- Untuk mengaktifkan push:
+  1. login ke area app
+  2. buka halaman `/notifications`
+  3. klik `Aktifkan Web Push`
+  4. izinkan notification permission di browser
+
+Catatan:
+- Prompt install PWA saat ini hanya ditampilkan di area app, bukan landing page publik.
+- Chrome Android dapat menawarkan install app setelah beberapa kunjungan.
+- iPhone/iPad tetap memakai alur Safari `Share > Add to Home Screen`.
 
 ## Tenant repair
 Untuk scan atau memperbaiki tenant context workspace:

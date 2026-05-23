@@ -226,6 +226,7 @@
             </div>
         </div>
 
+        @if($isAdvancedMode)
         <div class="card mt-3">
             <div class="card-header"><h3 class="card-title">Payable Adjustments</h3></div>
             <div class="card-body">
@@ -298,6 +299,7 @@
                 @endforelse
             </div>
         </div>
+        @endif
 
         <div class="card mt-3">
             <div class="card-header"><h3 class="card-title">Status History</h3></div>

@@ -10,16 +10,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $supportsAfter = in_array(Schema::getConnection()->getDriverName(), ['mysql', 'mariadb'], true);
-
         if (!$this->hasColumn('whatsapp_instances', 'api_token_hash')) {
-            Schema::table('whatsapp_instances', function (Blueprint $table) use ($supportsAfter) {
+            Schema::table('whatsapp_instances', function (Blueprint $table) {
                 $column = $table->string('api_token_hash', 64)->nullable();
-
-                if ($supportsAfter) {
-                    $column->after('api_token');
-                }
-
                 $column->index();
             });
         }
@@ -66,10 +59,8 @@ return new class extends Migration
 
     private function changeApiTokenColumnToText(): void
     {
-        $driver = Schema::getConnection()->getDriverName();
-
-        if (in_array($driver, ['mysql', 'mariadb'], true)) {
-            DB::statement('ALTER TABLE whatsapp_instances MODIFY api_token TEXT NULL');
+        if (Schema::getConnection()->getDriverName() === 'pgsql') {
+            DB::statement('ALTER TABLE whatsapp_instances ALTER COLUMN api_token TYPE TEXT');
         }
     }
 

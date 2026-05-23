@@ -29,7 +29,7 @@ return new class extends Migration
             $table->index(['tenant_id', 'status', 'name']);
             $table->index(['tenant_id', 'namespace', 'status']);
 
-            if (in_array(DB::getDriverName(), ['mysql', 'pgsql'], true)) {
+            if (DB::getDriverName() === 'pgsql') {
                 $table->fullText(['name', 'meta_name', 'body'], 'wa_templates_search_fulltext');
             }
         });

@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class BankReconciliation extends Model
 {
     public const STATUS_DRAFT = 'draft';
+    public const STATUS_REVIEWED = 'reviewed';
     public const STATUS_COMPLETED = 'completed';
 
     protected $fillable = [
@@ -31,6 +32,9 @@ class BankReconciliation extends Model
         'meta',
         'created_by',
         'updated_by',
+        'reviewed_by',
+        'reviewed_at',
+        'review_summary',
         'completed_by',
         'completed_at',
     ];
@@ -41,7 +45,9 @@ class BankReconciliation extends Model
         'statement_ending_balance' => 'decimal:2',
         'book_closing_balance' => 'decimal:2',
         'difference_amount' => 'decimal:2',
+        'reviewed_at' => 'datetime',
         'completed_at' => 'datetime',
+        'review_summary' => 'array',
         'meta' => 'array',
     ];
 
@@ -78,6 +84,11 @@ class BankReconciliation extends Model
     public function updater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
     }
 
     public function completer(): BelongsTo

@@ -178,13 +178,13 @@ class InstallController extends Controller
             'defaults' => array_merge([
                 'app_name' => env('APP_NAME', 'Meetra'),
                 'app_url' => env('APP_URL', 'http://127.0.0.1:8000'),
-                'db_connection' => env('DB_CONNECTION', 'mysql'),
+                'db_connection' => env('DB_CONNECTION', 'pgsql'),
                 'db_host' => env('DB_HOST', '127.0.0.1'),
-                'db_port' => env('DB_PORT', '3306'),
+                'db_port' => env('DB_PORT', '5432'),
                 'db_database' => env('DB_DATABASE', ''),
-                'db_username' => env('DB_USERNAME', ''),
+                'db_username' => env('DB_USERNAME', 'postgres'),
                 'db_password' => env('DB_PASSWORD', ''),
-                'db_sslmode' => env('DB_SSLMODE', ''),
+                'db_sslmode' => env('DB_SSLMODE', 'disable'),
                 'admin_name' => 'Super Admin',
                 'admin_email' => 'superadmin@myapp.test',
             ], $overrides),
@@ -199,7 +199,7 @@ class InstallController extends Controller
         $rules = [
             'app_name' => ['required', 'string', 'max:100'],
             'app_url' => ['required', 'url', 'max:255'],
-            'db_connection' => ['required', 'string', 'in:mysql,pgsql'],
+            'db_connection' => ['required', 'string', 'in:pgsql'],
             'db_host' => ['required', 'string', 'max:100'],
             'db_port' => ['required', 'numeric'],
             'db_database' => ['required', 'string', 'max:100'],
@@ -228,11 +228,6 @@ class InstallController extends Controller
 
         config([
             'database.default' => $driver,
-            'database.connections.mysql.host' => $data['db_host'],
-            'database.connections.mysql.port' => $data['db_port'],
-            'database.connections.mysql.database' => $data['db_database'],
-            'database.connections.mysql.username' => $data['db_username'],
-            'database.connections.mysql.password' => $data['db_password'] ?? '',
             'database.connections.pgsql.host' => $data['db_host'],
             'database.connections.pgsql.port' => $data['db_port'],
             'database.connections.pgsql.database' => $data['db_database'],
@@ -254,7 +249,7 @@ class InstallController extends Controller
 
     private function systemChecks(): array
     {
-        $extensions = ['openssl', 'pdo', 'pdo_mysql', 'pdo_pgsql', 'mbstring', 'json', 'curl', 'fileinfo'];
+        $extensions = ['openssl', 'pdo', 'pdo_pgsql', 'mbstring', 'json', 'curl', 'fileinfo'];
         $extChecks = [];
         foreach ($extensions as $ext) {
             $extChecks[$ext] = extension_loaded($ext);
@@ -392,9 +387,9 @@ class InstallController extends Controller
 
     private function databaseDriver(array $data): string
     {
-        return in_array(($data['db_connection'] ?? 'mysql'), ['mysql', 'pgsql'], true)
+        return in_array(($data['db_connection'] ?? 'pgsql'), ['pgsql'], true)
             ? $data['db_connection']
-            : 'mysql';
+            : 'pgsql';
     }
 
 }

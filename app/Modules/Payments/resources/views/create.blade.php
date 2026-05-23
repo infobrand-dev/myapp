@@ -145,6 +145,10 @@
                     <input type="hidden" name="source" value="{{ old('source', $payment->source ?: 'backoffice') }}">
                     <input type="hidden" name="reconciliation_status" value="{{ old('reconciliation_status', $payment->reconciliation_status ?: 'unreconciled') }}">
                     <input type="hidden" name="branch_id" value="{{ old('branch_id', $payment->branch_id) }}">
+                    <input type="hidden" name="reference_number" value="{{ old('reference_number', $payment->reference_number) }}">
+                    <input type="hidden" name="external_reference" value="{{ old('external_reference', $payment->external_reference) }}">
+                    <input type="hidden" name="received_by" value="{{ old('received_by', $payment->received_by) }}">
+                    <input type="hidden" name="channel" value="{{ old('channel', $payment->channel) }}">
                 @endif
                 <div class="col-12">
                     @include('shared.accounting.field-label', [

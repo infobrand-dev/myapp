@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Database\SchemaInspector;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -9,7 +10,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (DB::getDriverName() !== 'mysql') {
+        if (DB::getDriverName() !== 'pgsql') {
             return;
         }
 
@@ -33,7 +34,7 @@ return new class extends Migration
             return;
         }
 
-        $supportsAfter = in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true);
+        $supportsAfter = SchemaInspector::supportsColumnAfter();
 
         if (!Schema::hasColumn($table, $teamForeignKey)) {
             Schema::table($table, function (Blueprint $tableBlueprint) use ($teamForeignKey, $supportsAfter) {
@@ -73,7 +74,7 @@ return new class extends Migration
             return;
         }
 
-        $supportsAfter = in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true);
+        $supportsAfter = SchemaInspector::supportsColumnAfter();
 
         if (!Schema::hasColumn($table, $teamForeignKey)) {
             Schema::table($table, function (Blueprint $tableBlueprint) use ($teamForeignKey, $supportsAfter) {
@@ -95,52 +96,22 @@ return new class extends Migration
             return;
         }
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=0');
-        DB::statement('ALTER TABLE `' . $table . '` DROP PRIMARY KEY');
-        DB::statement(
-            'ALTER TABLE `' . $table . '` ADD PRIMARY KEY (`' . $teamForeignKey . '`, `' . $pivotKey . '`, `model_id`, `model_type`)'
-        );
-        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        DB::statement(sprintf('ALTER TABLE "%s" DROP CONSTRAINT "%s_pkey"', $table, $table));
+        DB::statement(sprintf(
+            'ALTER TABLE "%s" ADD PRIMARY KEY ("%s", "%s", "model_id", "model_type")',
+            $table,
+            $teamForeignKey,
+            $pivotKey
+        ));
     }
 
     private function indexExists(string $table, string $indexName): bool
     {
-        $driver = DB::connection()->getDriverName();
-
-        if (in_array($driver, ['mysql', 'mariadb'], true)) {
-            return DB::table('information_schema.statistics')
-                ->where('table_schema', DB::getDatabaseName())
-                ->where('table_name', $table)
-                ->where('index_name', $indexName)
-                ->exists();
-        }
-
-        if ($driver === 'pgsql') {
-            return DB::table('pg_indexes')
-                ->where('schemaname', 'public')
-                ->where('tablename', $table)
-                ->where('indexname', $indexName)
-                ->exists();
-        }
-
-        return false;
+        return SchemaInspector::indexExists($table, $indexName);
     }
 
     private function primaryStartsWith(string $table, string $column): bool
     {
-        $driver = DB::connection()->getDriverName();
-
-        if (!in_array($driver, ['mysql', 'mariadb'], true)) {
-            return false;
-        }
-
-        $firstColumn = DB::table('information_schema.statistics')
-            ->where('table_schema', DB::getDatabaseName())
-            ->where('table_name', $table)
-            ->where('index_name', 'PRIMARY')
-            ->orderBy('seq_in_index')
-            ->value('column_name');
-
-        return $firstColumn === $column;
+        return SchemaInspector::primaryKeyStartsWith($table, $column);
     }
 };

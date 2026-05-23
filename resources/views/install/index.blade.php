@@ -102,7 +102,6 @@
                                 <div class="col-md-3">
                                     <label class="form-label">DB Driver</label>
                                     <select class="form-select" name="db_connection" required>
-                                        <option value="mysql" @selected($defaults['db_connection'] === 'mysql')>MySQL</option>
                                         <option value="pgsql" @selected($defaults['db_connection'] === 'pgsql')>PostgreSQL / Supabase</option>
                                     </select>
                                 </div>
@@ -129,7 +128,7 @@
                                 <div class="col-md-3">
                                     <label class="form-label">DB SSL Mode</label>
                                     <input type="text" class="form-control" name="db_sslmode" value="{{ $defaults['db_sslmode'] }}" placeholder="prefer / require">
-                                    <div class="form-hint">Kosongkan untuk MySQL biasa. Untuk Supabase umumnya <code>require</code>.</div>
+                                    <div class="form-hint">Untuk Supabase umumnya <code>require</code>. Untuk PostgreSQL lokal biasanya <code>disable</code> atau <code>prefer</code>.</div>
                                 </div>
                             </div>
 

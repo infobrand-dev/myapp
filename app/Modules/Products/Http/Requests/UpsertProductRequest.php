@@ -2,6 +2,7 @@
 
 namespace App\Modules\Products\Http\Requests;
 
+use App\Http\Requests\Concerns\InteractsWithFeatureMode;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Products\Models\ProductBrand;
@@ -19,6 +20,7 @@ use Illuminate\Validation\Validator;
 
 class UpsertProductRequest extends FormRequest
 {
+    use InteractsWithFeatureMode;
 
     public function authorize(): bool
     {
@@ -37,9 +39,16 @@ class UpsertProductRequest extends FormRequest
     {
         $product = $this->route('product');
         $productId = $product ? $product->id : null;
+        $allowedTypes = $this->isAdvancedMode()
+            ? config('feature-modes.products.advanced_types', ['simple', 'variant', 'service'])
+            : (
+                $product && $product->type === 'variant'
+                    ? ['variant']
+                    : config('feature-modes.products.standard_types', ['simple', 'service'])
+            );
 
         return [
-            'type' => ['required', Rule::in(['simple', 'variant', 'service'])],
+            'type' => ['required', Rule::in($allowedTypes)],
             'name' => ['required', 'string', 'max:255'],
             'slug' => [
                 'nullable',
@@ -104,6 +113,7 @@ class UpsertProductRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $product = $this->route('product');
         $type = (string) $this->input('type', 'simple');
         $priceLevels = collect($this->input('price_levels', []))
             ->map(function ($row) {
@@ -145,7 +155,7 @@ class UpsertProductRequest extends FormRequest
             ->values()
             ->all();
 
-        $this->merge([
+        $payload = [
             'slug' => null,
             'sku' => $this->filled('sku') ? trim((string) $this->input('sku')) : null,
             'barcode' => $this->filled('barcode') ? trim((string) $this->input('barcode')) : null,
@@ -158,7 +168,12 @@ class UpsertProductRequest extends FormRequest
             'reorder_point' => $this->filled('reorder_point') ? $this->input('reorder_point') : 0,
             'price_levels' => $priceLevels,
             'variants' => $variants,
-        ]);
+        ];
+
+        $this->merge(array_merge(
+            $payload,
+            app(\App\Support\ModeAwarePayloadSanitizer::class)->sanitizeProduct($this, $product)
+        ));
     }
 
     private function validateBusinessRules(Validator $validator): void

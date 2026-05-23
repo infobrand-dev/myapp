@@ -975,11 +975,11 @@ Maka:
 
 Maka:
 - sistem sekarang menyediakan `Export Register CSV` untuk register internal dan review operasional
-- sistem sekarang juga menyediakan `Draft Bukti Potong CSV` untuk dokumen `PPh / withholding`
-- sistem juga menyediakan `Draft e-Faktur CSV` untuk dokumen `PPN keluaran`
-- draft `e-Faktur` sekarang membawa `ready_status`, `validation_notes`, kode transaksi, kode tambahan, nomor pengganti, dan metadata legal dasar agar finance bisa review sebelum export resmi
+- sistem sekarang juga menyediakan `Export Bukti Potong CSV` untuk dokumen `PPh / withholding`
+- sistem juga menyediakan `Export e-Faktur CSV` untuk dokumen `PPN keluaran`
+- export `e-Faktur` sekarang membawa `export_status`, `validation_notes`, kode transaksi, kode tambahan, nomor pengganti, dan metadata legal dasar agar finance bisa review readiness compliance dari dalam app
 - arah `withholding` sekarang bisa diset manual per tax register jika kasus PPh tidak cukup ditentukan otomatis dari source sale/purchase
-- export e-Faktur saat ini masih draft structure, belum dianggap format final integrasi resmi
+- export pajak sekarang dianggap final di level app-side workflow, tetapi tetap bukan direct submit / integrasi resmi ke DJP
 
 Artinya:
 - tim finance sudah bisa mulai bekerja dengan struktur data export yang stabil

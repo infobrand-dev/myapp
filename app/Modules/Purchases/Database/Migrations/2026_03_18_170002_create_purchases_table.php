@@ -59,7 +59,7 @@ return new class extends Migration
             $table->index(['tenant_id', 'company_id', 'branch_id', 'supplier_invoice_number']);
             $table->index(['tenant_id', 'company_id', 'branch_id', 'supplier_reference']);
 
-            if (in_array(DB::getDriverName(), ['mysql', 'pgsql'], true)) {
+            if (DB::getDriverName() === 'pgsql') {
                 $table->fullText(
                     ['supplier_name_snapshot', 'supplier_notes', 'notes', 'internal_notes'],
                     'purchases_search_fulltext'

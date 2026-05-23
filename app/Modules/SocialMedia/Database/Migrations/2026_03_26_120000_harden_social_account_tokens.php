@@ -10,16 +10,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $supportsAfter = in_array(Schema::getConnection()->getDriverName(), ['mysql', 'mariadb'], true);
-
         if (!$this->hasColumn('social_accounts', 'access_token_hash')) {
-            Schema::table('social_accounts', function (Blueprint $table) use ($supportsAfter) {
+            Schema::table('social_accounts', function (Blueprint $table) {
                 $column = $table->string('access_token_hash', 64)->nullable();
-
-                if ($supportsAfter) {
-                    $column->after('access_token');
-                }
-
                 $column->index();
             });
         }
@@ -63,10 +56,8 @@ return new class extends Migration
 
     private function changeTokenColumnToText(): void
     {
-        $driver = Schema::getConnection()->getDriverName();
-
-        if (in_array($driver, ['mysql', 'mariadb'], true)) {
-            DB::statement('ALTER TABLE social_accounts MODIFY access_token TEXT NOT NULL');
+        if (Schema::getConnection()->getDriverName() === 'pgsql') {
+            DB::statement('ALTER TABLE social_accounts ALTER COLUMN access_token TYPE TEXT');
         }
     }
 

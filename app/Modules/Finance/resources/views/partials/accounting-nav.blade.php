@@ -12,32 +12,46 @@
             <a href="{{ route('finance.categories.index') }}" class="btn {{ request()->routeIs('finance.categories.*') ? 'btn-primary' : 'btn-outline-primary' }}">Categories</a>
         @endcan
         @can('finance.manage-coa')
-            <a href="{{ route('finance.chart-accounts.index') }}" class="btn {{ request()->routeIs('finance.chart-accounts.*') ? 'btn-primary' : 'btn-outline-primary' }}">Chart of Accounts</a>
+            @if($isAdvancedMode)
+                <a href="{{ route('finance.chart-accounts.index') }}" class="btn {{ request()->routeIs('finance.chart-accounts.*') ? 'btn-primary' : 'btn-outline-primary' }}">Chart of Accounts</a>
+            @endif
         @endcan
         @can('finance.manage-tax')
-            <a href="{{ route('finance.taxes.index') }}" class="btn {{ request()->routeIs('finance.taxes.*') ? 'btn-primary' : 'btn-outline-primary' }}">Taxes</a>
-            <a href="{{ route('finance.tax-documents.index') }}" class="btn {{ request()->routeIs('finance.tax-documents.*') ? 'btn-primary' : 'btn-outline-primary' }}">Tax Register</a>
+            @if($isAdvancedMode)
+                <a href="{{ route('finance.taxes.index') }}" class="btn {{ request()->routeIs('finance.taxes.*') ? 'btn-primary' : 'btn-outline-primary' }}">Taxes</a>
+                <a href="{{ route('finance.tax-documents.index') }}" class="btn {{ request()->routeIs('finance.tax-documents.*') ? 'btn-primary' : 'btn-outline-primary' }}">Tax Register</a>
+            @endif
         @endcan
         @can('finance.view-journal')
-            <a href="{{ route('finance.journals.index') }}" class="btn {{ request()->routeIs('finance.journals.*') ? 'btn-primary' : 'btn-outline-primary' }}">Journals</a>
+            @if($isAdvancedMode)
+                <a href="{{ route('finance.journals.index') }}" class="btn {{ request()->routeIs('finance.journals.*') ? 'btn-primary' : 'btn-outline-primary' }}">Journals</a>
+            @endif
         @endcan
         @can('finance.manage-reconciliation')
-            <a href="{{ route('finance.reconciliations.index') }}" class="btn {{ request()->routeIs('finance.reconciliations.*') ? 'btn-primary' : 'btn-outline-primary' }}">Reconciliation</a>
-            <a href="{{ route('finance.reconciliations.outstanding') }}" class="btn {{ request()->routeIs('finance.reconciliations.outstanding') ? 'btn-primary' : 'btn-outline-primary' }}">Outstanding</a>
+            @if($isAdvancedMode)
+                <a href="{{ route('finance.reconciliations.index') }}" class="btn {{ request()->routeIs('finance.reconciliations.*') ? 'btn-primary' : 'btn-outline-primary' }}">Reconciliation</a>
+                <a href="{{ route('finance.reconciliations.outstanding') }}" class="btn {{ request()->routeIs('finance.reconciliations.outstanding') ? 'btn-primary' : 'btn-outline-primary' }}">Outstanding</a>
+            @endif
         @endcan
         @can('finance.approve-sensitive-transactions')
-            <a href="{{ route('finance.approvals.index') }}" class="btn {{ request()->routeIs('finance.approvals.*') ? 'btn-primary' : 'btn-outline-primary' }}">Approvals</a>
+            @if($isAdvancedMode)
+                <a href="{{ route('finance.approvals.index') }}" class="btn {{ request()->routeIs('finance.approvals.*') ? 'btn-primary' : 'btn-outline-primary' }}">Approvals</a>
+            @endif
         @endcan
         @can('finance.manage-period-locks')
-            <a href="{{ route('finance.period-locks.index') }}" class="btn {{ request()->routeIs('finance.period-locks.*') ? 'btn-primary' : 'btn-outline-primary' }}">Period Locks</a>
+            @if($isAdvancedMode)
+                <a href="{{ route('finance.period-locks.index') }}" class="btn {{ request()->routeIs('finance.period-locks.*') ? 'btn-primary' : 'btn-outline-primary' }}">Period Locks</a>
+            @endif
         @endcan
         @can('reports.finance')
-            <a href="{{ route('reports.finance') }}" class="btn {{ request()->routeIs('reports.finance') ? 'btn-primary' : 'btn-outline-primary' }}">
-                Finance Reports
-                <span class="ms-1 badge {{ $isAdvancedMode ? 'bg-blue-lt text-blue' : 'bg-secondary-lt text-secondary' }}">
-                    {{ $isAdvancedMode ? 'Advanced' : 'Standard' }}
-                </span>
-            </a>
+            @if($isAdvancedMode)
+                <a href="{{ route('reports.finance') }}" class="btn {{ request()->routeIs('reports.finance') ? 'btn-primary' : 'btn-outline-primary' }}">
+                    Finance Reports
+                    <span class="ms-1 badge {{ $isAdvancedMode ? 'bg-blue-lt text-blue' : 'bg-secondary-lt text-secondary' }}">
+                        {{ $isAdvancedMode ? 'Advanced' : 'Standard' }}
+                    </span>
+                </a>
+            @endif
         @endcan
     </div>
 </div>

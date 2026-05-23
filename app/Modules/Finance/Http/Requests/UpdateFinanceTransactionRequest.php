@@ -2,6 +2,7 @@
 
 namespace App\Modules\Finance\Http\Requests;
 
+use App\Http\Requests\Concerns\InteractsWithFeatureMode;
 use App\Modules\Finance\Models\FinanceAccount;
 use App\Modules\Finance\Models\FinanceCategory;
 use App\Modules\Finance\Models\FinanceTransaction;
@@ -16,6 +17,8 @@ use Illuminate\Validation\Validator;
 
 class UpdateFinanceTransactionRequest extends FormRequest
 {
+    use InteractsWithFeatureMode;
+
     public function authorize(): bool
     {
         $user = $this->user();
@@ -65,10 +68,15 @@ class UpdateFinanceTransactionRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->merge([
+        $payload = [
             'entry_mode' => $this->input('entry_mode', $this->has('counterparty_finance_account_id') ? FinanceTransaction::ENTRY_MODE_TRANSFER : FinanceTransaction::ENTRY_MODE_STANDARD),
             'branch_id' => $this->input('branch_id', $this->input('outlet_id', BranchContext::currentId())),
-        ]);
+        ];
+
+        $this->merge(array_merge(
+            $payload,
+            app(\App\Support\ModeAwarePayloadSanitizer::class)->sanitizeFinanceTransaction($this, $this->route('transaction'))
+        ));
     }
 
     public function withValidator(Validator $validator): void
@@ -85,6 +93,12 @@ class UpdateFinanceTransactionRequest extends FormRequest
             }
 
             $isTransfer = $this->input('entry_mode') === FinanceTransaction::ENTRY_MODE_TRANSFER;
+            $transaction = $this->route('transaction');
+
+            if (!$this->isAdvancedMode() && $isTransfer && !($transaction && $transaction->isTransfer())) {
+                $validator->errors()->add('entry_mode', 'Transfer antar account hanya tersedia pada Advanced Mode.');
+                return;
+            }
 
             if ($isTransfer && !$this->filled('counterparty_finance_account_id')) {
                 $validator->errors()->add('counterparty_finance_account_id', 'Pilih account tujuan transfer.');

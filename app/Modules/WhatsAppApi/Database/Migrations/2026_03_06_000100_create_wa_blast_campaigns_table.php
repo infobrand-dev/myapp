@@ -32,7 +32,7 @@ return new class extends Migration
             $table->index(['tenant_id', 'instance_id', 'status', 'created_at']);
             $table->index(['tenant_id', 'template_id', 'status', 'created_at']);
 
-            if (in_array(DB::getDriverName(), ['mysql', 'pgsql'], true)) {
+            if (DB::getDriverName() === 'pgsql') {
                 $table->fullText(['name'], 'wa_blast_campaigns_search_fulltext');
             }
         });

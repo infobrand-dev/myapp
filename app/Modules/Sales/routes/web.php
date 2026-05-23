@@ -53,7 +53,9 @@ Route::middleware(['web', 'auth', 'plan.feature:accounting'])
         Route::get('/{sale}/edit', [SaleController::class, 'edit'])->middleware('permission:sales.update-draft')->name('edit');
         Route::put('/{sale}', [SaleController::class, 'update'])->middleware('permission:sales.update-draft')->name('update');
         Route::post('/{sale}/finalize', [SaleController::class, 'finalize'])->middleware('permission:sales.finalize')->name('finalize');
-        Route::post('/{sale}/receivable-adjustments/{type}', [SaleController::class, 'storeReceivableAdjustment'])->middleware('permission:sales.manage_receivable_adjustments')->name('receivable-adjustments.store');
+        Route::post('/{sale}/receivable-disputes', [SaleController::class, 'storeReceivableDispute'])->middleware(['permission:sales.manage_receivable_adjustments', 'mode:advanced'])->name('receivable-disputes.store');
+        Route::post('/{sale}/receivable-disputes/{dispute}/resolve', [SaleController::class, 'resolveReceivableDispute'])->middleware(['permission:sales.manage_receivable_adjustments', 'mode:advanced'])->name('receivable-disputes.resolve');
+        Route::post('/{sale}/receivable-adjustments/{type}', [SaleController::class, 'storeReceivableAdjustment'])->middleware(['permission:sales.manage_receivable_adjustments', 'mode:advanced'])->name('receivable-adjustments.store');
         Route::post('/{sale}/void', [SaleController::class, 'void'])->middleware('permission:sales.void')->name('void');
         Route::post('/{sale}/cancel', [SaleController::class, 'cancel'])->middleware('permission:sales.cancel-draft')->name('cancel');
         Route::get('/{sale}/invoice', [SaleController::class, 'invoice'])->middleware('permission:sales.print')->name('invoice');

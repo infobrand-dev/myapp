@@ -44,6 +44,8 @@ class SaleRepository
             'paymentAllocations.payment.voider',
             'receivableAdjustments.creator',
             'receivableAdjustments.journal',
+            'receivableDisputes.creator',
+            'receivableDisputes.resolver',
             'saleReturns.items',
             'statusHistories.actor',
             'voidLogs.actor',

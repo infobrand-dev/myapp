@@ -20,6 +20,7 @@
     $selectedShiftId = old('pos_cash_session_id', $transaction->pos_cash_session_id ?? null);
     $selectedNotes = old('notes', $transaction->notes ?? null);
     $currentAttachmentPath = $transaction->attachment_path ?? null;
+    $isStandardTransferRecord = !$isAdvancedMode && isset($transaction) && method_exists($transaction, 'isTransfer') && $transaction->isTransfer();
 @endphp
 
 <div class="card">
@@ -39,8 +40,14 @@
                 ])
                 <select name="entry_mode" id="finance-entry-mode" class="form-select @error('entry_mode') is-invalid @enderror" required>
                     <option value="{{ \App\Modules\Finance\Models\FinanceTransaction::ENTRY_MODE_STANDARD }}" @selected($selectedEntryMode === \App\Modules\Finance\Models\FinanceTransaction::ENTRY_MODE_STANDARD)>Standard</option>
-                    <option value="{{ \App\Modules\Finance\Models\FinanceTransaction::ENTRY_MODE_TRANSFER }}" @selected($selectedEntryMode === \App\Modules\Finance\Models\FinanceTransaction::ENTRY_MODE_TRANSFER)>Transfer Antar Account</option>
+                    @if($isAdvancedMode || $isStandardTransferRecord)
+                        <option value="{{ \App\Modules\Finance\Models\FinanceTransaction::ENTRY_MODE_TRANSFER }}" @selected($selectedEntryMode === \App\Modules\Finance\Models\FinanceTransaction::ENTRY_MODE_TRANSFER)>Transfer Antar Account</option>
+                    @endif
                 </select>
+                @if($isStandardTransferRecord)
+                    <input type="hidden" name="entry_mode" value="{{ \App\Modules\Finance\Models\FinanceTransaction::ENTRY_MODE_TRANSFER }}">
+                    <div class="form-hint">Transaksi ini adalah transfer antar account. Gunakan Advanced Mode jika ingin mengubah struktur transfernya.</div>
+                @endif
                 @error('entry_mode') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
             <div class="col-md-4">
@@ -157,6 +164,8 @@
                     @endif
                     @error('pos_cash_session_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
+            @else
+                <input type="hidden" name="branch_id" value="{{ $selectedBranchId }}">
             @endif
             <div class="col-12">
                 @include('shared.accounting.field-label', [

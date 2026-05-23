@@ -42,7 +42,7 @@ return new class extends Migration
             $table->index(['tenant_id', 'phone']);
             $table->index(['tenant_id', 'mobile']);
 
-            if (in_array(DB::getDriverName(), ['mysql', 'pgsql'], true)) {
+            if (DB::getDriverName() === 'pgsql') {
                 $table->fullText(['name', 'notes'], 'contacts_search_fulltext');
             }
         });

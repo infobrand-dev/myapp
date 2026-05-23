@@ -69,12 +69,12 @@
 - Login must not be ambiguous across tenants. If the same email can exist in multiple tenants, the app must already know the target tenant before authentication, for example from session bootstrap or another trusted entry context.
 - APIs or machine integrations may later use token/header-based tenant resolution, but web usage should stay session-first.
 
-## Immediate implementation priorities
+## Current implementation priorities
 1. Keep `TenantContext` as the single source of active tenant resolution.
-2. Build tenant-aware login/bootstrap so session always carries the correct tenant.
-3. Add tenant ownership authorization rules across app entry points.
-4. Design plan capability checks for modules and premium features.
-5. Introduce `companies` under tenants only after tenant authz and plan boundaries are stable.
+2. Continue hardening tenant/company/branch authorization consistency across reports, lookups, and background paths.
+3. Keep plan capability checks enforced beyond menu visibility, especially on controller, job, API, and webhook paths.
+4. Continue refining company/branch-aware runtime behavior without forcing branch scope on workflows that are still naturally company-level.
+5. Keep public SaaS website concerns and tenant web-app concerns clearly separated as product lines and platform flows evolve.
 
 ## Current foundation in code
 - `subscription_plans` stores plan definitions, feature flags, and numeric limits.

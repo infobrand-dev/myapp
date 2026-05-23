@@ -18,9 +18,22 @@
             <p class="text-muted mb-0">
                 {{ $reconciliation->period_start->format('d M Y') }} - {{ $reconciliation->period_end->format('d M Y') }}
                 | Status: {{ ucfirst($reconciliation->status) }}
+                @if($reconciliation->reviewed_at)
+                    | Reviewed {{ $reconciliation->reviewed_at->format('d M Y H:i') }}
+                @endif
+                @if($reconciliation->completed_at)
+                    | Completed {{ $reconciliation->completed_at->format('d M Y H:i') }}
+                @endif
             </p>
         </div>
-        <div class="col-auto">
+        <div class="col-auto d-flex gap-2 flex-wrap">
+            @if(in_array($reconciliation->status, ['reviewed', 'completed'], true))
+                <form method="POST" action="{{ route('finance.reconciliations.reopen', $reconciliation) }}" class="d-flex gap-2">
+                    @csrf
+                    <input type="text" name="reason" class="form-control form-control-sm" placeholder="Alasan reopen" required>
+                    <button type="submit" class="btn btn-sm btn-outline-warning">Reopen</button>
+                </form>
+            @endif
             <a href="{{ route('finance.reconciliations.index') }}" class="btn btn-outline-secondary">Kembali</a>
         </div>
     </div>
@@ -50,6 +63,21 @@
         <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Ignored</div><div class="fs-4 fw-bold text-yellow">{{ $statementSummary['ignored'] }}</div></div></div></div>
     </div>
 @endif
+
+<div class="card mb-3">
+    <div class="card-header"><h3 class="card-title mb-0">Closure Summary</h3></div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3"><div class="border rounded p-3 h-100"><div class="text-muted small">Cleared Items</div><div class="fs-4 fw-bold">{{ $closureSummary['cleared_item_count'] }}</div><div class="text-muted small mt-1">{{ $money->format((float) $closureSummary['cleared_total'], 'IDR') }}</div></div></div>
+            <div class="col-md-3"><div class="border rounded p-3 h-100"><div class="text-muted small">Open Unmatched</div><div class="fs-4 fw-bold {{ $closureSummary['open_unmatched_count'] > 0 ? 'text-yellow' : 'text-green' }}">{{ $closureSummary['open_unmatched_count'] }}</div></div></div>
+            <div class="col-md-3"><div class="border rounded p-3 h-100"><div class="text-muted small">Exceptions</div><div class="fs-4 fw-bold {{ $closureSummary['exception_count'] > 0 ? 'text-red' : 'text-green' }}">{{ $closureSummary['exception_count'] }}</div></div></div>
+            <div class="col-md-3"><div class="border rounded p-3 h-100"><div class="text-muted small">Difference</div><div class="fs-4 fw-bold">{{ $money->format((float) $closureSummary['difference_amount'], 'IDR') }}</div><div class="text-muted small mt-1">Ignored: {{ $closureSummary['ignored_count'] }}</div></div></div>
+        </div>
+        @if(($closureSummary['open_unmatched_count'] + $closureSummary['exception_count']) > 0)
+            <div class="alert alert-warning mt-3 mb-0">Masih ada item unresolved. Sesi bisa direview dulu, atau force complete bila penutupan operasional memang harus dilakukan.</div>
+        @endif
+    </div>
+</div>
 
 @if($reconciliation->status === 'draft')
     <div class="card mb-3">
@@ -271,7 +299,7 @@
     </div>
     <div class="card-body p-0">
         @if($reconciliation->status === 'draft')
-            <form method="POST" action="{{ route('finance.reconciliations.complete', $reconciliation) }}" id="reconciliation-complete-form">
+            <form method="POST" action="{{ route('finance.reconciliations.review', $reconciliation) }}" id="reconciliation-complete-form">
                 @csrf
                 <div class="table-responsive">
                     <table class="table table-vcenter">
@@ -319,9 +347,33 @@
                         <label class="form-label">Notes</label>
                         <textarea name="notes" class="form-control" rows="3">{{ old('notes', $reconciliation->notes) }}</textarea>
                     </div>
-                    <button type="submit" class="btn btn-primary">Complete Reconciliation</button>
+                    <div class="mb-3">
+                        <label class="form-label">Review Note</label>
+                        <textarea name="review_note" class="form-control" rows="2" placeholder="Catatan untuk tahap review">{{ old('review_note') }}</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Review Reconciliation</button>
                 </div>
             </form>
+        @elseif($reconciliation->status === 'reviewed')
+            <div class="card-body border-top">
+                <div class="alert alert-info">Sesi sudah masuk tahap review. Periksa closure summary sebelum complete.</div>
+                <form method="POST" action="{{ route('finance.reconciliations.complete', $reconciliation) }}" class="row g-3">
+                    @csrf
+                    <div class="col-md-7">
+                        <label class="form-label">Closure Reason</label>
+                        <input type="text" name="closure_reason" class="form-control" placeholder="Contoh: unmatched dianggap timing difference akhir periode">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-check mt-4">
+                            <input type="checkbox" class="form-check-input" name="force_complete" value="1">
+                            <span class="form-check-label">Force complete</span>
+                        </label>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">Complete</button>
+                    </div>
+                </form>
+            </div>
         @else
             <div class="table-responsive">
                 <table class="table table-vcenter">

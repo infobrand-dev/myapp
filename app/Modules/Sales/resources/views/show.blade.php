@@ -21,6 +21,11 @@
         : collect();
     $postedReceivableAdjustments = $receivableAdjustments->where('status', 'posted')->values();
     $receivableAdjustmentTotal = (float) $postedReceivableAdjustments->sum('amount');
+    $receivableDisputes = $sale->relationLoaded('receivableDisputes')
+        ? $sale->receivableDisputes
+        : collect();
+    $openReceivableDisputes = $receivableDisputes->where('status', \App\Modules\Sales\Models\SaleReceivableDispute::STATUS_OPEN)->values();
+    $openReceivableDisputeTotal = (float) $openReceivableDisputes->sum('amount');
     $statusBadge = match($sale->status) {
         'finalized' => 'bg-green-lt text-green',
         'draft'     => 'bg-secondary-lt text-secondary',
@@ -45,6 +50,9 @@
                 <span class="badge {{ $payBadge }} me-1">{{ ucfirst($sale->payment_status) }}</span>
                 @if($isOverdue)
                     <span class="badge bg-red-lt text-red me-1">Overdue</span>
+                @endif
+                @if($openReceivableDisputes->isNotEmpty())
+                    <span class="badge bg-yellow-lt text-yellow me-1">Receivable Dispute</span>
                 @endif
                 {{ optional($sale->transaction_date)->format('d M Y, H:i') ?? '-' }}
                 @if($isAdvancedMode)
@@ -397,6 +405,7 @@
                     <div class="small">Status: {{ $paymentStatusOptions[$sale->payment_status] ?? ucfirst($sale->payment_status) }}</div>
                     <div class="small">Posted payments: {{ $postedPaymentAllocations->pluck('payment_id')->unique()->count() }}</div>
                     <div class="small">Receivable adjustments: {{ $postedReceivableAdjustments->count() }} / {{ $money->format($receivableAdjustmentTotal, $sale->currency_code) }}</div>
+                    <div class="small">Open disputes: {{ $openReceivableDisputes->count() }} / {{ $money->format($openReceivableDisputeTotal, $sale->currency_code) }}</div>
                 </div>
 
                 @if($paymentAllocations->isNotEmpty())
@@ -445,6 +454,7 @@
             </div>
         </div>
 
+        @if($isAdvancedMode)
         <div class="card mt-3">
             <div class="card-header">
                 <h3 class="card-title">Receivable Adjustments</h3>
@@ -519,6 +529,94 @@
                 @endforelse
             </div>
         </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h3 class="card-title">Receivable Disputes</h3>
+            </div>
+            <div class="card-body">
+                @can('sales.manage_receivable_adjustments')
+                    @if($sale->status === 'finalized' && (float) $sale->balance_due > 0)
+                        <form method="POST" action="{{ route('sales.receivable-disputes.store', $sale) }}" class="border rounded p-3 mb-3">
+                            @csrf
+                            <div class="fw-semibold mb-2">Buka dispute piutang</div>
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    <label class="form-label">Tanggal</label>
+                                    <input type="date" name="dispute_date" class="form-control" value="{{ old('dispute_date', now()->format('Y-m-d')) }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Amount</label>
+                                    <input type="number" name="amount" min="0.01" step="0.01" class="form-control" value="{{ old('amount') }}" placeholder="Max {{ number_format((float) $sale->balance_due, 2, '.', '') }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Alasan</label>
+                                    <input type="text" name="reason" class="form-control" value="{{ old('reason') }}" placeholder="Invoice dibantah / harga tidak cocok">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Notes</label>
+                                    <textarea name="notes" class="form-control" rows="2">{{ old('notes') }}</textarea>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-outline-warning mt-3 w-100">Buka Dispute</button>
+                        </form>
+                    @endif
+                @endcan
+
+                @forelse($receivableDisputes as $dispute)
+                    @php
+                        $disputeBadge = match($dispute->status) {
+                            \App\Modules\Sales\Models\SaleReceivableDispute::STATUS_OPEN => 'bg-yellow-lt text-yellow',
+                            \App\Modules\Sales\Models\SaleReceivableDispute::STATUS_RESOLVED,
+                            \App\Modules\Sales\Models\SaleReceivableDispute::STATUS_CLOSED => 'bg-green-lt text-green',
+                            default => 'bg-blue-lt text-blue',
+                        };
+                    @endphp
+                    <div class="border rounded p-3 mb-2">
+                        <div class="d-flex justify-content-between gap-3 flex-wrap">
+                            <div>
+                                <div class="fw-semibold">{{ $dispute->dispute_number }}</div>
+                                <div class="text-muted small">{{ optional($dispute->dispute_date)->format('d M Y') ?: '-' }} · By {{ optional($dispute->creator)->name ?: '-' }}</div>
+                                <div class="text-muted small">{{ $dispute->reason }}</div>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-semibold">{{ $money->format((float) $dispute->amount, $sale->currency_code) }}</div>
+                                <div><span class="badge {{ $disputeBadge }}">{{ $receivableDisputeStatusOptions[$dispute->status] ?? ucfirst($dispute->status) }}</span></div>
+                            </div>
+                        </div>
+                        @if($dispute->notes)
+                            <div class="text-muted small mt-2">Notes: {{ $dispute->notes }}</div>
+                        @endif
+                        @if($dispute->resolution_note)
+                            <div class="text-muted small mt-1">Resolution: {{ $dispute->resolution_note }}</div>
+                        @endif
+                        @if($dispute->status === \App\Modules\Sales\Models\SaleReceivableDispute::STATUS_OPEN)
+                            <form method="POST" action="{{ route('sales.receivable-disputes.resolve', [$sale, $dispute]) }}" class="row g-2 mt-2">
+                                @csrf
+                                <div class="col-md-4">
+                                    <select name="outcome_type" class="form-select">
+                                        @foreach($receivableDisputeOutcomeOptions as $outcome => $label)
+                                            <option value="{{ $outcome }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="text" name="resolution_note" class="form-control" placeholder="Catatan keputusan dispute">
+                                </div>
+                                <div class="col-md-2">
+                                    <button type="submit" class="btn btn-outline-primary w-100">Resolve</button>
+                                </div>
+                            </form>
+                        @elseif($dispute->resolver)
+                            <div class="text-muted small mt-2">Resolved by {{ $dispute->resolver->name }}{{ $dispute->resolved_at ? ' · ' . $dispute->resolved_at->format('d M Y H:i') : '' }}</div>
+                        @endif
+                    </div>
+                @empty
+                    <div class="text-muted">Belum ada dispute piutang.</div>
+                @endforelse
+            </div>
+        </div>
+        @endif
 
         {{-- Actions (Cancel / Void / Reprint) --}}
         @if(in_array($sale->status, ['draft', 'finalized']))

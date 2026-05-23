@@ -1,8 +1,8 @@
 <?php
 
+use App\Support\Database\SchemaInspector;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -53,14 +53,6 @@ return new class extends Migration
 
     private function indexExists(string $table, string $index): bool
     {
-        if (DB::getDriverName() === 'pgsql') {
-            return (bool) DB::table('pg_indexes')
-                ->where('schemaname', 'public')
-                ->where('tablename', $table)
-                ->where('indexname', $index)
-                ->exists();
-        }
-
-        return !empty(DB::select('SHOW INDEX FROM `' . $table . '` WHERE Key_name = ?', [$index]));
+        return SchemaInspector::indexExists($table, $index);
     }
 };

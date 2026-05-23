@@ -6,34 +6,26 @@ use Illuminate\Http\Request;
 
 class AccountingUiMode
 {
-    public const STANDARD = 'standard';
-    public const ADVANCED = 'advanced';
-    public const SESSION_KEY = 'accounting_ui_mode';
+    public const STANDARD = FeatureMode::STANDARD;
+    public const ADVANCED = FeatureMode::ADVANCED;
+    public const SESSION_KEY = FeatureMode::SESSION_KEY;
+
+    public function __construct(private readonly FeatureMode $featureMode)
+    {
+    }
 
     public function current(?Request $request = null): string
     {
-        $request ??= request();
-
-        $mode = (string) ($request->session()->get(self::SESSION_KEY, self::STANDARD));
-
-        return in_array($mode, [self::STANDARD, self::ADVANCED], true)
-            ? $mode
-            : self::STANDARD;
+        return $this->featureMode->current($request, 'accounting');
     }
 
     public function isAdvanced(?Request $request = null): bool
     {
-        return $this->current($request) === self::ADVANCED;
+        return $this->featureMode->isAdvanced($request, 'accounting');
     }
 
     public function set(Request $request, string $mode): string
     {
-        $resolved = in_array($mode, [self::STANDARD, self::ADVANCED], true)
-            ? $mode
-            : self::STANDARD;
-
-        $request->session()->put(self::SESSION_KEY, $resolved);
-
-        return $resolved;
+        return $this->featureMode->set($request, $mode, 'accounting');
     }
 }

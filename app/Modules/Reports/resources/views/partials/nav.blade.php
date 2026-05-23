@@ -3,6 +3,7 @@
         @php
             $planManager = app(\App\Support\TenantPlanManager::class);
             $hasAdvancedReports = $planManager->hasFeature(\App\Support\PlanFeature::ADVANCED_REPORTS);
+            $isAdvancedMode = ($accountingUiMode ?? 'standard') === 'advanced';
         @endphp
         <a href="{{ route('reports.dashboard') }}" class="btn {{ request()->routeIs('reports.dashboard') ? 'btn-primary' : 'btn-outline-primary' }}">Dashboard</a>
         @can('reports.sales')
@@ -26,7 +27,9 @@
             @endif
         @endcan
         @can('reports.finance')
+            @if($hasAdvancedReports && $isAdvancedMode)
             <a href="{{ route('reports.finance') }}" class="btn {{ request()->routeIs('reports.finance') ? 'btn-primary' : 'btn-outline-primary' }}">Finance</a>
+            @endif
         @endcan
         @can('reports.pos')
             @if($hasAdvancedReports && $planManager->hasFeature(\App\Support\PlanFeature::POINT_OF_SALE))
@@ -34,7 +37,7 @@
             @endif
         @endcan
     </div>
-    @if(($accountingUiMode ?? 'standard') === 'advanced' && request()->routeIs('reports.finance'))
+    @if($isAdvancedMode && request()->routeIs('reports.finance'))
         <div class="form-hint mt-2">
             Advanced mode membuka output accounting formal di halaman ini seperti <strong>trial balance</strong>, <strong>general ledger</strong>, dan <strong>balance sheet provisional</strong>.
             Standard mode tetap menampilkan ringkasan finance inti agar halaman tidak terlalu padat.

@@ -5,7 +5,9 @@ namespace App\Modules\Finance\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Finance\Http\Requests\CompleteBankReconciliationRequest;
 use App\Modules\Finance\Http\Requests\ImportBankStatementRequest;
+use App\Modules\Finance\Http\Requests\ReopenBankReconciliationRequest;
 use App\Modules\Finance\Http\Requests\ResolveBankStatementLineRequest;
+use App\Modules\Finance\Http\Requests\ReviewBankReconciliationRequest;
 use App\Modules\Finance\Http\Requests\StoreBankReconciliationRequest;
 use App\Modules\Finance\Models\BankReconciliation;
 use App\Modules\Finance\Models\BankReconciliationItem;
@@ -89,6 +91,7 @@ class BankReconciliationController extends Controller
             'account',
             'branch',
             'creator',
+            'reviewer',
             'completer',
             'items.reconcilable',
             'statementImports.creator',
@@ -120,6 +123,7 @@ class BankReconciliationController extends Controller
                 'ignored' => $reconciliation->statementLines->where('match_status', BankStatementLine::MATCH_STATUS_IGNORED)->count(),
                 'unmatched' => $reconciliation->statementLines->where('match_status', BankStatementLine::MATCH_STATUS_UNMATCHED)->count(),
             ],
+            'closureSummary' => $this->buildClosureSummary($reconciliation),
             'resolutionReasonOptions' => BankStatementLine::resolutionReasonOptions(),
             'matchedStatementLineIds' => $reconciliation->statementLines
                 ->where('match_status', BankStatementLine::MATCH_STATUS_SUGGESTED)
@@ -310,180 +314,74 @@ class BankReconciliationController extends Controller
         return redirect()->route('finance.reconciliations.show', $reconciliation)->with('status', 'Statement berhasil diimport: ' . $importedCount . ' baris.');
     }
 
+    public function review(ReviewBankReconciliationRequest $request, BankReconciliation $reconciliation): RedirectResponse
+    {
+        if ($reconciliation->status !== BankReconciliation::STATUS_DRAFT) {
+            return redirect()->route('finance.reconciliations.show', $reconciliation)->with('error', 'Hanya sesi draft yang bisa direview.');
+        }
+
+        DB::transaction(function () use ($request, $reconciliation) {
+            $this->syncReconciliationSelections($request->all(), $reconciliation, optional($request->user())->id, Payment::RECONCILIATION_IN_REVIEW);
+            $reconciliation->refresh()->loadMissing('statementLines', 'items');
+            $closureSummary = $this->buildClosureSummary($reconciliation);
+
+            $reconciliation->update([
+                'status' => BankReconciliation::STATUS_REVIEWED,
+                'notes' => $request->filled('notes') ? $request->input('notes') : $reconciliation->notes,
+                'reviewed_by' => optional($request->user())->id,
+                'reviewed_at' => now(),
+                'review_summary' => $closureSummary,
+                'updated_by' => optional($request->user())->id,
+                'meta' => array_merge($reconciliation->meta ?: [], [
+                    'review_note' => $request->input('review_note'),
+                ]),
+            ]);
+        });
+
+        return redirect()->route('finance.reconciliations.show', $reconciliation)->with('status', 'Reconciliation dipindahkan ke tahap review.');
+    }
+
     public function complete(CompleteBankReconciliationRequest $request, BankReconciliation $reconciliation): RedirectResponse
     {
         if ($reconciliation->status === BankReconciliation::STATUS_COMPLETED) {
             return redirect()->route('finance.reconciliations.show', $reconciliation)->with('status', 'Reconciliation sudah completed.');
         }
 
-        $candidatePayments = $this->candidatePayments($reconciliation)->get()->keyBy('id');
-        $candidateFinanceTransactions = $this->candidateFinanceTransactions($reconciliation)->get()->keyBy('id');
-        $paymentIds = collect($request->input('payment_ids', []))
-            ->map(fn ($id) => (int) $id)
-            ->filter()
-            ->unique()
-            ->values();
-        $statementLineIds = collect($request->input('statement_line_ids', []))
-            ->map(function ($id) { return (int) $id; })
-            ->filter()
-            ->unique()
-            ->values();
-        $statementLines = BankStatementLine::query()
-            ->where('tenant_id', TenantContext::currentId())
-            ->where('company_id', (int) CompanyContext::currentId())
-            ->where('bank_reconciliation_id', $reconciliation->id)
-            ->whereIn('id', $statementLineIds->all())
-            ->get()
-            ->keyBy('id');
-        $statementMatches = collect($request->input('statement_matches', []));
-        $lineTargets = [];
-
-        foreach ($paymentIds as $paymentId) {
-            if (!$candidatePayments->has($paymentId)) {
-                abort(422, 'Ada payment yang tidak valid untuk account atau periode reconciliation ini.');
-            }
+        if (!in_array($reconciliation->status, [BankReconciliation::STATUS_REVIEWED, BankReconciliation::STATUS_DRAFT], true)) {
+            return redirect()->route('finance.reconciliations.show', $reconciliation)->with('error', 'Status reconciliation tidak valid untuk complete.');
         }
 
-        foreach ($statementLineIds as $lineId) {
-            if (!$statementLines->has($lineId)) {
-                abort(422, 'Ada statement line yang tidak valid untuk sesi reconciliation ini.');
+        DB::transaction(function () use ($request, $reconciliation) {
+            if ($reconciliation->status === BankReconciliation::STATUS_DRAFT) {
+                $this->syncReconciliationSelections($request->all(), $reconciliation, optional($request->user())->id, Payment::RECONCILIATION_RECONCILED);
+                $reconciliation->refresh();
             }
 
-            $line = $statementLines->get($lineId);
-            $matchPayload = $statementMatches->get((string) $lineId, $statementMatches->get($lineId, []));
-            $targetType = (string) ($matchPayload['target_type'] ?? '');
-            $targetId = (int) ($matchPayload['target_id'] ?? 0);
+            $reconciliation->loadMissing('statementLines', 'items');
+            $closureSummary = $this->buildClosureSummary($reconciliation);
+            $hasUnresolved = ($closureSummary['open_unmatched_count'] + $closureSummary['exception_count']) > 0;
 
-            if ($targetType === '' && $line->suggested_reconcilable_id) {
-                if ($line->suggested_reconcilable_type === Payment::class) {
-                    $targetType = 'payment';
-                    $targetId = (int) $line->suggested_reconcilable_id;
-                } elseif ($line->suggested_reconcilable_type === FinanceTransaction::class) {
-                    $targetType = 'finance_transaction';
-                    $targetId = (int) $line->suggested_reconcilable_id;
-                }
+            if ($hasUnresolved && !$request->boolean('force_complete')) {
+                abort(422, 'Masih ada unmatched/exception line. Review dulu atau force complete dengan alasan penutupan.');
             }
 
-            if ($targetType === 'payment') {
-                if (!$candidatePayments->has($targetId)) {
-                    abort(422, 'Target payment pada statement line tidak valid untuk account atau periode ini.');
-                }
+            $selectedPaymentIds = $reconciliation->items
+                ->where('reconcilable_type', Payment::class)
+                ->pluck('reconcilable_id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
 
-                $paymentIds->push($targetId);
-                $lineTargets[$lineId] = [
-                    'type' => Payment::class,
-                    'id' => $targetId,
-                ];
-                continue;
-            }
-
-            if ($targetType === 'finance_transaction') {
-                if (!$candidateFinanceTransactions->has($targetId)) {
-                    abort(422, 'Target finance transaction pada statement line tidak valid untuk account atau periode ini.');
-                }
-
-                $lineTargets[$lineId] = [
-                    'type' => FinanceTransaction::class,
-                    'id' => $targetId,
-                ];
-                continue;
-            }
-
-            abort(422, 'Ada statement line yang dipilih tetapi belum punya target match yang valid.');
-        }
-
-        $paymentIds = $paymentIds->unique()->values();
-
-        DB::transaction(function () use (
-            $reconciliation,
-            $request,
-            $paymentIds,
-            $candidatePayments,
-            $candidateFinanceTransactions,
-            $statementLineIds,
-            $statementLines,
-            $lineTargets
-        ) {
-            $reconciliation->items()->delete();
-
-            foreach ($paymentIds as $paymentId) {
-                /** @var Payment $payment */
-                $payment = $candidatePayments->get($paymentId);
-
-                BankReconciliationItem::query()->create([
-                    'tenant_id' => TenantContext::currentId(),
-                    'company_id' => (int) CompanyContext::currentId(),
-                    'bank_reconciliation_id' => $reconciliation->id,
-                    'reconcilable_type' => Payment::class,
-                    'reconcilable_id' => $payment->id,
-                    'cleared_date' => optional($payment->paid_at)->toDateString() ?: $reconciliation->period_end->toDateString(),
-                    'cleared_amount' => (float) $payment->amount,
-                    'status' => 'cleared',
-                    'meta' => [
-                        'payment_number' => $payment->payment_number,
-                        'payment_method_id' => $payment->payment_method_id,
-                        'finance_account_id' => $reconciliation->finance_account_id,
-                    ],
-                    'created_by' => optional($request->user())->id,
-                    'updated_by' => optional($request->user())->id,
-                ]);
-            }
-
-            Payment::query()
-                ->where('tenant_id', TenantContext::currentId())
-                ->where('company_id', (int) CompanyContext::currentId())
-                ->whereIn('id', $paymentIds->all())
-                ->update([
-                    'reconciliation_status' => Payment::RECONCILIATION_RECONCILED,
-                    'reconciled_at' => now(),
-                    'reconciled_by' => optional($request->user())->id,
-                    'updated_by' => optional($request->user())->id,
-                ]);
-
-            foreach ($statementLineIds as $lineId) {
-                $line = $statementLines->get($lineId);
-                $target = $lineTargets[$lineId] ?? null;
-
-                if (!$line || !$target || $target['type'] !== FinanceTransaction::class) {
-                    continue;
-                }
-
-                $transaction = $candidateFinanceTransactions->get($target['id']);
-
-                BankReconciliationItem::query()->create([
-                    'tenant_id' => TenantContext::currentId(),
-                    'company_id' => (int) CompanyContext::currentId(),
-                    'bank_reconciliation_id' => $reconciliation->id,
-                    'reconcilable_type' => FinanceTransaction::class,
-                    'reconcilable_id' => $transaction->id,
-                    'cleared_date' => optional($transaction->transaction_date)->toDateString() ?: $reconciliation->period_end->toDateString(),
-                    'cleared_amount' => (float) $line->amount,
-                    'status' => 'cleared',
-                    'meta' => [
-                        'transaction_number' => $transaction->transaction_number,
-                        'finance_account_id' => $transaction->finance_account_id,
-                        'matched_from_statement_line_id' => $line->id,
-                    ],
-                    'created_by' => optional($request->user())->id,
-                    'updated_by' => optional($request->user())->id,
-                ]);
-            }
-
-            foreach ($statementLineIds as $lineId) {
-                $line = $statementLines->get($lineId);
-                $target = $lineTargets[$lineId] ?? null;
-
-                if (!$line || !$target) {
-                    continue;
-                }
-
-                $line->update([
-                    'match_status' => BankStatementLine::MATCH_STATUS_MATCHED,
-                    'matched_reconcilable_type' => $target['type'],
-                    'matched_reconcilable_id' => $target['id'],
-                    'matched_at' => now(),
-                    'matched_by' => optional($request->user())->id,
-                ]);
+            if ($selectedPaymentIds !== []) {
+                Payment::query()
+                    ->where('tenant_id', TenantContext::currentId())
+                    ->where('company_id', (int) CompanyContext::currentId())
+                    ->whereIn('id', $selectedPaymentIds)
+                    ->update([
+                        'reconciliation_status' => Payment::RECONCILIATION_RECONCILED,
+                        'reconciled_at' => now(),
+                        'reconciled_by' => optional($request->user())->id,
+                        'updated_by' => optional($request->user())->id,
+                    ]);
             }
 
             $reconciliation->update([
@@ -492,15 +390,39 @@ class BankReconciliationController extends Controller
                 'completed_by' => optional($request->user())->id,
                 'completed_at' => now(),
                 'updated_by' => optional($request->user())->id,
+                'review_summary' => $closureSummary,
                 'meta' => array_merge($reconciliation->meta ?: [], [
-                    'matched_payment_count' => $paymentIds->count(),
-                    'matched_payment_total' => round((float) $paymentIds->sum(fn ($id) => (float) optional($candidatePayments->get($id))->amount), 2),
-                    'matched_statement_line_count' => count($lineTargets),
+                    'closure_reason' => $request->input('closure_reason'),
+                    'force_completed' => $request->boolean('force_complete'),
                 ]),
             ]);
         });
 
         return redirect()->route('finance.reconciliations.show', $reconciliation)->with('status', 'Reconciliation completed.');
+    }
+
+    public function reopen(ReopenBankReconciliationRequest $request, BankReconciliation $reconciliation): RedirectResponse
+    {
+        if (!in_array($reconciliation->status, [BankReconciliation::STATUS_REVIEWED, BankReconciliation::STATUS_COMPLETED], true)) {
+            return redirect()->route('finance.reconciliations.show', $reconciliation)->with('error', 'Hanya sesi reviewed/completed yang bisa dibuka lagi.');
+        }
+
+        $reconciliation->update([
+            'status' => BankReconciliation::STATUS_DRAFT,
+            'reviewed_by' => null,
+            'reviewed_at' => null,
+            'completed_by' => null,
+            'completed_at' => null,
+            'review_summary' => null,
+            'updated_by' => optional($request->user())->id,
+            'meta' => array_merge($reconciliation->meta ?: [], [
+                'reopened_reason' => $request->input('reason'),
+                'reopened_at' => now()->toDateTimeString(),
+                'reopened_by' => optional($request->user())->id,
+            ]),
+        ]);
+
+        return redirect()->route('finance.reconciliations.show', $reconciliation)->with('status', 'Reconciliation dibuka kembali ke draft.');
     }
 
     public function resolveStatementLine(
@@ -1125,5 +1047,205 @@ class BankReconciliationController extends Controller
         }
 
         return null;
+    }
+
+    private function syncReconciliationSelections(array $payload, BankReconciliation $reconciliation, ?int $actorId, string $paymentStatus): void
+    {
+        $candidatePayments = $this->candidatePayments($reconciliation)->get()->keyBy('id');
+        $candidateFinanceTransactions = $this->candidateFinanceTransactions($reconciliation)->get()->keyBy('id');
+        $paymentIds = collect($payload['payment_ids'] ?? [])
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->unique()
+            ->values();
+        $statementLineIds = collect($payload['statement_line_ids'] ?? [])
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->unique()
+            ->values();
+        $statementLines = BankStatementLine::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', (int) CompanyContext::currentId())
+            ->where('bank_reconciliation_id', $reconciliation->id)
+            ->whereIn('id', $statementLineIds->all())
+            ->get()
+            ->keyBy('id');
+        $statementMatches = collect($payload['statement_matches'] ?? []);
+        $lineTargets = [];
+
+        foreach ($paymentIds as $paymentId) {
+            if (!$candidatePayments->has($paymentId)) {
+                abort(422, 'Ada payment yang tidak valid untuk account atau periode reconciliation ini.');
+            }
+        }
+
+        foreach ($statementLineIds as $lineId) {
+            if (!$statementLines->has($lineId)) {
+                abort(422, 'Ada statement line yang tidak valid untuk sesi reconciliation ini.');
+            }
+
+            $line = $statementLines->get($lineId);
+            $matchPayload = $statementMatches->get((string) $lineId, $statementMatches->get($lineId, []));
+            $targetType = (string) ($matchPayload['target_type'] ?? '');
+            $targetId = (int) ($matchPayload['target_id'] ?? 0);
+
+            if ($targetType === '' && $line->suggested_reconcilable_id) {
+                if ($line->suggested_reconcilable_type === Payment::class) {
+                    $targetType = 'payment';
+                    $targetId = (int) $line->suggested_reconcilable_id;
+                } elseif ($line->suggested_reconcilable_type === FinanceTransaction::class) {
+                    $targetType = 'finance_transaction';
+                    $targetId = (int) $line->suggested_reconcilable_id;
+                }
+            }
+
+            if ($targetType === 'payment') {
+                if (!$candidatePayments->has($targetId)) {
+                    abort(422, 'Target payment pada statement line tidak valid untuk account atau periode ini.');
+                }
+
+                $paymentIds->push($targetId);
+                $lineTargets[$lineId] = ['type' => Payment::class, 'id' => $targetId];
+                continue;
+            }
+
+            if ($targetType === 'finance_transaction') {
+                if (!$candidateFinanceTransactions->has($targetId)) {
+                    abort(422, 'Target finance transaction pada statement line tidak valid untuk account atau periode ini.');
+                }
+
+                $lineTargets[$lineId] = ['type' => FinanceTransaction::class, 'id' => $targetId];
+                continue;
+            }
+
+            abort(422, 'Ada statement line yang dipilih tetapi belum punya target match yang valid.');
+        }
+
+        $paymentIds = $paymentIds->unique()->values();
+
+        $existingPaymentIds = $reconciliation->items()
+            ->where('reconcilable_type', Payment::class)
+            ->pluck('reconcilable_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $reconciliation->items()->delete();
+
+        $removedPaymentIds = array_values(array_diff($existingPaymentIds, $paymentIds->all()));
+        if ($removedPaymentIds !== []) {
+            Payment::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', (int) CompanyContext::currentId())
+                ->whereIn('id', $removedPaymentIds)
+                ->update([
+                    'reconciliation_status' => Payment::RECONCILIATION_UNRECONCILED,
+                    'reconciled_at' => null,
+                    'reconciled_by' => null,
+                    'updated_by' => $actorId,
+                ]);
+        }
+
+        foreach ($paymentIds as $paymentId) {
+            /** @var Payment $payment */
+            $payment = $candidatePayments->get($paymentId);
+
+            BankReconciliationItem::query()->create([
+                'tenant_id' => TenantContext::currentId(),
+                'company_id' => (int) CompanyContext::currentId(),
+                'bank_reconciliation_id' => $reconciliation->id,
+                'reconcilable_type' => Payment::class,
+                'reconcilable_id' => $payment->id,
+                'cleared_date' => optional($payment->paid_at)->toDateString() ?: $reconciliation->period_end->toDateString(),
+                'cleared_amount' => (float) $payment->amount,
+                'status' => 'cleared',
+                'meta' => [
+                    'payment_number' => $payment->payment_number,
+                    'payment_method_id' => $payment->payment_method_id,
+                    'finance_account_id' => $reconciliation->finance_account_id,
+                ],
+                'created_by' => $actorId,
+                'updated_by' => $actorId,
+            ]);
+        }
+
+        Payment::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', (int) CompanyContext::currentId())
+            ->whereIn('id', $paymentIds->all())
+            ->update([
+                'reconciliation_status' => $paymentStatus,
+                'reconciled_at' => $paymentStatus === Payment::RECONCILIATION_RECONCILED ? now() : null,
+                'reconciled_by' => $paymentStatus === Payment::RECONCILIATION_RECONCILED ? $actorId : null,
+                'updated_by' => $actorId,
+            ]);
+
+        foreach ($statementLineIds as $lineId) {
+            $line = $statementLines->get($lineId);
+            $target = $lineTargets[$lineId] ?? null;
+
+            if (!$line || !$target) {
+                continue;
+            }
+
+            if ($target['type'] === FinanceTransaction::class) {
+                $transaction = $candidateFinanceTransactions->get($target['id']);
+
+                BankReconciliationItem::query()->create([
+                    'tenant_id' => TenantContext::currentId(),
+                    'company_id' => (int) CompanyContext::currentId(),
+                    'bank_reconciliation_id' => $reconciliation->id,
+                    'reconcilable_type' => FinanceTransaction::class,
+                    'reconcilable_id' => $transaction->id,
+                    'cleared_date' => optional($transaction->transaction_date)->toDateString() ?: $reconciliation->period_end->toDateString(),
+                    'cleared_amount' => (float) $line->amount,
+                    'status' => 'cleared',
+                    'meta' => [
+                        'transaction_number' => $transaction->transaction_number,
+                        'finance_account_id' => $transaction->finance_account_id,
+                        'matched_from_statement_line_id' => $line->id,
+                    ],
+                    'created_by' => $actorId,
+                    'updated_by' => $actorId,
+                ]);
+            }
+
+            $line->update([
+                'match_status' => BankStatementLine::MATCH_STATUS_MATCHED,
+                'matched_reconcilable_type' => $target['type'],
+                'matched_reconcilable_id' => $target['id'],
+                'matched_at' => now(),
+                'matched_by' => $actorId,
+            ]);
+        }
+
+        $reconciliation->update([
+            'updated_by' => $actorId,
+            'meta' => array_merge($reconciliation->meta ?: [], [
+                'matched_payment_count' => $paymentIds->count(),
+                'matched_payment_total' => round((float) $paymentIds->sum(fn ($id) => (float) optional($candidatePayments->get($id))->amount), 2),
+                'matched_statement_line_count' => count($lineTargets),
+            ]),
+        ]);
+    }
+
+    private function buildClosureSummary(BankReconciliation $reconciliation): array
+    {
+        $statementLines = $reconciliation->relationLoaded('statementLines')
+            ? $reconciliation->statementLines
+            : $reconciliation->statementLines()->get();
+        $items = $reconciliation->relationLoaded('items')
+            ? $reconciliation->items
+            : $reconciliation->items()->get();
+
+        return [
+            'matched_line_count' => $statementLines->where('match_status', BankStatementLine::MATCH_STATUS_MATCHED)->count(),
+            'suggested_line_count' => $statementLines->where('match_status', BankStatementLine::MATCH_STATUS_SUGGESTED)->count(),
+            'open_unmatched_count' => $statementLines->where('match_status', BankStatementLine::MATCH_STATUS_UNMATCHED)->count(),
+            'exception_count' => $statementLines->where('match_status', BankStatementLine::MATCH_STATUS_EXCEPTION)->count(),
+            'ignored_count' => $statementLines->where('match_status', BankStatementLine::MATCH_STATUS_IGNORED)->count(),
+            'cleared_item_count' => $items->count(),
+            'cleared_total' => round((float) $items->sum('cleared_amount'), 2),
+            'difference_amount' => round((float) $reconciliation->difference_amount, 2),
+        ];
     }
 }

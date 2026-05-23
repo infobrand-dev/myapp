@@ -43,8 +43,8 @@ Route::middleware(['web', 'auth', 'plan.feature:accounting', 'plan.feature:purch
         Route::post('/{purchase}/finalize', [PurchaseController::class, 'finalize'])->middleware('permission:purchases.finalize')->name('finalize');
         Route::get('/{purchase}/receive', [PurchaseController::class, 'receive'])->middleware('permission:purchases.receive')->name('receive');
         Route::post('/{purchase}/receive', [PurchaseController::class, 'storeReceipt'])->middleware('permission:purchases.receive')->name('receipts.store');
-        Route::post('/{purchase}/supplier-bill/{status}', [PurchaseController::class, 'updateSupplierBillStatus'])->middleware('permission:purchases.manage_supplier_bill')->name('supplier-bill.update');
-        Route::post('/{purchase}/payable-adjustments/{type}', [PurchaseController::class, 'storePayableAdjustment'])->middleware('permission:purchases.manage_payable_adjustments')->name('payable-adjustments.store');
+        Route::post('/{purchase}/supplier-bill/{status}', [PurchaseController::class, 'updateSupplierBillStatus'])->middleware(['permission:purchases.manage_supplier_bill', 'mode:advanced'])->name('supplier-bill.update');
+        Route::post('/{purchase}/payable-adjustments/{type}', [PurchaseController::class, 'storePayableAdjustment'])->middleware(['permission:purchases.manage_payable_adjustments', 'mode:advanced'])->name('payable-adjustments.store');
         Route::post('/{purchase}/cancel', [PurchaseController::class, 'cancel'])->middleware('permission:purchases.edit_draft')->name('cancel');
         Route::post('/{purchase}/void', [PurchaseController::class, 'void'])->middleware('permission:purchases.void')->name('void');
         Route::get('/{purchase}/print', [PurchaseController::class, 'print'])->middleware('permission:purchases.print')->name('print');

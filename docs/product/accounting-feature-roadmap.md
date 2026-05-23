@@ -70,17 +70,16 @@ Isi utama:
 ### Fondasi yang sudah cukup kuat
 - GL dasar sudah ada: manual journal, posted journal, trial balance, ledger, neraca awal.
 - inventory costing dasar sudah mulai ada: moving average snapshot, stock valuation, auto COGS journal, opening stock journal, stock adjustment journal, transfer in-transit.
-- tax dasar sudah ada: master tax, mapping akun pajak, tax profile partner, rekap dasar, tax register formal dasar, numbering dokumen pajak formal, draft export PPN dan withholding.
+- tax dasar sudah ada: master tax, mapping akun pajak, tax profile partner, rekap dasar, tax register formal dasar, numbering dokumen pajak formal, dan export final app-side untuk PPN serta withholding.
 - document lifecycle dasar sudah ada: quotation, sales order, purchase request, purchase order, approval rule per dokumen.
 - period closing dasar sudah ada: closing journal retained earnings, auto lock, reopen/reverse closing governance dasar.
 - approval lintas modul dasar dan maker-checker dasar untuk aksi sensitif sudah ada.
 
 ### Gap besar yang masih paling penting
-- `inventory costing` belum lengkap untuk seluruh edge case dan governance costing formal.
-- `bank reconciliation` sudah ada fondasi, tetapi matching lintas source, scoring rule, dan exception flow lanjutan belum lengkap.
 - `tax workflow formal` sudah Indonesia-ready di level dasar, tetapi export resmi, integrasi final, dan automation lebih dalam belum lengkap.
 - `commercial document flow` sudah ada fondasi, tetapi belum sepenuhnya matang sebagai flow operasional penuh.
 - `COA + GL formal` masih butuh pendalaman mapping akun dan governance lanjutan.
+- `inventory costing` sekarang sudah punya deteksi anomaly dan rekonsiliasi yang jauh lebih operasional, tetapi governance costing formal enterprise masih tetap bisa diperdalam.
 
 ### Yang tidak perlu ditarik terlalu depan
 - governance enterprise yang terlalu dalam sebelum gap foundation dan operational tertutup
@@ -164,11 +163,11 @@ Status:
   owner module: `payments`
 - [x] `retur penjualan`
   owner module: `sales`
-- [-] `piutang` dasar sudah ada, tetapi kontrol write-off, dispute, dan settlement penuh belum lengkap
+- [x] `piutang` dasar sekarang sudah punya kontrol `write-off` + `credit memo`, settlement formal, serta flow `dispute` dengan outcome `continue payment / close / credit memo / write-off`
   owner module: `sales` + `payments`, report turunannya di `reports`
 - [-] `revenue posting` otomatis dasar sudah ada lewat auto journal, tetapi flow accounting formal masih perlu diperdalam
   owner module: `finance` untuk journal governance, `reports` untuk output laporan
-- [-] `sales return` sekarang sudah membuat journal reversal revenue saat finalized dan reversal inventory/COGS saat restock inventory terjadi, tetapi write-off / credit memo formal masih belum lengkap
+- [x] `sales return` sekarang sudah membuat journal reversal revenue saat finalized, reversal inventory/COGS saat restock, punya workflow refund formal dasar, dan sudah ditopang `credit memo / write-off` formal di sisi piutang
   owner module: `sales` untuk source document, `finance` untuk journal governance
 
 ### 3. Purchase / Pembelian
@@ -176,11 +175,11 @@ Status:
   owner module: `purchases`
 - [x] `purchase order`
   owner module: `purchases`
-- [-] `bill / invoice supplier` dasar sudah ada lewat purchase draft/finalize, tetapi flow procurement formal belum lengkap
+- [-] `bill / invoice supplier` dasar sudah ada lewat purchase draft/finalize, dan lifecycle tagihan supplier formal dasar sudah tersedia, tetapi flow procurement operasional yang lebih penuh masih belum lengkap
   owner module: `purchases`
 - [x] `payment`
   owner module: `payments`
-- [-] `hutang` dasar sudah ada, tetapi kontrol write-off, debit note, dan settlement penuh belum lengkap
+- [x] `hutang` dasar sekarang sudah punya kontrol `write-off`, `debit note`, settlement summary, dan status history formal dasar
   owner module: `purchases` + `payments`, report turunannya di `reports`
 - [-] `biaya / inventory posting` sekarang sudah mencakup purchase finalized ke `PURCHASES` dan purchase receipt reclass ke `INVENTORY`, tetapi kontrol accounting formal masih perlu diperdalam
   owner module: `finance` untuk journal governance, `inventory` untuk valuation source
@@ -192,9 +191,9 @@ Status:
   owner module: `inventory`
 - [x] `stock opname`
   owner module: `inventory`
-- [-] `HPP / costing method` awal `moving average` untuk valuation stock snapshot sudah mulai ada
+- [-] `HPP / costing method` `moving average` sudah berjalan, dan diagnostics anomaly costing sekarang tersedia, tetapi governance costing formal lanjutan masih bisa diperdalam
   owner module: `inventory`, jurnal turunannya di `finance`
-- [-] `stock valuation` dasar per stock/location/report sudah mulai ada, dan rekonsiliasi inventory vs GL sekarang sudah punya panel agregat + detail per source document; purchase receipt, opening stock, stock adjustment, stock opname adjustment trail, sales return restock, dan stock transfer in-transit sudah terhubung, tetapi posting inventory edge case lain masih belum lengkap
+- [-] `stock valuation` dasar per stock/location/report sudah mulai ada, rekonsiliasi inventory vs GL sekarang punya panel agregat + detail per source document, dan diagnostics anomaly stock/costing sudah tersedia; purchase receipt, opening stock, stock adjustment, stock opname adjustment trail, sales return restock, dan stock transfer in-transit sudah terhubung, tetapi posting inventory edge case lain masih belum lengkap
   owner module: `inventory`, report di `reports`
 - [x] `COGS journal` otomatis saat sale finalized bila sale membawa konteks `inventory_location_id`, memakai moving average inventory sebagai source valuasi
   owner module: `finance`, source movement tetap dari `inventory`
@@ -208,11 +207,11 @@ Status:
   owner module: `finance`
 - [x] `transfer antar rekening`
   owner module: `finance`
-- [-] `rekonsiliasi bank` sekarang sudah punya sesi reconciliation formal per finance account dan periode, candidate payment dari payment method yang dipetakan ke account, import bank statement, manual override match ke payment atau finance transaction, status `exception/ignored` dasar per statement line, serta duplicate candidate dasar saat import; namun matching formal lintas source dan exception handling lanjutan belum lengkap
+- [-] `rekonsiliasi bank` sekarang sudah punya sesi reconciliation formal per finance account dan periode, candidate payment dari payment method yang dipetakan ke account, import bank statement, manual override match ke payment atau finance transaction, status `exception/ignored` formal dasar, reason terstruktur, summary unresolved items, tahap `reviewed -> completed`, serta reopen workflow; namun auto-resolution end-to-end masih belum lengkap
   owner module: `payments` + `finance`
-- [-] `import mutasi bank` dasar CSV/XLSX ke sesi reconciliation sudah ada, dan alias header tanggal/amount/debit/credit dasar mulai didukung; tetapi normalisasi format bank yang lebih kaya masih belum lengkap
+- [-] `import mutasi bank` dasar CSV/XLSX ke sesi reconciliation sudah ada, dan alias header tanggal/amount/debit/credit sudah lebih kaya; tetapi normalisasi format bank production-grade yang lebih luas masih belum lengkap
   owner module: `finance`
-- [-] `matching bank statement` ke payment dan finance transaction dasar sudah mulai ada, termasuk manual override per line, suggestion lintas source dasar, dan duplicate candidate dasar; exception status dasar juga sudah mulai ada, tetapi matching lintas source yang lebih kaya, rule scoring yang lebih cerdas, dan exception handling lanjutan belum lengkap
+- [-] `matching bank statement` ke payment dan finance transaction sekarang sudah punya suggestion lintas source yang lebih kaya, scoring yang lebih cerdas, reason operasional di UI, dan closure workflow formal; tetapi auto-match / auto-resolution penuh masih belum lengkap
   owner module: `payments` + `finance`
 
 ### 6. General Ledger / Jurnal
@@ -262,13 +261,13 @@ Status:
   owner module: kandidat `tax` bila domain sudah formal
 - [-] `PPN masukan`
   owner module: kandidat `tax` bila domain sudah formal
-- [-] `PPh / withholding tax` sudah punya register formal, auto-journal dasar ke AP/AR/akun PPh, dan draft export bukti potong CSV; tetapi export resmi dan direction manual yang lebih kaya belum lengkap
+- [x] `PPh / withholding tax` sudah punya register formal, auto-journal dasar ke AP/AR/akun PPh, direction manual, dan export bukti potong final app-side
   owner module: kandidat `tax`
 - [x] `NPWP customer / supplier` dasar
   owner module: `contacts`
 - [-] `faktur pajak`
   owner module: kandidat `tax`
-- [-] `export / integrasi e-Faktur` sudah punya draft CSV PPN keluaran, tetapi belum format final resmi / integrasi
+- [-] `export / integrasi e-Faktur` sekarang sudah punya export final app-side PPN keluaran dengan readiness validation, tetapi belum direct integration resmi ke DJP / PJAP
   owner module: kandidat `tax`
 
 ### 9. User, Permission, Approval, Audit

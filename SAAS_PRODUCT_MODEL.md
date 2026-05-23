@@ -198,11 +198,11 @@ In that model:
 - branch-aware rollout is still partial and many modules should remain company-level until a branch boundary is operationally justified
 
 ## What is not finished yet
-- `companies` is not yet the active operational scope across most modules
-- most business tables are not yet fully `company_id + branch_id` aware
-- industry profile and module bundle logic are not yet wired
-- billing/provider sync is not yet wired
-- plan UI and tenant admin UI are not yet built
+- `company_id + optional branch_id` rollout is already active in major commerce/accounting paths, but not every module in the codebase follows the same runtime scope yet
+- some modules and reports still need consistency hardening around `tenant + company + optional branch`
+- industry profile and module bundle logic are not yet wired end-to-end
+- some billing/provider sync paths still depend on incremental hardening instead of one fully unified contract
+- tenant-facing plan/subscription UX still needs refinement for broader multi-product packaging
 
 ## Recommended rollout order
 1. Finalize product boundaries
@@ -232,18 +232,7 @@ In that model:
 6. Add industry preset and module bundle logic
 7. Add plan management UI and billing integration
 
-## Immediate next step
-- Start with `company` as the next active scope under tenant.
-- Do not start with branch first.
-- The first module batch to convert should be:
-  - `finance`
-  - `sales`
-  - `purchases`
-  - `payments`
-  - `inventory`
-  - `pos`
-
-Reason:
-- those modules define the real operational and reporting boundaries
-- once they are company-aware, plan limits like `max_companies` become meaningful
-- branch can then be layered under company without breaking the main design
+## Current next step
+- Continue consistency hardening for modules and reports that have not fully adopted the active `tenant + company + optional branch` runtime contract.
+- Keep `company` as the main reporting and accounting boundary, while `branch` remains optional and only applies where the workflow is truly outlet/location-bound.
+- Finish wiring industry/module bundle logic and tenant-facing subscription UX on top of the current scoped runtime foundation.

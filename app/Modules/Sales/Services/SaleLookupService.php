@@ -10,6 +10,7 @@ use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\Products\Services\ProductLookupService;
 use App\Modules\Sales\Models\Sale;
+use App\Modules\Sales\Models\SaleReceivableDispute;
 use App\Modules\Sales\Models\SaleReceivableAdjustment;
 use App\Support\BooleanQuery;
 use App\Support\BranchContext;
@@ -93,6 +94,16 @@ class SaleLookupService
             SaleReceivableAdjustment::TYPE_CREDIT_MEMO => 'Credit Memo',
             SaleReceivableAdjustment::TYPE_WRITE_OFF => 'Write-off',
         ];
+    }
+
+    public function receivableDisputeStatusOptions(): array
+    {
+        return SaleReceivableDispute::statusOptions();
+    }
+
+    public function receivableDisputeOutcomeOptions(): array
+    {
+        return SaleReceivableDispute::outcomeOptions();
     }
 
     public function saleOptions(): Collection

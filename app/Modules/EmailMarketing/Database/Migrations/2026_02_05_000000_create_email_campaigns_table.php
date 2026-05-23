@@ -25,7 +25,7 @@ return new class extends Migration
             $table->index(['tenant_id', 'status', 'scheduled_at']);
             $table->index(['tenant_id', 'status', 'created_at']);
 
-            if (in_array(DB::getDriverName(), ['mysql', 'pgsql'], true)) {
+            if (DB::getDriverName() === 'pgsql') {
                 $table->fullText(['name', 'subject'], 'email_campaigns_search_fulltext');
             }
         });

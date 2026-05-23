@@ -58,7 +58,7 @@ return new class extends Migration
             $table->index(['tenant_id', 'company_id', 'created_by', 'return_date'], 'sale_returns_creator_date_idx');
             $table->index(['tenant_id', 'company_id', 'inventory_location_id'], 'sale_returns_inventory_loc_idx');
 
-            if (in_array(DB::getDriverName(), ['mysql', 'pgsql'], true)) {
+            if (DB::getDriverName() === 'pgsql') {
                 $table->fullText(['customer_name_snapshot', 'reason', 'notes'], 'sale_returns_search_fulltext');
             }
         });

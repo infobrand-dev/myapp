@@ -2,6 +2,7 @@
 
 namespace App\Modules\Sales\Http\Requests;
 
+use App\Http\Requests\Concerns\InteractsWithFeatureMode;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Finance\Models\FinanceTaxRate;
@@ -20,6 +21,7 @@ use Illuminate\Validation\Validator;
 
 class StoreDraftSaleRequest extends FormRequest
 {
+    use InteractsWithFeatureMode;
     use NormalizesSalePayload;
 
     public function authorize(): bool
@@ -90,6 +92,10 @@ class StoreDraftSaleRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->normalizeSalePayload();
+
+        $this->merge(
+            app(\App\Support\ModeAwarePayloadSanitizer::class)->sanitizeSale($this, $this->route('sale'))
+        );
     }
 
     protected function validateBusinessRules(Validator $validator): void

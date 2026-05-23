@@ -22,7 +22,7 @@ return new class extends Migration {
             $table->index(['tenant_id', 'status', 'due_date']);
             $table->index(['tenant_id', 'assigned_to', 'status']);
 
-            if (in_array(DB::getDriverName(), ['mysql', 'pgsql'], true)) {
+            if (DB::getDriverName() === 'pgsql') {
                 $table->fullText(['title', 'description'], 'tasks_search_fulltext');
             }
         });

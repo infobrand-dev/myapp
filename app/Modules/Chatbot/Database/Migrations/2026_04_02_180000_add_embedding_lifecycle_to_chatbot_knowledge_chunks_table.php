@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Database\SchemaInspector;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -54,8 +55,13 @@ return new class extends Migration
         }
 
         Schema::table('chatbot_knowledge_chunks', function (Blueprint $table): void {
-            $table->index(['chatbot_account_id', 'embedding_status'], 'chatbot_chunks_account_embedding_status_idx');
-            $table->index('embedding_source_hash', 'chatbot_chunks_embedding_hash_idx');
+            if (!SchemaInspector::indexExists('chatbot_knowledge_chunks', 'chatbot_chunks_account_embedding_status_idx')) {
+                $table->index(['chatbot_account_id', 'embedding_status'], 'chatbot_chunks_account_embedding_status_idx');
+            }
+
+            if (!SchemaInspector::indexExists('chatbot_knowledge_chunks', 'chatbot_chunks_embedding_hash_idx')) {
+                $table->index('embedding_source_hash', 'chatbot_chunks_embedding_hash_idx');
+            }
         });
     }
 
@@ -68,8 +74,13 @@ return new class extends Migration
         }
 
         Schema::table('chatbot_knowledge_chunks', function (Blueprint $table): void {
-            $table->dropIndex('chatbot_chunks_account_embedding_status_idx');
-            $table->dropIndex('chatbot_chunks_embedding_hash_idx');
+            if (SchemaInspector::indexExists('chatbot_knowledge_chunks', 'chatbot_chunks_account_embedding_status_idx')) {
+                $table->dropIndex('chatbot_chunks_account_embedding_status_idx');
+            }
+
+            if (SchemaInspector::indexExists('chatbot_knowledge_chunks', 'chatbot_chunks_embedding_hash_idx')) {
+                $table->dropIndex('chatbot_chunks_embedding_hash_idx');
+            }
 
             foreach ([
                 'embedding_metadata',
@@ -90,10 +101,6 @@ return new class extends Migration
 
     private function postgresColumnExists(string $table, string $column): bool
     {
-        return DB::table('information_schema.columns')
-            ->where('table_schema', 'public')
-            ->where('table_name', $table)
-            ->where('column_name', $column)
-            ->exists();
+        return SchemaInspector::columnExists($table, $column);
     }
 };

@@ -132,13 +132,15 @@
                                 Standard
                             </button>
                         </form>
-                        <form method="POST" action="{{ route('settings.accounting-ui-mode') }}" class="d-contents">
-                            @csrf
-                            <input type="hidden" name="mode" value="advanced">
-                            <button type="submit" class="sidebar-ctx-chip {{ ($accountingUiMode ?? 'standard') === 'advanced' ? 'active' : '' }}">
-                                Advanced
-                            </button>
-                        </form>
+                        @if($accountingUiModeCanUseAdvanced ?? false)
+                            <form method="POST" action="{{ route('settings.accounting-ui-mode') }}" class="d-contents">
+                                @csrf
+                                <input type="hidden" name="mode" value="advanced">
+                                <button type="submit" class="sidebar-ctx-chip {{ ($accountingUiMode ?? 'standard') === 'advanced' ? 'active' : '' }}">
+                                    Advanced
+                                </button>
+                            </form>
+                        @endif
                     </div>
                 </div>
             </div>

@@ -17,8 +17,8 @@
         </div>
         <div class="col-auto d-flex gap-2">
             <a href="{{ route('finance.tax-documents.export', request()->query()) }}" class="btn btn-outline-secondary">Export Register CSV</a>
-            <a href="{{ route('finance.tax-documents.export-withholding-draft', request()->query()) }}" class="btn btn-outline-secondary">Draft Bukti Potong CSV</a>
-            <a href="{{ route('finance.tax-documents.export-efaktur-draft', request()->query()) }}" class="btn btn-outline-primary">Draft e-Faktur CSV</a>
+            <a href="{{ route('finance.tax-documents.export-withholding', request()->query()) }}" class="btn btn-outline-secondary">Export Bukti Potong CSV</a>
+            <a href="{{ route('finance.tax-documents.export-efaktur', request()->query()) }}" class="btn btn-outline-primary">Export e-Faktur CSV</a>
         </div>
     </div>
 </div>
@@ -41,8 +41,8 @@
 <div class="alert alert-secondary mb-3">
     <strong>Catatan export:</strong>
     `Export Register CSV` dipakai untuk register internal dan review operasional.
-    `Draft Bukti Potong CSV` dipakai untuk draft register PPh/withholding internal agar finance bisa review arah potong, lawan transaksi, dan nilai potong.
-    `Draft e-Faktur CSV` adalah struktur awal PPN keluaran dari tax register, belum final integrasi e-Faktur resmi.
+    `Export Bukti Potong CSV` dipakai untuk export final app-side dokumen PPh/withholding agar finance bisa review arah potong, lawan transaksi, nilai potong, dan readiness compliance.
+    `Export e-Faktur CSV` dipakai untuk export final app-side PPN keluaran dari tax register dengan status `ready/blocked` dan catatan validasi. Export ini bukan direct submit ke DJP.
 </div>
 
 <div class="card mb-3">
@@ -89,7 +89,8 @@
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Issued Docs</div><div class="h4 mb-0">{{ number_format((float) $summary['issued_count'], 0, ',', '.') }}</div></div></div></div>
     <div class="col-md-4"><div class="card"><div class="card-body"><div class="text-muted small">Missing Tax Profile</div><div class="h4 mb-0 text-yellow">{{ number_format((float) $summary['missing_tax_profile_count'], 0, ',', '.') }}</div></div></div></div>
     <div class="col-md-4"><div class="card"><div class="card-body"><div class="text-muted small">Missing Formal Number</div><div class="h4 mb-0 text-red">{{ number_format((float) $summary['missing_document_number_count'], 0, ',', '.') }}</div></div></div></div>
-    <div class="col-md-4"><div class="card"><div class="card-body"><div class="text-muted small">Ready e-Faktur Draft</div><div class="h4 mb-0 text-green">{{ number_format((float) $summary['ready_efaktur_count'], 0, ',', '.') }}</div></div></div></div>
+    <div class="col-md-4"><div class="card"><div class="card-body"><div class="text-muted small">Ready e-Faktur Export</div><div class="h4 mb-0 text-green">{{ number_format((float) $summary['ready_efaktur_count'], 0, ',', '.') }}</div></div></div></div>
+    <div class="col-md-4"><div class="card"><div class="card-body"><div class="text-muted small">Ready Bukti Potong Export</div><div class="h4 mb-0 text-green">{{ number_format((float) $summary['ready_withholding_count'], 0, ',', '.') }}</div></div></div></div>
 </div>
 
 <div class="row g-3">
@@ -198,7 +199,16 @@
                                             <div class="text-muted small mt-1">{{ $document->status_reason }}</div>
                                         @endif
                                         @if($isEfakturReady)
-                                            <div class="text-green small mt-1">Siap draft e-Faktur</div>
+                                            <div class="text-green small mt-1">Siap export e-Faktur</div>
+                                        @endif
+                                        @if($document->document_type === \App\Modules\Finance\Models\FinanceTaxDocument::TYPE_WITHHOLDING
+                                            && filled($document->document_number)
+                                            && filled($document->counterparty_tax_id_snapshot)
+                                            && filled($document->counterparty_tax_name_snapshot)
+                                            && filled($document->counterparty_tax_address_snapshot)
+                                            && (float) $document->withheld_amount > 0
+                                            && $document->document_status !== \App\Modules\Finance\Models\FinanceTaxDocument::STATUS_DRAFT)
+                                            <div class="text-green small mt-1">Siap export bukti potong</div>
                                         @endif
                                     </td>
                                     <td class="text-end">

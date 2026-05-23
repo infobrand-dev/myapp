@@ -19,12 +19,21 @@
 - Isi secret production:
   - mail SMTP
   - Midtrans server/client key
+  - notification VAPID subject/public/private key
   - WA verify token
   - Meta verify token
   - secret lain yang masih placeholder
 
 ## 3. Database
+- Production target utama: PostgreSQL.
+- Untuk Supabase:
+  - `DB_CONNECTION=pgsql`
+  - `DB_SSLMODE=require`
+  - host/database/user/password diambil dari project Supabase
+- Untuk local/staging:
+  - tetap disarankan PostgreSQL agar perilaku schema dan query sama dengan production
 - Jalankan migration terbaru.
+- Jika module chatbot embeddings dipakai, pastikan extension `vector` tersedia.
 - Pastikan tabel berikut ada:
   - `jobs`
   - `job_batches`
@@ -64,12 +73,16 @@ php artisan queue:work --tries=3 --timeout=120
 - `dash.domain.com/login`
 - `tenant.domain.com/login`
 - dashboard platform owner
+- dashboard tenant
 - public invoice
 - Midtrans checkout
 - Midtrans callback
 - payment tercatat
 - subscription aktif
 - email invoice/payment terkirim
+- notification bell dan halaman `/notifications`
+- subscribe web push dari browser production
+- trigger satu notification warning/critical dan pastikan push diterima
 
 ## 9. Audit
 - Jalankan:
@@ -79,6 +92,10 @@ php artisan golive:audit
 ```
 
 - Launch hanya jika item `FAIL` sudah nol.
+- Cek juga item `WARN` untuk notification/web push:
+  - VAPID subject/public/private key
+  - active push subscription
+  - successful `web_push` delivery
 
 ## 10. Freeze
 - Setelah smoke test lolos, hindari merge fitur baru sampai launch stabil.

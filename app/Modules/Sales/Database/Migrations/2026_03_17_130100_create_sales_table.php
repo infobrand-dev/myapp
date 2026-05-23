@@ -60,7 +60,7 @@ return new class extends Migration
             $table->index(['tenant_id', 'company_id', 'branch_id', 'transaction_date']);
             $table->unique(['tenant_id', 'company_id', 'source', 'external_reference'], 'sales_source_external_reference_unique');
 
-            if (in_array(DB::getDriverName(), ['mysql', 'pgsql'], true)) {
+            if (DB::getDriverName() === 'pgsql') {
                 $table->fullText(['customer_name_snapshot', 'notes', 'void_reason'], 'sales_search_fulltext');
             }
         });

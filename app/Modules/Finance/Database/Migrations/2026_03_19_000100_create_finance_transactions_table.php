@@ -1,8 +1,8 @@
 <?php
 
+use App\Support\Database\SchemaInspector;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -65,18 +65,6 @@ return new class extends Migration
 
     private function foreignKeyExists(string $table, string $foreignKey): bool
     {
-        if (DB::getDriverName() === 'pgsql') {
-            return (bool) DB::table('information_schema.table_constraints')
-                ->where('table_schema', 'public')
-                ->where('table_name', $table)
-                ->where('constraint_name', $foreignKey)
-                ->where('constraint_type', 'FOREIGN KEY')
-                ->exists();
-        }
-
-        return !empty(DB::select(
-            'SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND CONSTRAINT_NAME = ? AND CONSTRAINT_TYPE = ?',
-            [$table, $foreignKey, 'FOREIGN KEY']
-        ));
+        return SchemaInspector::foreignKeyExists($table, $foreignKey);
     }
 };

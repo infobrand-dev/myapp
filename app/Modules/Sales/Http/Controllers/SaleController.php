@@ -5,17 +5,22 @@ namespace App\Modules\Sales\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Sales\Actions\CancelDraftSaleAction;
 use App\Modules\Sales\Actions\CreateSaleReceivableAdjustmentAction;
+use App\Modules\Sales\Actions\CreateSaleReceivableDisputeAction;
 use App\Modules\Sales\Actions\CreateDraftSaleAction;
 use App\Modules\Sales\Actions\FinalizeSaleAction;
 use App\Modules\Sales\Actions\UpdateDraftSaleAction;
+use App\Modules\Sales\Actions\ResolveSaleReceivableDisputeAction;
 use App\Modules\Sales\Actions\VoidSaleAction;
 use App\Modules\Sales\Http\Requests\CancelDraftSaleRequest;
 use App\Modules\Sales\Http\Requests\FinalizeSaleRequest;
+use App\Modules\Sales\Http\Requests\ResolveSaleReceivableDisputeRequest;
 use App\Modules\Sales\Http\Requests\StoreSaleReceivableAdjustmentRequest;
+use App\Modules\Sales\Http\Requests\StoreSaleReceivableDisputeRequest;
 use App\Modules\Sales\Http\Requests\StoreDraftSaleRequest;
 use App\Modules\Sales\Http\Requests\UpdateDraftSaleRequest;
 use App\Modules\Sales\Http\Requests\VoidSaleRequest;
 use App\Modules\Sales\Models\Sale;
+use App\Modules\Sales\Models\SaleReceivableDispute;
 use App\Modules\Sales\Repositories\SaleRepository;
 use App\Modules\Sales\Services\SaleLookupService;
 use App\Support\DocumentSettingsResolver;
@@ -30,7 +35,9 @@ class SaleController extends Controller
     private $lookupService;
     private $createDraftSale;
     private $createReceivableAdjustment;
+    private $createReceivableDispute;
     private $updateDraftSale;
+    private $resolveReceivableDispute;
     private $finalizeSale;
     private $voidSale;
     private $cancelDraftSale;
@@ -42,8 +49,10 @@ class SaleController extends Controller
         SaleLookupService $lookupService,
         CreateDraftSaleAction $createDraftSale,
         CreateSaleReceivableAdjustmentAction $createReceivableAdjustment,
+        CreateSaleReceivableDisputeAction $createReceivableDispute,
         UpdateDraftSaleAction $updateDraftSale,
         FinalizeSaleAction $finalizeSale,
+        ResolveSaleReceivableDisputeAction $resolveReceivableDispute,
         VoidSaleAction $voidSale,
         CancelDraftSaleAction $cancelDraftSale,
         DocumentSettingsResolver $documentSettings,
@@ -53,8 +62,10 @@ class SaleController extends Controller
         $this->lookupService = $lookupService;
         $this->createDraftSale = $createDraftSale;
         $this->createReceivableAdjustment = $createReceivableAdjustment;
+        $this->createReceivableDispute = $createReceivableDispute;
         $this->updateDraftSale = $updateDraftSale;
         $this->finalizeSale = $finalizeSale;
+        $this->resolveReceivableDispute = $resolveReceivableDispute;
         $this->voidSale = $voidSale;
         $this->cancelDraftSale = $cancelDraftSale;
         $this->documentSettings = $documentSettings;
@@ -103,6 +114,8 @@ class SaleController extends Controller
             'statusOptions' => $this->lookupService->statusOptions(),
             'paymentStatusOptions' => $this->lookupService->paymentStatusOptions(),
             'receivableAdjustmentTypeOptions' => $this->lookupService->receivableAdjustmentTypeOptions(),
+            'receivableDisputeStatusOptions' => $this->lookupService->receivableDisputeStatusOptions(),
+            'receivableDisputeOutcomeOptions' => $this->lookupService->receivableDisputeOutcomeOptions(),
             'activities' => $sale->activities()->with('causer')->latest()->get(),
         ]);
     }
@@ -149,6 +162,20 @@ class SaleController extends Controller
         $adjustment = $this->createReceivableAdjustment->execute($sale, $type, $request->validated(), $request->user());
 
         return redirect()->route('sales.show', $sale)->with('status', 'Penyesuaian piutang ' . $adjustment->adjustment_number . ' berhasil dibuat.');
+    }
+
+    public function storeReceivableDispute(StoreSaleReceivableDisputeRequest $request, Sale $sale): RedirectResponse
+    {
+        $dispute = $this->createReceivableDispute->execute($sale, $request->validated(), $request->user());
+
+        return redirect()->route('sales.show', $sale)->with('status', 'Dispute piutang ' . $dispute->dispute_number . ' berhasil dibuat.');
+    }
+
+    public function resolveReceivableDispute(ResolveSaleReceivableDisputeRequest $request, Sale $sale, SaleReceivableDispute $dispute): RedirectResponse
+    {
+        $dispute = $this->resolveReceivableDispute->execute($sale, $dispute, $request->validated(), $request->user());
+
+        return redirect()->route('sales.show', $sale)->with('status', 'Dispute piutang ' . $dispute->dispute_number . ' berhasil diselesaikan.');
     }
 
     public function invoice(Sale $sale): View

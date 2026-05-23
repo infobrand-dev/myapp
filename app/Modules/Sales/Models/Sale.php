@@ -171,6 +171,11 @@ class Sale extends Model
         return $this->hasMany(SaleReceivableAdjustment::class)->latest('adjustment_date');
     }
 
+    public function receivableDisputes(): HasMany
+    {
+        return $this->hasMany(SaleReceivableDispute::class)->latest('dispute_date');
+    }
+
     public function voidLogs(): HasMany
     {
         return $this->hasMany(SaleVoidLog::class)->latest();
@@ -217,6 +222,17 @@ class Sale extends Model
             && (float) $this->balance_due > 0
             && $this->status === self::STATUS_FINALIZED
             && $this->due_date->lt(now()->startOfDay());
+    }
+
+    public function hasOpenReceivableDispute(): bool
+    {
+        if ($this->relationLoaded('receivableDisputes')) {
+            return $this->receivableDisputes->contains(fn (SaleReceivableDispute $dispute) => $dispute->status === SaleReceivableDispute::STATUS_OPEN);
+        }
+
+        return $this->receivableDisputes()
+            ->where('status', SaleReceivableDispute::STATUS_OPEN)
+            ->exists();
     }
 
     public function resolveRouteBinding($value, $field = null)

@@ -63,8 +63,9 @@ This file is a quick catalog. The authoritative metadata for each module lives i
 - `midtrans`: Midtrans payment gateway integration for online payment flow. Requires `payments`, `sales`, `point-of-sale`.
 
 Planned boundary note:
-- `finance` saat ini tetap berada di `commerce` karena fungsinya masih cash flow operasional ringan, bukan akuntansi formal.
-- area `cash` dan `bank` saat ini hidup di dalam `finance` melalui finance accounts, bukan module terpisah.
+- `finance` saat ini sudah menampung finance operasional sekaligus fondasi accounting yang cukup dalam untuk product line `accounting`.
+- Jika domain accounting formal tumbuh jauh lebih besar lagi, pemecahan module harus dilakukan sengaja dan mengikuti boundary journal/tax/governance yang benar, bukan sekadar rename kosmetik.
+- area `cash` dan `bank` tetap hidup di dalam `finance` melalui finance accounts, bukan module terpisah.
 
 ## Accounting
 Saat ini `accounting` diposisikan sebagai product line pricing yang memakai modul existing, bukan katalog modul baru.

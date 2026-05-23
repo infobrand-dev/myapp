@@ -7,6 +7,9 @@
     <title>@yield('head_title', config('app.name'))</title>
     <meta name="description" content="@yield('head_description', 'Meetra — platform bisnis untuk operasional, penjualan, customer, dan workflow tim dalam satu workspace.')">
     @stack('head_meta')
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="{{ asset('brand/apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('brand/favicon-32.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">

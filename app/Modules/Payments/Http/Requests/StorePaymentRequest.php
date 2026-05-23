@@ -2,6 +2,7 @@
 
 namespace App\Modules\Payments\Http\Requests;
 
+use App\Http\Requests\Concerns\InteractsWithFeatureMode;
 use App\Support\CompanyContext;
 use App\Support\CurrencySettingsResolver;
 use App\Support\TenantContext;
@@ -14,6 +15,8 @@ use Illuminate\Validation\Validator;
 
 class StorePaymentRequest extends FormRequest
 {
+    use InteractsWithFeatureMode;
+
     public function authorize(): bool
     {
         return $this->user() ? (bool) $this->user()->can('payments.create') : false;
@@ -70,6 +73,7 @@ class StorePaymentRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $payment = $this->route('payment');
         $allocations = collect($this->input('allocations', []))
             ->filter(fn ($allocation) => is_array($allocation))
             ->map(function (array $allocation) {
@@ -98,13 +102,18 @@ class StorePaymentRequest extends FormRequest
             ];
         }
 
-        $this->merge([
+        $payload = [
             'currency_code' => strtoupper((string) ($this->input('currency_code') ?: app(CurrencySettingsResolver::class)->defaultCurrency())),
             'source' => strtolower((string) ($this->input('source') ?: 'backoffice')),
             'branch_id' => $this->input('branch_id', $this->input('outlet_id')),
             'reconciliation_status' => strtolower((string) ($this->input('reconciliation_status') ?: 'unreconciled')),
             'allocations' => $allocations,
-        ]);
+        ];
+
+        $this->merge(array_merge(
+            $payload,
+            app(\App\Support\ModeAwarePayloadSanitizer::class)->sanitizePayment($this, $payment)
+        ));
     }
 
     private function validateAccessScope(Validator $validator): void
@@ -125,6 +134,10 @@ class StorePaymentRequest extends FormRequest
             if ($allowedBranchIds !== null && !$allowedBranchIds->contains((int) $branchId)) {
                 $validator->errors()->add('branch_id', 'User tidak memiliki akses ke branch yang dipilih.');
             }
+        }
+
+        if (!$this->isAdvancedMode() && !$this->route('payment') && collect($this->input('allocations', []))->count() > 1) {
+            $validator->errors()->add('allocations', 'Standard mode hanya mendukung satu alokasi payment per transaksi.');
         }
 
         if ($this->input('reconciliation_status') === \App\Modules\Payments\Models\Payment::RECONCILIATION_RECONCILED

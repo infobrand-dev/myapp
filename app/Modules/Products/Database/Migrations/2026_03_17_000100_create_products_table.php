@@ -40,7 +40,7 @@ return new class extends Migration
             $table->index(['category_id', 'brand_id']);
             $table->index(['tenant_id', 'is_active', 'created_at']);
 
-            if (in_array(DB::getDriverName(), ['mysql', 'pgsql'], true)) {
+            if (DB::getDriverName() === 'pgsql') {
                 $table->fullText(['name', 'description'], 'products_search_fulltext');
             }
         });

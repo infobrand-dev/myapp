@@ -1,7 +1,7 @@
 # ARCHITECTURE.md - App-Specific Notes
 
 ## Product snapshot
-- Laravel 11 app with Breeze (Blade), Tabler UI, Laravel Mix, Spatie Permission, and MySQL/MariaDB.
+- Laravel 11 app with Breeze (Blade), Tabler UI, Laravel Mix, Spatie Permission, and PostgreSQL as the primary runtime database.
 - Core app responsibilities are the shell and shared platform pieces such as authentication, dashboard, profile, users, roles, module registry, shared layout, and cross-cutting infrastructure.
 - Business features live under `app/Modules/*` and are discovered from each module's `module.json`.
 
@@ -48,6 +48,15 @@
 - Modules should publish typed notification messages through the shared notification center instead of querying or mutating core notification tables directly.
 - Core must not scan module tables to invent business alerts. The owning module decides when a notification is created, deduped, resolved, or superseded.
 - Dashboard notification widgets, topbar bell state, and channel delivery policy should be driven from the shared notification subsystem so cross-module alerting stays consistent.
+
+## Feature modes
+- Product-line UI complexity now has a dedicated core resolver in `App\Support\FeatureMode`.
+- Keep `plan feature gating` separate from `feature mode gating`:
+  - plan gating decides whether a tenant may access a module or capability at all
+  - feature mode decides whether the active experience is `standard` or `advanced`
+- For `accounting`, `accounting_starter` should default to `standard`, while plans that expose `advanced_reports` default to `advanced`.
+- Hidden advanced fields must stay safe at request/service level through conditional validation, payload sanitization, preserve-on-update behavior, and route middleware such as `mode:advanced`.
+- Do not rely on Blade-only hide/show for business safety. If a flow is truly advanced, gate the route/controller too.
 
 ## Module registry rules
 - Install and activation are separate states.
@@ -105,6 +114,6 @@
 - `README.md`: setup, install, and runtime commands
 - `MODULES.md`: module catalog and high-level module notes
 - `docs/product/pricing.md`: pricing model, quota policy, and storage positioning
-- `docs/architecture/multi-plan-per-tenant-blueprint.md`: target refactor from single active subscription to product-line-scoped multi-plan subscriptions
+- Product-line-scoped multi-plan subscription foundation is now in the main runtime (`tenant_subscriptions.product_line`, `Tenant::activeSubscriptionFor()`, `TenantPlanManager::currentSubscriptionFor()`, and product-line-aware billing activation). Keep follow-up notes close to the owning billing/runtime docs instead of reviving a separate migration blueprint.
 - `SAAS_TENANCY.md`: target SaaS tenancy model, tenant lifecycle, plan gating, and multi-company direction
 - `SAAS_PRODUCT_MODEL.md`: target product model for tenant, company, branch, industry presets, module entitlement, and rollout order

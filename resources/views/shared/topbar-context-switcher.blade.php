@@ -5,6 +5,7 @@
     $hasBranches = $topbarCurrentCompany && ($topbarBranches->isNotEmpty() || $topbarCurrentBranch);
     $switcherWidth = '11.5rem';
     $uiMode = $accountingUiMode ?? \App\Support\AccountingUiMode::STANDARD;
+    $canUseAdvancedMode = $accountingUiModeCanUseAdvanced ?? false;
 @endphp
 @if($hasCompanies || $hasBranches || $canSwitchContext)
 <div class="d-flex align-items-center gap-1 flex-wrap">
@@ -145,15 +146,17 @@
                         </button>
                     </form>
                 </li>
-                <li>
-                    <form method="POST" action="{{ route('settings.accounting-ui-mode') }}" class="d-contents">
-                        @csrf
-                        <input type="hidden" name="mode" value="advanced">
-                        <button type="submit" class="dropdown-item {{ $uiMode === 'advanced' ? 'active' : '' }}">
-                            Advanced
-                        </button>
-                    </form>
-                </li>
+                @if($canUseAdvancedMode)
+                    <li>
+                        <form method="POST" action="{{ route('settings.accounting-ui-mode') }}" class="d-contents">
+                            @csrf
+                            <input type="hidden" name="mode" value="advanced">
+                            <button type="submit" class="dropdown-item {{ $uiMode === 'advanced' ? 'active' : '' }}">
+                                Advanced
+                            </button>
+                        </form>
+                    </li>
+                @endif
             </ul>
         </div>
     </div>

@@ -3,7 +3,6 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -13,14 +12,8 @@ return new class extends Migration
             return;
         }
 
-        $supportsAfter = in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true);
-
-        Schema::table('document_settings', function (Blueprint $table) use ($supportsAfter) {
-            $column = $table->string('invoice_last_period', 20)->nullable();
-
-            if ($supportsAfter) {
-                $column->after('invoice_next_number');
-            }
+        Schema::table('document_settings', function (Blueprint $table) {
+            $table->string('invoice_last_period', 20)->nullable();
         });
     }
 

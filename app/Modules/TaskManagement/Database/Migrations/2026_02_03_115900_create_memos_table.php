@@ -26,7 +26,7 @@ return new class extends Migration {
 
             $table->index(['tenant_id', 'deadline', 'created_at']);
 
-            if (in_array(DB::getDriverName(), ['mysql', 'pgsql'], true)) {
+            if (DB::getDriverName() === 'pgsql') {
                 $table->fullText(
                     ['title', 'company_name', 'brand_name', 'contact_name', 'job_title', 'account_executive', 'note'],
                     'memos_search_fulltext'

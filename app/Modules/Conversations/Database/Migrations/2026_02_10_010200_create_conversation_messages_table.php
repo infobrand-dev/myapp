@@ -31,7 +31,7 @@ return new class extends Migration
             $table->index(['conversation_id', 'direction']);
             $table->index(['tenant_id', 'created_at']);
 
-            if (in_array(DB::getDriverName(), ['mysql', 'pgsql'], true)) {
+            if (DB::getDriverName() === 'pgsql') {
                 $table->fullText('body', 'conversation_messages_body_fulltext');
             }
         });

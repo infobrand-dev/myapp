@@ -130,7 +130,7 @@ class FinanceTaxDocumentController extends Controller
         ]);
     }
 
-    public function exportEfakturDraft(Request $request): StreamedResponse
+    public function exportEfaktur(Request $request): StreamedResponse
     {
         $filters = $this->filtersFromRequest($request);
         if ($filters['document_type'] === '') {
@@ -145,7 +145,7 @@ class FinanceTaxDocumentController extends Controller
             ->get();
 
         $headers = [
-            'ready_status',
+            'export_status',
             'validation_notes',
             'fk_status',
             'transaction_code',
@@ -172,7 +172,7 @@ class FinanceTaxDocumentController extends Controller
             'notes',
         ];
 
-        $fileName = 'efaktur-draft-' . now()->format('Ymd-His') . '.csv';
+        $fileName = 'efaktur-export-' . now()->format('Ymd-His') . '.csv';
 
         return response()->streamDownload(function () use ($documents, $headers) {
             $stream = fopen('php://output', 'w');
@@ -182,7 +182,7 @@ class FinanceTaxDocumentController extends Controller
                 $validationNotes = $this->efakturValidationNotes($document);
 
                 fputcsv($stream, [
-                    empty($validationNotes) ? 'ready' : 'needs_review',
+                    empty($validationNotes) ? 'ready' : 'blocked',
                     implode('; ', $validationNotes),
                     $document->document_status === FinanceTaxDocument::STATUS_CANCELLED ? '0' : '1',
                     $this->efakturTransactionCode($document),
@@ -206,7 +206,7 @@ class FinanceTaxDocumentController extends Controller
                     optional($document->taxRate)->code,
                     optional($document->taxRate)->tax_scope ?: data_get($document->meta, 'tax_scope'),
                     optional($document->taxRate)->legal_basis ?: data_get($document->meta, 'legal_basis'),
-                    'Draft export struktur e-Faktur dari tax register.',
+                    'Final app-side export untuk proses e-Faktur tenant; bukan direct submit ke DJP.',
                 ]);
             }
 
@@ -216,7 +216,7 @@ class FinanceTaxDocumentController extends Controller
         ]);
     }
 
-    public function exportWithholdingDraft(Request $request): StreamedResponse
+    public function exportWithholding(Request $request): StreamedResponse
     {
         $filters = $this->filtersFromRequest($request);
         if ($filters['document_type'] === '') {
@@ -231,6 +231,8 @@ class FinanceTaxDocumentController extends Controller
             ->get();
 
         $headers = [
+            'export_status',
+            'validation_notes',
             'document_status',
             'withholding_direction',
             'tax_period_month',
@@ -258,7 +260,7 @@ class FinanceTaxDocumentController extends Controller
             'replaces_document_number',
         ];
 
-        $fileName = 'withholding-draft-' . now()->format('Ymd-His') . '.csv';
+        $fileName = 'withholding-export-' . now()->format('Ymd-His') . '.csv';
 
         return response()->streamDownload(function () use ($documents, $headers) {
             $stream = fopen('php://output', 'w');
@@ -266,8 +268,11 @@ class FinanceTaxDocumentController extends Controller
 
             foreach ($documents as $document) {
                 $direction = $this->withholdingDirection($document);
+                $validationNotes = $this->withholdingValidationNotes($document, $direction);
 
                 fputcsv($stream, [
+                    empty($validationNotes) ? 'ready' : 'blocked',
+                    implode('; ', $validationNotes),
                     $document->document_status,
                     $direction,
                     (int) $document->tax_period_month,
@@ -521,6 +526,9 @@ class FinanceTaxDocumentController extends Controller
             'ready_efaktur_count' => (int) $rows
                 ->filter(fn (FinanceTaxDocument $document) => $this->isEfakturReady($document))
                 ->count(),
+            'ready_withholding_count' => (int) $rows
+                ->filter(fn (FinanceTaxDocument $document) => $this->isWithholdingReady($document))
+                ->count(),
         ];
     }
 
@@ -664,6 +672,26 @@ class FinanceTaxDocumentController extends Controller
 
         return $this->nullableString($document->document_number) !== null
             && $this->hasCounterpartyTaxProfile($document);
+    }
+
+    private function isWithholdingReady(FinanceTaxDocument $document): bool
+    {
+        if ($document->document_type !== FinanceTaxDocument::TYPE_WITHHOLDING) {
+            return false;
+        }
+
+        if (!in_array($document->document_status, [
+            FinanceTaxDocument::STATUS_ISSUED,
+            FinanceTaxDocument::STATUS_REPLACED,
+            FinanceTaxDocument::STATUS_CANCELLED,
+        ], true)) {
+            return false;
+        }
+
+        return $this->nullableString($document->document_number) !== null
+            && $this->hasCounterpartyTaxProfile($document)
+            && (float) $document->withheld_amount > 0
+            && $this->nullableString($this->withholdingAccountCode($document, $this->withholdingDirection($document))) !== null;
     }
 
     private function publishTaxDocumentNotification(FinanceTaxDocument $document): void
@@ -817,8 +845,75 @@ class FinanceTaxDocumentController extends Controller
             $notes[] = 'missing_counterparty_name';
         }
 
+        if ($this->nullableString($document->counterparty_tax_name_snapshot) === null) {
+            $notes[] = 'missing_counterparty_tax_name';
+        }
+
+        if ($this->nullableString($document->counterparty_tax_address_snapshot) === null) {
+            $notes[] = 'missing_counterparty_tax_address';
+        }
+
+        if (!$document->transaction_date) {
+            $notes[] = 'missing_transaction_date';
+        }
+
+        if (!$document->document_date) {
+            $notes[] = 'missing_document_date';
+        }
+
+        if ((float) $document->taxable_base <= 0) {
+            $notes[] = 'missing_taxable_base';
+        }
+
         if ((float) $document->tax_amount <= 0) {
             $notes[] = 'missing_vat_amount';
+        }
+
+        if (!preg_match('/^\d{2}$/', $this->efakturTransactionCode($document))) {
+            $notes[] = 'invalid_transaction_code';
+        }
+
+        return $notes;
+    }
+
+    private function withholdingValidationNotes(FinanceTaxDocument $document, string $direction): array
+    {
+        $notes = [];
+
+        if ($document->document_status === FinanceTaxDocument::STATUS_DRAFT) {
+            $notes[] = 'document_not_formal';
+        }
+
+        if ($this->nullableString($document->document_number) === null) {
+            $notes[] = 'missing_document_number';
+        }
+
+        if (!$this->hasCounterpartyTaxProfile($document)) {
+            $notes[] = 'missing_counterparty_tax_profile';
+        }
+
+        if (!$document->transaction_date) {
+            $notes[] = 'missing_transaction_date';
+        }
+
+        if (!$document->document_date) {
+            $notes[] = 'missing_document_date';
+        }
+
+        if ((float) $document->taxable_base <= 0) {
+            $notes[] = 'missing_taxable_base';
+        }
+
+        if ((float) $document->withheld_amount <= 0) {
+            $notes[] = 'missing_withheld_amount';
+        }
+
+        if (!in_array($direction, ['payable', 'receivable'], true)) {
+            $notes[] = 'invalid_withholding_direction';
+        }
+
+        if ($this->nullableString($this->withholdingAccountCode($document, $direction)) === null) {
+            $notes[] = 'missing_withholding_account_code';
         }
 
         return $notes;

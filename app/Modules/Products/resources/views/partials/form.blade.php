@@ -4,6 +4,7 @@
     $money = app(\App\Support\MoneyFormatter::class);
     $wholesaleLevelId = optional($priceLevels->firstWhere('code', 'wholesale'))->id;
     $memberLevelId = optional($priceLevels->firstWhere('code', 'member'))->id;
+    $isLockedVariantInStandardMode = !$isAdvancedMode && $isEdit && $product->type === 'variant';
     $variantRows = old('variants', $product->variants->map(function ($variant) {
         return [
             'id' => $variant->id,
@@ -61,9 +62,17 @@
                         ])
                         <select name="type" class="form-select" id="product-type">
                             <option value="simple" @selected(old('type', $product->type) === 'simple')>Simple product</option>
-                            <option value="variant" @selected(old('type', $product->type) === 'variant')>Variant product</option>
+                            @if($isAdvancedMode)
+                                <option value="variant" @selected(old('type', $product->type) === 'variant')>Variant product</option>
+                            @elseif($isLockedVariantInStandardMode)
+                                <option value="variant" selected>Variant product</option>
+                            @endif
                             <option value="service" @selected(old('type', $product->type) === 'service')>Non-stock / service</option>
                         </select>
+                        @if($isLockedVariantInStandardMode)
+                            <input type="hidden" name="type" value="variant">
+                            <div class="form-hint">Produk ini memakai variant. Gunakan Advanced Mode jika ingin mengubah struktur variannya.</div>
+                        @endif
                     </div>
                     <div class="col-md-8">
                         @include('shared.accounting.field-label', [
@@ -358,9 +367,10 @@
     const marginPercentField = document.querySelector('[data-margin-percent]');
     const formatMoney = (value) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value || 0);
 
+    const isAdvancedMode = @json($isAdvancedMode);
     const refreshVisibility = () => {
         const type = typeSelect?.value || 'simple';
-        if (variantCard) variantCard.style.display = type === 'variant' ? '' : 'none';
+        if (variantCard) variantCard.style.display = isAdvancedMode && type === 'variant' ? '' : 'none';
         if (trackStockWrapper) trackStockWrapper.style.display = type === 'service' ? 'none' : '';
     };
 

@@ -176,7 +176,15 @@ class FinalizeSaleAction
                 $sale->transaction_date ?: now(),
                 $this->journalLines($sale),
                 [
+                    'posting_policy' => 'sale_revenue_standard',
                     'payment_status' => $sale->payment_status,
+                    'sale_number' => $sale->sale_number,
+                    'contact_id' => $sale->contact_id,
+                    'customer_name' => $sale->customer_name_snapshot,
+                    'currency_code' => $sale->currency_code,
+                    'subtotal' => (float) $sale->subtotal,
+                    'discount_total' => (float) $sale->discount_total,
+                    'tax_total' => (float) $sale->tax_total,
                     'grand_total' => (float) $sale->grand_total,
                 ],
                 'Auto journal sale ' . $sale->sale_number
@@ -189,6 +197,8 @@ class FinalizeSaleAction
                     $sale->transaction_date ?: now(),
                     $this->cogsJournalLines((float) $inventoryIntegration['cogs_total']),
                     [
+                        'posting_policy' => 'sale_inventory_cogs',
+                        'sale_number' => $sale->sale_number,
                         'inventory_location_id' => $inventoryIntegration['inventory_location_id'] ?? null,
                         'movement_count' => count($inventoryIntegration['movements'] ?? []),
                         'cogs_total' => (float) $inventoryIntegration['cogs_total'],
@@ -225,12 +235,22 @@ class FinalizeSaleAction
                 'account_name' => 'Accounts Receivable',
                 'debit' => (float) $sale->grand_total,
                 'credit' => 0,
+                'meta' => [
+                    'posting_role' => 'receivable_control',
+                    'sale_number' => $sale->sale_number,
+                    'basis_amount' => (float) $sale->grand_total,
+                ],
             ],
             [
                 'account_code' => 'SALES',
                 'account_name' => 'Sales Revenue',
                 'debit' => 0,
                 'credit' => (float) $sale->subtotal,
+                'meta' => [
+                    'posting_role' => 'revenue',
+                    'sale_number' => $sale->sale_number,
+                    'basis_amount' => (float) $sale->subtotal,
+                ],
             ],
         ];
 
@@ -240,6 +260,11 @@ class FinalizeSaleAction
                 'account_name' => 'Sales Discount',
                 'debit' => (float) $sale->discount_total,
                 'credit' => 0,
+                'meta' => [
+                    'posting_role' => 'contra_revenue_discount',
+                    'sale_number' => $sale->sale_number,
+                    'basis_amount' => (float) $sale->discount_total,
+                ],
             ];
         }
 
@@ -249,6 +274,11 @@ class FinalizeSaleAction
                 'account_name' => 'Sales Tax Payable',
                 'debit' => 0,
                 'credit' => (float) $sale->tax_total,
+                'meta' => [
+                    'posting_role' => 'output_tax',
+                    'sale_number' => $sale->sale_number,
+                    'basis_amount' => (float) $sale->tax_total,
+                ],
             ];
         }
 
@@ -263,12 +293,20 @@ class FinalizeSaleAction
                 'account_name' => 'Cost of Goods Sold',
                 'debit' => $cogsTotal,
                 'credit' => 0,
+                'meta' => [
+                    'posting_role' => 'cogs_expense',
+                    'basis_amount' => $cogsTotal,
+                ],
             ],
             [
                 'account_code' => 'INVENTORY',
                 'account_name' => 'Inventory',
                 'debit' => 0,
                 'credit' => $cogsTotal,
+                'meta' => [
+                    'posting_role' => 'inventory_asset_release',
+                    'basis_amount' => $cogsTotal,
+                ],
             ],
         ];
     }

@@ -28,6 +28,22 @@
     </div>
 @endif
 
+@if(($accountUsage['journal_count'] ?? 0) > 0 || ($accountUsage['tax_rate_count'] ?? 0) > 0)
+    <div class="alert alert-secondary">
+        Akun ini sudah dipakai
+        @if(($accountUsage['journal_count'] ?? 0) > 0)
+            {{ $accountUsage['journal_count'] }} journal
+        @endif
+        @if(($accountUsage['journal_count'] ?? 0) > 0 && ($accountUsage['tax_rate_count'] ?? 0) > 0)
+            dan
+        @endif
+        @if(($accountUsage['tax_rate_count'] ?? 0) > 0)
+            {{ $accountUsage['tax_rate_count'] }} tax master
+        @endif
+        , jadi akun ini tidak boleh dijadikan nonaktif atau non-postable.
+    </div>
+@endif
+
 <form method="POST" action="{{ route('finance.chart-accounts.update', $account) }}">
     @csrf
     @method('PUT')

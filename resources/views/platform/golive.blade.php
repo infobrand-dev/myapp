@@ -7,7 +7,7 @@
         <div>
             <div class="text-secondary text-uppercase fw-bold small">Platform Owner</div>
             <h1 class="page-title mb-1">Go-Live Audit</h1>
-            <div class="text-muted">Pantau konfigurasi production, queue, billing platform, dan secret yang masih kurang dari panel `dash`.</div>
+            <div class="text-muted">Pantau konfigurasi production, notification stack, queue, billing platform, dan secret yang masih kurang dari panel `dash`.</div>
         </div>
         <div class="d-flex gap-2 flex-wrap">
             <a href="{{ route('platform.dashboard') }}" class="btn btn-outline-secondary">Dashboard</a>
@@ -61,7 +61,7 @@
                     <h3 class="card-title mb-0">Automatic Audit</h3>
                 </div>
                 <div class="card-body text-muted">
-                    Bagian ini membaca konfigurasi runtime dan kondisi tabel langsung dari aplikasi. Item `FAIL` harus nol sebelum launch.
+                    Bagian ini membaca konfigurasi runtime dan kondisi tabel langsung dari aplikasi. Item `FAIL` harus nol sebelum launch. Item notification akan memberi tahu jika VAPID, subscription, atau delivery web push belum benar-benar siap.
                 </div>
             </div>
         </div>
@@ -209,7 +209,7 @@
 
     @if(!$ready)
         <div class="alert alert-danger mb-4">
-            Masih ada blocker go-live. Fokus utamanya adalah item `FAIL`, terutama tenancy, session/cookie, queue, billing platform, mail, dan Midtrans.
+            Masih ada blocker go-live. Fokus utamanya adalah item `FAIL`, terutama tenancy, session/cookie, notification stack, queue, billing platform, mail, dan Midtrans.
         </div>
     @endif
 

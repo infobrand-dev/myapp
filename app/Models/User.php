@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -85,6 +86,21 @@ class User extends Authenticatable
         return $this->belongsToMany(Branch::class, 'user_branches')
             ->withPivot(['tenant_id', 'company_id', 'is_default'])
             ->withTimestamps();
+    }
+
+    public function notificationRecipients(): HasMany
+    {
+        return $this->hasMany(NotificationRecipient::class);
+    }
+
+    public function notificationPreferences(): HasMany
+    {
+        return $this->hasMany(NotificationPreference::class);
+    }
+
+    public function notificationPushSubscriptions(): HasMany
+    {
+        return $this->hasMany(NotificationPushSubscription::class);
     }
 
     public function resolveRouteBinding($value, $field = null): ?Model

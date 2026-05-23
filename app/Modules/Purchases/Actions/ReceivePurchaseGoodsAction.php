@@ -10,6 +10,8 @@ use App\Support\AccountingJournalService;
 use App\Support\AccountingPeriodLockService;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
+use App\Support\Notifications\NotificationCenter;
+use App\Support\Notifications\NotificationMessage;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -20,17 +22,20 @@ class ReceivePurchaseGoodsAction
     private $syncPaymentSummary;
     private $periodLockService;
     private $journalService;
+    private $notificationCenter;
 
     public function __construct(
         PurchaseNumberService $numberService,
         SyncPurchasePaymentSummaryAction $syncPaymentSummary,
         AccountingPeriodLockService $periodLockService,
-        AccountingJournalService $journalService
+        AccountingJournalService $journalService,
+        NotificationCenter $notificationCenter
     ) {
         $this->numberService = $numberService;
         $this->syncPaymentSummary = $syncPaymentSummary;
         $this->periodLockService = $periodLockService;
         $this->journalService = $journalService;
+        $this->notificationCenter = $notificationCenter;
     }
 
     public function execute(Purchase $purchase, array $data, ?User $actor = null): Purchase
@@ -219,6 +224,29 @@ class ReceivePurchaseGoodsAction
                     'received_qty' => $totalReceivedQty,
                 ],
             ]);
+
+            $this->notificationCenter->publish(new NotificationMessage(
+                module: 'purchases',
+                type: 'purchases.receipt_posted',
+                title: 'Purchase receipt posted',
+                body: 'Receipt ' . $receipt->receipt_number . ' untuk purchase ' . $purchase->purchase_number . ' sudah diposting.',
+                tenantId: (int) $purchase->tenant_id,
+                companyId: (int) $purchase->company_id,
+                branchId: $purchase->branch_id ? (int) $purchase->branch_id : null,
+                resourceType: $receipt->getMorphClass(),
+                resourceId: (int) $receipt->id,
+                actions: [
+                    [
+                        'label' => 'Buka Receipt',
+                        'url' => route('purchases.receipts.show', $receipt),
+                    ],
+                ],
+                meta: [
+                    'purchase_id' => $purchase->id,
+                    'purchase_number' => $purchase->purchase_number,
+                    'receipt_number' => $receipt->receipt_number,
+                ],
+            ));
 
             return $this->syncPaymentSummary->execute($purchase)->load('items', 'receipts.items');
         });

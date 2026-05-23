@@ -148,6 +148,7 @@ Fungsi COA dalam sistem:
 - menentukan cara period closing membaca nominal accounts
 - menjadi pilihan saat input manual journal
 - menjadi basis rekonsiliasi inventory vs GL
+- akun COA yang nonaktif atau `header / non-postable` sekarang tidak boleh dipakai oleh posting journal, baik manual maupun auto
 
 ### Finance Account (Akun Cashbook)
 
@@ -462,6 +463,7 @@ Journal revenue saat ini:
 - credit `SALES`
 - jika ada discount: debit `SALES_DISC`
 - jika ada tax: credit `SALES_TAX`
+- journal revenue sekarang juga menyimpan `posting_policy` dan meta audit per line seperti `posting_role`, `basis_amount`, dan nomor sale
 
 ### 3. Jika sale membawa konteks `inventory_location_id`
 
@@ -830,7 +832,9 @@ Maka:
 - import dasar sekarang menerima header tanggal yang umum seperti `transaction_date`, `date`, `posting_date`, `book_date`, atau `value_date`
 - nilai mutasi bisa dibaca dari `amount` tunggal atau pasangan `debit` / `credit`
 - sistem menandai `duplicate candidate` bila menemukan line yang sangat mirip di sesi reconciliation yang sama
-- sistem mencoba membuat `suggested match` ke `payment` atau `finance transaction` yang amount-nya sama, lalu menaikkan skor jika arah kas, reference, notes, atau tanggalnya dekat
+- sistem mencoba membuat `suggested match` ke `payment` atau `finance transaction` yang amount-nya sama, lalu menaikkan skor jika arah kas, reference, notes, allocation reference, category context, atau tanggalnya dekat
+- deskripsi statement yang terlihat seperti `transfer`, `biaya admin`, `charge`, atau `refund` sekarang ikut mempengaruhi scoring agar target suggestion tidak terlalu bias ke payment biasa
+- jika ada lebih dari satu kandidat dengan skor hampir sama, sistem menurunkan confidence agar line itu lebih jelas perlu dicek manual
 - suggested match belum mengubah payment sampai user menyelesaikan sesi reconciliation
 
 Artinya:
@@ -865,7 +869,7 @@ Artinya:
 
 Maka:
 - user bisa menandai line sebagai `exception` atau `ignored`
-- user dapat menyimpan `resolution_reason` dan catatan singkat
+- user dapat menyimpan `resolution_reason` terstruktur seperti timing difference, duplicate statement, pending settlement, bank fee, transfer antar rekening, atau unknown inflow/outflow, ditambah catatan singkat bila perlu
 - line itu tidak dipaksa ikut proses `complete reconciliation` sebagai matched item
 
 Artinya:
@@ -973,6 +977,8 @@ Maka:
 - sistem sekarang menyediakan `Export Register CSV` untuk register internal dan review operasional
 - sistem sekarang juga menyediakan `Draft Bukti Potong CSV` untuk dokumen `PPh / withholding`
 - sistem juga menyediakan `Draft e-Faktur CSV` untuk dokumen `PPN keluaran`
+- draft `e-Faktur` sekarang membawa `ready_status`, `validation_notes`, kode transaksi, kode tambahan, nomor pengganti, dan metadata legal dasar agar finance bisa review sebelum export resmi
+- arah `withholding` sekarang bisa diset manual per tax register jika kasus PPh tidak cukup ditentukan otomatis dari source sale/purchase
 - export e-Faktur saat ini masih draft structure, belum dianggap format final integrasi resmi
 
 Artinya:

@@ -287,6 +287,69 @@
 
     {{-- ── Panel bawah ── --}}
     <div class="row g-3 mt-1">
+        <div class="col-12 col-xl-6">
+            <div class="dashboard-panel p-3 p-lg-4 h-100">
+                <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                    <div>
+                        <div class="text-secondary text-uppercase small fw-bold">Needs Attention</div>
+                        <h3 class="mb-0">Alert penting</h3>
+                    </div>
+                    <a href="{{ route('notifications.index', ['unread' => 1]) }}" class="dashboard-chip text-decoration-none">Buka inbox</a>
+                </div>
+
+                <div class="d-grid gap-2">
+                    @forelse($attentionNotifications as $row)
+                        <div class="dashboard-mini-stat">
+                            <div class="d-flex align-items-start justify-content-between gap-3">
+                                <div class="min-w-0">
+                                    <div class="fw-semibold">{{ $row->notification->title }}</div>
+                                    <div class="text-muted small mt-1">{{ \Illuminate\Support\Str::limit($row->notification->body, 110) }}</div>
+                                </div>
+                                <span class="badge {{ $row->notification->severity === 'critical' ? 'bg-red-lt text-red' : 'bg-orange-lt text-orange' }}">
+                                    {{ strtoupper($row->notification->severity) }}
+                                </span>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="text-center py-4 text-muted">
+                            <i class="ti ti-checkup-list" style="font-size: 2rem;"></i>
+                            <div class="mt-2 small">Belum ada alert prioritas tinggi.</div>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-6">
+            <div class="dashboard-panel p-3 p-lg-4 h-100">
+                <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                    <div>
+                        <div class="text-secondary text-uppercase small fw-bold">Recent Updates</div>
+                        <h3 class="mb-0">Update operasional terbaru</h3>
+                    </div>
+                    <a href="{{ route('notifications.index') }}" class="dashboard-chip text-decoration-none">Semua notifikasi</a>
+                </div>
+
+                <div class="d-grid gap-2">
+                    @forelse($recentNotifications as $row)
+                        <div class="dashboard-timeline-item py-2">
+                            <div class="d-flex align-items-center justify-content-between gap-3">
+                                <div class="min-w-0">
+                                    <div class="fw-semibold text-truncate">{{ $row->notification->title }}</div>
+                                    <div class="text-muted small text-truncate">{{ $row->notification->module }} • {{ \Illuminate\Support\Str::limit($row->notification->body, 90) }}</div>
+                                </div>
+                                <div class="text-muted small text-nowrap">{{ optional($row->notification->last_seen_at)->diffForHumans() }}</div>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="text-center py-4 text-muted">
+                            <i class="ti ti-bell-off" style="font-size: 2rem;"></i>
+                            <div class="mt-2 small">Belum ada update notifikasi terbaru.</div>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
 
         {{-- Kiri: Pengguna terbaru / Ringkasan akun --}}
         <div class="col-12 col-xl-7">

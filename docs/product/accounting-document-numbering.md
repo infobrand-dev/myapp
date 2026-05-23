@@ -58,10 +58,13 @@ Jadi branch override menjadi source of truth hanya untuk branch tersebut, bukan 
 - `sale_quotation`
 - `sale_order`
 - `sale_return`
+- `credit_memo`
 - `purchase`
 - `purchase_request`
 - `purchase_order`
 - `purchase_receipt`
+- `debit_note`
+- `write_off_note`
 - `payment`
 - `tax_output_vat`
 - `tax_input_vat`

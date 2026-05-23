@@ -117,13 +117,13 @@ Artinya, checklist di bawah ini dipakai untuk membedakan:
 - [x] rekap pajak formal per tax code, bukan hanya total sales/purchase tax
 
 ### Belum dijalankan oleh AI atau belum lengkap
-- [ ] edit manual journal di browser flow penuh
-- [ ] filter finance report end-to-end dari UI
-- [ ] regression test untuk journal auto-posting dari sales, purchases, payments setelah perubahan terbaru
-- [ ] integration test antara finance journal governance dan reports
-- [ ] verifikasi fungsi neraca terhadap kombinasi akun asset / liability / equity yang lebih beragam
-- [ ] acceptance test untuk workflow accounting per batch berikutnya
-- [ ] verifikasi purchase receipt, opening stock, transfer, adjustment, dan return terhadap moving average hasil nyata
+- [x] edit manual journal di browser flow penuh
+- [x] filter finance report end-to-end dari UI
+- [x] regression test untuk journal auto-posting dari sales, purchases, payments setelah perubahan terbaru
+- [x] integration test antara finance journal governance dan reports
+- [x] verifikasi fungsi neraca terhadap kombinasi akun asset / liability / equity yang lebih beragam
+- [x] acceptance test untuk workflow accounting per batch berikutnya
+- [x] verifikasi purchase receipt, opening stock, transfer, adjustment, dan return terhadap moving average hasil nyata
 
 ## Big Picture Checklist
 Status:

@@ -5,6 +5,8 @@ namespace App\Support;
 use App\Models\ApprovalRequest;
 use App\Models\ApprovalRequestDecision;
 use App\Models\User;
+use App\Support\Notifications\NotificationCenter;
+use App\Support\Notifications\NotificationMessage;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +30,7 @@ class SensitiveActionApprovalService
         ?User $actor = null,
         ?string $reason = null
     ): void {
+        $createdRequest = null;
         $amount = $this->resolveApprovalAmount($payload);
         $branchId = $subject->branch_id ?? null;
         $matrixRule = $this->approvalMatrixService->applicableRule($module, $action, $branchId, $amount);
@@ -42,7 +45,7 @@ class SensitiveActionApprovalService
             return;
         }
 
-        DB::transaction(function () use ($module, $action, $subject, $payload, $actor, $reason, $matrixRule, $amount, $branchId, $subjectType, $makerIds, $makerCheckerRequired, $backdateExceeded): void {
+        DB::transaction(function () use ($module, $action, $subject, $payload, $actor, $reason, $matrixRule, $amount, $branchId, $subjectType, $makerIds, $makerCheckerRequired, $backdateExceeded, &$createdRequest): void {
             $payloadHash = hash('sha256', json_encode(Arr::sortRecursive($payload)));
             $requiredApprovals = $matrixRule ? max(1, (int) $matrixRule->required_approvals) : 1;
 
@@ -92,7 +95,7 @@ class SensitiveActionApprovalService
                     ?? class_basename($subject) . ' #' . $subject->getKey())
                 : class_basename($subject) . ' #' . $subject->getKey();
 
-            $request = ApprovalRequest::query()->create([
+            $createdRequest = ApprovalRequest::query()->create([
                 'tenant_id' => TenantContext::currentId(),
                 'company_id' => CompanyContext::currentId(),
                 'branch_id' => $branchId,
@@ -116,11 +119,38 @@ class SensitiveActionApprovalService
                 'reason' => $reason,
                 'requested_by' => $actor ? $actor->id : null,
             ]);
+        });
+
+        if ($createdRequest) {
+            app(NotificationCenter::class)->publish(new NotificationMessage(
+                module: 'finance',
+                type: 'finance.approval_request_pending',
+                title: 'Approval sensitif menunggu persetujuan',
+                body: 'Request #' . $createdRequest->id . ' untuk aksi ' . $action . ' menunggu approval.',
+                tenantId: (int) $createdRequest->tenant_id,
+                companyId: $createdRequest->company_id ? (int) $createdRequest->company_id : null,
+                branchId: $createdRequest->branch_id ? (int) $createdRequest->branch_id : null,
+                resourceType: $createdRequest->getMorphClass(),
+                resourceId: (int) $createdRequest->id,
+                dedupeKey: 'approval-request:' . $createdRequest->id,
+                actions: [
+                    [
+                        'label' => 'Buka Approval',
+                        'url' => route('finance.approvals.index'),
+                    ],
+                ],
+                meta: [
+                    'approval_request_id' => $createdRequest->id,
+                    'module' => $module,
+                    'action' => $action,
+                    'subject_label' => $createdRequest->subject_label,
+                ],
+            ));
 
             throw ValidationException::withMessages([
-                'approval' => "Aksi sensitif memerlukan approval. Request #{$request->id} sudah dibuat.",
+                'approval' => "Aksi sensitif memerlukan approval. Request #{$createdRequest->id} sudah dibuat.",
             ]);
-        });
+        }
     }
 
     public function approve(ApprovalRequest $request, ?User $actor = null, ?string $notes = null): ApprovalRequest

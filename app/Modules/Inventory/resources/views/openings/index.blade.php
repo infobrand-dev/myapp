@@ -32,7 +32,7 @@
                             $journal = ($journals ?? collect())->get($opening->id);
                         @endphp
                         <tr>
-                            <td>{{ $opening->code }}</td>
+                            <td><a href="{{ route('inventory.openings.show', $opening) }}">{{ $opening->code }}</a></td>
                             <td>{{ $opening->opening_date?->format('d/m/Y') }}</td>
                             <td>{{ $opening->location?->name }}</td>
                             <td><span class="badge bg-green-lt text-green">{{ $opening->status }}</span></td>

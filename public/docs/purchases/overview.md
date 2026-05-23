@@ -59,6 +59,7 @@ Setiap penerimaan:
 - Menambah stok barang di Inventory
 - Memperbarui harga pokok rata-rata (moving average)
 - Status purchase berubah ke Partially Received atau Received
+- Membuat detail receiving tersendiri agar dokumen receipt dan jurnal inventori bisa ditelusuri lagi
 
 Jika barang diterima dalam 3 termin, cukup lakukan proses Terima Barang sebanyak 3 kali dengan jumlah masing-masing.
 
@@ -85,6 +86,21 @@ Setiap purchase yang di-finalize otomatis membuat **hutang supplier** yang bisa 
 - **Belum dibayar** — total hutang masih penuh
 - **Dibayar sebagian** — ada pembayaran tapi belum lunas, lengkap dengan sisa yang masih terutang
 - **Lunas** — semua hutang sudah dilunasi
+
+Selain status hutang, purchase aktif sekarang juga punya lifecycle **supplier bill** terpisah:
+
+- **Pending Bill** — invoice/tagihan supplier belum diterima
+- **Bill Received** — tagihan sudah diterima dan tanggal penerimaannya dicatat
+- **Bill Verified** — tagihan sudah diverifikasi, lengkap dengan nomor invoice supplier bila ada
+
+Status supplier bill ini bisa diubah langsung dari halaman detail purchase untuk membantu tim procurement dan finance melacak dokumen vendor tanpa mengubah status receiving atau payment.
+
+Settlement hutang supplier juga sekarang meninggalkan riwayat status di purchase ketika payment membuat posisi berubah, misalnya dari **Unpaid** ke **Partial** lalu **Paid**.
+
+Jika supplier memberi pengurangan tagihan atau sisa hutang perlu dihentikan, halaman purchase sekarang juga mendukung:
+
+- **Debit Note** untuk mengurangi hutang supplier dengan jurnal formal
+- **Write-off** untuk menutup sisa hutang kecil yang tidak akan ditagih lagi
 
 ---
 

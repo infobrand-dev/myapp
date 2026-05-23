@@ -2,6 +2,9 @@
 
 namespace App\Modules\Purchases\Models;
 
+use App\Support\BranchContext;
+use App\Support\CompanyContext;
+use App\Support\TenantContext;
 use App\Models\User;
 use App\Modules\Inventory\Models\InventoryLocation;
 use Illuminate\Database\Eloquent\Model;
@@ -55,5 +58,19 @@ class PurchaseReceipt extends Model
     public function receiver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'received_by');
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return BranchContext::applyScope(
+            $this->where($field ?? $this->getRouteKeyName(), $value)
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId())
+        )->firstOrFail();
     }
 }

@@ -16,6 +16,7 @@ class SaleSnapshotService
                 'email' => null,
                 'phone' => null,
                 'address' => null,
+                'tax_address' => null,
                 'payload' => null,
             ];
         }
@@ -28,12 +29,14 @@ class SaleSnapshotService
             $contact->zip,
             $contact->country,
         ])->filter()->implode(', ');
+        $taxAddress = $contact->tax_address ?: $contact->billing_address ?: $address;
 
         return [
             'name' => $contact->name,
             'email' => $contact->email,
             'phone' => $contact->mobile ?: $contact->phone,
             'address' => $address ?: null,
+            'tax_address' => $taxAddress ?: null,
             'payload' => [
                 'id' => $contact->id,
                 'type' => $contact->type,
@@ -41,6 +44,11 @@ class SaleSnapshotService
                 'email' => $contact->email,
                 'phone' => $contact->phone,
                 'mobile' => $contact->mobile,
+                'vat' => $contact->vat,
+                'tax_name' => $contact->tax_name,
+                'tax_address' => $taxAddress ?: null,
+                'tax_is_pkp' => (bool) $contact->tax_is_pkp,
+                'billing_address' => $contact->billing_address,
                 'parent_contact_id' => $contact->parent_contact_id,
                 'parent_contact_name' => $contact->parentContact ? $contact->parentContact->name : null,
                 'scope_company_id' => $contact->company_id,
@@ -53,6 +61,7 @@ class SaleSnapshotService
                     'zip' => $contact->zip,
                     'country' => $contact->country,
                 ],
+                'tax_profile_complete' => filled($contact->vat) && filled($contact->tax_name) && filled($taxAddress),
             ],
         ];
     }

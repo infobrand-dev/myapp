@@ -15,6 +15,7 @@ use App\Modules\Purchases\Models\PurchaseRequest;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\SaleOrder;
 use App\Modules\Sales\Models\SaleQuotation;
+use App\Modules\Sales\Models\SaleReceivableAdjustment;
 use App\Modules\Sales\Models\SaleReturn;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
@@ -247,6 +248,12 @@ class AccountingSourceReferenceService
                 'number_field' => 'return_number',
                 'label' => 'Sale Return',
             ],
+            SaleReceivableAdjustment::class => [
+                'model' => SaleReceivableAdjustment::class,
+                'route' => 'sales.show',
+                'number_field' => 'adjustment_number',
+                'label' => 'Sale Receivable Adjustment',
+            ],
             PurchaseRequest::class => [
                 'model' => PurchaseRequest::class,
                 'route' => 'purchases.requests.show',
@@ -267,13 +274,13 @@ class AccountingSourceReferenceService
             ],
             PurchaseReceipt::class => [
                 'model' => PurchaseReceipt::class,
-                'route' => null,
+                'route' => 'purchases.receipts.show',
                 'number_field' => 'receipt_number',
                 'label' => 'Purchase Receipt',
             ],
             StockOpening::class => [
                 'model' => StockOpening::class,
-                'route' => null,
+                'route' => 'inventory.openings.show',
                 'number_field' => 'code',
                 'label' => 'Opening Stock',
             ],

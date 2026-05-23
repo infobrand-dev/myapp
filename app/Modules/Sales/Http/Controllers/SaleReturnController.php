@@ -7,9 +7,11 @@ use App\Models\AccountingJournal;
 use App\Modules\Sales\Actions\CancelDraftReturnAction;
 use App\Modules\Sales\Actions\CreateSalesReturnAction;
 use App\Modules\Sales\Actions\FinalizeSalesReturnAction;
+use App\Modules\Sales\Actions\UpdateSaleReturnRefundStatusAction;
 use App\Modules\Sales\Http\Requests\CancelDraftReturnRequest;
 use App\Modules\Sales\Http\Requests\FinalizeSaleReturnRequest;
 use App\Modules\Sales\Http\Requests\StoreSaleReturnRequest;
+use App\Modules\Sales\Http\Requests\UpdateSaleReturnRefundStatusRequest;
 use App\Modules\Sales\Models\SaleReturn;
 use App\Modules\Sales\Repositories\SaleReturnRepository;
 use App\Modules\Sales\Services\SaleReturnLookupService;
@@ -24,19 +26,22 @@ class SaleReturnController extends Controller
     private $createSalesReturn;
     private $finalizeSalesReturn;
     private $cancelDraftReturn;
+    private $updateRefundStatus;
 
     public function __construct(
         SaleReturnRepository $repository,
         SaleReturnLookupService $lookupService,
         CreateSalesReturnAction $createSalesReturn,
         FinalizeSalesReturnAction $finalizeSalesReturn,
-        CancelDraftReturnAction $cancelDraftReturn
+        CancelDraftReturnAction $cancelDraftReturn,
+        UpdateSaleReturnRefundStatusAction $updateRefundStatus
     ) {
         $this->repository = $repository;
         $this->lookupService = $lookupService;
         $this->createSalesReturn = $createSalesReturn;
         $this->finalizeSalesReturn = $finalizeSalesReturn;
         $this->cancelDraftReturn = $cancelDraftReturn;
+        $this->updateRefundStatus = $updateRefundStatus;
     }
 
     public function index(Request $request): View
@@ -120,6 +125,13 @@ class SaleReturnController extends Controller
         $saleReturn = $this->cancelDraftReturn->execute($saleReturn, $request->validated()['reason'] ?? null, $request->user());
 
         return redirect()->route('sales.returns.show', $saleReturn)->with('status', 'Draft retur dibatalkan.');
+    }
+
+    public function updateRefundStatus(UpdateSaleReturnRefundStatusRequest $request, SaleReturn $saleReturn, string $status): RedirectResponse
+    {
+        $saleReturn = $this->updateRefundStatus->execute($saleReturn, $status, $request->validated('reason'), $request->user());
+
+        return redirect()->route('sales.returns.show', $saleReturn)->with('status', 'Status refund retur diperbarui.');
     }
 
     public function print(SaleReturn $saleReturn): View

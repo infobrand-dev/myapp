@@ -86,6 +86,26 @@
         .app-toast--danger .app-toast__icon { color: #b91c1c; }
         .app-toast--warning .app-toast__icon { color: #b45309; }
         .app-toast--info .app-toast__icon { color: #1d4ed8; }
+        .notification-center-menu {
+            width: min(28rem, calc(100vw - 2rem));
+            max-height: 32rem;
+        }
+        .notification-center-list {
+            max-height: 24rem;
+            overflow: auto;
+        }
+        .notification-center-badge {
+            position: absolute;
+            top: -.25rem;
+            right: -.25rem;
+            min-width: 1.25rem;
+            height: 1.25rem;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .7rem;
+        }
         .app-toast__content {
             min-width: 0;
             flex: 1 1 auto;
@@ -169,6 +189,9 @@
 
                         {{-- Right side: apps + user --}}
                         <div class="d-flex align-items-center gap-2">
+                            @can('notifications.view')
+                                @include('shared.topbar-notifications')
+                            @endcan
                             @include('shared.topbar-apps-dropdown')
 
                             {{-- User dropdown --}}
@@ -234,6 +257,9 @@
                         </a>
 
                         <div class="ms-auto d-flex align-items-center gap-2">
+                            @can('notifications.view')
+                                @include('shared.topbar-notifications')
+                            @endcan
                             @include('shared.topbar-apps-dropdown')
                             <div class="dropdown">
                                 <button
@@ -593,6 +619,45 @@
                     showConfirm(message, () => { window.location.href = href; });
                 }
             });
+        })();
+
+        (() => {
+            const centers = document.querySelectorAll('.topbar-notification-center');
+            if (centers.length < 1) return;
+            const badges = document.querySelectorAll('[data-notification-count]');
+            const pollSeconds = {{ (int) config('notifications.polling.topbar_seconds', 60) }};
+
+            function updateBadges(count) {
+                badges.forEach((badge) => {
+                    badge.textContent = count > 99 ? '99+' : String(count);
+                    badge.classList.toggle('d-none', count < 1);
+                });
+            }
+
+            async function refreshNotifications() {
+                try {
+                    const response = await fetch('{{ route('notifications.preview') }}', {
+                        headers: { 'Accept': 'application/json' },
+                    });
+
+                    if (!response.ok) {
+                        return;
+                    }
+
+                    const payload = await response.json();
+                    centers.forEach((center) => {
+                        const list = center.querySelector('[data-notification-preview]');
+                        if (list && typeof payload.html === 'string') {
+                            list.innerHTML = payload.html;
+                        }
+                    });
+                    updateBadges(Number(payload.count || 0));
+                } catch (_) {
+                    // ignore topbar polling failures
+                }
+            }
+
+            window.setInterval(refreshNotifications, Math.max(15, pollSeconds) * 1000);
         })();
     </script>
 

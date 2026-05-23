@@ -29,6 +29,7 @@
             <div class="col-md-3"><x-contact-select name="contact_id" label="Supplier" placeholder="Semua supplier" :value="$filters['contact_id'] ?? null" :show-link="false" /></div>
             <div class="col-md-2"><label class="form-label">Status</label><select name="status" class="form-select"><option value="">Semua status</option>@foreach($statusOptions as $value => $label)<option value="{{ $value }}" @selected(($filters['status'] ?? '') === $value)>{{ $label }}</option>@endforeach</select></div>
             <div class="col-md-2"><label class="form-label">Payment</label><select name="payment_status" class="form-select"><option value="">Semua payment</option>@foreach($paymentStatusOptions as $value => $label)<option value="{{ $value }}" @selected(($filters['payment_status'] ?? '') === $value)>{{ $label }}</option>@endforeach</select></div>
+            <div class="col-md-2"><label class="form-label">Supplier Bill</label><select name="supplier_bill_status" class="form-select"><option value="">Semua bill</option>@foreach($supplierBillStatusOptions as $value => $label)<option value="{{ $value }}" @selected(($filters['supplier_bill_status'] ?? '') === $value)>{{ $label }}</option>@endforeach</select></div>
             <div class="col-md-1"><label class="form-label">From</label><input type="date" name="date_from" class="form-control" value="{{ $filters['date_from'] ?? '' }}"></div>
             <div class="col-md-1"><label class="form-label">To</label><input type="date" name="date_to" class="form-control" value="{{ $filters['date_to'] ?? '' }}"></div>
             <div class="col-12 d-flex gap-2">
@@ -83,7 +84,7 @@
                             <td>
                                 <div><span class="badge bg-secondary-lt text-secondary">{{ $statusOptions[$purchase->status] ?? ucfirst($purchase->status) }}</span></div>
                                 <div class="text-muted small">{{ $paymentStatusOptions[$purchase->payment_status] ?? ucfirst($purchase->payment_status) }}</div>
-                                <div class="text-muted small">Bill: {{ ucfirst(str_replace('_', ' ', (string) $purchase->supplier_bill_status)) }}</div>
+                                <div class="text-muted small">Bill: {{ $supplierBillStatusOptions[$purchase->supplier_bill_status] ?? ucfirst(str_replace('_', ' ', (string) $purchase->supplier_bill_status)) }}</div>
                             </td>
                             <td class="text-end align-middle">
                                 <div class="table-actions">

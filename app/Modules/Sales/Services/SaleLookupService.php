@@ -10,6 +10,7 @@ use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\Products\Services\ProductLookupService;
 use App\Modules\Sales\Models\Sale;
+use App\Modules\Sales\Models\SaleReceivableAdjustment;
 use App\Support\BooleanQuery;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
@@ -83,6 +84,14 @@ class SaleLookupService
             Sale::SOURCE_POS => 'POS',
             Sale::SOURCE_ONLINE => 'Online',
             Sale::SOURCE_API => 'API',
+        ];
+    }
+
+    public function receivableAdjustmentTypeOptions(): array
+    {
+        return [
+            SaleReceivableAdjustment::TYPE_CREDIT_MEMO => 'Credit Memo',
+            SaleReceivableAdjustment::TYPE_WRITE_OFF => 'Write-off',
         ];
     }
 

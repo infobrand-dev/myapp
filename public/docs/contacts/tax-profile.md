@@ -24,6 +24,11 @@ Setiap kontak di Meetra bisa dilengkapi dengan informasi perpajakan. Data ini di
 5. Centang **PKP** jika kontak tersebut adalah Pengusaha Kena Pajak
 6. Simpan
 
+Catatan operasional:
+- profil ini sekarang menjadi sumber snapshot untuk `sale`, `purchase`, dan `tax register`
+- prioritas alamat pajak yang dipakai sistem adalah: `Tax Address`, lalu `Billing Address`, lalu alamat utama contact
+- jika NPWP, nama pajak, dan alamat pajak lengkap, tax register lebih siap dipakai untuk draft `e-Faktur` dan review compliance bulanan
+
 ---
 
 ## Kenapa Status PKP Penting?

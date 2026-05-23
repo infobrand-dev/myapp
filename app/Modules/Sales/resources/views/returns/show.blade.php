@@ -3,6 +3,12 @@
 @section('content')
 @php
     $money = app(\App\Support\MoneyFormatter::class);
+    $postedRefundAllocations = $saleReturn->paymentAllocations
+        ->filter(fn ($allocation) => optional($allocation->payment)->status === \App\Modules\Payments\Models\Payment::STATUS_POSTED)
+        ->values();
+    $lastRefundPayment = $postedRefundAllocations
+        ->sortByDesc(fn ($allocation) => optional($allocation->payment?->paid_at)?->timestamp ?? 0)
+        ->first()?->payment;
 @endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
@@ -117,6 +123,12 @@
                     <div>Refunded: {{ $money->format((float) $saleReturn->refunded_total, $saleReturn->currency_code) }}</div>
                     <div>Refund Balance: {{ $money->format((float) $saleReturn->refund_balance, $saleReturn->currency_code) }}</div>
                 </div>
+                <div class="alert alert-secondary">
+                    <div class="fw-semibold mb-1">Refund Summary</div>
+                    <div class="small">Status: {{ $refundStatusOptions[$saleReturn->refund_status] ?? ucfirst($saleReturn->refund_status) }}</div>
+                    <div class="small">Posted refunds: {{ $postedRefundAllocations->pluck('payment_id')->unique()->count() }}</div>
+                    <div class="small">Last refund: {{ optional($lastRefundPayment?->paid_at)->format('d M Y H:i') ?: '-' }}</div>
+                </div>
                 <div class="mb-3">
                     <div class="text-muted small">Accounting Journals</div>
                     @forelse(($journals ?? collect()) as $journal)
@@ -136,7 +148,34 @@
                 @endif
 
                 @if($saleReturn->status === 'finalized' && $saleReturn->refund_required && Route::has('payments.create'))
-                    <a href="{{ route('payments.create', ['sale_return_id' => $saleReturn->id]) }}" class="btn btn-outline-primary w-100">Process Refund via Payments</a>
+                    @if((float) $saleReturn->refund_balance > 0)
+                        <a href="{{ route('payments.create', ['sale_return_id' => $saleReturn->id]) }}" class="btn btn-outline-primary w-100">Refund Sisa {{ $money->format((float) $saleReturn->refund_balance, $saleReturn->currency_code) }}</a>
+                    @else
+                        <a href="{{ route('payments.create', ['sale_return_id' => $saleReturn->id]) }}" class="btn btn-outline-secondary w-100">Add Refund Payment</a>
+                    @endif
+                @endif
+
+                @if($saleReturn->status === 'finalized' && $saleReturn->refund_required && auth()->user()?->can('sales_return.process_refund'))
+                    <div class="border rounded p-3 mt-3">
+                        <div class="fw-semibold mb-2">Refund Status Actions</div>
+                        @if($saleReturn->refund_status !== \App\Modules\Sales\Models\SaleReturn::REFUND_SKIPPED && (float) $saleReturn->refunded_total <= 0)
+                            <form method="POST" action="{{ route('sales.returns.refund-status.update', [$saleReturn, \App\Modules\Sales\Models\SaleReturn::REFUND_SKIPPED]) }}">
+                                @csrf
+                                <label class="form-label">Reason Skip Refund</label>
+                                <textarea name="reason" class="form-control mb-2" rows="2" placeholder="Contoh: customer menerima replacement, tidak minta refund">{{ old('reason') }}</textarea>
+                                @error('reason') <div class="text-danger small mb-2">{{ $message }}</div> @enderror
+                                <button type="submit" class="btn btn-outline-warning w-100">Mark Refund Skipped</button>
+                            </form>
+                        @elseif($saleReturn->refund_status === \App\Modules\Sales\Models\SaleReturn::REFUND_SKIPPED)
+                            <form method="POST" action="{{ route('sales.returns.refund-status.update', [$saleReturn, \App\Modules\Sales\Models\SaleReturn::REFUND_PENDING]) }}">
+                                @csrf
+                                <label class="form-label">Reason Reopen Refund</label>
+                                <textarea name="reason" class="form-control mb-2" rows="2" placeholder="Contoh: customer akhirnya meminta refund">{{ old('reason') }}</textarea>
+                                @error('reason') <div class="text-danger small mb-2">{{ $message }}</div> @enderror
+                                <button type="submit" class="btn btn-outline-primary w-100">Reopen Refund</button>
+                            </form>
+                        @endif
+                    </div>
                 @endif
             </div>
         </div>

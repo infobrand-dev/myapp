@@ -108,6 +108,21 @@
                                         @if(!$account->is_postable)
                                             <span class="badge bg-yellow-lt text-yellow ms-1">Header</span>
                                         @endif
+                                        @php($usage = $usageSummary[$account->code] ?? ['journal_count' => 0, 'tax_rate_count' => 0])
+                                        @if(($usage['journal_count'] ?? 0) > 0 || ($usage['tax_rate_count'] ?? 0) > 0)
+                                            <div class="text-muted small mt-1">
+                                                Dipakai:
+                                                @if(($usage['journal_count'] ?? 0) > 0)
+                                                    {{ $usage['journal_count'] }} journal
+                                                @endif
+                                                @if(($usage['journal_count'] ?? 0) > 0 && ($usage['tax_rate_count'] ?? 0) > 0)
+                                                    ,
+                                                @endif
+                                                @if(($usage['tax_rate_count'] ?? 0) > 0)
+                                                    {{ $usage['tax_rate_count'] }} tax master
+                                                @endif
+                                            </div>
+                                        @endif
                                     </td>
                                     <td class="text-end align-middle">
                                         <div class="table-actions">

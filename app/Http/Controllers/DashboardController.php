@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Services\AiCreditPricingService;
 use App\Services\AiUsageService;
 use App\Support\ModuleManager;
+use App\Support\Notifications\NotificationQueryService;
 use App\Support\PlanFeature;
 use App\Support\PlanLimit;
 use App\Support\TenantContext;
@@ -15,7 +16,13 @@ use Illuminate\Contracts\View\View;
 
 class DashboardController extends Controller
 {
-    public function __invoke(ModuleManager $modules, TenantPlanManager $plans, AiUsageService $aiUsage, AiCreditPricingService $aiPricing): View|RedirectResponse
+    public function __invoke(
+        ModuleManager $modules,
+        TenantPlanManager $plans,
+        AiUsageService $aiUsage,
+        AiCreditPricingService $aiPricing,
+        NotificationQueryService $notifications
+    ): View|RedirectResponse
     {
         if (request()->attributes->get('platform_admin_host')) {
             return redirect()->route('platform.dashboard');
@@ -88,6 +95,8 @@ class DashboardController extends Controller
                 'advice' => $aiAdvice,
             ],
             'aiCreditPricing' => $aiPricing->snapshot(),
+            'attentionNotifications' => $notifications->attentionItemsForUser($user->id, 5),
+            'recentNotifications' => $notifications->recentItemsForUser($user->id, 5),
         ]);
     }
 

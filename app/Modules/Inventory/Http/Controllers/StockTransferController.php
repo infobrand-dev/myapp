@@ -3,6 +3,7 @@
 namespace App\Modules\Inventory\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\AccountingJournal;
 use App\Modules\Inventory\Actions\ApproveStockTransferAction;
 use App\Modules\Inventory\Actions\CreateStockTransferAction;
 use App\Modules\Inventory\Actions\ReceiveStockTransferAction;
@@ -54,8 +55,20 @@ class StockTransferController extends Controller
 
     public function show(StockTransfer $transfer): View
     {
+        $transfer = $transfer->load(['sourceLocation', 'destinationLocation', 'creator', 'items.product', 'items.variant']);
+        $journals = AccountingJournal::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
+            ->where('source_type', StockTransfer::class)
+            ->where('source_id', $transfer->id)
+            ->whereIn('entry_type', ['inventory_transfer_out', 'inventory_transfer_in'])
+            ->get()
+            ->keyBy('entry_type');
+
         return view('inventory::transfers.show', [
-            'transfer' => $transfer->load(['sourceLocation', 'destinationLocation', 'creator', 'items.product', 'items.variant']),
+            'transfer' => $transfer,
+            'outJournal' => $journals->get('inventory_transfer_out'),
+            'inJournal' => $journals->get('inventory_transfer_in'),
         ]);
     }
 

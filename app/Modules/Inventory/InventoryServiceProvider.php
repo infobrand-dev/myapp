@@ -18,6 +18,7 @@ use App\Modules\Inventory\Repositories\StockRepository;
 use App\Modules\Inventory\Services\InventoryDashboardService;
 use App\Modules\Inventory\Services\StockMutationService;
 use App\Support\RegistersModuleRoutes;
+use App\Support\TenantRoleProvisioner;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\Models\Permission;
@@ -38,6 +39,7 @@ class InventoryServiceProvider extends ServiceProvider
         'inventory.manage-stock-transfer',
         'inventory.approve-stock-transfer',
         'inventory.view-all-locations',
+        'inventory.manage-locations',
     ];
 
     public const DEFAULT_ROLE_PERMISSIONS = [
@@ -51,6 +53,7 @@ class InventoryServiceProvider extends ServiceProvider
             'inventory.manage-stock-opname',
             'inventory.finalize-stock-opname',
             'inventory.manage-stock-transfer',
+            'inventory.manage-locations',
         ],
         'Inventory Staff' => [
             'inventory.view-stock',
@@ -61,6 +64,7 @@ class InventoryServiceProvider extends ServiceProvider
             'inventory.manage-stock-opname',
             'inventory.finalize-stock-opname',
             'inventory.manage-stock-transfer',
+            'inventory.manage-locations',
         ],
     ];
 
@@ -100,10 +104,14 @@ class InventoryServiceProvider extends ServiceProvider
         }
 
         foreach (self::PERMISSIONS as $permission) {
-            Permission::query()->firstOrCreate([
+            $record = Permission::query()->firstOrCreate([
                 'name' => $permission,
                 'guard_name' => 'web',
             ]);
+
+            if ($record->wasRecentlyCreated) {
+                app(TenantRoleProvisioner::class)->ensureForAllTenants();
+            }
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();

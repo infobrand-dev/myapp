@@ -77,6 +77,12 @@ class DocumentNumberingRule extends Model
                 'default_format' => '{PREFIX}-{YYYYMMDD}-{SEQ}',
                 'applies_to' => 'Dokumen retur penjualan.',
             ],
+            'credit_memo' => [
+                'label' => 'Credit Memo',
+                'default_prefix' => 'CRM',
+                'default_format' => '{PREFIX}-{YYYYMMDD}-{SEQ}',
+                'applies_to' => 'Penyesuaian pengurang piutang customer dari sale.',
+            ],
             'purchase' => [
                 'label' => 'Purchase Bill',
                 'default_prefix' => 'PUR',
@@ -100,6 +106,18 @@ class DocumentNumberingRule extends Model
                 'default_prefix' => 'GRN',
                 'default_format' => '{PREFIX}-{YYYYMMDD}-{SEQ}',
                 'applies_to' => 'Penerimaan barang dari purchase.',
+            ],
+            'debit_note' => [
+                'label' => 'Debit Note',
+                'default_prefix' => 'DNT',
+                'default_format' => '{PREFIX}-{YYYYMMDD}-{SEQ}',
+                'applies_to' => 'Penyesuaian pengurang hutang supplier dari purchase.',
+            ],
+            'write_off_note' => [
+                'label' => 'Write-off Note',
+                'default_prefix' => 'WOF',
+                'default_format' => '{PREFIX}-{YYYYMMDD}-{SEQ}',
+                'applies_to' => 'Dokumen write-off hutang pembelian.',
             ],
             'payment' => [
                 'label' => 'Payment',

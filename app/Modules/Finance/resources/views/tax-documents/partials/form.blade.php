@@ -127,6 +127,29 @@
         <input type="text" name="currency_code" class="form-control @error('currency_code') is-invalid @enderror" value="{{ old('currency_code', $taxDocument->currency_code ?: 'IDR') }}">
         @error('currency_code') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
+    <div class="col-md-3">
+        <label class="form-label">Withholding Direction</label>
+        <select name="withholding_direction" class="form-select @error('withholding_direction') is-invalid @enderror">
+            @php($withholdingDirectionValue = old('withholding_direction', data_get($taxDocument->meta, 'withholding_direction')))
+            <option value="">Auto</option>
+            <option value="payable" @selected($withholdingDirectionValue === 'payable')>Payable</option>
+            <option value="receivable" @selected($withholdingDirectionValue === 'receivable')>Receivable</option>
+        </select>
+        <div class="form-hint">Dipakai terutama untuk dokumen PPh/withholding agar arah jurnal dan export draft lebih eksplisit.</div>
+        @error('withholding_direction') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">e-Faktur Transaction Code</label>
+        <input type="text" name="efaktur_transaction_code" class="form-control @error('efaktur_transaction_code') is-invalid @enderror" value="{{ old('efaktur_transaction_code', data_get($taxDocument->meta, 'efaktur_transaction_code', '01')) }}">
+        <div class="form-hint">Kode transaksi PPN keluaran untuk draft export e-Faktur. Default saat ini `01`.</div>
+        @error('efaktur_transaction_code') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">e-Faktur Additional Code</label>
+        <input type="text" name="efaktur_additional_code" class="form-control @error('efaktur_additional_code') is-invalid @enderror" value="{{ old('efaktur_additional_code', data_get($taxDocument->meta, 'efaktur_additional_code')) }}">
+        <div class="form-hint">Kode tambahan opsional untuk review export PPN jika tenant butuh format internal sebelum finalisasi resmi.</div>
+        @error('efaktur_additional_code') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
     <div class="col-md-6">
         <label class="form-label">Counterparty Name</label>
         <input type="text" name="counterparty_name_snapshot" class="form-control @error('counterparty_name_snapshot') is-invalid @enderror" value="{{ old('counterparty_name_snapshot', $taxDocument->counterparty_name_snapshot) }}">
@@ -135,6 +158,7 @@
     <div class="col-md-3">
         <label class="form-label">Counterparty Tax ID</label>
         <input type="text" name="counterparty_tax_id_snapshot" class="form-control @error('counterparty_tax_id_snapshot') is-invalid @enderror" value="{{ old('counterparty_tax_id_snapshot', $taxDocument->counterparty_tax_id_snapshot) }}">
+        <div class="form-hint">Ambil dari NPWP/NIK partner. Jika source document berasal dari contact yang profil pajaknya lengkap, field ini akan ikut terisi.</div>
         @error('counterparty_tax_id_snapshot') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
     <div class="col-md-3">
@@ -145,6 +169,7 @@
     <div class="col-12">
         <label class="form-label">Counterparty Tax Address</label>
         <textarea name="counterparty_tax_address_snapshot" class="form-control @error('counterparty_tax_address_snapshot') is-invalid @enderror" rows="2">{{ old('counterparty_tax_address_snapshot', $taxDocument->counterparty_tax_address_snapshot) }}</textarea>
+        <div class="form-hint">Prioritas sumber otomatis: tax address contact, lalu billing address, lalu alamat utama partner.</div>
         @error('counterparty_tax_address_snapshot') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
     <div class="col-12">

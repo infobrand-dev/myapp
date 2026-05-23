@@ -5,6 +5,7 @@ namespace App\Modules\Payments\Services;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentAllocation;
 use App\Modules\Purchases\Models\Purchase;
+use App\Modules\Purchases\Models\PurchasePayableAdjustment;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\SaleReturn;
 use Illuminate\Database\Eloquent\Model;
@@ -44,12 +45,14 @@ class PaymentSummaryService
         $paidTotal = round($paidTotal, 2);
         $balanceDue = max(0, round($grandTotal - $paidTotal, 2));
 
-        if ($paidTotal <= 0) {
+        if ($paidTotal > $grandTotal) {
+            $paymentStatus = Sale::PAYMENT_OVERPAID;
+        } elseif ($balanceDue <= 0.0) {
+            $paymentStatus = Sale::PAYMENT_PAID;
+        } elseif ($paidTotal <= 0) {
             $paymentStatus = Sale::PAYMENT_UNPAID;
         } elseif ($paidTotal < $grandTotal) {
             $paymentStatus = Sale::PAYMENT_PARTIAL;
-        } elseif ($paidTotal > $grandTotal) {
-            $paymentStatus = Sale::PAYMENT_OVERPAID;
         } else {
             $paymentStatus = Sale::PAYMENT_PAID;
         }
@@ -98,16 +101,26 @@ class PaymentSummaryService
             ->whereHas('payment', fn ($query) => $query->where('status', Payment::STATUS_POSTED))
             ->sum('amount');
 
+        $adjustmentTotal = (float) PurchasePayableAdjustment::query()
+            ->where('purchase_id', $purchase->getKey())
+            ->where('tenant_id', $purchase->tenant_id)
+            ->where('company_id', $purchase->company_id)
+            ->where('status', 'posted')
+            ->sum('amount');
+
         $grandTotal = round((float) $purchase->grand_total, 2);
         $paidTotal = round($paidTotal, 2);
-        $balanceDue = max(0, round($grandTotal - $paidTotal, 2));
+        $adjustmentTotal = round($adjustmentTotal, 2);
+        $balanceDue = max(0, round($grandTotal - $paidTotal - $adjustmentTotal, 2));
 
-        if ($paidTotal <= 0) {
-            $paymentStatus = Purchase::PAYMENT_UNPAID;
-        } elseif ($paidTotal < $grandTotal) {
-            $paymentStatus = Purchase::PAYMENT_PARTIAL;
-        } elseif ($paidTotal > $grandTotal) {
+        if ($paidTotal > $grandTotal) {
             $paymentStatus = Purchase::PAYMENT_OVERPAID;
+        } elseif ($balanceDue <= 0.0) {
+            $paymentStatus = Purchase::PAYMENT_PAID;
+        } elseif ($paidTotal <= 0 && $adjustmentTotal <= 0) {
+            $paymentStatus = Purchase::PAYMENT_UNPAID;
+        } elseif (($paidTotal + $adjustmentTotal) < $grandTotal) {
+            $paymentStatus = Purchase::PAYMENT_PARTIAL;
         } else {
             $paymentStatus = Purchase::PAYMENT_PAID;
         }

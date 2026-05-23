@@ -9,6 +9,8 @@ use App\Http\Controllers\AccountingUiModeController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\ModuleController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\NotificationPushSubscriptionController;
 use App\Http\Controllers\PlatformOwnerController;
 use App\Http\Controllers\PlatformBillingMidtransController;
 use App\Http\Controllers\PlatformAffiliateController;
@@ -94,6 +96,17 @@ Route::any('/install/{any?}', function () {
 Route::middleware(['auth', 'verified', '2fa', 'platform.admin', \App\Http\Middleware\ResolveCompanyContext::class, \App\Http\Middleware\ResolveBranchContext::class])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::post('/settings/accounting-ui-mode', [AccountingUiModeController::class, 'store'])->name('settings.accounting-ui-mode');
+    Route::middleware('permission:notifications.view')->prefix('notifications')->name('notifications.')->group(function () {
+        Route::get('/', [NotificationController::class, 'index'])->name('index');
+        Route::get('/preview', [NotificationController::class, 'preview'])->name('preview');
+        Route::get('/unread-count', [NotificationController::class, 'unreadCount'])->name('unread-count');
+        Route::post('/{recipient}/read', [NotificationController::class, 'markRead'])->name('read');
+        Route::post('/{recipient}/unread', [NotificationController::class, 'markUnread'])->name('unread');
+        Route::post('/{recipient}/dismiss', [NotificationController::class, 'dismiss'])->name('dismiss');
+        Route::post('/{recipient}/archive', [NotificationController::class, 'archive'])->name('archive');
+        Route::post('/push-subscriptions', [NotificationPushSubscriptionController::class, 'store'])->name('push-subscriptions.store');
+        Route::delete('/push-subscriptions', [NotificationPushSubscriptionController::class, 'destroy'])->name('push-subscriptions.destroy');
+    });
 
     Route::prefix('platform')->name('platform.')->group(function () {
         Route::get('/', [PlatformOwnerController::class, 'dashboard'])->name('dashboard');

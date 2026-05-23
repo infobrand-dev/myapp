@@ -43,6 +43,12 @@
 - `module.json` is the source of truth for module metadata such as slug, name, provider, version, description, category, `requires`, and navigation items.
 - `module.json` is also the source of truth for each module's sidebar/icon metadata. Module SVG assets should live with the owning module, and shared UI should reuse those assets instead of redefining icons per page.
 
+## Core notifications
+- Notification infrastructure is a core concern, not a business module. Shared inbox UI, unread counters, delivery logs, push subscriptions, and email transport should stay in core.
+- Modules should publish typed notification messages through the shared notification center instead of querying or mutating core notification tables directly.
+- Core must not scan module tables to invent business alerts. The owning module decides when a notification is created, deduped, resolved, or superseded.
+- Dashboard notification widgets, topbar bell state, and channel delivery policy should be driven from the shared notification subsystem so cross-module alerting stays consistent.
+
 ## Module registry rules
 - Install and activation are separate states.
 - Install may run module migrations and role seeding.

@@ -92,3 +92,15 @@ Untuk melihat semua pergerakan stok suatu produk:
 Meetra menggunakan metode **Moving Average** untuk menghitung harga pokok persediaan. Setiap penerimaan barang akan memperbarui harga pokok rata-rata secara otomatis.
 
 [Pelajari lebih lanjut tentang Valuasi Stok →](valuation.md)
+
+---
+
+## Inventory Locations / Gudang
+
+Sekarang Anda bisa mengelola lokasi stok langsung dari **Inventory â†’ Inventory Locations**.
+
+Gunakan halaman ini untuk:
+- menambah gudang baru
+- membuat lokasi staging atau return
+- menentukan default location dalam scope aktif
+- menonaktifkan lokasi lama tanpa menghapus histori stok

@@ -28,6 +28,10 @@
                            "route":  "inventory.movements.index"
                        },
                        {
+                           "label":  "Inventory Locations",
+                           "route":  "inventory.locations.index"
+                       },
+                       {
                            "label":  "Opening Stock",
                            "route":  "inventory.openings.index"
                        },

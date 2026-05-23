@@ -71,11 +71,39 @@ class OpeningStockController extends Controller
         ]);
     }
 
+    public function show(StockOpening $opening): View
+    {
+        $opening = StockOpening::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
+            ->with([
+                'location',
+                'creator',
+                'items.product',
+                'items.variant',
+                'items.movement',
+            ])
+            ->tap(fn ($query) => BranchContext::applyScope($query))
+            ->findOrFail($opening->id);
+
+        $journal = AccountingJournal::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
+            ->where('source_type', StockOpening::class)
+            ->where('source_id', $opening->id)
+            ->first();
+
+        return view('inventory::openings.show', [
+            'opening' => $opening,
+            'journal' => $journal,
+        ]);
+    }
+
     public function store(StoreOpeningStockRequest $request, CreateOpeningStockAction $action): RedirectResponse
     {
         $opening = $action->execute($request->validated(), $request->user());
 
-        return redirect()->route('inventory.openings.index')->with('status', "Stok awal {$opening->code} diposting.");
+        return redirect()->route('inventory.openings.show', $opening)->with('status', "Stok awal {$opening->code} diposting.");
     }
 
     public function importPage(StockRepository $stocks): View
@@ -176,7 +204,7 @@ class OpeningStockController extends Controller
         ], $request->user());
 
         return redirect()
-            ->route('inventory.openings.index')
+            ->route('inventory.openings.show', $opening)
             ->with('status', "Import opening stock {$opening->code} selesai. " . count($items) . ' item diposting.')
             ->with('import_skipped', $skipped);
     }

@@ -21,6 +21,7 @@ class ChartOfAccountController extends Controller
         $companyId = $this->requireCurrentCompanyId();
         $tenantId = TenantContext::currentId();
         $provisioner->ensureDefaults($tenantId, $companyId, auth()->id());
+        $usage = $this->accountUsageSummary($tenantId, $companyId);
 
         return view('finance::chart-of-accounts.index', [
             'accounts' => ChartOfAccount::query()
@@ -30,6 +31,7 @@ class ChartOfAccountController extends Controller
                 ->orderBy('sort_order')
                 ->orderBy('code')
                 ->get(),
+            'usageSummary' => $usage,
             'parentOptions' => ChartOfAccount::query()
                 ->where('tenant_id', $tenantId)
                 ->where('company_id', $companyId)
@@ -44,8 +46,11 @@ class ChartOfAccountController extends Controller
 
     public function edit(ChartOfAccount $chartOfAccount): View
     {
+        $usage = $this->accountUsageSummary(TenantContext::currentId(), CompanyContext::currentId());
+
         return view('finance::chart-of-accounts.edit', [
             'account' => $chartOfAccount,
+            'accountUsage' => $usage[$chartOfAccount->code] ?? ['journal_count' => 0, 'tax_rate_count' => 0],
             'parentOptions' => ChartOfAccount::query()
                 ->where('tenant_id', TenantContext::currentId())
                 ->where('company_id', CompanyContext::currentId())
@@ -83,6 +88,22 @@ class ChartOfAccountController extends Controller
 
     public function update(ChartOfAccount $chartOfAccount, UpdateChartOfAccountRequest $request): RedirectResponse
     {
+        $usage = $this->accountUsageSummary(TenantContext::currentId(), CompanyContext::currentId());
+        $accountUsage = $usage[$chartOfAccount->code] ?? ['journal_count' => 0, 'tax_rate_count' => 0];
+        $isGoverned = $this->accountHasGovernedUsage($accountUsage);
+
+        if ($isGoverned && !$request->boolean('is_active', true)) {
+            return redirect()->back()->withInput()->withErrors([
+                'is_active' => 'Akun COA yang sudah dipakai journal atau tax master tidak boleh dinonaktifkan.',
+            ]);
+        }
+
+        if ($isGoverned && !$request->boolean('is_postable', true)) {
+            return redirect()->back()->withInput()->withErrors([
+                'is_postable' => 'Akun COA yang sudah dipakai posting atau tax master tidak boleh diubah menjadi header/non-postable.',
+            ]);
+        }
+
         $chartOfAccount->update([
             'parent_id' => $request->integer('parent_id') ?: null,
             'code' => $request->input('code'),
@@ -106,14 +127,11 @@ class ChartOfAccountController extends Controller
             return redirect()->route('finance.chart-accounts.index')->with('error', 'Tidak bisa dihapus karena masih punya child account.');
         }
 
-        $used = DB::table('accounting_journal_lines')
-            ->where('tenant_id', TenantContext::currentId())
-            ->where('company_id', CompanyContext::currentId())
-            ->where('account_code', $chartOfAccount->code)
-            ->exists();
+        $usage = $this->accountUsageSummary(TenantContext::currentId(), CompanyContext::currentId());
+        $accountUsage = $usage[$chartOfAccount->code] ?? ['journal_count' => 0, 'tax_rate_count' => 0];
 
-        if ($used) {
-            return redirect()->route('finance.chart-accounts.index')->with('error', 'Tidak bisa dihapus karena account code sudah dipakai journal.');
+        if ($this->accountHasGovernedUsage($accountUsage)) {
+            return redirect()->route('finance.chart-accounts.index')->with('error', 'Tidak bisa dihapus karena account code sudah dipakai journal atau tax master.');
         }
 
         $chartOfAccount->delete();
@@ -132,5 +150,58 @@ class ChartOfAccountController extends Controller
         throw ValidationException::withMessages([
             'company' => 'Pilih company aktif terlebih dahulu sebelum mengelola chart of accounts.',
         ]);
+    }
+
+    private function accountUsageSummary(int $tenantId, int $companyId): array
+    {
+        $journalCounts = DB::table('accounting_journal_lines')
+            ->where('tenant_id', $tenantId)
+            ->where('company_id', $companyId)
+            ->selectRaw('account_code, COUNT(*) as aggregate_count')
+            ->groupBy('account_code')
+            ->pluck('aggregate_count', 'account_code');
+
+        $taxRateCounts = DB::table('finance_tax_rates')
+            ->where('tenant_id', $tenantId)
+            ->where('company_id', $companyId)
+            ->selectRaw('sales_account_code as account_code, COUNT(*) as aggregate_count')
+            ->whereNotNull('sales_account_code')
+            ->groupBy('sales_account_code')
+            ->pluck('aggregate_count', 'account_code');
+
+        $purchaseTaxCounts = DB::table('finance_tax_rates')
+            ->where('tenant_id', $tenantId)
+            ->where('company_id', $companyId)
+            ->selectRaw('purchase_account_code as account_code, COUNT(*) as aggregate_count')
+            ->whereNotNull('purchase_account_code')
+            ->groupBy('purchase_account_code')
+            ->pluck('aggregate_count', 'account_code');
+
+        $withholdingTaxCounts = DB::table('finance_tax_rates')
+            ->where('tenant_id', $tenantId)
+            ->where('company_id', $companyId)
+            ->selectRaw('withholding_account_code as account_code, COUNT(*) as aggregate_count')
+            ->whereNotNull('withholding_account_code')
+            ->groupBy('withholding_account_code')
+            ->pluck('aggregate_count', 'account_code');
+
+        return collect([$journalCounts, $taxRateCounts, $purchaseTaxCounts, $withholdingTaxCounts])
+            ->flatMap(fn ($items) => collect($items)->keys())
+            ->unique()
+            ->mapWithKeys(function ($accountCode) use ($journalCounts, $taxRateCounts, $purchaseTaxCounts, $withholdingTaxCounts) {
+                return [
+                    $accountCode => [
+                        'journal_count' => (int) ($journalCounts[$accountCode] ?? 0),
+                        'tax_rate_count' => (int) (($taxRateCounts[$accountCode] ?? 0) + ($purchaseTaxCounts[$accountCode] ?? 0) + ($withholdingTaxCounts[$accountCode] ?? 0)),
+                    ],
+                ];
+            })
+            ->all();
+    }
+
+    private function accountHasGovernedUsage(array $usage): bool
+    {
+        return ((int) ($usage['journal_count'] ?? 0)) > 0
+            || ((int) ($usage['tax_rate_count'] ?? 0)) > 0;
     }
 }

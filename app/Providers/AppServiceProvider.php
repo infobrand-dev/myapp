@@ -11,6 +11,7 @@ use App\Support\BranchContext;
 use App\Support\CorePermissions;
 use App\Support\CurrencySettingsResolver;
 use App\Support\CompanyContext;
+use App\Support\Notifications\NotificationQueryService;
 use App\Support\TenantContext;
 use App\Support\TenantPlanManager;
 use App\Support\TenantRoleProvisioner;
@@ -66,6 +67,8 @@ class AppServiceProvider extends ServiceProvider
                 'count' => 0,
                 'latest_url' => null,
             ];
+            $topbarNotifications = collect();
+            $topbarNotificationCount = 0;
             $user = Auth::user();
             $userAccessManager = app(\App\Support\UserAccessManager::class);
             $allowedCompanyIds = $userAccessManager->companyIdsFor($user);
@@ -115,6 +118,17 @@ class AppServiceProvider extends ServiceProvider
                 ];
             }
 
+            if (
+                Auth::check()
+                && $this->schemaHasTable('notifications')
+                && $this->schemaHasTable('notification_recipients')
+                && $user
+            ) {
+                $notificationQuery = app(NotificationQueryService::class);
+                $topbarNotifications = $notificationQuery->previewForUser($user->id, 6);
+                $topbarNotificationCount = $notificationQuery->unreadCountForUser($user->id);
+            }
+
             $view->with([
                 'topbarTenant' => $tenant,
                 'topbarCurrentCompany' => $currentCompany,
@@ -122,6 +136,8 @@ class AppServiceProvider extends ServiceProvider
                 'topbarCompanies' => $companies,
                 'topbarBranches' => $branches,
                 'topbarPendingBilling' => $pendingBilling,
+                'topbarNotifications' => $topbarNotifications,
+                'topbarNotificationCount' => $topbarNotificationCount,
                 'accountingUiMode' => $accountingUiMode,
                 'accountingUiModeAdvanced' => $accountingUiMode === AccountingUiMode::ADVANCED,
             ]);

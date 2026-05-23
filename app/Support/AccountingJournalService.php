@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\AccountingJournal;
+use App\Modules\Finance\Models\ChartOfAccount;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -140,7 +141,58 @@ class AccountingJournalService
             throw new \InvalidArgumentException('Accounting journal lines are not balanced.');
         }
 
+        $this->assertChartOfAccountsReady($normalized->all());
+
         return $normalized->all();
+    }
+
+    private function assertChartOfAccountsReady(array $lines): void
+    {
+        $accountCodes = collect($lines)
+            ->pluck('account_code')
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($accountCodes->isEmpty()) {
+            return;
+        }
+
+        $accounts = ChartOfAccount::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', CompanyContext::currentId())
+            ->whereIn('code', $accountCodes->all())
+            ->get()
+            ->keyBy('code');
+
+        $missingCodes = $accountCodes->filter(fn (string $code) => !$accounts->has($code))->all();
+        if ($missingCodes !== []) {
+            throw new \InvalidArgumentException('COA account code belum terdaftar: ' . implode(', ', $missingCodes) . '.');
+        }
+
+        $inactiveCodes = [];
+        $nonPostableCodes = [];
+
+        foreach ($accountCodes as $code) {
+            /** @var ChartOfAccount $account */
+            $account = $accounts->get($code);
+
+            if (!$account->is_active) {
+                $inactiveCodes[] = $code;
+            }
+
+            if (!$account->is_postable) {
+                $nonPostableCodes[] = $code;
+            }
+        }
+
+        if ($inactiveCodes !== []) {
+            throw new \InvalidArgumentException('COA account nonaktif tidak boleh diposting: ' . implode(', ', $inactiveCodes) . '.');
+        }
+
+        if ($nonPostableCodes !== []) {
+            throw new \InvalidArgumentException('COA header/non-postable tidak boleh dipakai di journal: ' . implode(', ', $nonPostableCodes) . '.');
+        }
     }
 
     private function persistManualJournal(

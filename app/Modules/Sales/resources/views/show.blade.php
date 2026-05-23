@@ -10,6 +10,17 @@
 
 @php
     $isOverdue = $sale->isOverdue();
+    $paymentAllocations = $sale->relationLoaded('paymentAllocations')
+        ? $sale->paymentAllocations->sortByDesc(fn ($a) => optional(optional($a->payment)->paid_at)->timestamp ?? 0)->values()
+        : collect();
+    $postedPaymentAllocations = $paymentAllocations
+        ->filter(fn ($allocation) => optional($allocation->payment)->status === \App\Modules\Payments\Models\Payment::STATUS_POSTED)
+        ->values();
+    $receivableAdjustments = $sale->relationLoaded('receivableAdjustments')
+        ? $sale->receivableAdjustments
+        : collect();
+    $postedReceivableAdjustments = $receivableAdjustments->where('status', 'posted')->values();
+    $receivableAdjustmentTotal = (float) $postedReceivableAdjustments->sum('amount');
     $statusBadge = match($sale->status) {
         'finalized' => 'bg-green-lt text-green',
         'draft'     => 'bg-secondary-lt text-secondary',
@@ -310,6 +321,10 @@
                         <span class="text-muted">Paid</span>
                         <span class="text-green">{{ $money->format((float) $sale->paid_total, $sale->currency_code) }}</span>
                     </div>
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span class="text-muted">Adjustments</span>
+                        <span>{{ $money->format($receivableAdjustmentTotal, $sale->currency_code) }}</span>
+                    </div>
                     <div class="d-flex justify-content-between small fw-medium">
                         <span class="text-muted">Balance Due</span>
                         <span class="{{ (float) $sale->balance_due > 0 ? 'text-orange' : 'text-green' }}">
@@ -364,11 +379,8 @@
             </div>
             <div class="card-body">
                 @php
-                    $paymentAllocations = $sale->relationLoaded('paymentAllocations')
-                        ? $sale->paymentAllocations->sortByDesc(fn ($a) => optional(optional($a->payment)->paid_at)->timestamp ?? 0)->values()
-                        : collect();
                     $paymentProgress = (float) $sale->grand_total > 0
-                        ? min(100, max(0, ((float) $sale->paid_total / (float) $sale->grand_total) * 100))
+                        ? min(100, max(0, (((float) $sale->paid_total + $receivableAdjustmentTotal) / (float) $sale->grand_total) * 100))
                         : 0;
                 @endphp
                 <div class="d-flex justify-content-between align-items-center mb-1">
@@ -378,6 +390,13 @@
                 <div class="progress progress-sm mb-3">
                     <div class="progress-bar bg-primary" style="width:{{ $paymentProgress }}%"
                         role="progressbar" aria-valuenow="{{ $paymentProgress }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+
+                <div class="alert alert-secondary">
+                    <div class="fw-semibold mb-1">Receivable Summary</div>
+                    <div class="small">Status: {{ $paymentStatusOptions[$sale->payment_status] ?? ucfirst($sale->payment_status) }}</div>
+                    <div class="small">Posted payments: {{ $postedPaymentAllocations->pluck('payment_id')->unique()->count() }}</div>
+                    <div class="small">Receivable adjustments: {{ $postedReceivableAdjustments->count() }} / {{ $money->format($receivableAdjustmentTotal, $sale->currency_code) }}</div>
                 </div>
 
                 @if($paymentAllocations->isNotEmpty())
@@ -414,11 +433,90 @@
                     <p class="text-muted small mb-3">No payments recorded yet.</p>
                 @endif
 
-                @if($sale->status === 'finalized' && Route::has('payments.create'))
+                @if($sale->status === 'finalized' && Route::has('payments.create') && (float) $sale->balance_due > 0)
                     <a href="{{ route('payments.create', ['sale_id' => $sale->id]) }}" class="btn btn-outline-primary w-100">
+                        <i class="ti ti-plus me-1"></i>Terima Sisa Pembayaran {{ $money->format((float) $sale->balance_due, $sale->currency_code) }}
+                    </a>
+                @elseif($sale->status === 'finalized' && Route::has('payments.create'))
+                    <a href="{{ route('payments.create', ['sale_id' => $sale->id]) }}" class="btn btn-outline-secondary w-100">
                         <i class="ti ti-plus me-1"></i>Add Payment
                     </a>
                 @endif
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h3 class="card-title">Receivable Adjustments</h3>
+            </div>
+            <div class="card-body">
+                @can('sales.manage_receivable_adjustments')
+                    @if($sale->status === 'finalized' && (float) $sale->balance_due > 0)
+                        <div class="row g-3 mb-3">
+                            @foreach($receivableAdjustmentTypeOptions as $adjustmentType => $adjustmentLabel)
+                                <div class="col-12">
+                                    <form method="POST" action="{{ route('sales.receivable-adjustments.store', [$sale, $adjustmentType]) }}" class="border rounded p-3">
+                                        @csrf
+                                        <div class="fw-semibold mb-2">{{ $adjustmentLabel }}</div>
+                                        <div class="row g-2">
+                                            <div class="col-md-4">
+                                                <label class="form-label">Date</label>
+                                                <input type="date" name="adjustment_date" class="form-control" value="{{ old('adjustment_date', now()->format('Y-m-d')) }}">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Amount</label>
+                                                <input type="number" name="amount" min="0.01" step="0.01" class="form-control" value="{{ old('amount') }}" placeholder="Max {{ number_format((float) $sale->balance_due, 2, '.', '') }}">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Reason</label>
+                                                <input type="text" name="reason" class="form-control" value="{{ old('reason') }}" placeholder="{{ $adjustmentType === \App\Modules\Sales\Models\SaleReceivableAdjustment::TYPE_CREDIT_MEMO ? 'Diskon pasca invoice / koreksi billing' : 'Piutang tidak tertagih' }}">
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label">Notes</label>
+                                                <textarea name="notes" class="form-control" rows="2">{{ old('notes') }}</textarea>
+                                            </div>
+                                        </div>
+                                        @error('amount') <div class="text-danger small mt-2">{{ $message }}</div> @enderror
+                                        @error('reason') <div class="text-danger small mt-2">{{ $message }}</div> @enderror
+                                        @error('type') <div class="text-danger small mt-2">{{ $message }}</div> @enderror
+                                        @error('sale') <div class="text-danger small mt-2">{{ $message }}</div> @enderror
+                                        <button type="submit" class="btn btn-outline-primary mt-3 w-100">Post {{ $adjustmentLabel }}</button>
+                                    </form>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                @endcan
+
+                @forelse($receivableAdjustments as $adjustment)
+                    <div class="border rounded p-3 mb-2">
+                        <div class="d-flex justify-content-between gap-3">
+                            <div>
+                                <div class="fw-semibold">{{ $adjustment->adjustment_number }}</div>
+                                <div class="text-muted small">{{ $receivableAdjustmentTypeOptions[$adjustment->adjustment_type] ?? ucfirst(str_replace('_', ' ', (string) $adjustment->adjustment_type)) }}</div>
+                                <div class="text-muted small">{{ optional($adjustment->adjustment_date)->format('d M Y H:i') ?: '-' }}</div>
+                                <div class="text-muted small">By: {{ optional($adjustment->creator)->name ?: '-' }}</div>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-semibold">{{ $money->format((float) $adjustment->amount, $sale->currency_code) }}</div>
+                                <div class="text-muted small">{{ ucfirst((string) $adjustment->status) }}</div>
+                                @if($adjustment->journal)
+                                    <div class="text-muted small">
+                                        <a href="{{ route('finance.journals.show', $adjustment->journal) }}">{{ $adjustment->journal->journal_number }}</a>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                        @if($adjustment->reason)
+                            <div class="text-muted small mt-2">Reason: {{ $adjustment->reason }}</div>
+                        @endif
+                        @if($adjustment->notes)
+                            <div class="text-muted small">Notes: {{ $adjustment->notes }}</div>
+                        @endif
+                    </div>
+                @empty
+                    <div class="text-muted">Belum ada credit memo atau write-off piutang.</div>
+                @endforelse
             </div>
         </div>
 

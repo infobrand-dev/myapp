@@ -89,4 +89,19 @@ class BankStatementLine extends Model
             self::MATCH_STATUS_IGNORED => 'Ignored',
         ];
     }
+
+    public static function resolutionReasonOptions(): array
+    {
+        return [
+            'timing_difference' => 'Timing Difference',
+            'duplicate_statement' => 'Duplicate Statement',
+            'pending_settlement' => 'Pending Settlement',
+            'bank_fee' => 'Bank Fee / Charge',
+            'transfer_between_accounts' => 'Transfer Between Accounts',
+            'manual_adjustment' => 'Manual Adjustment Needed',
+            'unknown_inflow' => 'Unknown Inflow',
+            'unknown_outflow' => 'Unknown Outflow',
+            'statement_noise' => 'Statement Noise / Not Relevant',
+        ];
+    }
 }

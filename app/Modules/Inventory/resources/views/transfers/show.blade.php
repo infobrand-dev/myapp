@@ -3,6 +3,10 @@
 @section('title', 'Detail Transfer')
 
 @section('content')
+@php
+    $money = app(\App\Support\MoneyFormatter::class);
+    $currency = app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency();
+@endphp
 <div class="page-header">
     <div class="row align-items-center">
         <div class="col">
@@ -36,6 +40,35 @@
                 <div class="mb-2"><div class="text-muted small">Status</div><div><span class="badge bg-blue-lt text-blue">{{ $transfer->status }}</span></div></div>
                 <div class="mb-2"><div class="text-muted small">Asal</div><div>{{ $transfer->sourceLocation?->name }}</div></div>
                 <div class="mb-2"><div class="text-muted small">Tujuan</div><div>{{ $transfer->destinationLocation?->name }}</div></div>
+                <div class="mb-2">
+                    <div class="text-muted small">Journal Transfer Out</div>
+                    <div>
+                        @if($outJournal)
+                            <a href="{{ route('finance.journals.show', $outJournal) }}">{{ $outJournal->journal_number ?: ('Journal #' . $outJournal->id) }}</a>
+                        @else
+                            -
+                        @endif
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <div class="text-muted small">Journal Transfer In</div>
+                    <div>
+                        @if($inJournal)
+                            <a href="{{ route('finance.journals.show', $inJournal) }}">{{ $inJournal->journal_number ?: ('Journal #' . $inJournal->id) }}</a>
+                        @else
+                            -
+                        @endif
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <div class="text-muted small">Transfer Value</div>
+                    <div>
+                        @php
+                            $transferValue = optional($outJournal)->meta['inventory_transfer_value'] ?? optional($inJournal)->meta['inventory_transfer_value'] ?? null;
+                        @endphp
+                        {{ $transferValue ? $money->format((float) $transferValue, $currency) : '-' }}
+                    </div>
+                </div>
                 <div><div class="text-muted small">Catatan</div><div>{{ $transfer->notes ?: '-' }}</div></div>
             </div>
         </div>

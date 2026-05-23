@@ -41,6 +41,16 @@
     </div>
 </div>
 
+@if($statementLines->isNotEmpty())
+    <div class="row g-3 mb-3">
+        <div class="col-md-2"><div class="card"><div class="card-body"><div class="text-muted small">Matched</div><div class="fs-4 fw-bold">{{ $statementSummary['matched'] }}</div></div></div></div>
+        <div class="col-md-2"><div class="card"><div class="card-body"><div class="text-muted small">Suggested</div><div class="fs-4 fw-bold">{{ $statementSummary['suggested'] }}</div></div></div></div>
+        <div class="col-md-2"><div class="card"><div class="card-body"><div class="text-muted small">Open</div><div class="fs-4 fw-bold">{{ $statementSummary['unmatched'] }}</div></div></div></div>
+        <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Exception</div><div class="fs-4 fw-bold text-red">{{ $statementSummary['exception'] }}</div></div></div></div>
+        <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Ignored</div><div class="fs-4 fw-bold text-yellow">{{ $statementSummary['ignored'] }}</div></div></div></div>
+    </div>
+@endif
+
 @if($reconciliation->status === 'draft')
     <div class="card mb-3">
         <div class="card-header"><h3 class="card-title mb-0">Import Bank Statement</h3></div>
@@ -101,7 +111,23 @@
                         @foreach($statementLines as $line)
                             @php
                                 $duplicateCandidate = data_get($line->meta, 'duplicate_candidate');
-                                $suggestionReason = collect(data_get($line->meta, 'suggestion_reason', []))->implode(', ');
+                                $suggestionReasonLabels = [
+                                    'amount_match' => 'Amount cocok',
+                                    'reference_match' => 'Referensi cocok',
+                                    'description_match' => 'Deskripsi cocok',
+                                    'context_match' => 'Konteks statement cocok',
+                                    'date_near' => 'Tanggal sangat dekat',
+                                    'date_close' => 'Tanggal masih dekat',
+                                    'direction_match' => 'Arah transaksi cocok',
+                                    'bank_fee_keyword_match' => 'Keyword biaya bank cocok',
+                                    'transfer_keyword_match' => 'Keyword transfer cocok',
+                                    'refund_keyword_match' => 'Keyword refund cocok',
+                                    'payment_penalty_for_bank_keyword' => 'Diturunkan karena terlihat seperti fee/transfer',
+                                    'ambiguous_candidates' => 'Ada kandidat lain yang hampir sama',
+                                ];
+                                $suggestionReason = collect(data_get($line->meta, 'suggestion_reason', []))
+                                    ->map(fn ($reason) => $suggestionReasonLabels[$reason] ?? $reason)
+                                    ->implode(', ');
                             @endphp
                             <tr>
                                 @if($reconciliation->status === 'draft')
@@ -191,7 +217,12 @@
                                                 </select>
                                             </div>
                                             <div class="col-12">
-                                                <input type="text" name="resolution_reason" class="form-control" value="{{ $line->resolution_reason }}" placeholder="Reason">
+                                                <select name="resolution_reason" class="form-select">
+                                                    <option value="">Pilih reason</option>
+                                                    @foreach($resolutionReasonOptions as $value => $label)
+                                                        <option value="{{ $value }}" @selected($line->resolution_reason === $value)>{{ $label }}</option>
+                                                    @endforeach
+                                                </select>
                                             </div>
                                             <div class="col-12">
                                                 <textarea name="resolution_note" class="form-control" rows="2" placeholder="Catatan exception / ignore">{{ $line->resolution_note }}</textarea>

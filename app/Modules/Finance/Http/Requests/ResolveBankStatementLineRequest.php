@@ -2,7 +2,9 @@
 
 namespace App\Modules\Finance\Http\Requests;
 
+use App\Modules\Finance\Models\BankStatementLine;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ResolveBankStatementLineRequest extends FormRequest
 {
@@ -15,7 +17,13 @@ class ResolveBankStatementLineRequest extends FormRequest
     {
         return [
             'status' => ['required', 'in:exception,ignored,unmatched'],
-            'resolution_reason' => ['nullable', 'string', 'max:120'],
+            'resolution_reason' => [
+                Rule::requiredIf(in_array((string) $this->input('status'), ['exception', 'ignored'], true)),
+                'nullable',
+                'string',
+                'max:120',
+                Rule::in(array_keys(BankStatementLine::resolutionReasonOptions())),
+            ],
             'resolution_note' => ['nullable', 'string'],
         ];
     }

@@ -52,7 +52,9 @@ class TaxDocumentSyncService
                 data_get($sale->customer_snapshot, 'tax_name') ?: $sale->customer_name_snapshot
             ),
             'counterparty_tax_address_snapshot' => $this->nullableString(
-                data_get($sale->customer_snapshot, 'tax_address') ?: $sale->customer_address_snapshot
+                data_get($sale->customer_snapshot, 'tax_address')
+                    ?: data_get($sale->customer_snapshot, 'billing_address')
+                    ?: $sale->customer_address_snapshot
             ),
             'taxable_base' => $this->resolveTaxableBase((float) $sale->subtotal, (float) $sale->discount_total, $snapshot),
             'tax_amount' => round((float) $sale->tax_total, 2),
@@ -88,7 +90,9 @@ class TaxDocumentSyncService
                 data_get($purchase->supplier_snapshot, 'tax_name') ?: $purchase->supplier_name_snapshot
             ),
             'counterparty_tax_address_snapshot' => $this->nullableString(
-                data_get($purchase->supplier_snapshot, 'tax_address') ?: $purchase->supplier_address_snapshot
+                data_get($purchase->supplier_snapshot, 'tax_address')
+                    ?: data_get($purchase->supplier_snapshot, 'billing_address')
+                    ?: $purchase->supplier_address_snapshot
             ),
             'taxable_base' => $this->resolveTaxableBase((float) $purchase->subtotal, (float) $purchase->discount_total, $snapshot),
             'tax_amount' => round((float) $purchase->tax_total, 2),
@@ -196,6 +200,9 @@ class TaxDocumentSyncService
             'document_label' => $taxRate ? $taxRate->document_label : null,
             'requires_tax_number' => $taxRate ? (bool) $taxRate->requires_tax_number : false,
             'requires_counterparty_tax_id' => $taxRate ? (bool) $taxRate->requires_counterparty_tax_id : false,
+            'counterparty_tax_is_pkp' => (bool) ($snapshot['tax_is_pkp'] ?? false),
+            'counterparty_billing_address' => $snapshot['billing_address'] ?? null,
+            'counterparty_tax_profile_complete' => (bool) ($snapshot['tax_profile_complete'] ?? false),
             'tax_snapshot' => $snapshot,
             'auto_generated' => true,
         ];

@@ -45,6 +45,9 @@
                 <thead><tr><th>Waktu</th><th>Produk</th><th>Type</th><th>Lokasi</th><th>Before</th><th>Qty</th><th>After</th><th>Unit Cost</th><th>Value</th><th>Ref</th></tr></thead>
                 <tbody>
                     @forelse($movements as $movement)
+                        @php
+                            $sourceReference = ($sourceReferences ?? [])[$movement->reference_type . ':' . $movement->reference_id] ?? [];
+                        @endphp
                         <tr>
                             <td>{{ $movement->occurred_at?->format('d/m/Y H:i') }}</td>
                             <td>{{ $movement->product?->name }} @if($movement->variant)<div class="text-muted small">{{ $movement->variant->name }}</div>@endif</td>
@@ -55,7 +58,15 @@
                             <td>{{ number_format((float) $movement->after_quantity, 2, ',', '.') }}</td>
                             <td>{{ $money->format((float) $movement->unit_cost, $currency) }}</td>
                             <td>{{ $money->format((float) $movement->movement_value, $currency) }}</td>
-                            <td>{{ $movement->reference_type ? class_basename($movement->reference_type) . '#' . $movement->reference_id : '-' }}</td>
+                            <td>
+                                @if($sourceReference['source_url'] ?? false)
+                                    <a href="{{ $sourceReference['source_url'] }}">{{ $sourceReference['source_label'] }}</a>
+                                @elseif($movement->reference_type)
+                                    {{ $sourceReference['source_label'] ?? (class_basename($movement->reference_type) . '#' . $movement->reference_id) }}
+                                @else
+                                    -
+                                @endif
+                            </td>
                         </tr>
                     @empty
                         <tr>

@@ -9,6 +9,7 @@ use App\Modules\Finance\Services\TransactionTaxService;
 use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Products\Services\ProductLookupService;
 use App\Modules\Purchases\Models\Purchase;
+use App\Modules\Purchases\Models\PurchasePayableAdjustment;
 use App\Support\BooleanQuery;
 use App\Support\TenantContext;
 use Illuminate\Support\Collection;
@@ -82,6 +83,14 @@ class PurchaseLookupService
             Purchase::BILL_PENDING => 'Pending Bill',
             Purchase::BILL_RECEIVED => 'Bill Received',
             Purchase::BILL_VERIFIED => 'Bill Verified',
+        ];
+    }
+
+    public function payableAdjustmentTypeOptions(): array
+    {
+        return [
+            PurchasePayableAdjustment::TYPE_DEBIT_NOTE => 'Debit Note',
+            PurchasePayableAdjustment::TYPE_WRITE_OFF => 'Write-off',
         ];
     }
 

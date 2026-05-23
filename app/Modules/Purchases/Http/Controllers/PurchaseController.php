@@ -5,17 +5,22 @@ namespace App\Modules\Purchases\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Purchases\Actions\CancelDraftPurchaseAction;
 use App\Modules\Purchases\Actions\CreateDraftPurchaseAction;
+use App\Modules\Purchases\Actions\CreatePurchasePayableAdjustmentAction;
 use App\Modules\Purchases\Actions\FinalizePurchaseAction;
 use App\Modules\Purchases\Actions\ReceivePurchaseGoodsAction;
 use App\Modules\Purchases\Actions\UpdateDraftPurchaseAction;
+use App\Modules\Purchases\Actions\UpdateSupplierBillStatusAction;
 use App\Modules\Purchases\Actions\VoidPurchaseAction;
 use App\Modules\Purchases\Http\Requests\CancelDraftPurchaseRequest;
 use App\Modules\Purchases\Http\Requests\FinalizePurchaseRequest;
 use App\Modules\Purchases\Http\Requests\ReceiveGoodsRequest;
 use App\Modules\Purchases\Http\Requests\StoreDraftPurchaseRequest;
+use App\Modules\Purchases\Http\Requests\StorePurchasePayableAdjustmentRequest;
 use App\Modules\Purchases\Http\Requests\UpdateDraftPurchaseRequest;
+use App\Modules\Purchases\Http\Requests\UpdateSupplierBillStatusRequest;
 use App\Modules\Purchases\Http\Requests\VoidPurchaseRequest;
 use App\Modules\Purchases\Models\Purchase;
+use App\Modules\Purchases\Models\PurchaseReceipt;
 use App\Modules\Purchases\Repositories\PurchaseRepository;
 use App\Modules\Purchases\Services\PurchaseLookupService;
 use App\Support\CurrencySettingsResolver;
@@ -28,9 +33,11 @@ class PurchaseController extends Controller
     private $repository;
     private $lookupService;
     private $createDraftPurchase;
+    private $createPurchasePayableAdjustment;
     private $updateDraftPurchase;
     private $finalizePurchase;
     private $receivePurchaseGoods;
+    private $updateSupplierBillStatus;
     private $cancelDraftPurchase;
     private $voidPurchase;
     private $currencySettings;
@@ -39,9 +46,11 @@ class PurchaseController extends Controller
         PurchaseRepository $repository,
         PurchaseLookupService $lookupService,
         CreateDraftPurchaseAction $createDraftPurchase,
+        CreatePurchasePayableAdjustmentAction $createPurchasePayableAdjustment,
         UpdateDraftPurchaseAction $updateDraftPurchase,
         FinalizePurchaseAction $finalizePurchase,
         ReceivePurchaseGoodsAction $receivePurchaseGoods,
+        UpdateSupplierBillStatusAction $updateSupplierBillStatus,
         CancelDraftPurchaseAction $cancelDraftPurchase,
         VoidPurchaseAction $voidPurchase,
         CurrencySettingsResolver $currencySettings
@@ -49,9 +58,11 @@ class PurchaseController extends Controller
         $this->repository = $repository;
         $this->lookupService = $lookupService;
         $this->createDraftPurchase = $createDraftPurchase;
+        $this->createPurchasePayableAdjustment = $createPurchasePayableAdjustment;
         $this->updateDraftPurchase = $updateDraftPurchase;
         $this->finalizePurchase = $finalizePurchase;
         $this->receivePurchaseGoods = $receivePurchaseGoods;
+        $this->updateSupplierBillStatus = $updateSupplierBillStatus;
         $this->cancelDraftPurchase = $cancelDraftPurchase;
         $this->voidPurchase = $voidPurchase;
         $this->currencySettings = $currencySettings;
@@ -59,7 +70,7 @@ class PurchaseController extends Controller
 
     public function index(Request $request): View
     {
-        $filters = $request->only(['search', 'contact_id', 'status', 'payment_status', 'date_from', 'date_to']);
+        $filters = $request->only(['search', 'contact_id', 'status', 'payment_status', 'supplier_bill_status', 'date_from', 'date_to']);
         if ($request->user() && $request->user()->can('purchases.view_all')) {
             $filters['scope'] = 'all';
         } else {
@@ -72,6 +83,7 @@ class PurchaseController extends Controller
             'filters' => $filters,
             'statusOptions' => $this->lookupService->statusOptions(),
             'paymentStatusOptions' => $this->lookupService->paymentStatusOptions(),
+            'supplierBillStatusOptions' => $this->lookupService->supplierBillStatusOptions(),
             'dependencies' => $this->lookupService->dependencyMap(),
         ]);
     }
@@ -103,6 +115,7 @@ class PurchaseController extends Controller
             'statusOptions' => $this->lookupService->statusOptions(),
             'paymentStatusOptions' => $this->lookupService->paymentStatusOptions(),
             'supplierBillStatusOptions' => $this->lookupService->supplierBillStatusOptions(),
+            'payableAdjustmentTypeOptions' => $this->lookupService->payableAdjustmentTypeOptions(),
             'activities' => $purchase->activities()->with('causer')->latest()->get(),
         ]);
     }
@@ -150,6 +163,22 @@ class PurchaseController extends Controller
         return redirect()->route('purchases.show', $purchase)->with('status', 'Penerimaan barang diposting.');
     }
 
+    public function updateSupplierBillStatus(UpdateSupplierBillStatusRequest $request, Purchase $purchase, string $status): RedirectResponse
+    {
+        $this->authorizeView($purchase);
+        $purchase = $this->updateSupplierBillStatus->execute($purchase, $status, $request->validated(), $request->user());
+
+        return redirect()->route('purchases.show', $purchase)->with('status', 'Status tagihan supplier diperbarui.');
+    }
+
+    public function storePayableAdjustment(StorePurchasePayableAdjustmentRequest $request, Purchase $purchase, string $type): RedirectResponse
+    {
+        $this->authorizeView($purchase);
+        $adjustment = $this->createPurchasePayableAdjustment->execute($purchase, $type, $request->validated(), $request->user());
+
+        return redirect()->route('purchases.show', $purchase)->with('status', 'Penyesuaian hutang ' . $adjustment->adjustment_number . ' berhasil dibuat.');
+    }
+
     public function cancel(CancelDraftPurchaseRequest $request, Purchase $purchase): RedirectResponse
     {
         $this->authorizeView($purchase);
@@ -171,6 +200,17 @@ class PurchaseController extends Controller
         $this->authorizeView($purchase);
         return view('purchases::print', [
             'purchase' => $this->repository->findForDetail($purchase),
+        ]);
+    }
+
+    public function showReceipt(PurchaseReceipt $receipt): View
+    {
+        $receipt = $this->repository->findReceiptForDetail($receipt);
+        $this->authorizeView($receipt->purchase);
+
+        return view('purchases::receipts.show', [
+            'receipt' => $receipt,
+            'purchase' => $receipt->purchase,
         ]);
     }
 

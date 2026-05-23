@@ -18,6 +18,8 @@ use App\Modules\Payments\Models\PaymentMethod;
 use App\Support\SimpleSpreadsheet;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
+use App\Support\Notifications\NotificationCenter;
+use App\Support\Notifications\NotificationMessage;
 use App\Support\TenantContext;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Http\RedirectResponse;
@@ -111,6 +113,14 @@ class BankReconciliationController extends Controller
             'candidateTotal' => round((float) $candidatePayments->sum('amount'), 2),
             'selectedTotal' => round((float) $reconciliation->items->sum('cleared_amount'), 2),
             'statementLines' => $reconciliation->statementLines,
+            'statementSummary' => [
+                'matched' => $reconciliation->statementLines->where('match_status', BankStatementLine::MATCH_STATUS_MATCHED)->count(),
+                'suggested' => $reconciliation->statementLines->where('match_status', BankStatementLine::MATCH_STATUS_SUGGESTED)->count(),
+                'exception' => $reconciliation->statementLines->where('match_status', BankStatementLine::MATCH_STATUS_EXCEPTION)->count(),
+                'ignored' => $reconciliation->statementLines->where('match_status', BankStatementLine::MATCH_STATUS_IGNORED)->count(),
+                'unmatched' => $reconciliation->statementLines->where('match_status', BankStatementLine::MATCH_STATUS_UNMATCHED)->count(),
+            ],
+            'resolutionReasonOptions' => BankStatementLine::resolutionReasonOptions(),
             'matchedStatementLineIds' => $reconciliation->statementLines
                 ->where('match_status', BankStatementLine::MATCH_STATUS_SUGGESTED)
                 ->pluck('id')
@@ -140,8 +150,8 @@ class BankReconciliationController extends Controller
             })
             ->values();
 
-        if (!$this->headerContainsAny($header, ['transaction_date', 'date', 'posting_date', 'book_date', 'value_date'])
-            || !$this->headerContainsAny($header, ['amount', 'debit', 'credit', 'debit_amount', 'credit_amount'])) {
+        if (!$this->headerContainsAny($header, $this->statementDateHeaders())
+            || !$this->headerContainsAny($header, $this->statementAmountHeaders())) {
             return redirect()->route('finance.reconciliations.show', $reconciliation)->withErrors([
                 'import_file' => 'Header wajib minimal punya tanggal transaksi dan nilai amount atau pasangan debit/credit.',
             ]);
@@ -244,6 +254,58 @@ class BankReconciliationController extends Controller
 
             $importBatch->update(['imported_rows' => $importedCount]);
         });
+
+        $unmatchedCount = BankStatementLine::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->where('company_id', (int) CompanyContext::currentId())
+            ->where('bank_reconciliation_id', $reconciliation->id)
+            ->whereIn('match_status', [
+                BankStatementLine::MATCH_STATUS_UNMATCHED,
+                BankStatementLine::MATCH_STATUS_EXCEPTION,
+            ])
+            ->count();
+
+        app(NotificationCenter::class)->publish(new NotificationMessage(
+            module: 'finance',
+            type: 'finance.statement_import_completed',
+            title: 'Import bank statement selesai',
+            body: 'Import statement untuk reconciliation #' . $reconciliation->id . ' selesai dengan ' . $importedCount . ' baris.',
+            tenantId: (int) $reconciliation->tenant_id,
+            companyId: (int) $reconciliation->company_id,
+            branchId: $reconciliation->branch_id ? (int) $reconciliation->branch_id : null,
+            resourceType: $reconciliation->getMorphClass(),
+            resourceId: (int) $reconciliation->id,
+            actions: [
+                [
+                    'label' => 'Buka Reconciliation',
+                    'url' => route('finance.reconciliations.show', $reconciliation),
+                ],
+            ],
+        ));
+
+        if ($unmatchedCount > 0) {
+            app(NotificationCenter::class)->publish(new NotificationMessage(
+                module: 'finance',
+                type: 'finance.bank_reconciliation_exception',
+                title: 'Bank reconciliation perlu ditinjau',
+                body: $unmatchedCount . ' statement line masih unmatched/exception pada reconciliation #' . $reconciliation->id . '.',
+                tenantId: (int) $reconciliation->tenant_id,
+                companyId: (int) $reconciliation->company_id,
+                branchId: $reconciliation->branch_id ? (int) $reconciliation->branch_id : null,
+                resourceType: $reconciliation->getMorphClass(),
+                resourceId: (int) $reconciliation->id,
+                dedupeKey: 'reconciliation-exception:' . $reconciliation->id,
+                actions: [
+                    [
+                        'label' => 'Review Reconciliation',
+                        'url' => route('finance.reconciliations.show', $reconciliation),
+                    ],
+                ],
+                meta: [
+                    'unmatched_count' => $unmatchedCount,
+                ],
+            ));
+        }
 
         return redirect()->route('finance.reconciliations.show', $reconciliation)->with('status', 'Statement berhasil diimport: ' . $importedCount . ' baris.');
     }
@@ -540,8 +602,9 @@ class BankReconciliationController extends Controller
         ?string $referenceNumber,
         ?string $description
     ): ?array {
-        $best = $this->bestPaymentSuggestion($reconciliation, $amount, $transactionDate, $referenceNumber, $description);
-        $financeTransactionSuggestion = $this->bestFinanceTransactionSuggestion($reconciliation, $amount, $direction, $transactionDate, $referenceNumber, $description);
+        $statementKeywords = $this->statementKeywords($referenceNumber, $description);
+        $best = $this->bestPaymentSuggestion($reconciliation, $amount, $transactionDate, $referenceNumber, $description, $statementKeywords);
+        $financeTransactionSuggestion = $this->bestFinanceTransactionSuggestion($reconciliation, $amount, $direction, $transactionDate, $referenceNumber, $description, $statementKeywords);
 
         if ($best === null) {
             $best = $financeTransactionSuggestion;
@@ -557,34 +620,40 @@ class BankReconciliationController extends Controller
         float $amount,
         Carbon $transactionDate,
         ?string $referenceNumber,
-        ?string $description
+        ?string $description,
+        array $statementKeywords = []
     ): ?array {
         $payments = $this->candidatePayments($reconciliation)
             ->where('amount', $amount)
             ->get();
 
         $best = null;
+        $runnerUpScore = null;
+        $referenceText = $this->normalizeMatchText($referenceNumber);
+        $descriptionText = $this->normalizeMatchText($description);
+        $statementText = trim($referenceText . ' ' . $descriptionText);
 
         foreach ($payments as $payment) {
             $score = 50;
             $reason = ['amount_match'];
-            $paymentReference = strtolower(trim((string) ($payment->reference_number ?: $payment->external_reference ?: '')));
-            $reference = strtolower(trim((string) $referenceNumber));
-            $descriptionText = strtolower(trim((string) $description));
+            $paymentText = $this->buildPaymentMatchText($payment);
 
-            if ($reference !== '' && $paymentReference !== '' && str_contains($reference, $paymentReference)) {
-                $score += 35;
+            $referenceMatch = $this->textMatchScore($referenceText, $paymentText, 35, 20);
+            if ($referenceMatch > 0) {
+                $score += $referenceMatch;
                 $reason[] = 'reference_match';
             }
 
-            if ($reference !== '' && $paymentReference !== '' && str_contains($paymentReference, $reference)) {
-                $score += 35;
-                $reason[] = 'reference_match';
+            $descriptionMatch = $this->textMatchScore($descriptionText, $paymentText, 20, 10);
+            if ($descriptionMatch > 0) {
+                $score += $descriptionMatch;
+                $reason[] = 'description_match';
             }
 
-            if ($descriptionText !== '' && $paymentReference !== '' && str_contains($descriptionText, $paymentReference)) {
-                $score += 20;
-                $reason[] = 'description_reference_match';
+            $contextMatch = $this->textMatchScore($statementText, $paymentText, 18, 10);
+            if ($contextMatch > 0 && !in_array('reference_match', $reason, true) && !in_array('description_match', $reason, true)) {
+                $score += $contextMatch;
+                $reason[] = 'context_match';
             }
 
             $daysGap = abs($transactionDate->diffInDays(optional($payment->paid_at) ?: $transactionDate, false));
@@ -596,16 +665,30 @@ class BankReconciliationController extends Controller
                 $reason[] = 'date_close';
             }
 
+            if (($statementKeywords['fee'] ?? false) || ($statementKeywords['transfer'] ?? false)) {
+                $score -= 18;
+                $reason[] = 'payment_penalty_for_bank_keyword';
+            }
+
             if ($best === null || $score > $best['score']) {
+                $runnerUpScore = $best['score'] ?? $runnerUpScore;
                 $best = [
                     'type' => Payment::class,
                     'id' => $payment->id,
                     'target' => 'payment',
                     'label' => $payment->payment_number,
                     'score' => $score,
-                    'reason' => $reason,
+                    'reason' => array_values(array_unique($reason)),
                 ];
+            } elseif ($runnerUpScore === null || $score > $runnerUpScore) {
+                $runnerUpScore = $score;
             }
+        }
+
+        if ($best !== null && $runnerUpScore !== null && ($best['score'] - $runnerUpScore) <= 5) {
+            $best['score'] -= 12;
+            $best['reason'][] = 'ambiguous_candidates';
+            $best['reason'] = array_values(array_unique($best['reason']));
         }
 
         return $best;
@@ -617,21 +700,23 @@ class BankReconciliationController extends Controller
         string $direction,
         Carbon $transactionDate,
         ?string $referenceNumber,
-        ?string $description
+        ?string $description,
+        array $statementKeywords = []
     ): ?array {
         $transactions = $this->candidateFinanceTransactions($reconciliation)
             ->where('amount', $amount)
             ->get();
 
         $best = null;
+        $runnerUpScore = null;
+        $referenceText = $this->normalizeMatchText($referenceNumber);
+        $descriptionText = $this->normalizeMatchText($description);
+        $statementText = trim($referenceText . ' ' . $descriptionText);
 
         foreach ($transactions as $transaction) {
             $score = 45;
             $reason = ['amount_match'];
-            $notesText = strtolower(trim((string) $transaction->notes));
-            $transactionNumber = strtolower(trim((string) $transaction->transaction_number));
-            $reference = strtolower(trim((string) $referenceNumber));
-            $descriptionText = strtolower(trim((string) $description));
+            $transactionText = $this->buildFinanceTransactionMatchText($transaction);
 
             if ($direction === 'in' && $transaction->transaction_type === FinanceTransaction::TYPE_CASH_IN) {
                 $score += 15;
@@ -643,19 +728,22 @@ class BankReconciliationController extends Controller
                 $reason[] = 'direction_match';
             }
 
-            if ($reference !== '' && $transactionNumber !== '' && str_contains($reference, $transactionNumber)) {
-                $score += 30;
+            $referenceMatch = $this->textMatchScore($referenceText, $transactionText, 30, 18);
+            if ($referenceMatch > 0) {
+                $score += $referenceMatch;
                 $reason[] = 'reference_match';
             }
 
-            if ($reference !== '' && $transactionNumber !== '' && str_contains($transactionNumber, $reference)) {
-                $score += 30;
-                $reason[] = 'reference_match';
+            $descriptionMatch = $this->textMatchScore($descriptionText, $transactionText, 18, 10);
+            if ($descriptionMatch > 0) {
+                $score += $descriptionMatch;
+                $reason[] = 'description_match';
             }
 
-            if ($descriptionText !== '' && $notesText !== '' && (str_contains($descriptionText, $notesText) || str_contains($notesText, $descriptionText))) {
-                $score += 18;
-                $reason[] = 'notes_match';
+            $contextMatch = $this->textMatchScore($statementText, $transactionText, 18, 10);
+            if ($contextMatch > 0 && !in_array('reference_match', $reason, true) && !in_array('description_match', $reason, true)) {
+                $score += $contextMatch;
+                $reason[] = 'context_match';
             }
 
             $daysGap = abs($transactionDate->diffInDays(optional($transaction->transaction_date) ?: $transactionDate, false));
@@ -667,19 +755,171 @@ class BankReconciliationController extends Controller
                 $reason[] = 'date_close';
             }
 
+            if (($statementKeywords['fee'] ?? false) && $this->containsAny($transactionText, ['fee', 'admin', 'charge', 'biaya'])) {
+                $score += 20;
+                $reason[] = 'bank_fee_keyword_match';
+            }
+
+            if (($statementKeywords['transfer'] ?? false) && $this->containsAny($transactionText, ['transfer', 'mutasi', 'bank'])) {
+                $score += 15;
+                $reason[] = 'transfer_keyword_match';
+            }
+
+            if (($statementKeywords['refund'] ?? false) && $this->containsAny($transactionText, ['refund', 'retur', 'return'])) {
+                $score += 12;
+                $reason[] = 'refund_keyword_match';
+            }
+
             if ($best === null || $score > $best['score']) {
+                $runnerUpScore = $best['score'] ?? $runnerUpScore;
                 $best = [
                     'type' => FinanceTransaction::class,
                     'id' => $transaction->id,
                     'target' => 'finance_transaction',
                     'label' => $transaction->transaction_number,
                     'score' => $score,
-                    'reason' => $reason,
+                    'reason' => array_values(array_unique($reason)),
                 ];
+            } elseif ($runnerUpScore === null || $score > $runnerUpScore) {
+                $runnerUpScore = $score;
             }
         }
 
+        if ($best !== null && $runnerUpScore !== null && ($best['score'] - $runnerUpScore) <= 5) {
+            $best['score'] -= 12;
+            $best['reason'][] = 'ambiguous_candidates';
+            $best['reason'] = array_values(array_unique($best['reason']));
+        }
+
         return $best;
+    }
+
+    private function buildPaymentMatchText(Payment $payment): string
+    {
+        $fragments = [
+            $payment->payment_number,
+            $payment->reference_number,
+            $payment->external_reference,
+            $payment->notes,
+            data_get($payment->meta, 'bank_reference'),
+            data_get($payment->meta, 'invoice_number'),
+            data_get($payment->meta, 'customer_reference'),
+        ];
+
+        foreach ($payment->allocations as $allocation) {
+            $fragments[] = data_get($allocation->meta, 'reference_number');
+            $fragments[] = data_get($allocation->meta, 'document_number');
+
+            $payable = $allocation->payable;
+            if ($payable) {
+                $fragments = array_merge($fragments, $this->payableReferenceFragments($payable));
+            }
+        }
+
+        return $this->normalizeMatchText(implode(' ', array_filter($fragments)));
+    }
+
+    private function buildFinanceTransactionMatchText(FinanceTransaction $transaction): string
+    {
+        return $this->normalizeMatchText(implode(' ', array_filter([
+            $transaction->transaction_number,
+            $transaction->notes,
+            optional($transaction->category)->name,
+            optional($transaction->category)->notes,
+            data_get($transaction->meta, 'reference_number'),
+            data_get($transaction->meta, 'external_reference'),
+            data_get($transaction->meta, 'bank_reference'),
+        ])));
+    }
+
+    private function payableReferenceFragments(object $payable): array
+    {
+        $fragments = [];
+
+        foreach ([
+            'sale_number',
+            'invoice_number',
+            'purchase_number',
+            'return_number',
+            'receipt_number',
+            'adjustment_number',
+            'reference_number',
+            'supplier_invoice_number',
+            'supplier_reference',
+            'customer_reference',
+        ] as $key) {
+            $fragments[] = data_get($payable, $key);
+        }
+
+        return array_filter($fragments);
+    }
+
+    private function statementKeywords(?string $referenceNumber, ?string $description): array
+    {
+        $text = $this->normalizeMatchText(trim((string) $referenceNumber . ' ' . (string) $description));
+
+        return [
+            'fee' => $this->containsAny($text, ['fee', 'admin', 'charge', 'biaya']),
+            'transfer' => $this->containsAny($text, ['transfer', 'trf', 'mutasi']),
+            'refund' => $this->containsAny($text, ['refund', 'retur', 'return']),
+        ];
+    }
+
+    private function textMatchScore(?string $statementText, ?string $candidateText, int $exactScore, int $partialScore): int
+    {
+        $statementText = $this->normalizeMatchText($statementText);
+        $candidateText = $this->normalizeMatchText($candidateText);
+
+        if ($statementText === '' || $candidateText === '') {
+            return 0;
+        }
+
+        if (str_contains($statementText, $candidateText) || str_contains($candidateText, $statementText)) {
+            return $exactScore;
+        }
+
+        $statementTokens = collect(explode(' ', $statementText))
+            ->filter(fn ($token) => strlen($token) >= 4)
+            ->unique()
+            ->values();
+
+        if ($statementTokens->isEmpty()) {
+            return 0;
+        }
+
+        $matches = $statementTokens->filter(function ($token) use ($candidateText) {
+            return str_contains($candidateText, $token);
+        })->count();
+
+        if ($matches >= 2) {
+            return $partialScore;
+        }
+
+        if ($matches === 1 && count(explode(' ', $candidateText)) <= 4) {
+            return max(8, (int) floor($partialScore / 2));
+        }
+
+        return 0;
+    }
+
+    private function normalizeMatchText(?string $text): string
+    {
+        return Str::of((string) $text)
+            ->lower()
+            ->replaceMatches('/[^a-z0-9]+/', ' ')
+            ->squish()
+            ->toString();
+    }
+
+    private function containsAny(string $text, array $keywords): bool
+    {
+        foreach ($keywords as $keyword) {
+            if ($keyword !== '' && str_contains($text, $keyword)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function bookClosingBalance(int $accountId, Carbon $periodEnd, ?int $branchId = null): float
@@ -748,23 +988,17 @@ class BankReconciliationController extends Controller
 
     private function extractStatementDate($payload): Carbon
     {
-        $rawDate = $this->firstPayloadValue($payload, [
-            'transaction_date',
-            'date',
-            'posting_date',
-            'book_date',
-            'value_date',
-        ]);
+        $rawDate = $this->firstPayloadValue($payload, $this->statementDateHeaders());
 
         return Carbon::parse((string) ($rawDate ?: now()));
     }
 
     private function extractStatementAmount($payload): ?float
     {
-        $amount = $this->normalizeAmountValue($this->firstPayloadValue($payload, ['amount', 'transaction_amount']));
-        $debit = $this->normalizeAmountValue($this->firstPayloadValue($payload, ['debit', 'debit_amount', 'withdrawal']));
-        $credit = $this->normalizeAmountValue($this->firstPayloadValue($payload, ['credit', 'credit_amount', 'deposit']));
-        $direction = strtolower(trim((string) $this->firstPayloadValue($payload, ['direction', 'type', 'mutation_type'])));
+        $amount = $this->normalizeAmountValue($this->firstPayloadValue($payload, ['amount', 'transaction_amount', 'amount_idr', 'nominal', 'mutation', 'mutasi']));
+        $debit = $this->normalizeAmountValue($this->firstPayloadValue($payload, ['debit', 'debit_amount', 'withdrawal', 'debet']));
+        $credit = $this->normalizeAmountValue($this->firstPayloadValue($payload, ['credit', 'credit_amount', 'deposit', 'kredit']));
+        $direction = strtolower(trim((string) $this->firstPayloadValue($payload, ['direction', 'type', 'mutation_type', 'db_cr', 'debit_credit', 'transaction_type'])));
 
         if ($credit !== null || $debit !== null) {
             $creditValue = $credit !== null ? abs($credit) : 0.0;
@@ -780,13 +1014,47 @@ class BankReconciliationController extends Controller
 
         $normalizedAmount = $amount;
 
-        if (in_array($direction, ['debit', 'db', 'out', 'outflow', 'withdrawal'], true)) {
+        if (in_array($direction, ['debit', 'db', 'debet', 'd', 'out', 'outflow', 'withdrawal'], true)) {
             $normalizedAmount = -1 * abs($amount);
-        } elseif (in_array($direction, ['credit', 'cr', 'in', 'inflow', 'deposit'], true)) {
+        } elseif (in_array($direction, ['credit', 'cr', 'kredit', 'k', 'in', 'inflow', 'deposit'], true)) {
             $normalizedAmount = abs($amount);
         }
 
         return round($normalizedAmount, 2);
+    }
+
+    private function statementDateHeaders(): array
+    {
+        return [
+            'transaction_date',
+            'date',
+            'posting_date',
+            'book_date',
+            'value_date',
+            'effective_date',
+            'txn_date',
+            'tanggal',
+        ];
+    }
+
+    private function statementAmountHeaders(): array
+    {
+        return [
+            'amount',
+            'transaction_amount',
+            'amount_idr',
+            'nominal',
+            'mutation',
+            'mutasi',
+            'debit',
+            'credit',
+            'debit_amount',
+            'credit_amount',
+            'withdrawal',
+            'deposit',
+            'debet',
+            'kredit',
+        ];
     }
 
     private function normalizeAmountValue($value): ?float

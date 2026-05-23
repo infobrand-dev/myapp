@@ -4,12 +4,14 @@ namespace App\Modules\Sales\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Sales\Actions\CancelDraftSaleAction;
+use App\Modules\Sales\Actions\CreateSaleReceivableAdjustmentAction;
 use App\Modules\Sales\Actions\CreateDraftSaleAction;
 use App\Modules\Sales\Actions\FinalizeSaleAction;
 use App\Modules\Sales\Actions\UpdateDraftSaleAction;
 use App\Modules\Sales\Actions\VoidSaleAction;
 use App\Modules\Sales\Http\Requests\CancelDraftSaleRequest;
 use App\Modules\Sales\Http\Requests\FinalizeSaleRequest;
+use App\Modules\Sales\Http\Requests\StoreSaleReceivableAdjustmentRequest;
 use App\Modules\Sales\Http\Requests\StoreDraftSaleRequest;
 use App\Modules\Sales\Http\Requests\UpdateDraftSaleRequest;
 use App\Modules\Sales\Http\Requests\VoidSaleRequest;
@@ -27,6 +29,7 @@ class SaleController extends Controller
     private $repository;
     private $lookupService;
     private $createDraftSale;
+    private $createReceivableAdjustment;
     private $updateDraftSale;
     private $finalizeSale;
     private $voidSale;
@@ -38,6 +41,7 @@ class SaleController extends Controller
         SaleRepository $repository,
         SaleLookupService $lookupService,
         CreateDraftSaleAction $createDraftSale,
+        CreateSaleReceivableAdjustmentAction $createReceivableAdjustment,
         UpdateDraftSaleAction $updateDraftSale,
         FinalizeSaleAction $finalizeSale,
         VoidSaleAction $voidSale,
@@ -48,6 +52,7 @@ class SaleController extends Controller
         $this->repository = $repository;
         $this->lookupService = $lookupService;
         $this->createDraftSale = $createDraftSale;
+        $this->createReceivableAdjustment = $createReceivableAdjustment;
         $this->updateDraftSale = $updateDraftSale;
         $this->finalizeSale = $finalizeSale;
         $this->voidSale = $voidSale;
@@ -97,6 +102,7 @@ class SaleController extends Controller
             'sale' => $sale,
             'statusOptions' => $this->lookupService->statusOptions(),
             'paymentStatusOptions' => $this->lookupService->paymentStatusOptions(),
+            'receivableAdjustmentTypeOptions' => $this->lookupService->receivableAdjustmentTypeOptions(),
             'activities' => $sale->activities()->with('causer')->latest()->get(),
         ]);
     }
@@ -136,6 +142,13 @@ class SaleController extends Controller
         $sale = $this->cancelDraftSale->execute($sale, $request->validated(), $request->user());
 
         return redirect()->route('sales.show', $sale)->with('status', 'Draft dibatalkan.');
+    }
+
+    public function storeReceivableAdjustment(StoreSaleReceivableAdjustmentRequest $request, Sale $sale, string $type): RedirectResponse
+    {
+        $adjustment = $this->createReceivableAdjustment->execute($sale, $type, $request->validated(), $request->user());
+
+        return redirect()->route('sales.show', $sale)->with('status', 'Penyesuaian piutang ' . $adjustment->adjustment_number . ' berhasil dibuat.');
     }
 
     public function invoice(Sale $sale): View

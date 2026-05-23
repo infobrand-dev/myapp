@@ -109,6 +109,11 @@ Jika customer memiliki **Payment Term** yang diatur di Contacts (misal: Net 30),
 
 Untuk melihat semua piutang per customer dikelompokkan berdasarkan umurnya, buka **Reports → Aging Piutang**.
 
+Jika invoice perlu dikurangi tanpa membuat payment, halaman sale sekarang juga mendukung:
+
+- **Credit Memo** untuk mengurangi piutang customer dengan jurnal formal
+- **Write-off** untuk menutup sisa piutang yang tidak tertagih
+
 ---
 
 ## Retur Penjualan
@@ -124,6 +129,11 @@ Efek retur:
 - Saldo piutang berkurang
 - Stok barang bertambah kembali (jika produk stockable)
 - Jurnal akuntansi dibuat otomatis untuk membalik pendapatan dan piutang
+
+Untuk return yang memang tidak akan direfund, detail return sekarang juga bisa:
+
+- **Mark Refund Skipped** dengan alasan formal
+- **Reopen Refund** jika kemudian customer jadi meminta refund
 
 ---
 

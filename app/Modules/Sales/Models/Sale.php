@@ -166,6 +166,11 @@ class Sale extends Model
         return $this->morphMany(PaymentAllocation::class, 'payable');
     }
 
+    public function receivableAdjustments(): HasMany
+    {
+        return $this->hasMany(SaleReceivableAdjustment::class)->latest('adjustment_date');
+    }
+
     public function voidLogs(): HasMany
     {
         return $this->hasMany(SaleVoidLog::class)->latest();

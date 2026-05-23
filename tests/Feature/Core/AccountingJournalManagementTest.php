@@ -7,6 +7,8 @@ use App\Models\SubscriptionPlan;
 use App\Models\TenantSubscription;
 use App\Models\User;
 use App\Modules\Finance\FinanceServiceProvider;
+use App\Modules\Finance\Models\ChartOfAccount;
+use App\Modules\Finance\Services\ChartOfAccountProvisioner;
 use App\Support\CompanyContext;
 use App\Support\PlanFeature;
 use App\Support\TenantContext;
@@ -29,12 +31,29 @@ class AccountingJournalManagementTest extends TestCase
             '--path' => 'database/migrations/2026_04_12_130000_create_accounting_governance_tables.php',
             '--realpath' => false,
         ])->run();
+        $this->artisan('migrate', [
+            '--path' => 'app/Modules/Finance/Database/Migrations/2026_04_21_090000_create_chart_of_accounts_table.php',
+            '--realpath' => false,
+        ])->run();
+        $this->artisan('migrate', [
+            '--path' => 'app/Modules/Finance/Database/Migrations/2026_04_23_175000_create_approval_matrix_rules_table.php',
+            '--realpath' => false,
+        ])->run();
+        $this->artisan('migrate', [
+            '--path' => 'app/Modules/Finance/Database/Migrations/2026_04_23_176000_add_matrix_fields_to_approval_requests_table.php',
+            '--realpath' => false,
+        ])->run();
+        $this->artisan('migrate', [
+            '--path' => 'app/Modules/Finance/Database/Migrations/2026_04_23_177000_add_maker_checker_fields_to_approval_matrix_rules_table.php',
+            '--realpath' => false,
+        ])->run();
 
         app(PermissionRegistrar::class)->setPermissionsTeamId(1);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         TenantContext::setCurrentId(1);
         CompanyContext::setCurrentId(1);
+        app(ChartOfAccountProvisioner::class)->ensureDefaults(1, 1, null);
     }
 
     public function test_user_can_create_manual_journal_as_draft(): void
@@ -83,7 +102,11 @@ class AccountingJournalManagementTest extends TestCase
 
     public function test_user_can_post_existing_manual_journal(): void
     {
-        $user = $this->financeUser(['finance.view-journal', 'finance.manage-journal']);
+        $user = $this->financeUser([
+            'finance.view-journal',
+            'finance.manage-journal',
+            'finance.approve-sensitive-transactions',
+        ]);
 
         $journal = AccountingJournal::query()->create([
             'tenant_id' => 1,
@@ -132,6 +155,90 @@ class AccountingJournalManagementTest extends TestCase
             ->assertRedirect(route('finance.journals.index'));
 
         $this->assertSame('posted', $journal->fresh()->status);
+    }
+
+    public function test_user_can_edit_draft_manual_journal_before_posting(): void
+    {
+        $user = $this->financeUser(['finance.view-journal', 'finance.manage-journal']);
+
+        $journal = AccountingJournal::query()->create([
+            'tenant_id' => 1,
+            'company_id' => 1,
+            'entry_type' => 'manual',
+            'source_type' => AccountingJournal::class,
+            'source_id' => 777,
+            'journal_number' => 'JRNL-MANUAL-EDIT',
+            'entry_date' => now(),
+            'status' => 'draft',
+            'description' => 'Draft before edit',
+            'meta' => ['manual' => true],
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+
+        $journal->forceFill(['source_id' => $journal->id])->save();
+
+        $journal->lines()->createMany([
+            [
+                'tenant_id' => 1,
+                'company_id' => 1,
+                'line_no' => 1,
+                'account_code' => 'CASH',
+                'account_name' => 'Cash',
+                'debit' => 250000,
+                'credit' => 0,
+            ],
+            [
+                'tenant_id' => 1,
+                'company_id' => 1,
+                'line_no' => 2,
+                'account_code' => 'EQUITY',
+                'account_name' => 'Owner Equity',
+                'debit' => 0,
+                'credit' => 250000,
+            ],
+        ]);
+
+        $this->actingAs($user)
+            ->withSession([
+                'company_id' => 1,
+                'company_slug' => 'default-company',
+            ])
+            ->get(route('finance.journals.edit', $journal->id))
+            ->assertOk()
+            ->assertSee('Edit Manual Journal');
+
+        $this->actingAs($user)
+            ->withSession([
+                'company_id' => 1,
+                'company_slug' => 'default-company',
+            ])
+            ->put(route('finance.journals.update', $journal->id), [
+                'entry_date' => now()->format('Y-m-d H:i:s'),
+                'status' => 'draft',
+                'description' => 'Draft after edit',
+                'lines' => [
+                    [
+                        'account_code' => 'AR',
+                        'account_name' => 'Accounts Receivable',
+                        'debit' => 300000,
+                        'credit' => 0,
+                    ],
+                    [
+                        'account_code' => 'SALES',
+                        'account_name' => 'Sales Revenue',
+                        'debit' => 0,
+                        'credit' => 300000,
+                    ],
+                ],
+            ])
+            ->assertRedirect(route('finance.journals.index'));
+
+        $journal->refresh()->load('lines');
+
+        $this->assertSame('Draft after edit', $journal->description);
+        $this->assertSame('AR', $journal->lines->first()->account_code);
+        $this->assertCount(2, $journal->lines);
     }
 
     private function financeUser(array $permissions): User

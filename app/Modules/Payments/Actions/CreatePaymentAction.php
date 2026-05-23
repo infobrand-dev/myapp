@@ -11,6 +11,8 @@ use App\Support\AccountingPeriodLockService;
 use App\Support\BooleanQuery;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
+use App\Support\Notifications\NotificationCenter;
+use App\Support\Notifications\NotificationMessage;
 use App\Support\TenantContext;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
@@ -26,19 +28,22 @@ class CreatePaymentAction
     private $recalculatePaymentSummary;
     private $journalService;
     private $periodLockService;
+    private $notificationCenter;
 
     public function __construct(
         PaymentNumberService $numberService,
         ValidatePayableTransactionAction $validatePayableTransaction,
         RecalculatePaymentSummaryAction $recalculatePaymentSummary,
         AccountingJournalService $journalService,
-        AccountingPeriodLockService $periodLockService
+        AccountingPeriodLockService $periodLockService,
+        NotificationCenter $notificationCenter
     ) {
         $this->numberService = $numberService;
         $this->validatePayableTransaction = $validatePayableTransaction;
         $this->recalculatePaymentSummary = $recalculatePaymentSummary;
         $this->journalService = $journalService;
         $this->periodLockService = $periodLockService;
+        $this->notificationCenter = $notificationCenter;
     }
 
     public function execute(array $data, ?User $actor = null): Payment
@@ -171,6 +176,8 @@ class CreatePaymentAction
                 'Auto journal payment ' . $payment->payment_number
             );
 
+            $this->publishNotifications($payment, $payables);
+
             return $payment->load(['method', 'receiver', 'allocations.payable']);
         });
     }
@@ -261,5 +268,55 @@ class CreatePaymentAction
             })
             ->values()
             ->all();
+    }
+
+    private function publishNotifications(Payment $payment, Collection $payables): void
+    {
+        $this->notificationCenter->publish(new NotificationMessage(
+            module: 'payments',
+            type: 'payments.payment_posted',
+            title: 'Payment posted',
+            body: 'Payment ' . $payment->payment_number . ' sebesar ' . number_format((float) $payment->amount, 0, ',', '.') . ' sudah diposting.',
+            tenantId: (int) $payment->tenant_id,
+            companyId: $payment->company_id ? (int) $payment->company_id : null,
+            branchId: $payment->branch_id ? (int) $payment->branch_id : null,
+            resourceType: $payment->getMorphClass(),
+            resourceId: (int) $payment->id,
+            actions: [
+                [
+                    'label' => 'Buka Payment',
+                    'url' => route('payments.show', $payment),
+                ],
+            ],
+            meta: [
+                'payment_number' => $payment->payment_number,
+                'amount' => (float) $payment->amount,
+            ],
+        ));
+
+        $overpaidPayable = $payables->first(function ($payable) {
+            return (string) optional($payable->fresh())->payment_status === 'overpaid';
+        });
+
+        if ($overpaidPayable) {
+            $this->notificationCenter->publish(new NotificationMessage(
+                module: 'payments',
+                type: 'payments.overpayment_detected',
+                title: 'Overpayment terdeteksi',
+                body: 'Payment ' . $payment->payment_number . ' membuat salah satu payable menjadi overpaid.',
+                tenantId: (int) $payment->tenant_id,
+                companyId: $payment->company_id ? (int) $payment->company_id : null,
+                branchId: $payment->branch_id ? (int) $payment->branch_id : null,
+                resourceType: $payment->getMorphClass(),
+                resourceId: (int) $payment->id,
+                dedupeKey: 'payment-overpaid:' . $payment->id,
+                actions: [
+                    [
+                        'label' => 'Review Payment',
+                        'url' => route('payments.show', $payment),
+                    ],
+                ],
+            ));
+        }
     }
 }

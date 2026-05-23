@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\NotificationDelivery;
+use App\Models\NotificationPushSubscription;
 use App\Models\SubscriptionPlan;
 use App\Support\ModuleFilesystemAudit;
 use App\Support\ModuleManager;
@@ -75,6 +77,7 @@ class GoliveAuditService
 
         $checks = array_merge(
             $checks,
+            $this->notificationChecks(),
             $this->planCatalogChecks(),
             $this->moduleFilesystemChecks(),
             $this->moduleDatabaseChecks(),
@@ -153,6 +156,122 @@ class GoliveAuditService
         return $this->env('app.env') === 'production';
     }
 
+    private function notificationChecks(): array
+    {
+        $notificationTables = [
+            'notifications',
+            'notification_recipients',
+            'notification_deliveries',
+            'notification_preferences',
+            'notification_push_subscriptions',
+        ];
+
+        $missingTables = collect($notificationTables)
+            ->filter(fn (string $table) => !Schema::hasTable($table))
+            ->values()
+            ->all();
+
+        $vapidSubject = trim((string) config('notifications.push.vapid.subject'));
+        $vapidPublicKey = trim((string) config('notifications.push.vapid.public_key'));
+        $vapidPrivateKey = trim((string) config('notifications.push.vapid.private_key'));
+        $activeSubscriptionCount = empty($missingTables)
+            ? NotificationPushSubscription::query()->where('is_active', true)->count()
+            : 0;
+        $sentPushCount = empty($missingTables)
+            ? NotificationDelivery::query()->where('channel', 'web_push')->where('status', NotificationDelivery::STATUS_SENT)->count()
+            : 0;
+        $pendingPushCount = empty($missingTables)
+            ? NotificationDelivery::query()->where('channel', 'web_push')->where('status', NotificationDelivery::STATUS_PENDING)->count()
+            : 0;
+        $failedPushCount = empty($missingTables)
+            ? NotificationDelivery::query()->where('channel', 'web_push')->where('status', NotificationDelivery::STATUS_FAILED)->count()
+            : 0;
+
+        return [
+            $this->check(
+                'notification_tables',
+                'Notification tables exist',
+                empty($missingTables),
+                empty($missingTables) ? 'all notification tables present' : implode(', ', $missingTables),
+                'Run core notification migrations so inbox, deliveries, preferences, and push subscriptions are available.',
+                'fail'
+            ),
+            $this->check(
+                'notification_service_worker',
+                'Service worker file exists',
+                file_exists(public_path('sw.js')),
+                file_exists(public_path('sw.js')) ? public_path('sw.js') : '-',
+                'Deploy `public/sw.js` so browser push notifications can be received.',
+                'fail'
+            ),
+            $this->check(
+                'notification_webpush_package',
+                'Web push package installed',
+                class_exists(\Minishlink\WebPush\WebPush::class),
+                class_exists(\Minishlink\WebPush\WebPush::class) ? 'minishlink/web-push available' : 'missing',
+                'Ensure `minishlink/web-push` is installed on the production build.',
+                'fail'
+            ),
+            $this->check(
+                'notification_openssl',
+                'OpenSSL supports VAPID/web push',
+                extension_loaded('openssl') && function_exists('openssl_get_curve_names') && in_array('prime256v1', openssl_get_curve_names(), true),
+                extension_loaded('openssl') ? 'openssl enabled' : 'openssl missing',
+                'Enable PHP OpenSSL and verify curve `prime256v1` is available for VAPID.',
+                'fail'
+            ),
+            $this->check(
+                'notification_vapid_subject',
+                'VAPID subject configured',
+                $this->isValidVapidSubject($vapidSubject),
+                $vapidSubject !== '' ? $vapidSubject : '-',
+                'Set `NOTIFICATION_VAPID_SUBJECT` to a valid `mailto:` address or HTTPS URL.',
+                'warn'
+            ),
+            $this->check(
+                'notification_vapid_public',
+                'VAPID public key configured',
+                $this->filled($vapidPublicKey),
+                $this->masked($vapidPublicKey),
+                'Set `NOTIFICATION_VAPID_PUBLIC_KEY` in production `.env`.',
+                'warn'
+            ),
+            $this->check(
+                'notification_vapid_private',
+                'VAPID private key configured',
+                $this->filled($vapidPrivateKey),
+                $this->masked($vapidPrivateKey),
+                'Set `NOTIFICATION_VAPID_PRIVATE_KEY` in production `.env`.',
+                'warn'
+            ),
+            $this->check(
+                'notification_push_subscriptions_active',
+                'At least one active push subscription exists',
+                $activeSubscriptionCount > 0,
+                (string) $activeSubscriptionCount,
+                'Belum ada browser production yang subscribe Web Push. Login, buka halaman notifications, lalu aktifkan Web Push dari browser uji.',
+                'warn'
+            ),
+            $this->check(
+                'notification_push_delivery_sent',
+                'At least one web push delivery has succeeded',
+                $sentPushCount > 0,
+                'sent=' . $sentPushCount . ', pending=' . $pendingPushCount . ', failed=' . $failedPushCount,
+                'Belum ada delivery `web_push` yang sukses. Trigger notification warning/critical lalu cek queue worker, VAPID, subscription, dan browser permission.',
+                'warn'
+            ),
+        ];
+    }
+
+    private function isValidVapidSubject(string $value): bool
+    {
+        if ($value === '') {
+            return false;
+        }
+
+        return str_starts_with($value, 'mailto:') || str_starts_with($value, 'https://');
+    }
+
     private function manualChecks(): array
     {
         return [
@@ -169,6 +288,9 @@ class GoliveAuditService
             'Smoke WhatsApp Web bridge' => 'Jika WhatsApp Web dipakai, pastikan bridge process hidup, endpoint `/status` merespons, dan QR/session bisa muncul dari dashboard tenant.',
             'Smoke Sentry event' => 'Trigger satu error uji atau gunakan check runtime agar event benar-benar masuk ke project Sentry production.',
             'Smoke email delivery' => 'Pastikan email invoice dan payment confirmation benar-benar terkirim ke inbox tujuan.',
+            'Smoke notification center' => 'Login sebagai user tenant dan pastikan bell topbar, unread counter, dan halaman `/notifications` berjalan normal.',
+            'Smoke web push subscribe' => 'Dari browser production, aktifkan Web Push pada halaman notifications dan pastikan browser permission granted serta row subscription terbentuk.',
+            'Smoke web push delivery' => 'Trigger satu notification warning/critical lalu pastikan delivery `web_push` tercatat `sent` dan browser menerima push.',
             'Rollback readiness' => 'Simpan backup database dan prosedur rollback sebelum publish trafik penuh.',
         ];
     }

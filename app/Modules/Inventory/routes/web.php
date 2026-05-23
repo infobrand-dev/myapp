@@ -21,12 +21,19 @@ Route::middleware(['web', 'auth', 'plan.feature:accounting', 'plan.feature:inven
 
         Route::get('/movements', [StockMovementController::class, 'index'])->middleware('permission:inventory.view-movement')->name('movements.index');
 
+        Route::get('/locations', [\App\Modules\Inventory\Http\Controllers\InventoryLocationController::class, 'index'])->middleware('permission:inventory.manage-locations')->name('locations.index');
+        Route::get('/locations/create', [\App\Modules\Inventory\Http\Controllers\InventoryLocationController::class, 'create'])->middleware('permission:inventory.manage-locations')->name('locations.create');
+        Route::post('/locations', [\App\Modules\Inventory\Http\Controllers\InventoryLocationController::class, 'store'])->middleware('permission:inventory.manage-locations')->name('locations.store');
+        Route::get('/locations/{location}/edit', [\App\Modules\Inventory\Http\Controllers\InventoryLocationController::class, 'edit'])->middleware('permission:inventory.manage-locations')->name('locations.edit');
+        Route::put('/locations/{location}', [\App\Modules\Inventory\Http\Controllers\InventoryLocationController::class, 'update'])->middleware('permission:inventory.manage-locations')->name('locations.update');
+
         Route::get('/openings', [OpeningStockController::class, 'index'])->middleware('permission:inventory.manage-opening-stock')->name('openings.index');
         Route::get('/openings/import', [OpeningStockController::class, 'importPage'])->middleware('permission:inventory.manage-opening-stock')->name('openings.import-page');
         Route::get('/openings/import/template/{format}', [OpeningStockController::class, 'downloadTemplate'])->middleware('permission:inventory.manage-opening-stock')->name('openings.import-template');
         Route::post('/openings/import', [OpeningStockController::class, 'import'])->middleware('permission:inventory.manage-opening-stock')->name('openings.import');
         Route::get('/openings/create', [OpeningStockController::class, 'create'])->middleware('permission:inventory.manage-opening-stock')->name('openings.create');
         Route::post('/openings', [OpeningStockController::class, 'store'])->middleware('permission:inventory.manage-opening-stock')->name('openings.store');
+        Route::get('/openings/{opening}', [OpeningStockController::class, 'show'])->middleware('permission:inventory.manage-opening-stock')->name('openings.show');
 
         Route::get('/adjustments', [StockAdjustmentController::class, 'index'])->middleware('permission:inventory.manage-stock-adjustment')->name('adjustments.index');
         Route::get('/adjustments/create', [StockAdjustmentController::class, 'create'])->middleware('permission:inventory.manage-stock-adjustment')->name('adjustments.create');

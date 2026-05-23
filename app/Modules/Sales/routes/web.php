@@ -45,6 +45,7 @@ Route::middleware(['web', 'auth', 'plan.feature:accounting'])
                 Route::post('/', [SaleReturnController::class, 'store'])->middleware('permission:sales_return.create')->name('store');
                 Route::get('/{saleReturn}', [SaleReturnController::class, 'show'])->middleware('permission:sales_return.view')->name('show');
                 Route::post('/{saleReturn}/finalize', [SaleReturnController::class, 'finalize'])->middleware('permission:sales_return.finalize')->name('finalize');
+                Route::post('/{saleReturn}/refund-status/{status}', [SaleReturnController::class, 'updateRefundStatus'])->middleware('permission:sales_return.process_refund')->name('refund-status.update');
                 Route::post('/{saleReturn}/cancel', [SaleReturnController::class, 'cancel'])->middleware('permission:sales_return.cancel_draft')->name('cancel');
                 Route::get('/{saleReturn}/print', [SaleReturnController::class, 'print'])->middleware('permission:sales_return.print')->name('print');
             });
@@ -52,6 +53,7 @@ Route::middleware(['web', 'auth', 'plan.feature:accounting'])
         Route::get('/{sale}/edit', [SaleController::class, 'edit'])->middleware('permission:sales.update-draft')->name('edit');
         Route::put('/{sale}', [SaleController::class, 'update'])->middleware('permission:sales.update-draft')->name('update');
         Route::post('/{sale}/finalize', [SaleController::class, 'finalize'])->middleware('permission:sales.finalize')->name('finalize');
+        Route::post('/{sale}/receivable-adjustments/{type}', [SaleController::class, 'storeReceivableAdjustment'])->middleware('permission:sales.manage_receivable_adjustments')->name('receivable-adjustments.store');
         Route::post('/{sale}/void', [SaleController::class, 'void'])->middleware('permission:sales.void')->name('void');
         Route::post('/{sale}/cancel', [SaleController::class, 'cancel'])->middleware('permission:sales.cancel-draft')->name('cancel');
         Route::get('/{sale}/invoice', [SaleController::class, 'invoice'])->middleware('permission:sales.print')->name('invoice');

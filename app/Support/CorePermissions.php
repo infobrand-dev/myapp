@@ -19,15 +19,16 @@ class CorePermissions
         'modules.install',
         'modules.activate',
         'modules.deactivate',
+        'notifications.view',
     ];
 
     public const DEFAULT_ROLE_PERMISSIONS = [
         'Super-admin' => self::PERMISSIONS,
-        'Admin' => [],
-        'Customer Service' => [],
-        'Sales' => [],
-        'Cashier' => [],
-        'Inventory Staff' => [],
-        'Finance Staff' => [],
+        'Admin' => ['notifications.view'],
+        'Customer Service' => ['notifications.view'],
+        'Sales' => ['notifications.view'],
+        'Cashier' => ['notifications.view'],
+        'Inventory Staff' => ['notifications.view'],
+        'Finance Staff' => ['notifications.view'],
     ];
 }

@@ -8,6 +8,7 @@ use App\Modules\Sales\Actions\CalculateReturnTotalsAction;
 use App\Modules\Sales\Actions\CreateDraftSaleAction;
 use App\Modules\Sales\Actions\CreateSaleOrderAction;
 use App\Modules\Sales\Actions\CreateSaleQuotationAction;
+use App\Modules\Sales\Actions\CreateSaleReceivableAdjustmentAction;
 use App\Modules\Sales\Actions\CreateSalesReturnAction;
 use App\Modules\Sales\Actions\ConvertSaleOrderToSaleAction;
 use App\Modules\Sales\Actions\ConvertSaleQuotationToSaleAction;
@@ -20,6 +21,7 @@ use App\Modules\Sales\Actions\RecordSalePaymentAction;
 use App\Modules\Sales\Actions\SyncSalePaymentSummaryAction;
 use App\Modules\Sales\Actions\SyncSaleReturnRefundSummaryAction;
 use App\Modules\Sales\Actions\UpdateDraftSaleAction;
+use App\Modules\Sales\Actions\UpdateSaleReturnRefundStatusAction;
 use App\Modules\Sales\Actions\UpdateSaleOrderAction;
 use App\Modules\Sales\Actions\UpdateSaleQuotationAction;
 use App\Modules\Sales\Actions\ValidateReturnableItemsAction;
@@ -40,6 +42,7 @@ use App\Modules\Sales\Services\SaleNumberService;
 use App\Modules\Sales\Services\SaleOrderNumberService;
 use App\Modules\Sales\Services\SalePaymentSummaryService;
 use App\Modules\Sales\Services\SaleQuotationNumberService;
+use App\Modules\Sales\Services\SaleReceivableAdjustmentNumberService;
 use App\Modules\Sales\Services\SaleReturnCalculationService;
 use App\Modules\Sales\Services\SaleReturnLookupService;
 use App\Modules\Sales\Services\SaleReturnNumberService;
@@ -69,6 +72,7 @@ class SalesServiceProvider extends ServiceProvider
         'sales.cancel-draft',
         'sales.void',
         'sales.print',
+        'sales.manage_receivable_adjustments',
         'sales_order.view',
         'sales_order.create',
         'sales_order.update_draft',
@@ -98,6 +102,7 @@ class SalesServiceProvider extends ServiceProvider
             'sales.finalize',
             'sales.cancel-draft',
             'sales.print',
+            'sales.manage_receivable_adjustments',
             'sales_order.view',
             'sales_order.create',
             'sales_order.update_draft',
@@ -123,6 +128,7 @@ class SalesServiceProvider extends ServiceProvider
             'sales.finalize',
             'sales.cancel-draft',
             'sales.print',
+            'sales.manage_receivable_adjustments',
             'sales_order.view',
             'sales_order.create',
             'sales_order.update_draft',
@@ -162,6 +168,7 @@ class SalesServiceProvider extends ServiceProvider
         $this->app->singleton(SaleIntegrationPayloadBuilder::class);
         $this->app->singleton(SaleIdempotencyService::class);
         $this->app->singleton(SaleNumberService::class);
+        $this->app->singleton(SaleReceivableAdjustmentNumberService::class);
         $this->app->singleton(SaleOrderNumberService::class);
         $this->app->singleton(SaleQuotationNumberService::class);
         $this->app->singleton(SaleReturnNumberService::class);
@@ -175,9 +182,11 @@ class SalesServiceProvider extends ServiceProvider
         $this->app->singleton(ValidateReturnableItemsAction::class);
         $this->app->singleton(CalculateReturnTotalsAction::class);
         $this->app->singleton(CreateDraftSaleAction::class);
+        $this->app->singleton(CreateSaleReceivableAdjustmentAction::class);
         $this->app->singleton(CreateSaleOrderAction::class);
         $this->app->singleton(CreateSaleQuotationAction::class);
         $this->app->singleton(UpdateDraftSaleAction::class);
+        $this->app->singleton(UpdateSaleReturnRefundStatusAction::class);
         $this->app->singleton(UpdateSaleOrderAction::class);
         $this->app->singleton(UpdateSaleQuotationAction::class);
         $this->app->singleton(FinalizeSaleAction::class);

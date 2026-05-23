@@ -35,6 +35,9 @@ class StoreFinanceTaxDocumentRequest extends FormRequest
             'counterparty_tax_id_snapshot' => ['nullable', 'string', 'max:100'],
             'counterparty_tax_name_snapshot' => ['nullable', 'string', 'max:255'],
             'counterparty_tax_address_snapshot' => ['nullable', 'string'],
+            'withholding_direction' => ['nullable', Rule::in(['payable', 'receivable'])],
+            'efaktur_transaction_code' => ['nullable', 'string', 'max:5'],
+            'efaktur_additional_code' => ['nullable', 'string', 'max:10'],
             'reference_note' => ['nullable', 'string'],
             'status_reason' => ['nullable', 'string'],
         ];

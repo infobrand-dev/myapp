@@ -11,8 +11,10 @@ use App\Modules\Purchases\Actions\CreatePurchaseOrderAction;
 use App\Modules\Purchases\Actions\FinalizePurchaseAction;
 use App\Modules\Purchases\Actions\RecalculatePurchaseTotalsAction;
 use App\Modules\Purchases\Actions\ReceivePurchaseGoodsAction;
+use App\Modules\Purchases\Actions\CreatePurchasePayableAdjustmentAction;
 use App\Modules\Purchases\Actions\SyncPurchasePaymentSummaryAction;
 use App\Modules\Purchases\Actions\UpdateDraftPurchaseAction;
+use App\Modules\Purchases\Actions\UpdateSupplierBillStatusAction;
 use App\Modules\Purchases\Actions\UpdatePurchaseRequestAction;
 use App\Modules\Purchases\Actions\UpdatePurchaseOrderAction;
 use App\Modules\Purchases\Actions\VoidPurchaseAction;
@@ -28,6 +30,7 @@ use App\Modules\Purchases\Services\PurchaseIntegrationPayloadBuilder;
 use App\Modules\Purchases\Services\PurchaseLookupService;
 use App\Modules\Purchases\Services\PurchaseNumberService;
 use App\Modules\Purchases\Services\PurchaseOrderNumberService;
+use App\Modules\Purchases\Services\PurchasePayableAdjustmentNumberService;
 use App\Modules\Purchases\Services\PurchaseRequestNumberService;
 use App\Modules\Purchases\Services\PurchaseSnapshotService;
 use App\Support\BranchContext;
@@ -53,6 +56,8 @@ class PurchasesServiceProvider extends ServiceProvider
         'purchases.edit_draft',
         'purchases.finalize',
         'purchases.receive',
+        'purchases.manage_supplier_bill',
+        'purchases.manage_payable_adjustments',
         'purchases.void',
         'purchases.print',
         'purchase_order.view',
@@ -78,6 +83,8 @@ class PurchasesServiceProvider extends ServiceProvider
             'purchases.edit_draft',
             'purchases.finalize',
             'purchases.receive',
+            'purchases.manage_supplier_bill',
+            'purchases.manage_payable_adjustments',
             'purchases.print',
             'purchase_order.view',
             'purchase_order.create',
@@ -98,6 +105,8 @@ class PurchasesServiceProvider extends ServiceProvider
             'purchases.edit_draft',
             'purchases.finalize',
             'purchases.receive',
+            'purchases.manage_supplier_bill',
+            'purchases.manage_payable_adjustments',
             'purchases.print',
             'purchase_order.view',
             'purchase_order.create',
@@ -111,6 +120,13 @@ class PurchasesServiceProvider extends ServiceProvider
             'purchase_request.convert',
             'purchases.view_own',
         ],
+        'Finance Staff' => [
+            'purchases.view',
+            'purchases.manage_supplier_bill',
+            'purchases.manage_payable_adjustments',
+            'purchases.print',
+            'purchases.view_all',
+        ],
     ];
 
     public function register(): void
@@ -121,15 +137,18 @@ class PurchasesServiceProvider extends ServiceProvider
         $this->app->singleton(PurchaseNumberService::class);
         $this->app->singleton(PurchaseRequestNumberService::class);
         $this->app->singleton(PurchaseOrderNumberService::class);
+        $this->app->singleton(PurchasePayableAdjustmentNumberService::class);
         $this->app->singleton(PurchaseSnapshotService::class);
         $this->app->singleton(PurchaseLookupService::class);
         $this->app->singleton(PurchaseIntegrationPayloadBuilder::class);
         $this->app->singleton(RecalculatePurchaseTotalsAction::class);
         $this->app->singleton(SyncPurchasePaymentSummaryAction::class);
         $this->app->singleton(CreateDraftPurchaseAction::class);
+        $this->app->singleton(CreatePurchasePayableAdjustmentAction::class);
         $this->app->singleton(CreatePurchaseRequestAction::class);
         $this->app->singleton(CreatePurchaseOrderAction::class);
         $this->app->singleton(UpdateDraftPurchaseAction::class);
+        $this->app->singleton(UpdateSupplierBillStatusAction::class);
         $this->app->singleton(UpdatePurchaseRequestAction::class);
         $this->app->singleton(UpdatePurchaseOrderAction::class);
         $this->app->singleton(FinalizePurchaseAction::class);

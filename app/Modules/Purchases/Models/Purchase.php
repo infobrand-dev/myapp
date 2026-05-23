@@ -167,6 +167,11 @@ class Purchase extends Model
         return $this->hasMany(PurchaseStatusHistory::class)->latest();
     }
 
+    public function payableAdjustments(): HasMany
+    {
+        return $this->hasMany(PurchasePayableAdjustment::class)->latest('adjustment_date');
+    }
+
     public function paymentAllocations(): MorphMany
     {
         return $this->morphMany(PaymentAllocation::class, 'payable');

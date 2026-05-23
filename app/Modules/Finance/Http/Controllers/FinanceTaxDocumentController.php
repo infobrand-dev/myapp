@@ -12,6 +12,8 @@ use App\Modules\Purchases\Models\Purchase;
 use App\Modules\Sales\Models\Sale;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
+use App\Support\Notifications\NotificationCenter;
+use App\Support\Notifications\NotificationMessage;
 use App\Support\TenantContext;
 use App\Modules\Finance\Services\TaxDocumentNumberService;
 use App\Modules\Finance\Services\TaxWithholdingJournalService;
@@ -136,19 +138,25 @@ class FinanceTaxDocumentController extends Controller
         }
 
         $documents = $this->filteredDocumentsQuery($filters)
-            ->with(['taxRate', 'sourceDocument'])
+            ->with(['taxRate', 'sourceDocument', 'replacedDocument'])
             ->where('document_type', FinanceTaxDocument::TYPE_OUTPUT_VAT)
             ->orderBy('document_date')
             ->orderBy('id')
             ->get();
 
         $headers = [
+            'ready_status',
+            'validation_notes',
             'fk_status',
+            'transaction_code',
+            'additional_code',
             'replacement_flag',
             'tax_invoice_number',
+            'replaced_tax_invoice_number',
             'tax_period_month',
             'tax_period_year',
             'transaction_date',
+            'document_date',
             'buyer_name',
             'buyer_tax_id',
             'buyer_tax_name',
@@ -157,7 +165,10 @@ class FinanceTaxDocumentController extends Controller
             'vat_amount',
             'luxury_tax_amount',
             'reference_document',
+            'external_document_number',
             'tax_code',
+            'tax_scope',
+            'legal_basis',
             'notes',
         ];
 
@@ -168,12 +179,20 @@ class FinanceTaxDocumentController extends Controller
             fputcsv($stream, $headers);
 
             foreach ($documents as $document) {
+                $validationNotes = $this->efakturValidationNotes($document);
+
                 fputcsv($stream, [
+                    empty($validationNotes) ? 'ready' : 'needs_review',
+                    implode('; ', $validationNotes),
                     $document->document_status === FinanceTaxDocument::STATUS_CANCELLED ? '0' : '1',
+                    $this->efakturTransactionCode($document),
+                    $this->efakturAdditionalCode($document),
                     $document->document_status === FinanceTaxDocument::STATUS_REPLACED ? '1' : '0',
                     $document->document_number,
+                    $document->replacedDocument ? $document->replacedDocument->document_number : null,
                     (int) $document->tax_period_month,
                     (int) $document->tax_period_year,
+                    optional($document->transaction_date)->format('Y-m-d'),
                     optional($document->document_date)->format('Y-m-d'),
                     $document->counterparty_name_snapshot,
                     $document->counterparty_tax_id_snapshot,
@@ -183,7 +202,10 @@ class FinanceTaxDocumentController extends Controller
                     round((float) $document->tax_amount, 2),
                     0,
                     $this->sourceNumber($document),
+                    $document->external_document_number,
                     optional($document->taxRate)->code,
+                    optional($document->taxRate)->tax_scope ?: data_get($document->meta, 'tax_scope'),
+                    optional($document->taxRate)->legal_basis ?: data_get($document->meta, 'legal_basis'),
                     'Draft export struktur e-Faktur dari tax register.',
                 ]);
             }
@@ -303,6 +325,7 @@ class FinanceTaxDocumentController extends Controller
             'updated_by' => optional($request->user())->id,
         ]);
         $this->taxWithholdingJournalService->sync($taxDocument->fresh(['taxRate']));
+        $this->publishTaxDocumentNotification($taxDocument->fresh(['taxRate']));
 
         return redirect()->route('finance.tax-documents.index')->with('status', 'Dokumen register pajak ditambahkan.');
     }
@@ -313,6 +336,7 @@ class FinanceTaxDocumentController extends Controller
             'updated_by' => optional($request->user())->id,
         ]);
         $this->taxWithholdingJournalService->sync($taxDocument->fresh(['taxRate']));
+        $this->publishTaxDocumentNotification($taxDocument->fresh(['taxRate']));
 
         return redirect()->route('finance.tax-documents.index')->with('status', 'Dokumen register pajak diperbarui.');
     }
@@ -341,6 +365,14 @@ class FinanceTaxDocumentController extends Controller
         $counterpartyTaxName = $request->input('counterparty_tax_name_snapshot') ?: ($contact ? ($contact->tax_name ?: $contact->name) : null);
         $counterpartyTaxAddress = $request->input('counterparty_tax_address_snapshot') ?: ($contact ? $contact->tax_address : null);
         $documentStatus = (string) $request->input('document_status');
+        $withholdingDirection = $this->resolveWithholdingDirectionInput(
+            (string) $request->input('document_type'),
+            $request->input('withholding_direction'),
+            $sourceDocument
+        );
+        $efakturTransactionCode = $this->nullableString($request->input('efaktur_transaction_code'))
+            ?: $this->defaultEfakturTransactionCode($sourceDocument);
+        $efakturAdditionalCode = $this->nullableString($request->input('efaktur_additional_code'));
         $documentNumber = $this->resolveDocumentNumber(
             $request->input('document_number'),
             $documentStatus,
@@ -386,6 +418,9 @@ class FinanceTaxDocumentController extends Controller
                 'document_label' => $taxRate ? $taxRate->document_label : null,
                 'requires_tax_number' => $taxRate ? (bool) $taxRate->requires_tax_number : false,
                 'requires_counterparty_tax_id' => $taxRate ? (bool) $taxRate->requires_counterparty_tax_id : false,
+                'withholding_direction' => $withholdingDirection,
+                'efaktur_transaction_code' => $efakturTransactionCode,
+                'efaktur_additional_code' => $efakturAdditionalCode,
                 'number_auto_generated' => $documentNumber !== null && !$request->filled('document_number'),
                 'lifecycle_last_changed_at' => now()->toDateTimeString(),
                 'lifecycle_status_reason' => $this->nullableString($request->input('status_reason')),
@@ -474,6 +509,18 @@ class FinanceTaxDocumentController extends Controller
             'input_vat_total' => round((float) $rows->where('document_type', FinanceTaxDocument::TYPE_INPUT_VAT)->sum('tax_amount'), 2),
             'withholding_total' => round((float) $rows->where('document_type', FinanceTaxDocument::TYPE_WITHHOLDING)->sum('withheld_amount'), 2),
             'issued_count' => (int) $rows->where('document_status', FinanceTaxDocument::STATUS_ISSUED)->count(),
+            'missing_tax_profile_count' => (int) $rows->filter(fn (FinanceTaxDocument $document) => !$this->hasCounterpartyTaxProfile($document))->count(),
+            'missing_document_number_count' => (int) $rows
+                ->whereIn('document_status', [
+                    FinanceTaxDocument::STATUS_ISSUED,
+                    FinanceTaxDocument::STATUS_REPLACED,
+                    FinanceTaxDocument::STATUS_CANCELLED,
+                ])
+                ->filter(fn (FinanceTaxDocument $document) => $this->nullableString($document->document_number) === null)
+                ->count(),
+            'ready_efaktur_count' => (int) $rows
+                ->filter(fn (FinanceTaxDocument $document) => $this->isEfakturReady($document))
+                ->count(),
         ];
     }
 
@@ -598,6 +645,63 @@ class FinanceTaxDocumentController extends Controller
         return isset($options[$document->document_type]) ? $options[$document->document_type] : (string) $document->document_type;
     }
 
+    private function hasCounterpartyTaxProfile(FinanceTaxDocument $document): bool
+    {
+        return $this->nullableString($document->counterparty_tax_id_snapshot) !== null
+            && $this->nullableString($document->counterparty_tax_name_snapshot) !== null
+            && $this->nullableString($document->counterparty_tax_address_snapshot) !== null;
+    }
+
+    private function isEfakturReady(FinanceTaxDocument $document): bool
+    {
+        if ($document->document_type !== FinanceTaxDocument::TYPE_OUTPUT_VAT) {
+            return false;
+        }
+
+        if ($document->document_status !== FinanceTaxDocument::STATUS_ISSUED) {
+            return false;
+        }
+
+        return $this->nullableString($document->document_number) !== null
+            && $this->hasCounterpartyTaxProfile($document);
+    }
+
+    private function publishTaxDocumentNotification(FinanceTaxDocument $document): void
+    {
+        $needsAttention = !$this->hasCounterpartyTaxProfile($document)
+            || (
+                in_array($document->document_status, [
+                    FinanceTaxDocument::STATUS_ISSUED,
+                    FinanceTaxDocument::STATUS_REPLACED,
+                    FinanceTaxDocument::STATUS_CANCELLED,
+                ], true)
+                && $this->nullableString($document->document_number) === null
+            );
+
+        if (!$needsAttention) {
+            return;
+        }
+
+        app(NotificationCenter::class)->publish(new NotificationMessage(
+            module: 'finance',
+            type: 'finance.tax_document_incomplete',
+            title: 'Tax register belum lengkap',
+            body: 'Dokumen pajak ' . ($document->document_number ?: ('#' . $document->id)) . ' masih perlu dilengkapi sebelum compliance/export.',
+            tenantId: (int) $document->tenant_id,
+            companyId: (int) $document->company_id,
+            branchId: $document->branch_id ? (int) $document->branch_id : null,
+            resourceType: $document->getMorphClass(),
+            resourceId: (int) $document->id,
+            dedupeKey: 'tax-document-incomplete:' . $document->id,
+            actions: [
+                [
+                    'label' => 'Buka Tax Register',
+                    'url' => route('finance.tax-documents.edit', $document),
+                ],
+            ],
+        ));
+    }
+
     private function documentStatusLabel(FinanceTaxDocument $document): string
     {
         $options = FinanceTaxDocument::documentStatusOptions();
@@ -647,6 +751,24 @@ class FinanceTaxDocumentController extends Controller
         return 'payable';
     }
 
+    private function resolveWithholdingDirectionInput(string $documentType, $input, $sourceDocument): ?string
+    {
+        if ($documentType !== FinanceTaxDocument::TYPE_WITHHOLDING) {
+            return null;
+        }
+
+        $normalized = $this->nullableString($input);
+        if ($normalized !== null) {
+            return $normalized;
+        }
+
+        if ($sourceDocument instanceof Sale) {
+            return 'receivable';
+        }
+
+        return 'payable';
+    }
+
     private function withholdingAccountCode(FinanceTaxDocument $document, string $direction): string
     {
         if ($document->taxRate && $document->taxRate->withholding_account_code) {
@@ -654,6 +776,52 @@ class FinanceTaxDocumentController extends Controller
         }
 
         return $direction === 'receivable' ? 'PPH_RECEIVABLE' : 'PPH_PAYABLE';
+    }
+
+    private function defaultEfakturTransactionCode($sourceDocument): string
+    {
+        if ($sourceDocument instanceof Sale) {
+            return '01';
+        }
+
+        return '01';
+    }
+
+    private function efakturTransactionCode(FinanceTaxDocument $document): string
+    {
+        return (string) (data_get($document->meta, 'efaktur_transaction_code') ?: $this->defaultEfakturTransactionCode($document->sourceDocument));
+    }
+
+    private function efakturAdditionalCode(FinanceTaxDocument $document): ?string
+    {
+        return $this->nullableString(data_get($document->meta, 'efaktur_additional_code'));
+    }
+
+    private function efakturValidationNotes(FinanceTaxDocument $document): array
+    {
+        $notes = [];
+
+        if ($document->document_status !== FinanceTaxDocument::STATUS_ISSUED) {
+            $notes[] = 'document_not_issued';
+        }
+
+        if ($this->nullableString($document->document_number) === null) {
+            $notes[] = 'missing_tax_invoice_number';
+        }
+
+        if (!$this->hasCounterpartyTaxProfile($document)) {
+            $notes[] = 'missing_counterparty_tax_profile';
+        }
+
+        if ($this->nullableString($document->counterparty_name_snapshot) === null) {
+            $notes[] = 'missing_counterparty_name';
+        }
+
+        if ((float) $document->tax_amount <= 0) {
+            $notes[] = 'missing_vat_amount';
+        }
+
+        return $notes;
     }
 
     private function resolveDocumentNumber($requestedNumber, string $documentStatus, string $documentType, Carbon $documentDate, $currentDocument): ?string

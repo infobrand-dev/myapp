@@ -87,6 +87,9 @@
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">PPN Masukan</div><div class="h4 mb-0">{{ $money->format((float) $summary['input_vat_total'], $currency) }}</div></div></div></div>
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">PPh Dipotong</div><div class="h4 mb-0">{{ $money->format((float) $summary['withholding_total'], $currency) }}</div></div></div></div>
     <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Issued Docs</div><div class="h4 mb-0">{{ number_format((float) $summary['issued_count'], 0, ',', '.') }}</div></div></div></div>
+    <div class="col-md-4"><div class="card"><div class="card-body"><div class="text-muted small">Missing Tax Profile</div><div class="h4 mb-0 text-yellow">{{ number_format((float) $summary['missing_tax_profile_count'], 0, ',', '.') }}</div></div></div></div>
+    <div class="col-md-4"><div class="card"><div class="card-body"><div class="text-muted small">Missing Formal Number</div><div class="h4 mb-0 text-red">{{ number_format((float) $summary['missing_document_number_count'], 0, ',', '.') }}</div></div></div></div>
+    <div class="col-md-4"><div class="card"><div class="card-body"><div class="text-muted small">Ready e-Faktur Draft</div><div class="h4 mb-0 text-green">{{ number_format((float) $summary['ready_efaktur_count'], 0, ',', '.') }}</div></div></div></div>
 </div>
 
 <div class="row g-3">
@@ -131,11 +134,29 @@
                         </thead>
                         <tbody>
                             @forelse($documents as $document)
+                                @php
+                                    $hasTaxProfile = filled($document->counterparty_tax_id_snapshot)
+                                        && filled($document->counterparty_tax_name_snapshot)
+                                        && filled($document->counterparty_tax_address_snapshot);
+                                    $isEfakturReady = $document->document_type === \App\Modules\Finance\Models\FinanceTaxDocument::TYPE_OUTPUT_VAT
+                                        && $document->document_status === \App\Modules\Finance\Models\FinanceTaxDocument::STATUS_ISSUED
+                                        && filled($document->document_number)
+                                        && $hasTaxProfile;
+                                @endphp
                                 <tr>
                                     <td>
                                         <div class="fw-semibold">{{ $documentTypeOptions[$document->document_type] ?? $document->document_type }}</div>
                                         <div class="text-muted small">{{ $document->document_number ?: '-' }}</div>
                                         <div class="text-muted small">{{ optional($document->document_date)->format('d M Y') ?: '-' }}</div>
+                                        @if($document->document_type === \App\Modules\Finance\Models\FinanceTaxDocument::TYPE_OUTPUT_VAT)
+                                            <div class="text-muted small">Kode e-Faktur: {{ data_get($document->meta, 'efaktur_transaction_code', '01') }}</div>
+                                        @endif
+                                        @if($document->document_type === \App\Modules\Finance\Models\FinanceTaxDocument::TYPE_WITHHOLDING)
+                                            <div class="text-muted small">Arah PPh: {{ ucfirst(data_get($document->meta, 'withholding_direction', 'auto')) }}</div>
+                                        @endif
+                                        @if(!$document->document_number && in_array($document->document_status, ['issued', 'replaced', 'cancelled'], true))
+                                            <div class="small text-red mt-1">Nomor formal belum terisi</div>
+                                        @endif
                                     </td>
                                     <td>
                                         @if($document->sourceDocument)
@@ -155,6 +176,9 @@
                                     <td>
                                         <div>{{ $document->counterparty_name_snapshot ?: '-' }}</div>
                                         <div class="text-muted small">{{ $document->counterparty_tax_id_snapshot ?: '-' }}</div>
+                                        @if(!$hasTaxProfile)
+                                            <div class="small text-yellow mt-1">Profil pajak partner belum lengkap</div>
+                                        @endif
                                     </td>
                                     <td>
                                         <div class="small">Base: {{ $money->format((float) $document->taxable_base, $document->currency_code ?: $currency) }}</div>
@@ -172,6 +196,9 @@
                                         @endif
                                         @if($document->status_reason)
                                             <div class="text-muted small mt-1">{{ $document->status_reason }}</div>
+                                        @endif
+                                        @if($isEfakturReady)
+                                            <div class="text-green small mt-1">Siap draft e-Faktur</div>
                                         @endif
                                     </td>
                                     <td class="text-end">

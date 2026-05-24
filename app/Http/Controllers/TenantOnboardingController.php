@@ -7,6 +7,7 @@ use App\Models\SubscriptionPlan;
 use App\Services\PlatformAffiliateService;
 use App\Services\PlatformManualPaymentService;
 use App\Services\PlatformMidtransBillingService;
+use App\Services\TenantSlugReservationService;
 use App\Services\TenantOnboardingSalesService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -52,7 +53,7 @@ class TenantOnboardingController extends Controller
     /**
      * Validate, create the pending tenant sale, then redirect to checkout.
      */
-    public function store(Request $request, TenantOnboardingSalesService $sales, PlatformMidtransBillingService $midtrans, PlatformAffiliateService $affiliateService, PlatformManualPaymentService $manualPayment)
+    public function store(Request $request, TenantOnboardingSalesService $sales, PlatformMidtransBillingService $midtrans, PlatformAffiliateService $affiliateService, PlatformManualPaymentService $manualPayment, TenantSlugReservationService $slugReservations)
     {
         abort_unless(config('multitenancy.mode') === 'saas', 404);
 
@@ -82,11 +83,19 @@ class TenantOnboardingController extends Controller
             'password' => ['required', 'confirmed', Password::defaults()],
             'payment_method' => ['required', 'string', Rule::in(['midtrans', 'bank_transfer'])],
             'promo_code' => ['nullable', 'string', 'max:64'],
+            'terms_accepted' => ['accepted'],
         ], [
             'slug.regex' => 'Subdomain hanya boleh huruf kecil, angka, dan tanda hubung, dan tidak boleh diawali/diakhiri tanda hubung.',
             'slug.not_in' => 'Subdomain tersebut tidak tersedia. Pilih nama lain.',
             'slug.unique' => 'Subdomain tersebut sudah dipakai. Pilih nama lain.',
+            'terms_accepted.accepted' => 'Anda harus menyetujui kebijakan privasi dan syarat ketentuan.',
         ]);
+
+        if ($slugReservations->isReserved($data['slug'])) {
+            throw ValidationException::withMessages([
+                'slug' => 'Subdomain tersebut masih dikunci sementara. Pilih nama lain atau coba lagi beberapa waktu lagi.',
+            ]);
+        }
 
         if ($data['payment_method'] === 'bank_transfer' && !$manualPayment->isConfigured()) {
             throw ValidationException::withMessages([

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Auth\Events\Registered;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\User;
@@ -28,7 +29,18 @@ class UserController extends Controller
             ->latest()
             ->paginate(15);
 
-        return view('users.index', compact('users'));
+        $roles = $this->tenantRolesQuery()->get()->sortBy(function ($role) {
+            return sprintf('%04d-%s', TenantRoleCatalog::sortOrder($role->name), $role->name);
+        })->values();
+        [$companies, $branchesByCompany] = $this->accessOptions();
+        $invitations = \App\Models\UserInvitation::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->pending()
+            ->latest('id')
+            ->limit(10)
+            ->get();
+
+        return view('users.index', compact('users', 'roles', 'companies', 'branchesByCompany', 'invitations'));
     }
 
     public function create()
@@ -59,6 +71,8 @@ class UserController extends Controller
             'password' => bcrypt($data['password']),
         ]);
 
+        event(new Registered($user));
+
         $user->syncRoles([$role->name]);
         $userAccessManager->sync(
             $user,
@@ -68,7 +82,7 @@ class UserController extends Controller
             $data['default_branch_id'] ?? null
         );
 
-        return redirect()->route('users.index')->with('status', 'User ditambahkan.');
+        return redirect()->route('users.index')->with('status', 'User ditambahkan. Email verifikasi sudah dikirim.');
     }
 
     public function edit(User $user, UserAccessManager $userAccessManager)

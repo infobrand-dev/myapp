@@ -44,6 +44,19 @@ class SaasAuthCriticalPathTest extends TestCase
         $response->assertSee('Acme Workspace');
     }
 
+    public function test_tenant_subdomain_open_register_is_not_available(): void
+    {
+        Tenant::query()->create([
+            'name' => 'Acme Workspace',
+            'slug' => 'acme',
+            'is_active' => true,
+        ]);
+
+        $response = $this->get('http://acme.example.test/register');
+
+        $response->assertNotFound();
+    }
+
     public function test_platform_admin_host_login_screen_can_be_rendered(): void
     {
         $response = $this->get('http://dash.example.test/login');
@@ -90,7 +103,7 @@ class SaasAuthCriticalPathTest extends TestCase
             'password' => 'secret123',
         ]);
 
-        $response->assertRedirect('/dashboard');
+        $response->assertRedirect('/platform');
         $this->assertAuthenticatedAs($user);
     }
 }

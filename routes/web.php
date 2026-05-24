@@ -14,6 +14,7 @@ use App\Http\Controllers\NotificationPushSubscriptionController;
 use App\Http\Controllers\PlatformOwnerController;
 use App\Http\Controllers\PlatformBillingMidtransController;
 use App\Http\Controllers\PlatformAffiliateController;
+use App\Http\Controllers\UserInvitationController;
 use App\Http\Controllers\UserPresenceController;
 use Illuminate\Support\Facades\Route;
 
@@ -32,6 +33,8 @@ Route::post('locale/switch', [App\Http\Controllers\LocaleController::class, 'swi
 
 Route::get('/', [LandingPageController::class, 'meetra'])->name('landing');
 Route::get('/meetra', fn () => redirect()->route('landing'))->name('landing.meetra');
+Route::get('/products', [LandingPageController::class, 'products'])->name('products');
+Route::get('/contact-us', [LandingPageController::class, 'contact'])->name('contact');
 Route::get('/omnichannel', [LandingPageController::class, 'omnichannel'])->name('landing.omnichannel');
 Route::get('/accounting', [LandingPageController::class, 'accounting'])->name('landing.accounting');
 Route::get('/mulai-digital', [LandingPageController::class, 'mulaiDigital'])->name('landing.mulai-digital');
@@ -216,6 +219,7 @@ Route::middleware(['auth', '2fa', 'platform.admin', \App\Http\Middleware\Resolve
     Route::get('/users', [UserController::class, 'index'])->middleware('permission:users.view')->name('users.index');
     Route::get('/users/create', [UserController::class, 'create'])->middleware('permission:users.create')->name('users.create');
     Route::post('/users', [UserController::class, 'store'])->middleware('permission:users.create')->name('users.store');
+    Route::post('/users/invitations', [UserInvitationController::class, 'store'])->middleware('permission:users.create')->name('users.invitations.store');
     Route::get('/users/{user}/edit', [UserController::class, 'edit'])->middleware('permission:users.update')->name('users.edit');
     Route::put('/users/{user}', [UserController::class, 'update'])->middleware('permission:users.update')->name('users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->middleware('permission:users.delete')->name('users.destroy');

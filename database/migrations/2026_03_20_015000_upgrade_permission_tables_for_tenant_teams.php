@@ -54,11 +54,10 @@ return new class extends Migration
             });
         }
 
-        try {
+        if ($this->indexExists($table, 'roles_name_guard_name_unique')) {
             Schema::table($table, function (Blueprint $tableBlueprint) {
                 $tableBlueprint->dropUnique('roles_name_guard_name_unique');
             });
-        } catch (Throwable $e) {
         }
 
         if (!$this->indexExists($table, 'roles_tenant_id_name_guard_name_unique')) {

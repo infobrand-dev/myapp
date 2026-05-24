@@ -11,6 +11,13 @@ class AuthenticationTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config()->set('multitenancy.mode', 'standalone');
+    }
+
     public function test_login_screen_can_be_rendered()
     {
         $response = $this->get('/login');

@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\UserInvitationController;
 use Illuminate\Support\Facades\Route;
 
 // 2FA challenge — accessible by guests (user not yet fully logged in)
@@ -20,6 +21,13 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('guest')->group(function () {
+    Route::get('register/invitations/{invitation}', [UserInvitationController::class, 'show'])
+        ->middleware('signed')
+        ->name('register.invitations.accept');
+    Route::post('register/invitations/{invitation}', [UserInvitationController::class, 'accept'])
+        ->middleware('throttle:sensitive')
+        ->name('register.invitations.store');
+
     Route::get('register', [RegisteredUserController::class, 'create'])
                 ->name('register');
 

@@ -18,6 +18,59 @@
 </div>
 
 <div class="card">
+    @can('users.create')
+        <div class="card-header">
+            <div>
+                <div class="card-title mb-1">Undang User</div>
+                <div class="text-muted small">Registrasi self-signup tenant ditutup. Tambah anggota tim lewat undangan owner/admin.</div>
+            </div>
+        </div>
+        <div class="card-body border-bottom">
+            <form method="POST" action="{{ route('users.invitations.store') }}">
+                @csrf
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Nama</label>
+                        <input type="text" name="name" class="form-control" value="{{ old('name') }}" placeholder="Nama user">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="email" class="form-control" value="{{ old('email') }}" required placeholder="nama@contoh.com">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Role</label>
+                        <select name="role" class="form-select" required>
+                            <option value="">Pilih role</option>
+                            @foreach($roles as $role)
+                                <option value="{{ $role->name }}" @selected(old('role') === $role->name)>{{ $role->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Company Access</label>
+                        <select name="company_ids[]" class="form-select" multiple>
+                            @foreach($companies as $company)
+                                <option value="{{ $company->id }}">{{ $company->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Branch Access</label>
+                        <select name="branch_ids[]" class="form-select" multiple>
+                            @foreach($branchesByCompany as $companyBranches)
+                                @foreach($companyBranches as $branch)
+                                    <option value="{{ $branch->id }}">{{ optional($branch->company)->name ? optional($branch->company)->name . ' - ' : '' }}{{ $branch->name }}</option>
+                                @endforeach
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">Kirim Undangan</button>
+                </div>
+            </form>
+        </div>
+    @endcan
     <div class="table-responsive">
         <table class="table table-vcenter">
             <thead>
@@ -89,4 +142,37 @@
         {{ $users->links() }}
     </div>
 </div>
+
+@if($invitations->isNotEmpty())
+    <div class="card mt-3">
+        <div class="card-header">
+            <div>
+                <div class="card-title mb-1">Undangan Pending</div>
+                <div class="text-muted small">Undangan berlaku 7 hari dan wajib verifikasi email setelah aktivasi akun.</div>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-vcenter">
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Dibuat</th>
+                        <th>Kedaluwarsa</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($invitations as $invitation)
+                        <tr>
+                            <td>{{ $invitation->email }}</td>
+                            <td>{{ $invitation->role_name }}</td>
+                            <td>{{ optional($invitation->created_at)->format('d M Y H:i') ?: '-' }}</td>
+                            <td>{{ optional($invitation->expires_at)->format('d M Y H:i') ?: '-' }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+@endif
 @endsection

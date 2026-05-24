@@ -38,19 +38,19 @@ class SelfServeOnboardingSalesFlowTest extends TestCase
         $response = $this->get(route('onboarding.create'));
 
         $response->assertOk();
-        $response->assertSee('Omnichannel Starter');
-        $response->assertSee('Omnichannel Growth');
-        $response->assertSee('Omnichannel Scale');
+        $response->assertSee('Accounting Starter');
+        $response->assertSee('Accounting Growth');
+        $response->assertSee('Accounting Scale');
         $response->assertSee('Paket Bulanan');
         $response->assertSee('Paket 6 Bulanan');
         $response->assertSee('Paket Tahunan');
-        $response->assertSee('Hubungkan akun WhatsApp Anda sendiri');
+        $response->assertSee('produk');
         $response->assertSee('Lanjut ke Pembayaran');
     }
 
     public function test_legacy_plan_query_alias_resolves_to_current_public_revision(): void
     {
-        $response = $this->get(route('onboarding.create', ['plan' => 'growth']));
+        $response = $this->get(route('onboarding.create', ['plan' => 'growth', 'product_line' => 'omnichannel']));
 
         $response->assertOk();
         $response->assertViewHas('preferredPlanId', SubscriptionPlan::query()->where('code', 'growth-v2')->value('id'));
@@ -73,7 +73,7 @@ class SelfServeOnboardingSalesFlowTest extends TestCase
             ],
         ]);
 
-        $response = $this->get(route('onboarding.create'));
+        $response = $this->get(route('onboarding.create', ['product_line' => 'omnichannel']));
 
         $response->assertOk();
         $response->assertDontSee('CRM Starter');
@@ -100,6 +100,7 @@ class SelfServeOnboardingSalesFlowTest extends TestCase
             'password' => 'Secret123!!',
             'password_confirmation' => 'Secret123!!',
             'payment_method' => 'midtrans',
+            'terms_accepted' => 1,
         ]);
 
         $response->assertRedirect('https://app.sandbox.midtrans.com/snap/v2/vtweb/onboarding-checkout');
@@ -139,6 +140,7 @@ class SelfServeOnboardingSalesFlowTest extends TestCase
             'password' => 'Secret123!!',
             'password_confirmation' => 'Secret123!!',
             'payment_method' => 'bank_transfer',
+            'terms_accepted' => 1,
         ]);
 
         $tenant = Tenant::query()->where('slug', 'gamma')->firstOrFail();
@@ -168,6 +170,7 @@ class SelfServeOnboardingSalesFlowTest extends TestCase
             'email' => 'owner-trial@test.test',
             'password' => 'Secret123!!',
             'password_confirmation' => 'Secret123!!',
+            'terms_accepted' => 1,
         ]);
 
         $response->assertSessionHasErrors('payment_method');
@@ -196,6 +199,7 @@ class SelfServeOnboardingSalesFlowTest extends TestCase
             'password' => 'Secret123!!',
             'password_confirmation' => 'Secret123!!',
             'payment_method' => 'midtrans',
+            'terms_accepted' => 1,
         ])->assertRedirect();
 
         $invoice = PlatformInvoice::query()->latest('id')->firstOrFail();

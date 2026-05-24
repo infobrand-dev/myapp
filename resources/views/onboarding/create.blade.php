@@ -294,6 +294,18 @@
                 <div class="form-hint">Contoh: <strong>MEETRA2ND</strong> untuk promo anniversary 50% off.</div>
             </div>
 
+            <div class="mb-4">
+                <label class="form-check">
+                    <input class="form-check-input @error('terms_accepted') is-invalid @enderror" type="checkbox" name="terms_accepted" value="1" @checked(old('terms_accepted'))>
+                    <span class="form-check-label">
+                        Saya menyetujui <a href="{{ route('privacy') }}" target="_blank" rel="noopener">Kebijakan Privasi</a> dan <a href="{{ route('terms') }}" target="_blank" rel="noopener">Syarat &amp; Ketentuan</a>.
+                    </span>
+                </label>
+                @error('terms_accepted')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+            </div>
+
             <div class="d-flex align-items-center gap-2 mb-3">
                 <div class="border-top flex-grow-1"></div>
                 <span class="text-muted small px-2">Metode pembayaran</span>

@@ -12,6 +12,13 @@ class PasswordResetTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config()->set('multitenancy.mode', 'standalone');
+    }
+
     public function test_reset_password_link_screen_can_be_rendered()
     {
         $response = $this->get('/forgot-password');

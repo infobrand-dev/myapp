@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class RegisteredUserController extends Controller
 {
@@ -25,6 +27,10 @@ class RegisteredUserController extends Controller
      */
     public function create()
     {
+        if (config('multitenancy.mode') === 'saas') {
+            throw new NotFoundHttpException('Registrasi terbuka dinonaktifkan. Gunakan undangan dari owner workspace.');
+        }
+
         return view('auth.register');
     }
 
@@ -38,6 +44,10 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request)
     {
+        if (config('multitenancy.mode') === 'saas') {
+            abort(403, 'Registrasi terbuka dinonaktifkan. Gunakan undangan dari owner workspace.');
+        }
+
         app(TenantPlanManager::class)->ensureWithinLimit(PlanLimit::USERS);
 
         $request->validate([
@@ -61,11 +71,16 @@ class RegisteredUserController extends Controller
 
         event(new Registered($user));
 
-        Auth::login($user);
+        Auth::guard('web')->login($user);
         $request->session()->regenerate();
+        $request->setUserResolver(fn () => $user);
         TenantContext::setCurrentId($tenant->id);
         $request->session()->put('tenant_id', $tenant->id);
         $request->session()->put('tenant_slug', $tenant->slug);
+
+        if ($user instanceof MustVerifyEmail && !$user->hasVerifiedEmail()) {
+            return redirect()->route('verification.notice');
+        }
 
         return redirect(RouteServiceProvider::HOME);
     }

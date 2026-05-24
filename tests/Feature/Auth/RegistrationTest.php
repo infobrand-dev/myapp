@@ -2,13 +2,19 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Providers\RouteServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class RegistrationTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config()->set('multitenancy.mode', 'standalone');
+    }
 
     public function test_registration_screen_can_be_rendered()
     {
@@ -22,11 +28,15 @@ class RegistrationTest extends TestCase
         $response = $this->post('/register', [
             'name' => 'Test User',
             'email' => 'test@example.com',
-            'password' => 'password',
-            'password_confirmation' => 'password',
+            'password' => 'Secret123!!',
+            'password_confirmation' => 'Secret123!!',
         ]);
 
-        $this->assertAuthenticated();
-        $response->assertRedirect(RouteServiceProvider::HOME);
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('users', [
+            'email' => 'test@example.com',
+            'tenant_id' => 1,
+        ]);
+        $response->assertRedirect('/verify-email');
     }
 }

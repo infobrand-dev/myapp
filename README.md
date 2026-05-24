@@ -112,6 +112,8 @@ php artisan optimize:clear
 - Untuk mode `TENANT_MODE=saas`, login user final harus lewat subdomain tenant, misalnya `acme.example.com/login`.
 - Apex/root domain dipakai untuk onboarding, landing, atau workspace lookup, bukan login tenant umum.
 - Resolver tenant membaca slug dari subdomain lebih dulu lalu mengautentikasi user dalam scope `tenant_id` tersebut.
+- Registrasi tenant user publik di subdomain tenant sekarang ditutup. Penambahan user tenant dilakukan lewat owner/admin, idealnya memakai undangan dari halaman `Users`.
+- User baru tenant wajib verifikasi email terlebih dahulu sebelum bisa mengakses dashboard.
 
 ## SaaS self-serve sales flow
 - Flow jualan publik saat ini berjalan lewat `/onboarding` dengan fokus utama paket `accounting`: pilih paket, daftar workspace, sistem membuat `platform_plan_orders` + `platform_invoices` + `platform_invoice_items`, lalu tenant memilih pembayaran via Midtrans atau transfer bank manual dengan nominal unik.
@@ -184,6 +186,20 @@ Command ini fokus ke integritas context tenant:
 - sinkronisasi sequence PostgreSQL untuk `companies`, `branches`, `user_companies`, dan `user_branches`
 - memastikan tenant punya default `company` dan `branch`
 - memastikan user tenant punya default access `company` dan `branch`
+
+## Onboarding cleanup
+Untuk membersihkan workspace onboarding yang stale sambil tetap mengunci slug sementara:
+
+```bash
+php artisan onboarding:cleanup-stale
+php artisan onboarding:cleanup-stale --dry-run
+```
+
+Command ini saat ini membersihkan:
+- tenant `pending_payment` yang sudah stale dan belum pernah punya order berstatus `paid`
+- workspace `trialing` yang sudah lewat masa trial dan belum pernah jadi customer berbayar
+
+Saat cleanup dijalankan, slug tenant akan tetap dikunci sementara agar tidak langsung bisa dipakai ulang.
 
 ## Migration scan
 Untuk scan file migration core dan module lalu membandingkannya dengan tabel `migrations`:

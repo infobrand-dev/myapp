@@ -40,7 +40,7 @@ class TenantOnboardingSalesService
         'scale-yearly' => 'scale-yearly-v2',
     ];
 
-    private const PLAN_CATALOG = [
+        private const PLAN_CATALOG = [
         'starter' => [
             'price' => 149000,
             'currency' => 'IDR',
@@ -126,6 +126,11 @@ class TenantOnboardingSalesService
         ],
     ];
 
+    public function __construct(
+        private readonly TenantSlugReservationService $slugReservations,
+    ) {
+    }
+
     public function publicPlans(string $productLine = self::DEFAULT_PUBLIC_PRODUCT_LINE): Collection
     {
         return SubscriptionPlan::query()
@@ -190,6 +195,10 @@ class TenantOnboardingSalesService
                     'onboarding_status' => 'pending_payment',
                     'requested_plan_code' => $plan->code,
                 ],
+            ]);
+
+            $this->slugReservations->reserveForTenant($tenant, 'onboarding_pending', now()->addDays(14), [
+                'payment_channel' => $paymentChannel,
             ]);
 
             app(TenantRoleProvisioner::class)->ensureForTenant($tenant->id);
@@ -325,6 +334,10 @@ class TenantOnboardingSalesService
                 ],
             ]);
 
+            $this->slugReservations->reserveForTenant($tenant, 'trial_workspace', now()->addDays(30), [
+                'trial_days' => $trialDays,
+            ]);
+
             app(TenantRoleProvisioner::class)->ensureForTenant($tenant->id);
 
             $registrar = app(PermissionRegistrar::class);
@@ -441,6 +454,7 @@ class TenantOnboardingSalesService
 
         return [
             'admin_name' => (string) ($orderMeta['admin_name'] ?? optional($tenant->users()->orderBy('id')->first())->name ?? 'Owner'),
+            'admin_user_id' => (int) (optional($tenant->users()->orderBy('id')->first())->id ?? 0),
             'admin_email' => (string) $adminEmail,
             'tenant_name' => $tenant->name,
             'tenant_slug' => $tenant->slug,
@@ -460,6 +474,13 @@ class TenantOnboardingSalesService
                     loginUrl: $payload['login_url'],
                 )
             );
+
+            if (!empty($payload['admin_user_id'])) {
+                $user = User::query()->find($payload['admin_user_id']);
+                if ($user && !$user->hasVerifiedEmail()) {
+                    $user->sendEmailVerificationNotification();
+                }
+            }
         } catch (\Throwable $e) {
             Log::error('Onboarding welcome email failed', [
                 'email' => $payload['admin_email'] ?? null,

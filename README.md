@@ -59,6 +59,7 @@ Catatan production:
 - Untuk Supabase, gunakan `DB_CONNECTION=pgsql`.
 - Isi host, database, username, dan password dari project Supabase.
 - Biasanya `DB_SSLMODE=require`.
+- Disarankan `DB_EMULATE_PREPARES=false` agar binding tipe PostgreSQL, terutama boolean dan JSON, lebih konsisten.
 
 ### 5. Generate app key
 ```bash

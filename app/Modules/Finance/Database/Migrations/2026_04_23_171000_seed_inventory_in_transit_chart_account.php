@@ -35,21 +35,24 @@ return new class extends Migration
                 ->where('code', 'ASSET')
                 ->value('id');
 
-            DB::table('chart_of_accounts')->insert([
-                'tenant_id' => $scope->tenant_id,
-                'company_id' => $scope->company_id,
-                'parent_id' => $assetParentId,
-                'code' => 'INVENTORY_IN_TRANSIT',
-                'name' => 'Inventory In Transit',
-                'account_type' => ChartOfAccount::TYPE_ASSET,
-                'normal_balance' => ChartOfAccount::NORMAL_DEBIT,
-                'report_section' => ChartOfAccount::SECTION_BALANCE_SHEET,
-                'is_postable' => true,
-                'is_active' => true,
-                'sort_order' => 106,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            DB::statement(
+                'insert into chart_of_accounts
+                (tenant_id, company_id, parent_id, code, name, account_type, normal_balance, report_section, is_postable, is_active, sort_order, created_at, updated_at)
+                values (?, ?, ?, ?, ?, ?, ?, ?, true, true, ?, ?, ?)',
+                [
+                    $scope->tenant_id,
+                    $scope->company_id,
+                    $assetParentId,
+                    'INVENTORY_IN_TRANSIT',
+                    'Inventory In Transit',
+                    ChartOfAccount::TYPE_ASSET,
+                    ChartOfAccount::NORMAL_DEBIT,
+                    ChartOfAccount::SECTION_BALANCE_SHEET,
+                    106,
+                    now(),
+                    now(),
+                ]
+            );
         }
     }
 

@@ -59,20 +59,23 @@ return new class extends Migration
             return;
         }
 
-        DB::table('chart_of_accounts')->insert([
-            'tenant_id' => $scope->tenant_id,
-            'company_id' => $scope->company_id,
-            'parent_id' => $parentId,
-            'code' => $code,
-            'name' => $name,
-            'account_type' => $type,
-            'normal_balance' => $normalBalance,
-            'report_section' => ChartOfAccount::SECTION_BALANCE_SHEET,
-            'is_postable' => true,
-            'is_active' => true,
-            'sort_order' => $sortOrder,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        DB::statement(
+            'insert into chart_of_accounts
+            (tenant_id, company_id, parent_id, code, name, account_type, normal_balance, report_section, is_postable, is_active, sort_order, created_at, updated_at)
+            values (?, ?, ?, ?, ?, ?, ?, ?, true, true, ?, ?, ?)',
+            [
+                $scope->tenant_id,
+                $scope->company_id,
+                $parentId,
+                $code,
+                $name,
+                $type,
+                $normalBalance,
+                ChartOfAccount::SECTION_BALANCE_SHEET,
+                $sortOrder,
+                now(),
+                now(),
+            ]
+        );
     }
 };

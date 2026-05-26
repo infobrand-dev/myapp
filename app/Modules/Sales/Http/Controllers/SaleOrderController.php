@@ -11,6 +11,7 @@ use App\Modules\Sales\Http\Requests\UpdateSaleOrderRequest;
 use App\Modules\Sales\Models\SaleOrder;
 use App\Modules\Sales\Repositories\SaleOrderRepository;
 use App\Modules\Sales\Services\SaleLookupService;
+use App\Services\AccountingTransactionalMailService;
 use App\Support\CurrencySettingsResolver;
 use App\Support\DocumentWorkflowService;
 use Illuminate\Http\RedirectResponse;
@@ -26,6 +27,7 @@ class SaleOrderController extends Controller
     private $convertOrder;
     private $currencySettings;
     private $documentWorkflow;
+    private $transactionalMail;
 
     public function __construct(
         SaleOrderRepository $repository,
@@ -34,7 +36,8 @@ class SaleOrderController extends Controller
         UpdateSaleOrderAction $updateOrder,
         ConvertSaleOrderToSaleAction $convertOrder,
         CurrencySettingsResolver $currencySettings,
-        DocumentWorkflowService $documentWorkflow
+        DocumentWorkflowService $documentWorkflow,
+        AccountingTransactionalMailService $transactionalMail
     ) {
         $this->repository = $repository;
         $this->lookupService = $lookupService;
@@ -43,6 +46,7 @@ class SaleOrderController extends Controller
         $this->convertOrder = $convertOrder;
         $this->currencySettings = $currencySettings;
         $this->documentWorkflow = $documentWorkflow;
+        $this->transactionalMail = $transactionalMail;
     }
 
     public function index(Request $request): View
@@ -80,6 +84,7 @@ class SaleOrderController extends Controller
             'order' => $order,
             'activities' => $order->activities()->with('causer')->latest()->get(),
             'requiresApprovalBeforeConversion' => $this->documentWorkflow->requiresApprovalBeforeConversion('sale_order', $order->company_id, $order->branch_id),
+            'latestMailLog' => $this->transactionalMail->latestLog('sale_order', (int) $order->id, (int) $order->tenant_id),
         ]);
     }
 
@@ -150,6 +155,29 @@ class SaleOrderController extends Controller
         $order = $this->convertOrder->execute($order, $request->user());
 
         return redirect()->route('sales.orders.show', $order)->with('status', 'Sales order berhasil dikonversi menjadi draft sale.');
+    }
+
+    public function send(Request $request, SaleOrder $order): RedirectResponse
+    {
+        $order->loadMissing('contact');
+
+        try {
+            $this->transactionalMail->sendOrder($order, $request->user()?->id);
+
+            if ($order->canTransitionTo(SaleOrder::STATUS_SENT)) {
+                $order->update([
+                    'status' => SaleOrder::STATUS_SENT,
+                    'sent_at' => now(),
+                    'updated_by' => $request->user()?->id,
+                ]);
+            }
+
+            return redirect()->route('sales.orders.show', $order)->with('status', 'Sales order berhasil diantrikan ke email customer.');
+        } catch (\Throwable $e) {
+            return redirect()->route('sales.orders.show', $order)->withErrors([
+                'transactional_mail' => $e->getMessage(),
+            ]);
+        }
     }
 
     private function formViewData(SaleOrder $order): array

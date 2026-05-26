@@ -11,6 +11,7 @@ use App\Modules\Sales\Http\Requests\UpdateSaleQuotationRequest;
 use App\Modules\Sales\Models\SaleQuotation;
 use App\Modules\Sales\Repositories\SaleQuotationRepository;
 use App\Modules\Sales\Services\SaleLookupService;
+use App\Services\AccountingTransactionalMailService;
 use App\Support\CurrencySettingsResolver;
 use App\Support\DocumentWorkflowService;
 use Illuminate\Http\RedirectResponse;
@@ -26,6 +27,7 @@ class SaleQuotationController extends Controller
     private $convertQuotation;
     private $currencySettings;
     private $documentWorkflow;
+    private $transactionalMail;
 
     public function __construct(
         SaleQuotationRepository $repository,
@@ -34,7 +36,8 @@ class SaleQuotationController extends Controller
         UpdateSaleQuotationAction $updateQuotation,
         ConvertSaleQuotationToSaleAction $convertQuotation,
         CurrencySettingsResolver $currencySettings,
-        DocumentWorkflowService $documentWorkflow
+        DocumentWorkflowService $documentWorkflow,
+        AccountingTransactionalMailService $transactionalMail
     ) {
         $this->repository = $repository;
         $this->lookupService = $lookupService;
@@ -43,6 +46,7 @@ class SaleQuotationController extends Controller
         $this->convertQuotation = $convertQuotation;
         $this->currencySettings = $currencySettings;
         $this->documentWorkflow = $documentWorkflow;
+        $this->transactionalMail = $transactionalMail;
     }
 
     public function index(Request $request): View
@@ -81,6 +85,7 @@ class SaleQuotationController extends Controller
             'quotation' => $quotation,
             'activities' => $quotation->activities()->with('causer')->latest()->get(),
             'requiresApprovalBeforeConversion' => $this->documentWorkflow->requiresApprovalBeforeConversion('sale_quotation', $quotation->company_id, $quotation->branch_id),
+            'latestMailLog' => $this->transactionalMail->latestLog('sale_quotation', (int) $quotation->id, (int) $quotation->tenant_id),
         ]);
     }
 
@@ -157,6 +162,29 @@ class SaleQuotationController extends Controller
         $quotation = $this->convertQuotation->execute($quotation, $request->user());
 
         return redirect()->route('sales.quotations.show', $quotation)->with('status', 'Quotation berhasil dikonversi menjadi draft sale.');
+    }
+
+    public function send(Request $request, SaleQuotation $quotation): RedirectResponse
+    {
+        $quotation->loadMissing('contact');
+
+        try {
+            $this->transactionalMail->sendQuotation($quotation, $request->user()?->id);
+
+            if ($quotation->canTransitionTo(SaleQuotation::STATUS_SENT)) {
+                $quotation->update([
+                    'status' => SaleQuotation::STATUS_SENT,
+                    'sent_at' => now(),
+                    'updated_by' => $request->user()?->id,
+                ]);
+            }
+
+            return redirect()->route('sales.quotations.show', $quotation)->with('status', 'Quotation berhasil diantrikan ke email customer.');
+        } catch (\Throwable $e) {
+            return redirect()->route('sales.quotations.show', $quotation)->withErrors([
+                'transactional_mail' => $e->getMessage(),
+            ]);
+        }
     }
 
     private function formViewData(SaleQuotation $quotation): array

@@ -20,6 +20,7 @@ Route::middleware(['web', 'auth', 'plan.feature:accounting'])
                 Route::get('/create', [SaleQuotationController::class, 'create'])->middleware('permission:sales_quotation.create')->name('create');
                 Route::post('/', [SaleQuotationController::class, 'store'])->middleware('permission:sales_quotation.create')->name('store');
                 Route::get('/{quotation}', [SaleQuotationController::class, 'show'])->middleware('permission:sales_quotation.view')->name('show');
+                Route::post('/{quotation}/send', [SaleQuotationController::class, 'send'])->middleware('permission:sales_quotation.view')->name('send');
                 Route::get('/{quotation}/edit', [SaleQuotationController::class, 'edit'])->middleware('permission:sales_quotation.update_draft')->name('edit');
                 Route::put('/{quotation}', [SaleQuotationController::class, 'update'])->middleware('permission:sales_quotation.update_draft')->name('update');
                 Route::post('/{quotation}/status/{status}', [SaleQuotationController::class, 'markStatus'])->middleware('permission:sales_quotation.approve')->name('status');
@@ -32,6 +33,7 @@ Route::middleware(['web', 'auth', 'plan.feature:accounting'])
                 Route::get('/create', [SaleOrderController::class, 'create'])->middleware('permission:sales_order.create')->name('create');
                 Route::post('/', [SaleOrderController::class, 'store'])->middleware('permission:sales_order.create')->name('store');
                 Route::get('/{order}', [SaleOrderController::class, 'show'])->middleware('permission:sales_order.view')->name('show');
+                Route::post('/{order}/send', [SaleOrderController::class, 'send'])->middleware('permission:sales_order.view')->name('send');
                 Route::get('/{order}/edit', [SaleOrderController::class, 'edit'])->middleware('permission:sales_order.update_draft')->name('edit');
                 Route::put('/{order}', [SaleOrderController::class, 'update'])->middleware('permission:sales_order.update_draft')->name('update');
                 Route::post('/{order}/status/{status}', [SaleOrderController::class, 'markStatus'])->middleware('permission:sales_order.approve')->name('status');
@@ -50,6 +52,8 @@ Route::middleware(['web', 'auth', 'plan.feature:accounting'])
                 Route::get('/{saleReturn}/print', [SaleReturnController::class, 'print'])->middleware('permission:sales_return.print')->name('print');
             });
         Route::get('/{sale}', [SaleController::class, 'show'])->middleware('permission:sales.view')->name('show');
+        Route::post('/{sale}/send-invoice', [SaleController::class, 'sendInvoice'])->middleware('permission:sales.view')->name('send-invoice');
+        Route::post('/{sale}/send-payment-reminder', [SaleController::class, 'sendPaymentReminder'])->middleware('permission:sales.view')->name('send-payment-reminder');
         Route::get('/{sale}/edit', [SaleController::class, 'edit'])->middleware('permission:sales.update-draft')->name('edit');
         Route::put('/{sale}', [SaleController::class, 'update'])->middleware('permission:sales.update-draft')->name('update');
         Route::post('/{sale}/finalize', [SaleController::class, 'finalize'])->middleware('permission:sales.finalize')->name('finalize');

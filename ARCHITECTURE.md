@@ -6,7 +6,8 @@
 - Business features live under `app/Modules/*` and are discovered from each module's `module.json`.
 
 ## Current architecture
-- Core routes live in `routes/web.php` and `routes/auth.php`.
+- Public apex/marketing routes live in `routes/public.php` under the `public-web` middleware group.
+- Tenant-aware shell and authenticated app routes live in `routes/web.php`, with auth endpoints still loaded through `routes/auth.php`.
 - Shared module loading is handled by `App\Support\ModuleManager`.
 - Module state is persisted in the `modules` table and controlled from the Modules page.
 - Sidebar navigation is partly core and partly generated from active module manifests.
@@ -19,10 +20,11 @@
 - Multi-tenant readiness is a standing requirement even where `tenant_id` is not fully rolled out yet. New schema, services, and module integrations should avoid assumptions that make tenant scoping difficult later.
 - When practical, keep room for `tenant_id` in table design, query composition, unique constraints, cache keys, webhook/account resolution, and ownership rules. Avoid building new flows that implicitly assume a single global tenant.
 - Core runtime tenant resolution now flows through `App\Support\TenantContext` and `App\Http\Middleware\ResolveTenantContext`.
+- `ResolveTenantContext` is intended for tenant-aware app routes, not for apex marketing pages. New public pages should be added to `routes/public.php` instead of extending middleware bypass lists.
 - Current resolver order is: explicit request attribute/header/query, session, authenticated user `tenant_id`, then fallback to tenant `id = 1` only for standalone/bootstrap-safe flows. In SaaS mode, unresolved tenant context should fail closed instead of silently falling back to tenant `1`.
 - In SaaS mode, guest auth pages must be reached from the tenant subdomain. Apex/root domain is for onboarding or workspace discovery, not shared tenant login.
 - In SaaS mode, open self-registration for tenant subdomains is no longer allowed. New tenant users should come from owner/admin invite or controlled internal creation, not from a public `/register` screen.
-- Public self-serve sales now starts from the apex onboarding flow with `accounting` as the active default product line. Buyer selects a public subscription plan, creates a tenant in `pending_payment`, receives a platform invoice, and then pays either through Midtrans checkout or manual bank transfer with a unique amount before the tenant is activated.
+- Public self-serve onboarding now starts from the apex onboarding flow with `accounting` as the active default product line. Buyer selects a public subscription plan and then either starts an `accounting` free trial directly on eligible public monthly plans or creates a tenant in `pending_payment`, receives a platform invoice, and pays either through Midtrans checkout or manual bank transfer with a unique amount before the tenant is activated.
 - Pending self-serve onboarding may create a tenant before payment so billing records can stay attached to a concrete workspace, but stale unpaid workspaces must remain cleanup-friendly and slug reuse must be delayed through a temporary slug reservation.
 - Platform owner access is separated onto the reserved `dash` subdomain, which binds to tenant `id = 1` for control-plane work.
 - Core runtime company resolution now flows through `App\Support\CompanyContext` and `App\Http\Middleware\ResolveCompanyContext`.
@@ -50,6 +52,8 @@
 - Modules should publish typed notification messages through the shared notification center instead of querying or mutating core notification tables directly.
 - Core must not scan module tables to invent business alerts. The owning module decides when a notification is created, deduped, resolved, or superseded.
 - Dashboard notification widgets, topbar bell state, and channel delivery policy should be driven from the shared notification subsystem so cross-module alerting stays consistent.
+- Platform-owned mail such as onboarding, platform invoices, invitations, and welcome messages should continue using the global platform mailer.
+- Tenant-to-customer transactional mail is a separate layer. For accounting it should support `Email Terkelola` with plan-based monthly quota and `SMTP Sendiri` for eligible plans, log each outbound attempt, and fail closed when the selected delivery mode is not entitled or not configured.
 
 ## Feature modes
 - Product-line UI complexity now has a dedicated core resolver in `App\Support\FeatureMode`.

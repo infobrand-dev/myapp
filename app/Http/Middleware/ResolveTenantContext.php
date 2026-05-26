@@ -18,10 +18,6 @@ class ResolveTenantContext
             return $next($request);
         }
 
-        if ($this->shouldBypassTenantContext($request)) {
-            return $next($request);
-        }
-
         if ($response = $this->redirectGuestProtectedApexRoute($request)) {
             return $response;
         }
@@ -88,10 +84,6 @@ class ResolveTenantContext
             return null;
         }
 
-        if ($this->isApexAllowedRoute($request)) {
-            return null;
-        }
-
         $workspace = trim((string) $request->input('workspace', ''));
         if ($workspace !== '') {
             $tenant = Tenant::query()
@@ -125,27 +117,6 @@ class ResolveTenantContext
             || $request->is('reset-password/*')
             || $request->is('reset-password')
             || $request->is('two-factor-challenge');
-    }
-
-    private function isApexAllowedRoute(Request $request): bool
-    {
-        return $request->path() === '/'
-            || $request->is('meetra')
-            || $request->is('omnichannel')
-            || $request->is('accounting')
-            || $request->is('mulai-digital')
-            || $request->is('website-aplikasi-bisnis')
-            || $request->is('jasa-pembuatan-website')
-            || $request->is('tentang-kami')
-            || $request->is('affiliate-program')
-            || $request->is('onboarding')
-            || $request->is('aff/*')
-            || $request->is('workspace')
-            || $request->is('health')
-            || $request->is('locale/switch')
-            || $request->is('keamanan-data')
-            || $request->is('kebijakan-privasi')
-            || $request->is('syarat-ketentuan');
     }
 
     private function redirectGuestProtectedApexRoute(Request $request): ?Response
@@ -183,23 +154,4 @@ class ResolveTenantContext
             || $request->is('presence/*');
     }
 
-    private function shouldBypassTenantContext(Request $request): bool
-    {
-        if ($this->isPlatformWebhookRoute($request) && !$request->user()) {
-            return true;
-        }
-
-        return config('multitenancy.mode') === 'saas'
-            && $this->isApexAllowedRoute($request)
-            && !$request->attributes->get('tenant_id')
-            && !$request->user();
-    }
-
-    private function isPlatformWebhookRoute(Request $request): bool
-    {
-        return $request->is('social-media/webhook')
-            || $request->is('social-media/webhook/x')
-            || $request->is('whatsapp-api/webhook')
-            || $request->is('platform/billing/midtrans/webhook');
-    }
 }

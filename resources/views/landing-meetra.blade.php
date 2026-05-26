@@ -4,6 +4,10 @@
 @section('head_description', 'Meetra adalah platform bisnis yang menyatukan customer, transaksi, dan workflow tim dalam satu workspace yang lebih tertata.')
 
 @section('content')
+@php
+    $productsUrl = \Illuminate\Support\Facades\Route::has('products') ? route('products') : url('/products');
+    $contactUrl = \Illuminate\Support\Facades\Route::has('contact') ? route('contact') : url('/contact-us');
+@endphp
 <style>
     .meetra-intro-band { position:relative; overflow:hidden; background:linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(240,247,255,0.92) 100%); border-top:1px solid var(--landing-line); border-bottom:1px solid var(--landing-line); }
     .meetra-intro-band::before { content:""; position:absolute; inset:auto auto -80px -80px; width:240px; height:240px; border-radius:999px; background:radial-gradient(circle, rgba(37,99,235,0.10), transparent 70%); }
@@ -13,6 +17,12 @@
     .meetra-intro-icon i, .meetra-product-icon i { font-size:1.35rem; }
     .meetra-why-icon { width:52px; height:52px; border-radius:16px; display:flex; align-items:center; justify-content:center; background:#eff6ff; color:#1d4ed8; margin-bottom:1rem; }
     .meetra-why-icon i { font-size:1.4rem; }
+    .meetra-hero-visual { position:relative; min-height:460px; }
+    .meetra-hero-visual img { display:block; width:112%; max-width:none; height:auto; margin:0 0 0 -4%; filter:drop-shadow(0 28px 60px rgba(37,99,235,.16)); }
+    @media (max-width: 991.98px) {
+        .meetra-hero-visual { min-height:320px; }
+        .meetra-hero-visual img { width:122%; margin-left:-10%; }
+    }
 </style>
 
 <section class="landing-hero py-5 py-lg-6">
@@ -29,51 +39,13 @@
                     Meetra membantu bisnis menyatukan customer, transaksi, dan workflow tim dalam workspace yang lebih tertata dan mudah dijalankan.
                 </p>
                 <div class="d-flex flex-wrap gap-3 mb-4">
-                    <a href="{{ route('products') }}" class="btn btn-lg btn-outline-dark">Lihat Product Lines</a>
-                    <a href="{{ route('contact') }}" class="btn btn-lg btn-dark">Konsultasikan Kebutuhan</a>
-                </div>
-                <div class="d-flex flex-wrap gap-2">
-                    <span class="landing-pill">Customer</span>
-                    <span class="landing-pill">Transaksi</span>
-                    <span class="landing-pill">Operasional</span>
-                    <span class="landing-pill">Workflow Tim</span>
-                    <span class="landing-pill">Reporting</span>
+                    <a href="{{ $productsUrl }}" class="btn btn-lg btn-outline-dark">Lihat Product Lines</a>
+                    <a href="{{ $contactUrl }}" class="btn btn-lg btn-dark">Konsultasikan Kebutuhan</a>
                 </div>
             </div>
             <div class="col-lg-6">
-                <div class="row g-3">
-                    <div class="col-sm-6">
-                        <div class="meetra-story-card">
-                            <div class="meetra-intro-icon"><i class="ti ti-users-group"></i></div>
-                            <div class="small text-uppercase fw-bold text-muted mb-2">Customer</div>
-                            <h3 class="h5 mb-2">Interaksi lebih terkelola</h3>
-                            <p class="small text-muted mb-0">Riwayat komunikasi, lead, dan kebutuhan customer lebih mudah ditata dalam satu alur kerja.</p>
-                        </div>
-                    </div>
-                    <div class="col-sm-6">
-                        <div class="meetra-story-card">
-                            <div class="meetra-intro-icon"><i class="ti ti-receipt-2"></i></div>
-                            <div class="small text-uppercase fw-bold text-muted mb-2">Transaksi</div>
-                            <h3 class="h5 mb-2">Proses bisnis lebih jelas</h3>
-                            <p class="small text-muted mb-0">Penjualan, pembayaran, pembelian, dan laporan dapat berjalan dalam sistem yang konsisten.</p>
-                        </div>
-                    </div>
-                    <div class="col-sm-6">
-                        <div class="meetra-story-card">
-                            <div class="meetra-intro-icon"><i class="ti ti-arrows-shuffle"></i></div>
-                            <div class="small text-uppercase fw-bold text-muted mb-2">Workflow</div>
-                            <h3 class="h5 mb-2">Koordinasi tim lebih rapi</h3>
-                            <p class="small text-muted mb-0">Progres pekerjaan dan handoff antartim dapat dipantau tanpa proses manual yang berulang.</p>
-                        </div>
-                    </div>
-                    <div class="col-sm-6">
-                        <div class="meetra-story-card">
-                            <div class="meetra-intro-icon"><i class="ti ti-chart-bar"></i></div>
-                            <div class="small text-uppercase fw-bold text-muted mb-2">Insight</div>
-                            <h3 class="h5 mb-2">Keputusan lebih cepat</h3>
-                            <p class="small text-muted mb-0">Informasi penting lebih dekat ke pemilik bisnis dan manajer tanpa rekap yang memakan waktu.</p>
-                        </div>
-                    </div>
+                <div class="meetra-hero-visual">
+                    <img src="{{ asset('images/landing/meetra-hero.png') }}" alt="Ilustrasi ekosistem platform Meetra">
                 </div>
             </div>
         </div>
@@ -199,7 +171,7 @@
                         <div><i class="ti ti-check text-success"></i> Follow up lead dan pertanyaan masuk</div>
                         <div><i class="ti ti-check text-success"></i> Koordinasi tim sales dan support</div>
                     </div>
-                    <a href="{{ route('contact') }}" class="btn btn-outline-dark btn-sm">Konsultasikan</a>
+                    <a href="{{ $contactUrl }}" class="btn btn-outline-dark btn-sm">Konsultasikan</a>
                 </div>
             </div>
             <div class="col-md-6 col-xl-4">
@@ -212,7 +184,7 @@
                         <div><i class="ti ti-check text-success"></i> Monitoring progres antar fungsi tim</div>
                         <div><i class="ti ti-check text-success"></i> Pengingat dan ritme kerja operasional</div>
                     </div>
-                    <a href="{{ route('contact') }}" class="btn btn-outline-dark btn-sm">Konsultasikan</a>
+                    <a href="{{ $contactUrl }}" class="btn btn-outline-dark btn-sm">Konsultasikan</a>
                 </div>
             </div>
             <div class="col-md-6 col-xl-4">
@@ -225,7 +197,7 @@
                         <div><i class="ti ti-check text-success"></i> Kehadiran, cuti, dan kebutuhan HR rutin</div>
                         <div><i class="ti ti-check text-success"></i> Perhitungan payroll yang lebih tertata</div>
                     </div>
-                    <a href="{{ route('contact') }}" class="btn btn-outline-dark btn-sm">Konsultasikan</a>
+                    <a href="{{ $contactUrl }}" class="btn btn-outline-dark btn-sm">Konsultasikan</a>
                 </div>
             </div>
             <div class="col-md-6 col-xl-4">
@@ -238,7 +210,7 @@
                         <div><i class="ti ti-check text-success"></i> Histori interaksi dan tindak lanjut</div>
                         <div><i class="ti ti-check text-success"></i> Pipeline untuk peluang penjualan</div>
                     </div>
-                    <a href="{{ route('contact') }}" class="btn btn-outline-dark btn-sm">Konsultasikan</a>
+                    <a href="{{ $contactUrl }}" class="btn btn-outline-dark btn-sm">Konsultasikan</a>
                 </div>
             </div>
             <div class="col-md-6 col-xl-4">
@@ -251,7 +223,7 @@
                         <div><i class="ti ti-check text-success"></i> Automation untuk nurturing dan follow up</div>
                         <div><i class="ti ti-check text-success"></i> Aktivitas pemasaran yang lebih terukur</div>
                     </div>
-                    <a href="{{ route('contact') }}" class="btn btn-outline-dark btn-sm">Konsultasikan</a>
+                    <a href="{{ $contactUrl }}" class="btn btn-outline-dark btn-sm">Konsultasikan</a>
                 </div>
             </div>
         </div>
@@ -344,8 +316,8 @@
             <h2 class="landing-section-title mb-3">Diskusikan kebutuhan bisnis Anda bersama tim kami.</h2>
             <p class="landing-subtext mx-auto mb-4" style="max-width:760px;">Jika Anda sedang menilai product line atau skenario implementasi yang paling sesuai, kami dapat membantu memetakan kebutuhan bisnis Anda terlebih dahulu.</p>
             <div class="d-flex flex-wrap justify-content-center gap-3">
-                <a href="{{ route('contact') }}" class="btn btn-dark btn-lg">Konsultasikan Sekarang</a>
-                <a href="{{ route('products') }}" class="btn btn-outline-dark btn-lg">Lihat Product Lines</a>
+                <a href="{{ $contactUrl }}" class="btn btn-dark btn-lg">Konsultasikan Sekarang</a>
+                <a href="{{ $productsUrl }}" class="btn btn-outline-dark btn-lg">Lihat Product Lines</a>
             </div>
         </div>
     </div>

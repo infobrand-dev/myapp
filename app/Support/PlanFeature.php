@@ -21,6 +21,8 @@ class PlanFeature
     public const INVENTORY = 'inventory';
     public const ADVANCED_REPORTS = 'advanced_reports';
     public const POINT_OF_SALE = 'point_of_sale';
+    public const TRANSACTIONAL_EMAIL_MANAGED = 'transactional_email_managed';
+    public const TRANSACTIONAL_EMAIL_CUSTOM_SMTP = 'transactional_email_custom_smtp';
 
     public static function moduleFeatureForSlug(string $slug): ?string
     {

@@ -23,6 +23,7 @@ use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\SaleReceivableDispute;
 use App\Modules\Sales\Repositories\SaleRepository;
 use App\Modules\Sales\Services\SaleLookupService;
+use App\Services\AccountingTransactionalMailService;
 use App\Support\DocumentSettingsResolver;
 use App\Support\CurrencySettingsResolver;
 use Illuminate\Http\RedirectResponse;
@@ -43,6 +44,7 @@ class SaleController extends Controller
     private $cancelDraftSale;
     private $documentSettings;
     private $currencySettings;
+    private $transactionalMail;
 
     public function __construct(
         SaleRepository $repository,
@@ -56,7 +58,8 @@ class SaleController extends Controller
         VoidSaleAction $voidSale,
         CancelDraftSaleAction $cancelDraftSale,
         DocumentSettingsResolver $documentSettings,
-        CurrencySettingsResolver $currencySettings
+        CurrencySettingsResolver $currencySettings,
+        AccountingTransactionalMailService $transactionalMail
     ) {
         $this->repository = $repository;
         $this->lookupService = $lookupService;
@@ -70,6 +73,7 @@ class SaleController extends Controller
         $this->cancelDraftSale = $cancelDraftSale;
         $this->documentSettings = $documentSettings;
         $this->currencySettings = $currencySettings;
+        $this->transactionalMail = $transactionalMail;
     }
 
     public function index(Request $request): View
@@ -117,6 +121,7 @@ class SaleController extends Controller
             'receivableDisputeStatusOptions' => $this->lookupService->receivableDisputeStatusOptions(),
             'receivableDisputeOutcomeOptions' => $this->lookupService->receivableDisputeOutcomeOptions(),
             'activities' => $sale->activities()->with('causer')->latest()->get(),
+            'latestInvoiceMailLog' => $this->transactionalMail->latestLog('sale', (int) $sale->id, (int) $sale->tenant_id),
         ]);
     }
 
@@ -186,6 +191,32 @@ class SaleController extends Controller
             'sale' => $sale,
             'documentSettings' => $this->documentSettings->forScope($sale->tenant_id, $sale->company_id, $sale->branch_id),
         ]);
+    }
+
+    public function sendInvoice(Request $request, Sale $sale): RedirectResponse
+    {
+        try {
+            $this->transactionalMail->sendInvoice($sale, $request->user()?->id);
+
+            return redirect()->route('sales.show', $sale)->with('status', 'Invoice berhasil diantrikan ke email customer.');
+        } catch (\Throwable $e) {
+            return redirect()->route('sales.show', $sale)->withErrors([
+                'transactional_mail' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    public function sendPaymentReminder(Request $request, Sale $sale): RedirectResponse
+    {
+        try {
+            $this->transactionalMail->sendPaymentReminder($sale, $request->user()?->id);
+
+            return redirect()->route('sales.show', $sale)->with('status', 'Payment reminder berhasil diantrikan ke email customer.');
+        } catch (\Throwable $e) {
+            return redirect()->route('sales.show', $sale)->withErrors([
+                'transactional_mail' => $e->getMessage(),
+            ]);
+        }
     }
 
     private function formViewData(Sale $sale): array

@@ -74,6 +74,20 @@
                 </form>
             @endif
             @if($sale->status === 'finalized')
+                <form method="POST" action="{{ route('sales.send-invoice', $sale) }}" class="d-inline-block m-0">
+                    @csrf
+                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                        <i class="ti ti-mail me-1"></i>Kirim Invoice
+                    </button>
+                </form>
+                @if((float) $sale->balance_due > 0)
+                    <form method="POST" action="{{ route('sales.send-payment-reminder', $sale) }}" class="d-inline-block m-0">
+                        @csrf
+                        <button type="submit" class="btn btn-sm btn-outline-warning">
+                            <i class="ti ti-bell me-1"></i>Kirim Reminder
+                        </button>
+                    </form>
+                @endif
                 <a href="{{ route('sales.returns.create', ['sale_id' => $sale->id]) }}" class="btn btn-sm btn-outline-secondary">
                     <i class="ti ti-arrow-back me-1"></i>Create Return
                 </a>
@@ -305,6 +319,27 @@
                         <div class="text-muted small">{{ $sale->customer_phone_snapshot }}</div>
                     @endif
                 </div>
+                @if($latestInvoiceMailLog)
+                <hr class="m-0">
+                @php
+                    $mailAlertClass = match($latestInvoiceMailLog->status) {
+                        'sent' => 'alert-success',
+                        'failed' => 'alert-danger',
+                        default => 'alert-warning',
+                    };
+                    $mailLabel = $latestInvoiceMailLog->template_key === 'payment_reminder' ? 'Reminder terakhir' : 'Email invoice terakhir';
+                @endphp
+                <div class="px-4 py-3">
+                    <div class="alert {{ $mailAlertClass }} mb-0 py-2">
+                        <div class="fw-semibold small mb-1">{{ $mailLabel }}: {{ ucfirst($latestInvoiceMailLog->status) }}</div>
+                        <div class="small">{{ $latestInvoiceMailLog->recipient_email }}</div>
+                        <div class="small">{{ optional($latestInvoiceMailLog->created_at)->format('d M Y H:i') ?? '-' }}</div>
+                        @if($latestInvoiceMailLog->error_message)
+                            <div class="small mt-1">{{ $latestInvoiceMailLog->error_message }}</div>
+                        @endif
+                    </div>
+                </div>
+                @endif
                 <hr class="m-0">
                 {{-- Totals --}}
                 <div class="px-4 py-3">

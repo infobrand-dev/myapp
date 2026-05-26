@@ -8,8 +8,13 @@ use App\Models\DocumentNumberingRule;
 use App\Models\DocumentSetting;
 use App\Models\DocumentWorkflowRule;
 use App\Models\PlatformInvoice;
+use App\Models\TenantTransactionalMailSetting;
 use App\Models\TenantByoAiRequest;
 use App\Services\AiCreditPricingService;
+use App\Services\AccountingTransactionalMailService;
+use App\Services\TenantTransactionalMailConfigResolver;
+use App\Services\TenantTransactionalMailerFactory;
+use App\Mail\TenantTransactionalTestMail;
 use App\Models\User;
 use App\Support\ByoAiAddon;
 use App\Support\BranchContext;
@@ -28,6 +33,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rule;
@@ -206,6 +212,9 @@ class SettingsController extends Controller
             $currentCompanyId,
             $currentBranchId
         );
+        $transactionalMailSetting = TenantTransactionalMailSetting::query()
+            ->where('tenant_id', $tenantId)
+            ->first();
 
         return view('settings.index', [
             'currentSection' => $section,
@@ -235,6 +244,13 @@ class SettingsController extends Controller
             'branchDocumentSetting' => $branchDocumentSetting,
             'documentPreview' => $documentPreview,
             'settingsStats' => $this->stats($companies, $branches, $users, $activeModules, $currentCompanyId, $currentBranchId),
+            'transactionalMailSetting' => $transactionalMailSetting,
+            'transactionalMailLogs' => app(AccountingTransactionalMailService::class)->recentLogsForTenant($tenantId),
+            'transactionalMailCapabilities' => [
+                'managed' => $planManager->hasFeature(PlanFeature::TRANSACTIONAL_EMAIL_MANAGED, $tenantId),
+                'custom_smtp' => $planManager->hasFeature(PlanFeature::TRANSACTIONAL_EMAIL_CUSTOM_SMTP, $tenantId),
+            ],
+            'transactionalMailManagedQuota' => $planManager->usageState(PlanLimit::TRANSACTIONAL_EMAILS_MONTHLY, $tenantId),
             'aiCreditPricing' => $aiPricing->snapshot(),
             'byoAiEnabled' => $planManager->hasFeature(PlanFeature::CHATBOT_BYO_AI, $tenantId),
             'byoAiRequest' => TenantByoAiRequest::query()
@@ -574,6 +590,147 @@ class SettingsController extends Controller
         return redirect()->route('settings.general')->with('status', 'General settings berhasil disimpan.');
     }
 
+    public function saveTransactionalEmail(Request $request): RedirectResponse
+    {
+        $tenantId = TenantContext::currentId();
+        $setting = TenantTransactionalMailSetting::query()->firstOrNew([
+            'tenant_id' => $tenantId,
+        ]);
+
+        $data = $request->validate([
+            'is_enabled' => ['nullable', 'boolean'],
+            'delivery_mode' => ['required', Rule::in([
+                TenantTransactionalMailSetting::DELIVERY_MODE_MANAGED,
+                TenantTransactionalMailSetting::DELIVERY_MODE_CUSTOM_SMTP,
+            ])],
+            'smtp_host' => ['nullable', 'string', 'max:255'],
+            'smtp_port' => ['nullable', 'integer', 'min:1', 'max:65535'],
+            'smtp_encryption' => ['nullable', Rule::in(['tls', 'ssl', 'none'])],
+            'smtp_username' => ['nullable', 'string', 'max:255'],
+            'smtp_password' => ['nullable', 'string', 'max:255'],
+            'from_name' => ['nullable', 'string', 'max:255'],
+            'from_email' => ['nullable', 'email', 'max:255'],
+            'reply_to' => ['nullable', 'email', 'max:255'],
+        ]);
+
+        $planManager = app(TenantPlanManager::class);
+
+        if ($data['delivery_mode'] === TenantTransactionalMailSetting::DELIVERY_MODE_MANAGED
+            && !$planManager->hasFeature(PlanFeature::TRANSACTIONAL_EMAIL_MANAGED, $tenantId)) {
+            throw ValidationException::withMessages([
+                'delivery_mode' => 'Plan tenant saat ini belum mendukung Email Terkelola.',
+            ]);
+        }
+
+        if ($data['delivery_mode'] === TenantTransactionalMailSetting::DELIVERY_MODE_CUSTOM_SMTP
+            && !$planManager->hasFeature(PlanFeature::TRANSACTIONAL_EMAIL_CUSTOM_SMTP, $tenantId)) {
+            throw ValidationException::withMessages([
+                'delivery_mode' => 'Plan tenant saat ini belum mendukung SMTP Sendiri.',
+            ]);
+        }
+
+        if (empty($data['smtp_password']) && $setting->exists) {
+            unset($data['smtp_password']);
+        }
+
+        if ($data['delivery_mode'] === TenantTransactionalMailSetting::DELIVERY_MODE_CUSTOM_SMTP) {
+            foreach ([
+                'smtp_host' => 'SMTP host wajib diisi.',
+                'smtp_username' => 'SMTP username wajib diisi.',
+                'from_email' => 'From email wajib diisi.',
+            ] as $field => $message) {
+                if (trim((string) ($data[$field] ?? '')) === '') {
+                    throw ValidationException::withMessages([$field => $message]);
+                }
+            }
+
+            if (!$setting->exists && empty($data['smtp_password'])) {
+                throw ValidationException::withMessages([
+                    'smtp_password' => 'SMTP password wajib diisi.',
+                ]);
+            }
+        }
+
+        $attributes = [
+            'tenant_id' => $tenantId,
+            'is_enabled' => $request->boolean('is_enabled'),
+            'delivery_mode' => $data['delivery_mode'],
+            'from_name' => trim((string) ($data['from_name'] ?? '')) ?: null,
+            'reply_to' => trim((string) ($data['reply_to'] ?? '')) ?: null,
+            'updated_by' => $request->user()?->id,
+        ];
+
+        if ($data['delivery_mode'] === TenantTransactionalMailSetting::DELIVERY_MODE_CUSTOM_SMTP) {
+            $attributes['smtp_host'] = trim((string) ($data['smtp_host'] ?? '')) ?: null;
+            $attributes['smtp_port'] = $data['smtp_port'] ?? null;
+            $attributes['smtp_encryption'] = (($data['smtp_encryption'] ?? 'tls') === 'none') ? null : ($data['smtp_encryption'] ?? 'tls');
+            $attributes['smtp_username'] = trim((string) ($data['smtp_username'] ?? '')) ?: null;
+            $attributes['from_email'] = trim((string) ($data['from_email'] ?? '')) ?: null;
+        }
+
+        $setting->fill($attributes);
+
+        if (array_key_exists('smtp_password', $data)) {
+            $setting->smtp_password = $data['smtp_password'] ?: null;
+        }
+
+        if (!$setting->exists) {
+            $setting->created_by = $request->user()?->id;
+        }
+
+        $setting->save();
+
+        return redirect()->route('settings.transactional-email')->with('status', 'Transactional email settings berhasil disimpan.');
+    }
+
+    public function sendTransactionalEmailTest(
+        Request $request,
+        TenantTransactionalMailConfigResolver $configResolver,
+        TenantTransactionalMailerFactory $mailerFactory,
+    ): RedirectResponse {
+        $tenant = TenantContext::currentTenant();
+        abort_unless($tenant, 404);
+
+        $data = $request->validate([
+            'test_email' => ['required', 'email', 'max:255'],
+        ]);
+
+        $setting = $configResolver->requireEnabled((int) $tenant->id);
+        $mailer = $mailerFactory->configure('tenant_transactional_test_' . $tenant->id, $setting);
+        $identity = $configResolver->senderIdentity($setting);
+
+        try {
+            Mail::mailer($mailer)
+                ->to($data['test_email'])
+                ->send(new TenantTransactionalTestMail(
+                    workspaceName: (string) $tenant->name,
+                    fromEmail: $identity['from_email'],
+                    fromName: $identity['from_name'],
+                    replyToEmail: $identity['reply_to_email'],
+                ));
+
+            $setting->update([
+                'last_tested_at' => now(),
+                'last_test_status' => 'success',
+                'last_test_error' => null,
+                'updated_by' => $request->user()?->id,
+            ]);
+
+            return redirect()->route('settings.transactional-email')->with('status', 'Test email berhasil dikirim.');
+        } catch (\Throwable $e) {
+            $setting->update([
+                'last_tested_at' => now(),
+                'last_test_status' => 'failed',
+                'last_test_error' => $e->getMessage(),
+                'updated_by' => $request->user()?->id,
+            ]);
+
+            return redirect()->route('settings.transactional-email')->withErrors([
+                'test_email' => 'Gagal mengirim test email: ' . $e->getMessage(),
+            ]);
+        }
+    }
+
     public function requestByoAi(Request $request): RedirectResponse
     {
         $tenantId = TenantContext::currentId();
@@ -753,6 +910,12 @@ class SettingsController extends Controller
                 'route' => 'settings.access',
                 'icon' => 'ti ti-shield-lock',
                 'description' => 'User tenant dan role yang sedang aktif.',
+            ],
+            'transactional-email' => [
+                'label' => 'Transactional Email',
+                'route' => 'settings.transactional-email',
+                'icon' => 'ti ti-mail-cog',
+                'description' => 'SMTP tenant untuk email invoice, reminder, dan receipt customer.',
             ],
         ];
     }

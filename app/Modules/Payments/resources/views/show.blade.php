@@ -18,6 +18,14 @@
     </div>
     <div class="d-flex align-items-center gap-2">
         @include('shared.accounting.mode-badge')
+        @if($payment->status === \App\Modules\Payments\Models\Payment::STATUS_POSTED)
+            <form method="POST" action="{{ route('payments.send-receipt', $payment) }}" class="d-inline-block m-0">
+                @csrf
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="ti ti-mail me-1"></i>Kirim Receipt
+                </button>
+            </form>
+        @endif
         @can('update', $payment)
             <a href="{{ route('payments.edit', $payment) }}" class="btn btn-outline-primary">
                 <i class="ti ti-pencil me-1"></i>Edit Payment
@@ -115,6 +123,23 @@
         <div class="card">
             <div class="card-header"><h3 class="card-title">Summary</h3></div>
             <div class="card-body">
+                @if($latestReceiptMailLog)
+                    @php
+                        $mailAlertClass = match($latestReceiptMailLog->status) {
+                            'sent' => 'alert-success',
+                            'failed' => 'alert-danger',
+                            default => 'alert-warning',
+                        };
+                    @endphp
+                    <div class="alert {{ $mailAlertClass }} py-2">
+                        <div class="fw-semibold small mb-1">Receipt terakhir: {{ ucfirst($latestReceiptMailLog->status) }}</div>
+                        <div class="small">{{ $latestReceiptMailLog->recipient_email }}</div>
+                        <div class="small">{{ optional($latestReceiptMailLog->created_at)->format('d M Y H:i') ?? '-' }}</div>
+                        @if($latestReceiptMailLog->error_message)
+                            <div class="small mt-1">{{ $latestReceiptMailLog->error_message }}</div>
+                        @endif
+                    </div>
+                @endif
                 <div class="mb-3">
                     <div class="text-muted small">Status</div>
                     <div class="fw-semibold">{{ $paymentStatusOptions[$payment->status] ?? ucfirst($payment->status) }}</div>

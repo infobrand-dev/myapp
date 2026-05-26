@@ -70,7 +70,9 @@ class PlanProductLineMap
             PlanFeature::PURCHASES,
             PlanFeature::INVENTORY,
             PlanFeature::ADVANCED_REPORTS,
-            PlanFeature::POINT_OF_SALE => 'accounting',
+            PlanFeature::POINT_OF_SALE,
+            PlanFeature::TRANSACTIONAL_EMAIL_MANAGED,
+            PlanFeature::TRANSACTIONAL_EMAIL_CUSTOM_SMTP => 'accounting',
             PlanFeature::PROJECT_MANAGEMENT => 'project_management',
 
             default => null,
@@ -80,7 +82,8 @@ class PlanProductLineMap
     public static function limitProductLine(string $key): ?string
     {
         return match ($key) {
-            PlanLimit::PRODUCTS => 'accounting',
+            PlanLimit::PRODUCTS,
+            PlanLimit::TRANSACTIONAL_EMAILS_MONTHLY => 'accounting',
 
             PlanLimit::WHATSAPP_INSTANCES,
             PlanLimit::SOCIAL_ACCOUNTS,

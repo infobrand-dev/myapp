@@ -50,7 +50,16 @@ Hindari klaim:
 ## Public flow
 - `accounting` adalah jalur utama yang aktif dijual lewat `/onboarding`
 - default public signup harus mengarahkan user ke paket `accounting`
+- public onboarding `accounting` juga boleh menawarkan free trial terbatas sebelum checkout
+- free trial public saat ini hanya untuk plan `accounting` bulanan; product line lain tetap masuk flow berbayar
 - `omnichannel` tetap ada sebagai product line berikutnya, tetapi bukan jalur utama sampai siap dijual penuh
+
+## Transactional email
+- email transactional accounting ke customer tidak bergantung pada modul `Email Inbox`
+- pengiriman quotation, sales order, invoice, payment reminder, dan payment receipt mendukung dua mode: `Email Terkelola` dan `SMTP Sendiri`
+- `Email Terkelola` dibatasi kuota bulanan per plan
+- `SMTP Sendiri` hanya tersedia pada plan yang memberi entitlement tersebut
+- onboarding, invoice platform, dan email control-plane lain tetap memakai mailer platform
 
 ## Referensi roadmap
 - detail backlog fitur bisnis accounting ada di `docs/product/accounting-feature-roadmap.md`

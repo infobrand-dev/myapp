@@ -7,6 +7,7 @@ use App\Models\Company;
 use App\Models\AiUsageLog;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
+use App\Models\TenantTransactionalMailLog;
 use App\Models\TenantSubscription;
 use App\Models\User;
 use App\Services\TenantStorageUsageService;
@@ -202,6 +203,20 @@ class TenantPlanManager
             return $this->monthlyTenantCount('email_campaign_recipients', $tenantId);
         }
 
+        if ($key === PlanLimit::TRANSACTIONAL_EMAILS_MONTHLY) {
+            if (!Schema::hasTable('tenant_transactional_mail_logs')) {
+                return 0;
+            }
+
+            return (int) TenantTransactionalMailLog::query()
+                ->where('tenant_id', $tenantId)
+                ->where('mailer_source', 'managed')
+                ->where('status', 'sent')
+                ->whereNotNull('sent_at')
+                ->whereBetween('sent_at', [now()->startOfMonth(), now()->endOfMonth()])
+                ->count();
+        }
+
         if ($key === PlanLimit::WA_BLAST_RECIPIENTS_MONTHLY) {
             return $this->monthlyTenantCount('wa_blast_recipients', $tenantId);
         }
@@ -288,7 +303,7 @@ class TenantPlanManager
                 'tenant_cta' => 'Hubungi admin platform untuk menaikkan kapasitas add-on BYO AI.',
                 'owner_cta' => 'Naikkan limit override BYO AI atau arahkan tenant kembali ke Managed AI.',
             ],
-            PlanLimit::WA_BLAST_RECIPIENTS_MONTHLY, PlanLimit::EMAIL_RECIPIENTS_MONTHLY => [
+            PlanLimit::WA_BLAST_RECIPIENTS_MONTHLY, PlanLimit::EMAIL_RECIPIENTS_MONTHLY, PlanLimit::TRANSACTIONAL_EMAILS_MONTHLY => [
                 'title' => 'Naikkan kuota recipient bulanan',
                 'message' => 'Kuota recipient bulanan tidak bertambah otomatis. Tenant perlu upgrade plan atau penyesuaian internal dari tim platform.',
                 'tenant_cta' => 'Hubungi admin platform untuk upgrade plan atau penyesuaian kuota bulanan.',
@@ -381,6 +396,7 @@ class TenantPlanManager
             PlanLimit::EMAIL_CAMPAIGNS => "Plan tenant hanya mengizinkan maksimal {$limit} email campaign.",
             PlanLimit::WA_BLAST_RECIPIENTS_MONTHLY => "Kuota recipient WhatsApp blast bulanan tenant hanya {$limit} recipient.",
             PlanLimit::EMAIL_RECIPIENTS_MONTHLY => "Kuota recipient email bulanan tenant hanya {$limit} recipient.",
+            PlanLimit::TRANSACTIONAL_EMAILS_MONTHLY => "Kuota email terkelola bulanan tenant hanya {$limit} email.",
             PlanLimit::AI_CREDITS_MONTHLY => "Kuota AI Credits bulanan tenant hanya {$limit} credit.",
             PlanLimit::TOTAL_STORAGE_BYTES => 'Storage total workspace tenant sudah penuh. Hapus file lama atau upgrade plan untuk menambah kapasitas.',
             PlanLimit::CHATBOT_KNOWLEDGE_DOCUMENTS => "Plan tenant hanya mengizinkan maksimal {$limit} dokumen knowledge chatbot.",

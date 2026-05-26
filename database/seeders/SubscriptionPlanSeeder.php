@@ -830,6 +830,8 @@ class SubscriptionPlanSeeder extends Seeder
                 PlanFeature::WHATSAPP_API => true,
                 PlanFeature::WHATSAPP_WEB => true,
                 PlanFeature::ADVANCED_REPORTS => true,
+                PlanFeature::TRANSACTIONAL_EMAIL_MANAGED => true,
+                PlanFeature::TRANSACTIONAL_EMAIL_CUSTOM_SMTP => true,
             ],
             'limits' => [
                 PlanLimit::COMPANIES => -1,
@@ -846,6 +848,7 @@ class SubscriptionPlanSeeder extends Seeder
                 PlanLimit::EMAIL_CAMPAIGNS => -1,
                 PlanLimit::WA_BLAST_RECIPIENTS_MONTHLY => -1,
                 PlanLimit::EMAIL_RECIPIENTS_MONTHLY => -1,
+                PlanLimit::TRANSACTIONAL_EMAILS_MONTHLY => -1,
                 PlanLimit::AI_CREDITS_MONTHLY => -1,
                 PlanLimit::CHATBOT_KNOWLEDGE_DOCUMENTS => -1,
                 PlanLimit::AUTOMATION_WORKFLOWS => -1,

@@ -19,6 +19,10 @@
             @if($quotation->isDraft())
                 <a href="{{ route('sales.quotations.edit', $quotation) }}" class="btn btn-outline-primary">Edit Draft</a>
             @endif
+            <form method="POST" action="{{ route('sales.quotations.send', $quotation) }}" class="d-inline-block m-0">
+                @csrf
+                <button type="submit" class="btn btn-outline-primary">Kirim ke Customer</button>
+            </form>
             @if($quotation->canTransitionTo(\App\Modules\Sales\Models\SaleQuotation::STATUS_SENT))
                 <form method="POST" action="{{ route('sales.quotations.status', [$quotation, 'sent']) }}" class="d-inline-block m-0">@csrf<button type="submit" class="btn btn-primary">Mark Sent</button></form>
             @endif
@@ -83,7 +87,27 @@
                 <div class="mb-3">
                     <div class="text-muted small">Customer</div>
                     <div class="fw-medium">{{ $quotation->customer_name_snapshot ?: ($quotation->contact?->name ?? '-') }}</div>
+                    @if($quotation->customer_email_snapshot)
+                        <div class="text-muted small">{{ $quotation->customer_email_snapshot }}</div>
+                    @endif
                 </div>
+                @if($latestMailLog)
+                    @php
+                        $mailAlertClass = match($latestMailLog->status) {
+                            'sent' => 'alert-success',
+                            'failed' => 'alert-danger',
+                            default => 'alert-warning',
+                        };
+                    @endphp
+                    <div class="alert {{ $mailAlertClass }} py-2">
+                        <div class="fw-semibold small mb-1">Email terakhir: {{ ucfirst($latestMailLog->status) }}</div>
+                        <div class="small">{{ $latestMailLog->recipient_email }}</div>
+                        <div class="small">{{ optional($latestMailLog->created_at)->format('d M Y H:i') ?? '-' }}</div>
+                        @if($latestMailLog->error_message)
+                            <div class="small mt-1">{{ $latestMailLog->error_message }}</div>
+                        @endif
+                    </div>
+                @endif
                 <div class="mb-3">
                     <div class="text-muted small">Valid Until</div>
                     <div>{{ optional($quotation->valid_until_date)->format('d M Y') ?? '-' }}</div>

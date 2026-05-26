@@ -16,6 +16,10 @@
             @if($order->isDraft())
                 <a href="{{ route('sales.orders.edit', $order) }}" class="btn btn-outline-primary">Edit Draft</a>
             @endif
+            <form method="POST" action="{{ route('sales.orders.send', $order) }}" class="d-inline-block m-0">
+                @csrf
+                <button type="submit" class="btn btn-outline-primary">Kirim ke Customer</button>
+            </form>
             @if($order->canTransitionTo(\App\Modules\Sales\Models\SaleOrder::STATUS_SENT))
                 <form method="POST" action="{{ route('sales.orders.status', [$order, 'sent']) }}" class="d-inline-block m-0">@csrf<button type="submit" class="btn btn-primary">Mark Sent</button></form>
             @endif
@@ -71,7 +75,24 @@
         <div class="card">
             <div class="card-header"><h3 class="card-title">Summary</h3></div>
             <div class="card-body">
-                <div class="mb-3"><div class="text-muted small">Customer</div><div class="fw-medium">{{ $order->customer_name_snapshot ?: ($order->contact?->name ?? '-') }}</div></div>
+                <div class="mb-3"><div class="text-muted small">Customer</div><div class="fw-medium">{{ $order->customer_name_snapshot ?: ($order->contact?->name ?? '-') }}</div>@if($order->customer_email_snapshot)<div class="text-muted small">{{ $order->customer_email_snapshot }}</div>@endif</div>
+                @if($latestMailLog)
+                    @php
+                        $mailAlertClass = match($latestMailLog->status) {
+                            'sent' => 'alert-success',
+                            'failed' => 'alert-danger',
+                            default => 'alert-warning',
+                        };
+                    @endphp
+                    <div class="alert {{ $mailAlertClass }} py-2">
+                        <div class="fw-semibold small mb-1">Email terakhir: {{ ucfirst($latestMailLog->status) }}</div>
+                        <div class="small">{{ $latestMailLog->recipient_email }}</div>
+                        <div class="small">{{ optional($latestMailLog->created_at)->format('d M Y H:i') ?? '-' }}</div>
+                        @if($latestMailLog->error_message)
+                            <div class="small mt-1">{{ $latestMailLog->error_message }}</div>
+                        @endif
+                    </div>
+                @endif
                 <div class="mb-3"><div class="text-muted small">Expected Delivery Date</div><div>{{ optional($order->expected_delivery_date)->format('d M Y') ?? '-' }}</div></div>
                 <div class="mb-3"><div class="text-muted small">Lifecycle</div><div class="small">Draft -> Sent -> Approved -> Converted to Draft Sale</div></div>
                 <div class="mb-3"><div class="text-muted small">Approval Rule</div><div class="small">{{ ($requiresApprovalBeforeConversion ?? true) ? 'Approval wajib sebelum convert.' : 'Convert boleh tanpa approval formal.' }}</div></div>

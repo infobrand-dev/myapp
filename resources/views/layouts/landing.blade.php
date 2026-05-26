@@ -19,6 +19,10 @@
 </head>
 <body class="landing-page">
 <div class="landing-shell">
+@php
+    $productsUrl = \Illuminate\Support\Facades\Route::has('products') ? route('products') : url('/products');
+    $contactUrl = \Illuminate\Support\Facades\Route::has('contact') ? route('contact') : url('/contact-us');
+@endphp
 
 @section('topbar')
 {{-- ══ TOPBAR ══════════════════════════════════════════════ --}}
@@ -33,7 +37,7 @@
                     <i class="ti ti-home-2"></i>
                     <span>Home</span>
                 </a>
-                <a href="{{ route('products') }}" class="landing-nav-link d-inline-flex align-items-center gap-2">
+                <a href="{{ $productsUrl }}" class="landing-nav-link d-inline-flex align-items-center gap-2">
                     <i class="ti ti-box"></i>
                     <span>Produk</span>
                 </a>
@@ -41,14 +45,14 @@
                     <i class="ti ti-building"></i>
                     <span>Tentang Kami</span>
                 </a>
-                <a href="{{ route('contact') }}" class="landing-nav-link d-inline-flex align-items-center gap-2">
+                <a href="{{ $contactUrl }}" class="landing-nav-link d-inline-flex align-items-center gap-2">
                     <i class="ti ti-phone-call"></i>
                     <span>Contact Us</span>
                 </a>
             </nav>
             <div class="d-flex align-items-center gap-2">
                 <a href="{{ route('workspace.finder') }}" class="btn btn-outline-dark btn-sm d-none d-md-inline-flex">Login Workspace</a>
-                <a href="{{ route('contact') }}" class="btn btn-dark btn-sm">Konsultasikan</a>
+                <a href="{{ $contactUrl }}" class="btn btn-dark btn-sm">Konsultasikan</a>
             </div>
         </div>
     </div>
@@ -92,9 +96,9 @@
                 <div class="landing-footer-heading">Produk</div>
                 <nav class="landing-footer-nav">
                     <a href="{{ route('landing') }}">Meetra</a>
-                    <a href="{{ route('products') }}">Product Lines</a>
+                    <a href="{{ $productsUrl }}">Product Lines</a>
                     <a href="{{ route('landing.accounting') }}">Accounting</a>
-                    <a href="{{ route('contact') }}">Konsultasi</a>
+                    <a href="{{ $contactUrl }}">Konsultasi</a>
                     <a href="{{ route('about') }}">Tentang Meetra</a>
                     <a href="{{ route('workspace.finder') }}">Login Workspace</a>
                 </nav>
@@ -105,7 +109,7 @@
                 <div class="landing-footer-heading">Perusahaan</div>
                 <nav class="landing-footer-nav">
                     <a href="{{ route('about') }}">Tentang Kami</a>
-                    <a href="{{ route('contact') }}">Contact Us</a>
+                    <a href="{{ $contactUrl }}">Contact Us</a>
                     <a href="{{ route('affiliate.program') }}">Program Partner</a>
                     <a href="{{ route('security') }}">Keamanan Data</a>
                     <a href="{{ route('privacy') }}">Kebijakan Privasi</a>

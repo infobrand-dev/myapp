@@ -12,6 +12,7 @@ use App\Modules\Payments\Http\Requests\VoidPaymentRequest;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Repositories\PaymentRepository;
 use App\Modules\Payments\Services\PaymentLookupService;
+use App\Services\AccountingTransactionalMailService;
 use App\Support\CurrencySettingsResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,6 +26,7 @@ class PaymentController extends Controller
     private $updatePayment;
     private $voidPayment;
     private $currencySettings;
+    private $transactionalMail;
 
     public function __construct(
         PaymentRepository $repository,
@@ -32,7 +34,8 @@ class PaymentController extends Controller
         CreatePaymentAction $createPayment,
         UpdatePaymentAction $updatePayment,
         VoidPaymentAction $voidPayment,
-        CurrencySettingsResolver $currencySettings
+        CurrencySettingsResolver $currencySettings,
+        AccountingTransactionalMailService $transactionalMail
     ) {
         $this->repository = $repository;
         $this->lookupService = $lookupService;
@@ -40,6 +43,7 @@ class PaymentController extends Controller
         $this->updatePayment = $updatePayment;
         $this->voidPayment = $voidPayment;
         $this->currencySettings = $currencySettings;
+        $this->transactionalMail = $transactionalMail;
     }
 
     public function index(Request $request): View
@@ -109,11 +113,14 @@ class PaymentController extends Controller
     {
         $this->authorize('view', $payment);
 
+        $payment = $this->repository->findForDetail($payment);
+
         return view('payments::show', [
-            'payment' => $this->repository->findForDetail($payment),
+            'payment' => $payment,
             'paymentStatusOptions' => $this->lookupService->paymentStatusOptions(),
             'reconciliationStatusOptions' => $this->lookupService->reconciliationStatusOptions(),
             'activities' => $payment->activities()->with('causer')->latest()->get(),
+            'latestReceiptMailLog' => $this->transactionalMail->latestLog('payment', (int) $payment->id, (int) $payment->tenant_id),
         ]);
     }
 
@@ -162,5 +169,21 @@ class PaymentController extends Controller
         $payment = $this->voidPayment->execute($payment, $request->validated(), $request->user());
 
         return redirect()->route('payments.show', $payment)->with('status', 'Pembayaran di-void.');
+    }
+
+    public function sendReceipt(Request $request, Payment $payment): RedirectResponse
+    {
+        $this->authorize('view', $payment);
+        $payment->loadMissing(['allocations.payable', 'method']);
+
+        try {
+            $this->transactionalMail->sendPaymentReceipt($payment, $request->user()?->id);
+
+            return redirect()->route('payments.show', $payment)->with('status', 'Payment receipt berhasil diantrikan ke email customer.');
+        } catch (\Throwable $e) {
+            return redirect()->route('payments.show', $payment)->withErrors([
+                'transactional_mail' => $e->getMessage(),
+            ]);
+        }
     }
 }

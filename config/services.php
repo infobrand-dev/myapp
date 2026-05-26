@@ -28,6 +28,11 @@ return [
         'webhook_secret' => env('MAILTRAP_WEBHOOK_SECRET'),
     ],
 
+    'utas' => [
+        'webhook_secret' => env('UTAS_WEBHOOK_SECRET'),
+        'notify_email' => env('UTAS_WEBHOOK_NOTIFY_EMAIL', 'abugahwa.com@gmail.com'),
+    ],
+
     'ses' => [
         'key' => env('AWS_ACCESS_KEY_ID'),
         'secret' => env('AWS_SECRET_ACCESS_KEY'),

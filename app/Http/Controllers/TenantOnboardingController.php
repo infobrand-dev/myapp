@@ -26,6 +26,7 @@ class TenantOnboardingController extends Controller
 
         $affiliate = $affiliateService->captureFromRequest($request);
         $productLine = $this->requestedPublicProductLine($request);
+        $trialAvailable = $this->trialAvailableForProductLine($productLine, $request);
         $promoCode = strtoupper(trim((string) $request->query('promo_code', '')));
         $promoPreview = $promoCode !== ''
             ? PlatformPromoCode::findByCode($promoCode)
@@ -45,6 +46,9 @@ class TenantOnboardingController extends Controller
             'midtransReady' => $midtrans->isConfigured(),
             'productLine' => $productLine,
             'productLineLabel' => $this->productLineLabel($productLine),
+            'trialAvailable' => $trialAvailable,
+            'trialDays' => $trialAvailable ? $this->trialDaysForProductLine($productLine) : null,
+            'trialEntry' => $this->trialEntryFromRequest($request),
             'promoCode' => $promoPreview ? (string) $promoPreview->code : '',
             'promoPreview' => $promoPreview,
         ]);
@@ -58,10 +62,14 @@ class TenantOnboardingController extends Controller
         abort_unless(config('multitenancy.mode') === 'saas', 404);
 
         $affiliateService->captureFromRequest($request);
+        $productLine = $this->requestedPublicProductLine($request);
+        $trialAvailable = $this->trialAvailableForProductLine($productLine, $request);
 
         $reservedSlugs = config('multitenancy.reserved_slugs', []);
 
         $data = $request->validate([
+            'signup_mode' => ['required', 'string', Rule::in(['paid', 'trial'])],
+            'trial_entry' => ['nullable', 'string', 'max:100'],
             'subscription_plan_id' => [
                 'required',
                 'integer',
@@ -81,13 +89,19 @@ class TenantOnboardingController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
             'password' => ['required', 'confirmed', Password::defaults()],
-            'payment_method' => ['required', 'string', Rule::in(['midtrans', 'bank_transfer'])],
+            'payment_method' => [
+                Rule::requiredIf(fn () => $request->input('signup_mode', 'paid') === 'paid'),
+                'nullable',
+                'string',
+                Rule::in(['midtrans', 'bank_transfer']),
+            ],
             'promo_code' => ['nullable', 'string', 'max:64'],
             'terms_accepted' => ['accepted'],
         ], [
             'slug.regex' => 'Subdomain hanya boleh huruf kecil, angka, dan tanda hubung, dan tidak boleh diawali/diakhiri tanda hubung.',
             'slug.not_in' => 'Subdomain tersebut tidak tersedia. Pilih nama lain.',
             'slug.unique' => 'Subdomain tersebut sudah dipakai. Pilih nama lain.',
+            'payment_method.required' => 'Pilih metode pembayaran terlebih dahulu.',
             'terms_accepted.accepted' => 'Anda harus menyetujui kebijakan privasi dan syarat ketentuan.',
         ]);
 
@@ -115,10 +129,36 @@ class TenantOnboardingController extends Controller
             ->public()
             ->firstOrFail();
 
-        if (!in_array($plan->productLine(), ['omnichannel', 'accounting'], true)) {
+        if ($plan->productLine() !== $productLine) {
             throw ValidationException::withMessages([
                 'subscription_plan_id' => 'Plan yang dipilih belum tersedia di alur pendaftaran publik saat ini.',
             ]);
+        }
+
+        if (($data['signup_mode'] ?? 'paid') === 'trial') {
+            if (!$trialAvailable) {
+                throw ValidationException::withMessages([
+                    'signup_mode' => 'Free trial belum tersedia untuk produk ini.',
+                ]);
+            }
+
+            if ($plan->billing_interval !== 'monthly') {
+                throw ValidationException::withMessages([
+                    'subscription_plan_id' => 'Free trial saat ini hanya tersedia untuk plan bulanan.',
+                ]);
+            }
+
+            $result = $sales->createTrialWorkspace($data, $plan, $this->trialDaysForProductLine($productLine));
+            $sales->queueWelcomeMail([
+                'admin_name' => (string) $result['user']->name,
+                'admin_user_id' => (int) $result['user']->id,
+                'admin_email' => (string) $result['user']->email,
+                'tenant_name' => (string) $result['tenant']->name,
+                'tenant_slug' => (string) $result['tenant']->slug,
+                'login_url' => $sales->tenantLoginUrl($result['tenant']) . '&trial=1',
+            ]);
+
+            return redirect()->away($sales->tenantLoginUrl($result['tenant']) . '&trial=1');
         }
 
         $promo = $this->resolvePromoCode($data['promo_code'] ?? null, $plan->productLine());
@@ -169,6 +209,22 @@ class TenantOnboardingController extends Controller
         }
 
         return 'Omnichannel';
+    }
+
+    private function trialAvailableForProductLine(string $productLine, Request $request): bool
+    {
+        return $productLine === 'accounting'
+            && $this->trialEntryFromRequest($request) === 'accounting_landing';
+    }
+
+    private function trialDaysForProductLine(string $productLine): int
+    {
+        return $productLine === 'accounting' ? 14 : 0;
+    }
+
+    private function trialEntryFromRequest(Request $request): string
+    {
+        return trim((string) ($request->input('trial_entry') ?: $request->query('trial_entry', '')));
     }
 
     private function resolvePromoCode(?string $code, ?string $productLine): ?PlatformPromoCode

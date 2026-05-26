@@ -17,6 +17,7 @@ class PlanLimit
     public const EMAIL_CAMPAIGNS = 'max_email_campaigns';
     public const WA_BLAST_RECIPIENTS_MONTHLY = 'max_wa_blast_recipients_monthly';
     public const EMAIL_RECIPIENTS_MONTHLY = 'max_email_recipients_monthly';
+    public const TRANSACTIONAL_EMAILS_MONTHLY = 'max_transactional_emails_monthly';
     public const AI_CREDITS_MONTHLY = 'max_ai_credits_monthly';
     public const TOTAL_STORAGE_BYTES = 'max_total_storage_bytes';
     public const CHATBOT_KNOWLEDGE_DOCUMENTS = 'max_chatbot_knowledge_documents';

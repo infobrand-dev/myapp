@@ -141,7 +141,7 @@ body.landing-page.accounting-anniversary-page .accounting-plan-discount { displa
                     Mulai dari penjualan, pembayaran, dan kas. Tambah pembelian, stok, dan laporan saat bisnis tumbuh — semua dalam satu workspace.
                 </p>
                 <div class="d-flex flex-wrap gap-3 mb-3">
-                    <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'promo_code' => 'MEETRA2ND']) }}" class="btn btn-lg btn-dark">Daftar Sekarang</a>
+                    <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'promo_code' => 'MEETRA2ND', 'trial_entry' => 'accounting_landing']) }}" class="btn btn-lg btn-dark">Daftar Sekarang</a>
                     <a href="#pricing" class="btn btn-lg btn-outline-dark">Lihat Semua Paket</a>
                 </div>
                 <div class="d-flex flex-wrap gap-2">
@@ -351,7 +351,7 @@ body.landing-page.accounting-anniversary-page .accounting-plan-discount { displa
                                         <div><i class="ti ti-check text-success"></i> POS tersedia sebagai add-on opsional</div>
                                     </div>
                                     <div class="d-grid">
-                                        <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'plan' => $plan['code'], 'promo_code' => 'MEETRA2ND']) }}"
+                                        <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'plan' => $plan['code'], 'promo_code' => 'MEETRA2ND', 'trial_entry' => 'accounting_landing']) }}"
                                             class="btn {{ !empty($plan['featured']) ? 'btn-light' : 'btn-dark' }} btn-lg">
                                             Daftar Paket Ini
                                         </a>
@@ -503,7 +503,7 @@ body.landing-page.accounting-anniversary-page .accounting-plan-discount { displa
                 <div class="px-4 py-2 rounded fw-bold" style="font-size:1.5rem; letter-spacing:.12em; background:#1e293b; color:#fff; border-radius:8px;">MEETRA2ND</div>
             </div>
             <div class="d-flex flex-wrap justify-content-center gap-3">
-                <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'promo_code' => 'MEETRA2ND']) }}" class="btn btn-dark btn-lg">Daftar &amp; Pakai Kode Promo</a>
+                <a href="{{ route('onboarding.create', ['product_line' => 'accounting', 'promo_code' => 'MEETRA2ND', 'trial_entry' => 'accounting_landing']) }}" class="btn btn-dark btn-lg">Daftar &amp; Pakai Kode Promo</a>
                 <a href="#pricing" class="btn btn-outline-dark btn-lg">Lihat Semua Paket</a>
             </div>
         </div>

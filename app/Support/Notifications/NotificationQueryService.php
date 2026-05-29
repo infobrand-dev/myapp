@@ -3,6 +3,7 @@
 namespace App\Support\Notifications;
 
 use App\Models\NotificationRecipient;
+use App\Support\BooleanQuery;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
@@ -70,7 +71,7 @@ class NotificationQueryService
                         $query->whereIn('severity', $severities);
                     });
             })
-            ->when(!empty($filters['unread']), fn (Builder $query) => $query->where('is_read', false)->whereNull('dismissed_at'))
+            ->when(!empty($filters['unread']), fn (Builder $query) => BooleanQuery::apply($query, 'is_read', false)->whereNull('dismissed_at'))
             ->orderByDesc(
                 \App\Models\CoreNotification::query()
                     ->select('last_seen_at')

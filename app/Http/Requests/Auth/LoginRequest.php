@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Auth;
 
 use App\Models\Tenant;
+use App\Support\SaasHost;
 use App\Support\TenantContext;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
@@ -126,14 +127,6 @@ class LoginRequest extends FormRequest
 
     private function isPlatformAdminHost(): bool
     {
-        if (config('multitenancy.mode') !== 'saas') {
-            return false;
-        }
-
-        $host = $this->getHost();
-        $saasDomain = (string) config('multitenancy.saas_domain');
-        $platformSubdomain = (string) config('multitenancy.platform_admin_subdomain', 'dash');
-
-        return $host === $platformSubdomain . '.' . $saasDomain;
+        return SaasHost::isPlatformAdminHost($this);
     }
 }

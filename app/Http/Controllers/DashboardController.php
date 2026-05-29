@@ -9,6 +9,7 @@ use App\Support\ModuleManager;
 use App\Support\Notifications\NotificationQueryService;
 use App\Support\PlanFeature;
 use App\Support\PlanLimit;
+use App\Support\SaasHost;
 use App\Support\TenantContext;
 use App\Support\TenantPlanManager;
 use Illuminate\Http\RedirectResponse;
@@ -140,11 +141,11 @@ class DashboardController extends Controller
         $path = $appendDashboard ? '/dashboard' : '/login';
 
         if ($user && (int) $user->tenant_id === 1 && $user->hasRole('Super-admin')) {
-            return $scheme . '://' . config('multitenancy.platform_admin_subdomain', 'dash') . '.' . config('multitenancy.saas_domain') . '/platform';
+            return $scheme . '://' . SaasHost::platformHost($request) . '/platform';
         }
 
         if ($user && $user->tenant) {
-            return $scheme . '://' . $user->tenant->slug . '.' . config('multitenancy.saas_domain') . $path;
+            return $scheme . '://' . SaasHost::tenantHost($request, (string) $user->tenant->slug) . $path;
         }
 
         return route('workspace.finder');

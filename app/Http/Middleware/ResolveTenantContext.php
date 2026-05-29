@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\SaasHost;
 use App\Support\TenantContext;
 use Closure;
 use Illuminate\Http\Request;
@@ -93,12 +94,7 @@ class ResolveTenantContext
 
             if ($tenant) {
                 $scheme = $request->isSecure() ? 'https' : 'http';
-                $target = sprintf(
-                    '%s://%s.%s/login',
-                    $scheme,
-                    $tenant->slug,
-                    config('multitenancy.saas_domain')
-                );
+                $target = sprintf('%s://%s/login', $scheme, SaasHost::tenantHost($request, $tenant->slug));
 
                 return redirect()->away($target);
             }
@@ -106,7 +102,7 @@ class ResolveTenantContext
 
         return redirect()
             ->route('onboarding.create')
-            ->with('warning', 'Masuk melalui subdomain workspace Anda. Contoh: tenantanda.' . config('multitenancy.saas_domain'));
+            ->with('warning', 'Masuk melalui subdomain workspace Anda. Contoh: tenantanda.' . (SaasHost::candidateRootDomains()[0] ?? config('multitenancy.saas_domain')));
     }
 
     private function isGuestAuthRoute(Request $request): bool

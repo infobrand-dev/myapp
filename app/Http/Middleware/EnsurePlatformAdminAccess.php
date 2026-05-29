@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\SaasHost;
 use Closure;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
@@ -44,13 +45,11 @@ class EnsurePlatformAdminAccess
     private function expectedUrl(Request $request, Authenticatable $user): ?string
     {
         $expectedHost = null;
-        $saasDomain = (string) config('multitenancy.saas_domain');
-        $platformSubdomain = (string) config('multitenancy.platform_admin_subdomain', 'dash');
 
         if ((int) $user->tenant_id === 1 && method_exists($user, 'hasRole') && $user->hasRole('Super-admin')) {
-            $expectedHost = $platformSubdomain . '.' . $saasDomain;
+            $expectedHost = SaasHost::platformHost($request);
         } elseif (!empty($user->tenant?->slug)) {
-            $expectedHost = $user->tenant->slug . '.' . $saasDomain;
+            $expectedHost = SaasHost::tenantHost($request, (string) $user->tenant->slug);
         }
 
         if (!$expectedHost || $request->getHost() === $expectedHost) {
@@ -65,10 +64,6 @@ class EnsurePlatformAdminAccess
 
     private function isPlatformAdminHost(Request $request): bool
     {
-        $host = $request->getHost();
-        $saasDomain = (string) config('multitenancy.saas_domain');
-        $platformSubdomain = (string) config('multitenancy.platform_admin_subdomain', 'dash');
-
-        return $host === $platformSubdomain . '.' . $saasDomain;
+        return SaasHost::isPlatformAdminHost($request);
     }
 }

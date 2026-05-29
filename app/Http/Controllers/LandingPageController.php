@@ -7,6 +7,7 @@ use App\Models\Tenant;
 use App\Services\PlatformAffiliateService;
 use App\Services\TenantOnboardingSalesService;
 use App\Support\Commerce\PublicStorefrontContext;
+use App\Support\SaasHost;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\File;
 use Illuminate\Http\RedirectResponse;
@@ -259,7 +260,7 @@ class LandingPageController extends Controller
         $appUrl = (string) config('app.url');
         $scheme = parse_url($appUrl, PHP_URL_SCHEME) ?: ($request->isSecure() ? 'https' : 'http');
 
-        return redirect()->away($scheme . '://' . $tenant->slug . '.' . config('multitenancy.saas_domain') . '/login');
+        return redirect()->away($scheme . '://' . SaasHost::tenantHost($request, $tenant->slug) . '/login');
     }
 
     private function workspaceUrlFor(Request $request, bool $appendDashboard = true): string
@@ -270,11 +271,11 @@ class LandingPageController extends Controller
         $path = $appendDashboard ? '/dashboard' : '/login';
 
         if ($user && (int) $user->tenant_id === 1 && $user->hasRole('Super-admin')) {
-            return $scheme . '://' . config('multitenancy.platform_admin_subdomain', 'dash') . '.' . config('multitenancy.saas_domain') . $path;
+            return $scheme . '://' . SaasHost::platformHost($request) . $path;
         }
 
         if ($user && $user->tenant) {
-            return $scheme . '://' . $user->tenant->slug . '.' . config('multitenancy.saas_domain') . $path;
+            return $scheme . '://' . SaasHost::tenantHost($request, (string) $user->tenant->slug) . $path;
         }
 
         return route('workspace.finder');

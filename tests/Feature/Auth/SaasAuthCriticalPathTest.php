@@ -106,4 +106,15 @@ class SaasAuthCriticalPathTest extends TestCase
         $response->assertRedirect('/platform');
         $this->assertAuthenticatedAs($user);
     }
+
+    public function test_local_app_url_platform_admin_host_login_screen_can_be_rendered(): void
+    {
+        config()->set('app.url', 'https://myapp.test:8080');
+        config()->set('multitenancy.saas_domain', 'meetra.id');
+
+        $response = $this->get('http://dash.myapp.test/login');
+
+        $response->assertOk();
+        $response->assertSee('Login khusus platform admin.');
+    }
 }

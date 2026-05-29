@@ -21,6 +21,7 @@
 - When practical, keep room for `tenant_id` in table design, query composition, unique constraints, cache keys, webhook/account resolution, and ownership rules. Avoid building new flows that implicitly assume a single global tenant.
 - Core runtime tenant resolution now flows through `App\Support\TenantContext` and `App\Http\Middleware\ResolveTenantContext`.
 - SaaS subdomain resolution should honor the configured production root domain and also the host from `APP_URL` for local development, so tenant-scoped public routes such as `/shop` do not need a separate apex/public registration just to work in dev.
+- Platform-admin login and host redirects should use the same effective root-domain resolution as tenant subdomain detection, so local hosts such as `dash.myapp.test` behave consistently with production hosts such as `dash.meetra.id`.
 - `ResolveTenantContext` is intended for tenant-aware app routes, not for apex marketing pages. New public pages should be added to `routes/public.php` instead of extending middleware bypass lists.
 - Current resolver order is: explicit request attribute/header/query, session, authenticated user `tenant_id`, then fallback to tenant `id = 1` only for standalone/bootstrap-safe flows. In SaaS mode, unresolved tenant context should fail closed instead of silently falling back to tenant `1`.
 - In SaaS mode, guest auth pages must be reached from the tenant subdomain. Apex/root domain is for onboarding or workspace discovery, not shared tenant login.

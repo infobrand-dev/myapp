@@ -57,4 +57,24 @@ class AuthenticatedHostRedirectTest extends TestCase
             ->get('http://example.test/profile')
             ->assertRedirect('https://acme.example.test/profile');
     }
+
+    public function test_platform_owner_is_redirected_to_local_dash_host_when_request_uses_app_url_domain(): void
+    {
+        config()->set('app.url', 'https://myapp.test:8080');
+        config()->set('multitenancy.saas_domain', 'meetra.id');
+
+        $user = User::factory()->create([
+            'tenant_id' => 1,
+            'email_verified_at' => now(),
+        ]);
+
+        app(PermissionRegistrar::class)->setPermissionsTeamId(1);
+        $role = Role::findOrCreate('Super-admin', 'web');
+        $user->assignRole($role);
+        app(PermissionRegistrar::class)->setPermissionsTeamId(null);
+
+        $this->actingAs($user)
+            ->get('http://myapp.test/profile')
+            ->assertRedirect('https://dash.myapp.test/profile');
+    }
 }

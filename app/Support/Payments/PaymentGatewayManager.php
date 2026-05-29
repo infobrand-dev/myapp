@@ -3,6 +3,7 @@
 namespace App\Support\Payments;
 
 use App\Models\TenantPaymentGateway;
+use App\Support\BooleanQuery;
 use App\Modules\Sales\Models\Sale;
 use App\Support\CompanyContext;
 use App\Support\Payments\Contracts\PaymentGatewayDriver;
@@ -66,10 +67,13 @@ class PaymentGatewayManager
 
     public function activeGatewayRecord(): ?TenantPaymentGateway
     {
-        return TenantPaymentGateway::query()
-            ->where('tenant_id', TenantContext::currentId())
-            ->where('company_id', CompanyContext::currentId())
-            ->where('is_enabled', true)
+        return BooleanQuery::apply(
+            TenantPaymentGateway::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId()),
+            'is_enabled',
+            true
+        )
             ->latest('id')
             ->first();
     }

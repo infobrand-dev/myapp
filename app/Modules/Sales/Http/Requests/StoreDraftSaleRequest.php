@@ -11,6 +11,7 @@ use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
 use App\Modules\Sales\Http\Requests\Concerns\NormalizesSalePayload;
 use App\Modules\Sales\Models\Sale;
+use App\Support\BooleanQuery;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
@@ -48,7 +49,7 @@ class StoreDraftSaleRequest extends FormRequest
                 ->where('tenant_id', TenantContext::currentId())
                 ->where('company_id', CompanyContext::currentId())
                 ->where('tax_type', FinanceTaxRate::TYPE_SALES)
-                ->where('is_active', true))],
+                ->tap(fn ($query) => BooleanQuery::apply($query, 'is_active', true)))],
             'payment_status' => ['required', Rule::in([
                 Sale::PAYMENT_UNPAID,
                 Sale::PAYMENT_PARTIAL,
@@ -126,7 +127,7 @@ class StoreDraftSaleRequest extends FormRequest
             ->where('tenant_id', TenantContext::currentId())
             ->where('company_id', CompanyContext::currentId())
             ->where('tax_type', FinanceTaxRate::TYPE_SALES)
-            ->where('is_active', true)
+            ->active()
             ->find($taxRateId)
         ) {
             $validator->errors()->add('tax_rate_id', 'Tax master sales tidak tersedia untuk tenant aktif.');

@@ -9,12 +9,11 @@ class ApprovalMatrixService
 {
     public function applicableRule(string $module, string $action, ?int $branchId, float $amount): ?ApprovalMatrixRule
     {
-        return ApprovalMatrixRule::query()
+        $query = ApprovalMatrixRule::query()
             ->where('tenant_id', TenantContext::currentId())
             ->where('company_id', CompanyContext::currentId())
             ->where('module', $module)
             ->where('action', $action)
-            ->where('is_active', true)
             ->where('min_amount', '<=', $amount)
             ->where(function ($query) use ($branchId) {
                 $query->whereNull('branch_id');
@@ -25,8 +24,9 @@ class ApprovalMatrixService
             })
             ->orderByRaw('CASE WHEN branch_id IS NULL THEN 1 ELSE 0 END ASC')
             ->orderByDesc('min_amount')
-            ->latest('id')
-            ->first();
+            ->latest('id');
+
+        return BooleanQuery::apply($query, 'is_active', true)->first();
     }
 
     public function moduleActionOptions(): array

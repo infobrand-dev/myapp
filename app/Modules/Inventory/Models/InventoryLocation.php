@@ -4,10 +4,12 @@ namespace App\Modules\Inventory\Models;
 
 use App\Models\Branch;
 use App\Models\Company;
+use App\Support\BooleanQuery;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\NormalizesPgsqlBooleanAttributes;
 use App\Support\TenantContext;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -36,6 +38,11 @@ class InventoryLocation extends Model
         'is_active' => 'boolean',
         'meta' => 'array',
     ];
+
+    public function scopeActive(Builder $query): Builder
+    {
+        return BooleanQuery::apply($query, 'is_active', true);
+    }
 
     public function parent(): BelongsTo
     {

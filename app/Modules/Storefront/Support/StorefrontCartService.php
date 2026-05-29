@@ -96,7 +96,7 @@ class StorefrontCartService
             ->with('media')
             ->where('tenant_id', TenantContext::currentId())
             ->whereIn('id', $rawItems->pluck('product_id')->all())
-            ->where('is_active', true)
+            ->active()
             ->get()
             ->keyBy('id');
 

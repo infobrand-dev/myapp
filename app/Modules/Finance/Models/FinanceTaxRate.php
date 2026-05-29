@@ -2,6 +2,7 @@
 
 namespace App\Modules\Finance\Models;
 
+use App\Support\BooleanQuery;
 use App\Support\CompanyContext;
 use App\Support\NormalizesPgsqlBooleanAttributes;
 use App\Support\TenantContext;
@@ -60,7 +61,7 @@ class FinanceTaxRate extends Model
 
     public function scopeActive(Builder $query): Builder
     {
-        return $query->where('is_active', true);
+        return BooleanQuery::apply($query, 'is_active', true);
     }
 
     public function resolveRouteBinding($value, $field = null)

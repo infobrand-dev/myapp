@@ -10,6 +10,7 @@ use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductVariant;
 use App\Modules\Purchases\Http\Requests\Concerns\NormalizesPurchasePayload;
 use App\Modules\Purchases\Models\Purchase;
+use App\Support\BooleanQuery;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
@@ -44,7 +45,7 @@ class StoreDraftPurchaseRequest extends FormRequest
                 ->where('tenant_id', TenantContext::currentId())
                 ->where('company_id', CompanyContext::currentId())
                 ->where('tax_type', FinanceTaxRate::TYPE_PURCHASE)
-                ->where('is_active', true))],
+                ->tap(fn ($query) => BooleanQuery::apply($query, 'is_active', true)))],
             'due_date' => ['nullable', 'date'],
             'expected_receive_date' => ['nullable', 'date'],
             'supplier_reference' => ['nullable', 'string', 'max:100'],
@@ -90,7 +91,7 @@ class StoreDraftPurchaseRequest extends FormRequest
             ->where('tenant_id', TenantContext::currentId())
             ->where('company_id', CompanyContext::currentId())
             ->where('tax_type', FinanceTaxRate::TYPE_PURCHASE)
-            ->where('is_active', true)
+            ->active()
             ->find($taxRateId)
         ) {
             $validator->errors()->add('tax_rate_id', 'Tax master purchase tidak tersedia untuk tenant aktif.');

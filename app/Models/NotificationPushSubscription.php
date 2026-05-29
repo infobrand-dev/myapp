@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\BooleanQuery;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -29,6 +31,11 @@ class NotificationPushSubscription extends Model
         'is_active' => 'boolean',
         'last_used_at' => 'datetime',
     ];
+
+    public function scopeActive(Builder $query): Builder
+    {
+        return BooleanQuery::apply($query, 'is_active', true);
+    }
 
     public function user(): BelongsTo
     {

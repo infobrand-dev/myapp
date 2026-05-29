@@ -3,6 +3,7 @@
 namespace App\Support\Shipping;
 
 use App\Models\TenantShippingProvider;
+use App\Support\BooleanQuery;
 use App\Support\CompanyContext;
 use App\Support\Shipping\Contracts\ShippingProviderDriver;
 use App\Support\TenantContext;
@@ -66,10 +67,13 @@ class ShippingProviderManager
 
     public function activeProviderRecord(): ?TenantShippingProvider
     {
-        return TenantShippingProvider::query()
-            ->where('tenant_id', TenantContext::currentId())
-            ->where('company_id', CompanyContext::currentId())
-            ->where('is_enabled', true)
+        return BooleanQuery::apply(
+            TenantShippingProvider::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId()),
+            'is_enabled',
+            true
+        )
             ->latest('id')
             ->first();
     }

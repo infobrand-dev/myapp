@@ -16,7 +16,7 @@ class TransactionTaxService
             ->where('tenant_id', TenantContext::currentId())
             ->where('company_id', CompanyContext::currentId())
             ->where('tax_type', $taxType)
-            ->where('is_active', true)
+            ->active()
             ->orderBy('name')
             ->get([
                 'id',
@@ -40,7 +40,7 @@ class TransactionTaxService
             ->where('tenant_id', TenantContext::currentId())
             ->where('company_id', CompanyContext::currentId())
             ->where('tax_type', $taxType)
-            ->where('is_active', true)
+            ->active()
             ->find($taxRateId);
     }
 

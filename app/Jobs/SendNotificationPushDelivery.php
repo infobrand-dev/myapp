@@ -31,7 +31,7 @@ class SendNotificationPushDelivery implements ShouldQueue
         $subscriptions = NotificationPushSubscription::query()
             ->where('tenant_id', $delivery->tenant_id)
             ->where('user_id', $delivery->user_id)
-            ->where('is_active', true)
+            ->active()
             ->get();
 
         if ($subscriptions->isEmpty()) {

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\BooleanQuery;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
@@ -26,10 +27,13 @@ class TenantPaymentGateway extends Model
 
     public static function activeForCurrentContext(): ?self
     {
-        return static::query()
-            ->where('tenant_id', TenantContext::currentId())
-            ->where('company_id', CompanyContext::currentId())
-            ->where('is_enabled', true)
+        return BooleanQuery::apply(
+            static::query()
+                ->where('tenant_id', TenantContext::currentId())
+                ->where('company_id', CompanyContext::currentId()),
+            'is_enabled',
+            true
+        )
             ->latest('id')
             ->first();
     }

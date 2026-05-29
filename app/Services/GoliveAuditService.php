@@ -175,7 +175,7 @@ class GoliveAuditService
         $vapidPublicKey = trim((string) config('notifications.push.vapid.public_key'));
         $vapidPrivateKey = trim((string) config('notifications.push.vapid.private_key'));
         $activeSubscriptionCount = empty($missingTables)
-            ? NotificationPushSubscription::query()->where('is_active', true)->count()
+            ? NotificationPushSubscription::query()->active()->count()
             : 0;
         $sentPushCount = empty($missingTables)
             ? NotificationDelivery::query()->where('channel', 'web_push')->where('status', NotificationDelivery::STATUS_SENT)->count()

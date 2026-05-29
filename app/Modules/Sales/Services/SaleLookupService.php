@@ -130,7 +130,7 @@ class SaleLookupService
             ->where('tenant_id', TenantContext::currentId())
             ->where('company_id', CompanyContext::currentId())
             ->tap(fn ($query) => BranchContext::applyScope($query))
-            ->where('is_active', true)
+            ->active()
             ->orderByDesc('is_default')
             ->orderBy('name')
             ->get(['id', 'name', 'code', 'is_default']);

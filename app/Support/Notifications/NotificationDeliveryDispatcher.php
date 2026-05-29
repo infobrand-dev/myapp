@@ -67,7 +67,7 @@ class NotificationDeliveryDispatcher
         return NotificationPushSubscription::query()
             ->where('tenant_id', (int) $user->tenant_id)
             ->where('user_id', $user->id)
-            ->where('is_active', true)
+            ->active()
             ->exists();
     }
 

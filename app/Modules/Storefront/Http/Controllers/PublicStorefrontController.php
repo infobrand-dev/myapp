@@ -40,7 +40,7 @@ class PublicStorefrontController extends Controller
         $catalogQuery = Product::query()
             ->with('media')
             ->where('tenant_id', TenantContext::currentId())
-            ->where('is_active', true)
+            ->active()
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($builder) use ($search): void {
                     $builder
@@ -191,7 +191,7 @@ class PublicStorefrontController extends Controller
      */
     private function storefrontStats($catalogQuery): array
     {
-        $physicalCount = (clone $catalogQuery)->where('track_stock', true)->count();
+        $physicalCount = (clone $catalogQuery)->trackingStock()->count();
         $total = (clone $catalogQuery)->count();
         $digitalCount = $total - $physicalCount;
 

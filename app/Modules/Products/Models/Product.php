@@ -3,6 +3,7 @@
 namespace App\Modules\Products\Models;
 
 use App\Modules\Contacts\Models\Contact;
+use App\Support\BooleanQuery;
 use App\Support\NormalizesPgsqlBooleanAttributes;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Builder;
@@ -81,15 +82,14 @@ class Product extends Model
         'meta' => 'array',
     ];
 
+    public function scopeActive(Builder $query): Builder
+    {
+        return BooleanQuery::apply($query, 'is_active', true);
+    }
+
     public function scopeTrackingStock(Builder $query): Builder
     {
-        $column = $query->qualifyColumn('track_stock');
-
-        if (DB::connection($this->getConnectionName())->getDriverName() === 'pgsql') {
-            return $query->whereRaw($column . ' is true');
-        }
-
-        return $query->where('track_stock', true);
+        return BooleanQuery::apply($query, 'track_stock', true);
     }
 
     public function category(): BelongsTo

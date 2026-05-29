@@ -6,6 +6,7 @@ use App\Models\PlatformPlanOrder;
 use App\Models\Tenant;
 use App\Models\TenantSubscription;
 use App\Models\User;
+use App\Support\BooleanQuery;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
@@ -22,15 +23,16 @@ class StaleOnboardingCleanupService
         $pendingCutoff = now()->subDays(3);
         $trialCutoff = now()->subDays(2);
 
-        $pending = Tenant::query()
-            ->where('is_active', false)
-            ->where('created_at', '<=', $pendingCutoff)
-            ->get()
+        $pending = BooleanQuery::apply(
+            Tenant::query()->where('created_at', '<=', $pendingCutoff),
+            'is_active',
+            false
+        )->get()
             ->filter(fn (Tenant $tenant) => (($tenant->meta['onboarding_status'] ?? null) === 'pending_payment'))
             ->filter(fn (Tenant $tenant) => !$tenant->planOrders()->where('status', 'paid')->exists());
 
         $expiredTrials = Tenant::query()
-            ->where('is_active', true)
+            ->active()
             ->get()
             ->filter(fn (Tenant $tenant) => (($tenant->meta['onboarding_status'] ?? null) === 'trialing'))
             ->filter(function (Tenant $tenant) use ($trialCutoff): bool {

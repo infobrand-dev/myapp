@@ -86,13 +86,13 @@ class StorefrontController extends Controller
         $publicCompany = $this->publicStorefront->company();
         $shippableProducts = Product::query()
             ->where('tenant_id', $tenantId)
-            ->where('is_active', true)
-            ->where('track_stock', true)
+            ->active()
+            ->trackingStock()
             ->count();
         $shippableProductsWithoutWeight = Product::query()
             ->where('tenant_id', $tenantId)
-            ->where('is_active', true)
-            ->where('track_stock', true)
+            ->active()
+            ->trackingStock()
             ->get(['id', 'meta'])
             ->filter(function (Product $product): bool {
                 $meta = is_array($product->meta) ? $product->meta : [];

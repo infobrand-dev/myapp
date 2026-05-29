@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#fbf3e8"/>
+      <stop offset="100%" stop-color="#f0d8b2"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="900" fill="url(#bg)"/>
+  <rect x="240" y="170" width="720" height="470" rx="34" fill="#fffaf2" stroke="#9d7c49" stroke-width="14"/>
+  <circle cx="380" cy="320" r="70" fill="#e7c48a"/>
+  <rect x="500" y="250" width="320" height="32" rx="16" fill="#b78c4f"/>
+  <rect x="500" y="322" width="220" height="24" rx="12" fill="#d3b17c"/>
+  <rect x="500" y="386" width="260" height="24" rx="12" fill="#d3b17c"/>
+  <rect x="500" y="450" width="180" height="24" rx="12" fill="#d3b17c"/>
+  <text x="600" y="758" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" fill="#7b5f35">Design Consultation 60 Menit</text>
+</svg>

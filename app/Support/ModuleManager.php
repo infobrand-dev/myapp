@@ -570,6 +570,7 @@ class ModuleManager
                 'route' => (string) $item['route'],
                 'role' => isset($item['role']) ? (string) $item['role'] : null,
                 'badge' => isset($item['badge']) ? (string) $item['badge'] : null,
+                'feature' => isset($item['feature']) ? (string) $item['feature'] : null,
             ];
         }
 

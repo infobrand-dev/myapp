@@ -1,0 +1,19 @@
+{
+    "slug": "shipping",
+    "name": "Shipping",
+    "description": "Workspace ringan untuk ritme pengiriman order commerce.",
+    "provider": "App\\Modules\\Shipping\\ShippingServiceProvider",
+    "version": "1.0.0",
+    "category": "commerce",
+    "requires": [
+        "sales"
+    ],
+    "navigation": [
+        {
+            "label": "Shipping",
+            "route": "shipping.index",
+            "feature": "shipping"
+        }
+    ],
+    "icon": "resources/icons/icon.svg"
+}

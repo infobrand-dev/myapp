@@ -52,6 +52,10 @@
                                     <label class="form-check-label" for="promo-create-accounting">Accounting</label>
                                 </div>
                                 <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="product_lines[]" value="commerce" id="promo-create-commerce" @checked(in_array('commerce', old('product_lines', []), true))>
+                                    <label class="form-check-label" for="promo-create-commerce">Commerce</label>
+                                </div>
+                                <div class="form-check">
                                     <input class="form-check-input" type="checkbox" name="product_lines[]" value="omnichannel" id="promo-create-omnichannel" @checked(in_array('omnichannel', old('product_lines', []), true))>
                                     <label class="form-check-label" for="promo-create-omnichannel">Omnichannel</label>
                                 </div>
@@ -138,6 +142,10 @@
                                                             <label class="form-check">
                                                                 <input class="form-check-input" type="checkbox" name="product_lines[]" value="accounting" @checked(is_array($promo->applicable_product_lines) && in_array('accounting', $promo->applicable_product_lines, true))>
                                                                 <span class="form-check-label">Accounting</span>
+                                                            </label>
+                                                            <label class="form-check">
+                                                                <input class="form-check-input" type="checkbox" name="product_lines[]" value="commerce" @checked(is_array($promo->applicable_product_lines) && in_array('commerce', $promo->applicable_product_lines, true))>
+                                                                <span class="form-check-label">Commerce</span>
                                                             </label>
                                                             <label class="form-check">
                                                                 <input class="form-check-input" type="checkbox" name="product_lines[]" value="omnichannel" @checked(is_array($promo->applicable_product_lines) && in_array('omnichannel', $promo->applicable_product_lines, true))>

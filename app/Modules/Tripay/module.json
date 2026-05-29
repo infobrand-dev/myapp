@@ -1,0 +1,11 @@
+{
+    "slug": "tripay",
+    "name": "Tripay",
+    "description": "Integrasi payment gateway Tripay untuk hosted checkout dan callback commerce.",
+    "provider": "App\\Modules\\Tripay\\TripayServiceProvider",
+    "version": "1.0.0",
+    "category": "commerce",
+    "requires": ["payments", "sales", "storefront"],
+    "navigation": [],
+    "icon": "resources/icons/icon.svg"
+}

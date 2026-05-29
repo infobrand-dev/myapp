@@ -6,7 +6,7 @@
     "version":  "1.0.0",
     "category":  "commerce",
     "requires":  [
-
+                     "contacts"
                  ],
     "sample_data":  {
                         "description":  "Membuat kategori, brand, unit, produk, dan harga tier contoh.",

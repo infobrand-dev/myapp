@@ -9,6 +9,8 @@ use App\Http\Controllers\PlatformAffiliateController;
 use App\Http\Controllers\PlatformBillingMidtransController;
 use App\Http\Controllers\PlatformOwnerController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\Settings\PaymentGatewaySettingsController;
+use App\Http\Controllers\Settings\ShippingProviderSettingsController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserInvitationController;
@@ -92,6 +94,8 @@ Route::middleware(['auth', 'verified', '2fa', 'platform.admin', \App\Http\Middle
         Route::get('/settings/access', [SettingsController::class, 'show'])->defaults('section', 'access')->name('settings.access');
         Route::get('/settings/modules', [SettingsController::class, 'show'])->defaults('section', 'modules')->name('settings.modules');
         Route::get('/settings/transactional-email', [SettingsController::class, 'show'])->defaults('section', 'transactional-email')->name('settings.transactional-email');
+        Route::get('/settings/payment-gateway', [SettingsController::class, 'show'])->defaults('section', 'payment-gateway')->name('settings.payment-gateway');
+        Route::get('/settings/shipping-provider', [SettingsController::class, 'show'])->defaults('section', 'shipping-provider')->name('settings.shipping-provider');
 
         Route::post('/settings/company/switch/{company}', [SettingsController::class, 'switchCompany'])->name('settings.company.switch');
         Route::post('/settings/branch/switch/{branch}', [SettingsController::class, 'switchBranch'])->name('settings.branch.switch');
@@ -110,6 +114,8 @@ Route::middleware(['auth', 'verified', '2fa', 'platform.admin', \App\Http\Middle
         Route::put('/settings/documents', [SettingsController::class, 'saveDocuments'])->name('settings.documents.save');
         Route::put('/settings/general', [SettingsController::class, 'saveGeneral'])->name('settings.general.save');
         Route::put('/settings/transactional-email', [SettingsController::class, 'saveTransactionalEmail'])->name('settings.transactional-email.save');
+        Route::put('/settings/payment-gateway', [PaymentGatewaySettingsController::class, 'update'])->name('settings.payment-gateway.save');
+        Route::put('/settings/shipping-provider', [ShippingProviderSettingsController::class, 'update'])->name('settings.shipping-provider.save');
         Route::post('/settings/transactional-email/test', [SettingsController::class, 'sendTransactionalEmailTest'])->name('settings.transactional-email.test');
         Route::post('/settings/addons/byo-ai-request', [SettingsController::class, 'requestByoAi'])->name('settings.addons.byo-ai-request');
     });

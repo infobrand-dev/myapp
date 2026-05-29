@@ -1,0 +1,11 @@
+{
+    "slug": "biteship",
+    "name": "Biteship",
+    "description": "Integrasi shipping rates Biteship untuk quote ongkir commerce.",
+    "provider": "App\\Modules\\Biteship\\BiteshipServiceProvider",
+    "version": "1.0.0",
+    "category": "commerce",
+    "requires": ["shipping"],
+    "navigation": [],
+    "icon": "resources/icons/icon.svg"
+}

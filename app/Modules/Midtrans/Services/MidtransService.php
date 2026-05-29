@@ -7,6 +7,8 @@ use App\Modules\Midtrans\Models\MidtransTransaction;
 use App\Modules\Payments\Actions\CreatePaymentAction;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentMethod;
+use App\Modules\Sales\Models\Sale;
+use App\Support\Commerce\CommerceOrderLifecycleService;
 use App\Support\BooleanQuery;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
@@ -18,6 +20,7 @@ class MidtransService
 {
     public function __construct(
         private readonly CreatePaymentAction $createPaymentAction,
+        private readonly CommerceOrderLifecycleService $commerceOrders,
     ) {}
 
     // ─── Settings ────────────────────────────────────────────────────────────
@@ -31,6 +34,77 @@ class MidtransService
     {
         $s = $this->getSettings();
         return $s && $s->is_active && $s->server_key && $s->client_key;
+    }
+
+    /**
+     * @return array{order_id: string, redirect_url: string, snap_token: string}
+     */
+    public function createOrReuseCheckoutForSale(Sale $sale): array
+    {
+        if (!$sale->isFinalized() && !$this->commerceOrders->isPayable($sale)) {
+            throw new \RuntimeException('Checkout Midtrans hanya bisa dibuat untuk sale yang sudah finalized.');
+        }
+
+        if ((float) $sale->balance_due <= 0) {
+            throw new \RuntimeException('Sale ini sudah tidak memiliki tagihan.');
+        }
+
+        $settings = $this->getSettings();
+        if (!$settings || !$settings->is_active || !$settings->server_key) {
+            throw new \RuntimeException('Midtrans belum dikonfigurasi atau tidak aktif.');
+        }
+
+        $existing = MidtransTransaction::query()
+            ->where('tenant_id', (int) $sale->tenant_id)
+            ->where('company_id', (int) $sale->company_id)
+            ->where('payable_type', $sale->getMorphClass())
+            ->where('payable_id', (int) $sale->id)
+            ->where('transaction_status', MidtransTransaction::STATUS_PENDING)
+            ->whereNotNull('snap_token')
+            ->latest('id')
+            ->first();
+
+        if ($existing) {
+            return [
+                'order_id' => (string) $existing->order_id,
+                'redirect_url' => (string) $existing->snap_redirect_url,
+                'snap_token' => (string) $existing->snap_token,
+            ];
+        }
+
+        $orderId = MidtransTransaction::generateOrderId((int) $sale->tenant_id);
+        $result = $this->createSnapToken([
+            'order_id' => $orderId,
+            'gross_amount' => (float) $sale->balance_due,
+            'customer_name' => $sale->customer_name_snapshot,
+            'customer_email' => $sale->customer_email_snapshot,
+            'customer_phone' => $sale->customer_phone_snapshot,
+            'item_description' => 'Order ' . $sale->sale_number,
+        ]);
+
+        MidtransTransaction::query()->create([
+            'tenant_id' => (int) $sale->tenant_id,
+            'company_id' => (int) $sale->company_id,
+            'order_id' => $orderId,
+            'snap_token' => $result['token'],
+            'snap_redirect_url' => $result['redirect_url'],
+            'gross_amount' => (float) $sale->balance_due,
+            'currency_code' => (string) ($sale->currency_code ?: 'IDR'),
+            'transaction_status' => MidtransTransaction::STATUS_PENDING,
+            'payable_type' => $sale->getMorphClass(),
+            'payable_id' => (int) $sale->id,
+            'customer_name' => $sale->customer_name_snapshot,
+            'customer_email' => $sale->customer_email_snapshot,
+            'customer_phone' => $sale->customer_phone_snapshot,
+            'item_description' => 'Order ' . $sale->sale_number,
+            'created_by' => $sale->created_by,
+        ]);
+
+        return [
+            'order_id' => $orderId,
+            'redirect_url' => $result['redirect_url'],
+            'snap_token' => $result['token'],
+        ];
     }
 
     // ─── Snap Token ──────────────────────────────────────────────────────────
@@ -213,8 +287,21 @@ class MidtransService
         if ($transaction->isSettled() && !$transaction->settled_at) {
             $transaction->update(['settled_at' => now()]);
         }
-        if ($transaction->isFailed() && !$transaction->expired_at) {
-            $transaction->update(['expired_at' => now()]);
+        if ($transaction->isFailed()) {
+            if (!$transaction->expired_at) {
+                $transaction->update(['expired_at' => now()]);
+            }
+
+            if ($transaction->payable_type === 'sale' && $transaction->payable_id) {
+                $sale = Sale::query()->find($transaction->payable_id);
+                if ($sale) {
+                    match ($transaction->transaction_status) {
+                        MidtransTransaction::STATUS_EXPIRE => $this->commerceOrders->markExpired($sale),
+                        MidtransTransaction::STATUS_CANCEL => $this->commerceOrders->markPaymentCancelled($sale, 'Pembayaran dibatalkan oleh provider.'),
+                        default => $this->commerceOrders->markPaymentFailed($sale, 'Pembayaran ditolak oleh provider.'),
+                    };
+                }
+            }
         }
 
         return $transaction;
@@ -248,6 +335,11 @@ class MidtransService
                     CompanyContext::setCurrentId($locked->company_id);
                 }
 
+                $sale = Sale::query()->find($locked->payable_id);
+                if ($sale) {
+                    $this->commerceOrders->markPaid($sale);
+                }
+
                 // Ensure the Midtrans PaymentMethod exists for this tenant/company
                 $method = $this->ensureMidtransPaymentMethod($locked->tenant_id);
 
@@ -275,6 +367,10 @@ class MidtransService
                 ]);
 
                 $locked->update(['payment_id' => $payment->id]);
+
+                if ($sale) {
+                    $this->commerceOrders->markReadyForFulfillment($sale);
+                }
             });
         } catch (\Throwable $e) {
             Log::error('Failed to create internal payment from Midtrans settlement', [

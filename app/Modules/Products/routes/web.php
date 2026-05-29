@@ -3,7 +3,7 @@
 use App\Modules\Products\Http\Controllers\ProductController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['web', 'auth', 'plan.feature:accounting'])
+Route::middleware(['web', 'auth', 'plan.feature:accounting,commerce'])
     ->prefix('products')
     ->name('products.')
     ->group(function () {

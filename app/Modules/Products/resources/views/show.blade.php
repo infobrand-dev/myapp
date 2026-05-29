@@ -5,6 +5,8 @@
     $money = app(\App\Support\MoneyFormatter::class);
     $currency = 'IDR';
     $isAdvancedMode = ($accountingUiMode ?? 'standard') === 'advanced';
+    $shippingWeight = data_get($product->meta, 'shipping.weight_grams');
+    $shippingReady = !$product->track_stock || ((int) $shippingWeight > 0);
 @endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
@@ -23,10 +25,24 @@
         <div class="card">
             <div class="card-header"><h3 class="card-title">Ringkasan Produk</h3></div>
             <div class="card-body">
+                <div class="alert {{ $shippingReady ? 'alert-success' : 'alert-warning' }} py-2 mb-3">
+                    {{ $shippingReady
+                        ? 'Data pengiriman siap dipakai untuk checkout delivery.'
+                        : 'Produk fisik ini belum memiliki berat pengiriman. Ongkir delivery storefront belum bisa dihitung.' }}
+                </div>
                 <div class="row g-3">
                     <div class="col-md-6"><div class="text-muted small">Tipe</div><div>{{ ucfirst($product->type) }}</div></div>
                     <div class="col-md-6"><div class="text-muted small">Status</div><div>{{ $product->is_active ? 'Active' : 'Inactive' }}</div></div>
                     <div class="col-md-6"><div class="text-muted small">Category</div><div>{{ $product->category?->name ?? '-' }}</div></div>
+                    <div class="col-md-6"><div class="text-muted small">Berat Pengiriman</div><div>{{ $shippingWeight ? number_format((int) $shippingWeight, 0, ',', '.').' gram' : '-' }}</div></div>
+                    <div class="col-md-6"><div class="text-muted small">Ukuran Paket</div><div>
+                        @php
+                            $length = data_get($product->meta, 'shipping.length_cm');
+                            $width = data_get($product->meta, 'shipping.width_cm');
+                            $height = data_get($product->meta, 'shipping.height_cm');
+                        @endphp
+                        {{ ($length && $width && $height) ? number_format((float) $length, 1, ',', '.').' x '.number_format((float) $width, 1, ',', '.').' x '.number_format((float) $height, 1, ',', '.').' cm' : '-' }}
+                    </div></div>
                     @if($isAdvancedMode)
                         <div class="col-md-6"><div class="text-muted small">Default Supplier</div><div>{{ $product->defaultSupplier?->name ?? '-' }}</div></div>
                         <div class="col-md-6"><div class="text-muted small">Brand</div><div>{{ $product->brand?->name ?? '-' }}</div></div>

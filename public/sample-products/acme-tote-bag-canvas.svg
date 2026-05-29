@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#f3efe5"/>
+      <stop offset="100%" stop-color="#d7c8a8"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="900" fill="url(#bg)"/>
+  <rect x="360" y="220" width="480" height="470" rx="28" fill="#efe3cb" stroke="#56483b" stroke-width="14"/>
+  <path d="M470 250c0-80 50-130 130-130s130 50 130 130" fill="none" stroke="#56483b" stroke-width="18" stroke-linecap="round"/>
+  <path d="M500 250c0-60 34-96 100-96s100 36 100 96" fill="none" stroke="#8d765e" stroke-width="10" stroke-linecap="round"/>
+  <text x="600" y="460" text-anchor="middle" font-family="Georgia, serif" font-size="72" fill="#56483b">ACME</text>
+  <text x="600" y="745" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" fill="#56483b">Tote Bag Canvas</text>
+</svg>

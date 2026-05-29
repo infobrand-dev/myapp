@@ -1,0 +1,11 @@
+{
+    "slug": "xendit",
+    "name": "Xendit",
+    "description": "Integrasi payment gateway Xendit untuk checkout link dan webhook pembayaran commerce.",
+    "provider": "App\\Modules\\Xendit\\XenditServiceProvider",
+    "version": "1.0.0",
+    "category": "commerce",
+    "requires": ["payments", "sales", "storefront"],
+    "navigation": [],
+    "icon": "resources/icons/icon.svg"
+}

@@ -10,10 +10,7 @@ class PlanProductLineMap
             return $productLine;
         }
 
-        return match (trim($productLine)) {
-            'commerce', 'accounting' => 'accounting',
-            default => trim($productLine),
-        };
+        return trim($productLine);
     }
 
     /**
@@ -23,10 +20,7 @@ class PlanProductLineMap
     {
         $canonical = self::canonicalProductLine($productLine) ?: $productLine;
 
-        return match ($canonical) {
-            'accounting' => ['accounting', 'commerce'],
-            default => [$canonical],
-        };
+        return [$canonical];
     }
 
     /**
@@ -54,6 +48,11 @@ class PlanProductLineMap
     public static function featureProductLine(string $feature): ?string
     {
         return match ($feature) {
+            PlanFeature::COMMERCE,
+            PlanFeature::STOREFRONT,
+            PlanFeature::SHIPPING,
+            PlanFeature::FULFILLMENT => 'commerce',
+
             PlanFeature::CONVERSATIONS,
             PlanFeature::LIVE_CHAT,
             PlanFeature::SOCIAL_MEDIA,
@@ -66,7 +65,6 @@ class PlanProductLineMap
             PlanFeature::EMAIL_MARKETING => 'crm',
 
             PlanFeature::ACCOUNTING,
-            PlanFeature::COMMERCE,
             PlanFeature::PURCHASES,
             PlanFeature::INVENTORY,
             PlanFeature::ADVANCED_REPORTS,
@@ -82,7 +80,6 @@ class PlanProductLineMap
     public static function limitProductLine(string $key): ?string
     {
         return match ($key) {
-            PlanLimit::PRODUCTS,
             PlanLimit::TRANSACTIONAL_EMAILS_MONTHLY => 'accounting',
 
             PlanLimit::WHATSAPP_INSTANCES,
@@ -111,6 +108,7 @@ class PlanProductLineMap
     public static function limitProductLineCandidates(string $key): array
     {
         return match ($key) {
+            PlanLimit::PRODUCTS => ['accounting', 'commerce'],
             PlanLimit::CONTACTS => ['accounting', 'commerce', 'crm'],
             default => array_values(array_filter([self::limitProductLine($key)])),
         };

@@ -65,9 +65,19 @@ class DashboardController extends Controller
             : collect([$user]);
 
         $moduleHighlights = $activeModules
-            ->map(function ($module) {
+            ->map(function ($module) use ($plans, $tenantId) {
                 $firstNav = collect($module['navigation'] ?? [])
-                    ->first(fn ($item) => !empty($item['route']));
+                    ->first(function ($item) use ($plans, $tenantId) {
+                        if (empty($item['route'])) {
+                            return false;
+                        }
+
+                        if (!empty($item['feature']) && !$plans->hasFeature((string) $item['feature'], $tenantId)) {
+                            return false;
+                        }
+
+                        return true;
+                    });
 
                 return [
                     'name'        => $module['name'],

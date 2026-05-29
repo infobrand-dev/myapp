@@ -140,6 +140,35 @@ class ProductService
             $slug = $existingSlug ?: Str::slug((string) $data['name']);
         }
 
+        $meta = array_merge($existing?->meta ?? [], [
+            'module' => 'products',
+            'inventory_managed' => true,
+            'inventory_source_of_truth' => 'inventory',
+        ]);
+
+        $shippingMeta = $meta['shipping'] ?? [];
+        $shippingFields = [
+            'weight_grams' => $data['shipping_weight_grams'] ?? null,
+            'length_cm' => $data['shipping_length_cm'] ?? null,
+            'width_cm' => $data['shipping_width_cm'] ?? null,
+            'height_cm' => $data['shipping_height_cm'] ?? null,
+        ];
+
+        foreach ($shippingFields as $key => $value) {
+            if ($value === null || $value === '') {
+                unset($shippingMeta[$key]);
+                continue;
+            }
+
+            $shippingMeta[$key] = $value;
+        }
+
+        if ($shippingMeta === []) {
+            unset($meta['shipping']);
+        } else {
+            $meta['shipping'] = $shippingMeta;
+        }
+
         $payload = [
             'tenant_id' => TenantContext::currentId(),
             'type' => $data['type'],
@@ -160,11 +189,7 @@ class ProductService
             'track_stock' => $data['type'] === 'service'
                 ? false
                 : (array_key_exists('track_stock', $data) ? (bool) $data['track_stock'] : (bool) $existingTrackStock),
-            'meta' => [
-                'module' => 'products',
-                'inventory_managed' => true,
-                'inventory_source_of_truth' => 'inventory',
-            ],
+            'meta' => $meta,
             'updated_by' => $actor ? $actor->id : null,
         ];
 

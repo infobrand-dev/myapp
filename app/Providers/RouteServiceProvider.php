@@ -105,6 +105,19 @@ class RouteServiceProvider extends ServiceProvider
         RateLimiter::for('sensitive', function (Request $request) {
             return Limit::perMinutes(10, 10)->by(optional($request->user())->id ?: $request->ip());
         });
+
+        RateLimiter::for('commerce-checkout', function (Request $request) {
+            $tenantId = $request->attributes->get('tenant_id')
+                ?? optional($request->user())->tenant_id
+                ?? 'unknown';
+            $host = $request->getHost();
+            $ip = $request->ip();
+
+            return [
+                Limit::perMinute(8)->by("commerce-checkout:tenant:{$tenantId}:host:{$host}:ip:{$ip}"),
+                Limit::perHour(30)->by("commerce-checkout-hour:tenant:{$tenantId}:host:{$host}:ip:{$ip}"),
+            ];
+        });
     }
 
     private function shouldSkipModuleBootstrap(): bool

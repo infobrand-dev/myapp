@@ -6,7 +6,8 @@
     "version":  "1.0.0",
     "category":  "commerce",
     "requires":  [
-                     "sales"
+                     "sales",
+                     "finance"
                  ],
     "sample_data":  {
                         "description":  "Membuat satu payment posted menggunakan metode yang tersedia.",
@@ -17,11 +18,18 @@
     "navigation":  [
                        {
                            "label":  "Payment List",
-                           "route":  "payments.index"
+                           "route":  "payments.index",
+                           "feature":  "accounting"
+                       },
+                       {
+                           "label":  "Payment Status",
+                           "route":  "payments.commerce.index",
+                           "feature":  "commerce"
                        },
                        {
                            "label":  "Payment Methods",
-                           "route":  "payments.methods.index"
+                           "route":  "payments.methods.index",
+                           "feature":  "accounting"
                        }
                    ],
     "icon":  "resources/icons/icon.svg"

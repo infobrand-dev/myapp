@@ -1,0 +1,11 @@
+{
+    "slug": "rajaongkir",
+    "name": "RajaOngkir",
+    "description": "Integrasi shipping cost RajaOngkir untuk quote ongkir commerce.",
+    "provider": "App\\Modules\\RajaOngkir\\RajaOngkirServiceProvider",
+    "version": "1.0.0",
+    "category": "commerce",
+    "requires": ["shipping"],
+    "navigation": [],
+    "icon": "resources/icons/icon.svg"
+}

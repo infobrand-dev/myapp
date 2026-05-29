@@ -18,19 +18,28 @@
     "navigation":  [
                        {
                            "label":  "Sales Orders",
-                           "route":  "sales.orders.index"
+                           "route":  "sales.orders.index",
+                           "feature":  "accounting"
                        },
                        {
                            "label":  "Quotations",
-                           "route":  "sales.quotations.index"
+                           "route":  "sales.quotations.index",
+                           "feature":  "accounting"
                        },
                        {
                            "label":  "Sales",
-                           "route":  "sales.index"
+                           "route":  "sales.index",
+                           "feature":  "accounting"
+                       },
+                       {
+                           "label":  "Orders",
+                           "route":  "sales.commerce.index",
+                           "feature":  "commerce"
                        },
                        {
                            "label":  "Sales Returns",
-                           "route":  "sales.returns.index"
+                           "route":  "sales.returns.index",
+                           "feature":  "accounting"
                        }
                    ],
     "icon":  "resources/icons/icon.svg"

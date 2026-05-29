@@ -152,6 +152,47 @@
                             <textarea name="description" class="form-control" rows="4">{{ old('description', $product->description) }}</textarea>
                         </div>
                     @endif
+
+                    <div class="col-12">
+                        <hr class="my-1">
+                    </div>
+
+                    <div class="col-12">
+                        <div class="fw-semibold mb-1">Data Pengiriman</div>
+                        <div class="text-muted small">Dipakai untuk hitung estimasi ongkir saat produk dijual lewat storefront delivery.</div>
+                    </div>
+
+                    @php
+                        $shippingWeight = old('shipping_weight_grams', data_get($product->meta, 'shipping.weight_grams'));
+                        $shippingTrackStock = (bool) old('track_stock', $product->track_stock);
+                    @endphp
+                    @if($shippingTrackStock && empty($shippingWeight))
+                        <div class="col-12">
+                            <div class="alert alert-warning py-2 mb-0">
+                                Produk fisik tanpa berat tidak bisa dipakai untuk checkout delivery sampai berat pengiriman diisi.
+                            </div>
+                        </div>
+                    @endif
+
+                    <div class="col-md-3">
+                        @include('shared.accounting.field-label', [
+                            'label' => 'Berat (gram)',
+                            'tooltip' => 'Berat aktual per unit produk. Untuk produk fisik, field ini sebaiknya selalu diisi agar ongkir delivery bisa dihitung.',
+                        ])
+                        <input type="number" min="1" step="1" name="shipping_weight_grams" class="form-control" value="{{ old('shipping_weight_grams', data_get($product->meta, 'shipping.weight_grams')) }}" placeholder="Contoh: 500">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Panjang (cm)</label>
+                        <input type="number" min="0.1" step="0.1" name="shipping_length_cm" class="form-control" value="{{ old('shipping_length_cm', data_get($product->meta, 'shipping.length_cm')) }}" placeholder="Contoh: 25">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Lebar (cm)</label>
+                        <input type="number" min="0.1" step="0.1" name="shipping_width_cm" class="form-control" value="{{ old('shipping_width_cm', data_get($product->meta, 'shipping.width_cm')) }}" placeholder="Contoh: 18">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Tinggi (cm)</label>
+                        <input type="number" min="0.1" step="0.1" name="shipping_height_cm" class="form-control" value="{{ old('shipping_height_cm', data_get($product->meta, 'shipping.height_cm')) }}" placeholder="Contoh: 6">
+                    </div>
                 </div>
             </div>
 
@@ -338,6 +379,13 @@
                             Stok dikelola di Inventory. Products hanya menyimpan master produk, bukan kuantitas stok. Promo dan voucher dikelola di Discounts.
                         </div>
                     </div>
+                    @if((bool) old('track_stock', $product->track_stock) && empty(old('shipping_weight_grams', data_get($product->meta, 'shipping.weight_grams'))))
+                        <div class="col-12">
+                            <div class="alert alert-warning mb-0">
+                                Product ini aktif sebagai barang fisik, tetapi berat pengiriman belum diisi. Checkout delivery di storefront akan ditahan sampai data ini lengkap.
+                            </div>
+                        </div>
+                    @endif
                     @if($isAdvancedMode)
                         <div class="col-12"><label class="form-label">Featured image</label><input type="file" name="featured_image" class="form-control" accept="image/*"></div>
                         <div class="col-12"><label class="form-label">Gallery images</label><input type="file" name="gallery_images[]" class="form-control" accept="image/*" multiple></div>

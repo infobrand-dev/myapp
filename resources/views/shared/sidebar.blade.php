@@ -30,10 +30,14 @@
 
             return true;
         })
-        ->map(function ($module) {
+        ->map(function ($module) use ($planManager, $platformAdminHost) {
             $items = collect($module['navigation'] ?? [])
-                ->filter(function ($item) {
+                ->filter(function ($item) use ($planManager, $platformAdminHost) {
                     if (empty($item['route']) || !Route::has($item['route'])) {
+                        return false;
+                    }
+
+                    if (!$platformAdminHost && !empty($item['feature']) && !$planManager->hasFeature((string) $item['feature'])) {
                         return false;
                     }
 

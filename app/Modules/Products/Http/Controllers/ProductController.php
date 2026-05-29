@@ -125,7 +125,7 @@ class ProductController extends Controller
     {
         $rows = [
             $this->importHeaders(),
-            ['simple', 'Kopi Arabica', 'SKU-KOPI-001', '899001', 'Minuman', 'Arabica', 'Pcs', 'PT Supplier Kopi', '18000', '25000', '5', '10', '1', '1', 'Produk contoh import'],
+            ['simple', 'Kopi Arabica', 'SKU-KOPI-001', '899001', 'Minuman', 'Arabica', 'Pcs', 'PT Supplier Kopi', '18000', '25000', '5', '10', '500', '22', '16', '8', '1', '1', 'Produk contoh import'],
         ];
 
         if ($format === 'csv') {
@@ -249,6 +249,10 @@ class ProductController extends Controller
             'sell_price',
             'minimum_stock',
             'reorder_point',
+            'shipping_weight_grams',
+            'shipping_length_cm',
+            'shipping_width_cm',
+            'shipping_height_cm',
             'is_active',
             'track_stock',
             'description',
@@ -276,6 +280,14 @@ class ProductController extends Controller
             'minimumstock' => 'minimum_stock',
             'minstock' => 'minimum_stock',
             'reorderpoint' => 'reorder_point',
+            'shippingweightgrams' => 'shipping_weight_grams',
+            'weightgrams' => 'shipping_weight_grams',
+            'shippinglengthcm' => 'shipping_length_cm',
+            'lengthcm' => 'shipping_length_cm',
+            'shippingwidthcm' => 'shipping_width_cm',
+            'widthcm' => 'shipping_width_cm',
+            'shippingheightcm' => 'shipping_height_cm',
+            'heightcm' => 'shipping_height_cm',
             'isactive' => 'is_active',
             'activestatus' => 'is_active',
             'trackstock' => 'track_stock',
@@ -326,6 +338,10 @@ class ProductController extends Controller
             'sell_price' => (float) ($payload['sell_price'] ?? 0),
             'minimum_stock' => (float) ($payload['minimum_stock'] ?? 0),
             'reorder_point' => (float) ($payload['reorder_point'] ?? 0),
+            'shipping_weight_grams' => isset($payload['shipping_weight_grams']) && $payload['shipping_weight_grams'] !== '' ? (int) $payload['shipping_weight_grams'] : null,
+            'shipping_length_cm' => isset($payload['shipping_length_cm']) && $payload['shipping_length_cm'] !== '' ? (float) $payload['shipping_length_cm'] : null,
+            'shipping_width_cm' => isset($payload['shipping_width_cm']) && $payload['shipping_width_cm'] !== '' ? (float) $payload['shipping_width_cm'] : null,
+            'shipping_height_cm' => isset($payload['shipping_height_cm']) && $payload['shipping_height_cm'] !== '' ? (float) $payload['shipping_height_cm'] : null,
             'is_active' => $this->normalizeBoolean($payload['is_active'] ?? '1'),
             'track_stock' => $this->normalizeBoolean($payload['track_stock'] ?? '1'),
             'description' => $this->nullableString($payload['description'] ?? null),

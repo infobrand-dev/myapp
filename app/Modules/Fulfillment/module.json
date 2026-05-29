@@ -1,0 +1,19 @@
+{
+    "slug": "fulfillment",
+    "name": "Fulfillment",
+    "description": "Workspace untuk proses kesiapan order commerce sebelum dikirim atau diserahkan ke customer.",
+    "provider": "App\\Modules\\Fulfillment\\FulfillmentServiceProvider",
+    "version": "1.0.0",
+    "category": "commerce",
+    "requires": [
+        "sales"
+    ],
+    "navigation": [
+        {
+            "label": "Fulfillment",
+            "route": "fulfillment.index",
+            "feature": "fulfillment"
+        }
+    ],
+    "icon": "resources/icons/icon.svg"
+}

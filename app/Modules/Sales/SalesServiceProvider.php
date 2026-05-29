@@ -94,6 +94,7 @@ class SalesServiceProvider extends ServiceProvider
         'sales_return.view_all',
         'sales_return.view_own',
         'sales_return.process_refund',
+        'commerce_orders.view',
     ];
 
     public const DEFAULT_ROLE_PERMISSIONS = [
@@ -123,6 +124,7 @@ class SalesServiceProvider extends ServiceProvider
             'sales_return.print',
             'sales_return.view_all',
             'sales_return.process_refund',
+            'commerce_orders.view',
         ],
         'Sales' => [
             'sales.view',
@@ -148,6 +150,7 @@ class SalesServiceProvider extends ServiceProvider
             'sales_return.cancel_draft',
             'sales_return.print',
             'sales_return.view_own',
+            'commerce_orders.view',
         ],
         'Cashier' => [
             'sales.view',
@@ -157,6 +160,9 @@ class SalesServiceProvider extends ServiceProvider
             'sales_return.view',
             'sales_return.print',
             'sales_return.view_own',
+        ],
+        'Customer Service' => [
+            'commerce_orders.view',
         ],
     ];
 

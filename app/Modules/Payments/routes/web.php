@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Payments\Http\Controllers\PaymentController;
+use App\Modules\Payments\Http\Controllers\CommercePaymentController;
 use App\Modules\Payments\Http\Controllers\PaymentMethodController;
 use Illuminate\Support\Facades\Route;
 
@@ -22,4 +23,12 @@ Route::middleware(['web', 'auth', 'plan.feature:accounting'])
         Route::get('/{payment}', [PaymentController::class, 'show'])->middleware('permission:payments.view')->name('show');
         Route::post('/{payment}/send-receipt', [PaymentController::class, 'sendReceipt'])->middleware('permission:payments.view')->name('send-receipt');
         Route::post('/{payment}/void', [PaymentController::class, 'void'])->middleware('permission:payments.void')->name('void');
+    });
+
+Route::middleware(['web', 'auth', 'plan.feature:commerce'])
+    ->prefix('commerce/payments')
+    ->name('payments.commerce.')
+    ->group(function () {
+        Route::get('/', [CommercePaymentController::class, 'index'])->middleware('permission:commerce_payments.view')->name('index');
+        Route::get('/{payment}', [CommercePaymentController::class, 'show'])->middleware('permission:commerce_payments.view')->name('show');
     });

@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Sales\Http\Controllers\SaleController;
+use App\Modules\Sales\Http\Controllers\CommerceOrderController;
 use App\Modules\Sales\Http\Controllers\SaleOrderController;
 use App\Modules\Sales\Http\Controllers\SaleQuotationController;
 use App\Modules\Sales\Http\Controllers\SaleReturnController;
@@ -63,4 +64,12 @@ Route::middleware(['web', 'auth', 'plan.feature:accounting'])
         Route::post('/{sale}/void', [SaleController::class, 'void'])->middleware('permission:sales.void')->name('void');
         Route::post('/{sale}/cancel', [SaleController::class, 'cancel'])->middleware('permission:sales.cancel-draft')->name('cancel');
         Route::get('/{sale}/invoice', [SaleController::class, 'invoice'])->middleware('permission:sales.print')->name('invoice');
+    });
+
+Route::middleware(['web', 'auth', 'plan.feature:commerce'])
+    ->prefix('commerce/orders')
+    ->name('sales.commerce.')
+    ->group(function () {
+        Route::get('/', [CommerceOrderController::class, 'index'])->middleware('permission:commerce_orders.view')->name('index');
+        Route::get('/{sale}', [CommerceOrderController::class, 'show'])->middleware('permission:commerce_orders.view')->name('show');
     });

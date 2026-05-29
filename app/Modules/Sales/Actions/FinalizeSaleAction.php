@@ -107,7 +107,13 @@ class FinalizeSaleAction
             $contact = $sale->contact_id
                 ? ContactScope::applyVisibilityScope(Contact::query()->with('parentContact'))->find($sale->contact_id)
                 : null;
-            $customer = $this->snapshotService->customerSnapshot($contact);
+            $customer = $this->snapshotService->customerSnapshotFromPayload($contact, $data, [
+                'name' => $sale->customer_name_snapshot,
+                'email' => $sale->customer_email_snapshot,
+                'phone' => $sale->customer_phone_snapshot,
+                'address' => $sale->customer_address_snapshot,
+                'tax_address' => data_get($sale->customer_snapshot, 'tax_address'),
+            ]);
 
             $sale->items()->delete();
             $sale->items()->createMany($this->withTenantId($totals['items']));

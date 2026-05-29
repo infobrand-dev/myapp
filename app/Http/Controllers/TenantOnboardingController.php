@@ -197,18 +197,18 @@ class TenantOnboardingController extends Controller
     {
         $requested = strtolower(trim((string) ($request->query('product_line') ?: $request->query('product'))));
 
-        return in_array($requested, ['accounting', 'omnichannel'], true)
+        return in_array($requested, ['accounting', 'omnichannel', 'commerce'], true)
             ? $requested
             : 'accounting';
     }
 
     private function productLineLabel(string $productLine): string
     {
-        if ($productLine === 'accounting') {
-            return 'Accounting';
-        }
-
-        return 'Omnichannel';
+        return match ($productLine) {
+            'accounting' => 'Accounting',
+            'commerce' => 'Commerce',
+            default => 'Omnichannel',
+        };
     }
 
     private function trialAvailableForProductLine(string $productLine, Request $request): bool

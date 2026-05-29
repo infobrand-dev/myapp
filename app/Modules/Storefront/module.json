@@ -1,0 +1,21 @@
+{
+    "slug": "storefront",
+    "name": "Storefront",
+    "description": "Entry point commerce untuk storefront internal dan katalog publik tenant dengan checkout order online dasar.",
+    "provider": "App\\Modules\\Storefront\\StorefrontServiceProvider",
+    "version": "1.0.0",
+    "category": "commerce",
+    "requires": [
+        "sales",
+        "payments",
+        "products"
+    ],
+    "navigation": [
+        {
+            "label": "Storefront",
+            "route": "storefront.index",
+            "feature": "storefront"
+        }
+    ],
+    "icon": "resources/icons/icon.svg"
+}

@@ -19,6 +19,13 @@ use App\Support\TenantRoleProvisioner;
 use App\Support\MoneyFormatter;
 use App\Support\ModuleIconRegistry;
 use App\Support\ModuleManager;
+use App\Support\Payments\Drivers\MidtransPaymentGatewayDriver;
+use App\Support\Payments\Drivers\TripayPaymentGatewayDriver;
+use App\Support\Payments\Drivers\XenditPaymentGatewayDriver;
+use App\Support\Payments\PaymentGatewayManager;
+use App\Support\Shipping\Drivers\BiteshipShippingProviderDriver;
+use App\Support\Shipping\Drivers\RajaOngkirShippingProviderDriver;
+use App\Support\Shipping\ShippingProviderManager;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Schema;
@@ -45,6 +52,19 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(TenantPlanManager::class);
         $this->app->singleton(FeatureMode::class);
         $this->app->singleton(AccountingUiMode::class);
+        $this->app->singleton(PaymentGatewayManager::class, function ($app) {
+            return new PaymentGatewayManager([
+                $app->make(MidtransPaymentGatewayDriver::class),
+                $app->make(XenditPaymentGatewayDriver::class),
+                $app->make(TripayPaymentGatewayDriver::class),
+            ]);
+        });
+        $this->app->singleton(ShippingProviderManager::class, function ($app) {
+            return new ShippingProviderManager([
+                $app->make(BiteshipShippingProviderDriver::class),
+                $app->make(RajaOngkirShippingProviderDriver::class),
+            ]);
+        });
     }
 
     /**

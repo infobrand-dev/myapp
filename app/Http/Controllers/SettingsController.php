@@ -8,6 +8,8 @@ use App\Models\DocumentNumberingRule;
 use App\Models\DocumentSetting;
 use App\Models\DocumentWorkflowRule;
 use App\Models\PlatformInvoice;
+use App\Models\TenantPaymentGateway;
+use App\Models\TenantShippingProvider;
 use App\Models\TenantTransactionalMailSetting;
 use App\Models\TenantByoAiRequest;
 use App\Services\AiCreditPricingService;
@@ -24,8 +26,10 @@ use App\Support\DocumentSettingsResolver;
 use App\Support\DocumentWorkflowService;
 use App\Support\CurrencySettingsResolver;
 use App\Support\ModuleManager;
+use App\Support\Payments\PaymentGatewayManager;
 use App\Support\PlanFeature;
 use App\Support\PlanLimit;
+use App\Support\Shipping\ShippingProviderManager;
 use App\Support\TenantContext;
 use App\Support\TenantPlanManager;
 use App\Support\UserAccessManager;
@@ -35,6 +39,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -47,6 +52,8 @@ class SettingsController extends Controller
         Request $request,
         ModuleManager $modules,
         TenantPlanManager $planManager,
+        PaymentGatewayManager $paymentGateways,
+        ShippingProviderManager $shippingProviders,
         CurrencySettingsResolver $currencySettings,
         AiCreditPricingService $aiPricing,
         DocumentSettingsResolver $documentSettingsResolver,
@@ -263,6 +270,12 @@ class SettingsController extends Controller
                 'requests' => $planManager->usageState(PlanLimit::BYO_AI_REQUESTS_MONTHLY, $tenantId),
                 'tokens' => $planManager->usageState(PlanLimit::BYO_AI_TOKENS_MONTHLY, $tenantId),
             ],
+            'paymentGatewayProviders' => $paymentGateways->providers(),
+            'activePaymentGateway' => $paymentGateways->activeGatewayRecord(),
+            'activePaymentGatewayLabel' => $paymentGateways->activeProviderLabel(),
+            'shippingProviderDrivers' => $shippingProviders->providers(),
+            'activeShippingProvider' => $shippingProviders->activeProviderRecord(),
+            'activeShippingProviderLabel' => $shippingProviders->activeProviderLabel(),
         ]);
     }
 
@@ -551,6 +564,13 @@ class SettingsController extends Controller
 
         $rules = [
             'workspace_name' => ['required', 'string', 'max:255'],
+            'public_storefront_enabled' => ['nullable', 'boolean'],
+            'default_public_company_id' => ['nullable', 'integer'],
+            'company_shipping_origin_postal_code' => ['nullable', 'string', 'max:20'],
+            'company_shipping_origin_area_id' => ['nullable', 'string', 'max:100'],
+            'public_brand_name' => ['nullable', 'string', 'max:255'],
+            'public_brand_description' => ['nullable', 'string', 'max:1000'],
+            'public_brand_logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,svg', 'max:2048'],
         ];
 
         if (!$this->currencySettingsLocked()) {
@@ -560,12 +580,87 @@ class SettingsController extends Controller
 
         $data = $request->validate($rules);
 
+        $tenantMeta = $tenant->meta ?? [];
+
         $tenant->update([
             'name' => trim((string) $data['workspace_name']),
         ]);
 
+        $currentCompanyIds = Company::query()
+            ->where('tenant_id', (int) $tenant->id)
+            ->active()
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $defaultPublicCompanyId = (int) ($data['default_public_company_id'] ?? 0);
+        if ($defaultPublicCompanyId > 0 && !in_array($defaultPublicCompanyId, $currentCompanyIds, true)) {
+            throw ValidationException::withMessages([
+                'default_public_company_id' => 'Company publik default tidak valid untuk tenant ini.',
+            ]);
+        }
+
+        $tenantMeta['public_storefront_enabled'] = $request->boolean('public_storefront_enabled', true);
+
+        if ($defaultPublicCompanyId > 0) {
+            $tenantMeta['default_public_company_id'] = $defaultPublicCompanyId;
+        } else {
+            unset($tenantMeta['default_public_company_id']);
+        }
+
+        $publicBrandName = trim((string) ($data['public_brand_name'] ?? ''));
+        $publicBrandDescription = trim((string) ($data['public_brand_description'] ?? ''));
+
+        if ($publicBrandName === '') {
+            unset($tenantMeta['public_brand_name']);
+        } else {
+            $tenantMeta['public_brand_name'] = $publicBrandName;
+        }
+
+        if ($publicBrandDescription === '') {
+            unset($tenantMeta['public_brand_description']);
+        } else {
+            $tenantMeta['public_brand_description'] = $publicBrandDescription;
+        }
+
+        if ($request->hasFile('public_brand_logo')) {
+            $oldPath = (string) ($tenantMeta['public_brand_logo_path'] ?? '');
+            $newPath = $request->file('public_brand_logo')->store('tenant-brand/' . $tenant->id, 'public');
+
+            $tenantMeta['public_brand_logo_path'] = $newPath;
+
+            if ($oldPath !== '' && $oldPath !== $newPath && Storage::disk('public')->exists($oldPath)) {
+                Storage::disk('public')->delete($oldPath);
+            }
+        }
+
+        $tenant->update([
+            'meta' => $tenantMeta,
+        ]);
+
+        if ($company = CompanyContext::currentCompany()) {
+            $companyMeta = $company->meta ?? [];
+            $originPostalCode = trim((string) ($data['company_shipping_origin_postal_code'] ?? ''));
+            $originAreaId = trim((string) ($data['company_shipping_origin_area_id'] ?? ''));
+
+            if ($originPostalCode === '') {
+                unset($companyMeta['shipping_origin_postal_code']);
+            } else {
+                $companyMeta['shipping_origin_postal_code'] = $originPostalCode;
+            }
+
+            if ($originAreaId === '') {
+                unset($companyMeta['shipping_origin_area_id']);
+            } else {
+                $companyMeta['shipping_origin_area_id'] = $originAreaId;
+            }
+
+            $company->update([
+                'meta' => $companyMeta,
+            ]);
+        }
+
         if (!$this->currencySettingsLocked()) {
-            $tenantMeta = $tenant->meta ?? [];
             $tenantMeta['default_currency'] = strtoupper((string) $data['default_currency']);
             $tenant->update([
                 'meta' => $tenantMeta,
@@ -843,7 +938,7 @@ class SettingsController extends Controller
         return Str::slug(trim((string) ($slug ?: $fallback)));
     }
 
-    private function requireCurrentCompany(): Company
+    public function requireCurrentCompany(): Company
     {
         $company = CompanyContext::currentCompany();
 
@@ -916,6 +1011,18 @@ class SettingsController extends Controller
                 'route' => 'settings.transactional-email',
                 'icon' => 'ti ti-mail-cog',
                 'description' => 'SMTP tenant untuk email invoice, reminder, dan receipt customer.',
+            ],
+            'payment-gateway' => [
+                'label' => 'Payment Gateway',
+                'route' => 'settings.payment-gateway',
+                'icon' => 'ti ti-credit-card-pay',
+                'description' => 'Pilih provider checkout aktif untuk commerce tenant.',
+            ],
+            'shipping-provider' => [
+                'label' => 'Shipping Provider',
+                'route' => 'settings.shipping-provider',
+                'icon' => 'ti ti-truck-delivery',
+                'description' => 'Pilih provider ongkir aktif untuk commerce tenant.',
             ],
         ];
     }

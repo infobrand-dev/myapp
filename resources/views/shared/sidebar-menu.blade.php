@@ -82,15 +82,16 @@
     @if($single)
         @php
             $item = $menu['items']->first();
+            $itemLabel = $item['label'] ?? $menu['name'];
             $badgeKey = $item['badge'] ?? null;
             $badgeCount = $badgeKey ? (int) ($moduleNavBadges[$badgeKey] ?? 0) : 0;
         @endphp
         <li class="nav-item">
-            <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ $isOpen ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route($item['route']) }}" data-sidebar-label="{{ $menu['name'] }}">
+            <a class="nav-link d-flex align-items-center justify-content-start gap-2 px-3 py-2 rounded-2 text-start w-100 {{ $isOpen ? 'active bg-primary-lt text-primary' : 'bg-body' }}" href="{{ route($item['route']) }}" data-sidebar-label="{{ $itemLabel }}">
                 <span class="nav-link-icon">
                     @include('shared.module-icon', ['module' => $menu, 'size' => 22])
                 </span>
-                <span class="nav-link-title">{{ $menu['name'] }}</span>
+                <span class="nav-link-title">{{ $itemLabel }}</span>
                 @if($badgeKey)
                     @php $useBadgeId = !$moduleBadgeRendered; @endphp
                     @php $moduleBadgeRendered = $moduleBadgeRendered || $useBadgeId; @endphp

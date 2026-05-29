@@ -37,6 +37,9 @@ class SalesReportService extends BaseReportService
         $baseQuery = $this->salesBaseQuery($filters);
         $transactionCount = (clone $baseQuery)->count('sales.id');
         $grossTotal = round((float) (clone $baseQuery)->sum('sales.grand_total'), 2);
+        $shippingTotal = round((float) ((clone $baseQuery)
+            ->selectRaw('SUM(' . $this->shippingTotalSql('sales.totals_snapshot') . ') as shipping_total')
+            ->value('shipping_total') ?: 0), 2);
         $paidTotal = round((float) (clone $baseQuery)->sum('sales.paid_total'), 2);
         $receivableTotal = round((float) (clone $baseQuery)->sum('sales.balance_due'), 2);
         $itemQty = round((float) $this->saleItemsBaseQuery($filters)->sum('sale_items.qty'), 2);
@@ -44,6 +47,8 @@ class SalesReportService extends BaseReportService
         return [
             'transaction_count' => $transactionCount,
             'gross_total' => $grossTotal,
+            'shipping_total' => $shippingTotal,
+            'product_total' => round($grossTotal - $shippingTotal, 2),
             'paid_total' => $paidTotal,
             'receivable_total' => $receivableTotal,
             'item_qty' => $itemQty,
@@ -57,6 +62,7 @@ class SalesReportService extends BaseReportService
             ->selectRaw('DATE(sales.transaction_date) as report_date')
             ->selectRaw('COUNT(sales.id) as transaction_count')
             ->selectRaw('SUM(sales.grand_total) as gross_total')
+            ->selectRaw('SUM(' . $this->shippingTotalSql('sales.totals_snapshot') . ') as shipping_total')
             ->selectRaw('SUM(sales.paid_total) as paid_total')
             ->groupByRaw('DATE(sales.transaction_date)')
             ->orderBy('report_date')
@@ -83,6 +89,7 @@ class SalesReportService extends BaseReportService
             ->selectRaw("COALESCE(NULLIF(sales.customer_name_snapshot, ''), 'Walk-in / Umum') as customer_name")
             ->selectRaw('COUNT(sales.id) as transaction_count')
             ->selectRaw('SUM(sales.grand_total) as gross_total')
+            ->selectRaw('SUM(' . $this->shippingTotalSql('sales.totals_snapshot') . ') as shipping_total')
             ->selectRaw('SUM(sales.paid_total) as paid_total')
             ->groupBy('sales.customer_name_snapshot')
             ->orderByDesc('gross_total')
@@ -146,6 +153,7 @@ class SalesReportService extends BaseReportService
             ->selectRaw("COALESCE(cashiers.name, 'Unknown Cashier') as cashier_name")
             ->selectRaw('COUNT(sales.id) as transaction_count')
             ->selectRaw('SUM(sales.grand_total) as gross_total')
+            ->selectRaw('SUM(' . $this->shippingTotalSql('sales.totals_snapshot') . ') as shipping_total')
             ->selectRaw('SUM(sales.paid_total) as paid_total')
             ->groupBy('sales.created_by', 'cashiers.name')
             ->orderByDesc('gross_total')
@@ -192,5 +200,16 @@ class SalesReportService extends BaseReportService
                         ->orWhere('sale_items.sku_snapshot', 'like', '%' . $filters['product'] . '%');
                 });
             });
+    }
+
+    private function shippingTotalSql(string $qualifiedJsonColumn): string
+    {
+        $driver = DB::connection()->getDriverName();
+
+        return match ($driver) {
+            'pgsql' => "COALESCE(({$qualifiedJsonColumn}->>'shipping_total')::numeric, 0)",
+            'sqlite' => "COALESCE(CAST(json_extract({$qualifiedJsonColumn}, '$.shipping_total') AS REAL), 0)",
+            default => "COALESCE(CAST(JSON_UNQUOTE(JSON_EXTRACT({$qualifiedJsonColumn}, '$.shipping_total')) AS DECIMAL(18,2)), 0)",
+        };
     }
 }

@@ -40,6 +40,7 @@ class PaymentsServiceProvider extends ServiceProvider
         'payments.manage_methods',
         'payments.print',
         'payments.export',
+        'commerce_payments.view',
     ];
 
     public const DEFAULT_ROLE_PERMISSIONS = [
@@ -50,6 +51,7 @@ class PaymentsServiceProvider extends ServiceProvider
             'payments.create',
             'payments.void',
             'payments.print',
+            'commerce_payments.view',
         ],
         'Cashier' => [
             'payments.view',
@@ -58,6 +60,9 @@ class PaymentsServiceProvider extends ServiceProvider
             'payments.print',
         ],
         'Finance Staff' => self::PERMISSIONS,
+        'Customer Service' => [
+            'commerce_payments.view',
+        ],
     ];
 
     public function register(): void

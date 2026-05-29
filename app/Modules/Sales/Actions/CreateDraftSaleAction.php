@@ -65,7 +65,16 @@ class CreateDraftSaleAction
             $contact = !empty($data['contact_id'])
                 ? ContactScope::applyVisibilityScope(Contact::query()->with('parentContact'))->find($data['contact_id'])
                 : null;
-            $customer = $this->snapshotService->customerSnapshot($contact);
+            $customer = $this->snapshotService->customerSnapshotFromPayload($contact, $data);
+            $meta = [
+                'source_context' => $this->sourceContext($data),
+                'tax' => $this->taxContext($totals),
+                'draft_created_from' => $data['source'],
+            ];
+
+            if (!empty($data['meta']) && is_array($data['meta'])) {
+                $meta = array_replace_recursive($meta, $data['meta']);
+            }
 
             try {
                 $sale = Sale::query()->create([
@@ -101,11 +110,7 @@ class CreateDraftSaleAction
                     'customer_note' => $data['customer_note'] ?? null,
                     'attachment_path' => $attachmentPath,
                     'totals_snapshot' => $totals['totals_snapshot'],
-                    'meta' => $this->idempotencyService->mergeMeta([
-                        'source_context' => $this->sourceContext($data),
-                        'tax' => $this->taxContext($totals),
-                        'draft_created_from' => $data['source'],
-                    ], $data),
+                    'meta' => $this->idempotencyService->mergeMeta($meta, $data),
                     'created_by' => $actor ? $actor->id : null,
                     'updated_by' => $actor ? $actor->id : null,
                 ]);

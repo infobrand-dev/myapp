@@ -27,16 +27,20 @@ class ResolveTenantFromSubdomain
             return $next($request);
         }
 
-        $saasDomain = config('multitenancy.saas_domain');
         $host = $request->getHost(); // strips port
+        $rootDomain = $this->resolveMatchingRootDomain($host);
 
-        // Only act when the request host is a direct subdomain of SAAS_DOMAIN
-        if (!str_ends_with($host, '.' . $saasDomain)) {
+        // Only act when the request host is a direct subdomain of a known SaaS root domain.
+        if ($rootDomain === null) {
             return $next($request);
         }
 
-        $slug = substr($host, 0, -strlen('.' . $saasDomain));
+        $slug = substr($host, 0, -strlen('.' . $rootDomain));
         $platformSubdomain = (string) config('multitenancy.platform_admin_subdomain', 'dash');
+
+        if ($slug === '' || str_contains($slug, '.')) {
+            return $next($request);
+        }
 
         if ($slug === $platformSubdomain) {
             $request->attributes->set('tenant_id', 1);
@@ -68,5 +72,36 @@ class ResolveTenantFromSubdomain
         $request->attributes->set('tenant_slug', $slug);
 
         return $next($request);
+    }
+
+    private function resolveMatchingRootDomain(string $host): ?string
+    {
+        foreach ($this->candidateRootDomains() as $rootDomain) {
+            if ($host !== $rootDomain && str_ends_with($host, '.' . $rootDomain)) {
+                return $rootDomain;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function candidateRootDomains(): array
+    {
+        $domains = [
+            $this->normalizeDomain(config('multitenancy.saas_domain')),
+            $this->normalizeDomain(parse_url((string) config('app.url'), PHP_URL_HOST)),
+        ];
+
+        return array_values(array_unique(array_filter($domains)));
+    }
+
+    private function normalizeDomain(mixed $value): ?string
+    {
+        $domain = trim(strtolower((string) $value));
+
+        return $domain !== '' ? $domain : null;
     }
 }

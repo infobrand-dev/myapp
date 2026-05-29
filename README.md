@@ -110,6 +110,7 @@ php artisan optimize:clear
 
 ## SaaS login flow
 - Untuk mode `TENANT_MODE=saas`, login user final harus lewat subdomain tenant, misalnya `acme.example.com/login`.
+- Untuk local development, resolver subdomain juga menerima host dasar dari `APP_URL`. Jadi bila `APP_URL=https://myapp.test` dan `SAAS_DOMAIN` production tetap `meetra.id`, route tenant seperti storefront publik tetap bisa diuji lewat `acme.myapp.test`.
 - Apex/root domain dipakai untuk onboarding, landing, atau workspace lookup, bukan login tenant umum.
 - Resolver tenant membaca slug dari subdomain lebih dulu lalu mengautentikasi user dalam scope `tenant_id` tersebut.
 - Registrasi tenant user publik di subdomain tenant sekarang ditutup. Penambahan user tenant dilakukan lewat owner/admin, idealnya memakai undangan dari halaman `Users`.
@@ -295,6 +296,7 @@ Ringkasan modul tersedia di `MODULES.md`.
 Kategori saat ini:
 - commerce: `products`, `inventory`, `discounts`, `sales`, `payments`, `purchases`, `finance`, `point-of-sale`
 - accounting (product line pricing): bundle existing `sales`, `payments`, `purchases`, `finance`, `point-of-sale`, `reports`
+- commerce (product line pricing): `storefront`, `shipping`, `fulfillment` dengan shared core `products`, `sales`, `payments`, `contacts`
 - reporting: `reports`
 - communication: `conversations`, `live_chat`, `whatsapp_api`, `whatsapp_web`, `social_media`, `email_marketing`, `email_inbox`
 - automation: `chatbot`

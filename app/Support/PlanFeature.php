@@ -9,6 +9,9 @@ class PlanFeature
     public const CRM = 'crm';
     public const ACCOUNTING = 'accounting';
     public const COMMERCE = 'commerce';
+    public const STOREFRONT = 'storefront';
+    public const SHIPPING = 'shipping';
+    public const FULFILLMENT = 'fulfillment';
     public const PROJECT_MANAGEMENT = 'project_management';
     public const LIVE_CHAT = 'live_chat';
     public const SOCIAL_MEDIA = 'social_media';
@@ -36,16 +39,19 @@ class PlanFeature
     {
         return [
             'conversations' => [self::CONVERSATIONS],
-            'contacts' => [self::CRM, self::ACCOUNTING],
+            'contacts' => [self::CRM, self::ACCOUNTING, self::COMMERCE],
             'crm' => [self::CRM],
-            'sales' => [self::ACCOUNTING],
-            'payments' => [self::ACCOUNTING],
-            'products' => [self::ACCOUNTING],
+            'sales' => [self::ACCOUNTING, self::COMMERCE],
+            'payments' => [self::ACCOUNTING, self::COMMERCE],
+            'products' => [self::ACCOUNTING, self::COMMERCE],
             'inventory' => [self::INVENTORY],
             'purchases' => [self::PURCHASES],
             'discounts' => [self::POINT_OF_SALE],
             'finance' => [self::ACCOUNTING],
             'point-of-sale' => [self::POINT_OF_SALE],
+            'storefront' => [self::STOREFRONT],
+            'shipping' => [self::SHIPPING],
+            'fulfillment' => [self::FULFILLMENT],
             'task_management' => [self::PROJECT_MANAGEMENT],
             'live_chat' => [self::LIVE_CHAT],
             'social_media' => [self::SOCIAL_MEDIA],
@@ -77,9 +83,6 @@ class PlanFeature
      */
     public static function featureKeyCandidates(string $feature): array
     {
-        return match ($feature) {
-            self::ACCOUNTING, self::COMMERCE => [self::ACCOUNTING, self::COMMERCE],
-            default => [$feature],
-        };
+        return [$feature];
     }
 }

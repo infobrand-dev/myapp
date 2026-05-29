@@ -5,15 +5,17 @@ This file is a quick catalog. The authoritative metadata for each module lives i
 ## Current module direction
 
 ### Already present
-- `products`: product master data, variants, options, units, media, pricing structure.
+- `products`: product master data, variants, options, units, media, pricing structure. Requires `contacts`.
 - `inventory`: stock balances, movements, opening stock, adjustments, transfers, opname. Requires `products`.
 - `discounts`: discount engine and voucher rules. Requires `products`.
 - `sales`: sales workflow and returns. Requires `products`, `contacts`.
-- `payments`: payment records, methods, allocations, void flow. Requires `sales`, `purchases`, `point-of-sale`.
+- `payments`: payment records, methods, allocations, void flow. Requires `sales`, `finance`.
 - `purchases`: draft/finalized purchase flow and goods receiving. Requires `products`, `contacts`, `inventory`, `payments`.
 - `finance`: finance-related services, finance accounts (`cash`, `bank`, `ewallet`), and permissions used by the commerce stack.
 - `point-of-sale`: POS cart, checkout, cash session, receipt flow. Requires `products`, `contacts`, `sales`, `payments`, `discounts`.
-- `midtrans`: Midtrans payment gateway integration for online payment flow. Requires `payments`, `sales`, `point-of-sale`.
+- `midtrans`: Midtrans payment gateway integration for online payment flow. Requires `payments`, `sales`.
+- `xendit`: Xendit payment link integration for commerce checkout flow. Requires `payments`, `sales`, `storefront`.
+- `tripay`: Tripay hosted checkout integration for commerce checkout flow. Requires `payments`, `sales`, `storefront`.
 - `reports`: dashboard and module-level reports for sales, payments, inventory, purchases, finance, POS, and products.
 - `conversations`: shared inbox domain, message ingestion contracts, activity log, and conversation UI.
 - `live_chat`: embeddable website live chat widget that routes visitor chat into `conversations`.
@@ -28,6 +30,11 @@ This file is a quick catalog. The authoritative metadata for each module lives i
 - `task_management`: internal memo, task, subtask, and task template management.
 - `shortlink`: short URL management, multi-code support, click tracking, redirect endpoint.
 - `sample_data`: sample/demo data entry points for local testing and demos.
+- `storefront`: commerce-facing workspace for storefront overview plus tenant public catalog and basic online checkout entry. Requires `products`, `sales`, `payments`.
+- `shipping`: commerce shipping workspace. Requires `sales`.
+- `fulfillment`: commerce fulfillment workspace. Requires `sales`.
+- `biteship`: shipping rate integration for commerce quote flow. Requires `shipping`.
+- `rajaongkir`: shipping cost integration for commerce quote flow. Requires `shipping`.
 
 ### Needs deeper scope or clearer boundary
 - `finance`: tetap finance operasional ringan; bila kebutuhan akuntansi formal membesar, pecah domainnya dengan sengaja.
@@ -52,15 +59,20 @@ This file is a quick catalog. The authoritative metadata for each module lives i
 - `appointments`: booking/jadwal meeting atau layanan jika scheduling external mulai dibutuhkan.
 
 ## Commerce
-- `products`: product master data, variants, options, units, media, pricing structure.
+- `products`: product master data, variants, options, units, media, pricing structure. Requires `contacts`.
 - `inventory`: stock balances, movements, opening stock, adjustments, transfers, opname. Requires `products`.
 - `discounts`: discount engine and voucher rules. Requires `products`.
 - `sales`: sales workflow and returns. Requires `products`, `contacts`.
-- `payments`: payment records, methods, allocations, void flow. Requires `sales`, `purchases`, `point-of-sale`.
+- `payments`: payment records, methods, allocations, void flow. Requires `sales`, `finance`.
 - `purchases`: draft/finalized purchase flow and goods receiving. Requires `products`, `contacts`, `inventory`, `payments`.
 - `finance`: finance-related services and permissions used by the commerce stack.
 - `point-of-sale`: POS cart, checkout, cash session, receipt flow. Requires `products`, `contacts`, `sales`, `payments`, `discounts`.
-- `midtrans`: Midtrans payment gateway integration for online payment flow. Requires `payments`, `sales`, `point-of-sale`.
+- `midtrans`: Midtrans payment gateway integration for online payment flow. Requires `payments`, `sales`.
+- `xendit`: Xendit payment link integration for commerce checkout flow. Requires `payments`, `sales`, `storefront`.
+- `tripay`: Tripay hosted checkout integration for commerce checkout flow. Requires `payments`, `sales`, `storefront`.
+- `storefront`: commerce-facing workspace for storefront metrics, tenant public catalog, and basic online checkout entry. Requires `products`, `sales`, `payments`.
+- `shipping`: shipping workspace for commerce order flow. Requires `sales`.
+- `fulfillment`: fulfillment workspace for commerce order flow. Requires `sales`.
 
 Planned boundary note:
 - `finance` saat ini sudah menampung finance operasional sekaligus fondasi accounting yang cukup dalam untuk product line `accounting`.
@@ -85,6 +97,32 @@ Growth/Scale menambahkan:
 Add-on:
 - `point-of-sale`
 - `discounts`
+
+## Commerce Product Line
+`commerce` adalah product line tersendiri yang reuse modul shared tanpa mengambil alih domain accounting.
+
+Bundle v1:
+- `storefront`
+- `shipping`
+- `fulfillment`
+
+Shared core yang boleh dipakai:
+- `products`
+- `sales`
+- `payments`
+- `contacts`
+
+Boundary:
+- `finance`, `purchases`, accounting reports, dan inventory governance tetap milik `accounting`
+- `commerce` fokus ke storefront, order flow, payment status, shipping, dan fulfillment
+- provider seperti `midtrans`, `xendit`, dan `tripay` diperlakukan sebagai integration module di bawah `commerce`, bukan menu utama tenant
+- provider seperti `biteship` dan `rajaongkir` diperlakukan sebagai integration module di bawah `shipping`, bukan menu utama tenant
+
+## Commerce Integrations
+- `midtrans`, `xendit`, dan `tripay` tetap module di backend agar adapter vendor, webhook, dan transaction log stay isolated.
+- Tenant tidak perlu menganggap provider itu sebagai product module terpisah. Entry point utamanya adalah `Settings > Payment Gateway`.
+- `module.json` boleh memiliki `navigation: []` untuk integration module yang tidak perlu muncul di sidebar utama.
+- `biteship` dan `rajaongkir` mengikuti pola yang sama untuk quote ongkir, dengan entry point utama `Settings > Shipping Provider` dan workspace `shipping` sebagai tempat test quote.
 
 ## Reporting
 - `reports`: dashboard and module-level reports for sales, payments, inventory, purchases, finance, POS, and products.

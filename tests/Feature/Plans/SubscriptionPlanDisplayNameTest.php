@@ -22,6 +22,17 @@ class SubscriptionPlanDisplayNameTest extends TestCase
         $this->assertSame('Omnichannel Growth', $plan->display_name);
     }
 
+    public function test_seeded_commerce_plan_exposes_display_name(): void
+    {
+        $this->seed(SubscriptionPlanSeeder::class);
+
+        $plan = SubscriptionPlan::query()->where('code', 'commerce_growth')->firstOrFail();
+
+        $this->assertSame('commerce', $plan->productLine());
+        $this->assertSame('Commerce', $plan->productLineLabel());
+        $this->assertSame('Commerce Growth', $plan->display_name);
+    }
+
     public function test_display_name_does_not_duplicate_product_line_prefix(): void
     {
         $plan = SubscriptionPlan::query()->create([

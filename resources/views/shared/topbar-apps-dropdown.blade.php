@@ -27,10 +27,14 @@
 
             return true;
         })
-        ->map(function ($module) {
+        ->map(function ($module) use ($planManager, $isPlatformAdminHost) {
             $items = collect($module['navigation'] ?? [])
-                ->filter(function ($item) {
+                ->filter(function ($item) use ($planManager, $isPlatformAdminHost) {
                     if (empty($item['route']) || !\Illuminate\Support\Facades\Route::has($item['route'])) {
+                        return false;
+                    }
+
+                    if (!$isPlatformAdminHost && !empty($item['feature']) && !$planManager->hasFeature((string) $item['feature'])) {
                         return false;
                     }
 

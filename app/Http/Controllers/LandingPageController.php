@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Modules\Storefront\Http\Controllers\PublicStorefrontController;
 use App\Models\Tenant;
 use App\Services\PlatformAffiliateService;
 use App\Services\TenantOnboardingSalesService;
+use App\Support\Commerce\PublicStorefrontContext;
+use App\Support\TenantContext;
 use Illuminate\Support\Facades\File;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,7 +15,7 @@ use Illuminate\View\View;
 
 class LandingPageController extends Controller
 {
-    public function __invoke(Request $request, TenantOnboardingSalesService $sales, PlatformAffiliateService $affiliateService): View|RedirectResponse
+    public function __invoke(Request $request, TenantOnboardingSalesService $sales, PlatformAffiliateService $affiliateService, PublicStorefrontContext $publicStorefront): View|RedirectResponse
     {
         $affiliate = $affiliateService->captureFromRequest($request);
 
@@ -23,6 +26,12 @@ class LandingPageController extends Controller
         }
 
         if ($request->attributes->has('tenant_id')) {
+            TenantContext::setCurrentId((int) $request->attributes->get('tenant_id'));
+
+            if ($publicStorefront->enabled()) {
+                return app(PublicStorefrontController::class)->index($request);
+            }
+
             return auth()->check()
                 ? redirect()->route('dashboard')
                 : redirect()->route('login');
@@ -131,8 +140,16 @@ class LandingPageController extends Controller
 
     public function meetra(Request $request): View|RedirectResponse
     {
-        if ($redirect = $this->landingHostRedirect($request)) {
-            return $redirect;
+        if ($request->attributes->get('platform_admin_host')) {
+            return auth()->check()
+                ? redirect()->route('platform.dashboard')
+                : redirect()->route('login');
+        }
+
+        if ($request->attributes->has('tenant_id')) {
+            TenantContext::setCurrentId((int) $request->attributes->get('tenant_id'));
+
+            return app(PublicStorefrontController::class)->index($request);
         }
 
         if (auth()->check()) {
@@ -272,9 +289,7 @@ class LandingPageController extends Controller
         }
 
         if ($request->attributes->has('tenant_id')) {
-            return auth()->check()
-                ? redirect()->route('dashboard')
-                : redirect()->route('login');
+            return redirect()->route('landing');
         }
 
         return null;

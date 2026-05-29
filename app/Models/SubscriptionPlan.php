@@ -76,7 +76,8 @@ class SubscriptionPlan extends Model
         return match ($this->productLine()) {
             'omnichannel' => 'Omnichannel',
             'crm' => 'CRM',
-            'accounting', 'commerce' => 'Accounting',
+            'accounting' => 'Accounting',
+            'commerce' => 'Commerce',
             'project_management' => 'Project Management',
             'internal' => 'Internal',
             default => $this->productLine() ? str($this->productLine())->replace('_', ' ')->title()->toString() : null,

@@ -8,6 +8,50 @@ use App\Modules\Products\Models\ProductVariant;
 
 class SaleSnapshotService
 {
+    public function customerSnapshotFromPayload(?Contact $contact, array $payload = [], ?array $fallback = null): array
+    {
+        if ($contact) {
+            return $this->customerSnapshot($contact);
+        }
+
+        $name = $this->nullableString($payload['customer_name'] ?? data_get($fallback, 'name'));
+        $email = $this->nullableString($payload['customer_email'] ?? data_get($fallback, 'email'));
+        $phone = $this->nullableString($payload['customer_phone'] ?? data_get($fallback, 'phone'));
+        $address = $this->nullableString($payload['customer_address'] ?? data_get($fallback, 'address'));
+        $taxAddress = $this->nullableString($payload['customer_tax_address'] ?? data_get($fallback, 'tax_address') ?? $address);
+
+        if ($name === null && $email === null && $phone === null && $address === null && $taxAddress === null) {
+            return [
+                'name' => null,
+                'email' => null,
+                'phone' => null,
+                'address' => null,
+                'tax_address' => null,
+                'payload' => null,
+            ];
+        }
+
+        return [
+            'name' => $name,
+            'email' => $email,
+            'phone' => $phone,
+            'address' => $address,
+            'tax_address' => $taxAddress,
+            'payload' => [
+                'type' => 'guest',
+                'name' => $name,
+                'email' => $email,
+                'phone' => $phone,
+                'mobile' => $phone,
+                'tax_address' => $taxAddress,
+                'tax_profile_complete' => false,
+                'address' => [
+                    'formatted' => $address,
+                ],
+            ],
+        ];
+    }
+
     public function customerSnapshot(?Contact $contact): array
     {
         if (!$contact) {
@@ -88,5 +132,12 @@ class SaleSnapshotService
                 'attribute_summary' => $variant ? $variant->attribute_summary : null,
             ],
         ];
+    }
+
+    private function nullableString(mixed $value): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
     }
 }

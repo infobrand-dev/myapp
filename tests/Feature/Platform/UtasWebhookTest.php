@@ -2,8 +2,8 @@
 
 namespace Tests\Feature\Platform;
 
+use App\Contracts\UtasWebhookNotificationSender;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class UtasWebhookTest extends TestCase
@@ -12,10 +12,20 @@ class UtasWebhookTest extends TestCase
 
     public function test_paid_webhook_is_stored_and_acknowledged(): void
     {
-        Mail::fake();
-
         config()->set('services.utas.webhook_secret', 'secret-utas');
         config()->set('services.utas.notify_email', 'abugahwa.com@gmail.com');
+
+        $sender = new class implements UtasWebhookNotificationSender
+        {
+            public array $sent = [];
+
+            public function sendPaidNotification(string $to, array $payload): void
+            {
+                $this->sent[] = compact('to', 'payload');
+            }
+        };
+
+        $this->app->instance(UtasWebhookNotificationSender::class, $sender);
 
         $payload = [
             'state' => 'paid',
@@ -44,16 +54,25 @@ class UtasWebhookTest extends TestCase
                 'notified' => true,
             ]);
 
-        Mail::assertSent(\App\Mail\UtasPaidWebhookNotificationMail::class, function ($mail) {
-            return $mail->hasTo('abugahwa.com@gmail.com');
-        });
+        $this->assertCount(1, $sender->sent);
+        $this->assertSame('abugahwa.com@gmail.com', $sender->sent[0]['to']);
     }
 
     public function test_complete_webhook_is_supported_without_sending_email(): void
     {
-        Mail::fake();
-
         config()->set('services.utas.notify_email', 'abugahwa.com@gmail.com');
+
+        $sender = new class implements UtasWebhookNotificationSender
+        {
+            public array $sent = [];
+
+            public function sendPaidNotification(string $to, array $payload): void
+            {
+                $this->sent[] = compact('to', 'payload');
+            }
+        };
+
+        $this->app->instance(UtasWebhookNotificationSender::class, $sender);
 
         $payload = [
             'state' => 'complete',
@@ -72,12 +91,22 @@ class UtasWebhookTest extends TestCase
                 'notified' => false,
             ]);
 
-        Mail::assertNothingSent();
+        $this->assertSame([], $sender->sent);
     }
 
     public function test_unsupported_state_is_ignored(): void
     {
-        Mail::fake();
+        $sender = new class implements UtasWebhookNotificationSender
+        {
+            public array $sent = [];
+
+            public function sendPaidNotification(string $to, array $payload): void
+            {
+                $this->sent[] = compact('to', 'payload');
+            }
+        };
+
+        $this->app->instance(UtasWebhookNotificationSender::class, $sender);
 
         $this->postJson(route('webhooks.utas'), [
             'state' => 'shipping',
@@ -88,7 +117,7 @@ class UtasWebhookTest extends TestCase
                 'state' => 'shipping',
             ]);
 
-        Mail::assertNothingSent();
+        $this->assertSame([], $sender->sent);
     }
 
     public function test_secret_is_enforced_when_configured(): void

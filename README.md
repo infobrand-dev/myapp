@@ -286,7 +286,7 @@ Default bridge URL lokal:
 - WhatsApp API: `POST /whatsapp-api/webhook`
 - Social Media: `POST /social-media/webhook`
 - Live Chat bootstrap: `POST /live-chat/api/{token}/bootstrap`
-- UTAS personal webhook: `POST /webhooks/utas` (`state=paid` langsung kirim email ke `UTAS_WEBHOOK_NOTIFY_EMAIL`; `state=complete` diterima tanpa penyimpanan DB)
+- UTAS personal webhook: `POST /webhooks/utas` (`state=paid` langsung kirim email ke `UTAS_WEBHOOK_NOTIFY_EMAIL` via native PHP `mail()` / `php.ini`; `state=complete` diterima tanpa penyimpanan DB)
 
 Pastikan `APP_URL` dan reverse proxy sesuai jika webhook dipakai di environment publik.
 

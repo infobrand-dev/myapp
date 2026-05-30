@@ -2,9 +2,11 @@
 
 namespace App\Providers;
 
+use App\Contracts\UtasWebhookNotificationSender;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\PlatformInvoice;
+use App\Services\NativeUtasWebhookNotificationSender;
 use App\Support\HookManager;
 use App\Support\AccountingUiMode;
 use App\Support\FeatureMode;
@@ -44,6 +46,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
+        $this->app->bind(UtasWebhookNotificationSender::class, NativeUtasWebhookNotificationSender::class);
         $this->app->singleton(ModuleManager::class, fn () => new ModuleManager());
         $this->app->singleton(ModuleIconRegistry::class, fn () => new ModuleIconRegistry());
         $this->app->singleton(HookManager::class, fn () => new HookManager());

@@ -2,10 +2,9 @@
 
 namespace App\Services;
 
-use App\Mail\UtasPaidWebhookNotificationMail;
+use App\Contracts\UtasWebhookNotificationSender;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
@@ -15,6 +14,11 @@ class UtasWebhookService
         'paid',
         'complete',
     ];
+
+    public function __construct(
+        private readonly UtasWebhookNotificationSender $notificationSender
+    ) {
+    }
 
     public function isAuthorized(Request $request): bool
     {
@@ -81,7 +85,7 @@ class UtasWebhookService
                 ]);
             }
 
-            Mail::to($notifyEmail)->send(new UtasPaidWebhookNotificationMail($payload));
+            $this->notificationSender->sendPaidNotification($notifyEmail, $payload);
             $notified = true;
         }
 

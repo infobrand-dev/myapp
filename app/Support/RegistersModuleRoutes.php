@@ -13,7 +13,14 @@ trait RegistersModuleRoutes
         }
 
         foreach ($paths as $path) {
-            Route::group([], $path);
+            if (config('multitenancy.mode') !== 'saas') {
+                Route::group([], $path);
+                continue;
+            }
+
+            foreach (SaasHost::candidateSubdomainPatterns() as $domain) {
+                Route::domain($domain)->group($path);
+            }
         }
 
         $routes = $this->app['router']->getRoutes();

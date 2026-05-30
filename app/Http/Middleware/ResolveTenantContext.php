@@ -125,29 +125,32 @@ class ResolveTenantContext
             return null;
         }
 
-        if (!$this->isProtectedShellRoute($request)) {
+        if (!$this->routeUsesAuthMiddleware($request)) {
             return null;
+        }
+
+        if ($request->expectsJson()) {
+            abort(401);
         }
 
         return redirect()->guest(route('login'));
     }
 
-    private function isProtectedShellRoute(Request $request): bool
+    private function routeUsesAuthMiddleware(Request $request): bool
     {
-        return $request->is('dashboard')
-            || $request->is('platform')
-            || $request->is('platform/*')
-            || $request->is('profile')
-            || $request->is('settings')
-            || $request->is('settings/*')
-            || $request->is('users')
-            || $request->is('users/*')
-            || $request->is('roles')
-            || $request->is('roles/*')
-            || $request->is('modules')
-            || $request->is('modules/*')
-            || $request->is('presence')
-            || $request->is('presence/*');
+        $route = $request->route();
+
+        if (!$route) {
+            return false;
+        }
+
+        foreach ($route->gatherMiddleware() as $middleware) {
+            if ($middleware === 'auth' || str_starts_with($middleware, 'auth:')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
 }

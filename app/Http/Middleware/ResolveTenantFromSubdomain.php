@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\Tenant;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\URL;
 use Symfony\Component\HttpFoundation\Response;
 
 class ResolveTenantFromSubdomain
@@ -19,6 +20,8 @@ class ResolveTenantFromSubdomain
      */
     public function handle(Request $request, Closure $next): Response
     {
+        URL::defaults([]);
+
         if ($request->is('install') || $request->is('install/*')) {
             return $next($request);
         }
@@ -46,6 +49,7 @@ class ResolveTenantFromSubdomain
             $request->attributes->set('tenant_id', 1);
             $request->attributes->set('tenant_slug', $platformSubdomain);
             $request->attributes->set('platform_admin_host', true);
+            URL::defaults(['account' => $platformSubdomain]);
 
             return $next($request);
         }
@@ -70,6 +74,7 @@ class ResolveTenantFromSubdomain
         // Inject into request attributes — highest priority, server-side only
         $request->attributes->set('tenant_id', $tenant->id);
         $request->attributes->set('tenant_slug', $slug);
+        URL::defaults(['account' => $slug]);
 
         return $next($request);
     }

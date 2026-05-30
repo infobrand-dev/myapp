@@ -38,6 +38,17 @@ class SaasHost
         return array_values(array_unique(array_filter($domains)));
     }
 
+    /**
+     * @return array<int, string>
+     */
+    public static function candidateSubdomainPatterns(): array
+    {
+        return array_map(
+            fn (string $domain) => '{account}.' . $domain,
+            self::candidateRootDomains()
+        );
+    }
+
     private static function hostForSlug(Request $request, string $slug): string
     {
         return $slug . '.' . self::preferredRootDomain($request);

@@ -6,8 +6,10 @@
 - Business features live under `app/Modules/*` and are discovered from each module's `module.json`.
 
 ## Current architecture
-- Public apex/marketing routes live in `routes/public.php` under the `public-web` middleware group.
-- Tenant-aware shell and authenticated app routes live in `routes/web.php`, with auth endpoints still loaded through `routes/auth.php`.
+- Shared public entry routes such as `/`, locale switch, generic health check, and neutral webhooks live in `routes/shared-public.php` under the `public-web` middleware group.
+- Apex-only marketing, onboarding, and workspace-discovery routes live in `routes/apex.php` under the `public-web` middleware group and are guarded by `App\Http\Middleware\EnsureApexHost`.
+- Public platform billing links and webhooks live in `routes/platform-public.php` so they stay separate from the authenticated workspace shell.
+- Tenant-aware shell and authenticated app routes live in `routes/app.php`, with auth endpoints still isolated in `routes/auth.php`.
 - Shared module loading is handled by `App\Support\ModuleManager`.
 - Module state is persisted in the `modules` table and controlled from the Modules page.
 - Sidebar navigation is partly core and partly generated from active module manifests.

@@ -39,6 +39,6 @@ class SaasHostRouteSeparationTest extends TestCase
         ]);
 
         $this->get('https://acme.myapp.test/products')
-            ->assertRedirect('https://acme.myapp.test');
+            ->assertRedirect('https://acme.myapp.test/');
     }
 }

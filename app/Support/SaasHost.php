@@ -6,6 +6,15 @@ use Illuminate\Http\Request;
 
 class SaasHost
 {
+    public static function isApexHost(Request $request): bool
+    {
+        if (config('multitenancy.mode') !== 'saas') {
+            return true;
+        }
+
+        return in_array(self::normalizeDomain($request->getHost()), self::candidateRootDomains(), true);
+    }
+
     public static function isPlatformAdminHost(Request $request): bool
     {
         if (config('multitenancy.mode') !== 'saas') {

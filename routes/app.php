@@ -6,7 +6,6 @@ use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationPushSubscriptionController;
 use App\Http\Controllers\PlatformAffiliateController;
-use App\Http\Controllers\PlatformBillingMidtransController;
 use App\Http\Controllers\PlatformOwnerController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\Settings\PaymentGatewaySettingsController;
@@ -19,11 +18,11 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Web Routes
+| Workspace App Routes
 |--------------------------------------------------------------------------
 |
-| These routes run inside the tenant-aware "web" middleware group.
-| Public marketing and apex onboarding pages are defined in routes/public.php.
+| Authenticated shell routes for tenant workspaces and the platform-admin
+| control plane. Public platform billing links live in routes/platform-public.php.
 |
 */
 
@@ -121,37 +120,6 @@ Route::middleware(['auth', 'verified', '2fa', 'platform.admin', \App\Http\Middle
     });
 });
 
-Route::post('/platform/billing/midtrans/webhook', [PlatformBillingMidtransController::class, 'notification'])
-    ->withoutMiddleware([
-        \App\Http\Middleware\VerifyCsrfToken::class,
-        \App\Http\Middleware\ResolveTenantFromSubdomain::class,
-        \App\Http\Middleware\ResolveTenantContext::class,
-        \App\Http\Middleware\ResolveCompanyContext::class,
-        \App\Http\Middleware\ResolveBranchContext::class,
-    ])
-    ->name('platform.billing.midtrans.webhook');
-
-Route::get('/platform/public/invoices/{invoice}', [PlatformOwnerController::class, 'publicInvoice'])
-    ->middleware('signed')
-    ->withoutMiddleware([
-        \App\Http\Middleware\ResolveTenantFromSubdomain::class,
-        \App\Http\Middleware\ResolveTenantContext::class,
-        \App\Http\Middleware\ResolveCompanyContext::class,
-        \App\Http\Middleware\ResolveBranchContext::class,
-    ])
-    ->name('platform.invoices.public');
-
-Route::post('/platform/public/invoices/{invoice}/midtrans/checkout', [PlatformBillingMidtransController::class, 'checkout'])
-    ->middleware('signed')
-    ->withoutMiddleware([
-        \App\Http\Middleware\VerifyCsrfToken::class,
-        \App\Http\Middleware\ResolveTenantFromSubdomain::class,
-        \App\Http\Middleware\ResolveTenantContext::class,
-        \App\Http\Middleware\ResolveCompanyContext::class,
-        \App\Http\Middleware\ResolveBranchContext::class,
-    ])
-    ->name('platform.invoices.public.midtrans.checkout');
-
 Route::middleware(['auth', 'verified', '2fa', 'platform.admin', \App\Http\Middleware\ResolveCompanyContext::class, \App\Http\Middleware\ResolveBranchContext::class])->prefix('presence')->name('presence.')->group(function () {
     Route::post('/heartbeat', [UserPresenceController::class, 'heartbeat'])->name('heartbeat');
     Route::post('/status', [UserPresenceController::class, 'setStatus'])->name('status');
@@ -180,5 +148,3 @@ Route::middleware(['auth', '2fa', 'platform.admin', \App\Http\Middleware\Resolve
     Route::post('/modules/{slug}/migrations/{migration}', [ModuleController::class, 'runSingleMigration'])->middleware('role:Super-admin')->name('modules.migrations.run');
     Route::post('/modules/{slug}/deactivate', [ModuleController::class, 'deactivate'])->middleware('role:Super-admin')->name('modules.deactivate');
 });
-
-require __DIR__ . '/auth.php';

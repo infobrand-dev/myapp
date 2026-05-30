@@ -40,19 +40,43 @@ class RouteServiceProvider extends ServiceProvider
         $this->registerActiveModuleProviders();
 
         $this->routes(function () {
-            Route::prefix('api')
-                ->middleware('api')
-                ->namespace($this->namespace)
-                ->group(base_path('routes/api.php'));
+            $this->mapApiRoutes();
+            $this->mapPublicRoutes();
+            $this->mapAppRoutes();
+        });
+    }
 
+    private function mapApiRoutes(): void
+    {
+        Route::prefix('api')
+            ->middleware('api')
+            ->namespace($this->namespace)
+            ->group(base_path('routes/api.php'));
+    }
+
+    private function mapPublicRoutes(): void
+    {
+        foreach ([
+            'routes/shared-public.php',
+            'routes/apex.php',
+            'routes/platform-public.php',
+        ] as $path) {
             Route::middleware('public-web')
                 ->namespace($this->namespace)
-                ->group(base_path('routes/public.php'));
+                ->group(base_path($path));
+        }
+    }
 
+    private function mapAppRoutes(): void
+    {
+        foreach ([
+            'routes/app.php',
+            'routes/auth.php',
+        ] as $path) {
             Route::middleware('web')
                 ->namespace($this->namespace)
-                ->group(base_path('routes/web.php'));
-        });
+                ->group(base_path($path));
+        }
     }
 
     private function registerActiveModuleProviders(): void

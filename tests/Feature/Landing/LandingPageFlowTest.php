@@ -19,23 +19,18 @@ class LandingPageFlowTest extends TestCase
         config()->set('multitenancy.platform_admin_subdomain', 'dash');
     }
 
-    public function test_apex_root_shows_sales_landing_page(): void
+    public function test_apex_root_shows_meetra_landing_page(): void
     {
         $response = $this->get('http://example.test/');
 
         $response->assertOk();
-        $response->assertSee('Satukan semua percakapan pelanggan');
-        $response->assertSee('Omnichannel Starter');
-        $response->assertSee('Omnichannel Growth');
-        $response->assertSee('Omnichannel Scale');
-        $response->assertSee('Bulanan');
-        $response->assertSee('6 Bulanan');
-        $response->assertSee('Tahunan');
-        $response->assertSee('Hubungkan akun WhatsApp Anda sendiri');
-        $response->assertSee('AI Credits top up');
+        $response->assertSee('Jalankan seluruh ekosistem bisnis Anda');
+        $response->assertSee('Product Lines');
+        $response->assertSee('Accounting');
+        $response->assertSee('Omnichannel');
     }
 
-    public function test_tenant_root_redirects_guest_to_workspace_login(): void
+    public function test_tenant_root_without_public_storefront_is_not_available(): void
     {
         Tenant::query()->create([
             'name' => 'Acme Workspace',
@@ -44,6 +39,6 @@ class LandingPageFlowTest extends TestCase
         ]);
 
         $this->get('http://acme.example.test/')
-            ->assertRedirect(route('login'));
+            ->assertNotFound();
     }
 }

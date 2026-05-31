@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(EnsureApexHost::class)->group(function () {
     Route::post('/platform/billing/midtrans/webhook', [PlatformBillingMidtransController::class, 'notification'])
+        ->middleware('throttle:public-webhook')
         ->withoutMiddleware([
             \App\Http\Middleware\VerifyCsrfToken::class,
             \App\Http\Middleware\ResolveTenantFromSubdomain::class,
@@ -33,7 +34,7 @@ Route::middleware(EnsureApexHost::class)->group(function () {
         ->name('platform.invoices.public');
 
     Route::post('/platform/public/invoices/{invoice}/midtrans/checkout', [PlatformBillingMidtransController::class, 'checkout'])
-        ->middleware(['signed'])
+        ->middleware(['signed', 'throttle:sensitive'])
         ->withoutMiddleware([
             \App\Http\Middleware\VerifyCsrfToken::class,
         ])

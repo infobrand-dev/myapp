@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('locale/switch', [LocaleController::class, 'switch'])->name('locale.switch');
 
 Route::post('/webhooks/utas', UtasWebhookController::class)
+    ->middleware('throttle:public-webhook')
     ->withoutMiddleware([
         \App\Http\Middleware\VerifyCsrfToken::class,
         \App\Http\Middleware\ResolveTenantFromSubdomain::class,

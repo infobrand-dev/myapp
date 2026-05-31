@@ -61,7 +61,7 @@ class EmailWebhookController extends Controller
     {
         $secret = trim((string) config('services.mailtrap.webhook_secret', ''));
         if ($secret === '') {
-            return true;
+            return app()->environment(['local', 'testing']);
         }
 
         $providedSecret = trim((string) ($request->header('X-Webhook-Secret') ?: $request->query('secret', '')));

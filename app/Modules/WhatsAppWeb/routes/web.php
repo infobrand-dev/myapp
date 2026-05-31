@@ -12,8 +12,8 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('web')
     ->withoutMiddleware([VerifyCsrfToken::class])
     ->group(function () {
-        Route::post('/whatsapp-web/webhook', [WebhookController::class, 'inbound'])->name('whatsappweb.webhook');
-        Route::post('/whatsapp-bro/webhook', [WebhookController::class, 'inbound'])->name('whatsapp-bro.webhook');
+        Route::post('/whatsapp-web/webhook', [WebhookController::class, 'inbound'])->middleware('throttle:public-webhook')->name('whatsappweb.webhook');
+        Route::post('/whatsapp-bro/webhook', [WebhookController::class, 'inbound'])->middleware('throttle:public-webhook')->name('whatsapp-bro.webhook');
     });
 
 Route::middleware(['web', 'auth', 'plan.feature:whatsapp_web', 'permission:whatsapp_web.view'])

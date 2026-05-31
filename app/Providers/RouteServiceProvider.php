@@ -142,6 +142,16 @@ class RouteServiceProvider extends ServiceProvider
                 Limit::perHour(30)->by("commerce-checkout-hour:tenant:{$tenantId}:host:{$host}:ip:{$ip}"),
             ];
         });
+
+        RateLimiter::for('public-webhook', function (Request $request) {
+            $route = $request->route()?->getName() ?: $request->path();
+            $ip = $request->ip();
+
+            return [
+                Limit::perMinute(120)->by("public-webhook:minute:{$route}:{$ip}"),
+                Limit::perMinutes(10, 600)->by("public-webhook:ten-minutes:{$route}:{$ip}"),
+            ];
+        });
     }
 
     private function shouldSkipModuleBootstrap(): bool

@@ -9,10 +9,10 @@ use App\Http\Middleware\VerifyCsrfToken;
 Route::middleware('public-web')
     ->withoutMiddleware([VerifyCsrfToken::class])
     ->group(function () {
-        Route::post('/social-media/webhook', [SocialWebhookController::class, 'inbound'])->name('social-media.webhook');
+        Route::post('/social-media/webhook', [SocialWebhookController::class, 'inbound'])->middleware('throttle:public-webhook')->name('social-media.webhook');
         Route::get('/social-media/webhook', [SocialWebhookController::class, 'verify'])->name('social-media.webhook.verify');
         Route::get('/social-media/webhook/x', [SocialWebhookController::class, 'xCrc'])->name('social-media.webhook.x.crc');
-        Route::post('/social-media/webhook/x', [SocialWebhookController::class, 'xInbound'])->name('social-media.webhook.x');
+        Route::post('/social-media/webhook/x', [SocialWebhookController::class, 'xInbound'])->middleware('throttle:public-webhook')->name('social-media.webhook.x');
     });
 
 Route::middleware(['web', 'auth', 'plan.feature:social_media', 'permission:social_media.view'])

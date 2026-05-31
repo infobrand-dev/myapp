@@ -11,6 +11,7 @@ Route::middleware(['web'])
     ->withoutMiddleware([VerifyCsrfToken::class])
     ->group(function () {
         Route::post('/midtrans/webhook/notification', [MidtransWebhookController::class, 'notification'])
+            ->middleware('throttle:public-webhook')
             ->name('midtrans.webhook.notification');
     });
 

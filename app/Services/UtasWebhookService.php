@@ -24,7 +24,7 @@ class UtasWebhookService
     {
         $secret = trim((string) config('services.utas.webhook_secret', ''));
         if ($secret === '') {
-            return true;
+            return app()->environment(['local', 'testing']);
         }
 
         $provided = trim((string) ($request->header('X-Webhook-Secret') ?: $request->query('secret', '')));

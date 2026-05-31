@@ -570,7 +570,7 @@ class SettingsController extends Controller
             'company_shipping_origin_area_id' => ['nullable', 'string', 'max:100'],
             'public_brand_name' => ['nullable', 'string', 'max:255'],
             'public_brand_description' => ['nullable', 'string', 'max:1000'],
-            'public_brand_logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,svg', 'max:2048'],
+            'public_brand_logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ];
 
         if (!$this->currencySettingsLocked()) {

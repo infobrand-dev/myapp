@@ -10,6 +10,7 @@ Route::middleware(['web'])
     ->withoutMiddleware([VerifyCsrfToken::class])
     ->group(function (): void {
         Route::post('/xendit/webhook/notification', [XenditWebhookController::class, 'notification'])
+            ->middleware('throttle:public-webhook')
             ->name('xendit.webhook.notification');
     });
 

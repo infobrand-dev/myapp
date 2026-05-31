@@ -34,6 +34,7 @@ Route::middleware(['web'])
     });
 
 Route::post('/webhook/mailtrap', [\App\Modules\EmailMarketing\Http\Controllers\EmailWebhookController::class, 'mailtrap'])
+    ->middleware('throttle:public-webhook')
     ->withoutMiddleware([VerifyCsrfToken::class])
     ->name('email-marketing.webhook.mailtrap');
 

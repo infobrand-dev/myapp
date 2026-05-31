@@ -10,6 +10,7 @@ Route::middleware(['web'])
     ->withoutMiddleware([VerifyCsrfToken::class])
     ->group(function (): void {
         Route::post('/tripay/webhook/notification', [TripayWebhookController::class, 'notification'])
+            ->middleware('throttle:public-webhook')
             ->name('tripay.webhook.notification');
     });
 

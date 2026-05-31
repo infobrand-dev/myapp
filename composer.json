@@ -62,8 +62,7 @@
         "optimize-autoloader": true,
         "preferred-install": "dist",
         "sort-packages": true,
-        "disable-tls": true,
-        "secure-http": false,
+        "secure-http": true,
         "cafile": "D:/xampp8/apache/bin/windows-ca.pem"
     },
     "minimum-stability": "stable",

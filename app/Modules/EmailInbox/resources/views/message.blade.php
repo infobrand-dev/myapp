@@ -21,8 +21,14 @@
         </dl>
 
         @if($message->body_html)
-            <div class="border rounded p-3">
-                {!! $message->body_html !!}
+            <div class="border rounded overflow-hidden">
+                <iframe
+                    title="Email HTML preview"
+                    sandbox
+                    referrerpolicy="no-referrer"
+                    style="width:100%; min-height:32rem; border:0; background:#fff;"
+                    srcdoc="{{ e($message->body_html) }}"
+                ></iframe>
             </div>
         @else
             <pre class="mb-0">{{ $message->body_text }}</pre>

@@ -169,6 +169,32 @@ class ProductService
             $meta['shipping'] = $shippingMeta;
         }
 
+        $publicOfferMeta = array_filter([
+            'visibility' => $this->nullableString($data['public_offer_visibility'] ?? data_get($existing?->meta, 'public_offer.visibility')) ?? 'catalog',
+            'headline' => $this->nullableString($data['public_offer_headline'] ?? data_get($existing?->meta, 'public_offer.headline')),
+            'subtitle' => $this->nullableString($data['public_offer_subtitle'] ?? data_get($existing?->meta, 'public_offer.subtitle')),
+            'delivery_type' => $this->nullableString($data['public_offer_delivery_type'] ?? data_get($existing?->meta, 'public_offer.delivery_type')),
+            'delivery_instructions' => $this->nullableString($data['public_offer_delivery_instructions'] ?? data_get($existing?->meta, 'public_offer.delivery_instructions')),
+            'download_url' => $this->nullableString($data['public_offer_download_url'] ?? data_get($existing?->meta, 'public_offer.download_url')),
+            'external_url' => $this->nullableString($data['public_offer_external_url'] ?? data_get($existing?->meta, 'public_offer.external_url')),
+            'slot_note' => $this->nullableString($data['public_offer_slot_note'] ?? data_get($existing?->meta, 'public_offer.slot_note')),
+            'cta_label' => $this->nullableString($data['public_offer_cta_label'] ?? data_get($existing?->meta, 'public_offer.cta_label')),
+            'featured' => (bool) ($data['public_offer_featured'] ?? data_get($existing?->meta, 'public_offer.featured', false)),
+        ], fn ($value) => $value !== null && $value !== '');
+
+        $meta['public_offer'] = $publicOfferMeta;
+
+        $affiliateMeta = array_filter([
+            'enabled' => (bool) ($data['affiliate_enabled'] ?? data_get($existing?->meta, 'affiliate_offer.enabled', false)),
+            'commission_type' => $this->nullableString($data['affiliate_commission_type'] ?? data_get($existing?->meta, 'affiliate_offer.commission_type')) ?: 'percentage',
+            'commission_rate' => array_key_exists('affiliate_commission_rate', $data)
+                ? round((float) ($data['affiliate_commission_rate'] ?? 0), 2)
+                : (float) data_get($existing?->meta, 'affiliate_offer.commission_rate', 0),
+            'allow_landing_copy' => (bool) ($data['affiliate_allow_landing_copy'] ?? data_get($existing?->meta, 'affiliate_offer.allow_landing_copy', true)),
+        ], fn ($value) => $value !== null && $value !== '');
+
+        $meta['affiliate_offer'] = $affiliateMeta;
+
         $payload = [
             'tenant_id' => TenantContext::currentId(),
             'type' => $data['type'],

@@ -22,7 +22,7 @@ class ModuleManager
 
     public function all(): array
     {
-        if ($this->allModulesCache !== null) {
+        if (!app()->environment('testing') && $this->allModulesCache !== null) {
             return $this->allModulesCache;
         }
 
@@ -65,7 +65,11 @@ class ModuleManager
 
         ksort($modules);
 
-        return $this->allModulesCache = $modules;
+        if (!app()->environment('testing')) {
+            $this->allModulesCache = $modules;
+        }
+
+        return $modules;
     }
 
     public function isActive(string $slug): bool
@@ -392,7 +396,7 @@ class ModuleManager
 
     private function statesBySlug(): array
     {
-        if ($this->statesBySlugCache !== null) {
+        if (!app()->environment('testing') && $this->statesBySlugCache !== null) {
             return $this->statesBySlugCache;
         }
 
@@ -400,17 +404,29 @@ class ModuleManager
             return [];
         }
 
-        return $this->statesBySlugCache = Module::query()->get()->keyBy('slug')->all();
+        $states = Module::query()->get()->keyBy('slug')->all();
+
+        if (!app()->environment('testing')) {
+            $this->statesBySlugCache = $states;
+        }
+
+        return $states;
     }
 
     private function moduleTableReady(): bool
     {
-        if ($this->moduleTableReadyCache !== null) {
+        if (!app()->environment('testing') && $this->moduleTableReadyCache !== null) {
             return $this->moduleTableReadyCache;
         }
 
         try {
-            return $this->moduleTableReadyCache = Schema::hasTable('modules');
+            $ready = Schema::hasTable('modules');
+
+            if (!app()->environment('testing')) {
+                $this->moduleTableReadyCache = $ready;
+            }
+
+            return $ready;
         } catch (\Throwable $e) {
             return false;
         }
@@ -418,12 +434,18 @@ class ModuleManager
 
     private function migrationsTableReady(): bool
     {
-        if ($this->migrationsTableReadyCache !== null) {
+        if (!app()->environment('testing') && $this->migrationsTableReadyCache !== null) {
             return $this->migrationsTableReadyCache;
         }
 
         try {
-            return $this->migrationsTableReadyCache = Schema::hasTable('migrations');
+            $ready = Schema::hasTable('migrations');
+
+            if (!app()->environment('testing')) {
+                $this->migrationsTableReadyCache = $ready;
+            }
+
+            return $ready;
         } catch (\Throwable $e) {
             return false;
         }

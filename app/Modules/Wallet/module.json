@@ -1,0 +1,21 @@
+{
+    "slug": "wallet",
+    "name": "Wallet",
+    "description": "Tenant wallet ledger untuk commerce creator, settlement, komisi affiliate, refund, dan payout manual.",
+    "provider": "App\\Modules\\Wallet\\WalletServiceProvider",
+    "version": "1.0.0",
+    "category": "finance",
+    "requires": [
+        "payments",
+        "sales",
+        "storefront"
+    ],
+    "navigation": [
+        {
+            "label": "Wallet",
+            "route": "wallet.index",
+            "feature": "commerce"
+        }
+    ],
+    "icon": "resources/icons/icon.svg"
+}

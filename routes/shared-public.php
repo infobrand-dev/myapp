@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\PublicRootController;
 use App\Http\Controllers\Webhooks\UtasWebhookController;
 use Illuminate\Support\Facades\Route;
 
@@ -29,7 +29,7 @@ Route::post('/webhooks/utas', UtasWebhookController::class)
     ])
     ->name('webhooks.utas');
 
-Route::get('/', [LandingPageController::class, 'meetra'])->name('landing');
+Route::get('/', PublicRootController::class)->name('landing');
 Route::get('/meetra', fn () => redirect()->route('landing'))->name('landing.meetra');
 
 // Health check — no auth, no session, no CSRF. Used by uptime monitors and load balancers.

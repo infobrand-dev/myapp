@@ -13,7 +13,10 @@ use App\Modules\Crm\Models\CrmLead;
 use App\Modules\Crm\Support\CrmStageCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class CrmModuleSmokeTest extends TestCase
@@ -52,6 +55,13 @@ class CrmModuleSmokeTest extends TestCase
             'tenant_id' => 1,
         ]);
 
+        Role::findOrCreate('Super-admin', 'web');
+        $user->assignRole('Super-admin');
+
+        foreach (['crm.view', 'crm.create', 'crm.update', 'crm.delete'] as $permission) {
+            Permission::findOrCreate($permission, 'web');
+        }
+
         $contact = Contact::query()->create([
             'tenant_id' => 1,
             'type' => 'individual',
@@ -75,6 +85,7 @@ class CrmModuleSmokeTest extends TestCase
             ResolveTenantFromSubdomain::class,
             ResolveTenantContext::class,
             RoleMiddleware::class,
+            PermissionMiddleware::class,
         ]);
 
         $this->actingAs($user)
@@ -111,6 +122,13 @@ class CrmModuleSmokeTest extends TestCase
             'tenant_id' => 1,
         ]);
 
+        Role::findOrCreate('Super-admin', 'web');
+        $user->assignRole('Super-admin');
+
+        foreach (['crm.view', 'crm.create', 'crm.update', 'crm.delete'] as $permission) {
+            Permission::findOrCreate($permission, 'web');
+        }
+
         $foreignOwner = User::factory()->create([
             'tenant_id' => $tenantTwo->id,
         ]);
@@ -128,6 +146,7 @@ class CrmModuleSmokeTest extends TestCase
             ResolveTenantFromSubdomain::class,
             ResolveTenantContext::class,
             RoleMiddleware::class,
+            PermissionMiddleware::class,
         ]);
 
         $this->actingAs($user)

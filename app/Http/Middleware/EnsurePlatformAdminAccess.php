@@ -19,7 +19,7 @@ class EnsurePlatformAdminAccess
 
         $user = $request->user();
 
-        if ($this->isPlatformAdminHost($request) && $user && ((int) $user->tenant_id !== 1 || !$user->hasRole('Super-admin'))) {
+        if ($this->isPlatformAdminHost($request) && $user && ((int) $user->tenant_id !== 1 || !$this->isPlatformSuperAdmin($user))) {
             Auth::guard('web')->logout();
 
             if ($request->hasSession()) {
@@ -46,7 +46,7 @@ class EnsurePlatformAdminAccess
     {
         $expectedHost = null;
 
-        if ((int) $user->tenant_id === 1 && method_exists($user, 'hasRole') && $user->hasRole('Super-admin')) {
+        if ((int) $user->tenant_id === 1 && $this->isPlatformSuperAdmin($user)) {
             $expectedHost = SaasHost::platformHost($request);
         } elseif (!empty($user->tenant?->slug)) {
             $expectedHost = SaasHost::tenantHost($request, (string) $user->tenant->slug);
@@ -65,5 +65,28 @@ class EnsurePlatformAdminAccess
     private function isPlatformAdminHost(Request $request): bool
     {
         return SaasHost::isPlatformAdminHost($request);
+    }
+
+    private function isPlatformSuperAdmin(Authenticatable $user): bool
+    {
+        if (!method_exists($user, 'hasRole') || (int) data_get($user, 'tenant_id', 0) !== 1) {
+            return false;
+        }
+
+        if ($user->hasRole('Super-admin')) {
+            return true;
+        }
+
+        if (!method_exists($user, 'roles')) {
+            return false;
+        }
+
+        return $user->roles()
+            ->where('name', 'Super-admin')
+            ->where(function ($query): void {
+                $query->whereNull('roles.tenant_id')
+                    ->orWhere('roles.tenant_id', 1);
+            })
+            ->exists();
     }
 }

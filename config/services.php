@@ -126,4 +126,16 @@ return [
         'payout_methods' => array_values(array_filter(array_map('trim', explode(',', (string) env('PLATFORM_AFFILIATE_PAYOUT_METHODS', 'bank_transfer'))))),
     ],
 
+    'tenant_affiliate' => [
+        'cookie_days' => (int) env('TENANT_AFFILIATE_COOKIE_DAYS', 30),
+        'default_commission_type' => env('TENANT_AFFILIATE_DEFAULT_COMMISSION_TYPE', 'percentage'),
+        'default_commission_rate' => (float) env('TENANT_AFFILIATE_DEFAULT_COMMISSION_RATE', 10),
+    ],
+
+    'commerce_creator' => [
+        'platform_fee_percentage' => (float) env('COMMERCE_CREATOR_PLATFORM_FEE_PERCENTAGE', 5),
+        'platform_fee_flat' => (float) env('COMMERCE_CREATOR_PLATFORM_FEE_FLAT', 0),
+        'settlement_delay_days' => (int) env('COMMERCE_CREATOR_SETTLEMENT_DELAY_DAYS', 0),
+    ],
+
 ];

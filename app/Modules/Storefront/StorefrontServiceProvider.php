@@ -2,6 +2,8 @@
 
 namespace App\Modules\Storefront;
 
+use App\Modules\Storefront\Services\StorefrontOrderSettlementService;
+use App\Support\HookManager;
 use App\Support\RegistersModuleRoutes;
 use App\Support\TenantRoleProvisioner;
 use Illuminate\Support\Facades\Schema;
@@ -30,6 +32,18 @@ class StorefrontServiceProvider extends ServiceProvider
         $this->registerModuleRoutes([__DIR__ . '/routes/web.php']);
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'storefront');
         $this->ensurePermissions();
+        $this->registerHooks();
+    }
+
+    private function registerHooks(): void
+    {
+        app(HookManager::class)->register('payments.posted', 'storefront.commerce-order-settlement', function (array $context) {
+            return app(StorefrontOrderSettlementService::class)->handle(
+                $context['payment'] ?? null,
+                $context['payables'] ?? collect(),
+                $context['allocations'] ?? collect()
+            );
+        });
     }
 
     private function ensurePermissions(): void

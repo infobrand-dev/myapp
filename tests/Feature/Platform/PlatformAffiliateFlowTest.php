@@ -90,7 +90,7 @@ class PlatformAffiliateFlowTest extends TestCase
         config()->set('services.midtrans.server_key', 'SB-Mid-server-test');
         config()->set('services.midtrans.client_key', 'SB-Mid-client-test');
 
-        $plan = SubscriptionPlan::query()->where('code', 'starter')->firstOrFail();
+        $plan = SubscriptionPlan::query()->where('code', 'accounting_starter')->firstOrFail();
 
         $affiliate = PlatformAffiliate::query()->create([
             'name' => 'Mitra A',
@@ -108,6 +108,7 @@ class PlatformAffiliateFlowTest extends TestCase
             ->assertCookie('platform_affiliate_referral_code', $affiliate->referral_code);
 
         $this->post('https://example.test/onboarding', [
+            'signup_mode' => 'paid',
             'subscription_plan_id' => $plan->id,
             'company_name' => 'Acme Workspace',
             'slug' => 'acme',
@@ -115,6 +116,8 @@ class PlatformAffiliateFlowTest extends TestCase
             'email' => 'owner@acme.test',
             'password' => 'Password123!',
             'password_confirmation' => 'Password123!',
+            'payment_method' => 'midtrans',
+            'terms_accepted' => 1,
         ])->assertRedirect('https://app.sandbox.midtrans.com/snap/v2/vtweb/checkout-token');
 
         $order = PlatformPlanOrder::query()->latest('id')->firstOrFail();

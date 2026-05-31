@@ -63,7 +63,12 @@ class CommerceOrderLifecycleService
     public function isCommerceOrder(?Sale $sale): bool
     {
         return $sale?->source === Sale::SOURCE_ONLINE
-            && data_get($sale?->meta, 'commerce.channel') === 'public_storefront';
+            && in_array((string) data_get($sale?->meta, 'commerce.channel'), [
+                'public_storefront',
+                'public_brand',
+                'direct_offer',
+                'affiliate_referral',
+            ], true);
     }
 
     public function isPaymentPending(?Sale $sale): bool

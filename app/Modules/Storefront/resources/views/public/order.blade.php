@@ -82,6 +82,14 @@
                             </div>
                         @endif
 
+                        @php($buyerAccess = data_get($sale->meta, 'commerce.buyer_access', []))
+                        @if(($buyerAccess['status'] ?? null) === 'available')
+                            <div class="alert alert-success mb-4">
+                                <div class="fw-semibold mb-1">Akses buyer tersedia</div>
+                                <div class="small">Instruksi pasca-pembayaran tersedia di bawah ini. Simpan halaman signed ini untuk membuka ulang akses order.</div>
+                            </div>
+                        @endif
+
                         <div class="table-responsive mb-4">
                             <table class="table table-sm align-middle mb-0">
                                 <thead>
@@ -120,6 +128,40 @@
                                 </tfoot>
                             </table>
                         </div>
+
+                        @php
+                            $deliveryPayloads = $sale->items->map(function ($item) {
+                                return data_get($item->product_snapshot, 'payload.public_offer', []);
+                            })->filter(fn ($payload) => is_array($payload) && $payload !== []);
+                        @endphp
+                        @if($deliveryPayloads->isNotEmpty())
+                            <div class="card border-0 shadow-sm mb-4">
+                                <div class="card-body">
+                                    <div class="fw-semibold mb-3">Delivery & Access</div>
+                                    <div class="d-flex flex-column gap-3">
+                                        @foreach($sale->items as $item)
+                                            @php($offerPayload = data_get($item->product_snapshot, 'payload.public_offer', []))
+                                            @continue(!is_array($offerPayload) || $offerPayload === [])
+                                            <div class="border rounded-3 p-3">
+                                                <div class="fw-semibold mb-1">{{ $item->product_name_snapshot }}</div>
+                                                @if(!empty($offerPayload['delivery_instructions']))
+                                                    <div class="text-muted small mb-2">{{ $offerPayload['delivery_instructions'] }}</div>
+                                                @endif
+                                                @if(!empty($offerPayload['download_url']))
+                                                    <a href="{{ $offerPayload['download_url'] }}" target="_blank" rel="noreferrer" class="btn btn-sm btn-outline-primary">Buka Download</a>
+                                                @endif
+                                                @if(!empty($offerPayload['external_url']))
+                                                    <a href="{{ $offerPayload['external_url'] }}" target="_blank" rel="noreferrer" class="btn btn-sm btn-outline-secondary">Buka Link</a>
+                                                @endif
+                                                @if(!empty($offerPayload['slot_note']))
+                                                    <div class="small text-muted mt-2">{{ $offerPayload['slot_note'] }}</div>
+                                                @endif
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
 
                         @php($timeline = collect(data_get($sale->meta, 'commerce.timeline', [])))
                         @if($timeline->isNotEmpty())

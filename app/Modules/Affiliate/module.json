@@ -1,0 +1,21 @@
+{
+    "slug": "affiliate",
+    "name": "Affiliate",
+    "description": "Tenant-side affiliate partner, referral, dan conversion tracking untuk commerce creator.",
+    "provider": "App\\Modules\\Affiliate\\AffiliateServiceProvider",
+    "version": "1.0.0",
+    "category": "commerce",
+    "requires": [
+        "payments",
+        "sales",
+        "storefront"
+    ],
+    "navigation": [
+        {
+            "label": "Affiliates",
+            "route": "affiliate.index",
+            "feature": "commerce"
+        }
+    ],
+    "icon": "resources/icons/icon.svg"
+}

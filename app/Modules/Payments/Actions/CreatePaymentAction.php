@@ -11,6 +11,7 @@ use App\Support\AccountingPeriodLockService;
 use App\Support\BooleanQuery;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
+use App\Support\HookManager;
 use App\Support\Notifications\NotificationCenter;
 use App\Support\Notifications\NotificationMessage;
 use App\Support\TenantContext;
@@ -29,6 +30,7 @@ class CreatePaymentAction
     private $journalService;
     private $periodLockService;
     private $notificationCenter;
+    private $hooks;
 
     public function __construct(
         PaymentNumberService $numberService,
@@ -36,7 +38,8 @@ class CreatePaymentAction
         RecalculatePaymentSummaryAction $recalculatePaymentSummary,
         AccountingJournalService $journalService,
         AccountingPeriodLockService $periodLockService,
-        NotificationCenter $notificationCenter
+        NotificationCenter $notificationCenter,
+        HookManager $hooks
     ) {
         $this->numberService = $numberService;
         $this->validatePayableTransaction = $validatePayableTransaction;
@@ -44,6 +47,7 @@ class CreatePaymentAction
         $this->journalService = $journalService;
         $this->periodLockService = $periodLockService;
         $this->notificationCenter = $notificationCenter;
+        $this->hooks = $hooks;
     }
 
     public function execute(array $data, ?User $actor = null): Payment
@@ -176,10 +180,25 @@ class CreatePaymentAction
                 'Auto journal payment ' . $payment->payment_number
             );
 
+            $this->dispatchPostedHooks($payment, $payables, $allocations, $actor);
             $this->publishNotifications($payment, $payables);
 
             return $payment->load(['method', 'receiver', 'allocations.payable']);
         });
+    }
+
+    private function dispatchPostedHooks(Payment $payment, Collection $payables, Collection $allocations, ?User $actor = null): void
+    {
+        try {
+            $this->hooks->dispatch('payments.posted', [
+                'payment' => $payment,
+                'payables' => $payables,
+                'allocations' => $allocations,
+                'actor' => $actor,
+            ]);
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
     }
 
     private function recalculateSummaries(Collection $payables): void

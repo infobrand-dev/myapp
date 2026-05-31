@@ -12,6 +12,7 @@
             </div>
             <div class="col-auto d-flex gap-2">
                 <a href="{{ route('storefront.public.index') }}" class="btn btn-outline-secondary">Buka Toko Publik</a>
+                <a href="{{ route('storefront.brand.edit') }}" class="btn btn-outline-secondary">Brand Page</a>
                 <a href="{{ route('sales.commerce.index') }}" class="btn btn-primary">Lihat Semua Order</a>
             </div>
         </div>
@@ -164,6 +165,7 @@
                     </a>
                     <a href="{{ route('payments.commerce.index') }}" class="list-group-item list-group-item-action">Payment Status</a>
                     <a href="{{ route('storefront.public.index') }}" class="list-group-item list-group-item-action">Tinjau Halaman Publik</a>
+                    <a href="{{ route('storefront.offers.index') }}" class="list-group-item list-group-item-action">Audit Public Offers</a>
                 </div>
             </div>
         </div>

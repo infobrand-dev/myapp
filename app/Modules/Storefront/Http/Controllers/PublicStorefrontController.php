@@ -5,6 +5,7 @@ namespace App\Modules\Storefront\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Products\Models\Product;
 use App\Modules\Sales\Models\Sale;
+use App\Modules\Storefront\Services\BrandPageService;
 use App\Modules\Storefront\Support\StorefrontCartService;
 use App\Modules\Storefront\Support\StorefrontProductPresenter;
 use App\Support\Commerce\PublicStorefrontContext;
@@ -13,6 +14,9 @@ use App\Support\Payments\PaymentGatewayManager;
 use App\Support\Shipping\ShippingProviderManager;
 use App\Support\TenantContext;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\URL;
 use Illuminate\View\View;
 
@@ -22,6 +26,7 @@ class PublicStorefrontController extends Controller
         private readonly PublicStorefrontContext $publicStorefront,
         private readonly StorefrontProductPresenter $productPresenter,
         private readonly StorefrontCartService $cart,
+        private readonly BrandPageService $brandPages,
     ) {
     }
 
@@ -37,22 +42,43 @@ class PublicStorefrontController extends Controller
         $search = trim((string) $request->query('q', ''));
         $type = trim((string) $request->query('type', ''));
 
-        $catalogQuery = Product::query()
+        $catalogItems = Product::query()
             ->with('media')
             ->where('tenant_id', TenantContext::currentId())
             ->active()
-            ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($builder) use ($search): void {
-                    $builder
-                        ->where('name', 'like', '%' . $search . '%')
-                        ->orWhere('description', 'like', '%' . $search . '%')
-                        ->orWhere('sku', 'like', '%' . $search . '%');
-                });
+            ->orderBy('name')
+            ->get()
+            ->filter(function (Product $product) use ($search, $type): bool {
+                if (!$this->isPublicCatalogVisible($product)) {
+                    return false;
+                }
+
+                if ($search !== '') {
+                    $haystack = mb_strtolower(implode(' ', [
+                        (string) $product->name,
+                        (string) $product->description,
+                        (string) $product->sku,
+                    ]));
+
+                    if (!str_contains($haystack, mb_strtolower($search))) {
+                        return false;
+                    }
+                }
+
+                return $type === '' || $product->type === $type;
             })
-            ->when($type !== '' && in_array($type, ['simple', 'digital', 'service', 'custom'], true), fn ($query) => $query->where('type', $type))
-            ->orderBy('name');
-        $products = (clone $catalogQuery)->paginate(18);
-        $featuredProducts = (clone $catalogQuery)->take(3)->get();
+            ->values();
+        $products = $this->paginate($catalogItems, 18, $request);
+        $featuredProducts = $catalogItems
+            ->filter(fn (Product $product): bool => filter_var(data_get($product->meta, 'public_offer.featured', false), FILTER_VALIDATE_BOOLEAN))
+            ->take(3);
+
+        if ($featuredProducts->isEmpty()) {
+            $featuredProducts = $catalogItems->take(3);
+        }
+
+        $brand = $this->storefrontBrand();
+        $sections = collect($brand['sections'])->keyBy('key');
 
         return view('storefront::public.index', [
             'products' => $products,
@@ -63,10 +89,11 @@ class PublicStorefrontController extends Controller
             'featuredImageUrls' => $featuredProducts->mapWithKeys(
                 fn (Product $product) => [$product->id => $this->productPresenter->imageUrl($product)]
             ),
-            'storefrontBrand' => $this->storefrontBrand(),
-            'storefrontStats' => $this->storefrontStats($catalogQuery),
+            'storefrontBrand' => $brand,
+            'storefrontStats' => $this->storefrontStats($catalogItems),
             'cartCount' => $this->cart->count(),
             'filters' => ['q' => $search, 'type' => $type],
+            'sections' => $sections,
         ]);
     }
 
@@ -79,6 +106,7 @@ class PublicStorefrontController extends Controller
         abort_unless($this->publicStorefront->enabled(), 404);
         abort_unless($this->publicStorefront->apply(), 404);
         abort_unless((bool) $product->is_active, 404);
+        abort_unless($this->isPublicShowVisible($product), 404);
 
         $paymentGateways = app(PaymentGatewayManager::class);
         $activeProvider = $paymentGateways->activeProviderCode();
@@ -87,6 +115,40 @@ class PublicStorefrontController extends Controller
 
         return view('storefront::public.show', [
             'product' => $product->loadMissing('media'),
+            'offer' => $this->publicOffer($product),
+            'activeGatewayProvider' => $activeProvider,
+            'activeGatewayLabel' => $paymentGateways->activeProviderLabel(),
+            'activeGatewayMeta' => $paymentGateways->providerMetadata($activeProvider),
+            'activeShippingProvider' => $activeShippingProvider,
+            'activeShippingLabel' => $shippingProviders->activeProviderLabel(),
+            'activeShippingMeta' => $shippingProviders->providerMetadata($activeShippingProvider),
+            'shippingSelectionOptions' => session('storefront.shipping_options', []),
+            'productImageUrl' => $this->productPresenter->imageUrl($product),
+            'storefrontBrand' => $this->storefrontBrand(),
+            'cartCount' => $this->cart->count(),
+        ]);
+    }
+
+    public function offer(Request $request, Product $product): View
+    {
+        abort_if($request->attributes->get('platform_admin_host'), 404);
+        if ($request->attributes->has('tenant_id')) {
+            TenantContext::setCurrentId((int) $request->attributes->get('tenant_id'));
+        }
+        abort_unless($this->publicStorefront->enabled(), 404);
+        abort_unless($this->publicStorefront->apply(), 404);
+        abort_unless((bool) $product->is_active, 404);
+        abort_unless($this->isPublicShowVisible($product), 404);
+
+        $offer = $this->publicOffer($product);
+        $paymentGateways = app(PaymentGatewayManager::class);
+        $activeProvider = $paymentGateways->activeProviderCode();
+        $shippingProviders = app(ShippingProviderManager::class);
+        $activeShippingProvider = $shippingProviders->activeProviderCode();
+
+        return view('storefront::public.offer', [
+            'product' => $product->loadMissing('media'),
+            'offer' => $offer,
             'activeGatewayProvider' => $activeProvider,
             'activeGatewayLabel' => $paymentGateways->activeProviderLabel(),
             'activeGatewayMeta' => $paymentGateways->providerMetadata($activeProvider),
@@ -189,10 +251,10 @@ class PublicStorefrontController extends Controller
     /**
      * @return array<string, string|int>
      */
-    private function storefrontStats($catalogQuery): array
+    private function storefrontStats(Collection $catalogItems): array
     {
-        $physicalCount = (clone $catalogQuery)->trackingStock()->count();
-        $total = (clone $catalogQuery)->count();
+        $physicalCount = $catalogItems->filter(fn (Product $product): bool => $this->fulfillmentType($product) === 'physical')->count();
+        $total = $catalogItems->count();
         $digitalCount = $total - $physicalCount;
 
         return [
@@ -207,32 +269,70 @@ class PublicStorefrontController extends Controller
      */
     private function storefrontBrand(): array
     {
-        $tenant = TenantContext::currentTenant();
-        $meta = is_array($tenant?->meta) ? $tenant->meta : [];
+        return $this->brandPages->profile();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function publicOffer(Product $product): array
+    {
+        $offer = is_array(data_get($product->meta, 'public_offer')) ? data_get($product->meta, 'public_offer') : [];
 
         return [
-            'name' => trim((string) ($meta['public_brand_name'] ?? $tenant?->name ?? config('app.name'))),
-            'description' => ($description = trim((string) ($meta['public_brand_description'] ?? ''))) !== '' ? $description : null,
-            'logo_url' => $this->publicAssetUrl((string) ($meta['public_brand_logo_path'] ?? '')),
+            'visibility' => (string) ($offer['visibility'] ?? 'catalog'),
+            'headline' => trim((string) ($offer['headline'] ?? $product->name)),
+            'subtitle' => ($subtitle = trim((string) ($offer['subtitle'] ?? ''))) !== '' ? $subtitle : null,
+            'delivery_type' => $this->fulfillmentType($product),
+            'delivery_instructions' => ($instructions = trim((string) ($offer['delivery_instructions'] ?? ''))) !== '' ? $instructions : null,
+            'download_url' => ($downloadUrl = trim((string) ($offer['download_url'] ?? ''))) !== '' ? $downloadUrl : null,
+            'external_url' => ($externalUrl = trim((string) ($offer['external_url'] ?? ''))) !== '' ? $externalUrl : null,
+            'slot_note' => ($slotNote = trim((string) ($offer['slot_note'] ?? ''))) !== '' ? $slotNote : null,
+            'cta_label' => trim((string) ($offer['cta_label'] ?? 'Beli sekarang')),
         ];
     }
 
-    private function publicAssetUrl(string $path): ?string
+    private function isPublicCatalogVisible(Product $product): bool
     {
-        if ($path === '') {
-            return null;
+        return in_array($this->publicOffer($product)['visibility'], ['catalog', 'featured'], true);
+    }
+
+    private function isPublicShowVisible(Product $product): bool
+    {
+        return in_array($this->publicOffer($product)['visibility'], ['catalog', 'featured', 'direct'], true);
+    }
+
+    private function fulfillmentType(Product $product): string
+    {
+        $configured = trim((string) data_get($product->meta, 'public_offer.delivery_type', ''));
+
+        if ($configured !== '') {
+            return $configured;
         }
 
-        $publicStoragePath = public_path('storage/' . $path);
-        if (File::exists($publicStoragePath)) {
-            return asset('storage/' . $path);
-        }
+        return $product->track_stock ? 'physical' : 'service';
+    }
 
-        $publicDirectPath = public_path($path);
-        if (File::exists($publicDirectPath)) {
-            return asset($path);
-        }
+    /**
+     * @template TValue
+     *
+     * @param  Collection<int, TValue>  $items
+     * @return LengthAwarePaginator<TValue>
+     */
+    private function paginate(Collection $items, int $perPage, Request $request): LengthAwarePaginator
+    {
+        $page = max(1, (int) $request->query('page', 1));
+        $slice = $items->forPage($page, $perPage)->values();
 
-        return \Illuminate\Support\Facades\Storage::disk('public')->url($path);
+        return new LengthAwarePaginator(
+            $slice,
+            $items->count(),
+            $perPage,
+            $page,
+            [
+                'path' => $request->url(),
+                'query' => $request->query(),
+            ]
+        );
     }
 }

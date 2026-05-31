@@ -29,6 +29,7 @@
             'minimum_qty' => $price->minimum_qty,
         ];
     })->values()->all());
+    $publicOffer = is_array($product->meta['public_offer'] ?? null) ? $product->meta['public_offer'] : [];
 @endphp
 
 @if($errors->any())
@@ -390,6 +391,102 @@
                         <div class="col-12"><label class="form-label">Featured image</label><input type="file" name="featured_image" class="form-control" accept="image/*"></div>
                         <div class="col-12"><label class="form-label">Gallery images</label><input type="file" name="gallery_images[]" class="form-control" accept="image/*" multiple></div>
                     @endif
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header"><h3 class="card-title">Public Offer</h3></div>
+                <div class="card-body row g-3">
+                    <div class="col-12">
+                        <label class="form-label">Visibility</label>
+                        <select name="public_offer_visibility" class="form-select">
+                            <option value="catalog" @selected(old('public_offer_visibility', $publicOffer['visibility'] ?? 'catalog') === 'catalog')>Catalog</option>
+                            <option value="featured" @selected(old('public_offer_visibility', $publicOffer['visibility'] ?? 'catalog') === 'featured')>Featured Catalog</option>
+                            <option value="direct" @selected(old('public_offer_visibility', $publicOffer['visibility'] ?? 'catalog') === 'direct')>Direct Offer Only</option>
+                            <option value="private" @selected(old('public_offer_visibility', $publicOffer['visibility'] ?? 'catalog') === 'private')>Private / Hidden</option>
+                        </select>
+                        <div class="form-hint">Gunakan `direct` untuk link-in-bio atau campaign page tanpa muncul di katalog umum.</div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Headline</label>
+                        <input type="text" name="public_offer_headline" class="form-control" value="{{ old('public_offer_headline', $publicOffer['headline'] ?? '') }}" placeholder="Override judul publik">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Subtitle</label>
+                        <textarea name="public_offer_subtitle" class="form-control" rows="3" placeholder="Ringkasan manfaat / angle jual">{{ old('public_offer_subtitle', $publicOffer['subtitle'] ?? '') }}</textarea>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Delivery Type</label>
+                        <select name="public_offer_delivery_type" class="form-select">
+                            <option value="">Ikuti tipe default produk</option>
+                            <option value="physical" @selected(old('public_offer_delivery_type', $publicOffer['delivery_type'] ?? '') === 'physical')>Physical</option>
+                            <option value="download" @selected(old('public_offer_delivery_type', $publicOffer['delivery_type'] ?? '') === 'download')>Download</option>
+                            <option value="external_link" @selected(old('public_offer_delivery_type', $publicOffer['delivery_type'] ?? '') === 'external_link')>External Link</option>
+                            <option value="manual_fulfillment" @selected(old('public_offer_delivery_type', $publicOffer['delivery_type'] ?? '') === 'manual_fulfillment')>Manual Fulfillment</option>
+                            <option value="service" @selected(old('public_offer_delivery_type', $publicOffer['delivery_type'] ?? '') === 'service')>Service</option>
+                            <option value="consultation" @selected(old('public_offer_delivery_type', $publicOffer['delivery_type'] ?? '') === 'consultation')>Consultation</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Delivery Instructions</label>
+                        <textarea name="public_offer_delivery_instructions" class="form-control" rows="3" placeholder="Instruksi setelah pembayaran">{{ old('public_offer_delivery_instructions', $publicOffer['delivery_instructions'] ?? '') }}</textarea>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Download URL</label>
+                        <input type="url" name="public_offer_download_url" class="form-control" value="{{ old('public_offer_download_url', $publicOffer['download_url'] ?? '') }}" placeholder="https://...">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">External URL</label>
+                        <input type="url" name="public_offer_external_url" class="form-control" value="{{ old('public_offer_external_url', $publicOffer['external_url'] ?? '') }}" placeholder="https://...">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Slot / Booking Note</label>
+                        <input type="text" name="public_offer_slot_note" class="form-control" value="{{ old('public_offer_slot_note', $publicOffer['slot_note'] ?? '') }}" placeholder="Contoh: konsultasi 45 menit via Zoom">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">CTA Label</label>
+                        <input type="text" name="public_offer_cta_label" class="form-control" value="{{ old('public_offer_cta_label', $publicOffer['cta_label'] ?? '') }}" placeholder="Beli sekarang">
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input type="hidden" name="public_offer_featured" value="0">
+                            <input class="form-check-input" type="checkbox" name="public_offer_featured" value="1" @checked((bool) old('public_offer_featured', $publicOffer['featured'] ?? false))>
+                            <label class="form-check-label">Featured offer di brand page</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @php($affiliateOffer = is_array($product->meta['affiliate_offer'] ?? null) ? $product->meta['affiliate_offer'] : [])
+            <div class="card mt-3">
+                <div class="card-header"><h3 class="card-title">Affiliate Offer</h3></div>
+                <div class="card-body row g-3">
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input type="hidden" name="affiliate_enabled" value="0">
+                            <input class="form-check-input" type="checkbox" name="affiliate_enabled" value="1" @checked((bool) old('affiliate_enabled', $affiliateOffer['enabled'] ?? false))>
+                            <label class="form-check-label">Buka produk ini untuk affiliator Meetra</label>
+                        </div>
+                        <div class="form-hint">Affiliator harus punya akun Meetra dan claim produk ini ke workspace mereka. Product source tetap satu, tidak diduplikasi.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Commission Type</label>
+                        <select name="affiliate_commission_type" class="form-select">
+                            <option value="percentage" @selected(old('affiliate_commission_type', $affiliateOffer['commission_type'] ?? 'percentage') === 'percentage')>Percentage</option>
+                            <option value="flat" @selected(old('affiliate_commission_type', $affiliateOffer['commission_type'] ?? 'percentage') === 'flat')>Flat</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Commission Rate</label>
+                        <input type="number" min="0" step="0.01" name="affiliate_commission_rate" class="form-control" value="{{ old('affiliate_commission_rate', $affiliateOffer['commission_rate'] ?? config('services.tenant_affiliate.default_commission_rate', 10)) }}">
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input type="hidden" name="affiliate_allow_landing_copy" value="0">
+                            <input class="form-check-input" type="checkbox" name="affiliate_allow_landing_copy" value="1" @checked((bool) old('affiliate_allow_landing_copy', $affiliateOffer['allow_landing_copy'] ?? true))>
+                            <label class="form-check-label">Izinkan affiliator membuat salinan landing copy</label>
+                        </div>
+                    </div>
                 </div>
             </div>
 

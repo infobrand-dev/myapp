@@ -6,7 +6,7 @@ use App\Modules\SocialMedia\Http\Controllers\SocialWebhookController;
 use App\Modules\SocialMedia\Http\Controllers\SocialAccountController;
 use App\Http\Middleware\VerifyCsrfToken;
 
-Route::middleware('web')
+Route::middleware('public-web')
     ->withoutMiddleware([VerifyCsrfToken::class])
     ->group(function () {
         Route::post('/social-media/webhook', [SocialWebhookController::class, 'inbound'])->name('social-media.webhook');

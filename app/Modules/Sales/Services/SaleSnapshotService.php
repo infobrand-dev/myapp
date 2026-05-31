@@ -112,6 +112,9 @@ class SaleSnapshotService
 
     public function productSnapshot(Product $product, ?ProductVariant $variant = null): array
     {
+        $meta = is_array($product->meta) ? $product->meta : [];
+        $publicOffer = is_array(data_get($meta, 'public_offer')) ? data_get($meta, 'public_offer') : [];
+
         return [
             'product_name' => $product->name,
             'variant_name' => $variant ? $variant->name : null,
@@ -130,6 +133,17 @@ class SaleSnapshotService
                 'track_stock' => $variant ? $variant->track_stock : $product->track_stock,
                 'base_sell_price' => (float) ($variant ? $variant->sell_price : $product->sell_price),
                 'attribute_summary' => $variant ? $variant->attribute_summary : null,
+                'public_offer' => [
+                    'visibility' => (string) ($publicOffer['visibility'] ?? 'catalog'),
+                    'headline' => $this->nullableString($publicOffer['headline'] ?? null),
+                    'subtitle' => $this->nullableString($publicOffer['subtitle'] ?? null),
+                    'delivery_type' => (string) ($publicOffer['delivery_type'] ?? ($product->track_stock ? 'physical' : 'service')),
+                    'delivery_instructions' => $this->nullableString($publicOffer['delivery_instructions'] ?? null),
+                    'download_url' => $this->nullableString($publicOffer['download_url'] ?? null),
+                    'external_url' => $this->nullableString($publicOffer['external_url'] ?? null),
+                    'slot_note' => $this->nullableString($publicOffer['slot_note'] ?? null),
+                    'cta_label' => $this->nullableString($publicOffer['cta_label'] ?? null),
+                ],
             ],
         ];
     }

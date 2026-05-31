@@ -91,7 +91,9 @@ class SelfServeOnboardingSalesFlowTest extends TestCase
             ], 201),
         ]);
 
-        $response = $this->post(route('onboarding.store'), [
+        $response = $this->post(route('onboarding.store', ['product_line' => 'omnichannel']), [
+            'signup_mode' => 'paid',
+            'product_line' => 'omnichannel',
             'subscription_plan_id' => SubscriptionPlan::query()->where('code', 'growth-v2')->value('id'),
             'company_name' => 'Acme Omnichannel',
             'slug' => 'acme',
@@ -131,7 +133,9 @@ class SelfServeOnboardingSalesFlowTest extends TestCase
         config()->set('services.platform_manual_payment.account_number', '1234567890');
         config()->set('services.platform_manual_payment.review_sla_hours', 24);
 
-        $response = $this->post(route('onboarding.store'), [
+        $response = $this->post(route('onboarding.store', ['product_line' => 'omnichannel']), [
+            'signup_mode' => 'paid',
+            'product_line' => 'omnichannel',
             'subscription_plan_id' => SubscriptionPlan::query()->where('code', 'growth-v2')->value('id'),
             'company_name' => 'Gamma Omnichannel',
             'slug' => 'gamma',
@@ -162,7 +166,9 @@ class SelfServeOnboardingSalesFlowTest extends TestCase
 
     public function test_trial_query_no_longer_bypasses_payment_selection(): void
     {
-        $response = $this->post(route('onboarding.store', ['trial' => 1]), [
+        $response = $this->post(route('onboarding.store', ['trial' => 1, 'product_line' => 'omnichannel']), [
+            'signup_mode' => 'paid',
+            'product_line' => 'omnichannel',
             'subscription_plan_id' => SubscriptionPlan::query()->where('code', 'growth-v2')->value('id'),
             'company_name' => 'Trial Attempt',
             'slug' => 'trial-attempt',
@@ -190,7 +196,9 @@ class SelfServeOnboardingSalesFlowTest extends TestCase
             ], 201),
         ]);
 
-        $this->post(route('onboarding.store'), [
+        $this->post(route('onboarding.store', ['product_line' => 'omnichannel']), [
+            'signup_mode' => 'paid',
+            'product_line' => 'omnichannel',
             'subscription_plan_id' => SubscriptionPlan::query()->where('code', 'scale-v2')->value('id'),
             'company_name' => 'Beta Omnichannel',
             'slug' => 'beta',

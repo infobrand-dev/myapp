@@ -53,6 +53,7 @@ class StorefrontCartCheckoutRequest extends FormRequest
             'customer_note' => ['nullable', 'string', 'max:1000'],
             'fulfillment_method' => ['required', Rule::in(['pickup', 'delivery'])],
             'payment_method' => ['required', Rule::in($providerOptions)],
+            'checkout_channel' => ['nullable', Rule::in(['public_brand', 'direct_offer', 'affiliate_referral'])],
         ];
     }
 
@@ -70,6 +71,7 @@ class StorefrontCartCheckoutRequest extends FormRequest
             'customer_note' => trim((string) $this->input('customer_note', '')),
             'fulfillment_method' => $this->filled('fulfillment_method') ? (string) $this->input('fulfillment_method') : 'pickup',
             'payment_method' => $this->filled('payment_method') ? (string) $this->input('payment_method') : 'manual',
+            'checkout_channel' => trim((string) $this->input('checkout_channel', '')),
         ]);
     }
 }

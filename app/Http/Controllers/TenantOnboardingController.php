@@ -195,7 +195,12 @@ class TenantOnboardingController extends Controller
 
     private function requestedPublicProductLine(Request $request): string
     {
-        $requested = strtolower(trim((string) ($request->query('product_line') ?: $request->query('product'))));
+        $requested = strtolower(trim((string) (
+            $request->input('product_line')
+            ?: $request->query('product_line')
+            ?: $request->input('product')
+            ?: $request->query('product')
+        )));
 
         return in_array($requested, ['accounting', 'omnichannel', 'commerce'], true)
             ? $requested

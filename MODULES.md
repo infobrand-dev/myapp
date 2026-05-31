@@ -31,6 +31,8 @@ This file is a quick catalog. The authoritative metadata for each module lives i
 - `shortlink`: short URL management, multi-code support, click tracking, redirect endpoint.
 - `sample_data`: sample/demo data entry points for local testing and demos.
 - `storefront`: commerce-facing workspace for storefront overview plus tenant public catalog and basic online checkout entry. Requires `products`, `sales`, `payments`.
+- `affiliate`: tenant-side affiliate marketplace berbasis akun Meetra untuk claim product, referral listing, dan conversion tracking antar tenant. Requires `payments`, `sales`, `storefront`.
+- `wallet`: tenant wallet ledger, settlement, refund adjustment, dan payout manual untuk commerce creator. Requires `payments`, `sales`, `storefront`.
 - `shipping`: commerce shipping workspace. Requires `sales`.
 - `fulfillment`: commerce fulfillment workspace. Requires `sales`.
 - `biteship`: shipping rate integration for commerce quote flow. Requires `shipping`.
@@ -71,6 +73,8 @@ This file is a quick catalog. The authoritative metadata for each module lives i
 - `xendit`: Xendit payment link integration for commerce checkout flow. Requires `payments`, `sales`, `storefront`.
 - `tripay`: Tripay hosted checkout integration for commerce checkout flow. Requires `payments`, `sales`, `storefront`.
 - `storefront`: commerce-facing workspace for storefront metrics, tenant public catalog, and basic online checkout entry. Requires `products`, `sales`, `payments`.
+- `affiliate`: tenant-side affiliate marketplace and conversion workspace for commerce creator. Requires `payments`, `sales`, `storefront`.
+- `wallet`: tenant wallet ledger and payout workspace for commerce creator. Requires `payments`, `sales`, `storefront`.
 - `shipping`: shipping workspace for commerce order flow. Requires `sales`.
 - `fulfillment`: fulfillment workspace for commerce order flow. Requires `sales`.
 
@@ -103,6 +107,8 @@ Add-on:
 
 Bundle v1:
 - `storefront`
+- `affiliate`
+- `wallet`
 - `shipping`
 - `fulfillment`
 

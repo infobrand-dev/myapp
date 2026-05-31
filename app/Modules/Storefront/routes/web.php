@@ -2,6 +2,8 @@
 
 use App\Modules\Storefront\Http\Controllers\StorefrontController;
 use App\Modules\Storefront\Http\Controllers\StorefrontCartController;
+use App\Modules\Storefront\Http\Controllers\StorefrontBrandPageController;
+use App\Modules\Storefront\Http\Controllers\StorefrontOfferController;
 use App\Modules\Storefront\Http\Controllers\PublicStorefrontController;
 use App\Modules\Storefront\Http\Controllers\StorefrontCheckoutController;
 use Illuminate\Support\Facades\Route;
@@ -11,6 +13,7 @@ Route::middleware(['web', 'throttle:commerce-checkout', 'plan.feature:commerce',
     ->name('storefront.public.')
     ->group(function () {
         Route::get('/', [PublicStorefrontController::class, 'index'])->name('index');
+        Route::get('/offers/{product:slug}', [PublicStorefrontController::class, 'offer'])->name('offers.show');
         Route::get('/cart', [PublicStorefrontController::class, 'cart'])->name('cart');
         Route::get('/checkout', [PublicStorefrontController::class, 'checkout'])->name('checkout');
         Route::get('/products/{product:slug}', [PublicStorefrontController::class, 'show'])->name('products.show');
@@ -34,4 +37,9 @@ Route::middleware(['web', 'auth', 'plan.feature:commerce', 'plan.feature:storefr
     ->name('storefront.')
     ->group(function () {
         Route::get('/', StorefrontController::class)->name('index');
+        Route::get('/brand', [StorefrontBrandPageController::class, 'edit'])->name('brand.edit');
+        Route::put('/brand', [StorefrontBrandPageController::class, 'update'])
+            ->middleware('permission:storefront.manage')
+            ->name('brand.update');
+        Route::get('/offers', StorefrontOfferController::class)->name('offers.index');
     });

@@ -2,6 +2,9 @@
 
 namespace App\Modules\WhatsAppApi\Jobs;
 
+use App\Models\StoredFile;
+use App\Services\SharedFileAccessService;
+use App\Services\StoredFileService;
 use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use App\Support\TenantContext;
@@ -316,7 +319,7 @@ class SubmitTemplateToMeta implements ShouldQueue
             throw new RuntimeException('WA_CLOUD_APP_ID / META_APP_ID belum dikonfigurasi. Meta Resumable Upload API membutuhkan App ID untuk membuat header_handle.');
         }
 
-        $media = $this->resolveHeaderMediaBinary($header);
+        $media = $this->resolveHeaderMediaBinary($template, $header);
         $uploadSessionId = $this->createMetaUploadSession(
             $base,
             $appId,
@@ -345,16 +348,17 @@ class SubmitTemplateToMeta implements ShouldQueue
         return $handle;
     }
 
-    private function resolveHeaderMediaBinary(array $header): array
+    private function resolveHeaderMediaBinary(WATemplate $template, array $header): array
     {
         $param = (array) data_get($header, 'parameters.0', []);
         $disk = (string) ($param['storage_disk'] ?? 'public');
         $storagePath = trim((string) ($param['storage_path'] ?? ''));
         $filename = trim((string) ($param['original_name'] ?? ''));
         $mimeType = trim((string) ($param['mime_type'] ?? ''));
+        $storedFileId = (int) ($param['stored_file_id'] ?? 0);
 
-        if ($storagePath !== '' && Storage::disk($disk)->exists($storagePath)) {
-            $contents = (string) Storage::disk($disk)->get($storagePath);
+        $contents = $storagePath !== '' ? app(StoredFileService::class)->readContents($disk, $storagePath) : null;
+        if ($contents !== null) {
 
             return [
                 'contents' => $contents,
@@ -364,6 +368,16 @@ class SubmitTemplateToMeta implements ShouldQueue
         }
 
         $link = trim((string) ($param['link'] ?? ''));
+        if ($link === '' && $storedFileId > 0) {
+            $storedFile = StoredFile::query()->find($storedFileId);
+            if ($storedFile) {
+                $link = app(SharedFileAccessService::class)
+                    ->issueShareUrl($storedFile, 'provider', 900, null, [
+                        'channel' => 'whatsapp_template_submit',
+                        'template_id' => $template->id,
+                    ])['url'];
+            }
+        }
         if ($link === '') {
             throw new RuntimeException('Header media tidak memiliki file lokal maupun URL sumber yang bisa diunggah ke Meta.');
         }

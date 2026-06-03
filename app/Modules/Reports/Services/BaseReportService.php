@@ -2,13 +2,20 @@
 
 namespace App\Modules\Reports\Services;
 
+use App\Multitenancy\QueryContextGuard;
 use App\Support\BranchContext;
-use App\Support\CompanyContext;
-use App\Support\TenantContext;
 use Illuminate\Database\Query\Builder;
 
 abstract class BaseReportService
 {
+    private QueryContextGuard $guard;
+
+    public function __construct(
+        QueryContextGuard $guard
+    ) {
+        $this->guard = $guard;
+    }
+
     protected function baseFilters(array $filters): array
     {
         return [
@@ -62,9 +69,12 @@ abstract class BaseReportService
 
     protected function applyTenantCompanyBranchScope(Builder $query, string $table, string $branchColumn = 'branch_id'): Builder
     {
+        $tenantId = $this->guard->requireTenant('report query');
+        $companyId = $this->guard->requireCompany('report query');
+
         $query
-            ->where($table . '.tenant_id', TenantContext::currentId())
-            ->where($table . '.company_id', CompanyContext::currentId());
+            ->where($table . '.tenant_id', $tenantId)
+            ->where($table . '.company_id', $companyId);
 
         if (BranchContext::currentId() === null) {
             return $query->whereNull($table . '.' . $branchColumn);

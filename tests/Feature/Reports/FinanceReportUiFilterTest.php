@@ -12,18 +12,18 @@ use App\Support\AccountingUiMode;
 use App\Support\CompanyContext;
 use App\Support\MoneyFormatter;
 use App\Support\TenantContext;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\Concerns\BootstrapsModuleContext;
+use Tests\Concerns\RefreshesPgsqlDatabase;
 use Tests\TestCase;
 
 class FinanceReportUiFilterTest extends TestCase
 {
     use BootstrapsModuleContext;
-    use RefreshDatabase;
+    use RefreshesPgsqlDatabase;
 
     private Company $company;
     private User $user;

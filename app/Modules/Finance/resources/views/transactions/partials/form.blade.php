@@ -1,4 +1,5 @@
 @php
+    $storageAccess = app(\App\Services\StorageAccessService::class);
     $isAdvancedMode = ($accountingUiMode ?? 'standard') === 'advanced';
     $selectedBranchId = old('branch_id', $transaction->branch_id ?? old('outlet_id'));
     $defaultBranchLabel = optional($branches->first())->name;
@@ -174,7 +175,20 @@
                 ])
                 <input type="file" name="attachment" class="form-control @error('attachment') is-invalid @enderror">
                 @if($currentAttachmentPath)
-                    <div class="form-hint">File saat ini: <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($currentAttachmentPath) }}" target="_blank" rel="noreferrer">Lihat lampiran</a></div>
+                    @php
+                        $storedFileId = (int) data_get($transaction->meta ?? [], 'stored_file_id', 0);
+                        $legacyAttachmentUrl = $storedFileId > 0
+                            ? null
+                            : $storageAccess->legacySensitiveDownloadUrl('public', $currentAttachmentPath, 'finance_attachment', basename($currentAttachmentPath));
+                    @endphp
+                    <div class="form-hint">
+                        File saat ini:
+                        @if($storedFileId > 0 || $legacyAttachmentUrl)
+                            <a href="{{ $storedFileId > 0 ? route('stored-files.download', $storedFileId) : $legacyAttachmentUrl }}" target="_blank" rel="noreferrer">Lihat lampiran</a>
+                        @else
+                            <span class="text-muted">tidak tersedia</span>
+                        @endif
+                    </div>
                 @endif
                 @error('attachment') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>

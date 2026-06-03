@@ -3,8 +3,10 @@
 namespace App\Modules\WhatsAppApi\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Services\StorageAccessService;
+use App\Services\StoredFileService;
+use App\Services\SharedFileAccessService;
 use App\Services\TenantStorageUsageService;
-use App\Services\WorkspaceMediaStorageService;
 use App\Modules\WhatsAppApi\Http\Requests\StoreWATemplateRequest;
 use App\Modules\WhatsAppApi\Http\Requests\UpdateWATemplateRequest;
 use App\Modules\WhatsAppApi\Jobs\SubmitTemplateToMeta;
@@ -403,13 +405,15 @@ class WATemplateController extends Controller
             $existingUrl = trim((string) $request->input('header_media_url', ''));
             if (!$storedMedia && $existingStoredHeader) {
                 $storedPath = ltrim(str_replace('\\', '/', (string) ($existingStoredHeader['path'] ?? '')), '/');
-                $storedUrl = $storedPath !== '' ? asset('storage/' . $storedPath) : '';
+                $storedFileId = (int) ($existingStoredHeader['stored_file_id'] ?? 0);
+                $storedUrl = $storedFileId > 0 ? route('stored-files.preview', $storedFileId) : ($storedPath !== '' ? (app(StorageAccessService::class)->publicUrlFromPath($storedPath, (string) ($existingStoredHeader['disk'] ?? 'public')) ?? '') : '');
 
                 if ($existingUrl === '' || $existingUrl === $storedUrl) {
                     $storedMedia = [
                         'disk' => (string) ($existingStoredHeader['disk'] ?? 'public'),
                         'path' => $storedPath,
                         'url' => $storedUrl,
+                        'stored_file_id' => $storedFileId,
                     ];
                 }
             }
@@ -422,6 +426,7 @@ class WATemplateController extends Controller
                 if ($storedMedia) {
                     $param['storage_disk'] = $storedMedia['disk'];
                     $param['storage_path'] = $storedMedia['path'];
+                    $param['stored_file_id'] = $storedMedia['stored_file_id'] ?? null;
                 }
                 if ($uploadedFile) {
                     $param['original_name'] = $uploadedFile->getClientOriginalName();
@@ -477,17 +482,23 @@ class WATemplateController extends Controller
             $releasedBytes
         );
 
-        $storedMedia = app(WorkspaceMediaStorageService::class)->storeUploadedFile($file, 'wa_templates/headers', 'public');
-        $path = ltrim(str_replace('\\', '/', $storedMedia['path']), '/');
+        $storedFile = app(StoredFileService::class)->storeUploadedFile($file, 'wa_template_header_media', [
+            'tenant_id' => $this->tenantId(),
+            'source_module' => 'whatsapp_api',
+            'source_context' => 'wa_template_header_media',
+            'provider_origin' => 'whatsapp_meta',
+        ]);
+        $path = ltrim(str_replace('\\', '/', $storedFile->path), '/');
 
         if ($path === '') {
             return null;
         }
 
         return [
-            'disk' => 'public',
+            'disk' => (string) $storedFile->disk,
             'path' => $path,
-            'url' => $storedMedia['url'],
+            'url' => route('stored-files.preview', $storedFile),
+            'stored_file_id' => $storedFile->id,
         ];
     }
 
@@ -944,6 +955,7 @@ class WATemplateController extends Controller
             foreach ((array) ($component['parameters'] ?? []) as $parameter) {
                 $disk = $parameter['storage_disk'] ?? null;
                 $path = $parameter['storage_path'] ?? null;
+                $storedFileId = (int) ($parameter['stored_file_id'] ?? 0);
 
                 if (!is_string($disk) || $disk === '' || !is_string($path) || trim($path) === '') {
                     continue;
@@ -952,6 +964,7 @@ class WATemplateController extends Controller
                 return [
                     'disk' => $disk,
                     'path' => ltrim(str_replace('\\', '/', $path), '/'),
+                    'stored_file_id' => $storedFileId,
                 ];
             }
         }
@@ -978,8 +991,8 @@ class WATemplateController extends Controller
         $disk = (string) ($previousStoredHeader['disk'] ?? 'public');
         $path = (string) ($previousStoredHeader['path'] ?? '');
 
-        if ($path !== '' && Storage::disk($disk)->exists($path)) {
-            Storage::disk($disk)->delete($path);
+        if ($path !== '') {
+            app(StoredFileService::class)->deletePublicAssetByPath($path, $disk);
         }
     }
 }

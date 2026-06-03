@@ -62,6 +62,44 @@ return [
             ], static fn ($value) => $value !== null) : [],
         ],
 
+        'central' => [
+            'driver' => 'pgsql',
+            'url' => env('CENTRAL_DATABASE_URL', env('DATABASE_URL')),
+            'host' => env('CENTRAL_DB_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('CENTRAL_DB_PORT', env('DB_PORT', '5432')),
+            'database' => env('CENTRAL_DB_DATABASE', env('DB_DATABASE', 'forge')),
+            'username' => env('CENTRAL_DB_USERNAME', env('DB_USERNAME', 'forge')),
+            'password' => env('CENTRAL_DB_PASSWORD', env('DB_PASSWORD', '')),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'schema' => env('CENTRAL_DB_SCHEMA', 'public'),
+            'sslmode' => env('CENTRAL_DB_SSLMODE', env('DB_SSLMODE', 'prefer')),
+            'options' => extension_loaded('pdo_pgsql') ? array_filter([
+                PDO::ATTR_EMULATE_PREPARES => env('CENTRAL_DB_EMULATE_PREPARES', env('DB_EMULATE_PREPARES', false)),
+                PDO::ATTR_PERSISTENT => env('CENTRAL_DB_PERSISTENT', env('DB_PERSISTENT', false)),
+            ], static fn ($value) => $value !== null) : [],
+        ],
+
+        'tenant' => [
+            'driver' => 'pgsql',
+            'url' => null,
+            'host' => env('TENANT_DB_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('TENANT_DB_PORT', env('DB_PORT', '5432')),
+            'database' => env('TENANT_DB_DATABASE', env('DB_DATABASE', 'forge')),
+            'username' => env('TENANT_DB_USERNAME', env('DB_USERNAME', 'forge')),
+            'password' => env('TENANT_DB_PASSWORD', env('DB_PASSWORD', '')),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'schema' => env('TENANT_DB_SCHEMA', 'public'),
+            'sslmode' => env('TENANT_DB_SSLMODE', env('DB_SSLMODE', 'prefer')),
+            'options' => extension_loaded('pdo_pgsql') ? array_filter([
+                PDO::ATTR_EMULATE_PREPARES => env('TENANT_DB_EMULATE_PREPARES', env('DB_EMULATE_PREPARES', false)),
+                PDO::ATTR_PERSISTENT => env('TENANT_DB_PERSISTENT', env('DB_PERSISTENT', false)),
+            ], static fn ($value) => $value !== null) : [],
+        ],
+
     ],
 
     /*

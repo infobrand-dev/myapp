@@ -47,10 +47,10 @@ return new class extends Migration
         $driver = DB::getDriverName();
 
         if ($driver === 'pgsql') {
-            DB::statement('CREATE EXTENSION IF NOT EXISTS vector');
-
-            if (!$this->postgresColumnExists('chatbot_knowledge_chunks', 'embedding')) {
-                DB::statement('ALTER TABLE chatbot_knowledge_chunks ADD COLUMN embedding vector(1536)');
+            if ($this->ensurePgvectorAvailable()) {
+                if (!$this->postgresColumnExists('chatbot_knowledge_chunks', 'embedding')) {
+                    DB::statement('ALTER TABLE chatbot_knowledge_chunks ADD COLUMN embedding vector(1536)');
+                }
             }
         }
 
@@ -102,5 +102,31 @@ return new class extends Migration
     private function postgresColumnExists(string $table, string $column): bool
     {
         return SchemaInspector::columnExists($table, $column);
+    }
+
+    private function ensurePgvectorAvailable(): bool
+    {
+        try {
+            $available = DB::selectOne(
+                'select 1 from pg_available_extensions where name = ? limit 1',
+                ['vector']
+            );
+
+            if (!$available) {
+                logger()->warning('Skipping pgvector extension setup because the extension is not available on this PostgreSQL host.');
+
+                return false;
+            }
+
+            DB::statement('CREATE EXTENSION IF NOT EXISTS vector');
+
+            return true;
+        } catch (\Throwable $exception) {
+            logger()->warning('Skipping pgvector extension setup for chatbot knowledge chunks.', [
+                'error' => $exception->getMessage(),
+            ]);
+
+            return false;
+        }
     }
 };

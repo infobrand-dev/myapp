@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\Tenant;
+use App\Multitenancy\TenantRegistry;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\URL;
@@ -10,6 +10,14 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ResolveTenantFromSubdomain
 {
+    /** @var TenantRegistry */
+    private $registry;
+
+    public function __construct(TenantRegistry $registry)
+    {
+        $this->registry = $registry;
+    }
+
     /**
      * Detect the tenant from the subdomain when running in SaaS mode.
      *
@@ -59,15 +67,13 @@ class ResolveTenantFromSubdomain
             return $next($request);
         }
 
-        $tenant = Tenant::query()
-            ->where('slug', $slug)
-            ->first();
+        $tenant = $this->registry->findByDomain($host) ?: $this->registry->findBySlug($slug);
 
         if ($tenant === null) {
             abort(404, "Workspace «{$slug}» tidak ditemukan.");
         }
 
-        if (! $tenant->is_active) {
+        if (! $tenant->is_active || $tenant->status !== 'active') {
             return response()->view('errors.tenant-suspended', [], 403);
         }
 

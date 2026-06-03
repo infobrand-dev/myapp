@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PlatformAffiliate extends Model
 {
+    protected $connection = 'central';
+
     protected $fillable = [
         'name',
         'email',

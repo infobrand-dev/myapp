@@ -5,6 +5,8 @@ namespace Tests\Feature\Sales;
 use App\Models\Company;
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Finance\FinanceServiceProvider;
+use App\Modules\Finance\Services\ChartOfAccountProvisioner;
 use App\Modules\Payments\PaymentsServiceProvider;
 use App\Modules\Products\Models\Product;
 use App\Modules\Sales\Actions\CreateDraftSaleAction;
@@ -28,6 +30,7 @@ class SalesHookDispatchTest extends TestCase
     {
         parent::setUp();
 
+        $this->app->register(FinanceServiceProvider::class);
         $this->app->register(PaymentsServiceProvider::class);
         $this->app->register(SalesServiceProvider::class);
 
@@ -38,6 +41,11 @@ class SalesHookDispatchTest extends TestCase
 
         $this->artisan('migrate', [
             '--path' => 'app/Modules/Products/database/migrations',
+            '--realpath' => false,
+        ])->run();
+
+        $this->artisan('migrate', [
+            '--path' => 'app/Modules/Finance/database/migrations',
             '--realpath' => false,
         ])->run();
 
@@ -65,6 +73,7 @@ class SalesHookDispatchTest extends TestCase
         TenantContext::setCurrentId(1);
         CompanyContext::setCurrentId(1);
         BranchContext::setCurrentId(null);
+        app(ChartOfAccountProvisioner::class)->ensureDefaults(1, 1, null);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
@@ -127,11 +136,11 @@ class SalesHookDispatchTest extends TestCase
     {
         $user = User::factory()->create();
 
-        foreach (['sales.create', 'sales.finalize', 'sales.void'] as $permission) {
+        foreach (['sales.create', 'sales.finalize', 'sales.void', 'finance.approve-sensitive-transactions'] as $permission) {
             Permission::findOrCreate($permission, 'web');
         }
 
-        $user->givePermissionTo(['sales.create', 'sales.finalize', 'sales.void']);
+        $user->givePermissionTo(['sales.create', 'sales.finalize', 'sales.void', 'finance.approve-sensitive-transactions']);
 
         return $user;
     }

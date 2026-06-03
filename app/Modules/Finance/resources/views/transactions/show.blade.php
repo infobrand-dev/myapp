@@ -6,6 +6,7 @@
 @php
     $money = app(\App\Support\MoneyFormatter::class);
     $currency = app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency();
+    $storageAccess = app(\App\Services\StorageAccessService::class);
     $isAdvancedMode = ($accountingUiMode ?? 'standard') === 'advanced';
 
     $typeConfig = match($transaction->transaction_type) {
@@ -164,7 +165,17 @@
                     <div class="text-muted small mb-1">
                         <i class="ti ti-paperclip me-1"></i>Attachment
                     </div>
-                    <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($transaction->attachment_path) }}" target="_blank" rel="noreferrer">Lihat bukti transaksi</a>
+                    @php
+                        $storedFileId = (int) data_get($transaction->meta, 'stored_file_id', 0);
+                        $legacyAttachmentUrl = $storedFileId > 0
+                            ? null
+                            : $storageAccess->legacySensitiveDownloadUrl('public', $transaction->attachment_path, 'finance_attachment', basename($transaction->attachment_path));
+                    @endphp
+                    @if($storedFileId > 0 || $legacyAttachmentUrl)
+                        <a href="{{ $storedFileId > 0 ? route('stored-files.download', $storedFileId) : $legacyAttachmentUrl }}" target="_blank" rel="noreferrer">Lihat bukti transaksi</a>
+                    @else
+                        <span class="text-muted">Lampiran tidak tersedia.</span>
+                    @endif
                 </div>
                 @endif
 

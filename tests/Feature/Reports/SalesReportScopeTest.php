@@ -6,6 +6,8 @@ use App\Models\Branch;
 use App\Models\Company;
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Finance\FinanceServiceProvider;
+use App\Modules\Finance\Services\ChartOfAccountProvisioner;
 use App\Modules\Payments\PaymentsServiceProvider;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\ProductsServiceProvider;
@@ -37,6 +39,7 @@ class SalesReportScopeTest extends TestCase
         parent::setUp();
 
         $this->registerModuleProviders([
+            FinanceServiceProvider::class,
             ProductsServiceProvider::class,
             PaymentsServiceProvider::class,
             SalesServiceProvider::class,
@@ -45,9 +48,10 @@ class SalesReportScopeTest extends TestCase
         $this->migrateModulePaths([
             'app/Modules/Contacts/database/migrations',
             'app/Modules/Products/database/migrations',
+            'app/Modules/Finance/database/migrations',
             'app/Modules/Payments/database/migrations',
-            'app/Modules/PointOfSale/database/migrations',
             'app/Modules/Sales/database/migrations',
+            'app/Modules/PointOfSale/database/migrations',
         ]);
 
         app(PermissionRegistrar::class)->setPermissionsTeamId(1);
@@ -92,6 +96,8 @@ class SalesReportScopeTest extends TestCase
         TenantContext::setCurrentId(1);
         CompanyContext::setCurrentId($this->companyA->id);
         BranchContext::setCurrentId(null);
+        app(ChartOfAccountProvisioner::class)->ensureDefaults(1, $this->companyA->id, null);
+        app(ChartOfAccountProvisioner::class)->ensureDefaults(1, $this->companyB->id, null);
     }
 
     public function test_sales_report_uses_company_scope_when_branch_context_is_null(): void

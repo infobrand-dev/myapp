@@ -18,6 +18,8 @@ use App\Services\TenantTransactionalMailConfigResolver;
 use App\Services\TenantTransactionalMailerFactory;
 use App\Mail\TenantTransactionalTestMail;
 use App\Models\User;
+use App\Services\StoredFileService;
+use App\Services\WorkspaceMediaStorageService;
 use App\Support\ByoAiAddon;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
@@ -284,7 +286,7 @@ class SettingsController extends Controller
         $planManager->ensureWithinLimit(PlanLimit::COMPANIES);
         $data = $this->validateCompany($request);
 
-        Company::create([
+        $company = Company::create([
             'tenant_id' => TenantContext::currentId(),
             'name' => $data['name'],
             'slug' => $data['slug'],
@@ -292,6 +294,8 @@ class SettingsController extends Controller
             'is_active' => $request->boolean('is_active'),
             'meta' => [],
         ]);
+
+        $this->grantCreatorAccessToCompany($request->user(), $company);
 
         return redirect()->route('settings.company')->with('status', 'Company berhasil ditambahkan.');
     }
@@ -343,7 +347,7 @@ class SettingsController extends Controller
         $company = $this->requireCurrentCompany();
         $data = $this->validateBranch($request, $company);
 
-        Branch::create([
+        $branch = Branch::create([
             'tenant_id' => TenantContext::currentId(),
             'company_id' => $company->id,
             'name' => $data['name'],
@@ -352,6 +356,8 @@ class SettingsController extends Controller
             'is_active' => $request->boolean('is_active'),
             'meta' => [],
         ]);
+
+        $this->grantCreatorAccessToBranch($request->user(), $company, $branch);
 
         return redirect()->route('settings.branch')->with('status', 'Branch berhasil ditambahkan.');
     }
@@ -561,6 +567,7 @@ class SettingsController extends Controller
     {
         $tenant = TenantContext::currentTenant();
         abort_unless($tenant, 404);
+        $publicDisk = (string) config('workspace-files.public_disk', 'public');
 
         $rules = [
             'workspace_name' => ['required', 'string', 'max:255'],
@@ -625,12 +632,17 @@ class SettingsController extends Controller
 
         if ($request->hasFile('public_brand_logo')) {
             $oldPath = (string) ($tenantMeta['public_brand_logo_path'] ?? '');
-            $newPath = $request->file('public_brand_logo')->store('tenant-brand/' . $tenant->id, 'public');
+            $stored = app(WorkspaceMediaStorageService::class)->storeUploadedFile(
+                $request->file('public_brand_logo'),
+                'tenant-brand/' . $tenant->id,
+                $publicDisk
+            );
+            $newPath = $stored['path'];
 
             $tenantMeta['public_brand_logo_path'] = $newPath;
 
-            if ($oldPath !== '' && $oldPath !== $newPath && Storage::disk('public')->exists($oldPath)) {
-                Storage::disk('public')->delete($oldPath);
+            if ($oldPath !== '' && $oldPath !== $newPath) {
+                app(StoredFileService::class)->deletePublicAssetByPath($oldPath, $publicDisk);
             }
         }
 
@@ -1088,5 +1100,56 @@ class SettingsController extends Controller
                 'meta' => 'Installed and active',
             ],
         ];
+    }
+
+    private function grantCreatorAccessToCompany(?User $user, Company $company): void
+    {
+        if (!$user || !Schema::hasTable('user_companies')) {
+            return;
+        }
+
+        $access = app(UserAccessManager::class);
+        $companyIds = $access->companyIdsFor($user);
+
+        if ($companyIds === null) {
+            return;
+        }
+
+        $defaultCompanyId = $access->defaultCompanyIdFor($user) ?: $company->id;
+        $branchIds = $access->branchIdsFor($user)?->all() ?? [];
+
+        $access->sync(
+            $user,
+            $companyIds->push($company->id)->unique()->values()->all(),
+            $branchIds,
+            $defaultCompanyId,
+            $access->defaultBranchIdFor($user, $defaultCompanyId)
+        );
+    }
+
+    private function grantCreatorAccessToBranch(?User $user, Company $company, Branch $branch): void
+    {
+        if (!$user || !Schema::hasTable('user_branches')) {
+            return;
+        }
+
+        $access = app(UserAccessManager::class);
+        $companyIds = $access->companyIdsFor($user);
+        $branchIds = $access->branchIdsFor($user)?->all();
+
+        if ($companyIds === null || $branchIds === null) {
+            return;
+        }
+
+        $defaultCompanyId = $access->defaultCompanyIdFor($user) ?: $company->id;
+        $defaultBranchId = $access->defaultBranchIdFor($user, $defaultCompanyId) ?: $branch->id;
+
+        $access->sync(
+            $user,
+            $companyIds->push($company->id)->unique()->values()->all(),
+            collect($branchIds)->push($branch->id)->unique()->values()->all(),
+            $defaultCompanyId,
+            $defaultBranchId
+        );
     }
 }

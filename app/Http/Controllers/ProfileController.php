@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\StoredFileService;
 use App\Services\TenantStorageUsageService;
+use App\Services\WorkspaceMediaStorageService;
 use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
@@ -20,6 +21,7 @@ class ProfileController extends Controller
     {
         $user = $request->user();
         $tenantId = TenantContext::currentId();
+        $publicDisk = (string) config('workspace-files.public_disk', 'public');
 
         $data = $request->validate([
             'name'     => ['required', 'string', 'max:255'],
@@ -38,7 +40,7 @@ class ProfileController extends Controller
 
         // Handle avatar upload
         if ($request->hasFile('avatar')) {
-            $releasedBytes = $user->avatar ? app(TenantStorageUsageService::class)->fileSize('public', $user->avatar) : 0;
+            $releasedBytes = $user->avatar ? app(TenantStorageUsageService::class)->fileSize($publicDisk, $user->avatar) : 0;
             app(TenantStorageUsageService::class)->ensureCanStoreUpload(
                 $request->file('avatar'),
                 $tenantId,
@@ -46,12 +48,12 @@ class ProfileController extends Controller
                 $releasedBytes
             );
 
-            // Delete the old avatar file if it exists
-            if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
-                Storage::disk('public')->delete($user->avatar);
+            if ($user->avatar) {
+                app(StoredFileService::class)->deletePublicAssetByPath($user->avatar, $publicDisk);
             }
 
-            $data['avatar'] = $request->file('avatar')->store('avatars', 'public');
+            $stored = app(WorkspaceMediaStorageService::class)->storeUploadedFile($request->file('avatar'), 'avatars', $publicDisk);
+            $data['avatar'] = $stored['path'];
         } else {
             // Don't overwrite avatar if no file was submitted
             unset($data['avatar']);

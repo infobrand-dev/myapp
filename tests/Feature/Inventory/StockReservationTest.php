@@ -26,6 +26,7 @@ class StockReservationTest extends TestCase
         parent::setUp();
 
         $this->migrateModulePaths([
+            'app/Modules/Contacts/database/migrations',
             'app/Modules/Products/database/migrations',
             'app/Modules/Inventory/database/migrations',
         ]);

@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Multitenancy\QueryContextGuard;
 use App\Models\User;
 use App\Models\UserFeaturePreference;
 use Illuminate\Http\Request;
@@ -12,13 +13,21 @@ class FeatureMode
     public const STANDARD = 'standard';
     public const ADVANCED = 'advanced';
     public const SESSION_KEY = 'accounting_ui_mode';
+    private QueryContextGuard $guard;
+
+    public function __construct(
+        QueryContextGuard $guard
+    ) {
+        $this->guard = $guard;
+    }
 
     public function current(?Request $request = null, string $productLine = 'accounting', ?User $user = null): string
     {
         $request ??= request();
         $user ??= $request->user();
 
-        $default = $this->defaultMode($productLine, $user?->tenant_id ?: TenantContext::currentId());
+        $tenantId = $user?->tenant_id ?: $this->guard->requireTenant('feature mode resolution');
+        $default = $this->defaultMode($productLine, $tenantId);
         $resolved = $default;
 
         if ($user && ($override = $this->storedOverride($user, $productLine))) {
@@ -53,7 +62,7 @@ class FeatureMode
             return true;
         }
 
-        $tenantId = $user?->tenant_id ?: TenantContext::currentId();
+        $tenantId = $user?->tenant_id ?: $this->guard->requireTenant('feature mode capability check');
 
         if ($productLine === 'accounting') {
             return $this->planDefaultsToAdvanced($tenantId);
@@ -66,7 +75,8 @@ class FeatureMode
     {
         $user ??= $request->user();
 
-        $requested = $this->normalize($mode) ?? $this->defaultMode($productLine, $user?->tenant_id ?: TenantContext::currentId());
+        $tenantId = $user?->tenant_id ?: $this->guard->requireTenant('feature mode update');
+        $requested = $this->normalize($mode) ?? $this->defaultMode($productLine, $tenantId);
 
         if ($requested === self::ADVANCED && !$this->canUseAdvanced($request, $productLine, $user)) {
             $requested = self::STANDARD;
@@ -77,11 +87,12 @@ class FeatureMode
         }
 
         if ($user && $this->preferencesTableReady()) {
-            $default = $this->defaultMode($productLine, $user->tenant_id ?: TenantContext::currentId());
+            $userTenantId = $user->tenant_id ?: $tenantId;
+            $default = $this->defaultMode($productLine, $userTenantId);
 
             if ($requested === $default) {
                 UserFeaturePreference::query()
-                    ->where('tenant_id', $user->tenant_id ?: TenantContext::currentId() ?: 1)
+                    ->where('tenant_id', $userTenantId)
                     ->where('user_id', $user->id)
                     ->where('product_line', $productLine)
                     ->where('feature_key', (string) config('feature-modes.accounting.preference_key', 'accounting_ui_mode'))
@@ -89,7 +100,7 @@ class FeatureMode
             } else {
                 UserFeaturePreference::query()->updateOrCreate(
                     [
-                        'tenant_id' => $user->tenant_id ?: TenantContext::currentId() ?: 1,
+                        'tenant_id' => $userTenantId,
                         'user_id' => $user->id,
                         'product_line' => $productLine,
                         'feature_key' => (string) config('feature-modes.accounting.preference_key', 'accounting_ui_mode'),
@@ -120,7 +131,7 @@ class FeatureMode
         }
 
         $value = UserFeaturePreference::query()
-            ->where('tenant_id', $user->tenant_id ?: TenantContext::currentId() ?: 1)
+            ->where('tenant_id', $user->tenant_id ?: $this->guard->requireTenant('feature mode stored override'))
             ->where('user_id', $user->id)
             ->where('product_line', $productLine)
             ->where('feature_key', (string) config('feature-modes.accounting.preference_key', 'accounting_ui_mode'))

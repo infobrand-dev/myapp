@@ -154,6 +154,7 @@ class MetaWebhookPayloadParser
         }
 
         $direction = (bool) Arr::get($messaging, 'message.is_echo', false) ? 'out' : 'in';
+        $attachment = $this->extractAttachmentMetadata($messaging);
         $message = $this->extractMessageText($messaging);
 
         if ($message === null || trim($message) === '') {
@@ -166,6 +167,12 @@ class MetaWebhookPayloadParser
             'contact_id' => trim((string) Arr::get($messaging, 'sender.id')),
             'contact_name' => null,
             'message' => $message,
+            'type' => $attachment['type'] ?? 'text',
+            'media_url' => $attachment['provider_media_url'] ?? null,
+            'media_mime' => $attachment['media_mime'] ?? null,
+            'provider_origin' => $account->platform === 'instagram' ? 'instagram_meta' : 'facebook_meta',
+            'provider_media_id' => $attachment['provider_media_id'] ?? null,
+            'provider_media_url' => $attachment['provider_media_url'] ?? null,
             'external_message_id' => Arr::get($messaging, 'message.mid')
                 ?: Arr::get($messaging, 'postback.mid')
                 ?: Arr::get($messaging, 'mid'),
@@ -174,6 +181,7 @@ class MetaWebhookPayloadParser
                 'object' => $object,
                 'entry' => $entry,
                 'messaging' => $messaging,
+                'media_attachment' => $attachment ?: null,
             ],
             'account_id' => $account->id,
         ];
@@ -224,6 +232,32 @@ class MetaWebhookPayloadParser
     private function isDeliveryOrReadEvent(array $messaging): bool
     {
         return isset($messaging['delivery']) || isset($messaging['read']);
+    }
+
+    /**
+     * @return array<string, string|null>
+     */
+    private function extractAttachmentMetadata(array $messaging): array
+    {
+        $attachment = collect((array) Arr::get($messaging, 'message.attachments', []))
+            ->first(fn ($item) => is_array($item));
+
+        if (!is_array($attachment)) {
+            return [];
+        }
+
+        $type = strtolower(trim((string) ($attachment['type'] ?? 'attachment')));
+        $payload = (array) ($attachment['payload'] ?? []);
+        $url = trim((string) ($payload['url'] ?? $payload['attachment_url'] ?? ''));
+        $mime = trim((string) ($payload['mime_type'] ?? ''));
+        $providerId = trim((string) ($attachment['id'] ?? $payload['attachment_id'] ?? $payload['id'] ?? ''));
+
+        return array_filter([
+            'type' => $type !== '' && $type !== 'attachment' ? $type : 'document',
+            'provider_media_url' => $url !== '' ? $url : null,
+            'media_mime' => $mime !== '' ? $mime : null,
+            'provider_media_id' => $providerId !== '' ? $providerId : null,
+        ], static fn ($value) => $value !== null && $value !== '');
     }
 
     private function resolveMetaAccount(string $object, string $recipientId, string $entryId): ?SocialAccount

@@ -61,6 +61,7 @@ class Kernel extends HttpKernel
         'api' => [
             // \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             'throttle:api',
+            \App\Http\Middleware\ResolveTenantFromSubdomain::class,
             \App\Http\Middleware\ResolveTenantContext::class,
             \App\Http\Middleware\ResolveCompanyContext::class,
             \App\Http\Middleware\ResolveBranchContext::class,

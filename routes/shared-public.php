@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\PublicRootController;
+use App\Http\Controllers\StoredFileController;
 use App\Http\Controllers\Webhooks\UtasWebhookController;
 use Illuminate\Support\Facades\Route;
 
@@ -32,6 +33,9 @@ Route::post('/webhooks/utas', UtasWebhookController::class)
 
 Route::get('/', PublicRootController::class)->name('landing');
 Route::get('/meetra', fn () => redirect()->route('landing'))->name('landing.meetra');
+Route::get('/files/shared/{storedFileId}', [StoredFileController::class, 'share'])
+    ->middleware(['signed', 'throttle:sensitive'])
+    ->name('stored-files.share');
 
 // Health check — no auth, no session, no CSRF. Used by uptime monitors and load balancers.
 Route::get('/health', function () {

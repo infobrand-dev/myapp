@@ -105,12 +105,12 @@ class DocumentNumberingService
             ],
             [
                 'branch_id' => $branchId,
-                'prefix' => $attributes['prefix'] ?: $definition['default_prefix'],
-                'number_format' => $attributes['number_format'] ?: $definition['default_format'],
+                'prefix' => ($attributes['prefix'] ?? null) ?: $definition['default_prefix'],
+                'number_format' => ($attributes['number_format'] ?? null) ?: $definition['default_format'],
                 'padding' => max(1, (int) ($attributes['padding'] ?? 5)),
                 'next_number' => max(1, (int) ($attributes['next_number'] ?? 1)),
                 'last_period' => $attributes['last_period'] ?? null,
-                'reset_period' => $attributes['reset_period'] ?: DocumentNumberingRule::RESET_NEVER,
+                'reset_period' => ($attributes['reset_period'] ?? null) ?: DocumentNumberingRule::RESET_NEVER,
                 'notes' => $attributes['notes'] ?? null,
             ]
         );

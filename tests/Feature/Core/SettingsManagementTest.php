@@ -3,6 +3,7 @@
 namespace Tests\Feature\Core;
 
 use App\Models\DocumentSetting;
+use App\Models\DocumentNumberingRule;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
@@ -39,9 +40,9 @@ class SettingsManagementTest extends TestCase
             ->get(route('settings.general'))
             ->assertOk()
             ->assertSee('Settings')
-            ->assertSee('Subscription &amp; Billing', false)
-            ->assertSee('Documents &amp; Invoice', false)
-            ->assertSee('Users &amp; Access', false);
+            ->assertSee('Subscription & Billing', false)
+            ->assertSee('Documents', false)
+            ->assertSee('Users & Access', false);
     }
 
     public function test_user_can_create_company_create_branch_and_switch_context(): void
@@ -121,18 +122,28 @@ class SettingsManagementTest extends TestCase
                 'branch_slug' => 'main-branch',
             ])
             ->put(route('settings.documents.save'), [
-                'company_invoice_prefix' => 'INV',
-                'company_invoice_padding' => 6,
-                'company_invoice_next_number' => 12,
-                'company_invoice_reset_period' => 'monthly',
+                'company_numbering' => [
+                    'sale' => [
+                        'prefix' => 'INV',
+                        'number_format' => '{PREFIX}-{SEQ}',
+                        'padding' => 6,
+                        'next_number' => 12,
+                        'reset_period' => 'monthly',
+                    ],
+                ],
                 'company_document_header' => 'Header company',
                 'company_document_footer' => 'Footer company',
                 'company_receipt_footer' => 'Receipt company',
                 'company_notes' => 'Company note',
-                'branch_invoice_prefix' => 'BR',
-                'branch_invoice_padding' => 4,
-                'branch_invoice_next_number' => 3,
-                'branch_invoice_reset_period' => 'yearly',
+                'branch_numbering' => [
+                    'sale' => [
+                        'prefix' => 'BR',
+                        'number_format' => '{PREFIX}-{SEQ}',
+                        'padding' => 4,
+                        'next_number' => 3,
+                        'reset_period' => 'yearly',
+                    ],
+                ],
                 'branch_document_header' => 'Header branch',
                 'branch_document_footer' => 'Footer branch',
                 'branch_receipt_footer' => 'Receipt branch',
@@ -140,24 +151,28 @@ class SettingsManagementTest extends TestCase
             ])
             ->assertRedirect(route('settings.documents'));
 
-        $this->assertDatabaseHas('document_settings', [
+        $this->assertDatabaseHas('document_numbering_rules', [
             'tenant_id' => 1,
             'company_id' => 1,
             'branch_id' => null,
-            'invoice_prefix' => 'INV',
-            'invoice_padding' => 6,
-            'invoice_next_number' => 12,
-            'invoice_reset_period' => 'monthly',
+            'document_type' => 'sale',
+            'prefix' => 'INV',
+            'number_format' => '{PREFIX}-{SEQ}',
+            'padding' => 6,
+            'next_number' => 12,
+            'reset_period' => 'monthly',
         ]);
 
-        $this->assertDatabaseHas('document_settings', [
+        $this->assertDatabaseHas('document_numbering_rules', [
             'tenant_id' => 1,
             'company_id' => 1,
             'branch_id' => 1,
-            'invoice_prefix' => 'BR',
-            'invoice_padding' => 4,
-            'invoice_next_number' => 3,
-            'invoice_reset_period' => 'yearly',
+            'document_type' => 'sale',
+            'prefix' => 'BR',
+            'number_format' => '{PREFIX}-{SEQ}',
+            'padding' => 4,
+            'next_number' => 3,
+            'reset_period' => 'yearly',
         ]);
 
         $this->assertSame(2, DocumentSetting::query()->count());
@@ -171,10 +186,6 @@ class SettingsManagementTest extends TestCase
             'tenant_id' => 1,
             'company_id' => 1,
             'branch_id' => null,
-            'invoice_prefix' => 'INV',
-            'invoice_padding' => 4,
-            'invoice_next_number' => 12,
-            'invoice_reset_period' => 'monthly',
             'document_header' => "Header company\nLine 2",
             'document_footer' => 'Footer company',
             'receipt_footer' => 'Receipt company',
@@ -184,13 +195,37 @@ class SettingsManagementTest extends TestCase
             'tenant_id' => 1,
             'company_id' => 1,
             'branch_id' => 1,
-            'invoice_prefix' => 'BR',
-            'invoice_padding' => 3,
-            'invoice_next_number' => 5,
-            'invoice_reset_period' => 'yearly',
             'document_header' => 'Header branch',
             'document_footer' => 'Footer branch',
             'receipt_footer' => 'Receipt branch',
+        ]);
+
+        DocumentNumberingRule::query()->create([
+            'tenant_id' => 1,
+            'company_id' => 1,
+            'branch_id' => null,
+            'scope_key' => DocumentNumberingRule::scopeKeyFor(),
+            'document_type' => 'sale',
+            'prefix' => 'INV',
+            'number_format' => '{PREFIX}-{SEQ}',
+            'padding' => 4,
+            'next_number' => 12,
+            'last_period' => now()->format('Y-m'),
+            'reset_period' => 'monthly',
+        ]);
+
+        DocumentNumberingRule::query()->create([
+            'tenant_id' => 1,
+            'company_id' => 1,
+            'branch_id' => 1,
+            'scope_key' => DocumentNumberingRule::scopeKeyFor(1),
+            'document_type' => 'sale',
+            'prefix' => 'BR',
+            'number_format' => '{PREFIX}-{SEQ}',
+            'padding' => 3,
+            'next_number' => 5,
+            'last_period' => now()->format('Y'),
+            'reset_period' => 'yearly',
         ]);
 
         $this->actingAs($user)
@@ -202,11 +237,10 @@ class SettingsManagementTest extends TestCase
             ])
             ->get(route('settings.documents'))
             ->assertOk()
-            ->assertSee('INV-0012')
             ->assertSee('BR-005')
             ->assertSee('Branch override')
-            ->assertSee('Sales invoice dan POS receipt')
-            ->assertSee('Payment numbering dan dokumen lain masih memakai generator masing-masing')
+            ->assertSee('Sales Invoice')
+            ->assertSee('Numbering sudah disatukan ke rule per dokumen dengan scope company lalu branch override.')
             ->assertSee('Header branch')
             ->assertSee('Receipt branch');
     }

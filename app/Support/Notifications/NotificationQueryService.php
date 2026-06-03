@@ -2,17 +2,25 @@
 
 namespace App\Support\Notifications;
 
+use App\Multitenancy\QueryContextGuard;
 use App\Models\NotificationRecipient;
 use App\Support\BooleanQuery;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
-use App\Support\TenantContext;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 class NotificationQueryService
 {
+    private QueryContextGuard $guard;
+
+    public function __construct(
+        QueryContextGuard $guard
+    ) {
+        $this->guard = $guard;
+    }
+
     public function inboxForUser(int $userId, array $filters = []): LengthAwarePaginator
     {
         return $this->baseQuery($userId, $filters)
@@ -52,8 +60,10 @@ class NotificationQueryService
 
     private function baseQuery(int $userId, array $filters): Builder
     {
+        $tenantId = $this->guard->requireTenant('notification inbox query');
+
         $query = NotificationRecipient::query()
-            ->where('tenant_id', TenantContext::currentId() ?: 1)
+            ->where('tenant_id', $tenantId)
             ->where('user_id', $userId)
             ->whereNull('archived_at')
             ->whereHas('notification', function (Builder $notificationQuery) use ($filters): void {

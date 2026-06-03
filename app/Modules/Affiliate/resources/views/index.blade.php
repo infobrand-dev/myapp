@@ -52,6 +52,37 @@
                     </table>
                 </div>
             </div>
+
+            <div class="card border-0 shadow-sm mt-3">
+                <div class="card-header"><h3 class="card-title mb-0">Affiliator yang Claim Produk Saya</h3></div>
+                <div class="table-responsive">
+                    <table class="table table-vcenter card-table">
+                        <thead>
+                            <tr>
+                                <th>Affiliator</th>
+                                <th>Product</th>
+                                <th>Code</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($sellerClaimedListings as $claimed)
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">{{ $claimed->user?->name ?: 'Unknown User' }}</div>
+                                        <div class="text-muted small">{{ $claimed->user?->tenant?->name ?: 'Unknown Tenant' }}</div>
+                                    </td>
+                                    <td>{{ $claimed->sourceProduct?->name ?: 'Unknown Product' }}</td>
+                                    <td><code>{{ $claimed->share_code }}</code></td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-4">Belum ada affiliator yang claim produk Anda.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <div class="col-lg-7">
@@ -76,7 +107,7 @@
                                     </td>
                                     <td><code>{{ $listing->share_code }}</code></td>
                                     <td>{{ $listing->commission_type }} / {{ number_format((float) $listing->commission_rate, 2) }}</td>
-                                    <td><code>{{ route('affiliate.public.capture', ['account' => $listing->sourceTenant?->slug, 'code' => $listing->share_code]) }}</code></td>
+                                    <td><code>{{ $affiliateUrls[$listing->id] ?? route('affiliate.public.capture', ['account' => $listing->sourceTenant?->slug, 'code' => $listing->share_code]) }}</code></td>
                                 </tr>
                                 <tr>
                                     <td colspan="4">

@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 
 class SubscriptionPlan extends Model
 {
+    protected $connection = 'central';
+
     protected $fillable = [
         'code',
         'name',

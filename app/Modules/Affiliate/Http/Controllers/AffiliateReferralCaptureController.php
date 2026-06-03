@@ -29,7 +29,25 @@ class AffiliateReferralCaptureController extends Controller
         $listing = $this->affiliates->capture($request, $code);
         abort_unless($listing, 404);
 
-        return redirect()->route('storefront.public.index')
+        $listing->loadMissing('sourceProduct');
+
+        return redirect()->to($this->redirectTarget($request, $listing))
             ->with('status', 'Referral affiliate berhasil dicatat.');
+    }
+
+    private function redirectTarget(Request $request, $listing): string
+    {
+        $redirect = trim((string) $request->query('redirect', ''));
+        $productSlug = trim((string) $request->query('product', optional($listing->sourceProduct)->slug));
+
+        if ($productSlug !== '' && $redirect === 'storefront.public.offers.show') {
+            return route('storefront.public.offers.show', ['product' => $productSlug]);
+        }
+
+        if ($productSlug !== '' && $redirect === 'storefront.public.products.show') {
+            return route('storefront.public.products.show', ['product' => $productSlug]);
+        }
+
+        return route('storefront.public.index');
     }
 }

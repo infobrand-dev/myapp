@@ -146,7 +146,7 @@
                             <div class="col-12">
                                 <label class="form-label">Logo Saat Ini</label>
                                 <div class="border rounded-3 p-3 d-inline-flex align-items-center justify-content-center bg-body-secondary">
-                                    <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url(data_get($tenant, 'meta.public_brand_logo_path')) }}"
+                                    <img src="{{ app(\App\Services\StorageAccessService::class)->publicUrlFromPath(data_get($tenant, 'meta.public_brand_logo_path'), 'public') }}"
                                          alt="Logo {{ data_get($tenant, 'meta.public_brand_name', optional($tenant)->name ?? config('app.name')) }}"
                                          style="max-height: 64px; width: auto; display: block;">
                                 </div>

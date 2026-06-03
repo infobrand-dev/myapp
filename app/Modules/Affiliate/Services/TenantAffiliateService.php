@@ -27,6 +27,7 @@ class TenantAffiliateService
             ->with('media')
             ->active()
             ->where('tenant_id', '!=', TenantContext::currentId())
+            ->whereNotNull('meta')
             ->get()
             ->filter(fn (Product $product): bool => filter_var(data_get($product->meta, 'affiliate_offer.enabled', false), FILTER_VALIDATE_BOOLEAN))
             ->values();
@@ -34,6 +35,7 @@ class TenantAffiliateService
 
     public function claimProduct(Product $product, User $user, array $data = []): AffiliateListing
     {
+        abort_unless((int) $user->tenant_id === TenantContext::currentId(), 403, 'User affiliator tidak berada pada tenant aktif.');
         abort_if((int) $product->tenant_id === TenantContext::currentId(), 422, 'Produk sendiri tidak perlu di-claim sebagai affiliate listing.');
         abort_unless(filter_var(data_get($product->meta, 'affiliate_offer.enabled', false), FILTER_VALIDATE_BOOLEAN), 404);
 
@@ -71,7 +73,7 @@ class TenantAffiliateService
     {
         $listing = AffiliateListing::query()
             ->where('source_tenant_id', TenantContext::currentId())
-            ->where('share_code', Str::upper(trim($code)))
+            ->where('share_code', $this->normalizeCode($code))
             ->where('status', 'active')
             ->first();
 
@@ -82,6 +84,41 @@ class TenantAffiliateService
         $this->attribution->store($request, $listing->share_code, (int) config('services.tenant_affiliate.cookie_days', 30));
 
         return $listing;
+    }
+
+    public function affiliateProductUrl(AffiliateListing $listing): ?string
+    {
+        $sellerSlug = (string) optional($listing->sourceTenant)->slug;
+
+        if ($sellerSlug === '') {
+            return null;
+        }
+
+        $visibility = (string) data_get($listing->sourceProduct?->meta, 'public_offer.visibility', 'catalog');
+        $route = in_array($visibility, ['direct', 'featured'], true)
+            ? 'storefront.public.offers.show'
+            : 'storefront.public.products.show';
+
+        return route('affiliate.public.capture', [
+            'account' => $sellerSlug,
+            'code' => $listing->share_code,
+            'redirect' => $route,
+            'product' => $listing->sourceProduct?->slug,
+        ]);
+    }
+
+    public function publicListingUrl(AffiliateListing $listing): ?string
+    {
+        $affiliateSlug = (string) optional($listing->user?->tenant)->slug;
+
+        if ($affiliateSlug === '') {
+            return null;
+        }
+
+        return route('affiliate.public.products.show', [
+            'account' => $affiliateSlug,
+            'listing' => $listing->share_code,
+        ]);
     }
 
     private function nextShareCode(string $name): string
@@ -95,6 +132,11 @@ class TenantAffiliateService
             ->exists());
 
         return $code;
+    }
+
+    private function normalizeCode(string $code): string
+    {
+        return Str::upper(trim($code));
     }
 
     private function nullableString(mixed $value): ?string

@@ -199,7 +199,8 @@ class CommerceCreatorSettlementTest extends TestCase
         $account = $walletService->account($sellerTenant->id);
         $balances = $walletService->balances($account);
         $this->assertSame(90000.0, $balances['available']);
-        $this->assertSame(-5000.0, $balances['locked']);
+        $this->assertSame(5000.0, $balances['locked']);
+        $this->assertSame(85000.0, $walletService->spendableBalance($account));
 
         TenantContext::setCurrentId($sellerTenant->id);
         $payout = $walletService->requestPayout([
@@ -209,13 +210,57 @@ class CommerceCreatorSettlementTest extends TestCase
             'account_number' => '1234567890',
         ]);
 
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $walletService->requestPayout([
+            'amount' => 40000,
+            'bank_name' => 'BCA',
+            'account_name' => 'Acme Owner',
+            'account_number' => '1234567890',
+        ]);
+    }
+
+    public function test_paid_wallet_payout_is_idempotent(): void
+    {
+        $tenant = Tenant::query()->create([
+            'name' => 'Acme Wallet',
+            'slug' => 'acme-wallet',
+            'is_active' => true,
+        ]);
+
+        TenantContext::setCurrentId($tenant->id);
+
+        $walletService = app(TenantWalletService::class);
+        $account = $walletService->account($tenant->id);
+        $walletService->addEntry($account, [
+            'source_type' => 'seed',
+            'source_id' => 1,
+            'entry_type' => 'gross_sale',
+            'state' => 'available',
+            'direction' => 'credit',
+            'amount' => 100000,
+        ]);
+
+        $payout = $walletService->requestPayout([
+            'amount' => 25000,
+            'bank_name' => 'BCA',
+            'account_name' => 'Acme Owner',
+            'account_number' => '1234567890',
+        ]);
+
         $walletService->approve($payout);
+        $walletService->markPaid($payout->fresh());
         $walletService->markPaid($payout->fresh());
 
         $this->assertDatabaseHas('wallet_payout_requests', [
             'id' => $payout->id,
             'status' => 'paid',
         ]);
+        $this->assertSame(1, WalletLedgerEntry::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('source_type', 'wallet_payout_request')
+            ->where('source_id', $payout->id)
+            ->where('entry_type', 'payout')
+            ->count());
     }
 
     private function createCommerceTables(): void

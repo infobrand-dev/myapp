@@ -7,10 +7,12 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationPushSubscriptionController;
 use App\Http\Controllers\PlatformAffiliateController;
 use App\Http\Controllers\PlatformOwnerController;
+use App\Http\Controllers\PlatformStorageController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\Settings\PaymentGatewaySettingsController;
 use App\Http\Controllers\Settings\ShippingProviderSettingsController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\StoredFileController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserInvitationController;
 use App\Http\Controllers\UserPresenceController;
@@ -65,6 +67,10 @@ Route::middleware(['auth', 'verified', '2fa', 'platform.admin', \App\Http\Middle
         Route::get('/plans/{plan}/edit', [PlatformOwnerController::class, 'editPlan'])->name('plans.edit');
         Route::put('/plans/{plan}', [PlatformOwnerController::class, 'updatePlan'])->name('plans.update');
         Route::get('/go-live', [PlatformOwnerController::class, 'golive'])->name('golive');
+        Route::get('/storage', [PlatformStorageController::class, 'index'])->name('storage.index');
+        Route::post('/storage', [PlatformStorageController::class, 'store'])->name('storage.store');
+        Route::put('/storage/{profile}', [PlatformStorageController::class, 'update'])->name('storage.update');
+        Route::post('/storage/{profile}/toggle', [PlatformStorageController::class, 'toggle'])->name('storage.toggle');
         Route::get('/affiliates', [PlatformAffiliateController::class, 'index'])->name('affiliates.index');
         Route::get('/affiliate-payouts', [PlatformAffiliateController::class, 'payouts'])->name('affiliates.payouts');
         Route::post('/affiliates', [PlatformAffiliateController::class, 'store'])->name('affiliates.store');
@@ -82,6 +88,9 @@ Route::middleware(['auth', 'verified', '2fa', 'platform.admin', \App\Http\Middle
 
     Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
+    Route::get('/files/{storedFile}/download', [StoredFileController::class, 'download'])->name('stored-files.download');
+    Route::get('/files/{storedFile}/preview', [StoredFileController::class, 'preview'])->name('stored-files.preview');
+    Route::get('/files/legacy-download', [StoredFileController::class, 'legacyDownload'])->middleware('signed')->name('stored-files.legacy-download');
 
     Route::middleware('permission:settings.view')->group(function () {
         Route::get('/settings', [SettingsController::class, 'show'])->defaults('section', 'general')->name('settings.general');

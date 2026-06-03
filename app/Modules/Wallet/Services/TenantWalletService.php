@@ -49,15 +49,23 @@ class TenantWalletService
         return [
             'pending' => $this->sumByState($entries, 'pending'),
             'available' => $this->sumByState($entries, 'available'),
-            'locked' => $this->sumByState($entries, 'locked'),
-            'paid_out' => $this->sumByState($entries, 'paid_out'),
+            'locked' => $this->reservedByState($entries, 'locked'),
+            'paid_out' => $this->reservedByState($entries, 'paid_out'),
         ];
+    }
+
+    public function spendableBalance(WalletAccount $account): float
+    {
+        $balances = $this->balances($account);
+        $openPayoutRequests = $this->openPayoutRequestAmount($account);
+
+        return round(max(0, $balances['available'] - $balances['locked'] - $openPayoutRequests), 2);
     }
 
     public function requestPayout(array $payload, ?int $actorId = null): WalletPayoutRequest
     {
         $account = $this->account();
-        $balances = $this->balances($account);
+        $spendable = $this->spendableBalance($account);
         $amount = round((float) ($payload['amount'] ?? 0), 2);
 
         if ($amount <= 0) {
@@ -66,9 +74,9 @@ class TenantWalletService
             ]);
         }
 
-        if ($amount > $balances['available']) {
+        if ($amount > $spendable) {
             throw ValidationException::withMessages([
-                'amount' => 'Saldo available tidak cukup untuk payout request ini.',
+                'amount' => 'Saldo spendable tidak cukup untuk payout request ini.',
             ]);
         }
 
@@ -92,6 +100,10 @@ class TenantWalletService
 
     public function approve(WalletPayoutRequest $request, ?int $reviewerId = null): WalletPayoutRequest
     {
+        if ($request->status === 'paid') {
+            return $request->fresh();
+        }
+
         $request->update([
             'status' => 'approved',
             'reviewed_by' => $reviewerId,
@@ -103,17 +115,29 @@ class TenantWalletService
 
     public function markPaid(WalletPayoutRequest $request, ?int $reviewerId = null): WalletPayoutRequest
     {
-        $account = $request->account ?: $this->account((int) $request->tenant_id);
+        if ($request->status === 'paid') {
+            return $request->fresh();
+        }
 
-        $this->addEntry($account, [
-            'source_type' => 'wallet_payout_request',
-            'source_id' => (int) $request->id,
-            'entry_type' => 'payout',
-            'state' => 'paid_out',
-            'direction' => 'debit',
-            'amount' => (float) $request->amount,
-            'notes' => 'Payout marked paid.',
-        ]);
+        $account = $request->account ?: $this->account((int) $request->tenant_id);
+        $existingEntry = WalletLedgerEntry::query()
+            ->where('tenant_id', (int) $request->tenant_id)
+            ->where('source_type', 'wallet_payout_request')
+            ->where('source_id', (int) $request->id)
+            ->where('entry_type', 'payout')
+            ->first();
+
+        if (!$existingEntry) {
+            $this->addEntry($account, [
+                'source_type' => 'wallet_payout_request',
+                'source_id' => (int) $request->id,
+                'entry_type' => 'payout',
+                'state' => 'paid_out',
+                'direction' => 'debit',
+                'amount' => (float) $request->amount,
+                'notes' => 'Payout marked paid.',
+            ]);
+        }
 
         $request->update([
             'status' => 'paid',
@@ -144,5 +168,22 @@ class TenantWalletService
         return round((float) $entries
             ->where('state', $state)
             ->sum(fn (WalletLedgerEntry $entry) => $entry->direction === 'debit' ? (float) $entry->amount * -1 : (float) $entry->amount), 2);
+    }
+
+    /**
+     * @param  Collection<int, WalletLedgerEntry>  $entries
+     */
+    private function reservedByState(Collection $entries, string $state): float
+    {
+        return round((float) $entries
+            ->where('state', $state)
+            ->sum(fn (WalletLedgerEntry $entry) => abs((float) $entry->amount)), 2);
+    }
+
+    private function openPayoutRequestAmount(WalletAccount $account): float
+    {
+        return round((float) $account->payoutRequests()
+            ->whereIn('status', ['requested', 'approved'])
+            ->sum('amount'), 2);
     }
 }

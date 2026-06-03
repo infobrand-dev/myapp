@@ -2,7 +2,10 @@
 
 namespace App\Modules\SocialMedia\Jobs;
 
+use App\Models\StoredFile;
 use App\Modules\Conversations\Models\ConversationMessage;
+use App\Services\SharedFileAccessService;
+use App\Services\StoredFileService;
 use App\Modules\SocialMedia\Services\SocialPlatformRegistry;
 use App\Modules\SocialMedia\Services\XDirectMessageClient;
 use App\Modules\SocialMedia\Services\XTokenManager;
@@ -16,6 +19,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use App\Modules\SocialMedia\Models\SocialAccount;
+use Illuminate\Support\Facades\File;
 
 class SendSocialMessage implements ShouldQueue
 {
@@ -83,6 +87,7 @@ class SendSocialMessage implements ShouldQueue
                 $xTokenManager = app(XTokenManager::class);
                 $dmConversationId = trim((string) data_get($message->conversation->metadata, 'x_dm_conversation_id', ''));
                 $mediaIds = [];
+                $tempLocalPath = null;
 
                 if ($message->media_url) {
                     if (!in_array((string) $message->type, ['image', 'video'], true)) {
@@ -95,7 +100,7 @@ class SendSocialMessage implements ShouldQueue
                         return;
                     }
 
-                    $localPath = $this->resolvePublicStoragePath((string) $message->media_url);
+                    $localPath = $this->resolveLocalMediaPath($message);
                     if ($localPath === null) {
                         $errorMessage = 'Media X harus berasal dari file lokal workspace.';
                         $message->update(['status' => 'error', 'error_message' => $errorMessage]);
@@ -105,6 +110,7 @@ class SendSocialMessage implements ShouldQueue
                         ]);
                         return;
                     }
+                    $tempLocalPath = $localPath;
 
                     $uploadResponse = $xClient->uploadMedia($pageToken, $localPath, (string) ($message->media_mime ?: 'image/jpeg'));
                     if (in_array($uploadResponse->status(), [401, 403], true) && $xTokenManager->canRefresh($account)) {
@@ -184,6 +190,10 @@ class SendSocialMessage implements ShouldQueue
                     ]);
                 }
 
+                if ($tempLocalPath && str_contains($tempLocalPath, storage_path('framework/temp-shares'))) {
+                    @unlink($tempLocalPath);
+                }
+
                 return;
             }
 
@@ -255,11 +265,28 @@ class SendSocialMessage implements ShouldQueue
             return ['text' => (string) $message->body];
         }
 
+        $providerMediaId = trim((string) data_get($message->payload, 'provider_media_id', ''));
+        if ($providerMediaId !== '') {
+            return [
+                'attachment' => [
+                    'type' => $this->resolveAttachmentType((string) $message->type),
+                    'payload' => [
+                        'id' => $providerMediaId,
+                    ],
+                ],
+            ];
+        }
+
+        $sharedUrl = $this->resolveSharedMediaUrl($message);
+        if ($sharedUrl === null) {
+            throw new \RuntimeException('Shared media URL tidak dapat dibuat untuk outbound social message.');
+        }
+
         return [
             'attachment' => [
                 'type' => $this->resolveAttachmentType((string) $message->type),
                 'payload' => [
-                    'url' => (string) $message->media_url,
+                    'url' => $sharedUrl,
                 ],
             ],
         ];
@@ -274,10 +301,27 @@ class SendSocialMessage implements ShouldQueue
         };
     }
 
-    private function resolvePublicStoragePath(string $publicUrl): ?string
+    private function resolveLocalMediaPath(ConversationMessage $message): ?string
     {
+        $storedFileId = (int) data_get($message->payload, 'stored_file_id', 0);
+        if ($storedFileId > 0) {
+            $path = trim((string) data_get($message->payload, 'storage_path', ''));
+            $disk = trim((string) data_get($message->payload, 'storage_disk', ''));
+            $contents = $path !== '' && $disk !== '' ? app(StoredFileService::class)->readContents($disk, $path) : null;
+            if ($contents === null) {
+                return null;
+            }
+
+            $tempDirectory = storage_path('framework/temp-shares');
+            File::ensureDirectoryExists($tempDirectory);
+            $tempPath = $tempDirectory . DIRECTORY_SEPARATOR . Str::uuid() . '-' . basename($path);
+            file_put_contents($tempPath, $contents);
+
+            return $tempPath;
+        }
+
+        $publicUrl = trim((string) $message->media_url);
         $appUrl = rtrim((string) config('app.url'), '/');
-        $publicUrl = trim($publicUrl);
 
         if ($publicUrl === '') {
             return null;
@@ -296,6 +340,22 @@ class SendSocialMessage implements ShouldQueue
         }
 
         return null;
+    }
+
+    private function resolveSharedMediaUrl(ConversationMessage $message): ?string
+    {
+        $storedFileId = (int) data_get($message->payload, 'stored_file_id', 0);
+        if ($storedFileId > 0) {
+            $storedFile = StoredFile::query()->find($storedFileId);
+            if ($storedFile) {
+                return app(SharedFileAccessService::class)->issueShareUrl($storedFile, 'provider', null, null, [
+                    'channel' => 'social_dm',
+                    'conversation_message_id' => $message->id,
+                ])['url'];
+            }
+        }
+
+        return $message->media_url;
     }
 }
 

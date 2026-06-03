@@ -11,6 +11,8 @@ use App\Modules\SocialMedia\SocialMediaServiceProvider;
 use Database\Seeders\SubscriptionPlanSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 class SocialMetaOauthConnectTest extends TestCase
@@ -120,6 +122,11 @@ class SocialMetaOauthConnectTest extends TestCase
         $user = User::factory()->create([
             'tenant_id' => $tenant->id,
         ]);
+
+        app(PermissionRegistrar::class)->setPermissionsTeamId($tenant->id);
+        Permission::findOrCreate('social_media.view', 'web');
+        Permission::findOrCreate('social_media.manage_accounts', 'web');
+        $user->givePermissionTo(['social_media.view', 'social_media.manage_accounts']);
 
         $plan = SubscriptionPlan::query()->where('code', $planCode)->firstOrFail();
 

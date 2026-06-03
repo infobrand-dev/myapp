@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Module extends Model
 {
+    protected $connection = 'central';
+
     protected $fillable = [
         'slug',
         'name',
@@ -22,4 +24,3 @@ class Module extends Model
         'meta' => 'array',
     ];
 }
-

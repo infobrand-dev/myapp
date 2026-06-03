@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Chatbot\Services\ConversationBotPolicy;
 use App\Modules\Conversations\Contracts\InboxMessageIngester;
 use App\Modules\Conversations\Data\InboxMessageEnvelope;
+use App\Modules\Conversations\Services\InboundMediaCaptureService;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\SocialMedia\Models\SocialAccount;
 use App\Modules\SocialMedia\Models\SocialAccountChatbotIntegration;
@@ -54,12 +55,17 @@ class SocialWebhookController extends Controller
                 contactExternalId: $event['contact_id'],
                 contactName: $event['contact_name'],
                 direction: $event['direction'],
-                type: 'text',
+                type: (string) ($event['type'] ?? 'text'),
                 body: $event['message'],
                 externalMessageId: $event['external_message_id'],
                 payload: $this->sanitizeWebhookPayload($event['payload']),
                 conversationMetadata: ['platform' => $event['platform']],
                 messageStatus: $event['direction'] === 'out' ? 'sent' : 'delivered',
+                mediaUrl: $event['media_url'] ?? null,
+                mediaMime: $event['media_mime'] ?? null,
+                providerOrigin: $event['provider_origin'] ?? null,
+                providerMediaId: $event['provider_media_id'] ?? null,
+                providerMediaUrl: $event['provider_media_url'] ?? null,
                 ingestionMode: InboxMessageEnvelope::MODE_REALTIME,
                 incrementUnread: $event['direction'] !== 'out',
                 writeActivityLog: false,
@@ -70,6 +76,20 @@ class SocialWebhookController extends Controller
             if ($result->deduplicated) {
                 $deduplicated++;
                 continue;
+            }
+
+            if (
+                ($event['direction'] ?? 'in') === 'in'
+                && !empty($event['provider_media_url'])
+                && app(InboundMediaCaptureService::class)->shouldCapture((string) ($event['type'] ?? 'text'))
+            ) {
+                app(InboundMediaCaptureService::class)->captureProviderUrl($result->message, (string) $event['provider_media_url'], [
+                    'provider_origin' => $event['provider_origin'] ?? $event['platform'],
+                    'provider_media_id' => $event['provider_media_id'] ?? null,
+                    'provider_media_url' => $event['provider_media_url'] ?? null,
+                    'mime_type' => $event['media_mime'] ?? null,
+                ]);
+                $result->message->refresh();
             }
 
             $chatbot = $this->chatbotIntegration($account);
@@ -137,7 +157,7 @@ class SocialWebhookController extends Controller
                 contactExternalId: (string) $event['contact_id'],
                 contactName: null,
                 direction: (string) ($event['direction'] ?? 'in'),
-                type: 'text',
+                type: !empty($event['attachment_media_keys']) ? 'document' : 'text',
                 body: $body,
                 externalMessageId: (string) ($event['event_id'] ?? null),
                 payload: $this->sanitizeWebhookPayload($event),
@@ -146,6 +166,7 @@ class SocialWebhookController extends Controller
                     'x_dm_conversation_id' => $event['conversation_id'] ?? null,
                 ],
                 messageStatus: (($event['direction'] ?? 'in') === 'out') ? 'sent' : 'delivered',
+                providerOrigin: 'x',
                 ingestionMode: InboxMessageEnvelope::MODE_REALTIME,
                 incrementUnread: ($event['direction'] ?? 'in') !== 'out',
                 writeActivityLog: false,

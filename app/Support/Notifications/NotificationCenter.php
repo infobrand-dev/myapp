@@ -2,20 +2,32 @@
 
 namespace App\Support\Notifications;
 
+use App\Multitenancy\QueryContextGuard;
 use App\Models\CoreNotification;
 use App\Models\NotificationRecipient;
 use App\Support\CompanyContext;
-use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 
 class NotificationCenter
 {
+    private NotificationTypeRegistry $registry;
+    private NotificationRecipientResolver $recipients;
+    private NotificationUrlBuilder $urlBuilder;
+    private NotificationDeliveryDispatcher $dispatcher;
+    private QueryContextGuard $guard;
+
     public function __construct(
-        private readonly NotificationTypeRegistry $registry,
-        private readonly NotificationRecipientResolver $recipients,
-        private readonly NotificationUrlBuilder $urlBuilder,
-        private readonly NotificationDeliveryDispatcher $dispatcher,
+        NotificationTypeRegistry $registry,
+        NotificationRecipientResolver $recipients,
+        NotificationUrlBuilder $urlBuilder,
+        NotificationDeliveryDispatcher $dispatcher,
+        QueryContextGuard $guard
     ) {
+        $this->registry = $registry;
+        $this->recipients = $recipients;
+        $this->urlBuilder = $urlBuilder;
+        $this->dispatcher = $dispatcher;
+        $this->guard = $guard;
     }
 
     public function publish(NotificationMessage|array $payload): CoreNotification
@@ -24,7 +36,7 @@ class NotificationCenter
         $definition = $this->registry->normalize($message);
 
         return DB::transaction(function () use ($message, $definition): CoreNotification {
-            $tenantId = (int) ($message->tenantId ?: TenantContext::currentId() ?: 1);
+            $tenantId = $message->tenantId ?: $this->guard->requireTenant('notification publish');
             $companyId = $message->companyId ?: CompanyContext::currentId();
             $actions = $this->urlBuilder->normalize($message->actions);
             $now = now();

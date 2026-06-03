@@ -10,6 +10,7 @@ use App\Modules\Conversations\Events\ConversationMessageCreated;
 use App\Modules\Conversations\Jobs\GenerateAiReply;
 use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
+use App\Modules\Conversations\Services\InboundMediaCaptureService;
 use App\Modules\WhatsAppApi\Jobs\SendWhatsAppMessage;
 use App\Modules\WhatsAppApi\Models\WATemplate;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
@@ -522,7 +523,7 @@ class WebhookController extends Controller
 
             $waMessageId = (string) Arr::get($item, 'id', '');
 
-            [$type, $body, $mediaUrl, $mediaMime] = $this->extractIncomingMessageData((array) $item);
+            [$type, $body, $mediaUrl, $mediaMime, $providerMediaId, $providerMediaUrl] = $this->extractIncomingMessageData((array) $item);
             $result = $this->ingester->ingest(new InboxMessageEnvelope(
                 channel: 'wa_api',
                 instanceId: (int) $instance->id,
@@ -537,6 +538,9 @@ class WebhookController extends Controller
                 messageStatus: 'delivered',
                 mediaUrl: $mediaUrl,
                 mediaMime: $mediaMime,
+                providerOrigin: 'whatsapp_cloud',
+                providerMediaId: $providerMediaId,
+                providerMediaUrl: $providerMediaUrl,
                 occurredAt: $this->parseTimestamp(Arr::get($item, 'timestamp')),
                 ingestionMode: InboxMessageEnvelope::MODE_REALTIME,
                 incrementUnread: true,
@@ -548,6 +552,17 @@ class WebhookController extends Controller
 
             if ($result->deduplicated) {
                 continue;
+            }
+
+            if ($providerMediaId) {
+                app(InboundMediaCaptureService::class)->captureWhatsAppCloudMedia(
+                    $message,
+                    $instance,
+                    $providerMediaId,
+                    $mediaMime,
+                    trim((string) Arr::get($item, "{$type}.filename", ''))
+                );
+                $message->refresh();
             }
 
             if ($result->conversationWasCreated) {
@@ -877,6 +892,8 @@ class WebhookController extends Controller
         $type = strtolower((string) ($item['type'] ?? 'text'));
         $mediaUrl = null;
         $mediaMime = null;
+        $providerMediaId = null;
+        $providerMediaUrl = null;
         $body = null;
 
         if ($type === 'text') {
@@ -885,6 +902,8 @@ class WebhookController extends Controller
             $section = (array) ($item[$type] ?? []);
             $mediaId = (string) Arr::get($section, 'id', '');
             $mediaMime = Arr::get($section, 'mime_type');
+            $providerMediaId = $mediaId !== '' ? $mediaId : null;
+            $providerMediaUrl = $mediaId !== '' ? "wa://media/{$mediaId}" : null;
             $mediaUrl = $mediaId !== '' ? "wa://media/{$mediaId}" : null;
             $body = Arr::get($section, 'caption')
                 ?? Arr::get($section, 'filename')
@@ -912,7 +931,7 @@ class WebhookController extends Controller
             $body = '[' . $type . ']';
         }
 
-        return [$type, $body, $mediaUrl, $mediaMime];
+        return [$type, $body, $mediaUrl, $mediaMime, $providerMediaId, $providerMediaUrl];
     }
 
     private function parseTimestamp(mixed $timestamp): ?Carbon

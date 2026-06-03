@@ -3,6 +3,7 @@
 namespace App\Modules\Sales\Actions;
 
 use App\Models\User;
+use App\Services\StoredFileService;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Sales\Models\Sale;
@@ -23,19 +24,22 @@ class CreateDraftSaleAction
     private $idempotencyService;
     private $snapshotService;
     private $syncPaymentSummary;
+    private $storedFiles;
 
     public function __construct(
         RecalculateSaleTotalsAction $recalculateTotals,
         SaleNumberService $saleNumberService,
         SaleIdempotencyService $idempotencyService,
         SaleSnapshotService $snapshotService,
-        SyncSalePaymentSummaryAction $syncPaymentSummary
+        SyncSalePaymentSummaryAction $syncPaymentSummary,
+        StoredFileService $storedFiles
     ) {
         $this->recalculateTotals = $recalculateTotals;
         $this->saleNumberService = $saleNumberService;
         $this->idempotencyService = $idempotencyService;
         $this->snapshotService = $snapshotService;
         $this->syncPaymentSummary = $syncPaymentSummary;
+        $this->storedFiles = $storedFiles;
     }
 
     public function execute(array $data, ?User $actor = null): Sale
@@ -61,7 +65,8 @@ class CreateDraftSaleAction
             }
 
             $totals = $this->recalculateTotals->execute($data);
-            $attachmentPath = $this->storeAttachment($data['attachment'] ?? null);
+            $storedAttachment = $this->storeAttachment($data['attachment'] ?? null, $actor);
+            $attachmentPath = $storedAttachment?->path;
             $contact = !empty($data['contact_id'])
                 ? ContactScope::applyVisibilityScope(Contact::query()->with('parentContact'))->find($data['contact_id'])
                 : null;
@@ -109,6 +114,7 @@ class CreateDraftSaleAction
                     'notes' => $data['notes'] ?? null,
                     'customer_note' => $data['customer_note'] ?? null,
                     'attachment_path' => $attachmentPath,
+                    'attachment_stored_file_id' => $storedAttachment?->id,
                     'totals_snapshot' => $totals['totals_snapshot'],
                     'meta' => $this->idempotencyService->mergeMeta($meta, $data),
                     'created_by' => $actor ? $actor->id : null,
@@ -162,13 +168,17 @@ class CreateDraftSaleAction
         }, $rows);
     }
 
-    private function storeAttachment(mixed $attachment): ?string
+    private function storeAttachment(mixed $attachment, ?User $actor = null): ?\App\Models\StoredFile
     {
         if (!$attachment instanceof UploadedFile) {
             return null;
         }
 
-        return $attachment->store('sales/attachments', 'public');
+        return $this->storedFiles->storeUploadedFile($attachment, 'sales_attachment', [
+            'source_module' => 'sales',
+            'source_context' => 'sale_attachment',
+            'uploaded_by' => $actor?->id,
+        ]);
     }
 
     private function sourceContext(array $data): ?array

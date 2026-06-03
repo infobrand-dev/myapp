@@ -7,12 +7,12 @@ use App\Modules\Reports\ReportsServiceProvider;
 use App\Modules\Reports\Services\FinanceReportService;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshesPgsqlDatabase;
 use Tests\TestCase;
 
 class FinanceGlReportServiceTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesPgsqlDatabase;
 
     protected function setUp(): void
     {

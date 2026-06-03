@@ -4,8 +4,12 @@ namespace Tests\Feature\Sales;
 
 use App\Models\AccountingJournal;
 use App\Models\Company;
+use App\Models\SubscriptionPlan;
+use App\Models\TenantSubscription;
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Finance\FinanceServiceProvider;
+use App\Modules\Finance\Services\ChartOfAccountProvisioner;
 use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Inventory\Services\StockMutationService;
 use App\Modules\Payments\Models\Payment;
@@ -22,33 +26,37 @@ use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\SalesServiceProvider;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
+use App\Support\PlanFeature;
 use App\Support\TenantContext;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\Concerns\BootstrapsModuleContext;
+use Tests\Concerns\RefreshesPgsqlDatabase;
 use Tests\TestCase;
 
 class SalesWorkflowTest extends TestCase
 {
     use BootstrapsModuleContext;
-    use RefreshDatabase;
+    use RefreshesPgsqlDatabase;
 
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->registerModuleProviders([
+            FinanceServiceProvider::class,
             PaymentsServiceProvider::class,
             SalesServiceProvider::class,
         ]);
 
         $this->migrateModulePaths([
             'app/Modules/Contacts/database/migrations',
-            'app/Modules/Inventory/database/migrations',
             'app/Modules/Products/database/migrations',
+            'app/Modules/Inventory/database/migrations',
+            'app/Modules/Finance/database/migrations',
             'app/Modules/Payments/database/migrations',
             'app/Modules/Sales/database/migrations',
         ]);
@@ -58,6 +66,7 @@ class SalesWorkflowTest extends TestCase
         ])->run();
 
         $this->bootstrapDefaultOperationalContext();
+        app(ChartOfAccountProvisioner::class)->ensureDefaults(1, 1, null);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
@@ -102,6 +111,42 @@ class SalesWorkflowTest extends TestCase
         $this->assertEquals(29500.00, (float) $sale->grand_total);
         $this->assertNotEmpty($sale->sale_number);
         $this->assertDatabaseCount('sale_status_histories', 1);
+    }
+
+    public function test_sale_attachment_is_stored_as_private_stored_file(): void
+    {
+        $user = $this->salesUser([
+            'sales.create',
+            'sales.view',
+        ]);
+        $contact = $this->customer();
+        $product = $this->product('Produk Attachment', 'ATT-001', 'produk-attachment');
+
+        $sale = app(CreateDraftSaleAction::class)->execute([
+            'contact_id' => $contact->id,
+            'source' => 'manual',
+            'payment_status' => 'unpaid',
+            'transaction_date' => now()->format('Y-m-d H:i:s'),
+            'currency_code' => 'IDR',
+            'attachment' => UploadedFile::fake()->createWithContent('po.pdf', 'sales-attachment'),
+            'items' => [[
+                'product_id' => $product->id,
+                'qty' => 1,
+                'unit_price' => 12000,
+                'discount_total' => 0,
+                'tax_total' => 0,
+            ]],
+        ], $user);
+
+        $sale->refresh();
+
+        $this->assertNotNull($sale->attachment_path);
+        $this->assertNotNull($sale->attachment_stored_file_id);
+        $this->assertDatabaseHas('stored_files', [
+            'id' => $sale->attachment_stored_file_id,
+            'category' => 'sales_attachment',
+            'visibility' => 'private',
+        ]);
     }
 
     public function test_user_can_update_draft_sale_and_totals_are_recalculated(): void
@@ -359,6 +404,7 @@ class SalesWorkflowTest extends TestCase
             'sales.view',
             'sales.finalize',
             'sales.void',
+            'finance.approve-sensitive-transactions',
         ]);
         $contact = $this->customer();
         $product = $this->product('Produk Void', 'VOID-001', 'produk-void');
@@ -558,21 +604,26 @@ class SalesWorkflowTest extends TestCase
         ]);
         $product = $this->product('Produk POS Ref', 'POS-REF-001', 'produk-pos-ref');
 
-        $response = $this->actingAs($user)->post('/sales', [
-            'source' => 'pos',
-            'payment_status' => 'paid',
-            'transaction_date' => now()->format('Y-m-d H:i:s'),
-            'currency_code' => 'IDR',
-            'items' => [
-                [
-                    'sellable_key' => 'product:' . $product->id,
-                    'qty' => 1,
-                    'unit_price' => 10000,
-                    'discount_total' => 0,
-                    'tax_total' => 0,
+        $response = $this->actingAs($user)
+            ->withSession([
+                'company_id' => 1,
+                'company_slug' => 'default-company',
+            ])
+            ->post('/sales', [
+                'source' => 'pos',
+                'payment_status' => 'paid',
+                'transaction_date' => now()->format('Y-m-d H:i:s'),
+                'currency_code' => 'IDR',
+                'items' => [
+                    [
+                        'sellable_key' => 'product:' . $product->id,
+                        'qty' => 1,
+                        'unit_price' => 10000,
+                        'discount_total' => 0,
+                        'tax_total' => 0,
+                    ],
                 ],
-            ],
-        ]);
+            ]);
 
         $response->assertSessionHasErrors('external_reference');
         $this->assertDatabaseCount('sales', 0);
@@ -622,7 +673,39 @@ class SalesWorkflowTest extends TestCase
             Permission::findOrCreate($permission, 'web');
         }
 
+        app(PermissionRegistrar::class)->setPermissionsTeamId(1);
         $user->givePermissionTo($permissions);
+        $user->tenant_id = 1;
+        $user->save();
+
+        $plan = SubscriptionPlan::query()->create([
+            'code' => 'sales-test-' . uniqid(),
+            'name' => 'Sales Test',
+            'billing_interval' => 'monthly',
+            'is_active' => true,
+            'is_public' => false,
+            'is_system' => false,
+            'sort_order' => 1,
+            'features' => [
+                PlanFeature::ACCOUNTING => true,
+            ],
+            'limits' => [],
+            'meta' => [
+                'product_line' => 'accounting',
+            ],
+        ]);
+
+        TenantSubscription::query()->create([
+            'tenant_id' => 1,
+            'subscription_plan_id' => $plan->id,
+            'product_line' => 'accounting',
+            'status' => 'active',
+            'billing_provider' => 'test',
+            'billing_reference' => 'sales-test-' . uniqid(),
+            'starts_at' => now()->subMinute(),
+            'ends_at' => now()->addMonth(),
+            'auto_renews' => false,
+        ]);
 
         return $user;
     }

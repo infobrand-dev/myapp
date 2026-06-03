@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PlatformInvoice extends Model
 {
+    protected $connection = 'central';
+
     protected $fillable = [
         'tenant_id',
         'platform_plan_order_id',

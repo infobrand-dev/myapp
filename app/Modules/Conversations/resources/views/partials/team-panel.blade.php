@@ -24,7 +24,7 @@
                 $participantName = $p->user->name ?? ('User '.$p->user_id);
                 $participantAvatar = $p->user->avatar ?? null;
                 if ($participantAvatar && !\Illuminate\Support\Str::startsWith($participantAvatar, ['http://', 'https://', '/'])) {
-                    $participantAvatar = asset('storage/' . ltrim($participantAvatar, '/'));
+                    $participantAvatar = app(\App\Services\StorageAccessService::class)->publicUrlFromPath(ltrim($participantAvatar, '/'), 'public') ?? asset('storage/' . ltrim($participantAvatar, '/'));
                 }
                 $participantParts = preg_split('/\s+/', trim($participantName));
                 $participantInitials = strtoupper(substr($participantParts[0] ?? '?', 0, 1) . substr($participantParts[1] ?? '', 0, 1));

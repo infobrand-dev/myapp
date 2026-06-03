@@ -5,6 +5,7 @@ namespace Tests\Feature\Contacts;
 use App\Models\Company;
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
+use App\Support\UserAccessManager;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -80,6 +81,7 @@ class ContactMergeTest extends TestCase
 
         TenantContext::setCurrentId(1);
         CompanyContext::setCurrentId($company->id);
+        $this->grantCompanyAccess($user, $company);
 
         $primary = Contact::query()->create([
             'type' => 'individual',
@@ -130,6 +132,7 @@ class ContactMergeTest extends TestCase
         $response = $this->withSession([
             'company_id' => $company->id,
             'company_slug' => $company->slug,
+            'branch_all' => true,
         ])->actingAs($user)->post(route('contacts.merge'), [
             'primary_id' => $primary->id,
             'duplicate_ids' => [$duplicate->id],
@@ -199,7 +202,7 @@ class ContactMergeTest extends TestCase
 
     private function adminUser(): User
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['tenant_id' => 1]);
 
         Role::findOrCreate('Admin');
         $user->assignRole('Admin');
@@ -259,5 +262,10 @@ class ContactMergeTest extends TestCase
         }
 
         View::addNamespace('contacts', base_path('app/Modules/Contacts/resources/views'));
+    }
+
+    private function grantCompanyAccess(User $user, Company $company): void
+    {
+        app(UserAccessManager::class)->sync($user, [$company->id], [], $company->id, null);
     }
 }

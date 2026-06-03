@@ -38,6 +38,7 @@ Route::middleware(['web', 'auth', 'plan.feature:accounting'])
         Route::get('/tax-register', [FinanceTaxDocumentController::class, 'index'])->middleware(['permission:finance.manage-tax', 'mode:advanced'])->name('tax-documents.index');
         Route::get('/tax-register/export', [FinanceTaxDocumentController::class, 'exportRegister'])->middleware(['permission:finance.manage-tax', 'mode:advanced'])->name('tax-documents.export');
         Route::get('/tax-register/export-efaktur', [FinanceTaxDocumentController::class, 'exportEfaktur'])->middleware(['permission:finance.manage-tax', 'mode:advanced'])->name('tax-documents.export-efaktur');
+        Route::get('/tax-register/export-efaktur-partner', [FinanceTaxDocumentController::class, 'exportEfakturPartner'])->middleware(['permission:finance.manage-tax', 'mode:advanced'])->name('tax-documents.export-efaktur-partner');
         Route::get('/tax-register/export-withholding', [FinanceTaxDocumentController::class, 'exportWithholding'])->middleware(['permission:finance.manage-tax', 'mode:advanced'])->name('tax-documents.export-withholding');
         Route::post('/tax-register', [FinanceTaxDocumentController::class, 'store'])->middleware(['permission:finance.manage-tax', 'mode:advanced'])->name('tax-documents.store');
         Route::get('/tax-register/{taxDocument}/edit', [FinanceTaxDocumentController::class, 'edit'])->middleware(['permission:finance.manage-tax', 'mode:advanced'])->name('tax-documents.edit');

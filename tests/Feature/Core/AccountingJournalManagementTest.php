@@ -12,14 +12,14 @@ use App\Modules\Finance\Services\ChartOfAccountProvisioner;
 use App\Support\CompanyContext;
 use App\Support\PlanFeature;
 use App\Support\TenantContext;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Concerns\RefreshesPgsqlDatabase;
 use Tests\TestCase;
 
 class AccountingJournalManagementTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesPgsqlDatabase;
 
     protected function setUp(): void
     {
@@ -264,6 +264,7 @@ class AccountingJournalManagementTest extends TestCase
             'sort_order' => 1,
             'features' => [
                 PlanFeature::ACCOUNTING => true,
+                PlanFeature::ADVANCED_REPORTS => true,
             ],
             'limits' => [],
             'meta' => [

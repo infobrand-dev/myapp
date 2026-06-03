@@ -19,6 +19,7 @@
             <a href="{{ route('finance.tax-documents.export', request()->query()) }}" class="btn btn-outline-secondary">Export Register CSV</a>
             <a href="{{ route('finance.tax-documents.export-withholding', request()->query()) }}" class="btn btn-outline-secondary">Export Bukti Potong CSV</a>
             <a href="{{ route('finance.tax-documents.export-efaktur', request()->query()) }}" class="btn btn-outline-primary">Export e-Faktur CSV</a>
+            <a href="{{ route('finance.tax-documents.export-efaktur-partner', request()->query()) }}" class="btn btn-primary">Export Partner JSON</a>
         </div>
     </div>
 </div>

@@ -3,8 +3,8 @@
 namespace App\Modules\Storefront\Support;
 
 use App\Modules\Products\Models\Product;
+use App\Services\StorageAccessService;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
 
 class StorefrontProductPresenter
 {
@@ -32,6 +32,6 @@ class StorefrontProductPresenter
             return asset($path);
         }
 
-        return Storage::disk('public')->url($path);
+        return app(StorageAccessService::class)->publicUrlFromPath($path, 'public');
     }
 }

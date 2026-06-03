@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Multitenancy\QueryContextGuard;
 use App\Models\NotificationRecipient;
 use App\Support\Notifications\NotificationQueryService;
-use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,9 +12,15 @@ use Illuminate\View\View;
 
 class NotificationController extends Controller
 {
+    private NotificationQueryService $queryService;
+    private QueryContextGuard $guard;
+
     public function __construct(
-        private readonly NotificationQueryService $queryService,
+        NotificationQueryService $queryService,
+        QueryContextGuard $guard
     ) {
+        $this->queryService = $queryService;
+        $this->guard = $guard;
     }
 
     public function index(Request $request): View
@@ -109,8 +115,10 @@ class NotificationController extends Controller
 
     private function ownedRecipient(Request $request, int $recipientId): NotificationRecipient
     {
+        $tenantId = $this->guard->requireTenant('notification recipient lookup');
+
         return NotificationRecipient::query()
-            ->where('tenant_id', TenantContext::currentId() ?: 1)
+            ->where('tenant_id', $tenantId)
             ->where('user_id', $request->user()->id)
             ->whereKey($recipientId)
             ->with('notification')

@@ -3,6 +3,7 @@
 namespace App\Modules\Storefront\Services;
 
 use App\Models\Tenant;
+use App\Services\StorageAccessService;
 use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -180,7 +181,7 @@ class BrandPageService
             return null;
         }
 
-        return \Illuminate\Support\Facades\Storage::disk('public')->url($path);
+        return app(StorageAccessService::class)->publicUrlFromPath($path, 'public');
     }
 
     private function stringValue(mixed $value): string

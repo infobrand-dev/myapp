@@ -5,6 +5,7 @@
 @section('content')
 @php
     $money = app(\App\Support\MoneyFormatter::class);
+    $storageAccess = app(\App\Services\StorageAccessService::class);
     $isAdvancedMode = ($accountingUiMode ?? 'standard') === 'advanced';
 @endphp
 
@@ -406,9 +407,18 @@
                         <div class="small mb-2">{{ $sale->notes }}</div>
                     @endif
                     @if($sale->attachment_path)
-                        <a href="{{ asset('storage/'.$sale->attachment_path) }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">
-                            <i class="ti ti-paperclip me-1"></i>Lihat Attachment
-                        </a>
+                        @php
+                            $legacyAttachmentUrl = $sale->attachment_stored_file_id
+                                ? null
+                                : $storageAccess->legacySensitiveDownloadUrl('public', $sale->attachment_path, 'sales_attachment', basename($sale->attachment_path));
+                        @endphp
+                        @if($sale->attachment_stored_file_id || $legacyAttachmentUrl)
+                            <a href="{{ $sale->attachment_stored_file_id ? route('stored-files.download', $sale->attachment_stored_file_id) : $legacyAttachmentUrl }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">
+                                <i class="ti ti-paperclip me-1"></i>Lihat Attachment
+                            </a>
+                        @else
+                            <div class="text-muted small">Attachment tidak tersedia.</div>
+                        @endif
                     @endif
                 </div>
                 @endif

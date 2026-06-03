@@ -4,8 +4,12 @@ namespace Tests\Feature\Core;
 
 use App\Models\Branch;
 use App\Models\Company;
+use App\Models\SubscriptionPlan;
+use App\Models\TenantSubscription;
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Finance\FinanceServiceProvider;
+use App\Modules\Finance\Services\ChartOfAccountProvisioner;
 use App\Modules\Inventory\InventoryServiceProvider;
 use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Payments\PaymentsServiceProvider;
@@ -20,7 +24,9 @@ use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\SalesServiceProvider;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
+use App\Support\PlanFeature;
 use App\Support\TenantContext;
+use App\Support\UserAccessManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
@@ -40,6 +46,7 @@ class OperationalScopeValidationTest extends TestCase
 
         $this->app->register(ProductsServiceProvider::class);
         $this->app->register(InventoryServiceProvider::class);
+        $this->app->register(FinanceServiceProvider::class);
         $this->app->register(PaymentsServiceProvider::class);
         $this->app->register(SalesServiceProvider::class);
         $this->app->register(PurchasesServiceProvider::class);
@@ -60,17 +67,22 @@ class OperationalScopeValidationTest extends TestCase
         ])->run();
 
         $this->artisan('migrate', [
+            '--path' => 'app/Modules/Finance/database/migrations',
+            '--realpath' => false,
+        ])->run();
+
+        $this->artisan('migrate', [
             '--path' => 'app/Modules/Payments/database/migrations',
             '--realpath' => false,
         ])->run();
 
         $this->artisan('migrate', [
-            '--path' => 'app/Modules/PointOfSale/database/migrations',
+            '--path' => 'app/Modules/Sales/database/migrations',
             '--realpath' => false,
         ])->run();
 
         $this->artisan('migrate', [
-            '--path' => 'app/Modules/Sales/database/migrations',
+            '--path' => 'app/Modules/PointOfSale/database/migrations',
             '--realpath' => false,
         ])->run();
 
@@ -114,6 +126,7 @@ class OperationalScopeValidationTest extends TestCase
         TenantContext::setCurrentId(1);
         CompanyContext::setCurrentId($this->company->id);
         BranchContext::setCurrentId(null);
+        app(ChartOfAccountProvisioner::class)->ensureDefaults(1, $this->company->id, null);
     }
 
     public function test_sales_return_rejects_sale_from_different_branch_scope(): void
@@ -240,6 +253,43 @@ class OperationalScopeValidationTest extends TestCase
 
         app(PermissionRegistrar::class)->setPermissionsTeamId(1);
         $user->givePermissionTo($permissions);
+        app(UserAccessManager::class)->sync(
+            $user,
+            [$this->company->id],
+            [$this->branchA->id, $this->branchB->id],
+            $this->company->id,
+            $this->branchA->id
+        );
+
+        $plan = SubscriptionPlan::query()->create([
+            'code' => 'ops-scope-' . uniqid(),
+            'name' => 'Operational Scope Test',
+            'billing_interval' => 'monthly',
+            'is_active' => true,
+            'is_public' => false,
+            'is_system' => false,
+            'sort_order' => 1,
+            'features' => [
+                PlanFeature::ACCOUNTING => true,
+                PlanFeature::PURCHASES => true,
+            ],
+            'limits' => [],
+            'meta' => [
+                'product_line' => 'accounting',
+            ],
+        ]);
+
+        TenantSubscription::query()->create([
+            'tenant_id' => 1,
+            'subscription_plan_id' => $plan->id,
+            'product_line' => 'accounting',
+            'status' => 'active',
+            'billing_provider' => 'test',
+            'billing_reference' => 'ops-scope-' . uniqid(),
+            'starts_at' => now()->subMinute(),
+            'ends_at' => now()->addMonth(),
+            'auto_renews' => false,
+        ]);
 
         return $user;
     }

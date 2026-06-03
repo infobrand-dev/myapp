@@ -8,14 +8,14 @@ use App\Modules\Reports\ReportsServiceProvider;
 use App\Modules\Reports\Services\FinanceReportService;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Tests\Concerns\RefreshesPgsqlDatabase;
 use Tests\TestCase;
 
 class FinanceBalanceSheetAuditTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesPgsqlDatabase;
 
     protected function setUp(): void
     {

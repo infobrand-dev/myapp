@@ -26,16 +26,25 @@ class AffiliateController extends Controller
             ->get()
             ->filter(fn (Product $product): bool => filter_var(data_get($product->meta, 'affiliate_offer.enabled', false), FILTER_VALIDATE_BOOLEAN))
             ->values();
+        $sellerClaimedListings = AffiliateListing::query()
+            ->with('user.tenant', 'sourceProduct')
+            ->where('source_tenant_id', TenantContext::currentId())
+            ->latest('id')
+            ->get();
 
         $myListings = AffiliateListing::query()
-            ->with('sourceProduct', 'sourceTenant')
+            ->with('sourceProduct', 'sourceTenant', 'user.tenant')
             ->where('tenant_id', TenantContext::currentId())
             ->latest('id')
             ->get();
 
         return view('affiliate::index', [
             'sellerProducts' => $sellerProducts,
+            'sellerClaimedListings' => $sellerClaimedListings,
             'myListings' => $myListings,
+            'affiliateUrls' => $myListings->mapWithKeys(fn (AffiliateListing $listing) => [
+                $listing->id => $this->affiliates->publicListingUrl($listing),
+            ]),
             'referrals' => AffiliateReferral::query()
                 ->with('listing.user', 'listing.sourceProduct', 'sale')
                 ->where(function ($query): void {
@@ -75,6 +84,8 @@ class AffiliateController extends Controller
 
     public function updateListing(AffiliateListing $listing): RedirectResponse
     {
+        abort_unless(filter_var(data_get($listing->sourceProduct?->meta, 'affiliate_offer.allow_landing_copy', true), FILTER_VALIDATE_BOOLEAN), 403);
+
         $validated = request()->validate([
             'headline' => ['nullable', 'string', 'max:255'],
             'subtitle' => ['nullable', 'string', 'max:500'],

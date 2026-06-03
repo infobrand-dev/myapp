@@ -5,7 +5,11 @@ namespace Tests\Feature\Payments;
 use App\Models\User;
 use App\Models\Branch;
 use App\Models\Company;
+use App\Models\SubscriptionPlan;
+use App\Models\TenantSubscription;
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Finance\FinanceServiceProvider;
+use App\Modules\Finance\Services\ChartOfAccountProvisioner;
 use App\Modules\Payments\Actions\CreatePaymentAction;
 use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\Payments\PaymentsServiceProvider;
@@ -16,23 +20,25 @@ use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\SalesServiceProvider;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
+use App\Support\PlanFeature;
 use App\Support\TenantContext;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\Concerns\BootstrapsModuleContext;
+use Tests\Concerns\RefreshesPgsqlDatabase;
 use Tests\TestCase;
 
 class PaymentSecurityTest extends TestCase
 {
     use BootstrapsModuleContext;
-    use RefreshDatabase;
+    use RefreshesPgsqlDatabase;
 
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->registerModuleProviders([
+            FinanceServiceProvider::class,
             PaymentsServiceProvider::class,
             SalesServiceProvider::class,
         ]);
@@ -40,14 +46,16 @@ class PaymentSecurityTest extends TestCase
         $this->migrateModulePaths([
             'app/Modules/Contacts/database/migrations',
             'app/Modules/Products/database/migrations',
+            'app/Modules/Finance/database/migrations',
             'app/Modules/Payments/database/migrations',
-            'app/Modules/PointOfSale/database/migrations',
             'app/Modules/Sales/database/migrations',
+            'app/Modules/PointOfSale/database/migrations',
         ]);
 
         $this->bootstrapDefaultOperationalContext(companyAttributes: [
             'meta' => [],
         ]);
+        app(ChartOfAccountProvisioner::class)->ensureDefaults(1, 1, null);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
@@ -81,6 +89,7 @@ class PaymentSecurityTest extends TestCase
     public function test_user_without_assign_receiver_permission_cannot_set_received_by(): void
     {
         $creator = $this->userWithPermissions(['sales.create', 'sales.finalize', 'payments.create']);
+        $this->activateAccountingPlan();
         $otherUser = User::factory()->create();
         $sale = $this->finalizedSale($creator);
 
@@ -128,6 +137,7 @@ class PaymentSecurityTest extends TestCase
         ]);
 
         $creator = $this->userWithPermissions(['sales.create', 'sales.finalize', 'payments.create']);
+        $this->activateAccountingPlan();
         $sale = $this->finalizedSale($creator);
 
         \DB::table('user_companies')->insert([
@@ -220,5 +230,39 @@ class PaymentSecurityTest extends TestCase
         return app(FinalizeSaleAction::class)->execute($sale, [
             'payment_status' => 'unpaid',
         ], $user);
+    }
+
+    private function activateAccountingPlan(): void
+    {
+        if (TenantSubscription::query()
+            ->where('tenant_id', 1)
+            ->where('product_line', 'accounting')
+            ->where('status', 'active')
+            ->exists()) {
+            return;
+        }
+
+        $plan = SubscriptionPlan::query()->create([
+            'code' => 'payments-security-' . uniqid(),
+            'name' => 'Payments Security',
+            'price' => 100000,
+            'currency' => 'IDR',
+            'billing_interval' => 'monthly',
+            'is_active' => true,
+            'features' => [
+                PlanFeature::ACCOUNTING => true,
+            ],
+            'limits' => [],
+            'meta' => ['product_line' => 'accounting'],
+        ]);
+
+        TenantSubscription::query()->create([
+            'tenant_id' => 1,
+            'subscription_plan_id' => $plan->id,
+            'product_line' => 'accounting',
+            'status' => 'active',
+            'starts_at' => now()->subMinute(),
+            'ends_at' => now()->addMonth(),
+        ]);
     }
 }

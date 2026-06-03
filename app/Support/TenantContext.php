@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Multitenancy\ResolvedTenant;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -11,6 +12,7 @@ use RuntimeException;
 class TenantContext
 {
     private static ?int $currentTenantId = null;
+    private static ?ResolvedTenant $resolvedTenant = null;
 
     public static function currentId(): int
     {
@@ -18,12 +20,12 @@ class TenantContext
             // Warn when the context was never set — most likely a queued job, artisan
             // command, or scheduled task that forgot to call setCurrentId().
             // All DB queries will fall back to tenant 1 which may cause cross-tenant leaks.
-            if (app()->runningInConsole()) {
+            if (app()->runningInConsole() && !config('multitenancy.strict')) {
                 logger()->warning('TenantContext::currentId() called without a resolved context (console/job). Defaulting to tenant 1. Call TenantContext::setCurrentId() before executing tenant-scoped queries.');
                 return 1;
             }
 
-            if (config('multitenancy.mode') === 'saas') {
+            if (config('multitenancy.mode') === 'saas' || config('multitenancy.strict')) {
                 throw new RuntimeException('Tenant context was not resolved for this SaaS request.');
             }
 
@@ -35,6 +37,10 @@ class TenantContext
 
     public static function currentTenant(): ?Tenant
     {
+        if (self::$resolvedTenant !== null) {
+            return self::$resolvedTenant->tenant;
+        }
+
         if (!self::schemaHasTable('tenants')) {
             return null;
         }
@@ -58,9 +64,21 @@ class TenantContext
         self::$currentTenantId = $tenantId ?: 1;
     }
 
+    public static function setResolvedTenant(?ResolvedTenant $resolvedTenant): void
+    {
+        self::$resolvedTenant = $resolvedTenant;
+        self::$currentTenantId = $resolvedTenant?->tenant->getKey();
+    }
+
+    public static function resolvedTenant(): ?ResolvedTenant
+    {
+        return self::$resolvedTenant;
+    }
+
     public static function forget(): void
     {
         self::$currentTenantId = null;
+        self::$resolvedTenant = null;
     }
 
     public static function resolveIdFromRequest(Request $request): int

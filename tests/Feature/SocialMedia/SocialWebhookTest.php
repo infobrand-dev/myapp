@@ -178,7 +178,13 @@ class SocialWebhookTest extends TestCase
                             'message' => [
                                 'mid' => 'mid.ig.attachment',
                                 'attachments' => [
-                                    ['type' => 'image'],
+                                    [
+                                        'type' => 'image',
+                                        'payload' => [
+                                            'url' => 'https://cdn.example.test/media/ig-image.jpg',
+                                            'mime_type' => 'image/jpeg',
+                                        ],
+                                    ],
                                 ],
                             ],
                         ],
@@ -201,7 +207,18 @@ class SocialWebhookTest extends TestCase
         $this->assertDatabaseHas('conversation_messages', [
             'external_message_id' => 'mid.ig.attachment',
             'body' => '[image attachment]',
+            'type' => 'image',
+            'media_url' => 'https://cdn.example.test/media/ig-image.jpg',
+            'media_mime' => 'image/jpeg',
         ]);
+
+        $message = ConversationMessage::query()
+            ->where('external_message_id', 'mid.ig.attachment')
+            ->first();
+
+        $this->assertSame('instagram_meta', data_get($message?->payload, 'provider_origin'));
+        $this->assertSame('https://cdn.example.test/media/ig-image.jpg', data_get($message?->payload, 'provider_media_url'));
+        $this->assertSame(false, data_get($message?->payload, 'copied_locally'));
     }
 
     public function test_verify_returns_plain_text_challenge()

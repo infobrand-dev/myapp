@@ -2,6 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Multitenancy\TenantConnectionManager;
+use App\Multitenancy\TenantRegistry;
+use App\Multitenancy\TenantResolver;
 use App\Support\SaasHost;
 use App\Support\TenantContext;
 use Closure;
@@ -13,6 +16,25 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ResolveTenantContext
 {
+    /** @var TenantRegistry */
+    private $registry;
+
+    /** @var TenantResolver */
+    private $tenantResolver;
+
+    /** @var TenantConnectionManager */
+    private $connectionManager;
+
+    public function __construct(
+        TenantRegistry $registry,
+        TenantResolver $tenantResolver,
+        TenantConnectionManager $connectionManager
+    ) {
+        $this->registry = $registry;
+        $this->tenantResolver = $tenantResolver;
+        $this->connectionManager = $connectionManager;
+    }
+
     public function handle(Request $request, Closure $next): Response
     {
         if ($request->is('install') || $request->is('install/*')) {
@@ -49,19 +71,36 @@ class ResolveTenantContext
             $tenantId = $userTenantId;
         }
 
+        $tenant = $this->registry->findById($tenantId);
+
+        if (!$tenant) {
+            abort(404, 'Tenant tidak ditemukan.');
+        }
+
         TenantContext::setCurrentId($tenantId);
+        TenantContext::setResolvedTenant($this->tenantResolver->resolve($tenant));
+        if (TenantContext::resolvedTenant()) {
+            $this->connectionManager->initialize(TenantContext::resolvedTenant());
+        }
         app(PermissionRegistrar::class)->setPermissionsTeamId($tenantId);
         $request->attributes->set('tenant_id', $tenantId);
+        $request->attributes->set('tenant_runtime_mode', config('multitenancy.runtime_mode', 'column'));
 
         if ($request->hasSession()) {
+            if (config('multitenancy.session.tenant_cookie')) {
+                config([
+                    'session.cookie' => config('session.cookie') . '_t' . $tenantId,
+                ]);
+            }
+
             $request->session()->put('tenant_id', $tenantId);
-            $tenant = TenantContext::currentTenant();
             $request->session()->put('tenant_slug', optional($tenant)->slug);
         }
 
         try {
             return $next($request);
         } finally {
+            $this->connectionManager->purge();
             app(PermissionRegistrar::class)->setPermissionsTeamId(null);
             TenantContext::forget();
         }

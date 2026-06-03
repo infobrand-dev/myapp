@@ -9,11 +9,10 @@ use App\Modules\Conversations\Models\Conversation;
 use App\Modules\Conversations\Models\ConversationMessage;
 use App\Modules\SocialMedia\Http\Requests\ReplySocialConversationRequest;
 use App\Modules\SocialMedia\Jobs\SendSocialMessage;
+use App\Services\StoredFileService;
 use App\Services\TenantStorageUsageService;
-use App\Services\WorkspaceMediaStorageService;
 use App\Support\TenantContext;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -66,15 +65,18 @@ class SocialMediaController extends Controller
                 'Storage workspace tidak cukup untuk upload media social baru.'
             );
 
-            $storedMedia = app(WorkspaceMediaStorageService::class)->storeUploadedFile($uploaded, 'social_messages', 'public');
-            $path = $storedMedia['path'];
-            $publicUrl = $storedMedia['url'];
+            $storedMedia = app(StoredFileService::class)->storeUploadedFile($uploaded, 'channel_shared_media', [
+                'tenant_id' => TenantContext::currentId(),
+                'source_module' => 'social_media',
+                'source_context' => 'social_dm_outgoing_media',
+                'provider_origin' => 'social_dm',
+            ]);
+            $path = $storedMedia->path;
+            $previewUrl = route('stored-files.preview', $storedMedia);
 
-            $mediaValidationError = app(ConversationChannelManager::class)->validateMediaSend($conversation, $publicUrl);
+            $mediaValidationError = app(ConversationChannelManager::class)->validateMediaSend($conversation, $previewUrl);
             if ($mediaValidationError !== null) {
-                if (!$storedMedia['deduplicated']) {
-                    Storage::disk('public')->delete($path);
-                }
+                app(StoredFileService::class)->delete($storedMedia);
 
                 return back()->withErrors([
                     'media_file' => $mediaValidationError,
@@ -92,14 +94,16 @@ class SocialMediaController extends Controller
                 'direction' => 'out',
                 'type' => $mediaType,
                 'body' => $bodyText,
-                'media_url' => $publicUrl,
+                'media_url' => $previewUrl,
                 'media_mime' => $mediaMime,
                 'payload' => [
-                    'link' => $publicUrl,
+                    'stored_file_id' => $storedMedia->id,
                     'filename' => $filename,
-                    'storage_disk' => 'public',
+                    'storage_disk' => $storedMedia->disk,
                     'storage_path' => $path,
-                    'content_hash' => $storedMedia['content_hash'],
+                    'content_hash' => $storedMedia->content_hash,
+                    'access_class' => $storedMedia->access_class,
+                    'share_strategy' => $storedMedia->share_strategy,
                 ],
                 'status' => 'pending',
             ]);

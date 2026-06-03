@@ -2,10 +2,12 @@
 
 namespace App\Modules\Payments\Actions;
 
+use App\Models\StoredFile;
 use App\Models\User;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentMethod;
 use App\Modules\Payments\Services\PaymentNumberService;
+use App\Services\StoredFileService;
 use App\Support\AccountingJournalService;
 use App\Support\AccountingPeriodLockService;
 use App\Support\BooleanQuery;
@@ -31,6 +33,8 @@ class CreatePaymentAction
     private $periodLockService;
     private $notificationCenter;
     private $hooks;
+    private $storedFiles;
+    private ?StoredFile $lastStoredFile = null;
 
     public function __construct(
         PaymentNumberService $numberService,
@@ -39,7 +43,8 @@ class CreatePaymentAction
         AccountingJournalService $journalService,
         AccountingPeriodLockService $periodLockService,
         NotificationCenter $notificationCenter,
-        HookManager $hooks
+        HookManager $hooks,
+        StoredFileService $storedFiles
     ) {
         $this->numberService = $numberService;
         $this->validatePayableTransaction = $validatePayableTransaction;
@@ -48,11 +53,13 @@ class CreatePaymentAction
         $this->periodLockService = $periodLockService;
         $this->notificationCenter = $notificationCenter;
         $this->hooks = $hooks;
+        $this->storedFiles = $storedFiles;
     }
 
     public function execute(array $data, ?User $actor = null): Payment
     {
         return DB::transaction(function () use ($data, $actor) {
+            $this->lastStoredFile = null;
             $paidAt = !empty($data['paid_at']) ? Carbon::parse($data['paid_at']) : now();
             $this->periodLockService->ensureDateOpen($paidAt, $data['branch_id'] ?? null, 'create payment');
 
@@ -123,7 +130,7 @@ class CreatePaymentAction
                 'proof_file_path' => $proofFilePath,
                 'branch_id' => $resolvedBranchId,
                 'notes' => $data['notes'] ?? null,
-                'meta' => $data['meta'] ?? null,
+                'meta' => $this->withStoredFileMeta($data['meta'] ?? [], $this->lastStoredFile),
                 'received_by' => $data['received_by'] ?? ($actor ? $actor->id : null),
                 'created_by' => $actor ? $actor->id : null,
                 'updated_by' => $actor ? $actor->id : null,
@@ -238,7 +245,27 @@ class CreatePaymentAction
             return null;
         }
 
-        return $proofFile->store('payments/proofs', 'public');
+        $this->lastStoredFile = $this->storedFiles->storeUploadedFile($proofFile, 'payment_proof', [
+            'tenant_id' => TenantContext::currentId(),
+            'company_id' => CompanyContext::currentId(),
+            'branch_id' => BranchContext::currentId(),
+            'source_module' => 'payments',
+            'source_context' => 'payment_proof',
+        ]);
+
+        return $this->lastStoredFile->path;
+    }
+
+    private function withStoredFileMeta(array $meta, ?StoredFile $storedFile): array
+    {
+        if (!$storedFile) {
+            return $meta;
+        }
+
+        $meta['stored_file_id'] = $storedFile->id;
+        $meta['stored_file_origin'] = $storedFile->origin_owner;
+
+        return $meta;
     }
 
     private function journalLines(Payment $payment, Collection $allocations): array

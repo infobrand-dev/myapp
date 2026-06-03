@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\DB;
 
 class PlatformPromoCode extends Model
 {
+    protected $connection = 'central';
+
     protected $fillable = [
         'code',
         'label',

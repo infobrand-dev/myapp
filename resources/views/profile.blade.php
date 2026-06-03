@@ -14,7 +14,7 @@
                 <div class="mb-3" style="display:flex;justify-content:center;">
                     @if($user->avatar)
                         <span class="avatar avatar-xl rounded" style="width:80px;height:80px;">
-                            <img src="{{ asset('storage/'.$user->avatar) }}" alt="Avatar" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">
+                            <img src="{{ app(\App\Services\StorageAccessService::class)->publicUrlFromPath($user->avatar, 'public') ?? asset('storage/'.$user->avatar) }}" alt="Avatar" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">
                         </span>
                     @else
                         <span class="avatar avatar-xl rounded" style="width:80px;height:80px;background:rgba(var(--tblr-primary-rgb),0.12);color:var(--tblr-primary);font-weight:700;font-size:1.5rem;">

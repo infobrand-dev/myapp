@@ -24,6 +24,13 @@ return [
         'token' => env('POSTMARK_TOKEN'),
     ],
 
+    'efaktur_partner' => [
+        'name' => env('EFAKTUR_PARTNER_NAME'),
+        'mode' => env('EFAKTUR_PARTNER_MODE', 'export_only'),
+        'endpoint' => env('EFAKTUR_PARTNER_ENDPOINT'),
+        'api_key' => env('EFAKTUR_PARTNER_API_KEY'),
+    ],
+
     'mailtrap' => [
         'webhook_secret' => env('MAILTRAP_WEBHOOK_SECRET'),
     ],

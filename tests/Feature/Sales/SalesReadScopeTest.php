@@ -4,8 +4,12 @@ namespace Tests\Feature\Sales;
 
 use App\Models\Branch;
 use App\Models\Company;
+use App\Models\SubscriptionPlan;
+use App\Models\TenantSubscription;
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Finance\FinanceServiceProvider;
+use App\Modules\Finance\Services\ChartOfAccountProvisioner;
 use App\Modules\Payments\PaymentsServiceProvider;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\ProductsServiceProvider;
@@ -13,6 +17,7 @@ use App\Modules\Sales\Actions\CreateDraftSaleAction;
 use App\Modules\Sales\SalesServiceProvider;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
+use App\Support\PlanFeature;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
@@ -33,6 +38,7 @@ class SalesReadScopeTest extends TestCase
         parent::setUp();
 
         $this->app->register(ProductsServiceProvider::class);
+        $this->app->register(FinanceServiceProvider::class);
         $this->app->register(PaymentsServiceProvider::class);
         $this->app->register(SalesServiceProvider::class);
 
@@ -43,6 +49,11 @@ class SalesReadScopeTest extends TestCase
 
         $this->artisan('migrate', [
             '--path' => 'app/Modules/Products/database/migrations',
+            '--realpath' => false,
+        ])->run();
+
+        $this->artisan('migrate', [
+            '--path' => 'app/Modules/Finance/database/migrations',
             '--realpath' => false,
         ])->run();
 
@@ -115,6 +126,7 @@ class SalesReadScopeTest extends TestCase
         TenantContext::setCurrentId(1);
         CompanyContext::setCurrentId($this->company->id);
         BranchContext::setCurrentId($this->allowedBranch->id);
+        app(ChartOfAccountProvisioner::class)->ensureDefaults(1, $this->company->id, null);
     }
 
     public function test_show_edit_and_invoice_return_404_for_sale_outside_active_branch_scope(): void
@@ -136,6 +148,7 @@ class SalesReadScopeTest extends TestCase
     public function test_show_edit_and_invoice_allow_sale_inside_active_branch_scope(): void
     {
         $sale = $this->draftSaleInBranch($this->allowedBranch->id);
+        $this->activateAccountingPlan();
 
         $session = [
             'company_id' => $this->company->id,
@@ -190,5 +203,45 @@ class SalesReadScopeTest extends TestCase
                 'tax_total' => 0,
             ]],
         ], $this->user);
+    }
+
+    private function activateAccountingPlan(): void
+    {
+        if (TenantSubscription::query()
+            ->where('tenant_id', 1)
+            ->where('product_line', 'accounting')
+            ->where('status', 'active')
+            ->exists()) {
+            return;
+        }
+
+        $plan = SubscriptionPlan::query()->create([
+            'code' => 'sales-read-scope-' . uniqid(),
+            'name' => 'Sales Read Scope',
+            'billing_interval' => 'monthly',
+            'is_active' => true,
+            'is_public' => false,
+            'is_system' => false,
+            'sort_order' => 1,
+            'features' => [
+                PlanFeature::ACCOUNTING => true,
+            ],
+            'limits' => [],
+            'meta' => [
+                'product_line' => 'accounting',
+            ],
+        ]);
+
+        TenantSubscription::query()->create([
+            'tenant_id' => 1,
+            'subscription_plan_id' => $plan->id,
+            'product_line' => 'accounting',
+            'status' => 'active',
+            'billing_provider' => 'test',
+            'billing_reference' => 'sales-read-scope-' . uniqid(),
+            'starts_at' => now()->subMinute(),
+            'ends_at' => now()->addMonth(),
+            'auto_renews' => false,
+        ]);
     }
 }

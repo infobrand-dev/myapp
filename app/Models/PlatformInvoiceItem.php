@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PlatformInvoiceItem extends Model
 {
+    protected $connection = 'central';
+
     protected $fillable = [
         'platform_invoice_id',
         'item_type',

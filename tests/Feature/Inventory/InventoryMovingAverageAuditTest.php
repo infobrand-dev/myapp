@@ -10,15 +10,15 @@ use App\Modules\Products\Models\Product;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use Tests\Concerns\BootstrapsModuleContext;
+use Tests\Concerns\RefreshesPgsqlDatabase;
 use Tests\TestCase;
 
 class InventoryMovingAverageAuditTest extends TestCase
 {
     use BootstrapsModuleContext;
-    use RefreshDatabase;
+    use RefreshesPgsqlDatabase;
 
     protected function setUp(): void
     {

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Multitenancy\QueryContextGuard;
 use App\Models\PlatformPlanOrder;
 use App\Models\Tenant;
 use App\Models\TenantSubscription;
@@ -13,9 +14,15 @@ use Spatie\Permission\Models\Role;
 
 class StaleOnboardingCleanupService
 {
+    private TenantSlugReservationService $slugReservations;
+    private QueryContextGuard $guard;
+
     public function __construct(
-        private readonly TenantSlugReservationService $slugReservations,
+        TenantSlugReservationService $slugReservations,
+        QueryContextGuard $guard
     ) {
+        $this->slugReservations = $slugReservations;
+        $this->guard = $guard;
     }
 
     public function cleanup(bool $dryRun = false): array
@@ -67,6 +74,7 @@ class StaleOnboardingCleanupService
     private function deleteTenant(Tenant $tenant): array
     {
         $slug = $tenant->slug;
+        $this->guard->requireCentralTable('tenants', 'stale onboarding cleanup');
 
         DB::transaction(function () use ($tenant, $slug): void {
             $this->slugReservations->reserveDetached($slug, 'cleanup_lock', now()->addDays(30), [

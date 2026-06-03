@@ -4,6 +4,8 @@ namespace App\Modules\Conversations\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\StoredFileService;
+use App\Services\StorageAccessService;
 use App\Modules\Conversations\Contracts\ConversationAccessRegistry;
 use App\Modules\Conversations\Contracts\ConversationChannelManager;
 use App\Modules\Conversations\Contracts\ConversationOutboundDispatcher;
@@ -24,7 +26,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Throwable;
@@ -276,7 +277,7 @@ class ConversationHubController extends Controller
             $avatar = $otherParticipant?->user?->avatar;
         }
         if ($avatar && !\Illuminate\Support\Str::startsWith($avatar, ['http://', 'https://', '/'])) {
-            $avatar = asset('storage/' . ltrim($avatar, '/'));
+            $avatar = $this->publicStorageUrl(ltrim($avatar, '/'));
         }
 
         return response()->json([
@@ -644,15 +645,19 @@ class ConversationHubController extends Controller
                 'Storage workspace tidak cukup untuk upload media percakapan baru.'
             );
 
-            $storedMedia = app(WorkspaceMediaStorageService::class)->storeUploadedFile($uploaded, 'wa_messages', 'public');
-            $path = $storedMedia['path'];
-            $publicUrl = $storedMedia['url'];
+            $storedMedia = app(StoredFileService::class)->storeUploadedFile($uploaded, 'channel_shared_media', [
+                'tenant_id' => $this->tenantId(),
+                'branch_id' => null,
+                'source_module' => 'conversations',
+                'source_context' => 'conversation_outgoing_media',
+                'provider_origin' => (string) $conversation->channel,
+            ]);
+            $path = $storedMedia->path;
+            $previewUrl = route('stored-files.preview', $storedMedia);
 
-            $mediaValidationError = app(ConversationChannelManager::class)->validateMediaSend($conversation, $publicUrl);
+            $mediaValidationError = app(ConversationChannelManager::class)->validateMediaSend($conversation, $previewUrl);
             if ($mediaValidationError !== null) {
-                if (!$storedMedia['deduplicated']) {
-                    Storage::disk('public')->delete($path);
-                }
+                app(StoredFileService::class)->delete($storedMedia);
 
                 return $this->sendErrorResponse($request, $mediaValidationError);
             }
@@ -669,14 +674,16 @@ class ConversationHubController extends Controller
                 'direction' => 'out',
                 'type' => $mediaType,
                 'body' => $bodyText,
-                'media_url' => $publicUrl,
+                'media_url' => $previewUrl,
                 'media_mime' => $mediaMime,
                 'payload' => [
-                    'link' => $publicUrl,
+                    'stored_file_id' => $storedMedia->id,
                     'filename' => $filename,
-                    'storage_disk' => 'public',
+                    'storage_disk' => $storedMedia->disk,
                     'storage_path' => $path,
-                    'content_hash' => $storedMedia['content_hash'],
+                    'content_hash' => $storedMedia->content_hash,
+                    'access_class' => $storedMedia->access_class,
+                    'share_strategy' => $storedMedia->share_strategy,
                 ],
                 'status' => $outboundDefaults['status'],
                 'sent_at' => $outboundDefaults['sent_at'],
@@ -769,7 +776,7 @@ class ConversationHubController extends Controller
             'direction' => $message->direction,
             'type' => $message->type,
             'body' => $message->body,
-            'media_url' => $message->media_url,
+            'media_url' => $this->messageMediaUrl($message),
             'media_mime' => $message->media_mime,
             'filename' => data_get($message->payload, 'filename'),
             'status' => $message->status,
@@ -905,7 +912,17 @@ class ConversationHubController extends Controller
 
     private function publicStorageUrl(string $path): string
     {
-        return url(Storage::disk('public')->url($path));
+        return app(StorageAccessService::class)->publicUrlFromPath($path, 'public') ?? asset('storage/' . ltrim($path, '/'));
+    }
+
+    private function messageMediaUrl(ConversationMessage $message): ?string
+    {
+        $storedFileId = (int) data_get($message->payload, 'stored_file_id', 0);
+        if ($storedFileId > 0) {
+            return route('stored-files.preview', $storedFileId);
+        }
+
+        return $message->media_url;
     }
 
     private function isPublicHttpsUrl(string $url): bool

@@ -7,6 +7,8 @@ use App\Models\SubscriptionPlan;
 use App\Models\TenantSubscription;
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Finance\FinanceServiceProvider;
+use App\Modules\Finance\Services\ChartOfAccountProvisioner;
 use App\Modules\Payments\Actions\CreatePaymentAction;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentMethod;
@@ -18,16 +20,16 @@ use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\SalesServiceProvider;
 use App\Support\FeatureMode;
 use App\Support\PlanFeature;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\Concerns\BootstrapsModuleContext;
+use Tests\Concerns\RefreshesPgsqlDatabase;
 use Tests\TestCase;
 
 class PaymentStandardModeTest extends TestCase
 {
     use BootstrapsModuleContext;
-    use RefreshDatabase;
+    use RefreshesPgsqlDatabase;
 
     protected function setUp(): void
     {
@@ -38,6 +40,7 @@ class PaymentStandardModeTest extends TestCase
         }
 
         $this->registerModuleProviders([
+            FinanceServiceProvider::class,
             PaymentsServiceProvider::class,
             SalesServiceProvider::class,
         ]);
@@ -45,14 +48,16 @@ class PaymentStandardModeTest extends TestCase
         $this->migrateModulePaths([
             'app/Modules/Contacts/database/migrations',
             'app/Modules/Products/database/migrations',
+            'app/Modules/Finance/database/migrations',
             'app/Modules/Payments/database/migrations',
-            'app/Modules/PointOfSale/database/migrations',
             'app/Modules/Sales/database/migrations',
+            'app/Modules/PointOfSale/database/migrations',
         ]);
 
         $this->bootstrapDefaultOperationalContext(companyAttributes: [
             'meta' => [],
         ]);
+        app(ChartOfAccountProvisioner::class)->ensureDefaults(1, 1, null);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }

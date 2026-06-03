@@ -1,4 +1,5 @@
 @php
+    $storageAccess = app(\App\Services\StorageAccessService::class);
     $isAdvancedMode = ($accountingUiMode ?? 'standard') === 'advanced';
     $saleTotals = is_array($sale->totals_snapshot ?? null) ? $sale->totals_snapshot : [];
     $headerDiscountTotal = old('header_discount_total', data_get($saleTotals, 'header_discount_total', 0));
@@ -32,15 +33,18 @@
         : route('sales.index');
 
     $sellablesByKey = collect($sellables)->keyBy('key');
+    $sellableOptions = collect($sellables)
+        ->map(fn ($sellable) => [
+            'key' => $sellable['key'],
+            'label' => $sellable['label'],
+            'description' => $sellable['description'],
+            'unit_price' => $sellable['unit_price'],
+        ])
+        ->values();
 @endphp
 
 <script>
-    window._sellables = @json($sellables->map(fn($p) => [
-        'key'         => $p['key'],
-        'label'       => $p['label'],
-        'description' => $p['description'],
-        'unit_price'  => $p['unit_price'],
-    ])->values());
+    window._sellables = @json($sellableOptions);
 </script>
 
 <form method="POST" action="{{ $submitRoute }}">
@@ -222,7 +226,19 @@
                         ])
                         <input type="file" name="attachment" class="form-control @error('attachment') is-invalid @enderror" accept=".jpg,.jpeg,.png,.pdf">
                         @if($sale->attachment_path)
-                            <div class="form-hint">Attachment saat ini: <a href="{{ asset('storage/'.$sale->attachment_path) }}" target="_blank" rel="noopener">lihat file</a></div>
+                            @php
+                                $legacyAttachmentUrl = $sale->attachment_stored_file_id
+                                    ? null
+                                    : $storageAccess->legacySensitiveDownloadUrl('public', $sale->attachment_path, 'sales_attachment', basename($sale->attachment_path));
+                            @endphp
+                            <div class="form-hint">
+                                Attachment saat ini:
+                                @if($sale->attachment_stored_file_id || $legacyAttachmentUrl)
+                                    <a href="{{ $sale->attachment_stored_file_id ? route('stored-files.download', $sale->attachment_stored_file_id) : $legacyAttachmentUrl }}" target="_blank" rel="noopener">lihat file</a>
+                                @else
+                                    <span class="text-muted">tidak tersedia</span>
+                                @endif
+                            </div>
                         @endif
                         @error('attachment') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>

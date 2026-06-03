@@ -2,7 +2,9 @@
 
 namespace App\Modules\WhatsAppApi\Jobs;
 
+use App\Models\StoredFile;
 use App\Modules\Conversations\Models\ConversationMessage;
+use App\Services\SharedFileAccessService;
 use App\Modules\WhatsAppApi\Models\WhatsAppInstance;
 use App\Support\TenantContext;
 use Illuminate\Bus\Queueable;
@@ -79,7 +81,7 @@ class SendWhatsAppMessage implements ShouldQueue
 
         if (in_array($message->type, ['image', 'video', 'document', 'audio'], true)) {
             $payload['type'] = $message->type;
-            $payload['media_url'] = $message->media_url ?: data_get($message->payload, 'link');
+            $payload['media_url'] = $this->resolveSharedMediaUrl($message);
             $payload['message'] = $message->body;
             $payload['payload'] = $message->payload;
         } elseif ($message->type === 'interactive') {
@@ -151,8 +153,12 @@ class SendWhatsAppMessage implements ShouldQueue
             ];
         } elseif (in_array($message->type, ['image', 'video', 'document', 'audio', 'sticker'], true)) {
             $type = $message->type;
-            $link = data_get($message->payload, 'link') ?: $message->media_url;
+            $providerMediaId = trim((string) data_get($message->payload, 'provider_media_id', ''));
+            $link = $providerMediaId === '' ? $this->resolveSharedMediaUrl($message) : null;
             $id = data_get($message->payload, 'id');
+            if (!$id && $providerMediaId !== '') {
+                $id = $providerMediaId;
+            }
 
             $payload['type'] = $type;
             $payload[$type] = array_filter([
@@ -329,6 +335,22 @@ class SendWhatsAppMessage implements ShouldQueue
     private function limitErrorMessage(string $error): string
     {
         return mb_substr(trim($error), 0, 240);
+    }
+
+    private function resolveSharedMediaUrl(ConversationMessage $message): ?string
+    {
+        $storedFileId = (int) data_get($message->payload, 'stored_file_id', 0);
+        if ($storedFileId > 0) {
+            $storedFile = StoredFile::query()->find($storedFileId);
+            if ($storedFile) {
+                return app(SharedFileAccessService::class)->issueShareUrl($storedFile, 'provider', null, null, [
+                    'channel' => 'wa_api',
+                    'conversation_message_id' => $message->id,
+                ])['url'];
+            }
+        }
+
+        return data_get($message->payload, 'link') ?: $message->media_url;
     }
 }
 

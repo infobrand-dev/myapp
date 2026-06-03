@@ -4,6 +4,7 @@ namespace App\Modules\Sales\Models;
 
 use App\Models\Company;
 use App\Models\Branch;
+use App\Models\StoredFile;
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Payments\Models\PaymentAllocation;
@@ -44,6 +45,7 @@ class Sale extends Model
                 'notes',
                 'customer_note',
                 'attachment_path',
+                'attachment_stored_file_id',
                 'external_reference',
             ])
             ->logOnlyDirty()
@@ -99,6 +101,7 @@ class Sale extends Model
         'notes',
         'customer_note',
         'attachment_path',
+        'attachment_stored_file_id',
         'void_reason',
         'totals_snapshot',
         'meta',
@@ -184,6 +187,11 @@ class Sale extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function attachmentStoredFile(): BelongsTo
+    {
+        return $this->belongsTo(StoredFile::class, 'attachment_stored_file_id');
     }
 
     public function updater(): BelongsTo

@@ -2,8 +2,9 @@
 
 namespace App\Services;
 
+use App\Multitenancy\QueryContextGuard;
+use App\Models\StoredFile;
 use App\Support\PlanLimit;
-use App\Support\TenantContext;
 use App\Support\TenantPlanManager;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -13,6 +14,22 @@ use Illuminate\Validation\ValidationException;
 
 class TenantStorageUsageService
 {
+    private StorageProfileFilesystemFactory $profileFilesystems;
+    private QueryContextGuard $guard;
+
+    public function __construct(
+        StorageProfileFilesystemFactory $profileFilesystems,
+        QueryContextGuard $guard
+    ) {
+        $this->profileFilesystems = $profileFilesystems;
+        $this->guard = $guard;
+    }
+
+    private function publicDisk(): string
+    {
+        return (string) config('workspace-files.public_disk', 'public');
+    }
+
     public function usedBytes(?int $tenantId = null): int
     {
         $paths = $this->referencedFiles($tenantId);
@@ -41,7 +58,7 @@ class TenantStorageUsageService
         ?string $message = null,
         int $releasedBytes = 0
     ): void {
-        $tenantId ??= TenantContext::currentId();
+        $tenantId ??= $this->guard->requireTenant('tenant storage quota check');
         $incomingBytes = max(0, $incomingBytes);
         $releasedBytes = max(0, $releasedBytes);
 
@@ -67,7 +84,7 @@ class TenantStorageUsageService
      */
     public function referencedFiles(?int $tenantId = null): array
     {
-        $tenantId ??= TenantContext::currentId();
+        $tenantId ??= $this->guard->requireTenant('tenant storage reference scan');
         $paths = [];
 
         foreach ($this->userAvatarReferences($tenantId) as $reference) {
@@ -144,6 +161,30 @@ class TenantStorageUsageService
         }
 
         try {
+            $storedFile = StoredFile::query()
+                ->with('storageProfile')
+                ->when($disk !== '' && $disk !== 'public', fn ($query) => $query->where('disk', $disk))
+                ->where('path', $path)
+                ->latest('id')
+                ->first();
+
+            if ($storedFile && $storedFile->storage_profile_id && $storedFile->storageProfile) {
+                $storage = $this->profileFilesystems->build($storedFile->storageProfile, array_filter([
+                    'storage_driver' => $storedFile->storage_driver,
+                    'storage_bucket' => $storedFile->storage_bucket,
+                    'storage_region' => $storedFile->storage_region,
+                    'storage_endpoint' => $storedFile->storage_endpoint,
+                    'storage_url' => $storedFile->storage_url,
+                    'storage_root' => $storedFile->storage_root,
+                ]));
+
+                if (!$storage->exists($path)) {
+                    return 0;
+                }
+
+                return max(0, (int) $storage->size($path));
+            }
+
             $storage = Storage::disk($disk);
 
             if (!$storage->exists($path)) {
@@ -170,7 +211,7 @@ class TenantStorageUsageService
             ->whereNotNull('avatar')
             ->where('avatar', '!=', '')
             ->pluck('avatar')
-            ->map(fn ($path) => ['disk' => 'public', 'path' => (string) $path])
+            ->map(fn ($path) => ['disk' => $this->publicDisk(), 'path' => (string) $path])
             ->all();
     }
 
@@ -256,7 +297,7 @@ class TenantStorageUsageService
             ->map(function ($url) {
                 $path = $this->publicDiskPathFromUrl((string) $url);
 
-                return $path === null ? null : ['disk' => 'public', 'path' => $path];
+                return $path === null ? null : ['disk' => $this->publicDisk(), 'path' => $path];
             })
             ->filter()
             ->values()
@@ -280,7 +321,7 @@ class TenantStorageUsageService
             ->map(function ($url) {
                 $path = $this->publicDiskPathFromUrl((string) $url);
 
-                return $path === null ? null : ['disk' => 'public', 'path' => $path];
+                return $path === null ? null : ['disk' => $this->publicDisk(), 'path' => $path];
             })
             ->filter()
             ->values()
@@ -319,7 +360,7 @@ class TenantStorageUsageService
             return null;
         }
 
-        $publicPrefix = parse_url((string) Storage::disk('public')->url(''), PHP_URL_PATH) ?: '/storage';
+        $publicPrefix = parse_url((string) Storage::disk($this->publicDisk())->url(''), PHP_URL_PATH) ?: '/storage';
         $publicPrefix = '/' . trim((string) $publicPrefix, '/');
 
         if (!str_starts_with($path, $publicPrefix . '/')) {

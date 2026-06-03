@@ -2,15 +2,24 @@
 
 namespace App\Support\Notifications;
 
+use App\Multitenancy\QueryContextGuard;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 
 class NotificationRecipientResolver
 {
+    private QueryContextGuard $guard;
+
+    public function __construct(
+        QueryContextGuard $guard
+    ) {
+        $this->guard = $guard;
+    }
+
     public function resolve(NotificationMessage $message, array $definition): Collection
     {
-        $tenantId = (int) ($message->tenantId ?: 1);
+        $tenantId = $message->tenantId ?: $this->guard->requireTenant('notification recipient resolution');
         $query = User::query()->where('tenant_id', $tenantId);
 
         $userIds = collect($message->recipientUserIds)->filter()->values();

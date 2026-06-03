@@ -3,6 +3,7 @@
 namespace App\Modules\Sales\Actions;
 
 use App\Models\User;
+use App\Services\StoredFileService;
 use App\Modules\Contacts\Models\Contact;
 use App\Modules\Contacts\Support\ContactScope;
 use App\Modules\Sales\Models\Sale;
@@ -13,7 +14,6 @@ use App\Support\CompanyContext;
 use App\Support\TenantContext;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class UpdateDraftSaleAction
@@ -22,17 +22,20 @@ class UpdateDraftSaleAction
     private $idempotencyService;
     private $snapshotService;
     private $syncPaymentSummary;
+    private $storedFiles;
 
     public function __construct(
         RecalculateSaleTotalsAction $recalculateTotals,
         SaleIdempotencyService $idempotencyService,
         SaleSnapshotService $snapshotService,
-        SyncSalePaymentSummaryAction $syncPaymentSummary
+        SyncSalePaymentSummaryAction $syncPaymentSummary,
+        StoredFileService $storedFiles
     ) {
         $this->recalculateTotals = $recalculateTotals;
         $this->idempotencyService = $idempotencyService;
         $this->snapshotService = $snapshotService;
         $this->syncPaymentSummary = $syncPaymentSummary;
+        $this->storedFiles = $storedFiles;
     }
 
     public function execute(Sale $sale, array $data, ?User $actor = null): Sale
@@ -50,11 +53,14 @@ class UpdateDraftSaleAction
                 ->tap(fn ($query) => BranchContext::applyScope($query))
                 ->lockForUpdate()
                 ->findOrFail($sale->id);
+            $previousAttachmentStoredFile = $sale->attachmentStoredFile;
+            $previousAttachmentPath = (string) ($sale->attachment_path ?? '');
             $resolvedBranchId = isset($data['branch_id']) && $data['branch_id'] !== null && $data['branch_id'] !== ''
                 ? (int) $data['branch_id']
                 : ($sale->branch_id ?: BranchContext::currentOrDefaultId($actor, CompanyContext::currentId()));
             $totals = $this->recalculateTotals->execute($data);
-            $attachmentPath = $this->storeAttachment($data['attachment'] ?? null);
+            $storedAttachment = $this->storeAttachment($data['attachment'] ?? null, $actor);
+            $attachmentPath = $storedAttachment?->path;
             $contact = !empty($data['contact_id'])
                 ? ContactScope::applyVisibilityScope(Contact::query()->with('parentContact'))->find($data['contact_id'])
                 : null;
@@ -83,6 +89,7 @@ class UpdateDraftSaleAction
                 'notes' => $data['notes'] ?? null,
                 'customer_note' => $data['customer_note'] ?? null,
                 'attachment_path' => $attachmentPath ?: $sale->attachment_path,
+                'attachment_stored_file_id' => $storedAttachment?->id ?: $sale->attachment_stored_file_id,
                 'totals_snapshot' => $totals['totals_snapshot'],
                 'meta' => $this->idempotencyService->mergeMeta(array_merge($sale->meta ?? [], [
                     'source_context' => $this->sourceContext($sale, $data),
@@ -95,8 +102,10 @@ class UpdateDraftSaleAction
             $sale->items()->createMany($this->withTenantId($totals['items']));
             $sale = $this->syncPaymentSummary->execute($sale, $data['payment_status']);
 
-            if ($attachmentPath && $sale->getOriginal('attachment_path') && $sale->getOriginal('attachment_path') !== $attachmentPath) {
-                Storage::disk('public')->delete($sale->getOriginal('attachment_path'));
+            if ($storedAttachment && $previousAttachmentStoredFile && (int) $previousAttachmentStoredFile->id !== (int) $storedAttachment->id) {
+                $this->storedFiles->delete($previousAttachmentStoredFile);
+            } elseif ($attachmentPath && $previousAttachmentPath !== '' && $previousAttachmentPath !== $attachmentPath) {
+                $this->storedFiles->deletePublicAssetByPath($previousAttachmentPath, 'public');
             }
 
             return $sale->load('items');
@@ -113,13 +122,17 @@ class UpdateDraftSaleAction
         }, $rows);
     }
 
-    private function storeAttachment(mixed $attachment): ?string
+    private function storeAttachment(mixed $attachment, ?User $actor = null): ?\App\Models\StoredFile
     {
         if (!$attachment instanceof UploadedFile) {
             return null;
         }
 
-        return $attachment->store('sales/attachments', 'public');
+        return $this->storedFiles->storeUploadedFile($attachment, 'sales_attachment', [
+            'source_module' => 'sales',
+            'source_context' => 'sale_attachment',
+            'uploaded_by' => $actor?->id,
+        ]);
     }
 
     private function sourceContext(Sale $sale, array $data): ?array

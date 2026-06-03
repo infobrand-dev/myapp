@@ -5,6 +5,7 @@
 @section('content')
 @php
     $money = app(\App\Support\MoneyFormatter::class);
+    $storageAccess = app(\App\Services\StorageAccessService::class);
     $isAdvancedMode = ($accountingUiMode ?? 'standard') === 'advanced';
 @endphp
 <div class="page-header d-flex align-items-center justify-content-between">
@@ -167,9 +168,19 @@
                 <div class="mb-3">
                     <div class="text-muted small">Proof of Payment</div>
                     @if($payment->hasProof())
-                        <a href="{{ asset('storage/'.$payment->proof_file_path) }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">
-                            <i class="ti ti-paperclip me-1"></i>Lihat Bukti
-                        </a>
+                        @php
+                            $storedFileId = (int) data_get($payment->meta, 'stored_file_id', 0);
+                            $legacyProofUrl = $storedFileId > 0
+                                ? null
+                                : $storageAccess->legacySensitiveDownloadUrl('public', $payment->proof_file_path, 'payment_proof', basename($payment->proof_file_path));
+                        @endphp
+                        @if($storedFileId > 0 || $legacyProofUrl)
+                            <a href="{{ $storedFileId > 0 ? route('stored-files.download', $storedFileId) : $legacyProofUrl }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">
+                                <i class="ti ti-paperclip me-1"></i>Lihat Bukti
+                            </a>
+                        @else
+                            <div class="text-muted">Bukti tidak tersedia.</div>
+                        @endif
                     @else
                         <div>-</div>
                     @endif

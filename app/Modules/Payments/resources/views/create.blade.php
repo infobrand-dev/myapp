@@ -5,6 +5,7 @@
 @section('content')
 @php
     $money = app(\App\Support\MoneyFormatter::class);
+    $storageAccess = app(\App\Services\StorageAccessService::class);
     $isAdvancedMode = ($accountingUiMode ?? 'standard') === 'advanced';
     $payment = $payment ?? new \App\Modules\Payments\Models\Payment();
     $isEdit = $payment->exists;
@@ -115,7 +116,20 @@
                         ])
                         <input type="file" name="proof_file" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
                         @if($payment->proof_file_path)
-                            <div class="form-hint">Proof saat ini: <a href="{{ asset('storage/'.$payment->proof_file_path) }}" target="_blank" rel="noopener">lihat file</a></div>
+                            @php
+                                $storedFileId = (int) data_get($payment->meta, 'stored_file_id', 0);
+                                $legacyProofUrl = $storedFileId > 0
+                                    ? null
+                                    : $storageAccess->legacySensitiveDownloadUrl('public', $payment->proof_file_path, 'payment_proof', basename($payment->proof_file_path));
+                            @endphp
+                            <div class="form-hint">
+                                Proof saat ini:
+                                @if($storedFileId > 0 || $legacyProofUrl)
+                                    <a href="{{ $storedFileId > 0 ? route('stored-files.download', $storedFileId) : $legacyProofUrl }}" target="_blank" rel="noopener">lihat file</a>
+                                @else
+                                    <span class="text-muted">tidak tersedia</span>
+                                @endif
+                            </div>
                         @endif
                     </div>
                     <div class="col-md-6">

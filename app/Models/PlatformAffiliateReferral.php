@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PlatformAffiliateReferral extends Model
 {
+    protected $connection = 'central';
+
     protected $fillable = [
         'platform_affiliate_id',
         'tenant_id',

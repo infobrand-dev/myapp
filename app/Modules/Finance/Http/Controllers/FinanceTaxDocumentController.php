@@ -15,6 +15,7 @@ use App\Support\CompanyContext;
 use App\Support\Notifications\NotificationCenter;
 use App\Support\Notifications\NotificationMessage;
 use App\Support\TenantContext;
+use App\Modules\Finance\Services\EfakturPartnerExportService;
 use App\Modules\Finance\Services\TaxDocumentNumberService;
 use App\Modules\Finance\Services\TaxWithholdingJournalService;
 use Illuminate\Http\RedirectResponse;
@@ -29,11 +30,17 @@ class FinanceTaxDocumentController extends Controller
 {
     private $taxDocumentNumberService;
     private $taxWithholdingJournalService;
+    private $efakturPartnerExports;
 
-    public function __construct(TaxDocumentNumberService $taxDocumentNumberService, TaxWithholdingJournalService $taxWithholdingJournalService)
+    public function __construct(
+        TaxDocumentNumberService $taxDocumentNumberService,
+        TaxWithholdingJournalService $taxWithholdingJournalService,
+        EfakturPartnerExportService $efakturPartnerExports
+    )
     {
         $this->taxDocumentNumberService = $taxDocumentNumberService;
         $this->taxWithholdingJournalService = $taxWithholdingJournalService;
+        $this->efakturPartnerExports = $efakturPartnerExports;
     }
 
     public function index(Request $request): View
@@ -213,6 +220,30 @@ class FinanceTaxDocumentController extends Controller
             fclose($stream);
         }, $fileName, [
             'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    public function exportEfakturPartner(Request $request): StreamedResponse
+    {
+        $filters = $this->filtersFromRequest($request);
+        if ($filters['document_type'] === '') {
+            $filters['document_type'] = FinanceTaxDocument::TYPE_OUTPUT_VAT;
+        }
+
+        $documents = $this->filteredDocumentsQuery($filters)
+            ->with(['taxRate', 'sourceDocument', 'replacedDocument'])
+            ->where('document_type', FinanceTaxDocument::TYPE_OUTPUT_VAT)
+            ->orderBy('document_date')
+            ->orderBy('id')
+            ->get();
+
+        $envelope = $this->efakturPartnerExports->buildEnvelope($documents, CompanyContext::currentCompany());
+        $fileName = 'efaktur-partner-export-' . now()->format('Ymd-His') . '.json';
+
+        return response()->streamDownload(function () use ($envelope) {
+            echo json_encode($envelope, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        }, $fileName, [
+            'Content-Type' => 'application/json; charset=UTF-8',
         ]);
     }
 

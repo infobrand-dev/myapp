@@ -4,7 +4,10 @@ namespace Tests;
 
 use App\Support\SaasHost;
 use Illuminate\Contracts\Http\Kernel as HttpKernel;
+use Illuminate\Contracts\Console\Kernel as ConsoleKernel;
+use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
@@ -21,6 +24,69 @@ abstract class TestCase extends BaseTestCase
 
         config()->set('multitenancy.mode', 'standalone');
         URL::defaults([]);
+    }
+
+    protected function beforeRefreshingDatabase()
+    {
+        if (RefreshDatabaseState::$migrated) {
+            return;
+        }
+
+        if (config('database.default') !== 'pgsql') {
+            return;
+        }
+
+        DB::unprepared('DROP SCHEMA IF EXISTS public CASCADE;');
+        DB::unprepared('CREATE SCHEMA public;');
+        DB::unprepared('GRANT ALL ON SCHEMA public TO public;');
+    }
+
+    protected function afterRefreshingDatabase()
+    {
+        if (config('database.default') !== 'pgsql') {
+            return;
+        }
+
+        $columns = DB::select(<<<'SQL'
+            select table_name, column_name
+            from information_schema.columns
+            where table_schema = 'public'
+              and column_default like 'nextval(%'
+        SQL);
+
+        foreach ($columns as $column) {
+            $table = (string) $column->table_name;
+            $name = (string) $column->column_name;
+
+            DB::statement(
+                sprintf(
+                    'select setval(pg_get_serial_sequence(\'"%s"\', \'%s\'), coalesce((select max("%s") from "%s"), 0) + 1, false)',
+                    $table,
+                    $name,
+                    $name,
+                    $table
+                )
+            );
+        }
+    }
+
+    protected function refreshTestDatabase()
+    {
+        if (config('database.default') !== 'pgsql') {
+            parent::refreshTestDatabase();
+
+            return;
+        }
+
+        if (! RefreshDatabaseState::$migrated) {
+            $this->artisan('migrate', $this->migrateFreshUsing());
+
+            $this->app[ConsoleKernel::class]->setArtisan(null);
+
+            RefreshDatabaseState::$migrated = true;
+        }
+
+        $this->beginDatabaseTransaction();
     }
 
     public function actingAs(Authenticatable $user, $guard = null)

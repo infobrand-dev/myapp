@@ -3,6 +3,7 @@
 namespace App\Modules\Finance\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\StoredFile;
 use App\Models\User;
 use App\Modules\Finance\Models\FinanceAccount;
 use App\Modules\Finance\Http\Requests\StoreFinanceTransactionRequest;
@@ -11,6 +12,7 @@ use App\Modules\Finance\Models\FinanceCategory;
 use App\Modules\Finance\Models\FinanceTransaction;
 use App\Modules\Finance\Services\FinanceAccountProvisioner;
 use App\Modules\PointOfSale\Models\PosCashSession;
+use App\Services\StoredFileService;
 use App\Support\AccountingPeriodLockService;
 use App\Support\BooleanQuery;
 use App\Support\BranchContext;
@@ -30,6 +32,10 @@ use Illuminate\View\View;
 
 class FinanceTransactionController extends Controller
 {
+    public function __construct(private readonly StoredFileService $storedFiles)
+    {
+    }
+
     public function index(FinanceAccountProvisioner $accountProvisioner): View
     {
         $companyId = $this->requireCurrentCompanyId();
@@ -374,11 +380,11 @@ class FinanceTransactionController extends Controller
             }
 
             $attachmentPath = $transaction->attachment_path;
+            $storedFile = null;
             if ($request->file('attachment') instanceof UploadedFile) {
-                $attachmentPath = $this->storeAttachment($request->file('attachment'));
-                if ($transaction->attachment_path) {
-                    Storage::disk('public')->delete($transaction->attachment_path);
-                }
+                $storedFile = $this->storeAttachment($request->file('attachment'), $resolvedBranchId);
+                $attachmentPath = $storedFile->path;
+                $this->deleteStoredAttachment($transaction);
             }
 
             $transaction->update([
@@ -395,6 +401,7 @@ class FinanceTransactionController extends Controller
                 'branch_id' => $resolvedBranchId,
                 'pos_cash_session_id' => $request->has('pos_cash_session_id') ? $request->input('pos_cash_session_id') : $transaction->pos_cash_session_id,
                 'updated_by' => $request->user()->id,
+                'meta' => $this->withStoredFileMeta($transaction->meta ?? [], $storedFile),
             ]);
         });
 
@@ -433,7 +440,7 @@ class FinanceTransactionController extends Controller
         }
 
         if ($attachmentPath) {
-            Storage::disk('public')->delete($attachmentPath);
+            $this->deleteStoredAttachment($transaction);
         }
 
         $transaction->delete();
@@ -498,6 +505,8 @@ class FinanceTransactionController extends Controller
 
     private function storeStandardTransaction(StoreFinanceTransactionRequest $request, int $companyId, ?int $resolvedBranchId): FinanceTransaction
     {
+        $storedFile = $request->file('attachment') instanceof UploadedFile ? $this->storeAttachment($request->file('attachment'), $resolvedBranchId) : null;
+
         return FinanceTransaction::query()->create([
             'tenant_id' => TenantContext::currentId(),
             'company_id' => $companyId,
@@ -507,23 +516,24 @@ class FinanceTransactionController extends Controller
             'amount' => $request->input('amount'),
             'finance_account_id' => $request->input('finance_account_id'),
             'finance_category_id' => $request->input('finance_category_id'),
-            'attachment_path' => $request->file('attachment') instanceof UploadedFile ? $this->storeAttachment($request->file('attachment')) : null,
+            'attachment_path' => $storedFile?->path,
             'notes' => $request->input('notes'),
             'branch_id' => $resolvedBranchId,
             'pos_cash_session_id' => $request->input('pos_cash_session_id'),
             'created_by' => $request->user()->id,
             'updated_by' => $request->user()->id,
-            'meta' => [
+            'meta' => $this->withStoredFileMeta([
                 'source_module' => 'finance',
                 'future_accounting_note' => 'Belum diposting ke journal/ledger.',
-            ],
+            ], $storedFile),
         ]);
     }
 
     private function storeTransfer(StoreFinanceTransactionRequest $request, int $companyId, ?int $resolvedBranchId): FinanceTransaction
     {
         $groupKey = (string) Str::ulid();
-        $attachmentPath = $request->file('attachment') instanceof UploadedFile ? $this->storeAttachment($request->file('attachment')) : null;
+        $storedFile = $request->file('attachment') instanceof UploadedFile ? $this->storeAttachment($request->file('attachment'), $resolvedBranchId) : null;
+        $attachmentPath = $storedFile?->path;
         $outCategoryId = $this->ensureTransferCategory(FinanceTransaction::TYPE_CASH_OUT, $request->user()->id, $companyId)->id;
         $inCategoryId = $this->ensureTransferCategory(FinanceTransaction::TYPE_CASH_IN, $request->user()->id, $companyId)->id;
 
@@ -544,12 +554,12 @@ class FinanceTransactionController extends Controller
             'pos_cash_session_id' => $request->input('pos_cash_session_id'),
             'created_by' => $request->user()->id,
             'updated_by' => $request->user()->id,
-            'meta' => [
+            'meta' => $this->withStoredFileMeta([
                 'source_module' => 'finance',
                 'future_accounting_note' => 'Belum diposting ke journal/ledger.',
                 'entry_mode' => FinanceTransaction::ENTRY_MODE_TRANSFER,
                 'transfer_direction' => 'out',
-            ],
+            ], $storedFile),
         ]);
 
         $target = FinanceTransaction::query()->create([
@@ -569,12 +579,12 @@ class FinanceTransactionController extends Controller
             'pos_cash_session_id' => $request->input('pos_cash_session_id'),
             'created_by' => $request->user()->id,
             'updated_by' => $request->user()->id,
-            'meta' => [
+            'meta' => $this->withStoredFileMeta([
                 'source_module' => 'finance',
                 'future_accounting_note' => 'Belum diposting ke journal/ledger.',
                 'entry_mode' => FinanceTransaction::ENTRY_MODE_TRANSFER,
                 'transfer_direction' => 'in',
-            ],
+            ], $storedFile),
         ]);
 
         $source->update(['transfer_pair_transaction_id' => $target->id]);
@@ -601,12 +611,12 @@ class FinanceTransactionController extends Controller
         $outCategoryId = $this->ensureTransferCategory(FinanceTransaction::TYPE_CASH_OUT, $request->user()->id, $companyId)->id;
         $inCategoryId = $this->ensureTransferCategory(FinanceTransaction::TYPE_CASH_IN, $request->user()->id, $companyId)->id;
         $attachmentPath = $source->attachment_path;
+        $storedFile = null;
 
         if ($request->file('attachment') instanceof UploadedFile) {
-            $attachmentPath = $this->storeAttachment($request->file('attachment'));
-            if ($source->attachment_path) {
-                Storage::disk('public')->delete($source->attachment_path);
-            }
+            $storedFile = $this->storeAttachment($request->file('attachment'), $resolvedBranchId);
+            $attachmentPath = $storedFile->path;
+            $this->deleteStoredAttachment($source);
         }
 
         if (!$target) {
@@ -633,7 +643,7 @@ class FinanceTransactionController extends Controller
             'meta' => array_merge($source->meta ?? [], [
                 'entry_mode' => FinanceTransaction::ENTRY_MODE_TRANSFER,
                 'transfer_direction' => 'out',
-            ]),
+            ], $this->withStoredFileMeta([], $storedFile)),
         ]);
 
         $target->update([
@@ -652,7 +662,7 @@ class FinanceTransactionController extends Controller
             'meta' => array_merge($target->meta ?? [], [
                 'entry_mode' => FinanceTransaction::ENTRY_MODE_TRANSFER,
                 'transfer_direction' => 'in',
-            ]),
+            ], $this->withStoredFileMeta([], $storedFile)),
         ]);
 
         $source->update(['transfer_pair_transaction_id' => $target->id]);
@@ -681,8 +691,40 @@ class FinanceTransactionController extends Controller
         );
     }
 
-    private function storeAttachment(UploadedFile $file): string
+    private function storeAttachment(UploadedFile $file, ?int $branchId = null): StoredFile
     {
-        return $file->store('finance/attachments', 'public');
+        return $this->storedFiles->storeUploadedFile($file, 'finance_attachment', [
+            'tenant_id' => TenantContext::currentId(),
+            'company_id' => CompanyContext::currentId(),
+            'branch_id' => $branchId,
+            'source_module' => 'finance',
+            'source_context' => 'finance_transaction_attachment',
+        ]);
+    }
+
+    private function withStoredFileMeta(array $meta, ?StoredFile $storedFile): array
+    {
+        if (!$storedFile) {
+            return $meta;
+        }
+
+        $meta['stored_file_id'] = $storedFile->id;
+        $meta['stored_file_origin'] = $storedFile->origin_owner;
+
+        return $meta;
+    }
+
+    private function deleteStoredAttachment(FinanceTransaction $transaction): void
+    {
+        $storedFileId = (int) data_get($transaction->meta, 'stored_file_id', 0);
+        if ($storedFileId > 0) {
+            $this->storedFiles->delete(StoredFile::query()->find($storedFileId));
+
+            return;
+        }
+
+        if ($transaction->attachment_path) {
+            Storage::disk('public')->delete($transaction->attachment_path);
+        }
     }
 }

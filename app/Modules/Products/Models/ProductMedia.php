@@ -2,9 +2,9 @@
 
 namespace App\Modules\Products\Models;
 
+use App\Services\StorageAccessService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Storage;
 
 class ProductMedia extends Model
 {
@@ -35,6 +35,8 @@ class ProductMedia extends Model
 
     public function url(): ?string
     {
-        return $this->path ? Storage::disk($this->disk)->url($this->path) : null;
+        return $this->path
+            ? app(StorageAccessService::class)->publicUrlFromPath($this->path, $this->disk)
+            : null;
     }
 }

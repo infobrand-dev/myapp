@@ -130,6 +130,12 @@ class ConversationInboxIngester implements InboxMessageIngester
             $participantQuery->increment('unread_count');
         }
 
+        $messagePayload = $this->sanitizePayload($envelope->payload);
+        $mediaProvenance = $this->mediaProvenancePayload($envelope);
+        if ($mediaProvenance !== []) {
+            $messagePayload = array_merge($messagePayload, $mediaProvenance);
+        }
+
         $message = new ConversationMessage([
             'tenant_id' => $this->tenantId(),
             'conversation_id' => $conversation->id,
@@ -141,7 +147,7 @@ class ConversationInboxIngester implements InboxMessageIngester
             'media_mime' => $envelope->mediaMime,
             'status' => $envelope->messageStatus ?? ($direction === 'out' ? 'sent' : 'delivered'),
             'external_message_id' => $envelope->externalMessageId,
-            'payload' => ($payload = $this->sanitizePayload($envelope->payload)) ? $payload : null,
+            'payload' => $messagePayload !== [] ? $messagePayload : null,
             'sent_at' => $envelope->sentAt ?? ($direction === 'out' ? $occurredAt : null),
             'delivered_at' => $envelope->deliveredAt ?? ($direction === 'in' ? $occurredAt : null),
             'read_at' => $envelope->readAt,
@@ -284,5 +290,35 @@ class ConversationInboxIngester implements InboxMessageIngester
         }
 
         return $sanitized;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function mediaProvenancePayload(InboxMessageEnvelope $envelope): array
+    {
+        if (
+            $envelope->providerOrigin === null
+            && $envelope->providerMediaId === null
+            && $envelope->providerMediaUrl === null
+            && $envelope->mediaUrl === null
+            && $envelope->mediaMime === null
+        ) {
+            return [];
+        }
+
+        return array_filter([
+            'provider_origin' => $envelope->providerOrigin,
+            'provider_media_id' => $envelope->providerMediaId,
+            'provider_media_url' => $envelope->providerMediaUrl,
+            'media_url_source' => $envelope->providerMediaUrl ? 'provider' : ($envelope->mediaUrl ? 'app_reference' : null),
+            'media_url_reference' => $envelope->mediaUrl,
+            'media_mime' => $envelope->mediaMime,
+            'copied_locally' => $envelope->copiedLocally,
+            'fetched_at' => $envelope->fetchedAt?->toIso8601String(),
+            'copy_policy' => in_array($envelope->type, ['image', 'video', 'audio', 'document', 'sticker'], true)
+                ? 'important_only'
+                : null,
+        ], static fn ($value) => $value !== null && $value !== '');
     }
 }

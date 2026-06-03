@@ -844,7 +844,7 @@
                             ?? data_get($c->metadata, 'profile_pic')
                             ?? null;
                         if ($listAvatar && !\Illuminate\Support\Str::startsWith($listAvatar, ['http://', 'https://', '/'])) {
-                            $listAvatar = asset('storage/' . ltrim($listAvatar, '/'));
+                            $listAvatar = app(\App\Services\StorageAccessService::class)->publicUrlFromPath(ltrim($listAvatar, '/'), 'public') ?? asset('storage/' . ltrim($listAvatar, '/'));
                         }
                         $listName = $c->contact_name ?? $c->contact_external_id ?? 'Internal';
                         $listNameParts = preg_split('/\s+/', trim($listName));
@@ -923,7 +923,7 @@
                 }
 
                 if ($activeAvatar && !\Illuminate\Support\Str::startsWith($activeAvatar, ['http://', 'https://', '/'])) {
-                    $activeAvatar = asset('storage/' . ltrim($activeAvatar, '/'));
+                    $activeAvatar = app(\App\Services\StorageAccessService::class)->publicUrlFromPath(ltrim($activeAvatar, '/'), 'public') ?? asset('storage/' . ltrim($activeAvatar, '/'));
                 }
 
                 $activeNameParts = preg_split('/\s+/', trim($activeContactName));
@@ -968,7 +968,7 @@
                         $senderName = $msg->user->name ?? ($msg->direction === 'out' ? 'You' : 'System');
                         $senderAvatar = $msg->user->avatar ?? null;
                         if ($senderAvatar && !\Illuminate\Support\Str::startsWith($senderAvatar, ['http://', 'https://', '/'])) {
-                            $senderAvatar = asset('storage/' . ltrim($senderAvatar, '/'));
+                            $senderAvatar = app(\App\Services\StorageAccessService::class)->publicUrlFromPath(ltrim($senderAvatar, '/'), 'public') ?? asset('storage/' . ltrim($senderAvatar, '/'));
                         }
                         $nameParts = preg_split('/\s+/', trim($senderName));
                         $initials = strtoupper(substr($nameParts[0] ?? '?', 0, 1) . substr($nameParts[1] ?? '', 0, 1));
@@ -1423,5 +1423,4 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endpush
-
 

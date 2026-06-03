@@ -138,6 +138,7 @@ class TaxDocumentSyncService
             'branch_id' => data_get($sourceDocument, 'branch_id'),
             'source_document_type' => get_class($sourceDocument),
             'source_document_id' => $sourceDocument->getKey(),
+            'document_type' => $documentType,
             'created_by' => $actor ? $actor->id : null,
             'updated_by' => $actor ? $actor->id : null,
         ]);

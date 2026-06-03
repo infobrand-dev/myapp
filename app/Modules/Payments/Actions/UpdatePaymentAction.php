@@ -2,9 +2,11 @@
 
 namespace App\Modules\Payments\Actions;
 
+use App\Models\StoredFile;
 use App\Models\User;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentMethod;
+use App\Services\StoredFileService;
 use App\Support\AccountingJournalService;
 use App\Support\AccountingPeriodLockService;
 use App\Support\BooleanQuery;
@@ -26,24 +28,29 @@ class UpdatePaymentAction
     private $approvalService;
     private $periodLockService;
     private $journalService;
+    private $storedFiles;
+    private ?StoredFile $lastStoredFile = null;
 
     public function __construct(
         ValidatePayableTransactionAction $validatePayableTransaction,
         RecalculatePaymentSummaryAction $recalculatePaymentSummary,
         SensitiveActionApprovalService $approvalService,
         AccountingPeriodLockService $periodLockService,
-        AccountingJournalService $journalService
+        AccountingJournalService $journalService,
+        StoredFileService $storedFiles
     ) {
         $this->validatePayableTransaction = $validatePayableTransaction;
         $this->recalculatePaymentSummary = $recalculatePaymentSummary;
         $this->approvalService = $approvalService;
         $this->periodLockService = $periodLockService;
         $this->journalService = $journalService;
+        $this->storedFiles = $storedFiles;
     }
 
     public function execute(Payment $payment, array $data, ?User $actor = null): Payment
     {
         return DB::transaction(function () use ($payment, $data, $actor) {
+            $this->lastStoredFile = null;
             $payment = Payment::query()
                 ->where('tenant_id', TenantContext::currentId())
                 ->where('company_id', CompanyContext::currentId())
@@ -128,6 +135,7 @@ class UpdatePaymentAction
                 'proof_file_path' => $newProof ?: $payment->proof_file_path,
                 'branch_id' => array_key_exists('branch_id', $data) ? ($data['branch_id'] ? (int) $data['branch_id'] : null) : $payment->branch_id,
                 'notes' => $data['notes'] ?? null,
+                'meta' => $this->withStoredFileMeta($payment->meta ?? [], $this->lastStoredFile),
                 'received_by' => $data['received_by'] ?? ($actorId ?: $payment->received_by),
                 'updated_by' => $actorId ?: $payment->updated_by,
                 'reconciled_by' => ($data['reconciliation_status'] ?? $payment->reconciliation_status) === Payment::RECONCILIATION_RECONCILED ? ($actorId ?: $payment->reconciled_by) : null,
@@ -183,7 +191,12 @@ class UpdatePaymentAction
             );
 
             if ($newProof && $oldProof && $oldProof !== $newProof) {
-                Storage::disk('public')->delete($oldProof);
+                $oldStoredFileId = (int) data_get($payment->getOriginal('meta'), 'stored_file_id', 0);
+                if ($oldStoredFileId > 0) {
+                    $this->storedFiles->delete(StoredFile::query()->find($oldStoredFileId));
+                } else {
+                    Storage::disk('public')->delete($oldProof);
+                }
             }
 
             return $payment->fresh(['method', 'receiver', 'allocations.payable', 'statusLogs.actor']);
@@ -204,7 +217,27 @@ class UpdatePaymentAction
             return null;
         }
 
-        return $proofFile->store('payments/proofs', 'public');
+        $this->lastStoredFile = $this->storedFiles->storeUploadedFile($proofFile, 'payment_proof', [
+            'tenant_id' => TenantContext::currentId(),
+            'company_id' => CompanyContext::currentId(),
+            'branch_id' => BranchContext::currentId(),
+            'source_module' => 'payments',
+            'source_context' => 'payment_proof',
+        ]);
+
+        return $this->lastStoredFile->path;
+    }
+
+    private function withStoredFileMeta(array $meta, ?StoredFile $storedFile): array
+    {
+        if (!$storedFile) {
+            return $meta;
+        }
+
+        $meta['stored_file_id'] = $storedFile->id;
+        $meta['stored_file_origin'] = $storedFile->origin_owner;
+
+        return $meta;
     }
 
     private function journalLines(Payment $payment, Collection $allocations): array

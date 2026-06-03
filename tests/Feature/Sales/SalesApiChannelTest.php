@@ -5,6 +5,8 @@ namespace Tests\Feature\Sales;
 use App\Models\Company;
 use App\Models\User;
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Finance\FinanceServiceProvider;
+use App\Modules\Finance\Services\ChartOfAccountProvisioner;
 use App\Modules\Payments\PaymentsServiceProvider;
 use App\Modules\Products\Models\Product;
 use App\Modules\Sales\Models\Sale;
@@ -29,6 +31,7 @@ class SalesApiChannelTest extends TestCase
         parent::setUp();
 
         $this->registerModuleProviders([
+            FinanceServiceProvider::class,
             PaymentsServiceProvider::class,
             SalesServiceProvider::class,
         ]);
@@ -36,11 +39,13 @@ class SalesApiChannelTest extends TestCase
         $this->migrateModulePaths([
             'app/Modules/Contacts/database/migrations',
             'app/Modules/Products/database/migrations',
+            'app/Modules/Finance/database/migrations',
             'app/Modules/Payments/database/migrations',
             'app/Modules/Sales/database/migrations',
         ]);
 
         $this->bootstrapDefaultOperationalContext();
+        app(ChartOfAccountProvisioner::class)->ensureDefaults(1, 1, null);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }

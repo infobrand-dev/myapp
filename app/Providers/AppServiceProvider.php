@@ -2,6 +2,13 @@
 
 namespace App\Providers;
 
+use App\Multitenancy\TenantConnectionManager;
+use App\Multitenancy\TenantRuntimeTopologyResolver;
+use App\Multitenancy\TenantStorageTopologyResolver;
+use App\Multitenancy\TenantTopologyFingerprint;
+use App\Multitenancy\TenantRegistry;
+use App\Multitenancy\TenantResolver;
+use App\Multitenancy\TenantTopologyValidator;
 use App\Contracts\UtasWebhookNotificationSender;
 use App\Models\Branch;
 use App\Models\Company;
@@ -30,6 +37,9 @@ use App\Support\Shipping\Drivers\RajaOngkirShippingProviderDriver;
 use App\Support\Shipping\ShippingProviderManager;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;
@@ -53,6 +63,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(CurrencySettingsResolver::class);
         $this->app->singleton(MoneyFormatter::class);
         $this->app->singleton(TenantPlanManager::class);
+        $this->app->singleton(TenantRegistry::class);
+        $this->app->singleton(TenantResolver::class);
+        $this->app->singleton(TenantConnectionManager::class);
         $this->app->singleton(FeatureMode::class);
         $this->app->singleton(AccountingUiMode::class);
         $this->app->singleton(PaymentGatewayManager::class, function ($app) {
@@ -80,6 +93,65 @@ class AppServiceProvider extends ServiceProvider
         if ($this->shouldSkipDatabaseBootstrap()) {
             return;
         }
+
+        Queue::createPayloadUsing(function (): array {
+            $resolved = TenantContext::resolvedTenant();
+
+            if (!$resolved) {
+                return [];
+            }
+
+            $tenant = $resolved->tenant->fresh(['topology.database.server', 'runtimeTopology.appServer', 'storageTopologies.storageBucket.server']);
+            $runtime = app(TenantRuntimeTopologyResolver::class)->resolveForTenant($tenant);
+            $storageFingerprint = app(TenantStorageTopologyResolver::class)->fingerprintForTenant($tenant);
+            $topologyFingerprint = app(TenantTopologyFingerprint::class)->combined($tenant);
+
+            return [
+                'tenant_context' => [
+                    'tenant_id' => $tenant->getKey(),
+                    'isolation_mode' => optional($tenant->topology)->isolation_mode ?: 'tenant_id',
+                    'server_key' => optional($tenant->topology)->server_key ?: 'primary',
+                    'database_key' => optional($tenant->topology)->database_key ?: 'main',
+                    'schema_name' => $resolved->schemaName,
+                    'app_server_key' => optional($runtime)->app_server_key ?: 'primary-app',
+                    'queue_cluster' => optional($runtime)->queue_cluster ?: 'default',
+                    'runtime_mode' => config('multitenancy.runtime_mode', 'column'),
+                    'storage_topology_fingerprint' => $storageFingerprint,
+                    'topology_fingerprint' => $topologyFingerprint,
+                ],
+            ];
+        });
+
+        Queue::before(function ($event): void {
+            $payload = $event->job->payload();
+            $context = data_get($payload, 'tenant_context');
+
+            if (!is_array($context) || empty($context['tenant_id'])) {
+                return;
+            }
+
+            $tenant = app(TenantRegistry::class)->findById((int) $context['tenant_id']);
+            if (!$tenant) {
+                return;
+            }
+
+            app(TenantTopologyValidator::class)->assertQueuedTopologySnapshot($tenant, $context);
+
+            $resolved = app(TenantResolver::class)->resolve($tenant);
+
+            TenantContext::setResolvedTenant($resolved);
+            app(TenantConnectionManager::class)->initialize($resolved);
+        });
+
+        Queue::after(function (): void {
+            app(TenantConnectionManager::class)->purge();
+            TenantContext::forget();
+        });
+
+        Queue::failing(function (): void {
+            app(TenantConnectionManager::class)->purge();
+            TenantContext::forget();
+        });
 
         app(PermissionRegistrar::class)->setPermissionsTeamId($this->bootstrapPermissionTeamId());
 
@@ -239,8 +311,12 @@ class AppServiceProvider extends ServiceProvider
 
     private function bootstrapPermissionTeamId(): ?int
     {
+        if (TenantContext::resolvedTenant()) {
+            return TenantContext::resolvedTenant()->tenant->getKey();
+        }
+
         if ($this->app->runningInConsole()) {
-            return 1;
+            return config('multitenancy.strict') ? null : 1;
         }
 
         try {

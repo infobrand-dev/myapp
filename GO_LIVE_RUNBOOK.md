@@ -33,6 +33,10 @@
 - Untuk local/staging:
   - tetap disarankan PostgreSQL agar perilaku schema dan query sama dengan production
 - Jalankan migration terbaru.
+- Jika `CENTRAL_DB_*` dipakai terpisah dari `DB_*`, jalankan migration control-plane topology di koneksi `central` juga:
+  ```bash
+  php artisan migrate --database=central --path=database/migrations/2026_06_02_090000_create_tenant_registry_topology_tables.php --path=database/migrations/2026_06_02_090100_expand_tenants_for_schema_registry.php --path=database/migrations/2026_06_02_100000_create_tenant_topologies_table.php --path=database/migrations/2026_06_02_100100_add_key_to_tenant_databases_table.php --path=database/migrations/2026_06_02_101000_create_runtime_and_storage_topology_tables.php --path=database/migrations/2026_06_02_102000_create_central_storage_profiles_table.php --force
+  ```
 - Jika module chatbot embeddings dipakai, pastikan extension `vector` tersedia.
 - Pastikan tabel berikut ada:
   - `jobs`
@@ -89,13 +93,25 @@ php artisan queue:work --tries=3 --timeout=120
 
 ```bash
 php artisan golive:audit
+php artisan tenant:query-readiness-audit
+php artisan tenant:health-check
 ```
 
 - Launch hanya jika item `FAIL` sudah nol.
+- Launch juga harus ditahan jika:
+  - `tenant:query-readiness-audit` punya section yang tidak `ok`
+  - `tenant:health-check` menunjukkan `Registry=fail`
+  - `tenant:health-check` menunjukkan `Runtime=fail`
+  - `tenant:health-check` menunjukkan `Storage=fail`
+  - `tenant:health-check` menunjukkan `Move Ready=blocked`
 - Cek juga item `WARN` untuk notification/web push:
   - VAPID subject/public/private key
   - active push subscription
   - successful `web_push` delivery
+- Alert topology yang tidak blocking launch shared-mode, tapi harus ditindak:
+  - file baru masih jatuh ke legacy disk dan `storage_topology_degraded=true`
+  - queue tenant lama belum kompatibel dengan snapshot topology baru
+  - central DB belum dipisah walau registry sudah siap
 
 ## 10. Freeze
 - Setelah smoke test lolos, hindari merge fitur baru sampai launch stabil.

@@ -10,7 +10,9 @@ use App\Modules\Products\Models\ProductOptionValue;
 use App\Modules\Products\Models\ProductPriceLevel;
 use App\Modules\Products\Models\ProductPriceHistory;
 use App\Modules\Products\Models\ProductVariant;
+use App\Services\StoredFileService;
 use App\Services\TenantStorageUsageService;
+use App\Services\WorkspaceMediaStorageService;
 use App\Support\PlanLimit;
 use App\Support\TenantContext;
 use App\Support\TenantPlanManager;
@@ -22,10 +24,12 @@ use Illuminate\Support\Str;
 class ProductService
 {
     private ProductLookupService $lookupService;
+    private WorkspaceMediaStorageService $mediaStorage;
 
-    public function __construct(ProductLookupService $lookupService)
+    public function __construct(ProductLookupService $lookupService, WorkspaceMediaStorageService $mediaStorage)
     {
         $this->lookupService = $lookupService;
+        $this->mediaStorage = $mediaStorage;
     }
 
     public function create(array $data, ?User $actor = null): Product
@@ -269,7 +273,11 @@ class ProductService
             $incomingBytes += (int) ($data['featured_image']->getSize() ?? 0);
 
             if ($product->featured_image_path) {
-                $releasedBytes += app(TenantStorageUsageService::class)->fileSize('public', $product->featured_image_path);
+                $primaryMedia = $product->media()->where('collection_name', 'primary')->latest('id')->first();
+                $releasedBytes += app(TenantStorageUsageService::class)->fileSize(
+                    (string) ($primaryMedia?->disk ?: 'public'),
+                    $product->featured_image_path
+                );
             }
         }
 
@@ -296,24 +304,25 @@ class ProductService
                 ->get();
 
             foreach ($mediaItems as $media) {
-                Storage::disk($media->disk)->delete($media->path);
+                app(StoredFileService::class)->deletePublicAssetByPath($media->path, $media->disk);
                 $media->delete();
             }
         }
 
         if (!empty($data['featured_image']) && $data['featured_image'] instanceof UploadedFile) {
+            $publicDisk = (string) config('workspace-files.public_disk', 'public');
             if ($product->featured_image_path) {
-                Storage::disk('public')->delete($product->featured_image_path);
+                app(StoredFileService::class)->deletePublicAssetByPath($product->featured_image_path, $publicDisk);
             }
 
-            $path = $data['featured_image']->store('products/featured', 'public');
-            $product->update(['featured_image_path' => $path]);
+            $stored = $this->mediaStorage->storeUploadedFile($data['featured_image'], 'products/featured', $publicDisk);
+            $product->update(['featured_image_path' => $stored['path']]);
 
             $product->media()->where('collection_name', 'primary')->delete();
             $product->media()->create([
                 'tenant_id' => TenantContext::currentId(),
-                'disk' => 'public',
-                'path' => $path,
+                'disk' => $stored['disk'],
+                'path' => $stored['path'],
                 'collection_name' => 'primary',
                 'sort_order' => 0,
                 'alt_text' => $product->name,
@@ -325,11 +334,11 @@ class ProductService
                 continue;
             }
 
-            $path = $image->store('products/gallery', 'public');
+            $stored = $this->mediaStorage->storeUploadedFile($image, 'products/gallery');
             $product->media()->create([
                 'tenant_id' => TenantContext::currentId(),
-                'disk' => 'public',
-                'path' => $path,
+                'disk' => $stored['disk'],
+                'path' => $stored['path'],
                 'collection_name' => 'gallery',
                 'sort_order' => $index,
                 'alt_text' => $product->name,

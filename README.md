@@ -60,6 +60,12 @@ Catatan production:
 - Isi host, database, username, dan password dari project Supabase.
 - Biasanya `DB_SSLMODE=require`.
 - Disarankan `DB_EMULATE_PREPARES=false` agar binding tipe PostgreSQL, terutama boolean dan JSON, lebih konsisten.
+- Untuk tenancy registry terpisah, optional env `CENTRAL_DB_*` dan `TENANT_DB_*` sekarang didukung. Bila tidak diisi, keduanya fallback ke `DB_*`.
+- Runtime tenancy default saat ini adalah `TENANT_RUNTIME_MODE=column`, jadi aplikasi tetap memakai koneksi utama dari `.env` dan isolasi aktif tetap melalui `tenant_id`. Mode `schema` atau `database` disiapkan untuk switch di tahap berikutnya.
+- Registry topology tenant sekarang disiapkan di tabel `tenant_servers`, `tenant_databases`, dan `tenant_topologies`. Source of truth mapping tenant adalah `tenant_topologies`, dengan default `server_key=primary`, `database_key=main`, `schema_name=public`, dan `isolation_mode=tenant_id`.
+- Topology registry juga mencakup runtime/app dan storage: `app_servers`, `tenant_runtime_topologies`, `storage_servers`, `storage_buckets`, dan `tenant_storage_topologies`. Default tenant baru akan mendapat mapping `primary-app` untuk runtime dan `primary-storage` untuk storage publik/private.
+- `storage_profiles` sekarang adalah control-plane global/platform-level di koneksi `central`. Record tenant seperti `stored_files` hanya menyimpan referensi `storage_profile_id` dan snapshot lokasi aktual; tidak ada lagi asumsi FK lintas boundary tenant/control-plane.
+- Query hardening sekarang memakai ownership manifest + readiness audit. Model central wajib pakai connection `central`, query tenant-scoped wajib punya tenant context aktif, dan `tenant:enable-schema-mode` akan menolak switch bila audit readiness masih punya temuan.
 
 ### 5. Generate app key
 ```bash
@@ -142,11 +148,58 @@ php artisan golive:audit
 
 Command ini memeriksa critical path env dan runtime seperti tenancy mode, session cookie, queue, tabel billing platform, mail, Midtrans, serta notification center / web push.
 
+## Tenant topology readiness
+- Audit query readiness topology:
+  ```bash
+  php artisan tenant:query-readiness-audit
+  ```
+- Audit topology + query readiness per tenant:
+  ```bash
+  php artisan tenant:health-check
+  php artisan tenant:health-check acme
+  ```
+- Status health-check sekarang dibagi menjadi `Registry`, `Runtime`, `Storage`, dan `Move Ready`. Launch atau move dedicated tenant hanya aman bila semuanya `ok`/`ready`.
+- Menandai tenant ke schema mode hanya boleh setelah audit bersih:
+  ```bash
+  php artisan tenant:enable-schema-mode acme --schema=tenant_acme
+  ```
+- Memindahkan registry tenant setelah copy data eksternal selesai:
+  ```bash
+  php artisan tenant:move acme main primary --target-schema=tenant_acme --isolation-mode=schema --app-server-key=primary-app --public-storage-bucket-key=public-default --private-storage-bucket-key=private-default
+  ```
+- Saat koneksi `central` terpisah dari `DB_*`, migration control-plane harus dijalankan di database `central` juga:
+  ```bash
+  php artisan migrate --database=central --path=database/migrations/2026_06_02_090000_create_tenant_registry_topology_tables.php --path=database/migrations/2026_06_02_090100_expand_tenants_for_schema_registry.php --path=database/migrations/2026_06_02_100000_create_tenant_topologies_table.php --path=database/migrations/2026_06_02_100100_add_key_to_tenant_databases_table.php --path=database/migrations/2026_06_02_101000_create_runtime_and_storage_topology_tables.php --path=database/migrations/2026_06_02_102000_create_central_storage_profiles_table.php --force
+  ```
+
 ## PostgreSQL dan Supabase
 - Database target utama aplikasi ini adalah PostgreSQL.
 - Local development sebaiknya memakai PostgreSQL juga agar perilaku migration, JSON, boolean, index, dan query runtime sama dengan production.
 - Untuk fitur chatbot embeddings di PostgreSQL/Supabase, extension `vector` harus tersedia. Migration akan mencoba menjalankan `CREATE EXTENSION IF NOT EXISTS vector`.
 - Jika role database tidak diizinkan membuat extension, aktifkan `vector` lebih dulu dari dashboard atau SQL editor Supabase.
+
+## File storage
+- Public asset dapat diarahkan ke S3 dengan mengisi `AWS_*` lalu set `WORKSPACE_PUBLIC_FILESYSTEM_DISK=s3`.
+- Dokumen sensitif seperti lampiran finance, proof payment, statement reconciliation, dan attachment sales sebaiknya memakai disk private. Default lokalnya `private` (`storage/app/private`), atau bisa diarahkan ke S3 private dengan `WORKSPACE_PRIVATE_FILESYSTEM_DISK=s3`.
+- Metadata file internal dicatat di tabel `stored_files`, dan akses download private dicatat di `stored_file_access_logs`.
+- Untuk routing storage yang owner-managed, gunakan halaman `Platform > Storage` untuk mendaftarkan `storage_profiles`. Sistem akan memilih profile aktif otomatis per scope/purpose, lalu menyimpan snapshot lokasi aktual di `stored_files`.
+- Routing upload tenant sekarang juga membaca `tenant_storage_topologies` aktif. Default path akan diprefix ke `base_path` topology tenant, misalnya `tenants/<tenant_id>/public` atau `tenants/<tenant_id>/private`.
+- Jika akses S3 ditutup atau profile dinonaktifkan, upload baru tidak akan memilih profile itu lagi. File historis tetap tercatat, dan download akan mengembalikan status terkontrol (`404` atau `503`) sambil menandai `availability_status`.
+- Jika routing topology tenant tidak bisa dipakai dan sistem jatuh ke legacy disk, `stored_files.meta.storage_topology_degraded=true` akan disimpan sebagai alert operasional.
+- Audit cepat storage bisa dijalankan dengan:
+  ```bash
+  php artisan storage:audit-profiles
+  ```
+
+## e-Faktur partner handoff
+- Export e-Faktur CSV tetap tersedia untuk proses manual tenant.
+- Untuk integrator pihak ketiga yang sudah memiliki akses DJP, sistem juga menyiapkan handoff JSON export dari halaman Tax Register.
+- Konfigurasi dasar partner:
+  - `EFAKTUR_PARTNER_MODE`
+  - `EFAKTUR_PARTNER_NAME`
+  - `EFAKTUR_PARTNER_ENDPOINT`
+  - `EFAKTUR_PARTNER_API_KEY`
+- Mode ini belum melakukan direct submit ke DJP dari aplikasi.
 
 ## Notifications and web push
 - Notification center tersedia di area app lewat bell topbar dan halaman `/notifications`.

@@ -12,10 +12,18 @@ use Illuminate\Support\Facades\Schema;
 
 class Tenant extends Model
 {
+    protected $connection = 'central';
+
     protected $fillable = [
+        'uuid',
         'name',
         'slug',
         'is_active',
+        'status',
+        'plan',
+        'server_id',
+        'database_id',
+        'schema_name',
         'meta',
     ];
 
@@ -117,5 +125,35 @@ class Tenant extends Model
         return $this->activeSubscriptions()
             ->whereIn('product_line', PlanProductLineMap::productLineCandidates($productLine))
             ->first();
+    }
+
+    public function server()
+    {
+        return $this->belongsTo(TenantServer::class, 'server_id');
+    }
+
+    public function database()
+    {
+        return $this->belongsTo(TenantDatabase::class, 'database_id');
+    }
+
+    public function domains(): HasMany
+    {
+        return $this->hasMany(TenantDomain::class);
+    }
+
+    public function topology(): HasOne
+    {
+        return $this->hasOne(TenantTopology::class);
+    }
+
+    public function runtimeTopology(): HasOne
+    {
+        return $this->hasOne(TenantRuntimeTopology::class);
+    }
+
+    public function storageTopologies(): HasMany
+    {
+        return $this->hasMany(TenantStorageTopology::class);
     }
 }

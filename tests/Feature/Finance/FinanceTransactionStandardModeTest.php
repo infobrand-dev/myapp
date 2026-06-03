@@ -12,16 +12,16 @@ use App\Modules\Finance\Models\FinanceCategory;
 use App\Modules\Finance\Models\FinanceTransaction;
 use App\Support\FeatureMode;
 use App\Support\PlanFeature;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\Concerns\BootstrapsModuleContext;
+use Tests\Concerns\RefreshesPgsqlDatabase;
 use Tests\TestCase;
 
 class FinanceTransactionStandardModeTest extends TestCase
 {
     use BootstrapsModuleContext;
-    use RefreshDatabase;
+    use RefreshesPgsqlDatabase;
 
     protected function setUp(): void
     {

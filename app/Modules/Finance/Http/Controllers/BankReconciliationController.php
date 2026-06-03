@@ -3,6 +3,7 @@
 namespace App\Modules\Finance\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\StoredFile;
 use App\Modules\Finance\Http\Requests\CompleteBankReconciliationRequest;
 use App\Modules\Finance\Http\Requests\ImportBankStatementRequest;
 use App\Modules\Finance\Http\Requests\ReopenBankReconciliationRequest;
@@ -17,6 +18,7 @@ use App\Modules\Finance\Models\BankStatementImport;
 use App\Modules\Finance\Models\BankStatementLine;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentMethod;
+use App\Services\StoredFileService;
 use App\Support\SimpleSpreadsheet;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
@@ -32,6 +34,12 @@ use Illuminate\View\View;
 
 class BankReconciliationController extends Controller
 {
+    private ?StoredFile $lastStoredFile = null;
+
+    public function __construct(private readonly StoredFileService $storedFiles)
+    {
+    }
+
     public function index(): View
     {
         $companyId = (int) CompanyContext::currentId();
@@ -165,14 +173,17 @@ class BankReconciliationController extends Controller
         $fileHash = hash_file('sha256', $file->getRealPath());
 
         DB::transaction(function () use ($request, $reconciliation, $file, $rows, $header, $fileHash, &$importedCount) {
+            $this->lastStoredFile = $this->storeStatementFile($file, $reconciliation);
+
             $importBatch = BankStatementImport::query()->create([
                 'tenant_id' => TenantContext::currentId(),
                 'company_id' => (int) CompanyContext::currentId(),
                 'bank_reconciliation_id' => $reconciliation->id,
                 'original_name' => $file->getClientOriginalName(),
-                'stored_path' => $this->storeStatementFile($file),
+                'stored_path' => $this->lastStoredFile->path,
                 'file_hash' => $fileHash,
                 'imported_rows' => 0,
+                'meta' => $this->withStoredFileMeta([], $this->lastStoredFile),
                 'created_by' => optional($request->user())->id,
             ]);
 
@@ -872,9 +883,27 @@ class BankReconciliationController extends Controller
         return round((float) $account->opening_balance + $delta, 2);
     }
 
-    private function storeStatementFile(UploadedFile $file): string
+    private function storeStatementFile(UploadedFile $file, BankReconciliation $reconciliation): StoredFile
     {
-        return $file->store('finance/reconciliations/statements', 'public');
+        return $this->storedFiles->storeUploadedFile($file, 'bank_statement', [
+            'tenant_id' => TenantContext::currentId(),
+            'company_id' => (int) CompanyContext::currentId(),
+            'branch_id' => $reconciliation->branch_id,
+            'source_module' => 'finance',
+            'source_context' => 'bank_reconciliation_statement',
+        ]);
+    }
+
+    private function withStoredFileMeta(array $meta, ?StoredFile $storedFile): array
+    {
+        if (!$storedFile) {
+            return $meta;
+        }
+
+        $meta['stored_file_id'] = $storedFile->id;
+        $meta['stored_file_origin'] = $storedFile->origin_owner;
+
+        return $meta;
     }
 
     private function normalizeNullableString($value): ?string

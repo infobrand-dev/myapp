@@ -10,6 +10,7 @@ use App\Support\ModuleManager;
 use App\Support\PlanFeature;
 use App\Support\PlanLimit;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class GoliveAuditService
@@ -73,6 +74,7 @@ class GoliveAuditService
             $this->check('meta_app_secret', 'Meta app secret configured', $this->filled(config('services.meta.app_secret')), $this->masked((string) config('services.meta.app_secret')), 'Fill META_APP_SECRET to enable platform-owned social media OAuth.', 'warn'),
             $this->check('wa_verify_token', 'WA verify token changed', $this->isMeaningful((string) config('services.wa_cloud.verify_token'), ['changeme', '']), (string) config('services.wa_cloud.verify_token'), 'Replace default WA webhook verify token.', 'fail'),
             $this->check('meta_verify_token', 'Meta verify token changed', $this->isMeaningful((string) config('services.meta.verify_token'), ['changeme', '']), (string) config('services.meta.verify_token'), 'Replace default Meta webhook verify token.', 'fail'),
+            $this->vectorExtensionCheck(),
         ];
 
         $checks = array_merge(
@@ -154,6 +156,34 @@ class GoliveAuditService
     private function isProduction(): bool
     {
         return $this->env('app.env') === 'production';
+    }
+
+    private function vectorExtensionCheck(): array
+    {
+        if ((string) config('database.default') !== 'pgsql') {
+            return $this->check(
+                'pgsql_vector_extension',
+                'pgvector extension installed',
+                true,
+                'not required on ' . (string) config('database.default'),
+                'pgvector is only required when PostgreSQL is used for chatbot knowledge embeddings.',
+                'warn'
+            );
+        }
+
+        $chatbotActive = $this->isModuleActive('chatbot');
+        $installed = $this->pgsqlExtensionInstalled('vector');
+
+        return $this->check(
+            'pgsql_vector_extension',
+            'pgvector extension installed',
+            $installed,
+            $installed ? 'vector installed' : 'vector missing',
+            $chatbotActive
+                ? 'Modul Chatbot aktif dan knowledge embedding memakai kolom vector PostgreSQL. Install extension pgvector sebelum go-live.'
+                : 'Install pgvector jika Anda akan mengaktifkan knowledge embedding chatbot di PostgreSQL.',
+            $chatbotActive ? 'fail' : 'warn'
+        );
     }
 
     private function notificationChecks(): array
@@ -416,6 +446,25 @@ class GoliveAuditService
         }
 
         return $checks;
+    }
+
+    private function isModuleActive(string $slug): bool
+    {
+        $module = collect($this->modules->all())->firstWhere('slug', $slug);
+
+        return (bool) ($module && !empty($module['installed']) && !empty($module['active']));
+    }
+
+    private function pgsqlExtensionInstalled(string $extension): bool
+    {
+        try {
+            return !empty(DB::select(
+                'select 1 from pg_extension where extname = ? limit 1',
+                [$extension]
+            ));
+        } catch (\Throwable $exception) {
+            return false;
+        }
     }
 
     private function moduleFilesystemChecks(): array

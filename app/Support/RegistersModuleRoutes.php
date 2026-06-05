@@ -22,7 +22,7 @@ trait RegistersModuleRoutes
                 Route::domain($domain)->group($path);
             }
 
-            if ($this->shouldRegisterTestingFallbackRoutes($path)) {
+            if ($this->shouldRegisterGenericHostRoutes($path)) {
                 Route::group([], $path);
             }
         }
@@ -33,25 +33,12 @@ trait RegistersModuleRoutes
         $this->app['url']->setRoutes($routes);
     }
 
-    protected function shouldRegisterTestingFallbackRoutes(string $path): bool
+    protected function shouldRegisterGenericHostRoutes(string $path): bool
     {
-        if (!($this->app->environment('testing') && method_exists($this->app, 'isBooted') && $this->app->isBooted())) {
+        if (config('multitenancy.mode') !== 'saas') {
             return false;
         }
 
-        $normalizedPath = str_replace('\\', '/', $path);
-
-        foreach ([
-            '/Modules/Chatbot/',
-            '/Modules/Crm/',
-            '/Modules/SocialMedia/',
-            '/Modules/WhatsAppApi/',
-        ] as $fragment) {
-            if (str_contains($normalizedPath, $fragment)) {
-                return true;
-            }
-        }
-
-        return false;
+        return true;
     }
 }

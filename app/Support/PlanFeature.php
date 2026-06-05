@@ -26,6 +26,7 @@ class PlanFeature
     public const POINT_OF_SALE = 'point_of_sale';
     public const TRANSACTIONAL_EMAIL_MANAGED = 'transactional_email_managed';
     public const TRANSACTIONAL_EMAIL_CUSTOM_SMTP = 'transactional_email_custom_smtp';
+    public const CUSTOM_DOMAINS = 'custom_domains';
 
     public static function moduleFeatureForSlug(string $slug): ?string
     {

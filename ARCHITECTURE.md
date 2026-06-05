@@ -157,6 +157,30 @@
 - Public/static workspace assets may use S3 through the configurable public disk, while file provenance and access evidence should stay observable in `stored_files` and `stored_file_access_logs`.
 - Owner-managed storage should resolve through database-backed `storage_profiles`; upload code should ask the routing layer for a destination instead of hardcoding a disk name.
 - Historical file reads should use the file's stored snapshot location plus current profile credentials, not the current default storage target.
+- File access model is now `private-first, share-when-needed`:
+  - `public_asset` may use public URL directly
+  - `private_document` must use authenticated app download/preview routes
+  - `channel_shared_media` must use short-lived signed URLs when a provider or recipient needs fetch access
+  - `channel_inbound_evidence` must default to private storage plus provenance metadata
+- Omnichannel/provider integrations must not assume every provider exposes a permanent public file URL. Current supported patterns are:
+  - `provider_media_id` when the provider requires later API fetch
+  - `provider_media_url` when the webhook/provider actually returns a fetchable URL
+  - signed internal URL from this app only when outbound provider fetch needs an externally reachable object
+- Outbound media fallback order must stay explicit:
+  1. provider-hosted object or `provider_media_id`
+  2. short-lived signed URL from `SharedFileAccessService`
+  3. fail closed
+  Public permanent storage URLs are not an allowed fallback for sensitive or channel-bound media.
+- Inbound media handling must preserve provenance on the message payload, minimally:
+  - `provider_origin`
+  - `provider_media_id`
+  - `provider_media_url`
+  - `copied_locally`
+  - `stored_file_id` when copied to internal storage
+  - `fetched_at`
+- `App\Modules\Conversations\Services\InboundMediaCaptureService` is the owner of provider-media capture into `channel_inbound_evidence`. Provider-specific controllers may resolve media metadata, but binary fetch/copy into storage should stay centralized there.
+- Current capture policy is `copy important only`. For now this is implemented for WhatsApp Cloud `media_id` fetch and Meta social attachment URLs. Other providers may remain provenance-only until they expose a stable authenticated fetch path.
+- Legacy sensitive file paths may still be materialized temporarily for backward compatibility, but they must be recorded as legacy exposure and surfaced by `storage:audit-profiles`.
 - e-Faktur direct submit is intentionally out of scope until formal DJP access exists. Integration should be modeled as partner handoff/export so third-party providers with DJP access can receive validated payloads without coupling tenant accounting flows directly to DJP transport.
 
 ## Sample and demo data
@@ -167,6 +191,7 @@
 ## Related docs
 - `README.md`: setup, install, and runtime commands
 - `MODULES.md`: module catalog and high-level module notes
+- `docs/architecture/storage-file-model.md`: internal detailed file storage, access, sharing, and inbound media capture model
 - `docs/product/pricing.md`: pricing model, quota policy, and storage positioning
 - Product-line-scoped multi-plan subscription foundation is now in the main runtime (`tenant_subscriptions.product_line`, `Tenant::activeSubscriptionFor()`, `TenantPlanManager::currentSubscriptionFor()`, and product-line-aware billing activation). Keep follow-up notes close to the owning billing/runtime docs instead of reviving a separate migration blueprint.
 - `SAAS_TENANCY.md`: target SaaS tenancy model, tenant lifecycle, plan gating, and multi-company direction

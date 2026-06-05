@@ -7,6 +7,7 @@ use App\Multitenancy\TenantRegistry;
 use App\Multitenancy\TenantResolver;
 use App\Support\SaasHost;
 use App\Support\TenantContext;
+use App\Services\TenantHostResolver;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,14 +26,19 @@ class ResolveTenantContext
     /** @var TenantConnectionManager */
     private $connectionManager;
 
+    /** @var TenantHostResolver */
+    private $hostResolver;
+
     public function __construct(
         TenantRegistry $registry,
         TenantResolver $tenantResolver,
-        TenantConnectionManager $connectionManager
+        TenantConnectionManager $connectionManager,
+        TenantHostResolver $hostResolver
     ) {
         $this->registry = $registry;
         $this->tenantResolver = $tenantResolver;
         $this->connectionManager = $connectionManager;
+        $this->hostResolver = $hostResolver;
     }
 
     public function handle(Request $request, Closure $next): Response
@@ -133,7 +139,7 @@ class ResolveTenantContext
 
             if ($tenant) {
                 $scheme = $request->isSecure() ? 'https' : 'http';
-                $target = sprintf('%s://%s/login', $scheme, SaasHost::tenantHost($request, $tenant->slug));
+                $target = sprintf('%s://%s/login', $scheme, $this->hostResolver->canonicalHostForTenant($request, $tenant));
 
                 return redirect()->away($target);
             }

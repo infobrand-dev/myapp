@@ -3,6 +3,7 @@
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\PublicRootController;
 use App\Http\Controllers\StoredFileController;
+use App\Http\Controllers\Auth\TenantDomainHandoffController;
 use App\Http\Controllers\Webhooks\UtasWebhookController;
 use Illuminate\Support\Facades\Route;
 
@@ -36,6 +37,9 @@ Route::get('/meetra', fn () => redirect()->route('landing'))->name('landing.meet
 Route::get('/files/shared/{storedFileId}', [StoredFileController::class, 'share'])
     ->middleware(['signed', 'throttle:sensitive'])
     ->name('stored-files.share');
+Route::get('/domain-handoff/{token}', TenantDomainHandoffController::class)
+    ->middleware(['signed', 'throttle:sensitive'])
+    ->name('tenant.domain-handoff.consume');
 
 // Health check — no auth, no session, no CSRF. Used by uptime monitors and load balancers.
 Route::get('/health', function () {

@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Services\TenantHostResolver;
 use Illuminate\Http\Request;
 
 class WorkspaceUrl
@@ -17,7 +18,9 @@ class WorkspaceUrl
         }
 
         if ($user && $user->tenant) {
-            return $scheme . '://' . SaasHost::tenantHost($request, (string) $user->tenant->slug) . $path;
+            $host = app(TenantHostResolver::class)->canonicalHostForTenant($request, $user->tenant);
+
+            return $scheme . '://' . $host . $path;
         }
 
         return route('workspace.finder');

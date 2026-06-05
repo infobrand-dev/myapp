@@ -2,7 +2,10 @@
 
 namespace App\Support;
 
+use App\Models\Tenant;
+use App\Services\TenantHostResolver;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class SaasHost
 {
@@ -30,6 +33,27 @@ class SaasHost
     }
 
     public static function tenantHost(Request $request, string $slug): string
+    {
+        if (config('multitenancy.mode') === 'saas') {
+            if (!Schema::connection(config('multitenancy.central_connection', 'central'))->hasTable('tenants')) {
+                return self::defaultTenantSubdomainHost($request, $slug);
+            }
+
+            $tenant = Tenant::query()->where('slug', $slug)->first();
+
+            if ($tenant) {
+                $customHost = app(TenantHostResolver::class)->canonicalCustomHostname($tenant);
+
+                if ($customHost) {
+                    return $customHost;
+                }
+            }
+        }
+
+        return self::defaultTenantSubdomainHost($request, $slug);
+    }
+
+    public static function defaultTenantSubdomainHost(Request $request, string $slug): string
     {
         return self::hostForSlug($request, $slug);
     }

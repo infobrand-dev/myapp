@@ -2,6 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\TenantDomain;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\Middleware\TrustHosts as Middleware;
 
 class TrustHosts extends Middleware
@@ -23,6 +26,29 @@ class TrustHosts extends Middleware
             $hosts[] = '(.+\.)?' . preg_quote($saasDomain);
         }
 
-        return $hosts;
+        return array_values(array_filter(array_merge($hosts, $this->customTenantHosts())));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function customTenantHosts(): array
+    {
+        return Cache::remember('trust-hosts:tenant-custom-domains', 60, static function (): array {
+            if (config('multitenancy.mode') !== 'saas') {
+                return [];
+            }
+
+            if (!Schema::connection(config('multitenancy.central_connection', 'central'))->hasTable('tenant_domains')) {
+                return [];
+            }
+
+            return TenantDomain::query()
+                ->where('status', TenantDomain::STATUS_ACTIVE)
+                ->get()
+                ->map(fn (TenantDomain $domain) => '^' . preg_quote($domain->normalizedHostname(), '/') . '$')
+                ->values()
+                ->all();
+        });
     }
 }

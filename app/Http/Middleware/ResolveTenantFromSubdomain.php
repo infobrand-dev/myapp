@@ -2,7 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\TenantDomain;
 use App\Multitenancy\TenantRegistry;
+use App\Services\TenantHostResolver;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\URL;
@@ -13,9 +15,13 @@ class ResolveTenantFromSubdomain
     /** @var TenantRegistry */
     private $registry;
 
-    public function __construct(TenantRegistry $registry)
+    /** @var TenantHostResolver */
+    private $hostResolver;
+
+    public function __construct(TenantRegistry $registry, TenantHostResolver $hostResolver)
     {
         $this->registry = $registry;
+        $this->hostResolver = $hostResolver;
     }
 
     /**
@@ -39,6 +45,27 @@ class ResolveTenantFromSubdomain
         }
 
         $host = $request->getHost(); // strips port
+        $customDomain = $this->hostResolver->findTenantDomainByHost($host);
+
+        if ($customDomain !== null) {
+            $tenant = $customDomain->tenant;
+
+            if ($tenant === null) {
+                abort(404, 'Tenant domain tidak valid.');
+            }
+
+            if (! $tenant->is_active || $tenant->status !== 'active') {
+                return response()->view('errors.tenant-suspended', [], 403);
+            }
+
+            $request->attributes->set('tenant_id', $tenant->id);
+            $request->attributes->set('tenant_slug', $tenant->slug);
+            $request->attributes->set('tenant_domain_id', $customDomain->id);
+            $request->attributes->set('tenant_custom_host', $customDomain->normalizedHostname());
+
+            return $next($request);
+        }
+
         $rootDomain = $this->resolveMatchingRootDomain($host);
 
         // Only act when the request host is a direct subdomain of a known SaaS root domain.
@@ -80,6 +107,7 @@ class ResolveTenantFromSubdomain
         // Inject into request attributes — highest priority, server-side only
         $request->attributes->set('tenant_id', $tenant->id);
         $request->attributes->set('tenant_slug', $slug);
+        $request->attributes->set('tenant_domain_id', optional(TenantDomain::query()->where('tenant_id', $tenant->id)->canonical()->active()->first())->id);
         URL::defaults(['account' => $slug]);
 
         return $next($request);

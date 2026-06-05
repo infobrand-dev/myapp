@@ -5,6 +5,7 @@ Laravel 11 + Breeze (Blade) + Tabler UI. Core app menyediakan shell dasar sepert
 Dokumen arsitektur terkait:
 - `ARCHITECTURE.md`
 - `MODULES.md`
+- `docs/architecture/storage-file-model.md`
 - `SAAS_TENANCY.md`
 - `SAAS_PRODUCT_MODEL.md`
 - `GO_LIVE_RUNBOOK.md`
@@ -182,10 +183,24 @@ Command ini memeriksa critical path env dan runtime seperti tenancy mode, sessio
 - Public asset dapat diarahkan ke S3 dengan mengisi `AWS_*` lalu set `WORKSPACE_PUBLIC_FILESYSTEM_DISK=s3`.
 - Dokumen sensitif seperti lampiran finance, proof payment, statement reconciliation, dan attachment sales sebaiknya memakai disk private. Default lokalnya `private` (`storage/app/private`), atau bisa diarahkan ke S3 private dengan `WORKSPACE_PRIVATE_FILESYSTEM_DISK=s3`.
 - Metadata file internal dicatat di tabel `stored_files`, dan akses download private dicatat di `stored_file_access_logs`.
+- Model akses file sekarang `private-first`:
+  - `public_asset` boleh public permanent URL
+  - `private_document` wajib lewat route app terotorisasi
+  - `channel_shared_media` memakai signed URL singkat saat provider/penerima perlu fetch
+  - `channel_inbound_evidence` disimpan private dengan provenance metadata
 - Untuk routing storage yang owner-managed, gunakan halaman `Platform > Storage` untuk mendaftarkan `storage_profiles`. Sistem akan memilih profile aktif otomatis per scope/purpose, lalu menyimpan snapshot lokasi aktual di `stored_files`.
 - Routing upload tenant sekarang juga membaca `tenant_storage_topologies` aktif. Default path akan diprefix ke `base_path` topology tenant, misalnya `tenants/<tenant_id>/public` atau `tenants/<tenant_id>/private`.
 - Jika akses S3 ditutup atau profile dinonaktifkan, upload baru tidak akan memilih profile itu lagi. File historis tetap tercatat, dan download akan mengembalikan status terkontrol (`404` atau `503`) sambil menandai `availability_status`.
 - Jika routing topology tenant tidak bisa dipakai dan sistem jatuh ke legacy disk, `stored_files.meta.storage_topology_degraded=true` akan disimpan sebagai alert operasional.
+- Provider/channel tidak selalu memberi URL public permanen. Sistem mendukung tiga pola:
+  - `provider_media_id`
+  - `provider_media_url`
+  - signed URL internal untuk outbound fetch
+- Inbound media penting sekarang dicatat dengan provenance seperti `provider_origin`, `provider_media_id`, `provider_media_url`, `copied_locally`, `fetched_at`, dan `stored_file_id` bila berhasil dicopy ke storage internal.
+- Capture inbound media saat ini sudah aktif untuk:
+  - WhatsApp Cloud `media_id`
+  - Meta social attachment URL
+  Provider lain tetap aman di level provenance sampai fetch flow resminya tersedia.
 - Audit cepat storage bisa dijalankan dengan:
   ```bash
   php artisan storage:audit-profiles

@@ -10,12 +10,14 @@ use App\Models\DocumentWorkflowRule;
 use App\Models\PlatformInvoice;
 use App\Models\TenantPaymentGateway;
 use App\Models\TenantShippingProvider;
+use App\Models\TenantDomain;
 use App\Models\TenantTransactionalMailSetting;
 use App\Models\TenantByoAiRequest;
 use App\Services\AiCreditPricingService;
 use App\Services\AccountingTransactionalMailService;
 use App\Services\TenantTransactionalMailConfigResolver;
 use App\Services\TenantTransactionalMailerFactory;
+use App\Services\TenantCustomDomainService;
 use App\Mail\TenantTransactionalTestMail;
 use App\Models\User;
 use App\Services\StoredFileService;
@@ -225,6 +227,22 @@ class SettingsController extends Controller
             ->where('tenant_id', $tenantId)
             ->first();
 
+        $customDomainsEnabled = $planManager->hasFeature(PlanFeature::CUSTOM_DOMAINS, $tenantId);
+
+        $tenantDomains = TenantDomain::query()
+            ->where('tenant_id', $tenantId)
+            ->with('events')
+            ->orderByDesc('is_canonical')
+            ->orderByDesc('is_primary')
+            ->orderByDesc('id')
+            ->get()
+            ->map(function (TenantDomain $domain) {
+                return [
+                    'domain' => $domain,
+                    'instructions' => app(TenantCustomDomainService::class)->dnsInstructions($domain),
+                ];
+            });
+
         return view('settings.index', [
             'currentSection' => $section,
             'sections' => $this->sections(),
@@ -278,6 +296,9 @@ class SettingsController extends Controller
             'shippingProviderDrivers' => $shippingProviders->providers(),
             'activeShippingProvider' => $shippingProviders->activeProviderRecord(),
             'activeShippingProviderLabel' => $shippingProviders->activeProviderLabel(),
+            'tenantDomains' => $tenantDomains,
+            'customDomainsEnabled' => $customDomainsEnabled,
+            'customDomainsUpgradeMessage' => 'Custom domain hanya tersedia untuk plan tenant yang lebih tinggi. Upgrade plan untuk mengaktifkan fitur ini.',
         ]);
     }
 
@@ -1035,6 +1056,12 @@ class SettingsController extends Controller
                 'route' => 'settings.shipping-provider',
                 'icon' => 'ti ti-truck-delivery',
                 'description' => 'Pilih provider ongkir aktif untuk commerce tenant.',
+            ],
+            'custom-domains' => [
+                'label' => 'Custom Domains',
+                'route' => 'settings.custom-domains',
+                'icon' => 'ti ti-world-www',
+                'description' => 'Kelola custom domain tenant dan status verifikasinya.',
             ],
         ];
     }

@@ -69,6 +69,7 @@ class PlanProductLineMap
             PlanFeature::INVENTORY,
             PlanFeature::ADVANCED_REPORTS,
             PlanFeature::POINT_OF_SALE,
+            PlanFeature::CUSTOM_DOMAINS,
             PlanFeature::TRANSACTIONAL_EMAIL_MANAGED,
             PlanFeature::TRANSACTIONAL_EMAIL_CUSTOM_SMTP => 'accounting',
             PlanFeature::PROJECT_MANAGEMENT => 'project_management',

@@ -5,11 +5,13 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationPushSubscriptionController;
+use App\Http\Controllers\PlatformDomainController;
 use App\Http\Controllers\PlatformAffiliateController;
 use App\Http\Controllers\PlatformOwnerController;
 use App\Http\Controllers\PlatformStorageController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\Settings\PaymentGatewaySettingsController;
+use App\Http\Controllers\Settings\TenantCustomDomainController;
 use App\Http\Controllers\Settings\ShippingProviderSettingsController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\StoredFileController;
@@ -67,6 +69,10 @@ Route::middleware(['auth', 'verified', '2fa', 'platform.admin', \App\Http\Middle
         Route::get('/plans/{plan}/edit', [PlatformOwnerController::class, 'editPlan'])->name('plans.edit');
         Route::put('/plans/{plan}', [PlatformOwnerController::class, 'updatePlan'])->name('plans.update');
         Route::get('/go-live', [PlatformOwnerController::class, 'golive'])->name('golive');
+        Route::get('/domains', [PlatformDomainController::class, 'index'])->name('domains.index');
+        Route::put('/domains/settings', [PlatformDomainController::class, 'updateSettings'])->name('domains.settings.update');
+        Route::post('/domains/{tenantDomain}/sync', [PlatformDomainController::class, 'sync'])->name('domains.sync');
+        Route::get('/domains/audit', [PlatformDomainController::class, 'audit'])->name('domains.audit');
         Route::get('/storage', [PlatformStorageController::class, 'index'])->name('storage.index');
         Route::post('/storage', [PlatformStorageController::class, 'store'])->name('storage.store');
         Route::put('/storage/{profile}', [PlatformStorageController::class, 'update'])->name('storage.update');
@@ -104,6 +110,7 @@ Route::middleware(['auth', 'verified', '2fa', 'platform.admin', \App\Http\Middle
         Route::get('/settings/transactional-email', [SettingsController::class, 'show'])->defaults('section', 'transactional-email')->name('settings.transactional-email');
         Route::get('/settings/payment-gateway', [SettingsController::class, 'show'])->defaults('section', 'payment-gateway')->name('settings.payment-gateway');
         Route::get('/settings/shipping-provider', [SettingsController::class, 'show'])->defaults('section', 'shipping-provider')->name('settings.shipping-provider');
+        Route::get('/settings/custom-domains', [SettingsController::class, 'show'])->defaults('section', 'custom-domains')->name('settings.custom-domains');
 
         Route::post('/settings/company/switch/{company}', [SettingsController::class, 'switchCompany'])->name('settings.company.switch');
         Route::post('/settings/branch/switch/{branch}', [SettingsController::class, 'switchBranch'])->name('settings.branch.switch');
@@ -126,6 +133,10 @@ Route::middleware(['auth', 'verified', '2fa', 'platform.admin', \App\Http\Middle
         Route::put('/settings/shipping-provider', [ShippingProviderSettingsController::class, 'update'])->name('settings.shipping-provider.save');
         Route::post('/settings/transactional-email/test', [SettingsController::class, 'sendTransactionalEmailTest'])->name('settings.transactional-email.test');
         Route::post('/settings/addons/byo-ai-request', [SettingsController::class, 'requestByoAi'])->name('settings.addons.byo-ai-request');
+        Route::post('/settings/custom-domains', [TenantCustomDomainController::class, 'store'])->middleware('plan.feature:custom_domains')->name('settings.custom-domains.store');
+        Route::post('/settings/custom-domains/{tenantDomain}/sync', [TenantCustomDomainController::class, 'sync'])->middleware('plan.feature:custom_domains')->name('settings.custom-domains.sync');
+        Route::post('/settings/custom-domains/{tenantDomain}/promote', [TenantCustomDomainController::class, 'promote'])->middleware('plan.feature:custom_domains')->name('settings.custom-domains.promote');
+        Route::delete('/settings/custom-domains/{tenantDomain}', [TenantCustomDomainController::class, 'destroy'])->middleware('plan.feature:custom_domains')->name('settings.custom-domains.destroy');
     });
 });
 

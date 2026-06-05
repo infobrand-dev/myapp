@@ -1052,6 +1052,8 @@ class SubscriptionPlanSeeder extends Seeder
         }
 
         foreach ($this->plans as $plan) {
+            $plan['features'][PlanFeature::CUSTOM_DOMAINS] = $this->defaultCustomDomainsFeatureForCode((string) $plan['code']);
+
             DB::table('subscription_plans')->updateOrInsert(
                 ['code' => $plan['code']],
                 [
@@ -1069,5 +1071,14 @@ class SubscriptionPlanSeeder extends Seeder
                 ]
             );
         }
+    }
+
+    private function defaultCustomDomainsFeatureForCode(string $code): bool
+    {
+        if ($code === 'internal-unlimited') {
+            return true;
+        }
+
+        return (bool) preg_match('/(growth|scale)/', $code);
     }
 }

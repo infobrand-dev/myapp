@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\DomainHandoffService;
+use App\Services\TenantHostResolver;
 use App\Support\SaasHost;
 use Closure;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -11,6 +13,12 @@ use Symfony\Component\HttpFoundation\Response;
 
 class EnsurePlatformAdminAccess
 {
+    public function __construct(
+        private readonly DomainHandoffService $handoff,
+        private readonly TenantHostResolver $hostResolver,
+    ) {
+    }
+
     public function handle(Request $request, Closure $next): Response
     {
         if (config('multitenancy.mode') !== 'saas') {
@@ -49,11 +57,15 @@ class EnsurePlatformAdminAccess
         if ((int) $user->tenant_id === 1 && $this->isPlatformSuperAdmin($user)) {
             $expectedHost = SaasHost::platformHost($request);
         } elseif (!empty($user->tenant?->slug)) {
-            $expectedHost = SaasHost::tenantHost($request, (string) $user->tenant->slug);
+            $expectedHost = $this->hostResolver->canonicalHostForTenant($request, $user->tenant);
         }
 
         if (!$expectedHost || $request->getHost() === $expectedHost) {
             return null;
+        }
+
+        if ((int) $user->tenant_id !== 1 && $user->tenant) {
+            return $this->handoff->issue($user, $expectedHost, $this->handoff->intendedPath($request));
         }
 
         $appUrl = (string) config('app.url');

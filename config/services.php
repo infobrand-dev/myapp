@@ -89,6 +89,10 @@ return [
         'output_rate_per_million_tokens' => (float) env('OPENAI_OUTPUT_RATE_PER_MILLION_TOKENS', 0),
     ],
 
+    'cloudflare_saas' => [
+        'base_url' => env('CLOUDFLARE_API_BASE_URL', 'https://api.cloudflare.com/client/v4'),
+    ],
+
     'ai_credits' => [
         'currency' => env('AI_CREDIT_CURRENCY', 'IDR'),
         'unit_tokens' => (int) env('AI_CREDIT_UNIT_TOKENS', 1000),

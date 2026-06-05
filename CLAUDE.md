@@ -162,6 +162,292 @@ Gunakan **icon-only buttons** untuk aksi di tabel (konsisten di semua halaman):
 
 ---
 
+## Standar Field Form — Detail per Tipe Input
+
+### 1. Text Input (biasa)
+
+```blade
+<div class="col-md-6">
+    <label class="form-label" for="field_name">Label <span class="text-danger">*</span></label>
+    <input type="text" id="field_name" name="field_name"
+           class="form-control @error('field_name') is-invalid @enderror"
+           value="{{ old('field_name', $item->field_name ?? '') }}"
+           autocomplete="off">
+    @error('field_name')
+        <div class="invalid-feedback">{{ $message }}</div>
+    @enderror
+    <div class="form-hint">Teks bantuan opsional.</div>
+</div>
+```
+
+- Selalu beri `id` yang sama dengan `name` agar label `for=` bisa diklik.
+- `autocomplete="off"` untuk field non-standard (nama internal, kode, dll).
+- Gunakan `autocomplete="email"` / `"name"` / `"tel"` sesuai semantik field.
+- `type="email"`, `type="number"`, `type="tel"`, `type="url"` sesuai data — jangan semua `type="text"`.
+- Field read-only: tambahkan `readonly` + `class="form-control bg-body-secondary"` (bukan `disabled`).
+
+### 2. Textarea
+
+```blade
+<div class="col-12">
+    <label class="form-label" for="description">Deskripsi</label>
+    <textarea id="description" name="description"
+              class="form-control @error('description') is-invalid @enderror"
+              rows="4">{{ old('description', $item->description ?? '') }}</textarea>
+    @error('description') <div class="invalid-feedback">{{ $message }}</div> @enderror
+</div>
+```
+
+- Default `rows="4"` kecuali konten memang pendek (`rows="2"`) atau panjang (`rows="6"`).
+- Jangan resize secara manual dengan CSS — biarkan user resize.
+
+### 3. Select (dropdown biasa)
+
+```blade
+<div class="col-md-6">
+    <label class="form-label" for="status">Status <span class="text-danger">*</span></label>
+    <select id="status" name="status"
+            class="form-select @error('status') is-invalid @enderror">
+        <option value="">— Pilih —</option>
+        @foreach($options as $val => $label)
+            <option value="{{ $val }}" @selected(old('status', $item->status ?? '') == $val)>
+                {{ $label }}
+            </option>
+        @endforeach
+    </select>
+    @error('status') <div class="invalid-feedback">{{ $message }}</div> @enderror
+</div>
+```
+
+- Selalu ada opsi kosong `— Pilih —` di index 0 (value="").
+- Gunakan `@selected()` bukan kondisi ternary `selected="{{ ... == ... ? 'selected' : '' }}"`.
+
+### 4. Multi-Select (Tom Select — tanpa AJAX)
+
+Untuk daftar pilihan statis (jumlah terbatas, sudah diketahui di server):
+
+```blade
+<div class="col-12">
+    <label class="form-label" for="role_ids">Role <span class="text-danger">*</span></label>
+    <select id="role_ids" name="role_ids[]"
+            class="form-select @error('role_ids') is-invalid @enderror"
+            multiple
+            data-ts-multiselect
+            data-placeholder="Pilih satu atau lebih role…">
+        @foreach($roles as $role)
+            <option value="{{ $role->id }}"
+                @selected(in_array($role->id, old('role_ids', $selectedIds ?? [])))>
+                {{ $role->name }}
+            </option>
+        @endforeach
+    </select>
+    @error('role_ids') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    <div class="form-hint">Pengguna dapat memiliki lebih dari satu role.</div>
+</div>
+```
+
+Inisialisasi di `@push('scripts')`:
+
+```js
+document.querySelectorAll('[data-ts-multiselect]').forEach(function (el) {
+    new TomSelect(el, {
+        plugins: ['remove_button'],
+        placeholder: el.dataset.placeholder || 'Pilih…',
+        maxOptions: null,
+    });
+});
+```
+
+**Aturan:**
+- Atribut `data-ts-multiselect` = penanda standar untuk inisialisasi Tom Select.
+- Selalu `name="field[]"` (array bracket) untuk multi-select.
+- Jangan gunakan native `<select multiple size="N">` tanpa Tom Select — tampilan tidak konsisten.
+- Jangan gunakan `size="N"` — tampilkan sebagai listbox terbuka; Tom Select sudah menangani ini.
+- Tom Select CDN: `vendor/tom-select/tom-select.bootstrap5.min.css` + `vendor/tom-select/tom-select.complete.min.js`.
+
+### 5. AJAX Search / Autocomplete (Tom Select dengan `load:`)
+
+Untuk data besar yang perlu diambil dari server (contacts, products, users, dll):
+
+```blade
+<div class="col-md-6">
+    <label class="form-label" for="contact_id">Kontak <span class="text-danger">*</span></label>
+    <select id="contact_id" name="contact_id"
+            class="form-select @error('contact_id') is-invalid @enderror"
+            data-ts-ajax
+            data-search-url="{{ route('contacts.search') }}"
+            data-placeholder="Ketik nama atau email…"
+            data-value-field="id"
+            data-label-field="text">
+        {{-- Pre-populate untuk mode edit --}}
+        @if(old('contact_id', $item->contact_id ?? null))
+            <option value="{{ old('contact_id', $item->contact_id) }}" selected>
+                {{ $item->contact?->name ?? old('contact_id') }}
+            </option>
+        @endif
+    </select>
+    @error('contact_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+</div>
+```
+
+Inisialisasi:
+
+```js
+document.querySelectorAll('[data-ts-ajax]').forEach(function (el) {
+    new TomSelect(el, {
+        valueField:  el.dataset.valueField  || 'id',
+        labelField:  el.dataset.labelField  || 'text',
+        searchField: ['text'],
+        placeholder: el.dataset.placeholder || 'Ketik untuk mencari…',
+        loadThrottle: 250,
+        preload: false,
+        maxItems: 1,
+        openOnFocus: false,
+        load: function (query, callback) {
+            if (query.length < 2) { callback(); return; }
+            fetch(el.dataset.searchUrl + '?q=' + encodeURIComponent(query) + '&limit=25', {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+                },
+                credentials: 'same-origin',
+            })
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then(data => callback(data.results || []))
+            .catch(() => callback());
+        },
+        render: {
+            no_results: () => '<div class="no-results px-3 py-2 text-muted small">Tidak ada hasil.</div>',
+            loading:    () => '<div class="no-results px-3 py-2 text-muted small">Mencari…</div>',
+        },
+    });
+});
+```
+
+**Aturan:**
+- Endpoint search harus mengembalikan `{ results: [{id, text, ...}] }`.
+- Selalu tambahkan `X-Requested-With` dan `X-CSRF-TOKEN` header di fetch.
+- `minLength: 2` — jangan load sebelum 2 karakter (hemat request).
+- Pre-populate option untuk mode edit wajib ada agar nilai terpilih tampil setelah page load.
+- Untuk component yang dipakai berulang → buat Blade component seperti `x-contact-select`.
+
+### 6. Switch / Toggle (on/off)
+
+```blade
+<div class="col-md-6">
+    <label class="form-label">Status</label>
+    <div class="form-check form-switch mt-2">
+        <input class="form-check-input" type="checkbox" role="switch"
+               id="is_active" name="is_active" value="1"
+               @checked(old('is_active', $item->is_active ?? true))>
+        <label class="form-check-label" for="is_active">Aktif</label>
+    </div>
+    <div class="form-hint">Nonaktif = data tidak muncul di sistem.</div>
+</div>
+```
+
+**Aturan:**
+- WAJIB `role="switch"` agar screen reader membacanya sebagai toggle.
+- WAJIB pasangkan `id` di input dengan `for` di label.
+- `value="1"` — jika tidak dicentang, field tidak terkirim (PHP mendapat null → treat as false).
+- Jangan pakai custom switch CSS — pakai `form-check form-switch` Tabler/Bootstrap.
+
+### 7. Checkbox (pilihan tunggal / ganda)
+
+```blade
+{{-- Tunggal --}}
+<div class="col-12">
+    <label class="form-check">
+        <input class="form-check-input @error('terms') is-invalid @enderror"
+               type="checkbox" name="terms" value="1" @checked(old('terms'))>
+        <span class="form-check-label">
+            Saya menyetujui <a href="/terms" target="_blank">syarat dan ketentuan</a>
+        </span>
+        @error('terms') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </label>
+</div>
+
+{{-- Grup —  gunakan fieldset + legend untuk aksesibilitas --}}
+<fieldset class="col-12">
+    <legend class="form-label">Hari Operasional</legend>
+    @foreach(['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'] as $day)
+    <label class="form-check">
+        <input class="form-check-input" type="checkbox"
+               name="operating_days[]" value="{{ $day }}"
+               @checked(in_array($day, old('operating_days', $item->operating_days ?? [])))>
+        <span class="form-check-label">{{ $day }}</span>
+    </label>
+    @endforeach
+</fieldset>
+```
+
+### 8. Radio Button
+
+```blade
+<fieldset class="col-12">
+    <legend class="form-label">Tipe Akun <span class="text-danger">*</span></legend>
+    @foreach(['personal' => 'Pribadi', 'business' => 'Bisnis'] as $val => $lbl)
+    <label class="form-check">
+        <input class="form-check-input" type="radio"
+               name="account_type" value="{{ $val }}"
+               @checked(old('account_type', $item->account_type ?? '') === $val)>
+        <span class="form-check-label">{{ $lbl }}</span>
+    </label>
+    @endforeach
+    @error('account_type') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+</fieldset>
+```
+
+### 9. File Upload
+
+```blade
+<div class="col-md-6">
+    <label class="form-label" for="logo">Logo</label>
+    <input type="file" id="logo" name="logo"
+           class="form-control @error('logo') is-invalid @enderror"
+           accept="image/png,image/jpeg,image/webp">
+    @error('logo') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    <div class="form-hint">PNG, JPG, atau WebP. Maks 2 MB.</div>
+    {{-- Preview gambar yang sudah ada --}}
+    @if(isset($item) && $item->logo_url)
+        <div class="mt-2">
+            <img src="{{ $item->logo_url }}" alt="Logo saat ini" class="rounded" style="max-height:64px;">
+            <div class="text-muted small mt-1">Logo saat ini. Upload file baru untuk menggantinya.</div>
+        </div>
+    @endif
+</div>
+```
+
+**Aturan:**
+- Selalu tulis `accept=` untuk membatasi tipe file.
+- Selalu tulis batas ukuran di `form-hint`.
+- Jika ada preview gambar existing, tampilkan dengan note "Upload baru untuk mengganti".
+- Form yang memiliki upload WAJIB tambahkan `enctype="multipart/form-data"` di `<form>`.
+
+### 10. Number Input
+
+```blade
+<div class="col-md-4">
+    <label class="form-label" for="price">Harga <span class="text-danger">*</span></label>
+    <div class="input-group">
+        <span class="input-group-text">Rp</span>
+        <input type="number" id="price" name="price"
+               class="form-control @error('price') is-invalid @enderror"
+               value="{{ old('price', $item->price ?? '') }}"
+               min="0" step="1000">
+        @error('price') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+    <div class="form-hint">Harga dalam Rupiah, tanpa koma.</div>
+</div>
+```
+
+- Gunakan `input-group` dengan prefix/suffix (Rp, kg, %, dll) untuk konteks unit.
+- Selalu tentukan `min=` dan `step=` sesuai tipe data.
+- Untuk currency: jangan `step="0.01"` jika data Rupiah — gunakan `step="1"` atau `step="100"`.
+
+---
+
 ## Halaman Create & Edit (Form)
 
 ### Struktur Standar
@@ -345,6 +631,7 @@ Dashboard **platform** (`/platform/dashboard`) menggunakan standard Tabler `card
 
 Sebelum selesai mengerjakan halaman baru atau modifikasi, verifikasi:
 
+**Layout & Struktur**
 - [ ] `page-header` mengikuti struktur standar (pretitle + title + aksi kanan)
 - [ ] Tabel pakai `card > card-body p-0 > table-responsive > table table-vcenter`
 - [ ] Tombol aksi tabel: icon-only, `btn-icon btn-sm btn-outline-{warna}`, ada `title`
@@ -353,10 +640,109 @@ Sebelum selesai mengerjakan halaman baru atau modifikasi, verifikasi:
 - [ ] Form ada di dalam `card` dengan `card-footer` berisi tombol Batal + Simpan
 - [ ] Semua icon menggunakan `ti ti-*` (Tabler Icons) — bukan SVG inline untuk elemen baru
 - [ ] Tidak ada `<style>` block di blade file
-- [ ] Nama aplikasi pakai `config('app.name')` bukan hardcode
-- [ ] Error validation pakai `@error` + `is-invalid` + `invalid-feedback`
-- [ ] Pagination ada di `card-footer`
 - [ ] `@section('title', '...')` diisi di setiap halaman
+
+**Form Fields**
+- [ ] Setiap `<input>` / `<select>` / `<textarea>` punya `id` dan `label for=` yang cocok
+- [ ] Multi-select menggunakan Tom Select (`data-ts-multiselect`) — bukan native `<select multiple size=N>`
+- [ ] AJAX search menggunakan Tom Select (`data-ts-ajax`) dengan pre-populate untuk mode edit
+- [ ] Switch/toggle menggunakan `form-check form-switch` dengan `role="switch"`
+- [ ] Error validation pakai `@error` + `is-invalid` + `invalid-feedback`
+- [ ] Field wajib diberi `<span class="text-danger">*</span>` di label
+- [ ] Hint (non-error) gunakan `<div class="form-hint">`, bukan `<small>` atau `<p>`
+- [ ] File upload: ada `accept=`, batas ukuran di form-hint, preview existing jika edit
+- [ ] Nama aplikasi pakai `config('app.name')` bukan hardcode
+- [ ] Pagination ada di `card-footer`
+
+**Keamanan**
+- [ ] Tidak ada `env()` di blade — gunakan `config()` saja
+- [ ] Tidak ada exception message, stack trace, atau debug info di halaman tenant
+- [ ] Tidak ada nama database, path filesystem, IP server, versi PHP di HTML output
+- [ ] Info sensitif (API key, token) ditampilkan hanya ke owner/admin, bukan tenant biasa
+- [ ] URL publik menggunakan UUID atau slug, bukan auto-increment integer ID
+
+---
+
+## Keamanan — Informasi Teknis yang Tidak Boleh Terekspos ke Tenant
+
+Aplikasi ini multi-tenant. Ada tiga level akses:
+
+| Level | Contoh halaman | Boleh lihat info teknis? |
+|---|---|---|
+| **Platform Admin** | `/platform/*` | ✅ Ya — info infrastruktur, debug, log |
+| **Owner / Admin Workspace** | `/settings`, `/users` | ⚠️ Terbatas — info workspace sendiri saja |
+| **Tenant biasa** (staff, member) | Semua halaman app | ❌ Tidak — hanya data bisnis |
+
+### Yang TIDAK BOLEH di-render ke halaman tenant (termasuk owner)
+
+```blade
+{{-- ❌ DILARANG --}}
+{{ env('DB_HOST') }}                    {{-- variabel environment --}}
+{{ config('database.connections.mysql.host') }}   {{-- koneksi DB --}}
+{{ config('database.connections.mysql.database') }}
+{{ php_uname() }}                       {{-- info server --}}
+{{ phpversion() }}                      {{-- versi PHP --}}
+{{ $exception->getMessage() }}          {{-- pesan exception mentah --}}
+{{ $exception->getTraceAsString() }}    {{-- stack trace --}}
+{{ $tenant->database }}                 {{-- nama database tenant --}}
+{{ $tenant->internal_id }}              {{-- ID internal sistem --}}
+{{ request()->server('SERVER_ADDR') }}  {{-- IP server --}}
+{{ request()->server('DOCUMENT_ROOT') }} {{-- path filesystem --}}
+```
+
+### Yang AMAN ditampilkan ke tenant
+
+```blade
+{{-- ✅ AMAN untuk semua level --}}
+{{ config('app.name') }}                {{-- nama aplikasi --}}
+{{ config('app.url') }}                 {{-- URL publik --}}
+{{ $tenant->name }}                     {{-- nama workspace --}}
+{{ $tenant->slug }}                     {{-- slug/subdomain tenant --}}
+{{ $user->name }}                       {{-- nama user --}}
+{{ $user->email }}                      {{-- email user sendiri --}}
+{{ $item->uuid }}                       {{-- UUID publik resource --}}
+
+{{-- ✅ AMAN untuk Owner/Admin saja (gunakan @can atau middleware) --}}
+{{ $tenant->api_key }}                  {{-- API key workspace sendiri --}}
+{{ $subscription->plan_name }}          {{-- info plan sendiri --}}
+```
+
+### Aturan wajib
+
+1. **Jangan pakai `env()` di blade** — selalu gunakan `config()`. `env()` tidak ter-cache dan bisa bocor info raw.
+2. **Error page tenant = generic** — jangan tampilkan exception message atau stack trace. Redirect ke halaman error sederhana: "Terjadi kesalahan. Hubungi admin."
+3. **Jangan expose ID database internal** — gunakan UUID atau slug sebagai identifier di URL dan HTML. Jangan `?id=12345` dengan auto-increment integer jika bisa dihindari.
+4. **Jangan tampilkan nama database, host, atau koneksi** — bahkan di platform admin pun harus disembunyikan di balik komponen yang hanya dibuka saat perlu.
+5. **Jangan tampilkan path filesystem** — tidak ada `/var/www/html/...` atau `D:\xampp\...` di UI manapun.
+6. **Form field sensitif**: API key, token, secret → gunakan `type="password"` + tombol "Tampilkan" (toggle visibility) + masking `***` saat ditampilkan.
+7. **Log & debug info** → hanya di platform admin, terbungkus `@if(app()->isLocal())` atau `@can('platform.admin')`.
+8. **Pesan validasi server** — boleh spesifik ("Email sudah digunakan"), tapi jangan bocorkan info sistem ("duplicate entry in `users` table at index `email`").
+
+### Template error page tenant (gunakan ini, bukan dump exception)
+
+```blade
+{{-- resources/views/errors/tenant.blade.php --}}
+@extends('layouts.admin')
+
+@section('content')
+<div class="page-header">
+    <div class="row"><div class="col">
+        <h2 class="page-title">Terjadi Kesalahan</h2>
+    </div></div>
+</div>
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="ti ti-alert-triangle text-orange d-block mb-3" style="font-size:3rem;"></i>
+        <h3 class="mb-2">Operasi tidak dapat diselesaikan</h3>
+        <p class="text-muted mb-3">Terjadi kesalahan saat memproses permintaan Anda.<br>
+            Jika masalah berlanjut, hubungi administrator workspace.</p>
+        <a href="{{ url()->previous() }}" class="btn btn-outline-secondary">
+            <i class="ti ti-arrow-left me-1"></i>Kembali
+        </a>
+    </div>
+</div>
+@endsection
+```
 
 ---
 
@@ -369,3 +755,7 @@ Sebelum selesai mengerjakan halaman baru atau modifikasi, verifikasi:
 - Buat modal konfirmasi custom untuk operasi delete yang bisa ditangani `data-confirm`
 - Gunakan `btn btn-danger` (solid merah) di tabel — pakai `btn-outline-danger`
 - Tambahkan framework CSS atau JS baru tanpa diskusi terlebih dahulu
+- Gunakan `env()` di blade file — selalu gunakan `config()`
+- Tampilkan exception message atau stack trace ke tenant — gunakan halaman error generic
+- Ekspos nama database, path filesystem, IP server, atau versi PHP ke halaman tenant manapun
+- Gunakan auto-increment integer ID di URL publik jika UUID/slug tersedia

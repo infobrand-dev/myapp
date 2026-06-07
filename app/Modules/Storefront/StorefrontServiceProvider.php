@@ -2,6 +2,10 @@
 
 namespace App\Modules\Storefront;
 
+use App\Contracts\CommercePendingOrderExpirer;
+use App\Contracts\PublicStorefrontResponder;
+use App\Modules\Storefront\Adapters\StorefrontPendingOrderExpirer;
+use App\Modules\Storefront\Adapters\StorefrontPublicRootResponder;
 use App\Modules\Storefront\Services\StorefrontOrderSettlementService;
 use App\Support\HookManager;
 use App\Support\RegistersModuleRoutes;
@@ -33,6 +37,12 @@ class StorefrontServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'storefront');
         $this->ensurePermissions();
         $this->registerHooks();
+    }
+
+    public function register(): void
+    {
+        $this->app->bind(PublicStorefrontResponder::class, StorefrontPublicRootResponder::class);
+        $this->app->bind(CommercePendingOrderExpirer::class, StorefrontPendingOrderExpirer::class);
     }
 
     private function registerHooks(): void

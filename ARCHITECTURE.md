@@ -39,7 +39,7 @@
 - Readiness audit backend berada di `App\Multitenancy\QueryReadinessAuditService` dan surface command `tenant:query-readiness-audit` / `tenant:health-check`. Enabling schema mode harus diblokir bila audit ownership, raw-query hotspot, atau manifest migrasi masih bermasalah.
 - In SaaS mode, guest auth pages must be reached from the tenant subdomain. Apex/root domain is for onboarding or workspace discovery, not shared tenant login.
 - In SaaS mode, open self-registration for tenant subdomains is no longer allowed. New tenant users should come from owner/admin invite or controlled internal creation, not from a public `/register` screen.
-- Public self-serve onboarding now starts from the apex onboarding flow with `accounting` as the active default product line. Buyer selects a public subscription plan and then either starts an `accounting` free trial directly on eligible public monthly plans or creates a tenant in `pending_payment`, receives a platform invoice, and pays either through Midtrans checkout or manual bank transfer with a unique amount before the tenant is activated.
+- Public self-serve onboarding now starts from the apex onboarding flow. Buyer must first choose the business suite that is already open for self-serve, then selects a public subscription plan for that suite. For `accounting`, eligible public monthly plans may still offer a direct free trial entry. Otherwise the buyer creates a tenant in `pending_payment`, receives a platform invoice, and pays either through Midtrans checkout or manual bank transfer with a unique amount before the tenant is activated.
 - Pending self-serve onboarding may create a tenant before payment so billing records can stay attached to a concrete workspace, but stale unpaid workspaces must remain cleanup-friendly and slug reuse must be delayed through a temporary slug reservation.
 - Platform owner access is separated onto the reserved `dash` subdomain, which binds to tenant `id = 1` for control-plane work.
 - Core runtime company resolution now flows through `App\Support\CompanyContext` and `App\Http\Middleware\ResolveCompanyContext`.
@@ -62,9 +62,13 @@
 - `module.json` is the source of truth for module metadata such as slug, name, provider, version, description, category, `requires`, and navigation items.
 - `module.json` is also the source of truth for each module's sidebar/icon metadata. Module SVG assets should live with the owning module, and shared UI should reuse those assets instead of redefining icons per page.
 - Navigation is a UX decision, not a mandatory mirror of code ownership. Integration modules may intentionally keep `navigation: []` and be surfaced through shared settings pages instead of the main sidebar.
+- Boundary enforcement now has a transitional registry in `config/platform-core.php` and audit surface in `php artisan modules:audit-boundaries`. New `core -> App\\Modules\\*` references are not allowed unless explicitly approved and documented in `docs/architecture/platform-core-boundary-policy.md`.
+- Current boundary status: `php artisan modules:audit-boundaries` passes with `Approved transitional references: 0`. Compatibility debt that still exists should stay limited to explicitly frozen migration/table-touch exceptions until those historical migrations are fully relocated.
+- Shared platform primitives added for long-term core hardening should stay generic: entitlement snapshot/service, audit log, activity foundation, outbox/webhook receipt, API response contract, global search index, notification channel policy, and file post-processing pipeline.
 
 ## Core notifications
 - Notification infrastructure is a core concern, not a business module. Shared inbox UI, unread counters, delivery logs, push subscriptions, and email transport should stay in core.
+- Channel policy also stays in core. Delivery drivers may expand over time, but must do so under the shared channel contract (`in_app`, `email`, `web_push`, future WhatsApp) instead of creating parallel subsystems.
 - Modules should publish typed notification messages through the shared notification center instead of querying or mutating core notification tables directly.
 - Core must not scan module tables to invent business alerts. The owning module decides when a notification is created, deduped, resolved, or superseded.
 - Dashboard notification widgets, topbar bell state, and channel delivery policy should be driven from the shared notification subsystem so cross-module alerting stays consistent.
@@ -152,6 +156,8 @@
 - Realtime uses Laravel's `pusher` broadcast driver with Pusher-compatible clients.
 - Preferred local/self-hosted websocket server is `soketi`.
 - Queue-heavy or integration-heavy features should be verified against actual env/config before changes are made.
+- Platform event publishing for cross-cutting communication should move through the shared outbox contract first (`platform_event_outbox`) before optional downstream consumers are added.
+- Generic inbound webhook receipt tracking now belongs in core (`platform_webhook_receipts`), while provider parsing and provider auth logic remain owned by the module or integration that handles the payload.
 - There is backward-compatibility code for older WhatsApp naming; prefer current naming in new work.
 - Sensitive tenant files should not depend on public `/storage` URLs. Finance attachments, payment proofs, and imported bank statements should be stored on a private disk and downloaded through authorized app routes with audit logging.
 - Public/static workspace assets may use S3 through the configurable public disk, while file provenance and access evidence should stay observable in `stored_files` and `stored_file_access_logs`.
@@ -192,6 +198,9 @@
 - `README.md`: setup, install, and runtime commands
 - `MODULES.md`: module catalog and high-level module notes
 - `docs/architecture/storage-file-model.md`: internal detailed file storage, access, sharing, and inbound media capture model
+- `docs/architecture/platform-core-boundary-policy.md`: frozen transitional policy for core-vs-module references and audit expectations
+- `docs/architecture/platform-core-milestones-2026-06.md`: milestone split and acceptance tracking for the 2026-06 core hardening work
+- `docs/ops/platform-core-growth-ops.md`: baseline retention, archive, and growth-heavy table watchlist
 - `docs/product/pricing.md`: pricing model, quota policy, and storage positioning
 - Product-line-scoped multi-plan subscription foundation is now in the main runtime (`tenant_subscriptions.product_line`, `Tenant::activeSubscriptionFor()`, `TenantPlanManager::currentSubscriptionFor()`, and product-line-aware billing activation). Keep follow-up notes close to the owning billing/runtime docs instead of reviving a separate migration blueprint.
 - `SAAS_TENANCY.md`: target SaaS tenancy model, tenant lifecycle, plan gating, and multi-company direction

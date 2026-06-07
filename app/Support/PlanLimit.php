@@ -26,4 +26,7 @@ class PlanLimit
     public const BYO_AI_TOKENS_MONTHLY = 'max_byo_ai_tokens_monthly';
     public const AUTOMATION_WORKFLOWS = 'max_automation_workflows';
     public const AUTOMATION_EXECUTIONS_MONTHLY = 'max_automation_executions_monthly';
+    public const CRM_PIPELINES = 'max_crm_pipelines';
+    public const CRM_CUSTOM_STAGES = 'max_crm_custom_stages';
+    public const CRM_ACTIVE_DEALS = 'max_crm_active_deals';
 }

@@ -2,6 +2,8 @@
 
 namespace App\Modules\Midtrans;
 
+use App\Contracts\MidtransCheckoutGateway;
+use App\Modules\Midtrans\Adapters\MidtransCheckoutGatewayAdapter;
 use App\Modules\Midtrans\Services\MidtransService;
 use App\Support\RegistersModuleRoutes;
 use Illuminate\Support\Facades\Schema;
@@ -30,6 +32,7 @@ class MidtransServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(MidtransService::class);
+        $this->app->bind(MidtransCheckoutGateway::class, MidtransCheckoutGatewayAdapter::class);
     }
 
     public function boot(): void

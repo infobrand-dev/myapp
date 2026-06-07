@@ -3,6 +3,8 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\GlobalSearchController;
+use App\Http\Controllers\Api\PlatformHealthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,3 +25,10 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::middleware('auth:sanctum')->post('/broadcasting/auth', function (Request $request) {
     return Broadcast::auth($request);
 });
+
+Route::prefix('v1')
+    ->middleware(['auth:sanctum', 'throttle:tenant-api'])
+    ->group(function () {
+        Route::get('/platform/health', PlatformHealthController::class)->name('api.v1.platform.health');
+        Route::get('/platform/search', GlobalSearchController::class)->name('api.v1.platform.search');
+    });

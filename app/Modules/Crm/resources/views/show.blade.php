@@ -38,6 +38,8 @@
     </div>
 </div>
 
+@include('crm::partials.nav')
+
 {{-- Stage pipeline stepper --}}
 <div class="card mb-4">
     <div class="card-body py-2 px-3">
@@ -129,7 +131,15 @@
                 </span>
                 @if($lead->lead_source)
                 <div class="small text-muted mt-2">
-                    <i class="ti ti-source-code me-1"></i>{{ $lead->lead_source }}
+                    <i class="ti ti-source-code me-1"></i>{{ \App\Modules\Crm\Support\CrmSourceCatalog::options()[$lead->lead_source] ?? $lead->lead_source }}
+                </div>
+                @endif
+                @if($lead->qualification_status || $lead->lead_score !== null)
+                <div class="small text-muted mt-2">
+                    <i class="ti ti-badge me-1"></i>{{ $lead->qualification_status ?: 'Unqualified' }}
+                    @if($lead->lead_score !== null)
+                        · Score {{ $lead->lead_score }}
+                    @endif
                 </div>
                 @endif
             </div>
@@ -138,29 +148,83 @@
 </div>
 
 <div class="row g-3">
-    {{-- Notes --}}
+    {{-- Timeline --}}
     <div class="col-lg-8">
         <div class="card h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h3 class="card-title mb-0">
-                    <i class="ti ti-notes me-2 text-muted"></i>Catatan CRM
+                    <i class="ti ti-activity-heartbeat me-2 text-muted"></i>Customer Timeline
                 </h3>
                 <a href="{{ route('crm.edit', $lead) }}" class="btn btn-sm btn-ghost-secondary">
                     <i class="ti ti-pencil me-1"></i>Edit
                 </a>
             </div>
             <div class="card-body">
+                @forelse($timeline as $activity)
+                    <div class="d-flex gap-3 {{ !$loop->last ? 'pb-3 mb-3 border-bottom' : '' }}">
+                        <span class="avatar avatar-sm bg-primary-lt text-primary">
+                            <i class="ti ti-point-filled"></i>
+                        </span>
+                        <div class="flex-fill min-width-0">
+                            <div class="d-flex justify-content-between align-items-start gap-2">
+                                <div>
+                                    <div class="fw-semibold">{{ $activity->title }}</div>
+                                    @if($activity->description)
+                                        <div class="text-muted small mt-1" style="white-space:pre-line;">{{ $activity->description }}</div>
+                                    @endif
+                                </div>
+                                <div class="text-muted small text-end flex-shrink-0">
+                                    {{ $activity->occurred_at?->translatedFormat('d M Y H:i') }}
+                                </div>
+                            </div>
+                            <div class="small text-muted mt-2">
+                                {{ \Illuminate\Support\Str::headline(str_replace('_', ' ', $activity->activity_type)) }}
+                                @if($activity->owner)
+                                    · {{ $activity->owner->name }}
+                                @endif
+                                @if($activity->source_suite !== 'crm')
+                                    · {{ strtoupper($activity->source_suite) }}
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <div class="text-center text-muted py-4">
+                        <i class="ti ti-activity d-block mb-2" style="font-size:2rem; opacity:.3;"></i>
+                        Belum ada activity timeline.
+                    </div>
+                @endforelse
+            </div>
+        </div>
+        <div class="card mt-3">
+            <div class="card-header">
+                <h3 class="card-title mb-0">
+                    <i class="ti ti-notes me-2 text-muted"></i>Catatan CRM
+                </h3>
+            </div>
+            <div class="card-body">
                 @if($lead->notes)
                     <div style="white-space:pre-line; line-height:1.7;">{{ $lead->notes }}</div>
                 @else
-                    <div class="text-center text-muted py-4">
-                        <i class="ti ti-notes d-block mb-2" style="font-size:2rem; opacity:.3;"></i>
-                        Belum ada catatan.
-                        <a href="{{ route('crm.edit', $lead) }}">Tambahkan catatan</a>.
-                    </div>
+                    <div class="text-muted">Belum ada catatan internal.</div>
                 @endif
             </div>
         </div>
+        @if($lead->followUpTasks->isNotEmpty())
+        <div class="card mt-3">
+            <div class="card-header">
+                <h3 class="card-title mb-0">Follow-Up Queue</h3>
+            </div>
+            <div class="card-body">
+                @foreach($lead->followUpTasks as $task)
+                    <div class="{{ !$loop->last ? 'pb-3 mb-3 border-bottom' : '' }}">
+                        <div class="fw-semibold">{{ $task->subject }}</div>
+                        <div class="small text-muted">{{ $task->due_at ? $task->due_at->translatedFormat('d M Y H:i') : 'Tanpa jadwal' }} • {{ $task->owner?->name ?? 'Unassigned' }}</div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
     </div>
 
     {{-- Detail sidebar --}}
@@ -194,6 +258,12 @@
                         <tr>
                             <td class="text-muted ps-3">Phone</td>
                             <td>{{ $lead->contact->mobile ?: $lead->contact->phone }}</td>
+                        </tr>
+                        @endif
+                        @if($lead->expected_close_date)
+                        <tr>
+                            <td class="text-muted ps-3">Expected Close</td>
+                            <td>{{ $lead->expected_close_date->translatedFormat('d M Y') }}</td>
                         </tr>
                         @endif
                         <tr>

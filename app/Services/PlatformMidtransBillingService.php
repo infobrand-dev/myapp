@@ -8,7 +8,6 @@ use App\Models\PlatformPayment;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Models\TenantSubscription;
-use App\Modules\Midtrans\Models\MidtransSetting;
 use App\Support\ByoAiAddon;
 use App\Support\PlanFeature;
 use App\Support\PlanProductLineMap;
@@ -285,12 +284,13 @@ class PlatformMidtransBillingService
         return $freshInvoice;
     }
 
-    private function platformSettings(): ?MidtransSetting
+    private function platformSettings(): ?object
     {
+        $modelClass = (string) config('platform-core.billing.platform_midtrans_setting_model');
         $setting = null;
 
-        if (Schema::hasTable('midtrans_settings')) {
-            $setting = MidtransSetting::query()
+        if ($modelClass !== '' && class_exists($modelClass) && Schema::hasTable('midtrans_settings')) {
+            $setting = $modelClass::query()
                 ->where('tenant_id', 1)
                 ->first();
         }
@@ -299,7 +299,9 @@ class PlatformMidtransBillingService
             return $setting;
         }
 
-        return MidtransSetting::platformOwnerFallback();
+        return $modelClass !== '' && class_exists($modelClass) && method_exists($modelClass, 'platformOwnerFallback')
+            ? $modelClass::platformOwnerFallback()
+            : null;
     }
 
     private function itemDescription(PlatformInvoice $invoice): string

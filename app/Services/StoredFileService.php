@@ -18,7 +18,8 @@ class StoredFileService
 {
     public function __construct(
         private readonly StorageRoutingService $routing,
-        private readonly StorageAccessService $access
+        private readonly StorageAccessService $access,
+        private readonly FilePipelineService $pipeline
     ) {
     }
 
@@ -36,7 +37,7 @@ class StoredFileService
         ]));
         $categoryConfig = (array) config("workspace-files.categories.{$category}", []);
 
-        return StoredFile::query()->create([
+        $storedFile = StoredFile::query()->create([
             'tenant_id' => $attributes['tenant_id'] ?? TenantContext::currentId(),
             'company_id' => $attributes['company_id'] ?? CompanyContext::currentId(),
             'branch_id' => array_key_exists('branch_id', $attributes) ? $attributes['branch_id'] : BranchContext::currentId(),
@@ -79,6 +80,10 @@ class StoredFileService
                 'storage_topology_degraded' => (bool) ($stored['legacy'] ?? false),
             ], (array) ($attributes['meta'] ?? [])),
         ]);
+
+        $this->pipeline->runPostUpload($storedFile);
+
+        return $storedFile;
     }
 
     /**

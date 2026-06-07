@@ -37,6 +37,12 @@
   - WA blast recipients monthly
   - total storage
 
+## CRM policy
+- CRM launch uses `Starter`, `Growth`, and `Scale` as public self-serve tiers.
+- CRM plans should expose hard limits for users, contacts, pipelines, custom stages, active deals, and total storage.
+- CRM public copy should also state whether export, manager visibility, and future automation access are included.
+- CRM launch is `standalone-first`; Accounting and Omnichannel bridge cards may appear as placeholders until those suites are active.
+
 ## Recommended add-ons
 - `BYO AI`
 - `Extra Users`

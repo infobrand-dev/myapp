@@ -16,8 +16,28 @@
     },
     "navigation": [
         {
-            "label": "CRM",
+            "label": "Dashboard",
+            "route": "crm.dashboard"
+        },
+        {
+            "label": "Leads/Deals",
             "route": "crm.index"
+        },
+        {
+            "label": "Follow-Up",
+            "route": "crm.follow-ups"
+        },
+        {
+            "label": "Customers",
+            "route": "crm.customers"
+        },
+        {
+            "label": "Pipelines",
+            "route": "crm.pipelines"
+        },
+        {
+            "label": "Settings",
+            "route": "crm.settings"
         }
     ],
     "icon": "resources/icons/icon.svg"

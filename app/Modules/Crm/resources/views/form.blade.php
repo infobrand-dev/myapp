@@ -3,6 +3,7 @@
 @section('content')
 @php
     $defaultCurrency = app(\App\Support\CurrencySettingsResolver::class)->defaultCurrency();
+    $selectedSource = old('lead_source', $lead->lead_source);
 @endphp
 <div class="page-header mb-4">
     <div class="d-flex justify-content-between align-items-center gap-3">
@@ -16,6 +17,8 @@
         </a>
     </div>
 </div>
+
+@include('crm::partials.nav')
 
 <form method="POST" action="{{ $formAction }}">
     @csrf
@@ -86,9 +89,42 @@
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Lead Source</label>
-                        <input type="text" name="lead_source" class="form-control"
-                               value="{{ old('lead_source', $lead->lead_source) }}"
-                               placeholder="Instagram DM, referral, renewal, dll">
+                        <select name="lead_source" class="form-select">
+                            <option value="">Pilih source</option>
+                            @foreach($sourceOptions as $sourceKey => $sourceLabel)
+                                <option value="{{ $sourceKey }}"
+                                        @selected($selectedSource === $sourceKey)>
+                                    {{ $sourceLabel }}
+                                </option>
+                            @endforeach
+                            @if($selectedSource && !array_key_exists($selectedSource, $sourceOptions))
+                                <option value="{{ $selectedSource }}" selected>{{ $selectedSource }}</option>
+                            @endif
+                        </select>
+                        <div class="form-hint">CRM tetap boleh menerima source lain nanti via integrasi atau import.</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Visibility</label>
+                        <select name="visibility_scope" class="form-select">
+                            <option value="team" @selected(old('visibility_scope', $lead->visibility_scope ?: 'team') === 'team')>Team visibility</option>
+                            <option value="personal" @selected(old('visibility_scope', $lead->visibility_scope) === 'personal')>Personal owner only</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Qualification</label>
+                        <input type="text" name="qualification_status" class="form-control"
+                               value="{{ old('qualification_status', $lead->qualification_status) }}"
+                               placeholder="Cold, Warm, Hot, SQL, MQL">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Lead Score</label>
+                        <div class="input-group">
+                            <input type="number" min="0" max="100" name="lead_score"
+                                   class="form-control"
+                                   value="{{ old('lead_score', $lead->lead_score) }}"
+                                   placeholder="0-100">
+                            <span class="input-group-text">pts</span>
+                        </div>
                     </div>
                     <div class="col-md-5">
                         <label class="form-label">Estimated Value</label>
@@ -125,6 +161,18 @@
                         <input type="datetime-local" name="last_contacted_at"
                                class="form-control"
                                value="{{ old('last_contacted_at', optional($lead->last_contacted_at)->format('Y-m-d\\TH:i')) }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Expected Close Date</label>
+                        <input type="date" name="expected_close_date"
+                               class="form-control"
+                               value="{{ old('expected_close_date', optional($lead->expected_close_date)->format('Y-m-d')) }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Lost Reason</label>
+                        <input type="text" name="lost_reason" class="form-control"
+                               value="{{ old('lost_reason', $lead->lost_reason) }}"
+                               placeholder="Budget freeze, no response, lost to competitor">
                     </div>
                     <div class="col-12">
                         <label class="form-label">Labels</label>

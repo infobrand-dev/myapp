@@ -2,14 +2,13 @@
 
 namespace App\Support\Payments\Drivers;
 
-use App\Modules\Sales\Models\Sale;
-use App\Modules\Xendit\Services\XenditService;
+use App\Contracts\XenditCheckoutGateway;
 use App\Support\Payments\Contracts\PaymentGatewayDriver;
 
 class XenditPaymentGatewayDriver implements PaymentGatewayDriver
 {
     public function __construct(
-        private readonly XenditService $service,
+        private readonly XenditCheckoutGateway $service,
     ) {
     }
 
@@ -53,9 +52,9 @@ class XenditPaymentGatewayDriver implements PaymentGatewayDriver
         return 'xendit.transactions.index';
     }
 
-    public function createCheckoutForSale(Sale $sale): array
+    public function createCheckoutForTarget(object $checkoutTarget): array
     {
-        $checkout = $this->service->createOrReuseCheckoutForSale($sale);
+        $checkout = $this->service->createCheckoutForTarget($checkoutTarget);
 
         return [
             'provider' => $this->provider(),

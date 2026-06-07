@@ -25,7 +25,7 @@ This file is a quick catalog. The authoritative metadata for each module lives i
 - `email_marketing`: campaigns, recipients, attachment templates, unsubscribe flow. Requires `contacts`.
 - `email_inbox`: mailbox account, inbound sync, outbound send, folder/message storage, and operational email workspace.
 - `chatbot`: bot accounts, playground, knowledge base, conversation mirroring, and automation modes. Requires `conversations`.
-- `crm`: pipeline lead, owner assignment, follow-up, dan kanban/list view berbasis `contacts`. Requires `contacts`.
+- `crm`: CRM standalone untuk lead/deal ringan, follow-up, customer timeline, dan dashboard sales berbasis `contacts`. Requires `contacts`.
 - `contacts`: contact directory and merge/import flows.
 - `task_management`: internal memo, task, subtask, and task template management.
 - `shortlink`: short URL management, multi-code support, click tracking, redirect endpoint.
@@ -146,7 +146,7 @@ Boundary:
 - `chatbot`: bot accounts, playground, knowledge base, conversation mirroring, and automation modes (`rule_only`, `ai_assisted`, `ai_first`). AI usage is tracked separately so plan-based AI Credits can be reused by future automation flows. Requires `conversations`.
 
 ## Support
-- `crm`: pipeline lead, owner assignment, follow-up, dan kanban/list view berbasis `contacts`. Requires `contacts`.
+- `crm`: CRM standalone untuk lead/deal ringan, follow-up, customer timeline, dan dashboard sales berbasis `contacts`. Requires `contacts`.
 - `contacts`: contact directory and merge/import flows.
 - `task_management`: internal memo, task, subtask, and task template management.
 - `shortlink`: short URL management, multi-code support, click tracking, redirect endpoint.

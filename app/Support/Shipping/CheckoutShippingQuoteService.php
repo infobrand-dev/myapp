@@ -2,12 +2,10 @@
 
 namespace App\Support\Shipping;
 
-use App\Modules\Storefront\Exceptions\StorefrontCheckoutException;
-use App\Modules\Products\Models\Product;
 use App\Models\Company;
+use App\Support\Commerce\CheckoutException;
 use App\Support\CompanyContext;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Arr;
 
 class CheckoutShippingQuoteService
 {
@@ -20,7 +18,7 @@ class CheckoutShippingQuoteService
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>|null
      */
-    public function quoteForCheckout(Product $product, array $payload): ?array
+    public function quoteForCheckout(object $product, array $payload): ?array
     {
         return $this->quoteForItems(collect([[
             'product' => $product,
@@ -29,7 +27,7 @@ class CheckoutShippingQuoteService
     }
 
     /**
-     * @param  Collection<int, array{product:Product,qty:int}>  $items
+     * @param  Collection<int, array{product:object,qty:int}>  $items
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>|null
      */
@@ -73,7 +71,7 @@ class CheckoutShippingQuoteService
             ->values();
 
         if ($options->isEmpty()) {
-            throw new StorefrontCheckoutException(
+            throw new CheckoutException(
                 'Ongkir belum bisa dihitung untuk alamat tujuan ini.',
                 ['fulfillment_method' => 'Ongkir belum bisa dihitung untuk alamat tujuan ini.'],
             );
@@ -97,13 +95,14 @@ class CheckoutShippingQuoteService
      */
     private function buildPayload(Collection $items, array $payload, ?Company $company, string $provider): array
     {
+        $productClass = (string) config('platform-core.shipping.product_model');
         $companyMeta = is_array($company?->meta) ? $company->meta : [];
         $normalizedItems = $items
-            ->filter(fn (array $item): bool => isset($item['product']) && $item['product'] instanceof Product && (int) ($item['qty'] ?? 0) > 0)
+            ->filter(fn (array $item): bool => isset($item['product']) && $productClass !== '' && $item['product'] instanceof $productClass && (int) ($item['qty'] ?? 0) > 0)
             ->values();
 
         if ($normalizedItems->isEmpty()) {
-            throw new StorefrontCheckoutException(
+            throw new CheckoutException(
                 'Cart Anda masih kosong.',
                 ['cart' => 'Tambahkan produk ke cart terlebih dahulu.'],
             );
@@ -114,7 +113,7 @@ class CheckoutShippingQuoteService
             ->values();
 
         if ($shippableItems->isEmpty()) {
-            throw new StorefrontCheckoutException(
+            throw new CheckoutException(
                 'Cart ini tidak memerlukan pengiriman.',
                 ['fulfillment_method' => 'Metode delivery hanya tersedia untuk produk fisik.'],
             );
@@ -133,7 +132,7 @@ class CheckoutShippingQuoteService
             $itemWeight = $this->normalizedWeight($product, $shippingMeta);
 
             if ($itemWeight === null) {
-                throw new StorefrontCheckoutException(
+                throw new CheckoutException(
                     'Berat produk belum diatur untuk pengiriman.',
                     ['cart' => 'Masih ada produk fisik di cart yang belum memiliki berat pengiriman.'],
                 );
@@ -168,14 +167,14 @@ class CheckoutShippingQuoteService
             $base['destination_postal_code'] = trim((string) ($payload['destination_postal_code'] ?? ''));
 
             if ($base['origin_postal_code'] === '') {
-                throw new StorefrontCheckoutException(
+                throw new CheckoutException(
                     'Origin pengiriman toko belum lengkap.',
                     ['fulfillment_method' => 'Origin pengiriman toko belum diatur.'],
                 );
             }
 
             if ($base['destination_postal_code'] === '') {
-                throw new StorefrontCheckoutException(
+                throw new CheckoutException(
                     'Kode pos tujuan wajib diisi untuk delivery.',
                     ['destination_postal_code' => 'Kode pos tujuan wajib diisi untuk delivery.'],
                 );
@@ -187,14 +186,14 @@ class CheckoutShippingQuoteService
             $base['destination_area_id'] = trim((string) ($payload['destination_area_id'] ?? ''));
 
             if ($base['origin_area_id'] === '') {
-                throw new StorefrontCheckoutException(
+                throw new CheckoutException(
                     'Origin pengiriman toko belum lengkap.',
                     ['fulfillment_method' => 'Origin area pengiriman toko belum diatur.'],
                 );
             }
 
             if ($base['destination_area_id'] === '') {
-                throw new StorefrontCheckoutException(
+                throw new CheckoutException(
                     'Area tujuan wajib diisi untuk delivery.',
                     ['destination_area_id' => 'Area tujuan wajib diisi untuk delivery.'],
                 );
@@ -218,7 +217,7 @@ class CheckoutShippingQuoteService
         $selectedKey = trim((string) ($payload['selected_shipping_rate'] ?? ''));
 
         if ($selectedKey === '') {
-            throw new StorefrontCheckoutException(
+            throw new CheckoutException(
                 'Pilih layanan pengiriman terlebih dahulu.',
                 ['selected_shipping_rate' => 'Pilih salah satu layanan pengiriman yang tersedia.'],
                 ['storefront.shipping_options' => $options]
@@ -231,7 +230,7 @@ class CheckoutShippingQuoteService
             }
         }
 
-        throw new StorefrontCheckoutException(
+        throw new CheckoutException(
             'Pilihan layanan pengiriman tidak lagi tersedia.',
             ['selected_shipping_rate' => 'Pilihan layanan pengiriman sudah berubah. Silakan pilih ulang.'],
             ['storefront.shipping_options' => $options]
@@ -252,12 +251,12 @@ class CheckoutShippingQuoteService
     /**
      * @param  array<string, mixed>  $shippingMeta
      */
-    private function normalizedWeight(Product $product, array $shippingMeta): ?int
+    private function normalizedWeight(object $product, array $shippingMeta): ?int
     {
         $weight = $shippingMeta['weight_grams'] ?? $shippingMeta['weight'] ?? null;
 
         if ($weight === null || $weight === '') {
-            return $product->track_stock ? null : 1;
+            return $product->track_stock ? null : (int) config('platform-core.commerce.product_track_stock_default_weight', 1);
         }
 
         $normalized = (int) $weight;

@@ -4,11 +4,11 @@ namespace App\Modules\Storefront\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Products\Models\Product;
-use App\Modules\Storefront\Exceptions\StorefrontCheckoutException;
 use App\Modules\Storefront\Http\Requests\StorefrontCartCheckoutRequest;
 use App\Modules\Storefront\Http\Requests\StorefrontCheckoutRequest;
 use App\Modules\Storefront\Support\StorefrontCartService;
 use App\Modules\Storefront\Services\StorefrontCheckoutService;
+use App\Support\Commerce\CheckoutException;
 use App\Support\Commerce\PublicStorefrontContext;
 use App\Support\TenantContext;
 use App\Modules\Sales\Models\Sale;
@@ -31,7 +31,7 @@ class StorefrontCheckoutController extends Controller
 
         try {
             $result = $this->checkoutService->createOrder($product, $request->validated());
-        } catch (StorefrontCheckoutException $exception) {
+        } catch (CheckoutException $exception) {
             return back()
                 ->withInput()
                 ->with($exception->flash())
@@ -58,7 +58,7 @@ class StorefrontCheckoutController extends Controller
 
         try {
             $result = $this->checkoutService->createOrderFromItems($items, $request->validated());
-        } catch (StorefrontCheckoutException $exception) {
+        } catch (CheckoutException $exception) {
             return back()
                 ->withInput()
                 ->with($exception->flash())
@@ -97,7 +97,7 @@ class StorefrontCheckoutController extends Controller
 
         try {
             $result = $this->checkoutService->retryPayment($sale);
-        } catch (StorefrontCheckoutException $exception) {
+        } catch (CheckoutException $exception) {
             return back()->withErrors($exception->errors());
         } catch (\RuntimeException $exception) {
             return back()->withErrors(['payment_method' => $exception->getMessage()]);

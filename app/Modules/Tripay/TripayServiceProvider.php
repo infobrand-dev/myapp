@@ -2,6 +2,8 @@
 
 namespace App\Modules\Tripay;
 
+use App\Contracts\TripayCheckoutGateway;
+use App\Modules\Tripay\Adapters\TripayCheckoutGatewayAdapter;
 use App\Modules\Tripay\Services\TripayService;
 use App\Support\RegistersModuleRoutes;
 use Illuminate\Support\Facades\Schema;
@@ -26,6 +28,7 @@ class TripayServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(TripayService::class);
+        $this->app->bind(TripayCheckoutGateway::class, TripayCheckoutGatewayAdapter::class);
     }
 
     public function boot(): void

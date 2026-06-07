@@ -6,6 +6,11 @@ use Illuminate\Support\Facades\File;
 
 class CoreModuleBoundaryAudit
 {
+    public function __construct(
+        private readonly PlatformCoreBoundaryRegistry $registry
+    ) {
+    }
+
     /**
      * @return array{findings: array<int, array<string, string>>, module_tables: array<string, string>}
      */
@@ -88,9 +93,12 @@ class CoreModuleBoundaryAudit
                     continue;
                 }
 
+                $relativePath = $this->relativePath($file);
+                $approved = $this->registry->isApprovedReference($relativePath, trim($line));
+
                 $findings[] = [
-                    'type' => 'core_depends_on_module_class',
-                    'file' => $this->relativePath($file),
+                    'type' => $approved ? 'approved_core_module_reference' : 'core_depends_on_module_class',
+                    'file' => $relativePath,
                     'line' => (string) ($index + 1),
                     'detail' => trim($line),
                 ];
@@ -122,9 +130,12 @@ class CoreModuleBoundaryAudit
                     continue;
                 }
 
+                $relativePath = $this->relativePath($file);
+                $approved = $this->registry->isApprovedTableTouch($relativePath, $table);
+
                 $findings[] = [
-                    'type' => 'core_migration_touches_module_table',
-                    'file' => $this->relativePath($file),
+                    'type' => $approved ? 'approved_core_module_migration_touch' : 'core_migration_touches_module_table',
+                    'file' => $relativePath,
                     'line' => (string) ($index + 1),
                     'detail' => $table . ' owned by module ' . $owner,
                 ];

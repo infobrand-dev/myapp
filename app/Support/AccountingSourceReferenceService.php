@@ -3,20 +3,6 @@
 namespace App\Support;
 
 use App\Models\AccountingJournal;
-use App\Modules\Finance\Models\FinanceTransaction;
-use App\Modules\Inventory\Models\StockAdjustment;
-use App\Modules\Inventory\Models\StockOpening;
-use App\Modules\Inventory\Models\StockTransfer;
-use App\Modules\Payments\Models\Payment;
-use App\Modules\Purchases\Models\Purchase;
-use App\Modules\Purchases\Models\PurchaseOrder;
-use App\Modules\Purchases\Models\PurchaseReceipt;
-use App\Modules\Purchases\Models\PurchaseRequest;
-use App\Modules\Sales\Models\Sale;
-use App\Modules\Sales\Models\SaleOrder;
-use App\Modules\Sales\Models\SaleQuotation;
-use App\Modules\Sales\Models\SaleReceivableAdjustment;
-use App\Modules\Sales\Models\SaleReturn;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
@@ -205,97 +191,13 @@ class AccountingSourceReferenceService
 
     private function supportedSources(): array
     {
-        return [
+        return array_merge([
             AccountingJournal::class => [
                 'model' => AccountingJournal::class,
                 'route' => 'finance.journals.show',
                 'number_field' => 'journal_number',
                 'label' => 'Manual Journal',
             ],
-            FinanceTransaction::class => [
-                'model' => FinanceTransaction::class,
-                'route' => 'finance.transactions.show',
-                'number_field' => 'reference_number',
-                'label' => 'Finance Transaction',
-            ],
-            Payment::class => [
-                'model' => Payment::class,
-                'route' => 'payments.show',
-                'number_field' => 'payment_number',
-                'label' => 'Payment',
-            ],
-            Sale::class => [
-                'model' => Sale::class,
-                'route' => 'sales.show',
-                'number_field' => 'sale_number',
-                'label' => 'Sale',
-            ],
-            SaleQuotation::class => [
-                'model' => SaleQuotation::class,
-                'route' => 'sales.quotations.show',
-                'number_field' => 'quotation_number',
-                'label' => 'Quotation',
-            ],
-            SaleOrder::class => [
-                'model' => SaleOrder::class,
-                'route' => 'sales.orders.show',
-                'number_field' => 'order_number',
-                'label' => 'Sales Order',
-            ],
-            SaleReturn::class => [
-                'model' => SaleReturn::class,
-                'route' => 'sales.returns.show',
-                'number_field' => 'return_number',
-                'label' => 'Sale Return',
-            ],
-            SaleReceivableAdjustment::class => [
-                'model' => SaleReceivableAdjustment::class,
-                'route' => 'sales.show',
-                'number_field' => 'adjustment_number',
-                'label' => 'Sale Receivable Adjustment',
-            ],
-            PurchaseRequest::class => [
-                'model' => PurchaseRequest::class,
-                'route' => 'purchases.requests.show',
-                'number_field' => 'request_number',
-                'label' => 'Purchase Request',
-            ],
-            PurchaseOrder::class => [
-                'model' => PurchaseOrder::class,
-                'route' => 'purchases.orders.show',
-                'number_field' => 'order_number',
-                'label' => 'Purchase Order',
-            ],
-            Purchase::class => [
-                'model' => Purchase::class,
-                'route' => 'purchases.show',
-                'number_field' => 'purchase_number',
-                'label' => 'Purchase',
-            ],
-            PurchaseReceipt::class => [
-                'model' => PurchaseReceipt::class,
-                'route' => 'purchases.receipts.show',
-                'number_field' => 'receipt_number',
-                'label' => 'Purchase Receipt',
-            ],
-            StockOpening::class => [
-                'model' => StockOpening::class,
-                'route' => 'inventory.openings.show',
-                'number_field' => 'code',
-                'label' => 'Opening Stock',
-            ],
-            StockAdjustment::class => [
-                'model' => StockAdjustment::class,
-                'route' => 'inventory.adjustments.show',
-                'number_field' => 'code',
-                'label' => 'Stock Adjustment',
-            ],
-            StockTransfer::class => [
-                'model' => StockTransfer::class,
-                'route' => 'inventory.transfers.show',
-                'number_field' => 'code',
-                'label' => 'Stock Transfer',
-            ],
-        ];
+        ], config('platform-core.accounting.source_references', []));
     }
 }

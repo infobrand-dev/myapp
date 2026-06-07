@@ -4,7 +4,6 @@ namespace App\Support\Payments;
 
 use App\Models\TenantPaymentGateway;
 use App\Support\BooleanQuery;
-use App\Modules\Sales\Models\Sale;
 use App\Support\CompanyContext;
 use App\Support\Payments\Contracts\PaymentGatewayDriver;
 use App\Support\TenantContext;
@@ -140,10 +139,10 @@ class PaymentGatewayManager
     /**
      * @return array{provider:string,redirect_url:string,reference:string,token:?string}
      */
-    public function createCheckoutForSale(Sale $sale, ?string $provider = null): array
+    public function createCheckoutForTarget(object $checkoutTarget, ?string $provider = null): array
     {
         $driver = $this->assertCheckoutReady($provider);
 
-        return $driver->createCheckoutForSale($sale);
+        return $driver->createCheckoutForTarget($checkoutTarget);
     }
 }

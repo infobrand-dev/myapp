@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Contracts\UtasWebhookNotificationSender;
+use App\Services\Webhooks\WebhookReceiptService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -16,7 +17,10 @@ class UtasWebhookService
     ];
 
     public function __construct(
-        private readonly UtasWebhookNotificationSender $notificationSender
+        private readonly UtasWebhookNotificationSender $notificationSender,
+        private readonly WebhookReceiptService $receipts,
+        private readonly PlatformActivityRecorder $activity,
+        private readonly PlatformEventBus $events
     ) {
     }
 
@@ -38,6 +42,7 @@ class UtasWebhookService
     public function handle(Request $request): array
     {
         $payload = $request->all();
+        $receipt = $this->receipts->receive('utas', 'webhooks.utas', $request, $payload);
 
         $validator = Validator::make($payload, [
             'state' => ['required', 'string'],
@@ -51,11 +56,13 @@ class UtasWebhookService
         ]);
 
         if ($validator->fails()) {
+            $this->receipts->markFailed($receipt, 'validation_failed', ['errors' => $validator->errors()->toArray()]);
             throw new ValidationException($validator);
         }
 
         $state = $this->normalizeState((string) ($payload['state'] ?? ''));
         if ($state === '') {
+            $this->receipts->markFailed($receipt, 'invalid_state');
             throw ValidationException::withMessages([
                 'state' => 'Webhook UTAS wajib memiliki state yang valid.',
             ]);
@@ -63,6 +70,7 @@ class UtasWebhookService
 
         $handled = in_array($state, self::SUPPORTED_STATES, true);
         if (!$handled) {
+            $this->receipts->markProcessed($receipt, ['handled' => false, 'state' => $state]);
             Log::info('UTAS webhook ignored', [
                 'state' => $state,
                 'store' => $this->nullableString($payload['store'] ?? null),
@@ -89,6 +97,34 @@ class UtasWebhookService
             $notified = true;
         }
 
+        $this->receipts->markSignature($receipt, true);
+        $this->receipts->markProcessed($receipt, [
+            'handled' => true,
+            'state' => $state,
+            'notified' => $notified,
+        ]);
+        $this->activity->record(
+            'core',
+            'webhook.utas.' . $state,
+            \App\Models\PlatformWebhookReceipt::class,
+            $receipt->id,
+            'UTAS webhook ' . $state,
+            [
+                'state' => $state,
+                'notified' => $notified,
+            ]
+        );
+        $this->events->publish(
+            'platform.webhook.utas.' . $state,
+            \App\Models\PlatformWebhookReceipt::class,
+            $receipt->id,
+            [
+                'state' => $state,
+                'notified' => $notified,
+            ],
+            'utas:' . $receipt->dedupe_key
+        );
+
         Log::info('UTAS webhook handled', [
             'state' => $state,
             'store' => $this->nullableString($payload['store'] ?? null),
@@ -101,6 +137,12 @@ class UtasWebhookService
             'state' => $state,
             'notified' => $notified,
         ];
+    }
+
+    public function markUnauthorized(Request $request): void
+    {
+        $receipt = $this->receipts->receive('utas', 'webhooks.utas', $request, $request->all());
+        $this->receipts->markSignature($receipt, false);
     }
 
     private function normalizeState(string $state): string

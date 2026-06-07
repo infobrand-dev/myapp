@@ -2,6 +2,8 @@
 
 namespace App\Modules\Xendit;
 
+use App\Contracts\XenditCheckoutGateway;
+use App\Modules\Xendit\Adapters\XenditCheckoutGatewayAdapter;
 use App\Modules\Xendit\Services\XenditService;
 use App\Support\RegistersModuleRoutes;
 use Illuminate\Support\Facades\Schema;
@@ -26,6 +28,7 @@ class XenditServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(XenditService::class);
+        $this->app->bind(XenditCheckoutGateway::class, XenditCheckoutGatewayAdapter::class);
     }
 
     public function boot(): void

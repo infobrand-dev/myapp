@@ -27,6 +27,9 @@ class PlanFeature
     public const TRANSACTIONAL_EMAIL_MANAGED = 'transactional_email_managed';
     public const TRANSACTIONAL_EMAIL_CUSTOM_SMTP = 'transactional_email_custom_smtp';
     public const CUSTOM_DOMAINS = 'custom_domains';
+    public const CRM_EXPORTS = 'crm_exports';
+    public const CRM_MANAGER_VISIBILITY = 'crm_manager_visibility';
+    public const CRM_AUTOMATION = 'crm_automation';
 
     public static function moduleFeatureForSlug(string $slug): ?string
     {

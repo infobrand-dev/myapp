@@ -20,6 +20,8 @@ use App\Services\TenantTransactionalMailerFactory;
 use App\Services\TenantCustomDomainService;
 use App\Mail\TenantTransactionalTestMail;
 use App\Models\User;
+use App\Services\PlatformActivityRecorder;
+use App\Services\PlatformAuditLogger;
 use App\Services\StoredFileService;
 use App\Services\WorkspaceMediaStorageService;
 use App\Support\ByoAiAddon;
@@ -317,12 +319,29 @@ class SettingsController extends Controller
         ]);
 
         $this->grantCreatorAccessToCompany($request->user(), $company);
+        app(PlatformAuditLogger::class)->logModel(
+            'company.created',
+            $company,
+            ['name', 'slug', 'code', 'is_active'],
+            null,
+            $this->companySnapshot($company)
+        );
+        app(PlatformActivityRecorder::class)->record(
+            'core',
+            'company.created',
+            Company::class,
+            $company->getKey(),
+            'Company ' . $company->name . ' dibuat.',
+            $this->companySnapshot($company),
+            $this->companyActivityActions()
+        );
 
         return redirect()->route('settings.company')->with('status', 'Company berhasil ditambahkan.');
     }
 
     public function updateCompany(Request $request, Company $company): RedirectResponse
     {
+        $before = $this->companySnapshot($company);
         $data = $this->validateCompany($request, $company);
         $isActive = $request->boolean('is_active');
 
@@ -338,13 +357,46 @@ class SettingsController extends Controller
             'code' => $data['code'] ?: null,
             'is_active' => $isActive,
         ]);
+        app(PlatformAuditLogger::class)->logModel(
+            'company.updated',
+            $company,
+            ['name', 'slug', 'code', 'is_active'],
+            $before,
+            $this->companySnapshot($company->fresh())
+        );
+        app(PlatformActivityRecorder::class)->record(
+            'core',
+            'company.updated',
+            Company::class,
+            $company->getKey(),
+            'Company ' . $company->name . ' diperbarui.',
+            $this->companySnapshot($company->fresh()),
+            $this->companyActivityActions()
+        );
 
         return redirect()->route('settings.company')->with('status', 'Company berhasil diperbarui.');
     }
 
     public function activateCompany(Company $company): RedirectResponse
     {
+        $before = $this->companySnapshot($company);
         $company->update(['is_active' => true]);
+        app(PlatformAuditLogger::class)->logModel(
+            'company.activated',
+            $company,
+            ['is_active'],
+            $before,
+            $this->companySnapshot($company->fresh())
+        );
+        app(PlatformActivityRecorder::class)->record(
+            'core',
+            'company.activated',
+            Company::class,
+            $company->getKey(),
+            'Company ' . $company->name . ' diaktifkan.',
+            $this->companySnapshot($company->fresh()),
+            $this->companyActivityActions()
+        );
 
         return back()->with('status', 'Company diaktifkan.');
     }
@@ -379,6 +431,22 @@ class SettingsController extends Controller
         ]);
 
         $this->grantCreatorAccessToBranch($request->user(), $company, $branch);
+        app(PlatformAuditLogger::class)->logModel(
+            'branch.created',
+            $branch,
+            ['name', 'slug', 'code', 'is_active', 'company_id'],
+            null,
+            $this->branchSnapshot($branch)
+        );
+        app(PlatformActivityRecorder::class)->record(
+            'core',
+            'branch.created',
+            Branch::class,
+            $branch->getKey(),
+            'Branch ' . $branch->name . ' dibuat.',
+            $this->branchSnapshot($branch),
+            $this->branchActivityActions()
+        );
 
         return redirect()->route('settings.branch')->with('status', 'Branch berhasil ditambahkan.');
     }
@@ -387,6 +455,7 @@ class SettingsController extends Controller
     {
         $company = $this->requireCurrentCompany();
         abort_unless($branch->company_id === $company->id, 404);
+        $before = $this->branchSnapshot($branch);
 
         $data = $this->validateBranch($request, $company, $branch);
 
@@ -396,6 +465,22 @@ class SettingsController extends Controller
             'code' => $data['code'] ?: null,
             'is_active' => $request->boolean('is_active'),
         ]);
+        app(PlatformAuditLogger::class)->logModel(
+            'branch.updated',
+            $branch,
+            ['name', 'slug', 'code', 'is_active'],
+            $before,
+            $this->branchSnapshot($branch->fresh())
+        );
+        app(PlatformActivityRecorder::class)->record(
+            'core',
+            'branch.updated',
+            Branch::class,
+            $branch->getKey(),
+            'Branch ' . $branch->name . ' diperbarui.',
+            $this->branchSnapshot($branch->fresh()),
+            $this->branchActivityActions()
+        );
 
         return redirect()->route('settings.branch')->with('status', 'Branch berhasil diperbarui.');
     }
@@ -405,7 +490,24 @@ class SettingsController extends Controller
         $company = $this->requireCurrentCompany();
         abort_unless($branch->company_id === $company->id, 404);
 
+        $before = $this->branchSnapshot($branch);
         $branch->update(['is_active' => true]);
+        app(PlatformAuditLogger::class)->logModel(
+            'branch.activated',
+            $branch,
+            ['is_active'],
+            $before,
+            $this->branchSnapshot($branch->fresh())
+        );
+        app(PlatformActivityRecorder::class)->record(
+            'core',
+            'branch.activated',
+            Branch::class,
+            $branch->getKey(),
+            'Branch ' . $branch->name . ' diaktifkan.',
+            $this->branchSnapshot($branch->fresh()),
+            $this->branchActivityActions()
+        );
 
         return back()->with('status', 'Branch diaktifkan.');
     }
@@ -1178,5 +1280,42 @@ class SettingsController extends Controller
             $defaultCompanyId,
             $defaultBranchId
         );
+    }
+
+    private function companySnapshot(Company $company): array
+    {
+        return [
+            'name' => $company->name,
+            'slug' => $company->slug,
+            'code' => $company->code,
+            'is_active' => (bool) $company->is_active,
+        ];
+    }
+
+    private function branchSnapshot(Branch $branch): array
+    {
+        return [
+            'company_id' => (int) $branch->company_id,
+            'name' => $branch->name,
+            'slug' => $branch->slug,
+            'code' => $branch->code,
+            'is_active' => (bool) $branch->is_active,
+        ];
+    }
+
+    private function companyActivityActions(): array
+    {
+        return [[
+            'label' => 'Buka company',
+            'url' => route('settings.company'),
+        ]];
+    }
+
+    private function branchActivityActions(): array
+    {
+        return [[
+            'label' => 'Buka branch',
+            'url' => route('settings.branch'),
+        ]];
     }
 }

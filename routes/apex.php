@@ -21,6 +21,8 @@ Route::middleware(EnsureApexHost::class)->group(function () {
     Route::get('/contact-us', [LandingPageController::class, 'contact'])->name('contact');
     Route::get('/omnichannel', [LandingPageController::class, 'omnichannel'])->name('landing.omnichannel');
     Route::get('/accounting', [LandingPageController::class, 'accounting'])->name('landing.accounting');
+    Route::get('/commerce', [LandingPageController::class, 'commerce'])->name('landing.commerce');
+    Route::get('/crm', [LandingPageController::class, 'crm'])->name('landing.crm');
     Route::get('/mulai-digital', [LandingPageController::class, 'mulaiDigital'])->name('landing.mulai-digital');
     Route::get('/website-aplikasi-bisnis', [LandingPageController::class, 'websiteApps'])->name('landing.website-apps');
     Route::get('/jasa-pembuatan-website', [LandingPageController::class, 'websiteService'])->name('landing.website-service');

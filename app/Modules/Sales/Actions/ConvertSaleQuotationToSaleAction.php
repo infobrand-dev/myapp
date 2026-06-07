@@ -7,6 +7,7 @@ use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\SaleQuotation;
 use App\Support\BranchContext;
 use App\Support\DocumentWorkflowService;
+use App\Support\HookManager;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -15,11 +16,13 @@ class ConvertSaleQuotationToSaleAction
 {
     private $createDraftSale;
     private $documentWorkflow;
+    private $hooks;
 
-    public function __construct(CreateDraftSaleAction $createDraftSale, DocumentWorkflowService $documentWorkflow)
+    public function __construct(CreateDraftSaleAction $createDraftSale, DocumentWorkflowService $documentWorkflow, HookManager $hooks)
     {
         $this->createDraftSale = $createDraftSale;
         $this->documentWorkflow = $documentWorkflow;
+        $this->hooks = $hooks;
     }
 
     public function execute(SaleQuotation $quotation, ?User $actor = null): SaleQuotation
@@ -63,6 +66,9 @@ class ConvertSaleQuotationToSaleAction
                 'tax_rate_id' => data_get($quotation->meta, 'tax.tax_rate_id'),
                 'notes' => $quotation->notes,
                 'customer_note' => $quotation->customer_note,
+                'meta' => [
+                    'crm' => (array) data_get($quotation->meta, 'crm', []),
+                ],
                 'items' => $quotation->items->map(fn ($item) => [
                     'product_id' => $item->product_id,
                     'product_variant_id' => $item->product_variant_id,
@@ -88,6 +94,17 @@ class ConvertSaleQuotationToSaleAction
                 'converted_by' => $actor ? $actor->id : null,
                 'updated_by' => $actor ? $actor->id : null,
             ]);
+
+            try {
+                $this->hooks->dispatch('sales.quotations.converted', [
+                    'quotation' => $quotation->fresh(['contact', 'convertedSale']),
+                    'sale' => $sale->fresh(),
+                    'event' => 'converted',
+                    'actor' => $actor,
+                ]);
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
 
             return $quotation->load('convertedSale');
         });

@@ -2,6 +2,8 @@
 
 namespace App\Modules\Sales;
 
+use App\Contracts\CommerceDraftFinalizer;
+use App\Modules\Sales\Adapters\SaleDraftFinalizer;
 use App\Modules\Sales\Actions\CancelDraftSaleAction;
 use App\Modules\Sales\Actions\CancelDraftReturnAction;
 use App\Modules\Sales\Actions\CalculateReturnTotalsAction;
@@ -168,6 +170,7 @@ class SalesServiceProvider extends ServiceProvider
 
     public function register(): void
     {
+        $this->app->bind(CommerceDraftFinalizer::class, SaleDraftFinalizer::class);
         $this->app->singleton(SaleOrderRepository::class);
         $this->app->singleton(SaleRepository::class);
         $this->app->singleton(SaleQuotationRepository::class);

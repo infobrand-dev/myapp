@@ -90,6 +90,18 @@ class Contact extends Model
             ->where('tenant_id', TenantContext::currentId());
     }
 
+    public function crmLeads(): HasMany
+    {
+        return $this->hasMany(\App\Modules\Crm\Models\CrmLead::class, 'contact_id')
+            ->where('tenant_id', TenantContext::currentId());
+    }
+
+    public function crmFollowUpTasks(): HasMany
+    {
+        return $this->hasMany(\App\Modules\Crm\Models\CrmFollowUpTask::class, 'contact_id')
+            ->where('tenant_id', TenantContext::currentId());
+    }
+
     public function setPhoneAttribute($value): void
     {
         $this->attributes['phone'] = ContactPhoneNormalizer::normalize($value);

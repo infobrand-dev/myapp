@@ -2,14 +2,13 @@
 
 namespace App\Support\Payments\Drivers;
 
-use App\Modules\Sales\Models\Sale;
-use App\Modules\Tripay\Services\TripayService;
+use App\Contracts\TripayCheckoutGateway;
 use App\Support\Payments\Contracts\PaymentGatewayDriver;
 
 class TripayPaymentGatewayDriver implements PaymentGatewayDriver
 {
     public function __construct(
-        private readonly TripayService $service,
+        private readonly TripayCheckoutGateway $service,
     ) {
     }
 
@@ -53,9 +52,9 @@ class TripayPaymentGatewayDriver implements PaymentGatewayDriver
         return 'tripay.transactions.index';
     }
 
-    public function createCheckoutForSale(Sale $sale): array
+    public function createCheckoutForTarget(object $checkoutTarget): array
     {
-        $checkout = $this->service->createOrReuseCheckoutForSale($sale);
+        $checkout = $this->service->createCheckoutForTarget($checkoutTarget);
 
         return [
             'provider' => $this->provider(),

@@ -4,10 +4,7 @@ namespace App\Services;
 
 use App\Jobs\SendTenantTransactionalMailJob;
 use App\Models\TenantTransactionalMailLog;
-use App\Modules\Payments\Models\Payment;
-use App\Modules\Sales\Models\Sale;
-use App\Modules\Sales\Models\SaleOrder;
-use App\Modules\Sales\Models\SaleQuotation;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use RuntimeException;
 
@@ -18,7 +15,7 @@ class AccountingTransactionalMailService
     ) {
     }
 
-    public function sendQuotation(SaleQuotation $quotation, ?int $actorId = null): TenantTransactionalMailLog
+    public function sendQuotation(Model $quotation, ?int $actorId = null): TenantTransactionalMailLog
     {
         return $this->queueDocument(
             documentType: 'sale_quotation',
@@ -44,7 +41,7 @@ class AccountingTransactionalMailService
         );
     }
 
-    public function sendOrder(SaleOrder $order, ?int $actorId = null): TenantTransactionalMailLog
+    public function sendOrder(Model $order, ?int $actorId = null): TenantTransactionalMailLog
     {
         return $this->queueDocument(
             documentType: 'sale_order',
@@ -70,7 +67,7 @@ class AccountingTransactionalMailService
         );
     }
 
-    public function sendInvoice(Sale $sale, ?int $actorId = null): TenantTransactionalMailLog
+    public function sendInvoice(Model $sale, ?int $actorId = null): TenantTransactionalMailLog
     {
         return $this->queueDocument(
             documentType: 'sale',
@@ -98,7 +95,7 @@ class AccountingTransactionalMailService
         );
     }
 
-    public function sendPaymentReminder(Sale $sale, ?int $actorId = null): TenantTransactionalMailLog
+    public function sendPaymentReminder(Model $sale, ?int $actorId = null): TenantTransactionalMailLog
     {
         if ((float) $sale->balance_due <= 0) {
             throw new RuntimeException('Sale ini tidak punya saldo jatuh tempo yang perlu diingatkan.');
@@ -129,14 +126,14 @@ class AccountingTransactionalMailService
         );
     }
 
-    public function sendPaymentReceipt(Payment $payment, ?int $actorId = null): TenantTransactionalMailLog
+    public function sendPaymentReceipt(Model $payment, ?int $actorId = null): TenantTransactionalMailLog
     {
+        $saleModel = (string) config('platform-core.accounting.transactional_mail.sale_model');
         $sales = $payment->allocations
             ->map(fn ($allocation) => $allocation->payable)
-            ->filter(fn ($payable) => $payable instanceof Sale)
+            ->filter(fn ($payable) => $saleModel !== '' && $payable instanceof $saleModel)
             ->values();
 
-        /** @var Sale|null $primarySale */
         $primarySale = $sales->first();
         if (!$primarySale) {
             throw new RuntimeException('Payment receipt saat ini hanya didukung untuk payment yang dialokasikan ke sale.');
@@ -162,7 +159,7 @@ class AccountingTransactionalMailService
                 'currencyCode' => (string) $payment->currency_code,
                 'paymentMethod' => (string) optional($payment->method)->name,
                 'referenceNumber' => (string) ($payment->reference_number ?: ''),
-                'sales' => $sales->map(fn (Sale $sale) => [
+                'sales' => $sales->map(fn ($sale) => [
                     'sale_number' => $sale->sale_number,
                     'grand_total' => (float) $sale->grand_total,
                     'balance_due' => (float) $sale->balance_due,

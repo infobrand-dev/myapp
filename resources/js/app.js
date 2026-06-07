@@ -1,9 +1,11 @@
 import './bootstrap';
 import '@tabler/core/dist/js/tabler.min.js';
+import Sortable from 'sortablejs';
 
 import Alpine from 'alpinejs';
 
 window.Alpine = Alpine;
+window.Sortable = Sortable;
 Alpine.start();
 
 // ── Theme toggler (light/dark + primary color) ─────────────────────────────

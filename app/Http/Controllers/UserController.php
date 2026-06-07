@@ -6,6 +6,8 @@ use Illuminate\Auth\Events\Registered;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\User;
+use App\Services\PlatformActivityRecorder;
+use App\Services\PlatformAuditLogger;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\PlanLimit;
@@ -81,6 +83,22 @@ class UserController extends Controller
             $data['default_company_id'] ?? null,
             $data['default_branch_id'] ?? null
         );
+        app(PlatformAuditLogger::class)->logModel(
+            'user.created',
+            $user,
+            ['name', 'email', 'role', 'company_ids', 'branch_ids', 'default_company_id', 'default_branch_id'],
+            null,
+            $this->userAuditSnapshot($user, $role->name, $data)
+        );
+        app(PlatformActivityRecorder::class)->record(
+            'core',
+            'user.created',
+            User::class,
+            $user->getKey(),
+            'User ' . $user->name . ' dibuat.',
+            $this->userActivityPayload($user, $role->name, $data),
+            $this->userActivityActions($user)
+        );
 
         return redirect()->route('users.index')->with('status', 'User ditambahkan. Email verifikasi sudah dikirim.');
     }
@@ -124,6 +142,12 @@ class UserController extends Controller
             'name' => $data['name'],
             'email' => $data['email'],
         ];
+        $before = $this->userAuditSnapshot($user, $user->roles->pluck('name')->first(), [
+            'company_ids' => optional($userAccessManager->companyIdsFor($user))->all() ?: [],
+            'branch_ids' => optional($userAccessManager->branchIdsFor($user))->all() ?: [],
+            'default_company_id' => $userAccessManager->defaultCompanyIdFor($user),
+            'default_branch_id' => $userAccessManager->defaultBranchIdFor($user),
+        ]);
         if (!empty($data['password'])) {
             $payload['password'] = bcrypt($data['password']);
         }
@@ -136,6 +160,23 @@ class UserController extends Controller
             $data['branch_ids'] ?? [],
             $data['default_company_id'] ?? null,
             $data['default_branch_id'] ?? null
+        );
+        $after = $this->userAuditSnapshot($user->fresh('roles'), $role->name, $data);
+        app(PlatformAuditLogger::class)->logModel(
+            'user.updated',
+            $user,
+            ['name', 'email', 'role', 'company_ids', 'branch_ids', 'default_company_id', 'default_branch_id'],
+            $before,
+            $after
+        );
+        app(PlatformActivityRecorder::class)->record(
+            'core',
+            'user.updated',
+            User::class,
+            $user->getKey(),
+            'User ' . $user->name . ' diperbarui.',
+            $this->userActivityPayload($user, $role->name, $data),
+            $this->userActivityActions($user)
         );
 
         if (auth()->id() === $user->id) {
@@ -165,6 +206,30 @@ class UserController extends Controller
             }
         }
 
+        app(PlatformAuditLogger::class)->logModel(
+            'user.deleted',
+            $user,
+            ['name', 'email', 'role'],
+            $this->userAuditSnapshot($user, $user->roles->pluck('name')->first(), [
+                'company_ids' => optional(app(UserAccessManager::class)->companyIdsFor($user))->all() ?: [],
+                'branch_ids' => optional(app(UserAccessManager::class)->branchIdsFor($user))->all() ?: [],
+                'default_company_id' => app(UserAccessManager::class)->defaultCompanyIdFor($user),
+                'default_branch_id' => app(UserAccessManager::class)->defaultBranchIdFor($user),
+            ]),
+            null
+        );
+        app(PlatformActivityRecorder::class)->record(
+            'core',
+            'user.deleted',
+            User::class,
+            $user->getKey(),
+            'User ' . $user->name . ' dihapus.',
+            [
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->roles->pluck('name')->first(),
+            ]
+        );
         $user->delete();
 
         return back()->with('status', 'User dihapus.');
@@ -222,5 +287,37 @@ class UserController extends Controller
             ->mapWithKeys(fn ($role) => [$role->name => TenantRoleCatalog::description($role->name)])
             ->filter(fn (?string $description) => filled($description))
             ->all();
+    }
+
+    private function userAuditSnapshot(User $user, ?string $roleName, array $data): array
+    {
+        return [
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $roleName,
+            'company_ids' => array_values($data['company_ids'] ?? []),
+            'branch_ids' => array_values($data['branch_ids'] ?? []),
+            'default_company_id' => $data['default_company_id'] ?? null,
+            'default_branch_id' => $data['default_branch_id'] ?? null,
+        ];
+    }
+
+    private function userActivityPayload(User $user, ?string $roleName, array $data): array
+    {
+        return [
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $roleName,
+            'company_ids' => array_values($data['company_ids'] ?? []),
+            'branch_ids' => array_values($data['branch_ids'] ?? []),
+        ];
+    }
+
+    private function userActivityActions(User $user): array
+    {
+        return [[
+            'label' => 'Buka user',
+            'url' => route('users.edit', ['user' => $user->getKey()]),
+        ]];
     }
 }

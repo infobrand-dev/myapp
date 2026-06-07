@@ -96,8 +96,9 @@
                 <div class="landing-footer-heading">Produk</div>
                 <nav class="landing-footer-nav">
                     <a href="{{ route('landing') }}">Meetra</a>
-                    <a href="{{ $productsUrl }}">Product Lines</a>
+                    <a href="{{ $productsUrl }}">Business Suites</a>
                     <a href="{{ route('landing.accounting') }}">Accounting</a>
+                    <a href="{{ route('landing.commerce') }}">Commerce</a>
                     <a href="{{ $contactUrl }}">Konsultasi</a>
                     <a href="{{ route('about') }}">Tentang Meetra</a>
                     <a href="{{ route('workspace.finder') }}">Login Workspace</a>

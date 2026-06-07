@@ -25,27 +25,36 @@ class TenantOnboardingController extends Controller
         abort_unless(config('multitenancy.mode') === 'saas', 404);
 
         $affiliate = $affiliateService->captureFromRequest($request);
-        $productLine = $this->requestedPublicProductLine($request);
-        $trialAvailable = $this->trialAvailableForProductLine($productLine, $request);
+        $requestedProductLine = $this->requestedPublicProductLineRaw($request);
+        $selectionRequired = $requestedProductLine === null;
+        $productLine = $requestedProductLine ?? 'accounting';
+        $trialAvailable = $requestedProductLine !== null
+            ? $this->trialAvailableForProductLine($productLine, $request)
+            : false;
         $promoCode = strtoupper(trim((string) $request->query('promo_code', '')));
         $promoPreview = $promoCode !== ''
             ? PlatformPromoCode::findByCode($promoCode)
             : null;
 
-        if (!$promoPreview || !$promoPreview->isUsable($productLine)) {
+        if (!$promoPreview || ($requestedProductLine !== null && !$promoPreview->isUsable($productLine))) {
             $promoPreview = null;
         }
 
-        $preferredPlanId = $sales->resolvePublicPlanIdByCode((string) request()->query('plan'), $productLine);
+        $preferredPlanId = $requestedProductLine !== null
+            ? $sales->resolvePublicPlanIdByCode((string) request()->query('plan'), $productLine)
+            : null;
 
         return view('onboarding.create', [
-            'plans' => $sales->publicPlans($productLine),
+            'plans' => $requestedProductLine !== null ? $sales->publicPlans($productLine) : collect(),
             'preferredPlanId' => $preferredPlanId,
             'affiliate' => $affiliate,
             'manualPaymentReady' => $manualPayment->isConfigured(),
             'midtransReady' => $midtrans->isConfigured(),
+            'selectedProductLine' => $requestedProductLine,
             'productLine' => $productLine,
+            'productLineSelectionRequired' => $selectionRequired,
             'productLineLabel' => $this->productLineLabel($productLine),
+            'productLineOptions' => $this->productLineOptions($sales, $request),
             'trialAvailable' => $trialAvailable,
             'trialDays' => $trialAvailable ? $this->trialDaysForProductLine($productLine) : null,
             'trialEntry' => $this->trialEntryFromRequest($request),
@@ -62,12 +71,13 @@ class TenantOnboardingController extends Controller
         abort_unless(config('multitenancy.mode') === 'saas', 404);
 
         $affiliateService->captureFromRequest($request);
-        $productLine = $this->requestedPublicProductLine($request);
+        $productLine = $this->requireRequestedPublicProductLine($request);
         $trialAvailable = $this->trialAvailableForProductLine($productLine, $request);
 
         $reservedSlugs = config('multitenancy.reserved_slugs', []);
 
         $data = $request->validate([
+            'product_line' => ['required', 'string', Rule::in(['accounting', 'commerce', 'omnichannel', 'crm'])],
             'signup_mode' => ['required', 'string', Rule::in(['paid', 'trial'])],
             'trial_entry' => ['nullable', 'string', 'max:100'],
             'subscription_plan_id' => [
@@ -193,7 +203,7 @@ class TenantOnboardingController extends Controller
         }
     }
 
-    private function requestedPublicProductLine(Request $request): string
+    private function requestedPublicProductLineRaw(Request $request): ?string
     {
         $requested = strtolower(trim((string) (
             $request->input('product_line')
@@ -202,18 +212,39 @@ class TenantOnboardingController extends Controller
             ?: $request->query('product')
         )));
 
-        return in_array($requested, ['accounting', 'omnichannel', 'commerce'], true)
+        return in_array($requested, ['accounting', 'omnichannel', 'commerce', 'crm'], true)
             ? $requested
-            : 'accounting';
+            : null;
+    }
+
+    private function requireRequestedPublicProductLine(Request $request): string
+    {
+        $requested = $this->requestedPublicProductLineRaw($request);
+
+        if ($requested !== null) {
+            return $requested;
+        }
+
+        throw ValidationException::withMessages([
+            'product_line' => 'Pilih business suite terlebih dahulu sebelum melanjutkan pendaftaran.',
+        ]);
     }
 
     private function productLineLabel(string $productLine): string
     {
-        return match ($productLine) {
-            'accounting' => 'Accounting',
-            'commerce' => 'Commerce',
-            default => 'Omnichannel',
-        };
+        if ($productLine === 'accounting') {
+            return 'Accounting';
+        }
+
+        if ($productLine === 'commerce') {
+            return 'Commerce';
+        }
+
+        if ($productLine === 'crm') {
+            return 'CRM';
+        }
+
+        return 'Omnichannel';
     }
 
     private function trialAvailableForProductLine(string $productLine, Request $request): bool
@@ -247,5 +278,52 @@ class TenantOnboardingController extends Controller
         }
 
         return $promo;
+    }
+
+    private function productLineOptions(TenantOnboardingSalesService $sales, Request $request): array
+    {
+        $base = [
+            'promo_code' => $request->query('promo_code'),
+        ];
+
+        $trialEntry = $this->trialEntryFromRequest($request);
+        if ($trialEntry !== '') {
+            $base['trial_entry'] = $trialEntry;
+        }
+
+        return [
+            [
+                'key' => 'accounting',
+                'label' => 'Accounting',
+                'description' => 'Untuk transaksi, pembayaran, finance operasional, products, contacts, dan reporting.',
+                'highlights' => ['Sales', 'Payments', 'Finance', 'Reports'],
+                'available' => $sales->publicPlans('accounting')->isNotEmpty(),
+                'url' => route('onboarding.create', array_filter($base + ['product_line' => 'accounting'])),
+            ],
+            [
+                'key' => 'commerce',
+                'label' => 'Commerce',
+                'description' => 'Untuk storefront, order commerce, shipping, fulfillment, affiliate, dan wallet.',
+                'highlights' => ['Storefront', 'Shipping', 'Fulfillment', 'Affiliate'],
+                'available' => $sales->publicPlans('commerce')->isNotEmpty(),
+                'url' => route('onboarding.create', array_filter($base + ['product_line' => 'commerce'])),
+            ],
+            [
+                'key' => 'omnichannel',
+                'label' => 'Omnichannel',
+                'description' => 'Untuk shared inbox, social inbox, live chat, WhatsApp, dan automasi percakapan.',
+                'highlights' => ['Conversations', 'Live Chat', 'WhatsApp', 'CRM'],
+                'available' => $sales->publicPlans('omnichannel')->isNotEmpty(),
+                'url' => route('onboarding.create', array_filter($base + ['product_line' => 'omnichannel'])),
+            ],
+            [
+                'key' => 'crm',
+                'label' => 'CRM',
+                'description' => 'Untuk pipeline penjualan, follow-up queue, customer 360, dan operasional sales yang mobile-friendly.',
+                'highlights' => ['Deals', 'Customer 360', 'Follow-Up', 'Pipeline'],
+                'available' => $sales->publicPlans('crm')->isNotEmpty(),
+                'url' => route('onboarding.create', array_filter($base + ['product_line' => 'crm'])),
+            ],
+        ];
     }
 }

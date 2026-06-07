@@ -50,6 +50,11 @@ class AuthenticatedSessionController extends Controller
             return redirect()->route('platform.dashboard');
         }
 
+        if (app(\App\Modules\Crm\Support\CrmOnboardingService::class)->shouldRedirectToWizard($request->user())
+            && app(\App\Support\TenantPlanManager::class)->hasFeature(\App\Support\PlanFeature::CRM, $request->user()->tenant_id)) {
+            return redirect()->route('crm.onboarding');
+        }
+
         return redirect()->intended(RouteServiceProvider::HOME);
     }
 

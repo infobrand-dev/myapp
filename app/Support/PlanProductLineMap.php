@@ -62,7 +62,10 @@ class PlanProductLineMap
             PlanFeature::WHATSAPP_WEB => 'omnichannel',
 
             PlanFeature::CRM,
-            PlanFeature::EMAIL_MARKETING => 'crm',
+            PlanFeature::EMAIL_MARKETING,
+            PlanFeature::CRM_EXPORTS,
+            PlanFeature::CRM_MANAGER_VISIBILITY,
+            PlanFeature::CRM_AUTOMATION => 'crm',
 
             PlanFeature::ACCOUNTING,
             PlanFeature::PURCHASES,
@@ -97,7 +100,10 @@ class PlanProductLineMap
 
             PlanLimit::EMAIL_INBOX_ACCOUNTS,
             PlanLimit::EMAIL_CAMPAIGNS,
-            PlanLimit::EMAIL_RECIPIENTS_MONTHLY => 'crm',
+            PlanLimit::EMAIL_RECIPIENTS_MONTHLY,
+            PlanLimit::CRM_PIPELINES,
+            PlanLimit::CRM_CUSTOM_STAGES,
+            PlanLimit::CRM_ACTIVE_DEALS => 'crm',
 
             default => null,
         };

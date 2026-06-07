@@ -2,6 +2,8 @@
 
 namespace App\Modules\RajaOngkir;
 
+use App\Contracts\RajaOngkirShippingGateway;
+use App\Modules\RajaOngkir\Adapters\RajaOngkirShippingGatewayAdapter;
 use App\Modules\RajaOngkir\Services\RajaOngkirService;
 use App\Support\RegistersModuleRoutes;
 use Illuminate\Support\Facades\Schema;
@@ -20,6 +22,7 @@ class RajaOngkirServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(RajaOngkirService::class);
+        $this->app->bind(RajaOngkirShippingGateway::class, RajaOngkirShippingGatewayAdapter::class);
     }
 
     public function boot(): void

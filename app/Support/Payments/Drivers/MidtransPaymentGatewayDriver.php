@@ -2,14 +2,13 @@
 
 namespace App\Support\Payments\Drivers;
 
-use App\Modules\Midtrans\Services\MidtransService;
-use App\Modules\Sales\Models\Sale;
+use App\Contracts\MidtransCheckoutGateway;
 use App\Support\Payments\Contracts\PaymentGatewayDriver;
 
 class MidtransPaymentGatewayDriver implements PaymentGatewayDriver
 {
     public function __construct(
-        private readonly MidtransService $service,
+        private readonly MidtransCheckoutGateway $service,
     ) {
     }
 
@@ -53,9 +52,9 @@ class MidtransPaymentGatewayDriver implements PaymentGatewayDriver
         return 'midtrans.transactions.index';
     }
 
-    public function createCheckoutForSale(Sale $sale): array
+    public function createCheckoutForTarget(object $checkoutTarget): array
     {
-        $checkout = $this->service->createOrReuseCheckoutForSale($sale);
+        $checkout = $this->service->createCheckoutForTarget($checkoutTarget);
 
         return [
             'provider' => $this->provider(),

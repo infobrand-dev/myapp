@@ -81,6 +81,36 @@ class PublicModuleCatalog
     /**
      * @return array<int, string>
      */
+    public function commerceSlugs(): array
+    {
+        return [
+            'storefront',
+            'sales',
+            'payments',
+            'products',
+            'contacts',
+            'shipping',
+            'fulfillment',
+            'affiliate',
+            'wallet',
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function crmSlugs(): array
+    {
+        return [
+            'crm',
+            'contacts',
+            'email_marketing',
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
     public function meetraFeaturedSlugs(): array
     {
         return [
@@ -225,6 +255,41 @@ class PublicModuleCatalog
                 'category' => 'operations',
                 'description' => 'Pantau stok dan lokasi penyimpanan agar alur barang tetap sinkron dengan penjualan dan pembelian.',
                 'public_points' => ['Kontrol stok', 'Lokasi inventory', 'Sinkron dengan transaksi'],
+            ],
+            'storefront' => [
+                'name' => 'Storefront',
+                'eyebrow' => 'Commerce',
+                'category' => 'commerce',
+                'description' => 'Buka katalog publik dan terima order dari tenant subdomain yang sama tanpa membangun order engine terpisah.',
+                'public_points' => ['Katalog publik', 'Checkout dasar', 'Masuk ke order workspace'],
+            ],
+            'shipping' => [
+                'name' => 'Shipping',
+                'eyebrow' => 'Commerce',
+                'category' => 'commerce',
+                'description' => 'Kelola antrean pengiriman dan rate ongkir agar order delivery bergerak lebih rapi dari satu workspace.',
+                'public_points' => ['Quote ongkir', 'Status pengiriman', 'Operasional delivery'],
+            ],
+            'fulfillment' => [
+                'name' => 'Fulfillment',
+                'eyebrow' => 'Commerce',
+                'category' => 'commerce',
+                'description' => 'Pantau order yang siap diproses, dipacking, dan diserahkan ke pengiriman tanpa spreadsheet terpisah.',
+                'public_points' => ['Queue fulfillment', 'Handoff operasional', 'Status order lebih jelas'],
+            ],
+            'affiliate' => [
+                'name' => 'Affiliate',
+                'eyebrow' => 'Commerce',
+                'category' => 'commerce',
+                'description' => 'Buka produk untuk distribusi afiliasi antar akun agar seller bisa menambah jangkauan tanpa duplikasi produk utama.',
+                'public_points' => ['Affiliate listing', 'Tracking conversion', 'Channel distribusi tambahan'],
+            ],
+            'wallet' => [
+                'name' => 'Wallet',
+                'eyebrow' => 'Commerce',
+                'category' => 'commerce',
+                'description' => 'Kelola saldo settlement, payout manual, dan riwayat ledger commerce creator dari domain yang sama.',
+                'public_points' => ['Settlement ledger', 'Payout request', 'Balance lebih terkontrol'],
             ],
             'discounts' => [
                 'name' => 'Discounts',

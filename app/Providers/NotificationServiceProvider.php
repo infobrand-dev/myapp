@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Support\Notifications\NotificationCenter;
+use App\Support\Notifications\NotificationChannelPolicyManager;
 use App\Support\Notifications\NotificationDeliveryDispatcher;
 use App\Support\Notifications\NotificationPreferenceService;
 use App\Support\Notifications\NotificationQueryService;
@@ -19,6 +20,7 @@ class NotificationServiceProvider extends ServiceProvider
         $this->app->singleton(NotificationUrlBuilder::class);
         $this->app->singleton(NotificationPreferenceService::class);
         $this->app->singleton(NotificationRecipientResolver::class);
+        $this->app->singleton(NotificationChannelPolicyManager::class);
         $this->app->singleton(NotificationDeliveryDispatcher::class);
         $this->app->singleton(NotificationQueryService::class);
         $this->app->singleton(NotificationCenter::class);

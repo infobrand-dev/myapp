@@ -124,6 +124,48 @@ class TenantOnboardingSalesService
             'audience' => 'Cocok untuk operasional multi-admin dengan channel lengkap',
             'recommended' => false,
         ],
+        'crm_starter' => [
+            'price' => 149000,
+            'currency' => 'IDR',
+            'tagline' => 'CRM self-serve untuk tim kecil yang perlu pipeline dan follow-up rapi.',
+            'description' => 'Fokus pada deal tracking, task follow-up, dan customer 360 tanpa menunggu suite lain aktif.',
+            'highlights' => [
+                'Pipeline default siap pakai',
+                'Follow-up queue',
+                'Customer 360 internal',
+                'Mobile-friendly workspace',
+            ],
+            'audience' => 'Cocok untuk tim sales kecil yang ingin langsung jalan',
+            'recommended' => false,
+        ],
+        'crm_growth' => [
+            'price' => 299000,
+            'currency' => 'IDR',
+            'tagline' => 'CRM rekomendasi untuk tim sales aktif dengan visibility dan export.',
+            'description' => 'Memberi kapasitas deals, pipeline, dan visibilitas tim yang lebih tinggi untuk operasional sales harian.',
+            'highlights' => [
+                'Semua fitur Starter',
+                'Export CRM',
+                'Manager visibility',
+                'Pipeline dan contacts lebih besar',
+            ],
+            'audience' => 'Cocok untuk tim sales yang mulai scale',
+            'recommended' => true,
+        ],
+        'crm_scale' => [
+            'price' => 599000,
+            'currency' => 'IDR',
+            'tagline' => 'CRM kapasitas besar yang siap menyambut automation dan bridge suite lain.',
+            'description' => 'Paket untuk tim multi-user yang ingin workspace CRM matang sebelum bridge omnichannel/accounting diaktifkan.',
+            'highlights' => [
+                'Semua fitur Growth',
+                'Automation-ready flag',
+                'Pipelines dan deals lebih besar',
+                'Quota user/contact lebih tinggi',
+            ],
+            'audience' => 'Cocok untuk organisasi sales yang lebih besar',
+            'recommended' => false,
+        ],
     ];
 
     public function __construct(
@@ -430,6 +472,7 @@ class TenantOnboardingSalesService
         $wasActive = $tenant->is_active;
         $tenantMeta['onboarding_status'] = 'active';
         $tenantMeta['onboarding_activated_at'] = $timestamp->toIso8601String();
+        $tenantMeta['active_product_line'] = $order->product_line;
 
         if (!$wasActive || ($tenantMeta['onboarding_status'] ?? null) !== 'active') {
             $tenant->forceFill([
@@ -438,6 +481,11 @@ class TenantOnboardingSalesService
             ])->save();
         } else {
             $tenant->forceFill(['meta' => $tenantMeta])->save();
+        }
+
+        if ($order->product_line === 'crm') {
+            app(\App\Modules\Crm\Support\CrmPipelineProvisioner::class)->ensureDefaultPipeline($tenant->id);
+            app(\App\Modules\Crm\Support\CrmOnboardingService::class)->markPending($tenant->fresh());
         }
 
         if (!empty($orderMeta['welcome_email_queued_at'])) {

@@ -14,6 +14,7 @@ class NotificationDeliveryDispatcher
 {
     public function __construct(
         private readonly NotificationPreferenceService $preferences,
+        private readonly NotificationChannelPolicyManager $policyManager,
     ) {
     }
 
@@ -24,6 +25,14 @@ class NotificationDeliveryDispatcher
     {
         foreach ($channels as $channel) {
             if ($channel === 'in_app') {
+                continue;
+            }
+
+            $policy = $this->policyManager->evaluate($user, $channel, $notification->type, $notification->severity);
+            if (!$policy['allowed']) {
+                $this->createDelivery($notification, $recipient, $user, $channel, NotificationDelivery::STATUS_SKIPPED, [
+                    'reason' => $policy['reason'],
+                ]);
                 continue;
             }
 

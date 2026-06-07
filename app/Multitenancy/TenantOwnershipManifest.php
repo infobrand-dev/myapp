@@ -76,14 +76,11 @@ class TenantOwnershipManifest
      */
     public function tenantRouteBindingModelClasses(): array
     {
-        return [
+        return config('platform-core.multitenancy.tenant_route_binding_models', [
             \App\Models\User::class,
             \App\Models\StoredFile::class,
             \App\Models\ApprovalRequest::class,
-            \App\Modules\Sales\Models\Sale::class,
-            \App\Modules\PointOfSale\Models\PosCashSession::class,
-            \App\Modules\SocialMedia\Models\SocialAccount::class,
-        ];
+        ]);
     }
 
     public function classifyModel(string $class): string

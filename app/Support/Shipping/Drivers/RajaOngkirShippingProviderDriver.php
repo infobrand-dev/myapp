@@ -2,13 +2,13 @@
 
 namespace App\Support\Shipping\Drivers;
 
-use App\Modules\RajaOngkir\Services\RajaOngkirService;
+use App\Contracts\RajaOngkirShippingGateway;
 use App\Support\Shipping\Contracts\ShippingProviderDriver;
 
 class RajaOngkirShippingProviderDriver implements ShippingProviderDriver
 {
     public function __construct(
-        private readonly RajaOngkirService $service,
+        private readonly RajaOngkirShippingGateway $service,
     ) {
     }
 

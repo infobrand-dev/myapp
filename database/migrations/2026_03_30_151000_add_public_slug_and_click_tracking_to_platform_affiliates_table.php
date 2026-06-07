@@ -1,8 +1,8 @@
 <?php
 
-use App\Models\PlatformAffiliate;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
@@ -16,12 +16,12 @@ return new class extends Migration
             $table->timestamp('last_clicked_at')->nullable()->after('welcome_emailed_at');
         });
 
-        PlatformAffiliate::query()->orderBy('id')->get()->each(function (PlatformAffiliate $affiliate): void {
+        DB::table('platform_affiliates')->orderBy('id')->get()->each(function ($affiliate): void {
             $slug = Str::slug($affiliate->name) ?: 'affiliate';
             $baseSlug = $slug;
             $counter = 2;
 
-            while (PlatformAffiliate::query()
+            while (DB::table('platform_affiliates')
                 ->where('id', '!=', $affiliate->id)
                 ->where('slug', $slug)
                 ->exists()) {
@@ -29,7 +29,9 @@ return new class extends Migration
                 $counter++;
             }
 
-            $affiliate->forceFill(['slug' => $slug])->save();
+            DB::table('platform_affiliates')
+                ->where('id', $affiliate->id)
+                ->update(['slug' => $slug]);
         });
 
         Schema::table('platform_affiliates', function (Blueprint $table) {

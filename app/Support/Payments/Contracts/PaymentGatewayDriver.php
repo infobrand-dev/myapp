@@ -2,8 +2,6 @@
 
 namespace App\Support\Payments\Contracts;
 
-use App\Modules\Sales\Models\Sale;
-
 interface PaymentGatewayDriver
 {
     public function provider(): string;
@@ -29,5 +27,5 @@ interface PaymentGatewayDriver
     /**
      * @return array{provider:string,redirect_url:string,reference:string,token:?string}
      */
-    public function createCheckoutForSale(Sale $sale): array;
+    public function createCheckoutForTarget(object $checkoutTarget): array;
 }

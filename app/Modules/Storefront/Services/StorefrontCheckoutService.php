@@ -2,11 +2,11 @@
 
 namespace App\Modules\Storefront\Services;
 
-use App\Modules\Storefront\Exceptions\StorefrontCheckoutException;
 use App\Modules\Products\Models\Product;
 use App\Modules\Sales\Actions\CreateDraftSaleAction;
 use App\Modules\Sales\Models\Sale;
 use App\Support\Commerce\AffiliateAttribution;
+use App\Support\Commerce\CheckoutException;
 use Illuminate\Support\Collection;
 use App\Support\Commerce\CommerceOrderLifecycleService;
 use App\Support\Commerce\CommerceSalePricingService;
@@ -53,7 +53,7 @@ class StorefrontCheckoutService
             ->filter(fn (array $item): bool => isset($item['product']) && $item['product'] instanceof Product && (int) ($item['qty'] ?? 0) > 0)
             ->values();
         if ($items->isEmpty()) {
-            throw new StorefrontCheckoutException(
+            throw new CheckoutException(
                 'Cart Anda masih kosong.',
                 ['cart' => 'Tambahkan produk ke cart terlebih dahulu.']
             );
@@ -219,7 +219,7 @@ class StorefrontCheckoutService
     public function retryPayment(Sale $sale): array
     {
         if (!$this->commerceOrders->isRetryable($sale)) {
-            throw new StorefrontCheckoutException(
+            throw new CheckoutException(
                 'Pesanan ini tidak bisa dibuatkan checkout ulang.',
                 ['payment_method' => 'Pesanan ini tidak bisa dibuatkan checkout ulang.']
             );
@@ -227,7 +227,7 @@ class StorefrontCheckoutService
 
         $paymentMethod = (string) data_get($sale->meta, 'commerce.payment.provider', data_get($sale->meta, 'commerce.payment.requested_method', 'manual'));
         if ($paymentMethod === '' || $paymentMethod === 'manual') {
-            throw new StorefrontCheckoutException(
+            throw new CheckoutException(
                 'Pesanan ini menggunakan pembayaran manual.',
                 ['payment_method' => 'Pesanan ini menggunakan pembayaran manual.']
             );
@@ -262,7 +262,7 @@ class StorefrontCheckoutService
     {
         $this->paymentGateways->assertCheckoutReady($paymentMethod);
         try {
-            $checkout = $this->paymentGateways->createCheckoutForSale($sale, $paymentMethod);
+            $checkout = $this->paymentGateways->createCheckoutForTarget($sale, $paymentMethod);
         } catch (\RuntimeException $exception) {
             $this->commerceOrders->markPaymentFailed($sale, $exception->getMessage());
             throw $exception;

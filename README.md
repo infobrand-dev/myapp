@@ -5,6 +5,7 @@ Laravel 11 + Breeze (Blade) + Tabler UI. Core app menyediakan shell dasar sepert
 Dokumen arsitektur terkait:
 - `ARCHITECTURE.md`
 - `MODULES.md`
+- `docs/product/crm-suite-blueprint.md`
 - `docs/architecture/storage-file-model.md`
 - `SAAS_TENANCY.md`
 - `SAAS_PRODUCT_MODEL.md`
@@ -124,10 +125,11 @@ php artisan optimize:clear
 - User baru tenant wajib verifikasi email terlebih dahulu sebelum bisa mengakses dashboard.
 
 ## SaaS self-serve sales flow
-- Flow jualan publik saat ini berjalan lewat `/onboarding` dengan fokus utama paket `accounting`: pilih paket, daftar workspace, sistem membuat `platform_plan_orders` + `platform_invoices` + `platform_invoice_items`, lalu tenant memilih pembayaran via Midtrans atau transfer bank manual dengan nominal unik.
+- Flow jualan publik berjalan lewat `/onboarding`: calon tenant memilih business suite yang ingin didaftarkan, memilih paket yang tersedia untuk suite tersebut, lalu mengisi workspace dan akun admin.
+- Setelah itu sistem membuat `platform_plan_orders` + `platform_invoices` + `platform_invoice_items`, lalu tenant memilih pembayaran via Midtrans atau transfer bank manual dengan nominal unik.
 - Tenant hasil self-serve onboarding dibuat dalam status `pending_payment` dan baru aktif setelah payment platform settle atau pembayaran manual diverifikasi.
 - Welcome email tenant dikirim setelah payment sukses, sedangkan email invoice platform dikirim saat invoice diterbitkan.
-- Paket `accounting` publik saat ini menjadi jalur utama self-serve onboarding. `Omnichannel` tetap disiapkan di codebase, tetapi bukan fokus utama penjualan sampai siap dibuka lagi.
+- Business suite yang sudah dibuka untuk self-serve saat ini adalah `accounting` dan `commerce`. `Omnichannel` tetap disiapkan di codebase, tetapi belum dibuka sebagai jalur self-serve utama sampai siap dijual penuh.
 
 ## Queue
 - Default dapat berjalan dengan `QUEUE_CONNECTION=sync`.

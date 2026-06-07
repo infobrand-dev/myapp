@@ -36,6 +36,11 @@ class Kernel extends ConsoleKernel
             ->everyFifteenMinutes()
             ->withoutOverlapping()
             ->runInBackground();
+
+        $schedule->command('platform:dispatch-outbox --limit=200')
+            ->everyMinute()
+            ->withoutOverlapping()
+            ->runInBackground();
     }
 
     /**

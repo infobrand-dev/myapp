@@ -3,7 +3,6 @@
 namespace App\Support;
 
 use App\Models\AccountingJournal;
-use App\Modules\Finance\Models\ChartOfAccount;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -148,17 +147,18 @@ class AccountingJournalService
 
     private function assertChartOfAccountsReady(array $lines): void
     {
+        $modelClass = (string) config('platform-core.accounting.chart_of_account_model');
         $accountCodes = collect($lines)
             ->pluck('account_code')
             ->filter()
             ->unique()
             ->values();
 
-        if ($accountCodes->isEmpty()) {
+        if ($accountCodes->isEmpty() || $modelClass === '' || !class_exists($modelClass)) {
             return;
         }
 
-        $accounts = ChartOfAccount::query()
+        $accounts = $modelClass::query()
             ->where('tenant_id', TenantContext::currentId())
             ->where('company_id', CompanyContext::currentId())
             ->whereIn('code', $accountCodes->all())
@@ -174,14 +174,13 @@ class AccountingJournalService
         $nonPostableCodes = [];
 
         foreach ($accountCodes as $code) {
-            /** @var ChartOfAccount $account */
             $account = $accounts->get($code);
 
-            if (!$account->is_active) {
+            if (!(bool) data_get($account, 'is_active')) {
                 $inactiveCodes[] = $code;
             }
 
-            if (!$account->is_postable) {
+            if (!(bool) data_get($account, 'is_postable')) {
                 $nonPostableCodes[] = $code;
             }
         }

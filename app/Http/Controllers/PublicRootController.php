@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Modules\Storefront\Http\Controllers\PublicStorefrontController;
+use App\Contracts\PublicStorefrontResponder;
 use App\Services\PlatformAffiliateService;
 use App\Support\Commerce\PublicStorefrontContext;
 use App\Support\PublicModuleCatalog;
@@ -19,7 +19,8 @@ class PublicRootController extends Controller
         PlatformAffiliateService $affiliateService,
         PublicStorefrontContext $publicStorefront,
         PublicModuleCatalog $catalog,
-        WorkspaceUrl $workspaceUrl
+        WorkspaceUrl $workspaceUrl,
+        PublicStorefrontResponder $storefrontResponder
     ): View|RedirectResponse {
         $affiliateService->captureFromRequest($request);
 
@@ -33,7 +34,10 @@ class PublicRootController extends Controller
             TenantContext::setCurrentId((int) $request->attributes->get('tenant_id'));
 
             if ($publicStorefront->enabled()) {
-                return app(PublicStorefrontController::class)->index($request);
+                $response = $storefrontResponder->renderRoot($request);
+                if ($response !== null) {
+                    return $response;
+                }
             }
 
             abort(404);

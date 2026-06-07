@@ -22,7 +22,7 @@
                 <span class="text-muted">Berhasil bulan ini</span>
                 <strong class="text-green">{{ $metrics['won_this_month'] }}</strong>
             </div>
-            <a href="{{ route('crm.index') }}" class="btn btn-sm btn-ghost-secondary mt-1 w-100">
+            <a href="{{ route('crm.dashboard') }}" class="btn btn-sm btn-ghost-secondary mt-1 w-100">
                 Buka Pipeline <i class="ti ti-arrow-right ms-1"></i>
             </a>
         </div>

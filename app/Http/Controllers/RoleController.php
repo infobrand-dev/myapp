@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Support\CorePermissions;
 use App\Support\ModuleManager;
+use App\Services\PlatformAuditLogger;
 use App\Support\TenantContext;
 use App\Support\TenantRoleProvisioner;
 use Illuminate\Http\RedirectResponse;
@@ -48,6 +49,16 @@ class RoleController extends Controller
             'tenant_id' => TenantContext::currentId(),
         ]);
         $role->syncPermissions($data['permissions'] ?? []);
+        app(PlatformAuditLogger::class)->logModel(
+            'role.created',
+            $role,
+            ['name', 'permissions'],
+            null,
+            [
+                'name' => $role->name,
+                'permissions' => $data['permissions'] ?? [],
+            ]
+        );
 
         return redirect()->route('roles.index')->with('status', 'Role ditambahkan.');
     }
@@ -89,11 +100,25 @@ class RoleController extends Controller
             ->reject(fn (string $permission) => in_array($permission, $visiblePermissions, true))
             ->all();
 
+        $before = [
+            'name' => $role->name,
+            'permissions' => $role->permissions->pluck('name')->values()->all(),
+        ];
         $role->update(['name' => $data['name']]);
         $role->syncPermissions(array_values(array_unique(array_merge(
             $data['permissions'] ?? [],
             $inactiveAssignedPermissions
         ))));
+        app(PlatformAuditLogger::class)->logModel(
+            'role.updated',
+            $role,
+            ['name', 'permissions'],
+            $before,
+            [
+                'name' => $role->name,
+                'permissions' => $role->permissions()->pluck('name')->values()->all(),
+            ]
+        );
 
         return redirect()->route('roles.index')->with('status', 'Role diperbarui.');
     }
@@ -101,6 +126,16 @@ class RoleController extends Controller
     public function destroy(int $role): RedirectResponse
     {
         $role = $this->findTenantRole($role);
+        app(PlatformAuditLogger::class)->logModel(
+            'role.deleted',
+            $role,
+            ['name', 'permissions'],
+            [
+                'name' => $role->name,
+                'permissions' => $role->permissions()->pluck('name')->values()->all(),
+            ],
+            null
+        );
         $role->delete();
         return back()->with('status', 'Role dihapus.');
     }

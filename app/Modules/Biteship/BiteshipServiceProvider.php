@@ -2,6 +2,8 @@
 
 namespace App\Modules\Biteship;
 
+use App\Contracts\BiteshipShippingGateway;
+use App\Modules\Biteship\Adapters\BiteshipShippingGatewayAdapter;
 use App\Modules\Biteship\Services\BiteshipService;
 use App\Support\RegistersModuleRoutes;
 use Illuminate\Support\Facades\Schema;
@@ -20,6 +22,7 @@ class BiteshipServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(BiteshipService::class);
+        $this->app->bind(BiteshipShippingGateway::class, BiteshipShippingGatewayAdapter::class);
     }
 
     public function boot(): void

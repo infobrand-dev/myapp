@@ -2,8 +2,8 @@
 
 namespace App\Support\Commerce;
 
-use App\Modules\Sales\Actions\FinalizeSaleAction;
-use App\Modules\Sales\Models\Sale;
+use App\Contracts\CommerceDraftFinalizer;
+use App\Services\PlatformActivityRecorder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 
@@ -36,33 +36,34 @@ class CommerceOrderLifecycleService
     private const DEFAULT_EXPIRY_HOURS = 24;
 
     public function __construct(
-        private readonly FinalizeSaleAction $finalizeSale,
+        private readonly CommerceDraftFinalizer $draftFinalizer,
+        private readonly PlatformActivityRecorder $activity,
     ) {
     }
 
-    public function status(?Sale $sale): string
+    public function status(?object $sale): string
     {
         return (string) data_get($sale?->meta, 'commerce.status', self::STATUS_DRAFT_CHECKOUT);
     }
 
-    public function fulfillmentStatus(?Sale $sale): string
+    public function fulfillmentStatus(?object $sale): string
     {
         return (string) data_get($sale?->meta, 'commerce.fulfillment.status', self::FULFILLMENT_PENDING);
     }
 
-    public function shippingStatus(?Sale $sale): string
+    public function shippingStatus(?object $sale): string
     {
         return (string) data_get($sale?->meta, 'commerce.shipping.status', self::SHIPPING_PENDING);
     }
 
-    public function paymentStatus(?Sale $sale): string
+    public function paymentStatus(?object $sale): string
     {
         return (string) data_get($sale?->meta, 'commerce.payment.status', self::PAYMENT_PENDING);
     }
 
-    public function isCommerceOrder(?Sale $sale): bool
+    public function isCommerceOrder(?object $sale): bool
     {
-        return $sale?->source === Sale::SOURCE_ONLINE
+        return data_get($sale, 'source') === config('platform-core.commerce.sale_source_online', 'online')
             && in_array((string) data_get($sale?->meta, 'commerce.channel'), [
                 'public_storefront',
                 'public_brand',
@@ -71,18 +72,18 @@ class CommerceOrderLifecycleService
             ], true);
     }
 
-    public function isPaymentPending(?Sale $sale): bool
+    public function isPaymentPending(?object $sale): bool
     {
         return $this->status($sale) === self::STATUS_PENDING_PAYMENT;
     }
 
-    public function isPayable(?Sale $sale): bool
+    public function isPayable(?object $sale): bool
     {
         return $this->isCommerceOrder($sale)
             && in_array($this->status($sale), [self::STATUS_PENDING_PAYMENT, self::STATUS_EXPIRED], true);
     }
 
-    public function isRetryable(?Sale $sale): bool
+    public function isRetryable(?object $sale): bool
     {
         return $this->isCommerceOrder($sale)
             && (string) data_get($sale?->meta, 'commerce.payment.requested_method', 'manual') !== 'manual'
@@ -90,7 +91,7 @@ class CommerceOrderLifecycleService
             && (float) ($sale?->balance_due ?? 0) > 0;
     }
 
-    public function expiresAt(?Sale $sale): ?Carbon
+    public function expiresAt(?object $sale): ?Carbon
     {
         $expiresAt = data_get($sale?->meta, 'commerce.expires_at');
 
@@ -105,16 +106,17 @@ class CommerceOrderLifecycleService
         }
     }
 
-    public function isExpired(?Sale $sale): bool
+    public function isExpired(?object $sale): bool
     {
         $expiresAt = $this->expiresAt($sale);
 
         return $expiresAt !== null && $expiresAt->lte(now());
     }
 
-    public function markPendingPayment(Sale $sale, array $payment = []): Sale
+    public function markPendingPayment(object $sale, array $payment = []): object
     {
-        return $this->updateMeta($sale, function (array $meta) use ($payment): array {
+        return $this->recordStateTransition(
+            $this->updateMeta($sale, function (array $meta) use ($payment): array {
             data_set($meta, 'commerce.status', self::STATUS_PENDING_PAYMENT);
             data_set($meta, 'commerce.payment', array_filter(array_replace(
                 (array) data_get($meta, 'commerce.payment', []),
@@ -133,12 +135,20 @@ class CommerceOrderLifecycleService
             ]);
 
             return $meta;
-        });
+        }),
+            'commerce.pending_payment',
+            'Commerce order masuk ke status pending payment.',
+            [
+                'status' => self::STATUS_PENDING_PAYMENT,
+                'payment' => Arr::only($payment, ['requested_method', 'provider', 'reference']),
+            ]
+        );
     }
 
-    public function markPaymentCheckoutCreated(Sale $sale, array $checkout): Sale
+    public function markPaymentCheckoutCreated(object $sale, array $checkout): object
     {
-        return $this->updateMeta($sale, function (array $meta) use ($checkout): array {
+        return $this->recordStateTransition(
+            $this->updateMeta($sale, function (array $meta) use ($checkout): array {
             data_set($meta, 'commerce.payment.status', self::PAYMENT_CHECKOUT_CREATED);
             data_set($meta, 'commerce.payment.reference', Arr::get($checkout, 'reference'));
             data_set($meta, 'commerce.payment.redirect_url', Arr::get($checkout, 'redirect_url'));
@@ -151,18 +161,23 @@ class CommerceOrderLifecycleService
             ]);
 
             return $meta;
-        });
+        }),
+            'commerce.payment_checkout_created',
+            'Checkout payment commerce berhasil dibuat.',
+            Arr::only($checkout, ['provider', 'reference', 'redirect_url'])
+        );
     }
 
-    public function markPaid(Sale $sale): Sale
+    public function markPaid(object $sale): object
     {
-        if ($sale->isDraft()) {
-            $sale = $this->finalizeSale->execute($sale, [
-                'payment_status' => Sale::PAYMENT_UNPAID,
+        if (method_exists($sale, 'isDraft') && $sale->isDraft()) {
+            $sale = $this->draftFinalizer->finalize($sale, [
+                'payment_status' => config('platform-core.commerce.sale_payment_unpaid', 'unpaid'),
             ]);
         }
 
-        return $this->updateMeta($sale, function (array $meta) use ($sale): array {
+        return $this->recordStateTransition(
+            $this->updateMeta($sale, function (array $meta) use ($sale): array {
             $fulfillmentMethod = (string) data_get($meta, 'commerce.fulfillment_method', 'pickup');
 
             data_set($meta, 'commerce.status', self::STATUS_PAID);
@@ -185,12 +200,20 @@ class CommerceOrderLifecycleService
             ]);
 
             return $meta;
-        })->fresh();
+        })->fresh(),
+            'commerce.paid',
+            'Commerce order ditandai lunas.',
+            [
+                'status' => self::STATUS_PAID,
+                'payment_status' => self::PAYMENT_PAID,
+            ]
+        );
     }
 
-    public function markReadyForFulfillment(Sale $sale, ?string $note = null): Sale
+    public function markReadyForFulfillment(object $sale, ?string $note = null): object
     {
-        return $this->updateMeta($sale, function (array $meta) use ($note): array {
+        return $this->recordStateTransition(
+            $this->updateMeta($sale, function (array $meta) use ($note): array {
             data_set($meta, 'commerce.status', self::STATUS_READY_FOR_FULFILLMENT);
             data_set($meta, 'commerce.fulfillment.status', self::FULFILLMENT_READY);
             data_set($meta, 'commerce.fulfillment.ready_at', now()->toIso8601String());
@@ -205,12 +228,20 @@ class CommerceOrderLifecycleService
             ]);
 
             return $meta;
-        });
+        }),
+            'commerce.ready_for_fulfillment',
+            'Commerce order siap untuk fulfillment.',
+            [
+                'status' => self::STATUS_READY_FOR_FULFILLMENT,
+                'note' => $note ? trim($note) : null,
+            ]
+        );
     }
 
-    public function markPacking(Sale $sale, ?string $note = null): Sale
+    public function markPacking(object $sale, ?string $note = null): object
     {
-        return $this->updateMeta($sale, function (array $meta) use ($note): array {
+        return $this->recordStateTransition(
+            $this->updateMeta($sale, function (array $meta) use ($note): array {
             data_set($meta, 'commerce.fulfillment.status', self::FULFILLMENT_PACKING);
             data_set($meta, 'commerce.fulfillment.packing_at', now()->toIso8601String());
 
@@ -224,12 +255,20 @@ class CommerceOrderLifecycleService
             ]);
 
             return $meta;
-        });
+        }),
+            'commerce.packing',
+            'Commerce order masuk proses packing.',
+            [
+                'status' => self::FULFILLMENT_PACKING,
+                'note' => $note ? trim($note) : null,
+            ]
+        );
     }
 
-    public function markShipped(Sale $sale, array $shipment): Sale
+    public function markShipped(object $sale, array $shipment): object
     {
-        return $this->updateMeta($sale, function (array $meta) use ($shipment): array {
+        return $this->recordStateTransition(
+            $this->updateMeta($sale, function (array $meta) use ($shipment): array {
             data_set($meta, 'commerce.shipping.status', self::SHIPPING_SHIPPED);
             data_set($meta, 'commerce.shipping.shipped_at', now()->toIso8601String());
             data_set($meta, 'commerce.shipping.tracking_number', Arr::get($shipment, 'tracking_number'));
@@ -245,12 +284,17 @@ class CommerceOrderLifecycleService
             ]);
 
             return $meta;
-        });
+        }),
+            'commerce.shipped',
+            'Commerce order diserahkan ke pengiriman.',
+            Arr::only($shipment, ['tracking_number', 'courier_name', 'service_name'])
+        );
     }
 
-    public function markShippingRateSelected(Sale $sale, array $rate): Sale
+    public function markShippingRateSelected(object $sale, array $rate): object
     {
-        return $this->updateMeta($sale, function (array $meta) use ($rate): array {
+        return $this->recordStateTransition(
+            $this->updateMeta($sale, function (array $meta) use ($rate): array {
             data_set($meta, 'commerce.shipping.selected_rate', array_filter([
                 'provider' => Arr::get($rate, 'provider'),
                 'courier_name' => Arr::get($rate, 'courier_name'),
@@ -269,12 +313,17 @@ class CommerceOrderLifecycleService
             ]);
 
             return $meta;
-        });
+        }),
+            'commerce.shipping_rate_selected',
+            'Rate pengiriman commerce dipilih.',
+            Arr::only($rate, ['provider', 'courier_name', 'service_name', 'price', 'etd'])
+        );
     }
 
-    public function markExpired(Sale $sale): Sale
+    public function markExpired(object $sale): object
     {
-        return $this->updateMeta($sale, function (array $meta): array {
+        return $this->recordStateTransition(
+            $this->updateMeta($sale, function (array $meta): array {
             data_set($meta, 'commerce.status', self::STATUS_EXPIRED);
             data_set($meta, 'commerce.expired_at', now()->toIso8601String());
             data_set($meta, 'commerce.payment.status', self::PAYMENT_EXPIRED);
@@ -284,18 +333,23 @@ class CommerceOrderLifecycleService
             ]);
 
             return $meta;
-        });
+        }),
+            'commerce.expired',
+            'Commerce order kedaluwarsa.',
+            ['status' => self::STATUS_EXPIRED]
+        );
     }
 
-    public function markCancelled(Sale $sale, ?string $reason = null): Sale
+    public function markCancelled(object $sale, ?string $reason = null): object
     {
         $sale->update([
-            'status' => Sale::STATUS_CANCELLED,
+            'status' => config('platform-core.commerce.sale_status_cancelled', 'cancelled'),
             'cancelled_at' => now(),
             'void_reason' => $reason ?: $sale->void_reason,
         ]);
 
-        return $this->updateMeta($sale, function (array $meta) use ($reason): array {
+        return $this->recordStateTransition(
+            $this->updateMeta($sale, function (array $meta) use ($reason): array {
             data_set($meta, 'commerce.status', self::STATUS_CANCELLED);
             data_set($meta, 'commerce.cancelled_at', now()->toIso8601String());
             data_set($meta, 'commerce.payment.status', self::PAYMENT_CANCELLED);
@@ -311,12 +365,20 @@ class CommerceOrderLifecycleService
             ]);
 
             return $meta;
-        });
+        }),
+            'commerce.cancelled',
+            'Commerce order dibatalkan.',
+            [
+                'status' => self::STATUS_CANCELLED,
+                'reason' => $reason ? trim($reason) : null,
+            ]
+        );
     }
 
-    public function markPaymentFailed(Sale $sale, ?string $reason = null): Sale
+    public function markPaymentFailed(object $sale, ?string $reason = null): object
     {
-        return $this->updateMeta($sale, function (array $meta) use ($reason): array {
+        return $this->recordStateTransition(
+            $this->updateMeta($sale, function (array $meta) use ($reason): array {
             data_set($meta, 'commerce.payment.status', self::PAYMENT_FAILED);
             data_set($meta, 'commerce.payment.failed_at', now()->toIso8601String());
 
@@ -329,12 +391,17 @@ class CommerceOrderLifecycleService
             ]);
 
             return $meta;
-        });
+        }),
+            'commerce.payment_failed',
+            'Pembayaran commerce gagal.',
+            ['reason' => $reason ? trim($reason) : null]
+        );
     }
 
-    public function markPaymentCancelled(Sale $sale, ?string $reason = null): Sale
+    public function markPaymentCancelled(object $sale, ?string $reason = null): object
     {
-        return $this->updateMeta($sale, function (array $meta) use ($reason): array {
+        return $this->recordStateTransition(
+            $this->updateMeta($sale, function (array $meta) use ($reason): array {
             data_set($meta, 'commerce.payment.status', self::PAYMENT_CANCELLED);
             data_set($meta, 'commerce.payment.cancelled_at', now()->toIso8601String());
 
@@ -347,20 +414,24 @@ class CommerceOrderLifecycleService
             ]);
 
             return $meta;
-        });
+        }),
+            'commerce.payment_cancelled',
+            'Pembayaran commerce dibatalkan.',
+            ['reason' => $reason ? trim($reason) : null]
+        );
     }
 
     /**
      * @return array<int, array<string, mixed>>
      */
-    public function timeline(?Sale $sale): array
+    public function timeline(?object $sale): array
     {
         $timeline = data_get($sale?->meta, 'commerce.timeline', []);
 
         return is_array($timeline) ? array_values($timeline) : [];
     }
 
-    private function updateMeta(Sale $sale, callable $mutator): Sale
+    private function updateMeta(object $sale, callable $mutator): object
     {
         $meta = is_array($sale->meta) ? $sale->meta : [];
         $meta = $mutator($meta);
@@ -383,5 +454,26 @@ class CommerceOrderLifecycleService
         ], fn ($value) => $value !== null && $value !== []);
 
         data_set($meta, 'commerce.timeline', $timeline);
+    }
+
+    private function recordStateTransition(object $sale, string $eventType, string $summary, array $payload = []): object
+    {
+        $this->activity->record(
+            'commerce',
+            $eventType,
+            get_class($sale),
+            method_exists($sale, 'getKey') ? $sale->getKey() : null,
+            $summary,
+            array_filter([
+                'status' => $this->status($sale),
+                'payment_status' => $this->paymentStatus($sale),
+                'fulfillment_status' => $this->fulfillmentStatus($sale),
+                'shipping_status' => $this->shippingStatus($sale),
+                'sale_number' => data_get($sale, 'sale_number'),
+                'external_reference' => data_get($sale, 'external_reference'),
+            ] + $payload, fn ($value) => $value !== null && $value !== '')
+        );
+
+        return $sale;
     }
 }

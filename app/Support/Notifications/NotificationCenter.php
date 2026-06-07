@@ -5,6 +5,8 @@ namespace App\Support\Notifications;
 use App\Multitenancy\QueryContextGuard;
 use App\Models\CoreNotification;
 use App\Models\NotificationRecipient;
+use App\Services\PlatformActivityRecorder;
+use App\Services\PlatformEventBus;
 use App\Support\CompanyContext;
 use Illuminate\Support\Facades\DB;
 
@@ -15,19 +17,25 @@ class NotificationCenter
     private NotificationUrlBuilder $urlBuilder;
     private NotificationDeliveryDispatcher $dispatcher;
     private QueryContextGuard $guard;
+    private PlatformActivityRecorder $activity;
+    private PlatformEventBus $events;
 
     public function __construct(
         NotificationTypeRegistry $registry,
         NotificationRecipientResolver $recipients,
         NotificationUrlBuilder $urlBuilder,
         NotificationDeliveryDispatcher $dispatcher,
-        QueryContextGuard $guard
+        QueryContextGuard $guard,
+        PlatformActivityRecorder $activity,
+        PlatformEventBus $events
     ) {
         $this->registry = $registry;
         $this->recipients = $recipients;
         $this->urlBuilder = $urlBuilder;
         $this->dispatcher = $dispatcher;
         $this->guard = $guard;
+        $this->activity = $activity;
+        $this->events = $events;
     }
 
     public function publish(NotificationMessage|array $payload): CoreNotification
@@ -107,7 +115,35 @@ class NotificationCenter
                 $this->dispatcher->dispatch($notification, $recipient, $user, $definition['channels']);
             }
 
-            return $notification->fresh(['recipients', 'deliveries']);
+            $notification = $notification->fresh(['recipients', 'deliveries']);
+
+            $this->activity->record(
+                'core',
+                'notification.published',
+                CoreNotification::class,
+                $notification->id,
+                $notification->title,
+                [
+                    'type' => $notification->type,
+                    'module' => $notification->module,
+                    'severity' => $notification->severity,
+                ]
+            );
+
+            $this->events->publish(
+                'platform.notification.published',
+                CoreNotification::class,
+                $notification->id,
+                [
+                    'notification_type' => $notification->type,
+                    'module' => $notification->module,
+                    'severity' => $notification->severity,
+                    'recipient_count' => $notification->recipients->count(),
+                ],
+                $notification->dedupe_key ?: 'notification:' . $notification->id
+            );
+
+            return $notification;
         });
     }
 

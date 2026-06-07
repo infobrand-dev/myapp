@@ -2,11 +2,9 @@
 
 namespace App\Support\Commerce;
 
-use App\Modules\Sales\Models\Sale;
-
 class CommerceSalePricingService
 {
-    public function applyShippingCharge(Sale $sale, ?array $selectedRate): Sale
+    public function applyShippingCharge(object $sale, ?array $selectedRate): object
     {
         $shippingTotal = round((float) data_get($selectedRate, 'price', 0), 2);
         $baseGrandTotal = round((float) data_get($sale->totals_snapshot, 'grand_total', $sale->grand_total), 2);
@@ -39,7 +37,7 @@ class CommerceSalePricingService
         return $sale->fresh();
     }
 
-    public function shippingTotal(?Sale $sale): float
+    public function shippingTotal(?object $sale): float
     {
         return round((float) data_get($sale?->totals_snapshot, 'shipping_total', data_get($sale?->meta, 'commerce.shipping.amount', 0)), 2);
     }

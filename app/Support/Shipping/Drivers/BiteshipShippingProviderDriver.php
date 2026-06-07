@@ -2,13 +2,13 @@
 
 namespace App\Support\Shipping\Drivers;
 
-use App\Modules\Biteship\Services\BiteshipService;
+use App\Contracts\BiteshipShippingGateway;
 use App\Support\Shipping\Contracts\ShippingProviderDriver;
 
 class BiteshipShippingProviderDriver implements ShippingProviderDriver
 {
     public function __construct(
-        private readonly BiteshipService $service,
+        private readonly BiteshipShippingGateway $service,
     ) {
     }
 

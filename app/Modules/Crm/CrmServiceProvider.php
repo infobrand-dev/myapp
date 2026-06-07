@@ -3,10 +3,14 @@
 namespace App\Modules\Crm;
 
 use App\Modules\Contacts\Models\Contact;
+use App\Modules\Crm\Models\CrmFollowUpTask;
 use App\Modules\Crm\Models\CrmLead;
+use App\Modules\Crm\Support\CrmCustomer360Bridge;
+use App\Modules\Crm\Support\Customer360TimelineBuilder;
 use App\Support\BooleanQuery;
 use App\Support\HookManager;
 use App\Support\PlanFeature;
+use App\Support\PlanLimit;
 use App\Support\RegistersModuleRoutes;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
@@ -17,11 +21,21 @@ class CrmServiceProvider extends ServiceProvider
 {
     use RegistersModuleRoutes;
 
+    public const PLAN_LIMIT_MODELS = [
+        PlanLimit::CRM_PIPELINES => ['table' => 'crm_pipelines', 'model' => \App\Modules\Crm\Models\CrmPipeline::class],
+        PlanLimit::CRM_CUSTOM_STAGES => ['table' => 'crm_pipeline_stages', 'model' => \App\Modules\Crm\Models\CrmPipelineStage::class],
+        PlanLimit::CRM_ACTIVE_DEALS => ['table' => 'crm_leads', 'model' => \App\Modules\Crm\Models\CrmLead::class],
+    ];
+
     public const PERMISSIONS = [
         'crm.view',
         'crm.create',
         'crm.update',
         'crm.delete',
+        'crm.assign',
+        'crm.manage_pipeline',
+        'crm.export',
+        'crm.view_all',
     ];
 
     public const DEFAULT_ROLE_PERMISSIONS = [
@@ -31,11 +45,13 @@ class CrmServiceProvider extends ServiceProvider
             'crm.view',
             'crm.create',
             'crm.update',
+            'crm.assign',
         ],
         'Sales' => [
             'crm.view',
             'crm.create',
             'crm.update',
+            'crm.assign',
         ],
     ];
 
@@ -46,12 +62,13 @@ class CrmServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->registerModuleRoutes([__DIR__ . '/routes/web.php']);
+        $this->registerModuleRoutes([__DIR__ . '/routes/web.php', __DIR__ . '/routes/api.php']);
         $this->loadViewsFrom(__DIR__ . '/resources/views', 'crm');
         $this->loadMigrationsFrom(\App\Support\ModulePath::migrationDirectory(__DIR__) ?? (__DIR__ . '/Database/Migrations'));
         $this->ensurePermissions();
         $this->registerContactHooks();
         $this->registerDashboardHooks();
+        $this->registerIntegrationHooks();
     }
 
     private function ensurePermissions(): void
@@ -147,7 +164,72 @@ class CrmServiceProvider extends ServiceProvider
             return view('crm::hooks.contact-action', compact('contact', 'lead'))->render();
         };
 
+        $renderCustomer360 = function (array $context): string {
+            $user = auth()->user();
+
+            if (!Schema::hasTable('crm_leads')
+                || !$user
+                || !app(\App\Support\TenantPlanManager::class)->hasFeature(PlanFeature::CRM, \App\Support\TenantContext::currentId())
+                || !$user->can('crm.view')) {
+                return '';
+            }
+
+            /** @var Contact|null $contact */
+            $contact = $context['contact'] ?? null;
+            if (!$contact) {
+                return '';
+            }
+
+            $customer360 = app(Customer360TimelineBuilder::class)->build($contact);
+
+            return view('crm::hooks.customer-360', compact('contact', 'customer360'))->render();
+        };
+
         $hooks->register('contacts.index.row_actions', 'crm.contact_action', $renderAction);
         $hooks->register('contacts.show.header_actions', 'crm.contact_action', $renderAction);
+        $hooks->register('contacts.show.after_content', 'crm.customer_360', $renderCustomer360);
+    }
+
+    private function registerIntegrationHooks(): void
+    {
+        /** @var HookManager $hooks */
+        $hooks = $this->app->make(HookManager::class);
+
+        $hooks->register('sales.quotations.created', 'crm.timeline.quotation-created', function (array $context): void {
+            $quotation = $context['quotation'] ?? null;
+            if ($quotation instanceof \App\Modules\Sales\Models\SaleQuotation) {
+                app(CrmCustomer360Bridge::class)->handleQuotationCreated($quotation);
+            }
+        });
+
+        $hooks->register('sales.quotations.converted', 'crm.timeline.quotation-converted', function (array $context): void {
+            $quotation = $context['quotation'] ?? null;
+            if ($quotation instanceof \App\Modules\Sales\Models\SaleQuotation) {
+                app(CrmCustomer360Bridge::class)->handleQuotationConverted($quotation);
+            }
+        });
+
+        $hooks->register('sales.finalized', 'crm.timeline.sale-finalized', function (array $context): void {
+            $sale = $context['sale'] ?? null;
+            if ($sale instanceof \App\Modules\Sales\Models\Sale) {
+                app(CrmCustomer360Bridge::class)->handleSaleFinalized($sale);
+            }
+        });
+
+        $hooks->register('sales.voided', 'crm.timeline.sale-voided', function (array $context): void {
+            $sale = $context['sale'] ?? null;
+            if ($sale instanceof \App\Modules\Sales\Models\Sale) {
+                app(CrmCustomer360Bridge::class)->handleSaleVoided($sale);
+            }
+        });
+
+        $hooks->register('payments.posted', 'crm.timeline.payment-posted', function (array $context): void {
+            $payment = $context['payment'] ?? null;
+            $payables = $context['payables'] ?? collect();
+
+            if ($payment instanceof \App\Modules\Payments\Models\Payment && $payables instanceof \Illuminate\Support\Collection) {
+                app(CrmCustomer360Bridge::class)->handlePaymentPosted($payment, $payables);
+            }
+        });
     }
 }

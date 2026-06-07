@@ -186,8 +186,24 @@ class TenantPlanManager
             return app(\App\Services\AiUsageService::class)->byoTokensUsedThisMonth($tenantId);
         }
 
+        if ($key === PlanLimit::CRM_ACTIVE_DEALS) {
+            if (!Schema::hasTable('crm_leads')) {
+                return 0;
+            }
+
+            return (int) DB::table('crm_leads')
+                ->where('tenant_id', $tenantId)
+                ->whereNotIn('stage', ['won', 'lost'])
+                ->where(function ($query): void {
+                    $query->whereNull('is_archived')
+                        ->orWhere('is_archived', false)
+                        ->orWhere('is_archived', 'false');
+                })
+                ->count();
+        }
+
         if ($key === PlanLimit::BYO_CHATBOT_ACCOUNTS) {
-            $modelClass = \App\Modules\Chatbot\Models\ChatbotAccount::class;
+            $modelClass = (string) config('platform-core.entitlement.byo_chatbot_account_model');
 
             if (!class_exists($modelClass) || !Schema::hasTable('chatbot_accounts')) {
                 return 0;
@@ -405,6 +421,9 @@ class TenantPlanManager
             PlanLimit::BYO_AI_TOKENS_MONTHLY => "Add-on BYO AI tenant hanya mengizinkan maksimal {$limit} token AI per bulan.",
             PlanLimit::AUTOMATION_WORKFLOWS => "Plan tenant hanya mengizinkan maksimal {$limit} workflow automation.",
             PlanLimit::AUTOMATION_EXECUTIONS_MONTHLY => "Kuota eksekusi automation bulanan tenant hanya {$limit} eksekusi.",
+            PlanLimit::CRM_PIPELINES => "Plan tenant hanya mengizinkan maksimal {$limit} pipeline CRM.",
+            PlanLimit::CRM_CUSTOM_STAGES => "Plan tenant hanya mengizinkan maksimal {$limit} stage CRM kustom.",
+            PlanLimit::CRM_ACTIVE_DEALS => "Plan tenant hanya mengizinkan maksimal {$limit} deal CRM aktif.",
             default => 'Batas plan tenant sudah tercapai.',
         };
     }

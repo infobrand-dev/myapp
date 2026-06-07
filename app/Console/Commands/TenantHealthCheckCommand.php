@@ -9,7 +9,9 @@ use App\Multitenancy\TenantTopologyFingerprint;
 use App\Multitenancy\TenantTopologyValidator;
 use App\Models\StorageProfile;
 use App\Models\Tenant;
+use App\Support\TenantLifecycle;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Schema;
 
 class TenantHealthCheckCommand extends Command
 {
@@ -22,10 +24,22 @@ class TenantHealthCheckCommand extends Command
         TenantTopologyValidator $validator,
         TenantRuntimeTopologyResolver $runtimeTopologies,
         TenantStorageTopologyResolver $storageTopologyResolver,
-        TenantTopologyFingerprint $fingerprint
+        TenantTopologyFingerprint $fingerprint,
+        TenantLifecycle $lifecycle
     ): int
     {
-        $query = Tenant::query()->with(['topology.database.server', 'runtimeTopology.appServer', 'storageTopologies.storageBucket.server']);
+        $central = config('multitenancy.central_connection', 'central');
+        $registryTables = [
+            'tenant_topologies',
+            'tenant_runtime_topologies',
+            'tenant_storage_topologies',
+        ];
+        $missingRegistryTables = array_values(array_filter($registryTables, fn (string $table) => !Schema::connection($central)->hasTable($table)));
+
+        $query = Tenant::query();
+        if ($missingRegistryTables === []) {
+            $query->with(['topology.database.server', 'runtimeTopology.appServer', 'storageTopologies.storageBucket.server']);
+        }
         $value = $this->argument('tenant');
 
         if ($value !== null) {
@@ -33,17 +47,28 @@ class TenantHealthCheckCommand extends Command
         }
 
         $rows = [];
-        $failed = false;
+        $failed = $missingRegistryTables !== [];
+
+        if ($missingRegistryTables !== []) {
+            $this->warn('Central registry tables missing: ' . implode(', ', $missingRegistryTables));
+        }
 
         foreach ($query->orderBy('id')->get() as $tenant) {
             $issues = [];
-            $topology = $tenant->topology;
-            $runtime = $tenant->runtimeTopology;
-            $tenantStorageTopologies = $tenant->storageTopologies;
+            $topology = $missingRegistryTables === [] ? $tenant->topology : null;
+            $runtime = $missingRegistryTables === [] ? $tenant->runtimeTopology : null;
+            $tenantStorageTopologies = $missingRegistryTables === [] ? $tenant->storageTopologies : collect();
             $registryValid = true;
             $runtimeConsumed = true;
             $storageConsumed = true;
-            $issues = array_merge($issues, $validator->validateTenant($tenant));
+            if ($missingRegistryTables === []) {
+                $issues = array_merge($issues, $validator->validateTenant($tenant));
+            } else {
+                $issues[] = 'missing central topology registry tables';
+                $registryValid = false;
+                $runtimeConsumed = false;
+                $storageConsumed = false;
+            }
 
             if (!$topology) {
                 $issues[] = 'missing topology';
@@ -178,6 +203,16 @@ class TenantHealthCheckCommand extends Command
         }
 
         $this->table(['ID', 'Slug', 'Registry', 'Runtime', 'Storage', 'Move Ready', 'Health'], $rows);
+        $this->newLine();
+        $this->table(
+            ['Lifecycle State', 'Allowed Transitions'],
+            collect($lifecycle->transitions())
+                ->map(fn (array $transitions, string $state) => [$state, implode(', ', $transitions) ?: '-'])
+                ->values()
+                ->all()
+        );
+        $this->line('Slug retention days: ' . $lifecycle->slugRetentionDays());
+        $this->line('Domain retention days: ' . $lifecycle->domainRetentionDays());
 
         $readiness = $audit->audit();
         $queryAuditFailed = false;

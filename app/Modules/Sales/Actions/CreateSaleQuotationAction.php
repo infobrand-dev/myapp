@@ -10,6 +10,7 @@ use App\Modules\Sales\Services\SaleQuotationNumberService;
 use App\Modules\Sales\Services\SaleSnapshotService;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
+use App\Support\HookManager;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 
@@ -19,6 +20,7 @@ class CreateSaleQuotationAction
         private readonly RecalculateSaleTotalsAction $recalculateTotals,
         private readonly SaleQuotationNumberService $numberService,
         private readonly SaleSnapshotService $snapshotService,
+        private readonly HookManager $hooks,
     ) {
     }
 
@@ -31,6 +33,14 @@ class CreateSaleQuotationAction
                 ? ContactScope::applyVisibilityScope(Contact::query()->with('parentContact'))->find($data['contact_id'])
                 : null;
             $customer = $this->snapshotService->customerSnapshot($contact);
+
+            $meta = array_filter([
+                'tax' => data_get($totals, 'tax_context'),
+            ], fn ($value) => $value !== null);
+
+            if (!empty($data['meta']) && is_array($data['meta'])) {
+                $meta = array_replace_recursive($meta, $data['meta']);
+            }
 
             $quotation = SaleQuotation::query()->create([
                 'tenant_id' => TenantContext::currentId(),
@@ -56,14 +66,22 @@ class CreateSaleQuotationAction
                 'notes' => $data['notes'] ?? null,
                 'customer_note' => $data['customer_note'] ?? null,
                 'totals_snapshot' => $totals['totals_snapshot'],
-                'meta' => array_filter([
-                    'tax' => data_get($totals, 'tax_context'),
-                ], fn ($value) => $value !== null),
+                'meta' => $meta,
                 'created_by' => $actor?->id,
                 'updated_by' => $actor?->id,
             ]);
 
             $quotation->items()->createMany($this->withTenantId($totals['items'], $resolvedBranchId));
+
+            try {
+                $this->hooks->dispatch('sales.quotations.created', [
+                    'quotation' => $quotation->fresh(['items', 'contact']),
+                    'event' => 'created',
+                    'actor' => $actor,
+                ]);
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
 
             return $quotation->load('items');
         });

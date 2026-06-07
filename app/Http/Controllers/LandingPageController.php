@@ -60,6 +60,50 @@ class LandingPageController extends Controller
         ]);
     }
 
+    public function commerce(
+        Request $request,
+        TenantOnboardingSalesService $sales,
+        PublicModuleCatalog $catalog,
+        WorkspaceUrl $workspaceUrl
+    ): View|RedirectResponse
+    {
+        if ($redirect = $this->landingHostRedirect($request)) {
+            return $redirect;
+        }
+
+        if (auth()->check()) {
+            return redirect()->away($workspaceUrl->forCurrentUser($request));
+        }
+
+        return view('landing-commerce', [
+            'publicPlans' => $sales->publicPlans('commerce'),
+            'modules' => $catalog->modules($catalog->commerceSlugs()),
+            'supportingModules' => $catalog->modules(['products', 'contacts', 'sales', 'payments']),
+        ]);
+    }
+
+    public function crm(
+        Request $request,
+        TenantOnboardingSalesService $sales,
+        PublicModuleCatalog $catalog,
+        WorkspaceUrl $workspaceUrl
+    ): View|RedirectResponse
+    {
+        if ($redirect = $this->landingHostRedirect($request)) {
+            return $redirect;
+        }
+
+        if (auth()->check()) {
+            return redirect()->away($workspaceUrl->forCurrentUser($request));
+        }
+
+        return view('landing-crm', [
+            'publicPlans' => $sales->publicPlans('crm'),
+            'modules' => $catalog->modules($catalog->crmSlugs()),
+            'supportingModules' => $catalog->modules(['contacts']),
+        ]);
+    }
+
     public function mulaiDigital(
         Request $request,
         PublicModuleCatalog $catalog,

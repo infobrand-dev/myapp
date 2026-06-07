@@ -2,6 +2,7 @@
 
 namespace App\Modules\Crm\Support;
 
+use Illuminate\Support\Facades\Auth;
 use App\Support\BranchContext;
 use App\Support\CompanyContext;
 use App\Support\TenantContext;
@@ -14,7 +15,7 @@ class CrmLeadScope
         $companyId ??= CompanyContext::currentId();
         $branchId = func_num_args() >= 4 ? $branchId : BranchContext::currentId();
 
-        return $query
+        $query = $query
             ->where('tenant_id', $tenantId)
             ->where(function ($builder) use ($companyId, $branchId): void {
                 $builder->where(function ($tenantWide): void {
@@ -36,5 +37,16 @@ class CrmLeadScope
                     });
                 }
             });
+
+        $user = Auth::user();
+
+        if ($user && !$user->hasAnyRole(['Super-admin', 'Admin']) && !$user->can('crm.view_all')) {
+            $query->where(function ($visibility) use ($user): void {
+                $visibility->where('owner_user_id', $user->id)
+                    ->orWhereNull('owner_user_id');
+            });
+        }
+
+        return $query;
     }
 }

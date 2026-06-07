@@ -1,7 +1,7 @@
 @extends('layouts.landing')
 
-@section('head_title', 'Product Lines - ' . config('app.name'))
-@section('head_description', 'Product lines Meetra untuk customer, transaksi, workflow tim, dan operasional bisnis yang lebih tertata.')
+@section('head_title', 'Business Suites - ' . config('app.name'))
+@section('head_description', 'Business suites untuk customer, transaksi, workflow tim, dan operasional bisnis yang lebih tertata.')
 
 @section('content')
 @php
@@ -18,9 +18,9 @@
         <div class="row justify-content-center">
             <div class="col-lg-8 text-center">
                 <div class="landing-badge mb-4 mx-auto" style="display:inline-flex;">
-                    <i class="ti ti-box"></i> Product Lines
+                    <i class="ti ti-box"></i> Business Suites
                 </div>
-                <h1 class="landing-headline mb-4">Solusi Meetra untuk kebutuhan bisnis yang berbeda.</h1>
+                <h1 class="landing-headline mb-4">Business suite untuk kebutuhan bisnis yang berbeda.</h1>
                 <p class="landing-subtext mx-auto">Setiap product line dirancang untuk menjawab kebutuhan yang spesifik, namun tetap berada dalam ekosistem kerja yang selaras.</p>
             </div>
         </div>
@@ -40,10 +40,18 @@
             </div>
             <div class="col-md-6 col-xl-4">
                 <div class="meetra-product-page-card">
+                    <div class="meetra-product-page-icon"><i class="ti ti-shopping-bag"></i></div>
+                    <h2 class="h4 mb-2">Commerce</h2>
+                    <p class="small text-muted mb-4">Untuk storefront, order online, payment status, shipping, fulfillment, affiliate, dan wallet dalam satu workflow yang lebih rapi.</p>
+                    <a href="{{ route('landing.commerce') }}" class="btn btn-outline-dark btn-sm">Lihat Detail</a>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-4">
+                <div class="meetra-product-page-card">
                     <div class="meetra-product-page-icon"><i class="ti ti-message-circle-2"></i></div>
                     <h2 class="h4 mb-2">Omnichannel</h2>
                     <p class="small text-muted mb-4">Untuk pengelolaan percakapan customer, inbox terpadu, dan tindak lanjut lintas channel.</p>
-                    <a href="{{ $contactUrl }}" class="btn btn-outline-dark btn-sm">Konsultasikan</a>
+                    <a href="{{ route('landing.omnichannel') }}" class="btn btn-outline-dark btn-sm">Lihat Detail</a>
                 </div>
             </div>
             <div class="col-md-6 col-xl-4">
@@ -51,7 +59,7 @@
                     <div class="meetra-product-page-icon"><i class="ti ti-checklist"></i></div>
                     <h2 class="h4 mb-2">Productivity</h2>
                     <p class="small text-muted mb-4">Untuk task management, workflow internal, dan pemantauan progres tim.</p>
-                    <a href="{{ $contactUrl }}" class="btn btn-outline-dark btn-sm">Konsultasikan</a>
+                    <a href="{{ route('landing.crm') }}" class="btn btn-outline-dark btn-sm">Lihat Detail</a>
                 </div>
             </div>
             <div class="col-md-6 col-xl-4">
@@ -86,8 +94,8 @@
     <div class="container">
         <div class="landing-panel p-4 p-lg-5 text-center">
             <div class="landing-eyebrow mb-2">Konsultasi</div>
-            <h2 class="landing-section-title mb-3">Perlu bantuan memilih product line yang tepat?</h2>
-            <p class="landing-subtext mx-auto mb-4" style="max-width:720px;">Tim kami dapat membantu memetakan kebutuhan Anda dan mengarahkan product line yang paling relevan untuk skenario bisnis yang sedang dijalankan.</p>
+            <h2 class="landing-section-title mb-3">Perlu bantuan memilih business suite yang tepat?</h2>
+            <p class="landing-subtext mx-auto mb-4" style="max-width:720px;">Tim kami dapat membantu memetakan kebutuhan Anda dan mengarahkan business suite yang paling relevan untuk skenario bisnis yang sedang dijalankan.</p>
             <a href="{{ $contactUrl }}" class="btn btn-dark btn-lg">Konsultasikan Kebutuhan</a>
         </div>
     </div>

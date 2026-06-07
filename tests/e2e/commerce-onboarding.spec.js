@@ -11,9 +11,9 @@ test('commerce public landing and onboarding click-through works', async ({ page
   await expect(page).toHaveURL(/\/onboarding\?product_line=commerce/);
   await expect(page.getByRole('heading', { name: /mulai workspace commerce anda/i })).toBeVisible();
   await expect(page.getByText(/pilih paket commerce/i)).toBeVisible();
-  await expect(page.getByText(/commerce starter/i)).toBeVisible();
-  await expect(page.getByText(/commerce growth/i)).toBeVisible();
-  await expect(page.getByText(/commerce scale/i)).toBeVisible();
+  await expect(page.locator('.plan-card').filter({ hasText: /commerce starter/i }).first()).toBeVisible();
+  await expect(page.locator('.plan-card').filter({ hasText: /commerce growth/i }).first()).toBeVisible();
+  await expect(page.locator('.plan-card').filter({ hasText: /commerce scale/i }).first()).toBeVisible();
 
   await page.getByRole('radio', { name: /commerce growth/i }).check();
   await page.locator('input[name="company_name"]').fill('PT Commerce Test');
@@ -40,8 +40,9 @@ test('commerce public landing and onboarding click-through works', async ({ page
 test('generic onboarding requires business suite selection first', async ({ page }) => {
   await page.goto('/onboarding', { waitUntil: 'domcontentloaded' });
 
-  await expect(page.getByRole('heading', { name: /pilih kebutuhan bisnis anda/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /pilih business suite lalu lanjutkan ke plan/i })).toBeVisible();
   await expect(page.getByRole('link', { name: /accounting/i })).toBeVisible();
   await expect(page.getByRole('link', { name: /commerce/i })).toBeVisible();
   await expect(page.getByRole('link', { name: /omnichannel/i })).toBeVisible();
+  await expect(page.getByRole('link', { name: /crm untuk pipeline penjualan/i })).toBeVisible();
 });

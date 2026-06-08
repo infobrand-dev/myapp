@@ -11,10 +11,12 @@ use RuntimeException;
 class SampleDataRegistry
 {
     private ModuleManager $modules;
+    private CommerceDemoBuilder $commerceDemo;
 
-    public function __construct(ModuleManager $modules)
+    public function __construct(ModuleManager $modules, CommerceDemoBuilder $commerceDemo)
     {
         $this->modules = $modules;
+        $this->commerceDemo = $commerceDemo;
     }
 
     public function activeModules(): Collection
@@ -39,6 +41,18 @@ class SampleDataRegistry
             })
             ->sortBy('name')
             ->values();
+    }
+
+    public function bundles(): Collection
+    {
+        return collect([
+            [
+                'slug' => 'commerce_demo',
+                'name' => 'Commerce Demo',
+                'description' => 'Satu proses untuk contact, product, order commerce, payment sukses, dan email test customer.',
+                'supports_transactional_mail' => true,
+            ],
+        ]);
     }
 
     public function seed(string $slug): string
@@ -70,6 +84,17 @@ class SampleDataRegistry
         }
 
         return "Sample data untuk module '{$slug}' berhasil dibuat.";
+    }
+
+    public function runBundle(string $slug): string
+    {
+        if ($slug !== 'commerce_demo') {
+            throw new RuntimeException("Bundle '{$slug}' tidak tersedia.");
+        }
+
+        $result = $this->commerceDemo->run(true);
+
+        return implode(' ', $result['notes']);
     }
 
     private function manifestsBySlug(): array

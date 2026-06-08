@@ -14,6 +14,7 @@ class SampleDataController extends Controller
     {
         return view('sample-data::index', [
             'modules' => $registry->activeModules(),
+            'bundles' => $registry->bundles(),
         ]);
     }
 
@@ -25,6 +26,17 @@ class SampleDataController extends Controller
             return back()->with('status', $result);
         } catch (Throwable $e) {
             return back()->with('status', "Gagal generate sample data untuk module '{$slug}': " . $e->getMessage());
+        }
+    }
+
+    public function runBundle(string $slug, SampleDataRegistry $registry): RedirectResponse
+    {
+        try {
+            $result = $registry->runBundle($slug);
+
+            return back()->with('status', $result);
+        } catch (Throwable $e) {
+            return back()->with('status', "Gagal menjalankan bundle '{$slug}': " . $e->getMessage());
         }
     }
 }

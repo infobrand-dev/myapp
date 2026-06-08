@@ -20,6 +20,43 @@
             </div>
         </div>
 
+        @if(($bundles ?? collect())->isNotEmpty())
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">Bundles</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        @foreach($bundles as $bundle)
+                            <div class="col-lg-6">
+                                <div class="border rounded p-3 h-100 d-flex flex-column justify-content-between">
+                                    <div>
+                                        <div class="d-flex align-items-center justify-content-between gap-3">
+                                            <div>
+                                                <div class="fw-semibold">{{ $bundle['name'] }}</div>
+                                                <div class="text-muted small">{{ $bundle['slug'] }}</div>
+                                            </div>
+                                            <span class="badge bg-success-lt text-success">One Click</span>
+                                        </div>
+                                        <p class="text-muted small mt-2 mb-0">{{ $bundle['description'] }}</p>
+                                        @if($bundle['supports_transactional_mail'])
+                                            <div class="text-muted small mt-2">
+                                                Invoice/receipt tenant ikut dicoba. Jika queue bukan <code>sync</code>, jalankan worker agar email queued terkirim.
+                                            </div>
+                                        @endif
+                                    </div>
+                                    <form method="POST" action="{{ route('sample-data.bundles.run', $bundle['slug']) }}" class="mt-3">
+                                        @csrf
+                                        <button type="submit" class="btn btn-primary">Generate Bundle</button>
+                                    </form>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        @endif
+
         <div class="card">
             <div class="table-responsive">
                 <table class="table table-vcenter card-table">

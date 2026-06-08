@@ -11,4 +11,7 @@ Route::middleware(['web', 'auth', 'role:Super-admin', 'permission:sample-data.vi
         Route::post('/{slug}', [SampleDataController::class, 'store'])
             ->middleware('permission:sample-data.run')
             ->name('store');
+        Route::post('/bundles/{slug}', [SampleDataController::class, 'runBundle'])
+            ->middleware('permission:sample-data.run')
+            ->name('bundles.run');
     });

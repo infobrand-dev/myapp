@@ -142,6 +142,26 @@ php artisan migrate
 php artisan queue:work
 ```
 
+## Sample data commerce demo
+- Untuk data demo yang lebih lengkap, tersedia bundle `Commerce Demo` di menu `Sample Data`.
+- Bundle ini membuat contact, product, sale/invoice backoffice, order commerce, payment sukses, dan mencoba email customer.
+- Alternatif via CLI:
+  ```bash
+  php artisan sample-data:commerce-demo --with-mails
+  ```
+- Agar email queued benar-benar terkirim saat test lokal:
+  - pakai `QUEUE_CONNECTION=sync`, atau
+  - tetap gunakan queue async lalu jalankan worker.
+- Untuk test Mailtrap, arahkan env mail ke SMTP Mailtrap:
+  ```env
+  MAIL_MAILER=smtp
+  MAIL_HOST=sandbox.smtp.mailtrap.io
+  MAIL_PORT=2525
+  MAIL_USERNAME=your-mailtrap-username
+  MAIL_PASSWORD=your-mailtrap-password
+  MAIL_ENCRYPTION=tls
+  ```
+
 ## Go-live audit
 Jalankan audit readiness production:
 

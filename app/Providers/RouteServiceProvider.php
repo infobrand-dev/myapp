@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Support\SaasHost;
 use App\Support\ModuleManager;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
@@ -56,14 +57,33 @@ class RouteServiceProvider extends ServiceProvider
 
     private function mapPublicRoutes(): void
     {
-        foreach ([
-            'routes/shared-public.php',
-            'routes/apex.php',
-            'routes/platform-public.php',
-        ] as $path) {
-            Route::middleware('public-web')
-                ->namespace($this->namespace)
-                ->group(base_path($path));
+        Route::middleware('public-web')
+            ->namespace($this->namespace)
+            ->group(base_path('routes/shared-public.php'));
+
+        if (config('multitenancy.mode') !== 'saas') {
+            foreach ([
+                'routes/apex.php',
+                'routes/platform-public.php',
+            ] as $path) {
+                Route::middleware('public-web')
+                    ->namespace($this->namespace)
+                    ->group(base_path($path));
+            }
+
+            return;
+        }
+
+        foreach (SaasHost::candidateRootDomains() as $domain) {
+            foreach ([
+                'routes/apex.php',
+                'routes/platform-public.php',
+            ] as $path) {
+                Route::middleware('public-web')
+                    ->namespace($this->namespace)
+                    ->domain($domain)
+                    ->group(base_path($path));
+            }
         }
     }
 

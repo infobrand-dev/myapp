@@ -39,6 +39,6 @@ trait RegistersModuleRoutes
             return false;
         }
 
-        return true;
+        return false;
     }
 }

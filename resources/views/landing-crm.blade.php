@@ -149,9 +149,7 @@
 @section('content')
 @php($money = app(\App\Support\MoneyFormatter::class))
 
-{{-- ═══════════════════════════════════════════════════════════
-     SECTION 1 — HERO
-     ═══════════════════════════════════════════════════════════ --}}
+{{-- SECTION 1: HERO --}}
 <section class="landing-hero py-5 py-lg-6" style="background:radial-gradient(circle at top right,rgba(37,99,235,.15),transparent 40%), linear-gradient(160deg,#f8fafc 0%,#eef6ff 55%,#f0f9ff 100%); border-bottom:1px solid var(--landing-line);">
     <div class="container py-lg-4">
         <div class="row g-5 align-items-center">
@@ -218,9 +216,7 @@
     </div>
 </section>
 
-{{-- ═══════════════════════════════════════════════════════════
-     SECTION 2 — TRUST STRIP
-     ═══════════════════════════════════════════════════════════ --}}
+{{-- SECTION 2: TRUST STRIP --}}
 <section class="py-4" style="border-bottom:1px solid var(--landing-line); background:#fff;">
     <div class="container">
         <div class="landing-trust-strip">
@@ -239,9 +235,7 @@
     </div>
 </section>
 
-{{-- ═══════════════════════════════════════════════════════════
-     SECTION 3 — PAIN POINTS
-     ═══════════════════════════════════════════════════════════ --}}
+{{-- SECTION 3: PAIN POINTS --}}
 <section id="masalah" class="py-5 py-lg-6">
     <div class="container">
         <div class="row g-5 align-items-center">
@@ -251,14 +245,7 @@
                 <p class="crm-lead mb-4">Bukan karena tim tidak kerja keras. Tapi karena tidak ada sistem yang menangkap semua yang perlu di-follow-up.</p>
 
                 <div class="d-flex flex-column gap-3">
-                    @foreach([
-                        ['icon' => 'ti-messages-off',    'text' => 'Lead masuk dari berbagai kanal — WhatsApp, Instagram, referral — tapi tidak ada yang mencatat siapa yang sudah dihubungi dan siapa yang belum'],
-                        ['icon' => 'ti-clock-x',         'text' => 'Janji follow-up sering terlupa karena hanya disimpan di kepala atau di catatan yang berbeda-beda'],
-                        ['icon' => 'ti-eye-off',         'text' => 'Owner atau manajer tidak bisa lihat progress pipeline tim tanpa harus tanya satu per satu setiap hari'],
-                        ['icon' => 'ti-user-minus',      'text' => 'Saat sales resign, semua data lead dan histori percakapan ikut hilang karena tersimpan di ponsel pribadi'],
-                        ['icon' => 'ti-chart-off',       'text' => 'Tidak tahu source mana yang paling banyak menghasilkan deal — semua terasa sama padahal tidak'],
-                        ['icon' => 'ti-circle-dashed',   'text' => '"Deal ini masih proses" tapi tidak ada yang tahu sudah di tahap mana dan kapan terakhir dikerjakan'],
-                    ] as $pain)
+                    @foreach($painPoints as $pain)
                     <div class="d-flex align-items-start gap-3 p-3 rounded-4" style="background:#eff6ff; border:1px solid rgba(37,99,235,.12);">
                         <span class="crm-icon-badge"><i class="ti {{ $pain['icon'] }}" style="font-size:1.2rem;"></i></span>
                         <div class="crm-card-text">{{ $pain['text'] }}</div>
@@ -283,9 +270,7 @@
     </div>
 </section>
 
-{{-- ═══════════════════════════════════════════════════════════
-     SECTION 4 — FITUR UTAMA
-     ═══════════════════════════════════════════════════════════ --}}
+{{-- SECTION 4: FITUR UTAMA --}}
 <section id="fitur" class="py-5 py-lg-6" style="background:#f8fafc; border-top:1px solid var(--landing-line); border-bottom:1px solid var(--landing-line);">
     <div class="container">
         <div class="text-center mb-5">
@@ -295,50 +280,7 @@
         </div>
 
         <div class="row g-4">
-            @foreach([
-                [
-                    'icon'  => 'ti-layout-kanban',
-                    'label' => 'Pipeline & Kanban',
-                    'title' => 'Lihat semua deal di satu papan yang jelas',
-                    'desc'  => 'Pipeline visual dengan tampilan kanban dan list. Geser deal antar stage, lihat nilai total per stage, dan identifikasi bottleneck dalam hitungan detik.',
-                    'points' => ['Stage pipeline bisa dikustomisasi sesuai proses sales Anda', 'Tampilan kanban untuk visual, list untuk triage cepat', 'Filter berdasarkan sales, stage, nilai, atau tanggal'],
-                ],
-                [
-                    'icon'  => 'ti-bell-ringing-2',
-                    'label' => 'Follow-Up Queue',
-                    'title' => 'Tidak ada lead yang terlupakan lagi',
-                    'desc'  => 'Antrian follow-up harian yang otomatis tersusun: hari ini, overdue, upcoming, dan selesai. Tim tahu persis apa yang harus dilakukan tanpa harus tanya ke manajer.',
-                    'points' => ['Queue pribadi per sales (tab "Mine") dan queue tim', 'Overdue otomatis naik ke atas antrian', 'Reminder terjadwal yang bisa diset per deal'],
-                ],
-                [
-                    'icon'  => 'ti-user-circle',
-                    'label' => 'Customer 360',
-                    'title' => 'Semua histori customer dalam satu layar',
-                    'desc'  => 'Buka profil customer dan langsung lihat: semua deal yang pernah ada, catatan interaksi, follow-up yang pending, dan timeline aktivitas lengkap.',
-                    'points' => ['Profil lengkap: kontak, perusahaan, sumber lead', 'Timeline internal: semua catatan dan aktivitas tercatat', 'Nyaman dibuka dari mobile saat bertemu customer'],
-                ],
-                [
-                    'icon'  => 'ti-chart-dots',
-                    'label' => 'Source Tracking',
-                    'title' => 'Tahu channel mana yang paling menghasilkan',
-                    'desc'  => 'Lacak dari mana setiap lead berasal, source mana yang paling sering menang, dan stage mana yang paling banyak macet — data nyata untuk keputusan marketing yang lebih tepat.',
-                    'points' => ['Laporan konversi per source (Instagram, referral, web, dll)', 'Identifikasi stage dengan drop-off tertinggi', 'Export data untuk analisis lebih lanjut'],
-                ],
-                [
-                    'icon'  => 'ti-device-mobile-code',
-                    'label' => 'Mobile-Ready',
-                    'title' => 'Sales di lapangan tetap terhubung',
-                    'desc'  => 'Semua halaman inti CRM dioptimalkan untuk mobile. Update deal, tambah catatan, dan cek queue follow-up langsung dari ponsel — tanpa perlu buka laptop.',
-                    'points' => ['Tampilan stacked card yang nyaman untuk layar kecil', 'Filter ringkas untuk akses cepat di mobile', 'Sticky action bar untuk aksi yang paling sering dipakai'],
-                ],
-                [
-                    'icon'  => 'ti-eye-check',
-                    'label' => 'Manager Visibility',
-                    'title' => 'Owner dan manajer punya gambaran penuh',
-                    'desc'  => 'Tampilan khusus untuk manajer: lihat pipeline seluruh tim, pantau progress per sales, dan identifikasi siapa yang butuh bantuan — tanpa harus tanya satu per satu.',
-                    'points' => ['Dashboard pipeline level tim untuk manajer', 'Bandingkan performa antar sales secara objektif', 'Alert otomatis untuk deal yang sudah terlalu lama stagnan'],
-                ],
-            ] as $feature)
+            @foreach($featureCards as $feature)
             <div class="col-md-6 col-xl-4">
                 <div class="landing-feature-card p-4 h-100">
                     <div class="d-flex align-items-center gap-3 mb-3">
@@ -374,9 +316,7 @@
     </div>
 </section>
 
-{{-- ═══════════════════════════════════════════════════════════
-     SECTION 5 — CARA KERJA
-     ═══════════════════════════════════════════════════════════ --}}
+{{-- SECTION 5: CARA KERJA --}}
 <section id="cara-kerja" class="py-5 py-lg-6">
     <div class="container">
         <div class="row g-5 align-items-start">
@@ -390,16 +330,7 @@
             </div>
             <div class="col-lg-8">
                 <div class="row g-3">
-                    @foreach([
-                        ['no' => '1', 'icon' => 'ti-user-plus',      'color' => '#2563eb', 'title' => 'Lead Dicatat ke Pipeline',
-                         'text' => 'Setiap lead baru masuk langsung dicatat ke pipeline — dengan nama, sumber, nilai estimasi, dan assigned sales. Bisa dari form, input manual, atau import. Tidak ada yang terlewat.'],
-                        ['no' => '2', 'icon' => 'ti-bell-ringing',   'color' => '#3b82f6', 'title' => 'Follow-Up Queue Otomatis Tersusun',
-                         'text' => 'Sistem langsung memasukkan deal ke antrian follow-up sesuai jadwal yang diset. Setiap pagi, tim tahu persis siapa yang harus dihubungi hari ini — dan mana yang sudah overdue.'],
-                        ['no' => '3', 'icon' => 'ti-notes',          'color' => '#60a5fa', 'title' => 'Setiap Interaksi Tercatat di Customer 360',
-                         'text' => 'Telepon, pertemuan, email, catatan — semua terekam di timeline Customer 360. Siapapun di tim bisa buka dan langsung tahu konteks terbaru, tanpa perlu tanya ke sales yang bersangkutan.'],
-                        ['no' => '4', 'icon' => 'ti-trophy',         'color' => '#93c5fd', 'title' => 'Deal Ditutup, Data Tersimpan',
-                         'text' => 'Deal menang atau kalah, data tetap tersimpan rapi — dengan alasan, nilai, dan histori lengkap. Jadikan bahan evaluasi untuk meningkatkan win rate tim ke depannya.'],
-                    ] as $step)
+                    @foreach($workflowSteps as $step)
                     <div class="col-md-6">
                         <div class="landing-panel p-4 h-100" style="border-left:4px solid {{ $step['color'] }};">
                             <div class="d-flex align-items-center gap-2 mb-3">
@@ -425,9 +356,7 @@
     </div>
 </section>
 
-{{-- ═══════════════════════════════════════════════════════════
-     SECTION 6 — DAMPAK / STATS
-     ═══════════════════════════════════════════════════════════ --}}
+{{-- SECTION 6: DAMPAK / STATS --}}
 <section class="py-5 py-lg-6" style="background: linear-gradient(135deg,#f8fafc 0%,#eef6ff 55%,#f0f9ff 100%); border-top:1px solid var(--landing-line); border-bottom:1px solid var(--landing-line);">
     <div class="container">
         <div class="row g-5 align-items-center">
@@ -442,12 +371,7 @@
                 <div class="landing-eyebrow mb-2">Dampak Nyata</div>
                 <h2 class="landing-section-title mb-4">Tim yang punya sistem closing lebih banyak. Bukan tim yang lebih besar.</h2>
                 <div class="row g-3 mb-4">
-                    @foreach([
-                        ['stat' => '0 lead',   'label' => 'yang hilang karena tidak tertrack', 'desc' => 'Semua lead tercatat di pipeline — tidak ada yang tercecer di chat atau catatan pribadi'],
-                        ['stat' => 'Tiap pagi','label' => 'tim tahu persis siapa yang harus dihubungi', 'desc' => 'Follow-up queue menyusun prioritas otomatis berdasarkan jadwal dan overdue'],
-                        ['stat' => 'Real-time','label' => 'visibilitas pipeline untuk owner & manager', 'desc' => 'Pantau progress seluruh tim tanpa harus rapat atau tanya satu per satu'],
-                        ['stat' => 'Penuh',    'label' => 'histori customer tersimpan — bahkan setelah sales resign', 'desc' => 'Data tidak ikut pergi bersama salesnya. Semua tersimpan di workspace tim'],
-                    ] as $win)
+                    @foreach($impactStats as $win)
                     <div class="col-sm-6">
                         <div class="landing-panel p-3 h-100">
                             <div class="crm-stat-number mb-1">{{ $win['stat'] }}</div>
@@ -466,9 +390,7 @@
     </div>
 </section>
 
-{{-- ═══════════════════════════════════════════════════════════
-     SECTION 7 — TESTIMONIALS
-     ═══════════════════════════════════════════════════════════ --}}
+{{-- SECTION 7: TESTIMONIALS --}}
 <section class="py-5 py-lg-6">
     <div class="container">
         <div class="text-center mb-5">
@@ -476,26 +398,7 @@
             <h2 class="landing-section-title">Tim sales yang sudah berhenti kehilangan lead.</h2>
         </div>
         <div class="row g-4">
-            @foreach([
-                [
-                    'quote'  => '"Dulu follow-up kami 100% andalkan ingatan dan reminder di HP masing-masing. Setelah pakai CRM Meetra, queue langsung kelihatan dan tidak ada lagi alasan lupa. Win rate naik karena tidak ada lead yang dibiarkan dingin."',
-                    'name'   => 'Hendra K.',
-                    'role'   => 'Sales Manager, distributor FMCG — tim 8 orang',
-                    'img_no' => '6a',
-                ],
-                [
-                    'quote'  => '"Sebagai owner, saya akhirnya bisa lihat pipeline tim tanpa harus rapat setiap Senin. Saya tahu deal mana yang macet, siapa yang perlu dibantu, dan berapa estimasi revenue bulan ini — tanpa tanya ke siapa-siapa."',
-                    'name'   => 'Kartika R.',
-                    'role'   => 'Founder, B2B software house Surabaya',
-                    'img_no' => '6b',
-                ],
-                [
-                    'quote'  => '"Yang paling terasa adalah Customer 360-nya. Waktu saya take over lead dari sales yang resign, semua histori sudah ada — kapan terakhir dihubungi, apa yang dibahas, dan langkah berikutnya. Tidak perlu mulai dari nol."',
-                    'name'   => 'Fariz M.',
-                    'role'   => 'Account Executive, perusahaan konsultan HR',
-                    'img_no' => '6c',
-                ],
-            ] as $t)
+            @foreach($testimonials as $t)
             <div class="col-lg-4">
                 <div class="landing-panel p-4 h-100">
                     <div class="mb-3" style="color:#2563eb; font-size:1.5rem;">❝</div>
@@ -520,9 +423,7 @@
     </div>
 </section>
 
-{{-- ═══════════════════════════════════════════════════════════
-     SECTION 8 — PRICING
-     ═══════════════════════════════════════════════════════════ --}}
+{{-- SECTION 8: PRICING --}}
 <section id="pricing" class="py-5 py-lg-6" style="background:#f8fafc; border-top:1px solid var(--landing-line); border-bottom:1px solid var(--landing-line);">
     <div class="container">
         <div class="text-center mb-5">
@@ -623,9 +524,7 @@
     </div>
 </section>
 
-{{-- ═══════════════════════════════════════════════════════════
-     SECTION 9 — FAQ
-     ═══════════════════════════════════════════════════════════ --}}
+{{-- SECTION 9: FAQ --}}
 <section id="faq" class="py-5 py-lg-6">
     <div class="container">
         <div class="row justify-content-center">
@@ -635,32 +534,7 @@
                     <h2 class="landing-section-title">Pertanyaan yang sering ditanyakan.</h2>
                 </div>
                 <div class="d-flex flex-column gap-3">
-                    @foreach([
-                        [
-                            'q' => 'Apakah CRM ini bisa langsung dipakai tanpa pelatihan panjang?',
-                            'a' => 'Ya. Alur CRM Meetra mengikuti cara kerja tim sales yang sudah familiar: catat lead, set follow-up, update stage, catat interaksi. Tidak ada konsep baru yang perlu dipelajari dari awal. Sebagian besar tim bisa produktif di hari pertama.',
-                        ],
-                        [
-                            'q' => 'Berapa orang yang bisa pakai dalam satu workspace?',
-                            'a' => 'Tergantung paket. Paket Starter cocok untuk tim kecil, Growth untuk tim yang berkembang, dan Scale untuk operasional yang lebih besar. Semua tim berada dalam satu workspace yang sama sehingga data terpusat.',
-                        ],
-                        [
-                            'q' => 'Apakah owner bisa melihat aktivitas seluruh tim sales?',
-                            'a' => 'Ya, dengan fitur Manager Visibility (tersedia di paket Growth ke atas). Owner dan manajer bisa melihat pipeline seluruh tim, membandingkan performa antar sales, dan mengidentifikasi deal yang butuh perhatian — tanpa mengganggu alur kerja harian tim.',
-                        ],
-                        [
-                            'q' => 'Kalau ada sales yang resign, datanya ikut hilang tidak?',
-                            'a' => 'Tidak. Semua data lead, deal, dan histori interaksi tersimpan di workspace perusahaan — bukan di akun pribadi sales yang bersangkutan. Deal bisa di-reassign ke sales lain dalam hitungan detik.',
-                        ],
-                        [
-                            'q' => 'Apakah ada integrasi WhatsApp?',
-                            'a' => 'CRM Meetra saat ini fokus sebagai standalone CRM yang solid: pipeline, follow-up, dan Customer 360. Integrasi channel seperti WhatsApp direncanakan hadir ke depannya sebagai perluasan natural — tanpa perlu pindah platform atau setup ulang dari nol.',
-                        ],
-                        [
-                            'q' => 'Apakah ada free trial?',
-                            'a' => 'Ya. Anda bisa mulai dengan trial 14 hari penuh tanpa kartu kredit. Semua fitur sesuai paket yang dipilih aktif sejak hari pertama — tidak ada fitur yang dikunci selama trial.',
-                        ],
-                    ] as $faq)
+                    @foreach($faqs as $faq)
                     <details class="crm-faq-item">
                         <summary>{{ $faq['q'] }}</summary>
                         <div class="crm-faq-body">{{ $faq['a'] }}</div>
@@ -672,9 +546,7 @@
     </div>
 </section>
 
-{{-- ═══════════════════════════════════════════════════════════
-     SECTION 10 — FINAL CTA BAND
-     ═══════════════════════════════════════════════════════════ --}}
+{{-- SECTION 10: FINAL CTA BAND --}}
 <section class="py-5 py-lg-6" style="background:#f8fafc; border-top:1px solid var(--landing-line);">
     <div class="container">
         <div class="landing-cta-band p-5 p-lg-6">

@@ -20,14 +20,15 @@
             </div>
         </div>
 
-        @if(($bundles ?? collect())->isNotEmpty())
+        @php($sampleBundles = isset($bundles) ? $bundles : collect())
+        @if($sampleBundles->isNotEmpty())
             <div class="card mb-3">
                 <div class="card-header">
                     <h3 class="card-title mb-0">Bundles</h3>
                 </div>
                 <div class="card-body">
                     <div class="row g-3">
-                        @foreach($bundles as $bundle)
+                        @foreach($sampleBundles as $bundle)
                             <div class="col-lg-6">
                                 <div class="border rounded p-3 h-100 d-flex flex-column justify-content-between">
                                     <div>

@@ -22,6 +22,7 @@
 @php
     $productsUrl = \Illuminate\Support\Facades\Route::has('products') ? route('products') : url('/products');
     $contactUrl = \Illuminate\Support\Facades\Route::has('contact') ? route('contact') : url('/contact-us');
+    $onboardingUrl = \Illuminate\Support\Facades\Route::has('onboarding.create') ? route('onboarding.create') : url('/onboarding');
 @endphp
 
 @section('topbar')
@@ -39,11 +40,11 @@
                 </a>
                 <a href="{{ $productsUrl }}" class="landing-nav-link d-inline-flex align-items-center gap-2">
                     <i class="ti ti-box"></i>
-                    <span>Produk</span>
+                    <span>Products</span>
                 </a>
                 <a href="{{ route('about') }}" class="landing-nav-link d-inline-flex align-items-center gap-2">
                     <i class="ti ti-building"></i>
-                    <span>Tentang Kami</span>
+                    <span>About Us</span>
                 </a>
                 <a href="{{ $contactUrl }}" class="landing-nav-link d-inline-flex align-items-center gap-2">
                     <i class="ti ti-phone-call"></i>
@@ -51,8 +52,9 @@
                 </a>
             </nav>
             <div class="d-flex align-items-center gap-2">
-                <a href="{{ route('workspace.finder') }}" class="btn btn-outline-dark btn-sm d-none d-md-inline-flex">Login Workspace</a>
-                <a href="{{ $contactUrl }}" class="btn btn-dark btn-sm">Konsultasikan</a>
+                <a href="{{ $contactUrl }}" class="landing-topbar-action d-none d-md-inline-flex">Talk to Sales</a>
+                <a href="{{ route('workspace.finder') }}" class="btn btn-outline-dark btn-sm d-none d-md-inline-flex">Login</a>
+                <a href="{{ $onboardingUrl }}" class="btn btn-dark btn-sm">Sign Up</a>
             </div>
         </div>
     </div>
@@ -73,12 +75,12 @@
                 <div class="mb-3">
                     <x-app-logo variant="default" :height="30" />
                 </div>
-                <p class="landing-footer-tagline mb-4">Satu workspace untuk jalankan bisnis Anda. Semua terhubung, semua terkendali.</p>
+                <p class="landing-footer-tagline mb-4">One workspace to run your business. Everything connected, everything under control.</p>
                 <div class="landing-footer-contact">
                     <a href="https://wa.me/6281222229815" target="_blank" rel="noopener" class="landing-footer-contact-item">
                         <i class="ti ti-brand-whatsapp"></i>
                         <span>+62 812-222-9815</span>
-                        <span class="landing-footer-contact-badge">Chat WhatsApp</span>
+                        <span class="landing-footer-contact-badge">WhatsApp Chat</span>
                     </a>
                     <a href="mailto:support@meetra.id" class="landing-footer-contact-item">
                         <i class="ti ti-mail"></i>
@@ -86,61 +88,62 @@
                     </a>
                     <div class="landing-footer-contact-item">
                         <i class="ti ti-headset"></i>
-                        <span>Dukungan tersedia 24 jam</span>
+                        <span>Support available 24 hours</span>
                     </div>
                 </div>
             </div>
 
             {{-- Produk --}}
             <div class="col-6 col-lg-2">
-                <div class="landing-footer-heading">Produk</div>
+                <div class="landing-footer-heading">Products</div>
                 <nav class="landing-footer-nav">
                     <a href="{{ route('landing') }}">Meetra</a>
                     <a href="{{ $productsUrl }}">Business Suites</a>
                     <a href="{{ route('landing.accounting') }}">Accounting</a>
                     <a href="{{ route('landing.commerce') }}">Commerce</a>
-                    <a href="{{ $contactUrl }}">Konsultasi</a>
-                    <a href="{{ route('about') }}">Tentang Meetra</a>
-                    <a href="{{ route('workspace.finder') }}">Login Workspace</a>
+                    <a href="{{ $onboardingUrl }}">Sign Up</a>
+                    <a href="{{ $contactUrl }}">Talk to Sales</a>
+                    <a href="{{ route('about') }}">About Meetra</a>
+                    <a href="{{ route('workspace.finder') }}">Login</a>
                 </nav>
             </div>
 
             {{-- Perusahaan --}}
             <div class="col-6 col-lg-2">
-                <div class="landing-footer-heading">Perusahaan</div>
+                <div class="landing-footer-heading">Company</div>
                 <nav class="landing-footer-nav">
-                    <a href="{{ route('about') }}">Tentang Kami</a>
+                    <a href="{{ route('about') }}">About Us</a>
                     <a href="{{ $contactUrl }}">Contact Us</a>
-                    <a href="{{ route('affiliate.program') }}">Program Partner</a>
-                    <a href="{{ route('security') }}">Keamanan Data</a>
-                    <a href="{{ route('privacy') }}">Kebijakan Privasi</a>
-                    <a href="{{ route('terms') }}">Syarat &amp; Ketentuan</a>
+                    <a href="{{ route('affiliate.program') }}">Partner Program</a>
+                    <a href="{{ route('security') }}">Data Security</a>
+                    <a href="{{ route('privacy') }}">Privacy Policy</a>
+                    <a href="{{ route('terms') }}">Terms &amp; Conditions</a>
                 </nav>
             </div>
 
             {{-- Trust --}}
             <div class="col-lg-4">
-                <div class="landing-footer-heading">Infrastruktur &amp; Keamanan</div>
+                <div class="landing-footer-heading">Infrastructure &amp; Security</div>
                 <div class="landing-footer-trust-cards">
                     <div class="landing-footer-trust-card">
                         <i class="ti ti-server-2"></i>
                         <div>
-                            <div class="fw-semibold">Server di Indonesia</div>
-                            <div>Data center cloud Tier-1 berlokasi di Indonesia.</div>
+                            <div class="fw-semibold">Servers in Indonesia</div>
+                            <div>Tier-1 cloud data center located in Indonesia.</div>
                         </div>
                     </div>
                     <div class="landing-footer-trust-card">
                         <i class="ti ti-lock"></i>
                         <div>
-                            <div class="fw-semibold">Enkripsi &amp; Isolasi</div>
-                            <div>Setiap workspace terisolasi. Koneksi dienkripsi TLS.</div>
+                            <div class="fw-semibold">Encryption &amp; Isolation</div>
+                            <div>Each workspace is isolated. Connections are secured with TLS.</div>
                         </div>
                     </div>
                     <div class="landing-footer-trust-card">
                         <i class="ti ti-database-heart"></i>
                         <div>
-                            <div class="fw-semibold">Database Kelas Enterprise</div>
-                            <div>Backup otomatis harian, high-availability, zero data loss.</div>
+                            <div class="fw-semibold">Enterprise-Grade Database</div>
+                            <div>Daily automated backups, high availability, zero data loss.</div>
                         </div>
                     </div>
                 </div>
@@ -149,13 +152,13 @@
 
         <div class="landing-footer-bottom">
             <div class="landing-footer-copy">
-                &copy; {{ date('Y') }} {{ config('app.name') }}. Hak cipta dilindungi.
+                &copy; {{ date('Y') }} {{ config('app.name') }}. All rights reserved.
                 <span style="opacity:.45; margin-left:.5rem;">PT Meetra Digital Teknologi</span>
             </div>
             <div class="d-flex align-items-center gap-3 flex-wrap">
-                <span class="landing-footer-trust-pill"><i class="ti ti-shield-check"></i> Data Aman</span>
-                <span class="landing-footer-trust-pill"><i class="ti ti-server-2"></i> Server Indonesia</span>
-                <span class="landing-footer-trust-pill"><i class="ti ti-credit-card"></i> Bayar Lokal</span>
+                <span class="landing-footer-trust-pill"><i class="ti ti-shield-check"></i> Secure Data</span>
+                <span class="landing-footer-trust-pill"><i class="ti ti-server-2"></i> Indonesia Servers</span>
+                <span class="landing-footer-trust-pill"><i class="ti ti-credit-card"></i> Local Payments</span>
             </div>
         </div>
     </div>

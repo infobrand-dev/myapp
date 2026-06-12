@@ -123,29 +123,6 @@
 </style>
 @endpush
 
-@section('topbar')
-<header class="landing-topbar sticky-top">
-    <div class="container py-3">
-        <div class="d-flex align-items-center justify-content-between gap-3">
-            <a href="{{ route('landing') }}" class="text-decoration-none d-inline-flex align-items-center gap-2">
-                <x-app-logo variant="default" :height="36" />
-            </a>
-            <nav class="d-none d-lg-flex align-items-center gap-1 landing-nav-shell">
-                <a href="#masalah"   class="landing-nav-link d-inline-flex align-items-center gap-2"><i class="ti ti-alert-circle"></i><span>Masalah</span></a>
-                <a href="#fitur"     class="landing-nav-link d-inline-flex align-items-center gap-2"><i class="ti ti-sparkles"></i><span>Fitur</span></a>
-                <a href="#cara-kerja" class="landing-nav-link d-inline-flex align-items-center gap-2"><i class="ti ti-route"></i><span>Cara Kerja</span></a>
-                <a href="#pricing"  class="landing-nav-link d-inline-flex align-items-center gap-2"><i class="ti ti-receipt-2"></i><span>Harga</span></a>
-                <a href="#faq"      class="landing-nav-link d-inline-flex align-items-center gap-2"><i class="ti ti-help-circle"></i><span>FAQ</span></a>
-            </nav>
-            <div class="d-flex align-items-center gap-2">
-                <a href="{{ route('workspace.finder') }}" class="btn btn-outline-dark btn-sm d-none d-md-inline-flex">Login Workspace</a>
-                <a href="{{ route('onboarding.create', ['product_line' => 'crm']) }}" class="btn btn-dark btn-sm">Coba CRM Sekarang</a>
-            </div>
-        </div>
-    </div>
-</header>
-@endsection
-
 @section('content')
 @php($money = app(\App\Support\MoneyFormatter::class))
 

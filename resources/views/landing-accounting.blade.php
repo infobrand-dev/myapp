@@ -5,8 +5,7 @@
 
 @push('head')
 <style>
-body.landing-page.accounting-anniversary-page .landing-topbar { top: 52px; z-index: 1030; }
-body.landing-page.accounting-anniversary-page .accounting-floating-promo { position: sticky; top: 0; z-index: 1040; background: radial-gradient(circle at 15% 50%, rgba(255,255,255,.22), transparent 28%), linear-gradient(90deg, #7f1d1d 0%, #dc2626 36%, #be123c 100%); color: #fff; box-shadow: 0 10px 24px rgba(127, 29, 29, .22); }
+body.landing-page.accounting-anniversary-page .accounting-floating-promo { position: sticky; top: 0; z-index: 1020; background: radial-gradient(circle at 15% 50%, rgba(255,255,255,.22), transparent 28%), linear-gradient(90deg, #7f1d1d 0%, #dc2626 36%, #be123c 100%); color: #fff; box-shadow: 0 10px 24px rgba(127, 29, 29, .22); }
 body.landing-page.accounting-anniversary-page .accounting-floating-promo__inner { min-height: 52px; display: flex; align-items: center; justify-content: center; gap: .75rem; flex-wrap: wrap; text-align: center; padding: .6rem 0; }
 body.landing-page.accounting-anniversary-page .accounting-floating-promo__badge { display: inline-flex; align-items: center; gap: .45rem; padding: .35rem .8rem; border-radius: 999px; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22); font-size: .76rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
 body.landing-page.accounting-anniversary-page .accounting-floating-promo__text { font-size: .95rem; font-weight: 600; }
@@ -16,19 +15,17 @@ body.landing-page.accounting-anniversary-page .accounting-floating-promo__cta:ho
 body.landing-page.accounting-anniversary-page .accounting-floating-promo__close { appearance: none; border: 0; width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: rgba(17,24,39,.22); color: #fff; font-size: 1rem; font-weight: 800; line-height: 1; cursor: pointer; }
 body.landing-page.accounting-anniversary-page .accounting-floating-promo__close:hover { background: rgba(17,24,39,.34); }
 body.landing-page.accounting-anniversary-page .accounting-floating-promo.is-hidden { display: none; }
-body.landing-page.accounting-anniversary-page .accounting-floating-promo.is-hidden + .landing-topbar { top: 0; }
 body.landing-page.accounting-anniversary-page .accounting-plan-pricing { margin-bottom: 1rem; }
 body.landing-page.accounting-anniversary-page .accounting-plan-original { color: #94a3b8; font-size: 1rem; font-weight: 700; text-decoration: line-through; text-decoration-thickness: 2px; margin-bottom: .15rem; }
 body.landing-page.accounting-anniversary-page .accounting-plan-final { display: flex; align-items: flex-end; gap: .65rem; flex-wrap: wrap; }
 body.landing-page.accounting-anniversary-page .accounting-plan-discount { display: inline-flex; align-items: center; padding: .28rem .65rem; border-radius: 999px; background: #fee2e2; color: #b91c1c; font-size: .75rem; font-weight: 800; letter-spacing: .03em; }
 @media (max-width: 991.98px) {
-    body.landing-page.accounting-anniversary-page .landing-topbar { top: 0; }
     body.landing-page.accounting-anniversary-page .accounting-floating-promo { position: relative; }
 }
 </style>
 @endpush
 
-@section('topbar')
+@section('content')
 <div class="accounting-floating-promo" id="accountingFloatingPromo">
     <div class="container">
         <div class="accounting-floating-promo__inner">
@@ -40,10 +37,6 @@ body.landing-page.accounting-anniversary-page .accounting-plan-discount { displa
         </div>
     </div>
 </div>
-@parent
-@endsection
-
-@section('content')
 @php
     $money = app(\App\Support\MoneyFormatter::class);
     $plansCollection = collect($publicPlans ?? []);

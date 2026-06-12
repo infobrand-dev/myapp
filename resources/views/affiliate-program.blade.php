@@ -4,27 +4,6 @@
 @section('head_description', 'Informasi ringkas aturan referral, atribusi, dan payout partner ' . config('app.name') . '.')
 
 {{-- Custom topbar — no main nav, different buttons --}}
-@section('topbar')
-<header class="landing-topbar sticky-top">
-    <div class="container py-3 d-flex align-items-center justify-content-between gap-3">
-        <div class="d-flex align-items-center gap-3">
-            <div>
-                <x-app-logo variant="default" :height="40" />
-                <div class="text-muted small">Informasi Partner</div>
-            </div>
-        </div>
-        <div class="d-flex flex-wrap gap-2">
-            <a href="{{ route('landing') }}" class="btn btn-outline-dark">Kembali ke Landing</a>
-            <a href="mailto:{{ config('mail.from.address', 'hello@' . config('multitenancy.saas_domain', 'app.com')) }}" class="btn btn-dark">Diskusi Kemitraan</a>
-        </div>
-    </div>
-</header>
-@endsection
-
-{{-- No footer for affiliate page --}}
-@section('footer')
-@endsection
-
 @section('content')
 @php $money = app(\App\Support\MoneyFormatter::class); @endphp
 

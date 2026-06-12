@@ -272,29 +272,6 @@
 </style>
 @endpush
 
-@section('topbar')
-<header class="landing-topbar sticky-top">
-    <div class="container py-3">
-        <div class="d-flex align-items-center justify-content-between gap-3">
-            <a href="{{ route('landing') }}" class="text-decoration-none d-inline-flex align-items-center gap-2">
-                <x-app-logo variant="default" :height="36" />
-            </a>
-            <nav class="d-none d-lg-flex align-items-center gap-1 landing-nav-shell">
-                <a href="#masalah" class="landing-nav-link d-inline-flex align-items-center gap-2"><i class="ti ti-alert-circle"></i><span>Masalah</span></a>
-                <a href="#layanan" class="landing-nav-link d-inline-flex align-items-center gap-2"><i class="ti ti-browser"></i><span>Layanan</span></a>
-                <a href="#hasil" class="landing-nav-link d-inline-flex align-items-center gap-2"><i class="ti ti-checklist"></i><span>Hasil</span></a>
-                <a href="#proses" class="landing-nav-link d-inline-flex align-items-center gap-2"><i class="ti ti-route"></i><span>Proses</span></a>
-            </nav>
-            <div class="d-flex align-items-center gap-2">
-                <a href="{{ $heroWa }}" target="_blank" rel="noopener" class="btn btn-wa btn-sm">
-                    <i class="ti ti-brand-whatsapp me-1"></i>Chat WhatsApp
-                </a>
-            </div>
-        </div>
-    </div>
-</header>
-@endsection
-
 @section('content')
 <section class="landing-hero py-5 py-lg-6" style="background:radial-gradient(circle at top left, rgba(59,130,246,.14), transparent 34%), linear-gradient(180deg,#f8fbff 0%,#fff 56%,#f8fafc 100%); border-bottom:1px solid var(--landing-line);">
     <div class="container py-lg-4">

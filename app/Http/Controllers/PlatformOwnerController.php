@@ -23,6 +23,7 @@ use App\Services\PlatformMidtransBillingService;
 use App\Services\PlatformPromoCodeService;
 use App\Services\TenantOnboardingSalesService;
 use App\Support\ByoAiAddon;
+use App\Support\ModuleManager;
 use App\Support\PlanFeature;
 use App\Support\PlanLimit;
 use App\Support\PlanProductLineMap;
@@ -287,7 +288,13 @@ class PlatformOwnerController extends Controller
         ]);
     }
 
-    public function tenant(Tenant $tenant, TenantPlanManager $planManager, AiUsageService $aiUsage, AiCreditPricingService $aiPricing): View
+    public function tenant(
+        Tenant $tenant,
+        TenantPlanManager $planManager,
+        AiUsageService $aiUsage,
+        AiCreditPricingService $aiPricing,
+        ModuleManager $moduleManager
+    ): View
     {
         $relations = [
             'activeSubscription.plan',
@@ -338,6 +345,19 @@ class PlatformOwnerController extends Controller
             ->groupBy(fn (SubscriptionPlan $plan) => $plan->productLineLabel() ?: 'Default')
             ->sortKeys();
 
+        $allModules = collect($moduleManager->all())->values();
+        $activePlanModules = $activePlans->mapWithKeys(function (TenantSubscription $subscription, string $productLine) use ($allModules) {
+            $plan = $subscription->plan;
+
+            return [
+                $productLine => [
+                    'plan' => $plan,
+                    'subscription' => $subscription,
+                    'modules' => $plan ? $this->unlockedModulesForPlan($plan, $allModules) : collect(),
+                ],
+            ];
+        });
+
         $orderPosAddonDefaults = $plans
             ->mapWithKeys(fn (SubscriptionPlan $plan) => [
                 $plan->id => [
@@ -351,6 +371,7 @@ class PlatformOwnerController extends Controller
             'plans' => $plans,
             'plansByProductLine' => $plansByProductLine,
             'activePlans' => $activePlans,
+            'activePlanModules' => $activePlanModules,
             'orderPosAddonDefaults' => $orderPosAddonDefaults,
             'ordersReady' => $this->orderTableReady(),
             'invoicesReady' => $this->invoiceTableReady(),
@@ -373,6 +394,33 @@ class PlatformOwnerController extends Controller
                 ],
             ],
         ]);
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, array<string, mixed>>  $allModules
+     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
+     */
+    private function unlockedModulesForPlan(SubscriptionPlan $plan, $allModules)
+    {
+        $planFeatureKeys = array_keys(array_filter($plan->features ?? []));
+
+        return $allModules
+            ->filter(function (array $module) use ($planFeatureKeys) {
+                $req = PlanFeature::moduleFeatureRequirement((string) ($module['slug'] ?? ''));
+                $allReq = (array) ($req['all'] ?? []);
+                $anyReq = (array) ($req['any'] ?? []);
+
+                if ($allReq !== []) {
+                    return count(array_intersect($planFeatureKeys, $allReq)) === count($allReq);
+                }
+
+                if ($anyReq !== []) {
+                    return count(array_intersect($planFeatureKeys, $anyReq)) > 0;
+                }
+
+                return false;
+            })
+            ->values();
     }
 
     public function updateAiCreditPricing(Request $request, AiCreditPricingService $aiPricing): RedirectResponse
@@ -514,6 +562,28 @@ class PlatformOwnerController extends Controller
         ]);
     }
 
+    public function createPlan(): View
+    {
+        $plan = new SubscriptionPlan([
+            'billing_interval' => 'monthly',
+            'sort_order' => 0,
+            'is_active' => true,
+            'is_public' => false,
+            'is_system' => false,
+            'features' => [],
+            'limits' => [],
+            'meta' => [],
+        ]);
+
+        return view('platform.plans.create', [
+            'plan' => $plan,
+            'featureLabels' => $this->featureLabels(),
+            'limitLabels' => self::LIMIT_LABELS,
+            'productLineOptions' => $this->productLineOptions(),
+            'planPresets' => $this->planPresetTemplates(),
+        ]);
+    }
+
     public function updateTenantStatus(Request $request, Tenant $tenant): RedirectResponse
     {
         $data = $request->validate([
@@ -550,57 +620,22 @@ class PlatformOwnerController extends Controller
 
     public function updatePlan(Request $request, SubscriptionPlan $plan): RedirectResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:100'],
-            'product_line' => ['nullable', 'string', 'max:50'],
-            'billing_interval' => ['nullable', 'string', 'max:50'],
-            'sort_order' => ['nullable', 'integer', 'min:0'],
-            'is_active' => ['nullable', 'boolean'],
-            'is_public' => ['nullable', 'boolean'],
-            'features' => ['nullable', 'array'],
-            'limits' => ['nullable', 'array'],
-            'point_of_sale_addon_price' => ['nullable', 'numeric', 'min:0'],
-        ]);
-
-        $features = [];
-        foreach (array_keys($this->featureLabels()) as $featureKey) {
-            $features[$featureKey] = !empty(($data['features'] ?? [])[$featureKey]);
-        }
-
-        $limits = [];
-        foreach (array_keys(self::LIMIT_LABELS) as $limitKey) {
-            $raw = $data['limits'][$limitKey] ?? null;
-            $limits[$limitKey] = ($raw === null || $raw === '') ? null : (int) $raw;
-        }
-
-        $meta = (array) ($plan->meta ?? []);
-        $meta['product_line'] = $data['product_line'] ?: null;
-
-        if (($data['product_line'] ?: null) === 'accounting') {
-            data_set(
-                $meta,
-                'addons.point_of_sale.price',
-                round((float) ($data['point_of_sale_addon_price'] ?? 0), 2)
-            );
-            data_set($meta, 'addons.point_of_sale.currency', (string) ($meta['currency'] ?? 'IDR'));
-        } else {
-            data_forget($meta, 'addons.point_of_sale');
-        }
-
-        $plan->forceFill([
-            'name' => $data['name'],
-            'billing_interval' => $data['billing_interval'] ?: null,
-            'sort_order' => (int) ($data['sort_order'] ?? 0),
-            'is_active' => (bool) ($data['is_active'] ?? false),
-            'is_public' => (bool) ($data['is_public'] ?? false),
-            'features' => $features,
-            'limits' => $limits,
-            'meta' => $meta,
-        ])->save();
+        $this->savePlanFromRequest($request, $plan, false);
 
         return redirect()
             ->route('platform.plans.index')
             ->with('status', 'Plan berhasil diperbarui.');
+    }
+
+    public function storePlan(Request $request): RedirectResponse
+    {
+        $plan = new SubscriptionPlan();
+
+        $this->savePlanFromRequest($request, $plan, true);
+
+        return redirect()
+            ->route('platform.plans.edit', $plan)
+            ->with('status', 'Plan baru berhasil dibuat.');
     }
 
     public function assignPlan(Request $request, Tenant $tenant): RedirectResponse
@@ -1224,6 +1259,67 @@ class PlatformOwnerController extends Controller
         ];
     }
 
+    private function savePlanFromRequest(Request $request, SubscriptionPlan $plan, bool $isCreate): void
+    {
+        $data = $request->validate([
+            'code' => $isCreate
+                ? ['required', 'string', 'max:100', 'alpha_dash', Rule::unique('subscription_plans', 'code')]
+                : ['nullable', 'string'],
+            'name' => ['required', 'string', 'max:100'],
+            'product_line' => ['nullable', 'string', 'max:50'],
+            'billing_interval' => ['nullable', 'string', 'max:50'],
+            'sort_order' => ['nullable', 'integer', 'min:0'],
+            'is_active' => ['nullable', 'boolean'],
+            'is_public' => ['nullable', 'boolean'],
+            'features' => ['nullable', 'array'],
+            'limits' => ['nullable', 'array'],
+            'point_of_sale_addon_price' => ['nullable', 'numeric', 'min:0'],
+        ]);
+
+        $features = [];
+        foreach (array_keys($this->featureLabels()) as $featureKey) {
+            $features[$featureKey] = !empty(($data['features'] ?? [])[$featureKey]);
+        }
+
+        $limits = [];
+        foreach (array_keys(self::LIMIT_LABELS) as $limitKey) {
+            $raw = $data['limits'][$limitKey] ?? null;
+            $limits[$limitKey] = ($raw === null || $raw === '') ? null : (int) $raw;
+        }
+
+        $meta = (array) ($plan->meta ?? []);
+        $meta['product_line'] = $data['product_line'] ?: null;
+
+        if (($data['product_line'] ?: null) === 'accounting') {
+            data_set(
+                $meta,
+                'addons.point_of_sale.price',
+                round((float) ($data['point_of_sale_addon_price'] ?? 0), 2)
+            );
+            data_set($meta, 'addons.point_of_sale.currency', (string) ($meta['currency'] ?? 'IDR'));
+        } else {
+            data_forget($meta, 'addons.point_of_sale');
+        }
+
+        $payload = [
+            'name' => $data['name'],
+            'billing_interval' => $data['billing_interval'] ?: null,
+            'sort_order' => (int) ($data['sort_order'] ?? 0),
+            'is_active' => (bool) ($data['is_active'] ?? false),
+            'is_public' => (bool) ($data['is_public'] ?? false),
+            'features' => $features,
+            'limits' => $limits,
+            'meta' => $meta,
+        ];
+
+        if ($isCreate) {
+            $payload['code'] = trim((string) $data['code']);
+            $payload['is_system'] = false;
+        }
+
+        $plan->forceFill($payload)->save();
+    }
+
     private function productLineOptions(): array
     {
         return [
@@ -1376,6 +1472,63 @@ class PlatformOwnerController extends Controller
                     PlanLimit::EMAIL_RECIPIENTS_MONTHLY => 0,
                     PlanLimit::AI_CREDITS_MONTHLY => 2500,
                     PlanLimit::CHATBOT_KNOWLEDGE_DOCUMENTS => 200,
+                    PlanLimit::BYO_CHATBOT_ACCOUNTS => 0,
+                    PlanLimit::BYO_AI_REQUESTS_MONTHLY => 0,
+                    PlanLimit::BYO_AI_TOKENS_MONTHLY => 0,
+                    PlanLimit::AUTOMATION_WORKFLOWS => 0,
+                    PlanLimit::AUTOMATION_EXECUTIONS_MONTHLY => 0,
+                ],
+            ],
+            'custom_offer_omni_accounting_pos' => [
+                'label' => 'Custom Offer Omni + Accounting + POS',
+                'description' => 'Preset internal untuk penawaran tenant yang butuh kombinasi omnichannel, accounting, dan POS dalam satu plan.',
+                'product_line' => 'internal',
+                'meta' => [
+                    'addons' => [
+                        'point_of_sale' => [
+                            'price' => 0,
+                        ],
+                    ],
+                ],
+                'features' => [
+                    PlanFeature::MULTI_COMPANY => true,
+                    PlanFeature::CONVERSATIONS => true,
+                    PlanFeature::CRM => true,
+                    PlanFeature::ACCOUNTING => true,
+                    PlanFeature::COMMERCE => false,
+                    PlanFeature::PROJECT_MANAGEMENT => false,
+                    PlanFeature::LIVE_CHAT => true,
+                    PlanFeature::SOCIAL_MEDIA => true,
+                    PlanFeature::CHATBOT_AI => false,
+                    PlanFeature::CHATBOT_BYO_AI => false,
+                    PlanFeature::WHATSAPP_API => true,
+                    PlanFeature::WHATSAPP_WEB => true,
+                    PlanFeature::EMAIL_MARKETING => false,
+                    PlanFeature::ADVANCED_REPORTS => true,
+                    PlanFeature::CUSTOM_DOMAINS => true,
+                    PlanFeature::POINT_OF_SALE => true,
+                    'multi_branch' => true,
+                    'inventory' => false,
+                    'finance' => true,
+                    'pos' => true,
+                ],
+                'limits' => [
+                    PlanLimit::COMPANIES => 1,
+                    PlanLimit::BRANCHES => 5,
+                    PlanLimit::USERS => 25,
+                    PlanLimit::TOTAL_STORAGE_BYTES => 10737418240,
+                    PlanLimit::PRODUCTS => 2500,
+                    PlanLimit::CONTACTS => 25000,
+                    PlanLimit::WHATSAPP_INSTANCES => 2,
+                    PlanLimit::SOCIAL_ACCOUNTS => 5,
+                    PlanLimit::LIVE_CHAT_WIDGETS => 3,
+                    PlanLimit::CHATBOT_ACCOUNTS => 0,
+                    PlanLimit::EMAIL_INBOX_ACCOUNTS => 1,
+                    PlanLimit::EMAIL_CAMPAIGNS => 0,
+                    PlanLimit::WA_BLAST_RECIPIENTS_MONTHLY => 3000,
+                    PlanLimit::EMAIL_RECIPIENTS_MONTHLY => 0,
+                    PlanLimit::AI_CREDITS_MONTHLY => 0,
+                    PlanLimit::CHATBOT_KNOWLEDGE_DOCUMENTS => 0,
                     PlanLimit::BYO_CHATBOT_ACCOUNTS => 0,
                     PlanLimit::BYO_AI_REQUESTS_MONTHLY => 0,
                     PlanLimit::BYO_AI_TOKENS_MONTHLY => 0,

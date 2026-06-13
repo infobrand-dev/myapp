@@ -66,6 +66,8 @@ Route::middleware(['auth', 'verified', '2fa', 'platform.admin', \App\Http\Middle
         Route::post('/tenants/{tenant}/assign-plan', [PlatformOwnerController::class, 'assignPlan'])->name('tenants.assign-plan');
         Route::post('/tenants/{tenant}/orders', [PlatformOwnerController::class, 'createOrder'])->name('tenants.orders.store');
         Route::get('/plans', [PlatformOwnerController::class, 'plans'])->name('plans.index');
+        Route::get('/plans/create', [PlatformOwnerController::class, 'createPlan'])->name('plans.create');
+        Route::post('/plans', [PlatformOwnerController::class, 'storePlan'])->name('plans.store');
         Route::get('/plans/{plan}/edit', [PlatformOwnerController::class, 'editPlan'])->name('plans.edit');
         Route::put('/plans/{plan}', [PlatformOwnerController::class, 'updatePlan'])->name('plans.update');
         Route::get('/go-live', [PlatformOwnerController::class, 'golive'])->name('golive');

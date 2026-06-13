@@ -83,7 +83,7 @@ class DiscountController extends Controller
         abort_unless(request()->user()?->can('discounts.delete'), 403);
 
         if ($discount->usages()->exists()) {
-            return back()->with('error', 'Tidak bisa dihapus — diskon sudah pernah digunakan. Gunakan Arsip.');
+            return back()->with('error', 'Tidak bisa dihapus karena discount sudah pernah digunakan. Gunakan Arsip.');
         }
 
         $discount->delete();

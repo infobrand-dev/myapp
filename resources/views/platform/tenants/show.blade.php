@@ -43,6 +43,7 @@
                                     <div class="d-flex align-items-center justify-content-between gap-2">
                                         <div class="fw-semibold">{{ optional($subscription->plan)->productLineLabel() ?? \Illuminate\Support\Str::headline($productLine) }}</div>
                                         <div class="d-flex align-items-center gap-2">
+                                            <a href="#plan-modules-{{ $productLine }}" class="btn btn-sm btn-outline-secondary">Lihat modules</a>
                                             <span class="badge bg-success-lt text-success">{{ optional($subscription->plan)->name ?? 'Active' }}</span>
                                             <form method="POST" action="{{ route('platform.tenants.subscriptions.cancel', [$tenant, $subscription]) }}">
                                                 @csrf
@@ -63,6 +64,7 @@
                                             sampai {{ $subscription->ends_at->format('d M Y') }}
                                         @endif
                                     </div>
+                                    <div class="text-muted small mt-2">Klik card ini untuk lihat modul yang aktif di product line ini.</div>
                                     @if(($subscription->productLine() ?? null) === 'accounting')
                                         <div class="mt-2">
                                             @if((bool) data_get($subscription->feature_overrides, \App\Support\PlanFeature::POINT_OF_SALE, false))
@@ -332,6 +334,69 @@
                         </div>
                     </div>
                 @endif
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header d-flex align-items-center justify-content-between gap-3">
+                    <div>
+                        <h3 class="card-title mb-0">Detail Modules Aktif</h3>
+                        <div class="text-muted small mt-1">Modul di bawah ini dibuka dari plan yang sedang aktif per product line.</div>
+                    </div>
+                    <div class="text-muted small">Klik card plan di kiri untuk lompat ke section terkait.</div>
+                </div>
+                <div class="card-body">
+                    @forelse($activePlanModules as $productLine => $entry)
+                        <div class="{{ !$loop->first ? 'mt-4 pt-4 border-top' : '' }}" id="plan-modules-{{ $productLine }}">
+                            <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap mb-3">
+                                <div>
+                                    <div class="text-secondary text-uppercase small fw-bold">{{ optional($entry['plan'])->productLineLabel() ?? \Illuminate\Support\Str::headline($productLine) }}</div>
+                                    <div class="fw-semibold mt-1">{{ optional($entry['plan'])->display_name ?? optional($entry['plan'])->name ?? 'Plan aktif' }}</div>
+                                    <div class="text-muted small mt-1">
+                                        {{ $entry['modules']->count() }} module aktif di plan ini
+                                        @if(optional($entry['subscription'])->starts_at)
+                                            · sejak {{ optional($entry['subscription'])->starts_at->format('d M Y') }}
+                                        @endif
+                                    </div>
+                                </div>
+                                <span class="badge bg-success-lt text-success">{{ optional($entry['subscription'])->status ?? 'active' }}</span>
+                            </div>
+
+                            @if($entry['modules']->isNotEmpty())
+                                <div class="row g-2">
+                                    @foreach($entry['modules'] as $module)
+                                        <div class="col-md-6 col-xl-4">
+                                            <div class="border rounded-3 p-3 h-100">
+                                                <div class="d-flex align-items-start gap-3">
+                                                    <div class="d-flex align-items-center justify-content-center rounded bg-azure-lt text-azure" style="width: 2.75rem; height: 2.75rem; flex: 0 0 2.75rem;">
+                                                        @include('shared.module-icon', ['module' => $module, 'size' => 20])
+                                                    </div>
+                                                    <div class="min-w-0">
+                                                        <div class="fw-semibold">{{ $module['name'] }}</div>
+                                                        <div class="text-muted small">{{ $module['slug'] }}</div>
+                                                        @if(!empty($module['description']))
+                                                            <div class="text-muted small mt-1">{{ \Illuminate\Support\Str::limit($module['description'], 96) }}</div>
+                                                        @endif
+                                                        @if(!empty($module['requires']))
+                                                            <div class="mt-2 d-flex flex-wrap gap-1">
+                                                                @foreach($module['requires'] as $required)
+                                                                    <span class="badge bg-secondary-lt text-secondary">{{ $required }}</span>
+                                                                @endforeach
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @else
+                                <div class="text-muted small">Belum ada module yang dipetakan langsung ke plan ini.</div>
+                            @endif
+                        </div>
+                    @empty
+                        <div class="text-muted small">Tenant ini belum punya active plan yang bisa dipetakan ke modul.</div>
+                    @endforelse
+                </div>
             </div>
 
             <div class="card mt-3">

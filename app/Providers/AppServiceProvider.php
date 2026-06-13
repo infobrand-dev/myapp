@@ -18,6 +18,8 @@ use App\Contracts\PublicStorefrontResponder;
 use App\Contracts\RajaOngkirShippingGateway;
 use App\Contracts\TripayCheckoutGateway;
 use App\Contracts\XenditCheckoutGateway;
+use App\Modules\Conversations\Contracts\InboxMessageIngester;
+use App\Modules\Conversations\Services\ConversationInboxIngester;
 use App\Services\FileMalwareScanner;
 use App\Services\FileMediaProcessor;
 use App\Services\NullBiteshipShippingGateway;
@@ -87,6 +89,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(RajaOngkirShippingGateway::class, NullRajaOngkirShippingGateway::class);
         $this->app->bind(FileMalwareScanner::class, NullFileMalwareScanner::class);
         $this->app->bind(FileMediaProcessor::class, NullFileMediaProcessor::class);
+        if (interface_exists(InboxMessageIngester::class) && class_exists(ConversationInboxIngester::class)) {
+            $this->app->bind(InboxMessageIngester::class, ConversationInboxIngester::class);
+        }
         $this->app->singleton(ModuleManager::class, fn () => new ModuleManager());
         $this->app->singleton(ModuleIconRegistry::class, fn () => new ModuleIconRegistry());
         $this->app->singleton(HookManager::class, fn () => new HookManager());

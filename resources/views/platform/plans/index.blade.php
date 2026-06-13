@@ -13,12 +13,17 @@
             <div class="col">
                 <div class="page-pretitle">Platform Owner</div>
                 <h2 class="page-title">Katalog Plan</h2>
-                <p class="text-muted mb-0">Produk SaaS, feature flag, kuota, dan distribusi subscription.</p>
+                <p class="text-muted mb-0">Produk SaaS, feature flag, kuota, dan modul yang terbuka per plan.</p>
             </div>
             <div class="col-auto">
-                <a href="{{ route('platform.dashboard') }}" class="btn btn-outline-secondary">
-                    <i class="ti ti-arrow-left me-1"></i>Dashboard
-                </a>
+                <div class="d-flex gap-2">
+                    <a href="{{ route('platform.plans.create') }}" class="btn btn-primary">
+                        <i class="ti ti-plus me-1"></i>Buat Plan
+                    </a>
+                    <a href="{{ route('platform.dashboard') }}" class="btn btn-outline-secondary">
+                        <i class="ti ti-arrow-left me-1"></i>Dashboard
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -31,23 +36,30 @@
                     $req = \App\Support\PlanFeature::moduleFeatureRequirement((string) ($module['slug'] ?? ''));
                     $allReq = (array) ($req['all'] ?? []);
                     $anyReq = (array) ($req['any'] ?? []);
+
                     if ($allReq !== []) {
                         return count(array_intersect($planFeatureKeys, $allReq)) === count($allReq);
                     }
+
                     if ($anyReq !== []) {
                         return count(array_intersect($planFeatureKeys, $anyReq)) > 0;
                     }
+
                     return false;
                 })->values();
+
+                $enabledFeatureCount = count($planFeatureKeys);
+                $configuredLimitCount = count(array_filter((array) ($plan->limits ?? []), fn ($value) => $value !== null && $value !== ''));
             @endphp
+
             <div class="col-xl-6">
                 <div class="card h-100">
-                    <div class="card-header d-flex align-items-center justify-content-between">
+                    <div class="card-header d-flex align-items-center justify-content-between gap-3">
                         <div>
                             <h3 class="card-title mb-0">{{ $plan->display_name }}</h3>
                             <div class="text-muted small">{{ $plan->code }} · {{ $plan->billing_interval ?: 'custom' }}</div>
                         </div>
-                        <div class="d-flex align-items-center gap-2">
+                        <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
                             @if(($plan->meta['plan_revision'] ?? null) === 'v2')
                                 <span class="badge bg-blue-lt text-blue">V2</span>
                             @elseif(($plan->meta['sales_status'] ?? null) === 'legacy')
@@ -61,6 +73,7 @@
                             </a>
                         </div>
                     </div>
+
                     <div class="card-body">
                         <div class="row g-3 mb-4">
                             <div class="col-sm-4">
@@ -74,18 +87,25 @@
                                 </div>
                             </div>
                             <div class="col-sm-4">
-                                <div class="text-secondary text-uppercase small fw-bold mb-1">POS Add-on</div>
-                                <div class="fs-5 fw-semibold">
-                                    @if(($plan->productLine() === 'accounting') && data_get($plan->meta, 'addons.point_of_sale.price') !== null)
-                                        Rp {{ number_format((float) data_get($plan->meta, 'addons.point_of_sale.price', 0), 0, ',', '.') }}
-                                    @else
-                                        <span class="text-muted">—</span>
-                                    @endif
-                                </div>
+                                <div class="text-secondary text-uppercase small fw-bold mb-1">Feature Aktif</div>
+                                <div class="fs-4 fw-bold">{{ $enabledFeatureCount }}</div>
+                                <div class="text-muted small mt-1">{{ $configuredLimitCount }} limit dikunci</div>
                             </div>
                             <div class="col-sm-4">
                                 <div class="text-secondary text-uppercase small fw-bold mb-1">Subscriptions</div>
                                 <div class="fs-4 fw-bold">{{ $plan->subscriptions_count }}</div>
+                            </div>
+                            <div class="col-sm-12">
+                                <div class="border rounded-3 px-3 py-2 bg-body-tertiary">
+                                    <div class="text-secondary text-uppercase small fw-bold mb-1">POS Add-on</div>
+                                    <div class="fw-semibold">
+                                        @if(($plan->productLine() === 'accounting') && data_get($plan->meta, 'addons.point_of_sale.price') !== null)
+                                            Rp {{ number_format((float) data_get($plan->meta, 'addons.point_of_sale.price', 0), 0, ',', '.') }}
+                                        @else
+                                            <span class="text-muted">Tidak dipakai di plan ini</span>
+                                        @endif
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -122,19 +142,37 @@
                             </div>
                         </div>
 
-                        {{-- Modules aktif --}}
                         <div class="border-top pt-3">
-                            <div class="text-secondary text-uppercase small fw-bold mb-2">
-                                Modules Aktif <span class="badge bg-secondary-lt text-secondary ms-1">{{ $unlockedModules->count() }}</span>
+                            <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                                <div class="text-secondary text-uppercase small fw-bold">
+                                    Modules Aktif <span class="badge bg-secondary-lt text-secondary ms-1">{{ $unlockedModules->count() }}</span>
+                                </div>
+                                <div class="text-muted small">Modul yang dibuka oleh feature plan ini</div>
                             </div>
+
                             @if($unlockedModules->isNotEmpty())
-                                <div class="d-flex flex-wrap gap-1">
-                                    @foreach($unlockedModules as $mod)
-                                        <span class="badge bg-blue-lt text-blue">{{ $mod['name'] }}</span>
+                                <div class="row g-2">
+                                    @foreach($unlockedModules as $module)
+                                        <div class="col-sm-6">
+                                            <div class="border rounded-3 p-2 h-100">
+                                                <div class="d-flex align-items-start gap-2">
+                                                    <div class="d-flex align-items-center justify-content-center rounded bg-blue-lt text-blue" style="width: 2.25rem; height: 2.25rem; flex: 0 0 2.25rem;">
+                                                        @include('shared.module-icon', ['module' => $module, 'size' => 18])
+                                                    </div>
+                                                    <div class="min-w-0">
+                                                        <div class="fw-semibold small">{{ $module['name'] }}</div>
+                                                        <div class="text-muted small">{{ $module['slug'] }}</div>
+                                                        @if(!empty($module['description']))
+                                                            <div class="text-muted" style="font-size:.75rem;">{{ \Illuminate\Support\Str::limit($module['description'], 72) }}</div>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     @endforeach
                                 </div>
                             @else
-                                <span class="text-muted small">Tidak ada module yang terkunci ke fitur plan ini.</span>
+                                <div class="text-muted small">Tidak ada modul yang dipetakan langsung ke feature plan ini.</div>
                             @endif
                         </div>
                     </div>

@@ -16,7 +16,6 @@ use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\URL;
 use Illuminate\View\View;
 
@@ -33,6 +32,7 @@ class PublicStorefrontController extends Controller
     public function index(Request $request): View
     {
         abort_if($request->attributes->get('platform_admin_host'), 404);
+        $this->ensureViewNamespace();
         if ($request->attributes->has('tenant_id')) {
             TenantContext::setCurrentId((int) $request->attributes->get('tenant_id'));
         }
@@ -100,6 +100,7 @@ class PublicStorefrontController extends Controller
     public function show(Request $request, Product $product): View
     {
         abort_if($request->attributes->get('platform_admin_host'), 404);
+        $this->ensureViewNamespace();
         if ($request->attributes->has('tenant_id')) {
             TenantContext::setCurrentId((int) $request->attributes->get('tenant_id'));
         }
@@ -132,6 +133,7 @@ class PublicStorefrontController extends Controller
     public function offer(Request $request, Product $product): View
     {
         abort_if($request->attributes->get('platform_admin_host'), 404);
+        $this->ensureViewNamespace();
         if ($request->attributes->has('tenant_id')) {
             TenantContext::setCurrentId((int) $request->attributes->get('tenant_id'));
         }
@@ -165,6 +167,7 @@ class PublicStorefrontController extends Controller
     public function cart(Request $request): View
     {
         abort_if($request->attributes->get('platform_admin_host'), 404);
+        $this->ensureViewNamespace();
         if ($request->attributes->has('tenant_id')) {
             TenantContext::setCurrentId((int) $request->attributes->get('tenant_id'));
         }
@@ -187,6 +190,7 @@ class PublicStorefrontController extends Controller
     public function checkout(Request $request): View
     {
         abort_if($request->attributes->get('platform_admin_host'), 404);
+        $this->ensureViewNamespace();
         if ($request->attributes->has('tenant_id')) {
             TenantContext::setCurrentId((int) $request->attributes->get('tenant_id'));
         }
@@ -222,6 +226,7 @@ class PublicStorefrontController extends Controller
     public function order(Request $request, int $sale): View
     {
         abort_if($request->attributes->get('platform_admin_host'), 404);
+        $this->ensureViewNamespace();
         if ($request->attributes->has('tenant_id')) {
             TenantContext::setCurrentId((int) $request->attributes->get('tenant_id'));
         }
@@ -311,6 +316,11 @@ class PublicStorefrontController extends Controller
         }
 
         return $product->track_stock ? 'physical' : 'service';
+    }
+
+    private function ensureViewNamespace(): void
+    {
+        app('view')->addNamespace('storefront', dirname(__DIR__, 2) . '/resources/views');
     }
 
     /**

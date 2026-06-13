@@ -68,12 +68,25 @@ class TenantRegistry
     private function supportedRelations(): array
     {
         $connection = config('multitenancy.central_connection', 'central');
-        $relations = ['domains'];
+        $relations = [];
 
-        if (Schema::connection($connection)->hasTable('tenant_topologies')) {
+        if ($this->hasCentralTable($connection, 'tenant_domains')) {
+            $relations[] = 'domains';
+        }
+
+        if ($this->hasCentralTable($connection, 'tenant_topologies')) {
             $relations[] = 'topology.database.server';
         }
 
         return $relations;
+    }
+
+    private function hasCentralTable(string $connection, string $table): bool
+    {
+        try {
+            return Schema::connection($connection)->hasTable($table);
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 }

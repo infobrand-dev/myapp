@@ -125,6 +125,10 @@
 
 @section('content')
 @php($money = app(\App\Support\MoneyFormatter::class))
+@php
+    $crmConsultationText = urlencode('Halo, saya ingin konsultasi paket CRM yang tepat untuk tim sales saya.');
+    $crmFinalCtaText = urlencode('Halo, saya ingin tahu lebih lanjut tentang CRM Meetra sebelum daftar.');
+@endphp
 
 {{-- SECTION 1: HERO --}}
 <section class="landing-hero py-5 py-lg-6" style="background:radial-gradient(circle at top right,rgba(37,99,235,.15),transparent 40%), linear-gradient(160deg,#f8fafc 0%,#eef6ff 55%,#f0f9ff 100%); border-bottom:1px solid var(--landing-line);">
@@ -491,7 +495,7 @@
                     <div>
                         <div class="fw-semibold mb-1">Tidak yakin paket mana yang cocok untuk tim Anda?</div>
                         <div class="crm-card-text mb-2">Ceritakan ukuran tim dan volume lead per bulan ke kami — kami bantu rekomendasikan paket yang tepat.</div>
-                        <a href="https://wa.me/6281222229815?text={{ urlencode('Halo, saya ingin konsultasi paket CRM yang tepat untuk tim sales saya.') }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-dark">
+                        <a href="https://wa.me/6281222229815?text={{ $crmConsultationText }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-dark">
                             <i class="ti ti-brand-whatsapp me-1"></i>Chat WhatsApp
                         </a>
                     </div>
@@ -540,7 +544,7 @@
                         <a href="{{ route('onboarding.create', ['product_line' => 'crm']) }}" class="btn btn-lg" style="background:#fff; color:#0f172a; font-weight:700; border-radius:999px;">
                             <i class="ti ti-arrow-right me-1"></i>Buat Workspace CRM
                         </a>
-                        <a href="https://wa.me/6281222229815?text={{ urlencode('Halo, saya ingin tahu lebih lanjut tentang CRM Meetra sebelum daftar.') }}" target="_blank" rel="noopener"
+                        <a href="https://wa.me/6281222229815?text={{ $crmFinalCtaText }}" target="_blank" rel="noopener"
                            class="btn btn-lg btn-outline-light" style="border-radius:999px;">
                             <i class="ti ti-brand-whatsapp me-1"></i>Tanya Dulu via WA
                         </a>

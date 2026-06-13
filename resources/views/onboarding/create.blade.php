@@ -169,20 +169,19 @@
                         $defaultInterval    = $selectedPlanModel?->billing_interval ?? 'monthly';
 
                         // Compute savings % for semiannual / yearly vs cheapest monthly
-                        $cheapestMonthlyPrice = (float) optional(
-                            $plansByIntervalAll->get('monthly', collect())
-                                ->sortBy(fn($p) => (float)($p->sales_meta['price'] ?? 0))
-                                ->first()
-                        )->sales_meta['price'] ?? 0;
+                        $cheapestMonthlyPlan = $plansByIntervalAll->get('monthly', collect())
+                            ->sortBy(fn($p) => (float) data_get($p->sales_meta, 'price', 0))
+                            ->first();
+                        $cheapestMonthlyPrice = (float) data_get($cheapestMonthlyPlan?->sales_meta, 'price', 0);
 
                         $intervalSavingsPct = [];
                         $savingsMonths = ['semiannual' => 6, 'yearly' => 12];
                         foreach ($savingsMonths as $intKey => $months) {
                             $cheapest = $plansByIntervalAll->get($intKey, collect())
-                                ->sortBy(fn($p) => (float)($p->sales_meta['price'] ?? 0))
+                                ->sortBy(fn($p) => (float) data_get($p->sales_meta, 'price', 0))
                                 ->first();
                             if ($cheapest && $cheapestMonthlyPrice > 0) {
-                                $intPrice = (float)($cheapest->sales_meta['price'] ?? 0);
+                                $intPrice = (float) data_get($cheapest->sales_meta, 'price', 0);
                                 if ($intPrice > 0) {
                                     $saved = ($cheapestMonthlyPrice * $months) - $intPrice;
                                     $pct   = (int) round(($saved / ($cheapestMonthlyPrice * $months)) * 100);

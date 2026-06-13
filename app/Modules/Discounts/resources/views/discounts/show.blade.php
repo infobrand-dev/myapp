@@ -1,95 +1,197 @@
-﻿@extends('layouts.tenant')
+@extends('layouts.tenant')
+
+@section('title', $discount->internal_name)
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h2 class="mb-0">{{ $discount->internal_name }}</h2>
-        <div class="text-muted small">{{ $discount->public_label ?: 'Tanpa public label' }} @if($discount->code) | Code: {{ $discount->code }} @endif</div>
-    </div>
-    <div class="d-flex gap-2">
-        <a href="{{ route('discounts.edit', $discount) }}" class="btn btn-outline-secondary">Edit</a>
-        <a href="{{ route('discounts.usages.index', ['discount_id' => $discount->id]) }}" class="btn btn-primary">Lihat Usage</a>
+
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Penjualan · Discounts</div>
+            <h2 class="page-title">{{ $discount->internal_name }}</h2>
+            <p class="text-muted mb-0">
+                {{ $discount->public_label ?: 'Tanpa public label' }}
+                @if($discount->code)
+                    <span class="badge bg-secondary-lt text-secondary ms-1">{{ $discount->code }}</span>
+                @endif
+            </p>
+        </div>
+        <div class="col-auto d-flex gap-2 flex-wrap">
+            @can('discounts.update')
+                <a href="{{ route('discounts.edit', $discount) }}" class="btn btn-outline-primary">
+                    <i class="ti ti-pencil me-1"></i>Edit
+                </a>
+            @endcan
+            <a href="{{ route('discounts.usages.index', ['discount_id' => $discount->id]) }}" class="btn btn-outline-secondary">
+                <i class="ti ti-history me-1"></i>Lihat Usage
+            </a>
+            <a href="{{ route('discounts.index') }}" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left me-1"></i>Kembali
+            </a>
+        </div>
     </div>
 </div>
 
 <div class="row g-3">
     <div class="col-lg-4">
         <div class="card">
-            <div class="card-header"><h3 class="card-title">Summary</h3></div>
+            <div class="card-header">
+                <h3 class="card-title">Ringkasan</h3>
+            </div>
             <div class="card-body">
-                <div class="mb-2"><span class="text-muted">Type:</span> {{ ucfirst(str_replace('_', ' ', $discount->discount_type)) }}</div>
-                <div class="mb-2"><span class="text-muted">Scope:</span> {{ ucfirst($discount->application_scope) }}</div>
-                <div class="mb-2"><span class="text-muted">Priority / Sequence:</span> {{ $discount->priority }} / {{ $discount->sequence }}</div>
-                <div class="mb-2"><span class="text-muted">Status:</span> {{ ucfirst($discount->status_view) }}</div>
-                <div class="mb-2"><span class="text-muted">Voucher Required:</span> {{ $discount->is_voucher_required ? 'Yes' : 'No' }}</div>
-                <div class="mb-2"><span class="text-muted">Manual Only:</span> {{ $discount->is_manual_only ? 'Yes' : 'No' }}</div>
-                <div><span class="text-muted">Rule Payload:</span><pre class="small bg-light p-2 rounded mt-1 mb-0">{{ json_encode($discount->rule_payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre></div>
+                <dl class="row g-2 mb-0">
+                    <dt class="col-5 text-muted small">Type</dt>
+                    <dd class="col-7 small mb-0">{{ ucfirst(str_replace('_', ' ', $discount->discount_type)) }}</dd>
+
+                    <dt class="col-5 text-muted small">Scope</dt>
+                    <dd class="col-7 small mb-0">{{ ucfirst($discount->application_scope) }}</dd>
+
+                    <dt class="col-5 text-muted small">Priority / Seq</dt>
+                    <dd class="col-7 small mb-0">{{ $discount->priority }} / {{ $discount->sequence }}</dd>
+
+                    <dt class="col-5 text-muted small">Status</dt>
+                    <dd class="col-7 mb-0">
+                        @php
+                            $statusClass = match($discount->status_view) {
+                                'active'    => 'bg-green-lt text-green',
+                                'scheduled' => 'bg-azure-lt text-azure',
+                                'expired',
+                                'archived'  => 'bg-secondary-lt text-secondary',
+                                default     => 'bg-orange-lt text-orange',
+                            };
+                        @endphp
+                        <span class="badge {{ $statusClass }}">{{ ucfirst($discount->status_view) }}</span>
+                    </dd>
+
+                    <dt class="col-5 text-muted small">Stack mode</dt>
+                    <dd class="col-7 small mb-0">{{ ucfirst($discount->stack_mode ?? '—') }}</dd>
+
+                    <dt class="col-5 text-muted small">Combination</dt>
+                    <dd class="col-7 small mb-0">{{ ucfirst($discount->combination_mode ?? '—') }}</dd>
+
+                    <dt class="col-5 text-muted small">Voucher req.</dt>
+                    <dd class="col-7 small mb-0">{{ $discount->is_voucher_required ? 'Ya' : 'Tidak' }}</dd>
+
+                    <dt class="col-5 text-muted small">Manual only</dt>
+                    <dd class="col-7 small mb-0">{{ $discount->is_manual_only ? 'Ya' : 'Tidak' }}</dd>
+
+                    @if($discount->usage_limit)
+                        <dt class="col-5 text-muted small">Usage limit</dt>
+                        <dd class="col-7 small mb-0">{{ $discount->usage_limit }} total / {{ $discount->usage_limit_per_customer ?: '∞' }} per pelanggan</dd>
+                    @endif
+
+                    @if($discount->starts_at || $discount->ends_at)
+                        <dt class="col-5 text-muted small">Periode</dt>
+                        <dd class="col-7 small mb-0">
+                            {{ $discount->starts_at?->format('d/m/Y H:i') ?? '—' }}<br>
+                            <span class="text-muted">s/d {{ $discount->ends_at?->format('d/m/Y H:i') ?? 'Tanpa batas' }}</span>
+                        </dd>
+                    @endif
+                </dl>
+
+                @if($discount->rule_payload)
+                    <div class="mt-3 border-top pt-3">
+                        <div class="text-muted small fw-bold mb-1">Rule Payload</div>
+                        <pre class="small bg-body-secondary p-2 rounded mb-0" style="font-size:.75rem;">{{ json_encode($discount->rule_payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
+                    </div>
+                @endif
             </div>
         </div>
     </div>
+
     <div class="col-lg-8">
         <div class="card mb-3">
-            <div class="card-header"><h3 class="card-title">Targets</h3></div>
-            <div class="table-responsive">
-                <table class="table table-sm table-vcenter mb-0">
-                    <thead><tr><th>Type</th><th>Reference</th><th>Operator</th></tr></thead>
-                    <tbody>
-                        @forelse($discount->targets as $target)
+            <div class="card-header">
+                <h3 class="card-title">Targets</h3>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-vcenter mb-0">
+                        <thead>
                             <tr>
-                                <td>{{ $target->target_type }}</td>
-                                <td>{{ $target->target_id ?? $target->target_code ?? 'all' }}</td>
-                                <td>{{ $target->operator }}</td>
+                                <th>Type</th>
+                                <th>Reference</th>
+                                <th>Operator</th>
                             </tr>
-                        @empty
-                            <tr><td colspan="3" class="text-center text-muted">Semua item / context eligible.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @forelse($discount->targets as $target)
+                                <tr>
+                                    <td class="small">{{ $target->target_type }}</td>
+                                    <td class="small">{{ $target->target_id ?? $target->target_code ?? 'all' }}</td>
+                                    <td>
+                                        <span class="badge {{ $target->operator === 'include' ? 'bg-green-lt text-green' : 'bg-red-lt text-red' }}">{{ $target->operator }}</span>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-3">Semua item / context eligible.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
+
         <div class="card mb-3">
-            <div class="card-header"><h3 class="card-title">Conditions</h3></div>
-            <div class="table-responsive">
-                <table class="table table-sm table-vcenter mb-0">
-                    <thead><tr><th>Condition</th><th>Value</th><th>Payload</th></tr></thead>
-                    <tbody>
-                        @forelse($discount->conditions as $condition)
+            <div class="card-header">
+                <h3 class="card-title">Conditions</h3>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-vcenter mb-0">
+                        <thead>
                             <tr>
-                                <td>{{ $condition->condition_type }}</td>
-                                <td>{{ $condition->value ?? '-' }}</td>
-                                <td><code>{{ json_encode($condition->payload) }}</code></td>
+                                <th>Condition</th>
+                                <th>Operator</th>
+                                <th>Value</th>
                             </tr>
-                        @empty
-                            <tr><td colspan="3" class="text-center text-muted">Tidak ada condition tambahan.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @forelse($discount->conditions as $condition)
+                                <tr>
+                                    <td class="small">{{ $condition->condition_type }}</td>
+                                    <td class="small"><code>{{ $condition->operator ?? '—' }}</code></td>
+                                    <td class="small">{{ $condition->value ?? '—' }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-3">Tidak ada condition tambahan.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
+
         <div class="card">
-            <div class="card-header"><h3 class="card-title">Vouchers & Usage</h3></div>
+            <div class="card-header">
+                <h3 class="card-title">Vouchers & Usage</h3>
+            </div>
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <div class="text-muted small mb-2">Voucher / Promo Code</div>
+                        <div class="text-muted small fw-bold mb-2">Voucher / Promo Code</div>
                         @forelse($discount->vouchers as $voucher)
                             <div class="border rounded p-2 mb-2">
-                                <div class="fw-semibold">{{ $voucher->code }}</div>
+                                <div class="fw-semibold small">{{ $voucher->code }}</div>
                                 <div class="text-muted small">{{ $voucher->description ?: 'Tanpa deskripsi' }}</div>
                             </div>
                         @empty
-                            <div class="text-muted">Tidak ada voucher.</div>
+                            <div class="text-muted small">Tidak ada voucher.</div>
                         @endforelse
                     </div>
                     <div class="col-md-6">
-                        <div class="text-muted small mb-2">Recent Usage</div>
+                        <div class="text-muted small fw-bold mb-2">Recent Usage</div>
                         @forelse($discount->usages->take(5) as $usage)
                             <div class="border rounded p-2 mb-2">
-                                <div class="fw-semibold">{{ $usage->usage_reference_type ?: 'manual' }} #{{ $usage->usage_reference_id ?: '-' }}</div>
-                                <div class="text-muted small">{{ $usage->usage_status }} | {{ $usage->applied_at?->format('d/m/Y H:i') ?: '-' }}</div>
+                                <div class="fw-semibold small">{{ $usage->usage_reference_type ?: 'manual' }} #{{ $usage->usage_reference_id ?: '—' }}</div>
+                                <div class="text-muted small">{{ $usage->usage_status }} · {{ $usage->applied_at?->format('d/m/Y H:i') ?: '—' }}</div>
                             </div>
                         @empty
-                            <div class="text-muted">Belum ada usage.</div>
+                            <div class="text-muted small">Belum ada usage.</div>
                         @endforelse
                     </div>
                 </div>
@@ -97,5 +199,5 @@
         </div>
     </div>
 </div>
-@endsection
 
+@endsection

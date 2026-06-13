@@ -1,14 +1,26 @@
-﻿@extends('layouts.tenant')
+@extends('layouts.tenant')
+
+@section('title', 'Buat Discount')
 
 @section('content')
-<div class="mb-3">
-    <h2 class="mb-0">Buat Discount</h2>
-    <div class="text-muted small">Buat promo, voucher, atau aturan diskon baru.</div>
+
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Penjualan · Discounts</div>
+            <h2 class="page-title">Buat Discount</h2>
+        </div>
+        <div class="col-auto">
+            <a href="{{ route('discounts.index') }}" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left me-1"></i>Kembali
+            </a>
+        </div>
+    </div>
 </div>
 
 @include('discounts::discounts.partials.form', [
     'submitRoute' => route('discounts.store'),
     'method' => 'POST',
 ])
-@endsection
 
+@endsection

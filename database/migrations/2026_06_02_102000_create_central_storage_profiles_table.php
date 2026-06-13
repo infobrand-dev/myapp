@@ -46,8 +46,8 @@ return new class extends Migration
                 'name' => 'Public Default Profile',
                 'driver' => (string) config('filesystems.disks.' . config('workspace-files.public_disk', 'public') . '.driver', 'local'),
                 'visibility_scope' => 'public',
-                'is_active' => true,
-                'is_default' => true,
+                'is_active' => DB::raw('true'),
+                'is_default' => DB::raw('true'),
                 'weight' => 100,
                 'priority' => 100,
                 'failure_mode' => 'mark_unreachable',
@@ -59,7 +59,9 @@ return new class extends Migration
                 'root_path' => config('filesystems.disks.' . config('workspace-files.public_disk', 'public') . '.root'),
                 'access_key_id' => config('filesystems.disks.' . config('workspace-files.public_disk', 'public') . '.key'),
                 'secret_access_key' => config('filesystems.disks.' . config('workspace-files.public_disk', 'public') . '.secret'),
-                'use_path_style_endpoint' => (bool) config('filesystems.disks.' . config('workspace-files.public_disk', 'public') . '.use_path_style_endpoint', false),
+                'use_path_style_endpoint' => config('filesystems.disks.' . config('workspace-files.public_disk', 'public') . '.use_path_style_endpoint', false)
+                    ? DB::raw('true')
+                    : DB::raw('false'),
                 'meta' => json_encode(['bootstrapped' => true]),
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -69,8 +71,8 @@ return new class extends Migration
                 'name' => 'Private Default Profile',
                 'driver' => (string) config('filesystems.disks.' . config('workspace-files.private_disk', 'private') . '.driver', 'local'),
                 'visibility_scope' => 'private',
-                'is_active' => true,
-                'is_default' => true,
+                'is_active' => DB::raw('true'),
+                'is_default' => DB::raw('true'),
                 'weight' => 100,
                 'priority' => 100,
                 'failure_mode' => 'mark_unreachable',
@@ -87,7 +89,9 @@ return new class extends Migration
                 'root_path' => config('filesystems.disks.' . config('workspace-files.private_disk', 'private') . '.root'),
                 'access_key_id' => config('filesystems.disks.' . config('workspace-files.private_disk', 'private') . '.key'),
                 'secret_access_key' => config('filesystems.disks.' . config('workspace-files.private_disk', 'private') . '.secret'),
-                'use_path_style_endpoint' => (bool) config('filesystems.disks.' . config('workspace-files.private_disk', 'private') . '.use_path_style_endpoint', false),
+                'use_path_style_endpoint' => config('filesystems.disks.' . config('workspace-files.private_disk', 'private') . '.use_path_style_endpoint', false)
+                    ? DB::raw('true')
+                    : DB::raw('false'),
                 'meta' => json_encode(['bootstrapped' => true]),
                 'created_at' => now(),
                 'updated_at' => now(),

@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.platform')
 
 @section('title', 'Platform Invoice')
 
@@ -159,3 +159,4 @@
         </div>
     </div>
 @endsection
+

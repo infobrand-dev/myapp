@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Quotation - ' . $quotation->quotation_number)
 
@@ -164,3 +164,4 @@
     </div>
 </div>
 @endsection
+

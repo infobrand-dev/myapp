@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.platform')
 
 @section('title', 'Platform Orders')
 
@@ -141,3 +141,4 @@
         @endif
     </div>
 @endsection
+

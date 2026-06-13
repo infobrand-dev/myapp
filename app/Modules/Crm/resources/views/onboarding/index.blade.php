@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('content')
 <div class="page-header mb-4">
@@ -48,3 +48,4 @@
     <div class="card mt-4"><div class="card-body d-flex justify-content-between align-items-center"><div><div class="fw-semibold">Onboarding CRM selesai</div><div class="small text-muted">Workspace sudah siap dipakai tim sales.</div></div><form method="POST" action="{{ route('crm.onboarding.complete') }}">@csrf<button class="btn btn-primary">Masuk Dashboard CRM</button></form></div></div>
 @endif
 @endsection
+

@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -154,3 +154,4 @@
     </div>
 </div>
 @endsection
+

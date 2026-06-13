@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('content')
 @php
@@ -100,3 +100,4 @@
     </div>
 @endif
 @endsection
+

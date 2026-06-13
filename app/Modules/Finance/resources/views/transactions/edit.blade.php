@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Edit Transaksi')
 
@@ -46,3 +46,4 @@
 </form>
 
 @endsection
+

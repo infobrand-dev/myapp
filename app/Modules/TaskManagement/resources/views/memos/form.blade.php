@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('content')
 <form method="POST" action="{{ isset($memo) ? route('memos.update', $memo) : route('memos.store') }}">
@@ -250,3 +250,4 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 @endpush
+

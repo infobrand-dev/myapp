@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('content')
 <div class="page-header mb-4">
@@ -14,3 +14,4 @@
 @include('crm::partials.nav')
 @include('crm::hooks.customer-360', ['contact' => $contact, 'customer360' => $customer360])
 @endsection
+

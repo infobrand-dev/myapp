@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.platform')
 
 @section('title', 'Tenant Detail')
 
@@ -781,3 +781,4 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endpush
+

@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Create Sales Order')
 
@@ -17,3 +17,4 @@
     'method' => 'POST',
 ])
 @endsection
+

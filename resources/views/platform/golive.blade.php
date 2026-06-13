@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.platform')
 
 @section('title', 'Go-Live Audit')
 
@@ -268,3 +268,4 @@
         </div>
     </div>
 @endsection
+

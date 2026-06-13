@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Brand Page')
 
@@ -142,3 +142,4 @@
         </div>
     </form>
 @endsection
+

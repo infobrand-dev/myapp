@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Edit Inventory Location')
 
@@ -17,3 +17,4 @@
     @include('inventory::locations.partials.form', ['method' => 'PUT'])
 </form>
 @endsection
+

@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('content')
 <div class="page-header d-print-none mb-3">
@@ -121,3 +121,4 @@
     </div>
 </form>
 @endsection
+

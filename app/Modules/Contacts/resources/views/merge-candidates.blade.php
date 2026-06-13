@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Merge Contacts')
 
@@ -135,3 +135,4 @@
     </div>
 @endforelse
 @endsection
+

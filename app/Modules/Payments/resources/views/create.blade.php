@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', ($payment ?? new \App\Modules\Payments\Models\Payment())->exists ? 'Edit Payment' : 'Buat Payment')
 
@@ -465,3 +465,4 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endsection
+

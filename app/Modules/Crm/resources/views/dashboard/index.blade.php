@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('content')
 @php($money = app(\App\Support\MoneyFormatter::class))
@@ -132,3 +132,4 @@
     </div>
 </div>
 @endsection
+

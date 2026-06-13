@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', ($conversation->contact_name ?: 'Unknown Contact') . ' — Percakapan')
 
@@ -251,3 +251,4 @@
 })();
 </script>
 @endpush
+

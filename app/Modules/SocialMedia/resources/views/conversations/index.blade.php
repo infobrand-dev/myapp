@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Social Media Inbox')
 
@@ -139,3 +139,4 @@
 </div>
 
 @endsection
+

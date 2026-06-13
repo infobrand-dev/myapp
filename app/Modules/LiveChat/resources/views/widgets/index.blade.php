@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Live Chat Widgets')
 
@@ -115,3 +115,4 @@
 </div>
 
 @endsection
+

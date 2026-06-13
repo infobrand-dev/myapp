@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Cash Session / Shift')
 
@@ -61,3 +61,4 @@
     <div class="card-footer">{{ $sessions->links() }}</div>
 </div>
 @endsection
+

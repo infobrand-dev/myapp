@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Tambah Contact')
 
@@ -60,3 +60,4 @@
     </div>
 </form>
 @endsection
+

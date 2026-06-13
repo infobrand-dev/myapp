@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('content')
 @php $money = app(\App\Support\MoneyFormatter::class); @endphp
@@ -97,3 +97,4 @@
 
 <div class="mt-3">{{ $transactions->links() }}</div>
 @endsection
+

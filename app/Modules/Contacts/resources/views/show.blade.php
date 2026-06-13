@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', $contact->name)
 
@@ -253,3 +253,4 @@
     {!! $hookedContent !!}
 @endforeach
 @endsection
+

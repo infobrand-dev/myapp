@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Buat Stock Adjustment')
 
@@ -267,3 +267,4 @@
 })();
 </script>
 @endpush
+

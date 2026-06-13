@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Aktifkan Verifikasi Dua Langkah')
 
@@ -84,3 +84,4 @@
     </div>
 </div>
 @endsection
+

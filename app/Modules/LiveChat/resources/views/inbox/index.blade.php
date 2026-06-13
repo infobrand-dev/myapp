@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Live Chat Inbox')
 
@@ -136,3 +136,4 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endpush
+

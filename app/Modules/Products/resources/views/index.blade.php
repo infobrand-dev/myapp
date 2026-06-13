@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('content')
 @php
@@ -166,3 +166,4 @@ document.querySelector('[data-check-all="products"]')?.addEventListener('change'
 });
 </script>
 @endpush
+

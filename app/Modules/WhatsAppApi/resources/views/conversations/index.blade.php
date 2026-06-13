@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Inbox WhatsApp API')
 
@@ -363,3 +363,4 @@
     });
     </script>
 @endpush
+

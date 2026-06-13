@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', ($document->exists ? 'Edit' : 'Tambah') . ' Dokumen Referensi')
 
@@ -169,3 +169,4 @@
 @endpush
 
 @endsection
+

@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Conversations')
 
@@ -303,3 +303,4 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endpush
+

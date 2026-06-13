@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Import Products')
 
@@ -66,3 +66,4 @@
     </div>
 </div>
 @endsection
+

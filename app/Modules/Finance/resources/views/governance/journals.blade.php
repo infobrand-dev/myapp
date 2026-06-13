@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('content')
 <div class="container-xl">
@@ -140,3 +140,4 @@
     {{ $journals->links() }}
 </div>
 @endsection
+

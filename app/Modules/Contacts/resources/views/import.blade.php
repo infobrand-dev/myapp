@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Import Contacts')
 
@@ -120,3 +120,4 @@
     </div>
 </div>
 @endsection
+

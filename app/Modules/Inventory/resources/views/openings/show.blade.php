@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Detail Opening Stock')
 
@@ -118,3 +118,4 @@
     </div>
 </div>
 @endsection
+

@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Knowledge Base — ' . $account->name)
 
@@ -117,3 +117,4 @@
 </div>
 
 @endsection
+

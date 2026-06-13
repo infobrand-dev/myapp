@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Detail Transaksi — ' . $transaction->transaction_number)
 
@@ -212,3 +212,4 @@
 ])
 
 @endsection
+

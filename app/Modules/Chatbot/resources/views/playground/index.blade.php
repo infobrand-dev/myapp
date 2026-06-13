@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Chatbot Playground')
 
@@ -175,3 +175,4 @@
 @endpush
 
 @endsection
+

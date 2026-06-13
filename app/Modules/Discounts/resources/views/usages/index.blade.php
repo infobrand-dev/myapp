@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('content')
 @php
@@ -38,3 +38,4 @@
     <div class="card-footer">{{ $usages->links() }}</div>
 </div>
 @endsection
+

@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Sales Orders')
 
@@ -80,3 +80,4 @@
     <div class="card-footer">{{ $orders->links() }}</div>
 </div>
 @endsection
+

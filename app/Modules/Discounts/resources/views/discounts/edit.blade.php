@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('content')
 <div class="mb-3">
@@ -11,3 +11,4 @@
     'method' => 'PUT',
 ])
 @endsection
+

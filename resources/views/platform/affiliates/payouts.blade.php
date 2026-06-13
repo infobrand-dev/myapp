@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.platform')
 
 @section('title', 'Affiliate Payouts')
 
@@ -168,3 +168,4 @@
         </div>
     @endif
 @endsection
+

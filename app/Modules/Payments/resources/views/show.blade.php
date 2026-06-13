@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', $payment->payment_number)
 
@@ -238,3 +238,4 @@
     'currency' => $payment->currency_code,
 ])
 @endsection
+

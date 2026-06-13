@@ -135,7 +135,7 @@
     </style>
     @stack('styles')
 </head>
-<body class="bg-body {{ request()->attributes->get('platform_admin_host') ? 'platform-admin-host' : '' }}">
+<body class="bg-body">
     <a class="skip-link" href="#main-content">Skip to content</a>
 
     {{-- Mobile sidebar backdrop --}}
@@ -188,14 +188,12 @@
                             @include('shared.topbar-context-switcher', ['selectorId' => 'desktop-topbar'])
                         </div>
 
-                        {{-- Right side: apps + user --}}
                         <div class="d-flex align-items-center gap-2">
                             @can('notifications.view')
                                 @include('shared.topbar-notifications')
                             @endcan
                             @include('shared.topbar-apps-dropdown')
 
-                            {{-- User dropdown --}}
                             <div class="dropdown">
                                 <button
                                     type="button"
@@ -253,7 +251,7 @@
                             <i class="ti ti-menu-2" aria-hidden="true"></i>
                         </button>
 
-                        <a href="{{ route(request()->attributes->get('platform_admin_host') ? 'platform.dashboard' : 'dashboard') }}" class="mobile-topbar-brand d-inline-flex align-items-center" aria-label="{{ config('app.name') }}">
+                        <a href="{{ route('dashboard') }}" class="mobile-topbar-brand d-inline-flex align-items-center" aria-label="{{ config('app.name') }}">
                             <x-app-logo variant="default" :height="28" class="mobile-topbar-logo" />
                         </a>
 
@@ -362,21 +360,18 @@
             var closeBtn   = document.getElementById('sidebar-close-btn');
             var collapseBtn = document.getElementById('sidebar-collapse-toggle');
 
-            // ── Restore desktop mini state ────────────────────────
             if (localStorage.getItem('sidebar-mini') === '1') {
                 document.body.classList.add('sidebar-mini');
             }
 
-            // ── Mobile: open drawer ───────────────────────────────
             function openSidebar() {
                 if (!sidebar) return;
                 sidebar.classList.add('sidebar--open');
                 if (backdrop) backdrop.classList.add('show');
                 if (mobileBtn) mobileBtn.setAttribute('aria-expanded', 'true');
-                document.body.style.overflow = 'hidden'; // prevent scroll behind backdrop
+                document.body.style.overflow = 'hidden';
             }
 
-            // ── Mobile: close drawer ──────────────────────────────
             function closeSidebar() {
                 if (!sidebar) return;
                 sidebar.classList.remove('sidebar--open');
@@ -385,21 +380,13 @@
                 document.body.style.overflow = '';
             }
 
-            // Mobile hamburger
             if (mobileBtn) mobileBtn.addEventListener('click', openSidebar);
-
-            // Close button inside sidebar drawer
             if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
-
-            // Backdrop click
             if (backdrop) backdrop.addEventListener('click', closeSidebar);
-
-            // ESC key
             document.addEventListener('keydown', function (e) {
                 if (e.key === 'Escape') closeSidebar();
             });
 
-            // ── Sidebar inline dropdown (normal mode) ────────────
             sidebar && sidebar.querySelectorAll('.sidebar-dropdown-toggle').forEach(function (toggle) {
                 toggle.addEventListener('click', function (e) {
                     e.preventDefault();
@@ -413,7 +400,6 @@
                 });
             });
 
-            // ── Mini flyout: position flyout next to the hovered item ──
             function positionFlyouts() {
                 sidebar && sidebar.querySelectorAll('.sidebar-dropdown').forEach(function (li) {
                     li.addEventListener('mouseenter', function () {
@@ -427,7 +413,6 @@
             }
             positionFlyouts();
 
-            // ── Desktop tooltips for single nav items in mini mode ──
             function enableMiniTooltips() {
                 if (!window.bootstrap || !bootstrap.Tooltip) return;
                 sidebar && sidebar.querySelectorAll('.nav-link[data-sidebar-label]:not(.sidebar-dropdown-toggle)').forEach(function (link) {
@@ -449,7 +434,6 @@
                 });
             }
 
-            // ── Desktop: collapse/expand toggle ──────────────────
             if (collapseBtn) {
                 collapseBtn.addEventListener('click', function () {
                     var isMini = document.body.classList.toggle('sidebar-mini');
@@ -459,7 +443,6 @@
                 });
             }
 
-            // Apply tooltips immediately if already in mini mode on load
             if (localStorage.getItem('sidebar-mini') === '1') {
                 enableMiniTooltips();
             }
@@ -560,8 +543,6 @@
         });
 
         // ── data-confirm: confirmation dialog before form submit ──
-        // Usage: add data-confirm="Yakin?" to a submit button or a form.
-        // Works for both buttons inside forms and standalone <a> tags with data-method.
         (() => {
             let _pendingForm = null;
 
@@ -579,7 +560,6 @@
                     _pendingForm = onConfirm;
                     bsModal.show();
                 } else {
-                    // Fallback if modal element missing
                     if (window.confirm(message)) onConfirm();
                 }
             }
@@ -594,26 +574,22 @@
                 });
             }
 
-            // Listen on document so it works for dynamically added elements too
             document.addEventListener('click', function (e) {
                 const btn = e.target.closest('[data-confirm]');
                 if (!btn) return;
 
                 const message = btn.getAttribute('data-confirm') || 'Yakin ingin melanjutkan?';
 
-                // Button inside a form
                 const form = btn.closest('form');
                 if (form) {
                     e.preventDefault();
                     showConfirm(message, () => {
-                        // Remove data-confirm so the next submit goes through
                         btn.removeAttribute('data-confirm');
                         btn.click();
                     });
                     return;
                 }
 
-                // Anchor link with data-confirm
                 if (btn.tagName === 'A') {
                     e.preventDefault();
                     const href = btn.getAttribute('href');
@@ -662,7 +638,7 @@
         })();
     </script>
 
-    {{-- Confirmation modal (Bootstrap 5 / Tabler) --}}
+    {{-- Confirmation modal --}}
     <div class="modal modal-blur fade" id="confirm-modal" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
             <div class="modal-content">

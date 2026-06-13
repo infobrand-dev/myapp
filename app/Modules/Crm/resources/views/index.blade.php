@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('content')
 @php
@@ -550,3 +550,4 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 @endif
 @endpush
+

@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.platform')
 
 @section('title', 'Plan Catalog')
 
@@ -107,3 +107,4 @@
         @endforeach
     </div>
 @endsection
+

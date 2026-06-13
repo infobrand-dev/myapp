@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('content')
 @php
@@ -444,3 +444,4 @@
     @endforeach
 </div>
 @endsection
+

@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('content')
 @php
@@ -158,3 +158,4 @@
 
 <div class="mt-3">{{ $transactions->links() }}</div>
 @endsection
+

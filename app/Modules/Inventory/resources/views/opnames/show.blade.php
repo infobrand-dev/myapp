@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Detail Stock Opname')
 
@@ -179,3 +179,4 @@
 })();
 </script>
 @endpush
+

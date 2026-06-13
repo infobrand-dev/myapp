@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'WA Blast Campaigns')
 
@@ -142,3 +142,4 @@
 </div>
 
 @endsection
+

@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Open Shift')
 
@@ -66,3 +66,4 @@
     </div>
 </form>
 @endsection
+

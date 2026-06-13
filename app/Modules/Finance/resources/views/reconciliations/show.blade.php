@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Detail Reconciliation')
 
@@ -417,3 +417,4 @@
     </div>
 </div>
 @endsection
+

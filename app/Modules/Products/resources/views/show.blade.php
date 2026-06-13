@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('content')
 @php
@@ -196,3 +196,4 @@
     'currency' => $currency,
 ])
 @endsection
+

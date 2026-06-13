@@ -1,21 +1,14 @@
 @php
     $moduleManager = app(\App\Support\ModuleManager::class);
-    $planManager = app(\App\Support\TenantPlanManager::class);
+    $planManager   = app(\App\Support\TenantPlanManager::class);
     $currentRouteName = optional(request()->route())->getName();
-    $moduleNavBadges = $moduleNavBadges ?? [];
-    $platformAdminHost = request()->attributes->get('platform_admin_host');
-    $brandHomeRoute = $platformAdminHost ? 'platform.dashboard' : 'dashboard';
+    $moduleNavBadges  = $moduleNavBadges ?? [];
 
     $moduleMenus = collect($moduleManager->all())
-        ->filter(function ($module) use ($planManager, $platformAdminHost) {
-            if (!$module['installed'] || !$module['active']) {
-                return false;
-            }
-
-            if ($platformAdminHost) {
-                return true;
-            }
-
+        ->filter(function ($module) {
+            return $module['installed'] && $module['active'];
+        })
+        ->filter(function ($module) use ($planManager) {
             $requirement = \App\Support\PlanFeature::moduleFeatureRequirement((string) ($module['slug'] ?? ''));
             $allFeatures = (array) ($requirement['all'] ?? []);
             $anyFeatures = (array) ($requirement['any'] ?? []);
@@ -30,14 +23,14 @@
 
             return true;
         })
-        ->map(function ($module) use ($planManager, $platformAdminHost) {
+        ->map(function ($module) use ($planManager) {
             $items = collect($module['navigation'] ?? [])
-                ->filter(function ($item) use ($planManager, $platformAdminHost) {
+                ->filter(function ($item) use ($planManager) {
                     if (empty($item['route']) || !Route::has($item['route'])) {
                         return false;
                     }
 
-                    if (!$platformAdminHost && !empty($item['feature']) && !$planManager->hasFeature((string) $item['feature'])) {
+                    if (!empty($item['feature']) && !$planManager->hasFeature((string) $item['feature'])) {
                         return false;
                     }
 
@@ -51,47 +44,43 @@
                 ->values();
 
             return [
-                'slug' => $module['slug'],
-                'icon' => $module['icon'] ?? null,
-                '_dir' => $module['_dir'] ?? null,
-                'name' => $module['name'],
-                'items' => $items,
+                'slug'     => $module['slug'],
+                'icon'     => $module['icon'] ?? null,
+                '_dir'     => $module['_dir'] ?? null,
+                'name'     => $module['name'],
+                'category' => $module['category'] ?? 'other',
+                'items'    => $items,
             ];
         })
         ->filter(fn ($module) => $module['items']->isNotEmpty())
         ->values();
+
+    $moduleMenusByCategory = $moduleMenus->groupBy('category');
 @endphp
 
-<aside class="navbar navbar-vertical navbar-expand-lg border-end {{ $platformAdminHost ? 'sidebar-platform-shell' : '' }}" role="navigation" aria-label="Main navigation">
+<aside class="navbar navbar-vertical navbar-expand-lg border-end" role="navigation" aria-label="Main navigation">
     <div class="container-fluid">
         <div class="sidebar-brand-wrap d-flex align-items-center w-100 px-2 py-3 border-bottom">
-            {{-- Mobile: close button on the left --}}
             <button type="button" class="sidebar-close-btn d-lg-none me-2" id="sidebar-close-btn" aria-label="Tutup menu">
                 <i class="ti ti-x" style="font-size:1.1rem;" aria-hidden="true"></i>
             </button>
-            <a href="{{ route($brandHomeRoute) }}" class="navbar-brand sidebar-brand mb-0 text-decoration-none d-inline-flex align-items-center" aria-label="{{ config('app.name') }}">
-                {{-- Full logo — hidden in mini mode --}}
+            <a href="{{ route('dashboard') }}" class="navbar-brand sidebar-brand mb-0 text-decoration-none d-inline-flex align-items-center" aria-label="{{ config('app.name') }}">
                 <x-app-logo variant="default" :height="36" class="sidebar-brand-logo" />
-                {{-- Icon-only logo — shown in mini mode --}}
                 <img src="{{ asset('brand/logo-icon.png') }}" alt="{{ config('app.name') }}" height="32" class="sidebar-brand-icon" />
             </a>
         </div>
         <div class="navbar-collapse" id="sidebar-menu">
             @can('settings.view')
             @if($topbarCompanies->isNotEmpty() || auth()->check())
-            {{-- Mobile context switcher — only visible when sidebar is open on mobile --}}
             <div class="d-lg-none sidebar-ctx-panel">
                 @if($topbarCompanies->count() > 1 || $topbarCompanies->isNotEmpty())
                 <div class="sidebar-ctx-section">
                     <div class="sidebar-ctx-label">Company</div>
                     <div class="sidebar-ctx-chips">
                         @foreach($topbarCompanies as $company)
-                        <form method="POST"
-                              action="{{ route('settings.company.switch', $company->id) }}"
-                              class="d-contents">
+                        <form method="POST" action="{{ route('settings.company.switch', $company->id) }}" class="d-contents">
                             @csrf
-                            <button type="submit"
-                                    class="sidebar-ctx-chip {{ optional($topbarCurrentCompany)->id === $company->id ? 'active' : '' }}">
+                            <button type="submit" class="sidebar-ctx-chip {{ optional($topbarCurrentCompany)->id === $company->id ? 'active' : '' }}">
                                 {{ $company->name }}
                             </button>
                         </form>
@@ -106,18 +95,12 @@
                     <div class="sidebar-ctx-chips">
                         <form method="POST" action="{{ route('settings.branch.clear') }}" class="d-contents">
                             @csrf
-                            <button type="submit"
-                                    class="sidebar-ctx-chip {{ !$topbarCurrentBranch ? 'active' : '' }}">
-                                Semua
-                            </button>
+                            <button type="submit" class="sidebar-ctx-chip {{ !$topbarCurrentBranch ? 'active' : '' }}">Semua</button>
                         </form>
                         @foreach($topbarBranches as $branch)
-                        <form method="POST"
-                              action="{{ route('settings.branch.switch', $branch->id) }}"
-                              class="d-contents">
+                        <form method="POST" action="{{ route('settings.branch.switch', $branch->id) }}" class="d-contents">
                             @csrf
-                            <button type="submit"
-                                    class="sidebar-ctx-chip {{ optional($topbarCurrentBranch)->id === $branch->id ? 'active' : '' }}">
+                            <button type="submit" class="sidebar-ctx-chip {{ optional($topbarCurrentBranch)->id === $branch->id ? 'active' : '' }}">
                                 {{ $branch->name }}
                             </button>
                         </form>
@@ -132,17 +115,13 @@
                         <form method="POST" action="{{ route('settings.accounting-ui-mode') }}" class="d-contents">
                             @csrf
                             <input type="hidden" name="mode" value="standard">
-                            <button type="submit" class="sidebar-ctx-chip {{ ($accountingUiMode ?? 'standard') === 'standard' ? 'active' : '' }}">
-                                Standard
-                            </button>
+                            <button type="submit" class="sidebar-ctx-chip {{ ($accountingUiMode ?? 'standard') === 'standard' ? 'active' : '' }}">Standard</button>
                         </form>
                         @if($accountingUiModeCanUseAdvanced ?? false)
                             <form method="POST" action="{{ route('settings.accounting-ui-mode') }}" class="d-contents">
                                 @csrf
                                 <input type="hidden" name="mode" value="advanced">
-                                <button type="submit" class="sidebar-ctx-chip {{ ($accountingUiMode ?? 'standard') === 'advanced' ? 'active' : '' }}">
-                                    Advanced
-                                </button>
+                                <button type="submit" class="sidebar-ctx-chip {{ ($accountingUiMode ?? 'standard') === 'advanced' ? 'active' : '' }}">Advanced</button>
                             </form>
                         @endif
                     </div>
@@ -156,7 +135,6 @@
                 @include('shared.sidebar-menu')
             </ul>
 
-            {{-- Desktop: collapse toggle — pinned at the bottom of the sidebar --}}
             <div class="sidebar-footer d-none d-lg-flex">
                 <button type="button" class="sidebar-collapse-btn" id="sidebar-collapse-toggle" aria-label="Kecilkan sidebar">
                     <i class="ti ti-layout-sidebar-left-collapse" style="font-size:1rem;" aria-hidden="true"></i>

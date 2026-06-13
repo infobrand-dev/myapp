@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Detail Purchase')
 
@@ -381,3 +381,4 @@
     'currency' => $purchase->currency_code,
 ])
 @endsection
+

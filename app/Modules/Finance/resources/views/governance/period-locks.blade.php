@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('content')
 <div class="container-xl">
@@ -83,3 +83,4 @@
     </div>
 </div>
 @endsection
+

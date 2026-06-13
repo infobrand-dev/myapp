@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('content')
 @php
@@ -91,3 +91,4 @@
 }
 </style>
 @endpush
+

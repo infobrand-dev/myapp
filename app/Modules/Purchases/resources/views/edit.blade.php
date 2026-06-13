@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Edit Purchase')
 
@@ -23,3 +23,4 @@
     'method' => 'PUT',
 ])
 @endsection
+

@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.platform')
 
 @section('title', 'Storage Profiles')
 
@@ -271,3 +271,4 @@
         </div>
     </div>
 @endsection
+

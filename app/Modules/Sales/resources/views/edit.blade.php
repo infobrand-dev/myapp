@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Edit Draft — ' . $sale->sale_number)
 
@@ -23,3 +23,4 @@
     'method'      => 'PUT',
 ])
 @endsection
+

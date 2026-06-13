@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Notifications')
 
@@ -215,3 +215,4 @@
     })();
 </script>
 @endpush
+

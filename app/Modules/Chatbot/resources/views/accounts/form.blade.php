@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', ($account->exists ? 'Edit' : 'Tambah') . ' Chatbot')
 
@@ -445,3 +445,4 @@
 @endpush
 
 @endsection
+

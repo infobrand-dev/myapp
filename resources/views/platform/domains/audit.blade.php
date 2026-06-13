@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.platform')
 
 @section('title', 'Tenant Domain Audit')
 
@@ -49,3 +49,4 @@
         </div>
     </div>
 @endsection
+

@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -86,3 +86,4 @@
     if (thread) thread.scrollTop = thread.scrollHeight;
 </script>
 @endpush
+

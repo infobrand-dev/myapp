@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'WhatsApp Web')
 
@@ -584,3 +584,4 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 @endpush
+

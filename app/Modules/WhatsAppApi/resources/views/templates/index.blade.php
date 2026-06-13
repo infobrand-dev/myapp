@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'WA Templates')
 
@@ -115,3 +115,4 @@
 </div>
 
 @endsection
+

@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Kode Pemulihan 2FA')
 
@@ -105,3 +105,4 @@
     </div>
 </div>
 @endsection
+

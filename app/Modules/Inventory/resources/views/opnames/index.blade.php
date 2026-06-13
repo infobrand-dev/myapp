@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Stock Opname')
 
@@ -59,3 +59,4 @@
     <div class="card-footer">{{ $opnames->links() }}</div>
 </div>
 @endsection
+

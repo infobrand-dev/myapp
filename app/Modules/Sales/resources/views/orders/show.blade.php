@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Sales Order - ' . $order->order_number)
 
@@ -134,3 +134,4 @@
     </div>
 </div>
 @endsection
+

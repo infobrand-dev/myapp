@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Edit Tax Register')
 
@@ -40,3 +40,4 @@
     </form>
 </div>
 @endsection
+

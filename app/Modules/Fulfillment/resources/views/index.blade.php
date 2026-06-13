@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Fulfillment')
 
@@ -214,3 +214,4 @@
         });
     </script>
 @endsection
+

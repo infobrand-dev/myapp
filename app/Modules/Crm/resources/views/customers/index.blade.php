@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('content')
 <div class="page-header mb-4">
@@ -47,3 +47,4 @@
     <div class="mt-4">{{ $customers->links() }}</div>
 @endif
 @endsection
+

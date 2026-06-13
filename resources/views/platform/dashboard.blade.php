@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.platform')
 
 @section('title', 'Platform Dashboard')
 
@@ -6,11 +6,12 @@
     @php
         $money = app(\App\Support\MoneyFormatter::class);
     @endphp
+
     <div class="page-header">
         <div class="row align-items-center">
             <div class="col">
                 <div class="page-pretitle">Platform Owner</div>
-                <h1 class="page-title">Control Plane</h1>
+                <h2 class="page-title">Control Plane</h2>
                 <p class="text-muted mb-0">Pantau pertumbuhan tenant, distribusi plan, dan workspace yang butuh perhatian.</p>
             </div>
             <div class="col-auto d-flex gap-2 flex-wrap">
@@ -27,7 +28,7 @@
         </div>
     </div>
 
-    {{-- KPI Cards — 7 cards, Revenue berdiri sendiri --}}
+    {{-- ── BARIS 1: KPI Cards ── --}}
     <div class="row g-3 mb-4">
         <div class="col-sm-6 col-xl-3">
             <div class="card h-100">
@@ -38,7 +39,7 @@
                     </div>
                     <div class="fs-1 fw-bold">{{ $stats['total_tenants'] }}</div>
                     <div class="text-muted small mt-1">
-                        <span class="text-success fw-semibold">{{ $stats['active_tenants'] }}</span> aktif
+                        <span class="text-green fw-semibold">{{ $stats['active_tenants'] }}</span> aktif
                     </div>
                 </div>
             </div>
@@ -47,8 +48,8 @@
             <div class="card h-100">
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between mb-2">
-                        <div class="text-secondary text-uppercase small fw-bold">Akuisisi</div>
-                        <i class="ti ti-user-plus" style="font-size:1.3rem; color:var(--tblr-success);"></i>
+                        <div class="text-secondary text-uppercase small fw-bold">Akuisisi Bulan Ini</div>
+                        <i class="ti ti-user-plus" style="font-size:1.3rem; color:var(--tblr-green);"></i>
                     </div>
                     <div class="fs-1 fw-bold">{{ $stats['new_this_month'] }}</div>
                     <div class="text-muted small mt-1">
@@ -61,7 +62,7 @@
             <div class="card h-100">
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between mb-2">
-                        <div class="text-secondary text-uppercase small fw-bold">Users</div>
+                        <div class="text-secondary text-uppercase small fw-bold">Total Users</div>
                         <i class="ti ti-users" style="font-size:1.3rem; color:var(--tblr-azure);"></i>
                     </div>
                     <div class="fs-1 fw-bold">{{ $stats['total_users'] }}</div>
@@ -72,18 +73,6 @@
             </div>
         </div>
         <div class="col-sm-6 col-xl-3">
-            <div class="card h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <div class="text-secondary text-uppercase small fw-bold">Branches</div>
-                        <i class="ti ti-git-branch" style="font-size:1.3rem; color:var(--tblr-cyan);"></i>
-                    </div>
-                    <div class="fs-1 fw-bold">{{ $stats['total_branches'] }}</div>
-                    <div class="text-muted small mt-1">Di semua tenant</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-6 col-xl-4">
             <div class="card h-100">
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between mb-2">
@@ -113,6 +102,18 @@
             <div class="card h-100">
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="text-secondary text-uppercase small fw-bold">Branches</div>
+                        <i class="ti ti-git-branch" style="font-size:1.3rem; color:var(--tblr-cyan);"></i>
+                    </div>
+                    <div class="fs-1 fw-bold">{{ $stats['total_branches'] }}</div>
+                    <div class="text-muted small mt-1">Di semua tenant</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
                         <div class="text-secondary text-uppercase small fw-bold">AI Credits</div>
                         <i class="ti ti-brain" style="font-size:1.3rem; color:var(--tblr-purple);"></i>
                     </div>
@@ -123,130 +124,8 @@
         </div>
     </div>
 
+    {{-- ── BARIS 2: Tren & Distribusi ── --}}
     <div class="row g-3 mb-4">
-        <div class="col-lg-5">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h3 class="card-title mb-0">Pricing AI Credits</h3>
-                </div>
-                <div class="card-body">
-                    <div class="text-secondary text-uppercase small fw-bold">Harga Dasar</div>
-                    <div class="fs-2 fw-bold mt-2">{{ $money->format($aiPricing['price_per_credit'], $aiPricing['currency']) }} / AI Credit</div>
-                    <div class="text-muted small mt-2">1 AI Credit = {{ number_format($aiPricing['unit_tokens']) }} tokens internal.</div>
-                    <div class="mt-3">
-                        <div class="text-secondary text-uppercase small fw-bold mb-2">Pack Launch</div>
-                        <div class="d-flex flex-wrap gap-2">
-                            @foreach($aiPricing['packs'] as $pack)
-                                <span class="badge bg-azure-lt text-azure">
-                                    {{ number_format($pack['credits']) }} AI Credits · {{ $money->format($pack['price'], $aiPricing['currency']) }}
-                                </span>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-7">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h3 class="card-title mb-0">Atur Pricing AI Credits</h3>
-                </div>
-                <div class="card-body">
-                    @if(!($aiPricing['ready'] ?? false))
-                        <div class="alert alert-warning mb-3">
-                            <i class="ti ti-alert-triangle me-2"></i>Table AI credit pricing settings belum tersedia. Jalankan migration terlebih dahulu.
-                        </div>
-                    @endif
-                    <form method="POST" action="{{ route('platform.ai-credit-pricing.update') }}">
-                        @csrf
-                        <div class="row g-3">
-                            <div class="col-md-4">
-                                <label class="form-label">Currency</label>
-                                <input type="text" class="form-control" name="currency" value="{{ $aiPricing['currency'] }}" readonly>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Tokens per Credit</label>
-                                <input type="number" class="form-control" name="unit_tokens" min="1" step="1" value="{{ $aiPricing['unit_tokens'] }}" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Harga per Credit</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">Rp</span>
-                                    <input type="number" class="form-control" name="price_per_credit" min="1" step="1" value="{{ $aiPricing['price_per_credit'] }}" required>
-                                </div>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Pack Options</label>
-                                <input type="text" class="form-control" name="pack_options" value="{{ implode(',', $aiPricing['pack_options']) }}" placeholder="500,1000" required>
-                                <div class="form-hint">Pisahkan dengan koma. Harga pack dihitung otomatis dari harga per credit.</div>
-                            </div>
-                        </div>
-                        <div class="mt-3">
-                            <button type="submit" class="btn btn-outline-primary" @disabled(!($aiPricing['ready'] ?? false))>Simpan Pricing AI</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-3 mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex align-items-center justify-content-between">
-                    <h3 class="card-title mb-0">Promo Codes</h3>
-                    <a href="{{ route('platform.promos.index') }}" class="btn btn-sm btn-outline-secondary">Kelola promo</a>
-                </div>
-                <div class="card-body p-0">
-                    @if(!$promoReady)
-                        <div class="p-3 text-muted">Table promo platform belum tersedia.</div>
-                    @elseif($promoCodes->isEmpty())
-                        <div class="p-3 text-muted">Belum ada promo code platform.</div>
-                    @else
-                        <div class="table-responsive">
-                            <table class="table table-vcenter card-table">
-                                <thead>
-                                    <tr>
-                                        <th>Kode</th>
-                                        <th>Diskon</th>
-                                        <th>Produk</th>
-                                        <th>Pemakaian</th>
-                                        <th>Expire</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($promoCodes as $promo)
-                                        <tr>
-                                            <td>
-                                                <div class="fw-semibold">{{ $promo->code }}</div>
-                                                <div class="text-muted small">{{ $promo->label }}</div>
-                                            </td>
-                                            <td>{{ $promo->discount_percent }}%</td>
-                                            <td class="text-muted small">
-                                                {{ is_array($promo->applicable_product_lines) && count($promo->applicable_product_lines) ? implode(', ', $promo->applicable_product_lines) : 'Semua product line' }}
-                                            </td>
-                                            <td>{{ number_format((int) $promo->used_count) }} / {{ $promo->max_uses ? number_format((int) $promo->max_uses) : 'Unlimited' }}</td>
-                                            <td>{{ $promo->expires_at?->format('d/m/Y H:i') ?? 'No expiry' }}</td>
-                                            <td>
-                                                @if($promo->is_active)
-                                                    <span class="badge bg-green-lt text-green">Aktif</span>
-                                                @else
-                                                    <span class="badge bg-secondary-lt text-secondary">Nonaktif</span>
-                                                @endif
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    @endif
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-3">
         <div class="col-lg-6">
             <div class="card h-100">
                 <div class="card-header">
@@ -285,45 +164,50 @@
                 </div>
             </div>
         </div>
+    </div>
 
+    {{-- ── BARIS 3: Tenant Terbaru & Perlu Perhatian ── --}}
+    <div class="row g-3 mb-4">
         <div class="col-lg-7">
             <div class="card">
                 <div class="card-header d-flex align-items-center justify-content-between">
                     <h3 class="card-title mb-0">Tenant Terbaru</h3>
                     <a href="{{ route('platform.tenants.index') }}" class="btn btn-sm btn-outline-secondary">Lihat semua</a>
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-vcenter card-table">
-                        <thead>
-                            <tr>
-                                <th>Tenant</th>
-                                <th>Plan</th>
-                                <th>Users</th>
-                                <th>Didaftarkan</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($recentTenants as $tenant)
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-vcenter table-hover">
+                            <thead>
                                 <tr>
-                                    <td>
-                                        <a href="{{ route('platform.tenants.show', $tenant) }}" class="fw-semibold text-reset">{{ $tenant->name }}</a>
-                                        <div class="text-muted small">{{ $tenant->slug }}</div>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-blue-lt text-blue">
-                                            {{ optional(optional($tenant->activeSubscription)->plan)->display_name ?? optional(optional($tenant->activeSubscription)->plan)->name ?? 'No plan' }}
-                                        </span>
-                                    </td>
-                                    <td>{{ $tenant->users_count }}</td>
-                                    <td class="text-muted small">{{ optional($tenant->created_at)->diffForHumans() }}</td>
+                                    <th>Tenant</th>
+                                    <th>Plan</th>
+                                    <th>Users</th>
+                                    <th>Terdaftar</th>
                                 </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="4" class="text-center text-muted py-4">Belum ada tenant.</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                @forelse($recentTenants as $tenant)
+                                    <tr>
+                                        <td>
+                                            <a href="{{ route('platform.tenants.show', $tenant) }}" class="fw-semibold text-reset">{{ $tenant->name }}</a>
+                                            <div class="text-muted small">{{ $tenant->slug }}</div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-blue-lt text-blue">
+                                                {{ optional(optional($tenant->activeSubscription)->plan)->display_name ?? optional(optional($tenant->activeSubscription)->plan)->name ?? 'No plan' }}
+                                            </span>
+                                        </td>
+                                        <td>{{ $tenant->users_count }}</td>
+                                        <td class="text-muted small">{{ optional($tenant->created_at)->diffForHumans() }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted py-4">Belum ada tenant.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -332,7 +216,7 @@
             <div class="card h-100">
                 <div class="card-header">
                     <h3 class="card-title mb-0">
-                        <i class="ti ti-alert-triangle text-warning me-1"></i>Perlu Perhatian
+                        <i class="ti ti-alert-triangle text-orange me-1"></i>Perlu Perhatian
                     </h3>
                 </div>
                 <div class="list-group list-group-flush">
@@ -343,15 +227,15 @@
                                     <div class="fw-semibold">{{ $row['tenant']->name }}</div>
                                     <div class="text-muted small">
                                         {{ $row['tenant']->is_active ? 'Aktif' : 'Nonaktif' }}
-                                        &middot; {{ optional(optional($row['tenant']->activeSubscription)->plan)->display_name ?? optional(optional($row['tenant']->activeSubscription)->plan)->name ?? 'No active plan' }}
+                                        &middot; {{ optional(optional($row['tenant']->activeSubscription)->plan)->display_name ?? optional(optional($row['tenant']->activeSubscription)->plan)->name ?? 'No plan' }}
                                     </div>
                                 </div>
                                 @php
                                     $riskInfo = match($row['risk']['status'] ?? 'ok') {
-                                        'near_limit' => ['label' => 'Near limit', 'class' => 'bg-warning-lt text-warning'],
-                                        'at_limit' => ['label' => 'At limit', 'class' => 'bg-danger-lt text-danger'],
-                                        'over_limit' => ['label' => 'Over limit', 'class' => 'bg-danger-lt text-danger'],
-                                        default => ['label' => 'Nonaktif', 'class' => 'bg-danger-lt text-danger'],
+                                        'near_limit' => ['label' => 'Near limit', 'class' => 'bg-orange-lt text-orange'],
+                                        'at_limit'   => ['label' => 'At limit',   'class' => 'bg-red-lt text-red'],
+                                        'over_limit' => ['label' => 'Over limit', 'class' => 'bg-red-lt text-red'],
+                                        default      => ['label' => 'Nonaktif',   'class' => 'bg-red-lt text-red'],
                                     };
                                 @endphp
                                 <span class="badge {{ $riskInfo['class'] }}">
@@ -361,51 +245,174 @@
                         </a>
                     @empty
                         <div class="list-group-item text-center text-muted py-4">
-                            <i class="ti ti-circle-check text-success d-block mb-1" style="font-size:1.5rem;"></i>
+                            <i class="ti ti-circle-check text-green d-block mb-1" style="font-size:1.5rem;"></i>
                             Semua tenant dalam kondisi baik.
                         </div>
                     @endforelse
                 </div>
             </div>
         </div>
+    </div>
 
-        <div class="col-12">
+    {{-- ── BARIS 4: AI Credits Leaderboard & Promo Codes ── --}}
+    <div class="row g-3 mb-4">
+        <div class="col-lg-7">
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title mb-0">Top Pemakaian AI Credits</h3>
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-vcenter card-table">
-                        <thead>
-                            <tr>
-                                <th>Tenant</th>
-                                <th>Dipakai</th>
-                                <th>Limit</th>
-                                <th>Tersisa</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($tenantAiLeaderboard as $row)
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-vcenter table-hover">
+                            <thead>
                                 <tr>
-                                    <td>
-                                        <a href="{{ route('platform.tenants.show', $row['tenant']) }}" class="fw-semibold text-reset">{{ $row['tenant']->name }}</a>
-                                        <div class="text-muted small">{{ $row['tenant']->slug }}</div>
-                                    </td>
-                                    <td class="fw-semibold">{{ number_format($row['used']) }}</td>
-                                    <td>{{ $row['limit'] ?? 'Unlimited' }}</td>
-                                    <td>{{ $row['remaining'] ?? 'Unlimited' }}</td>
+                                    <th>Tenant</th>
+                                    <th>Dipakai</th>
+                                    <th>Limit</th>
+                                    <th>Tersisa</th>
                                 </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="4" class="text-center text-muted py-4">
-                                        {{ $aiUsageReady ? 'Belum ada pemakaian AI Credits bulan ini.' : 'Data AI usage belum tersedia.' }}
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                @forelse($tenantAiLeaderboard as $row)
+                                    <tr>
+                                        <td>
+                                            <a href="{{ route('platform.tenants.show', $row['tenant']) }}" class="fw-semibold text-reset">{{ $row['tenant']->name }}</a>
+                                            <div class="text-muted small">{{ $row['tenant']->slug }}</div>
+                                        </td>
+                                        <td class="fw-semibold">{{ number_format($row['used']) }}</td>
+                                        <td class="text-muted">{{ $row['limit'] ?? 'Unlimited' }}</td>
+                                        <td class="text-muted">{{ $row['remaining'] ?? 'Unlimited' }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted py-4">
+                                            {{ $aiUsageReady ? 'Belum ada pemakaian AI Credits bulan ini.' : 'Data AI usage belum tersedia.' }}
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card h-100">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h3 class="card-title mb-0">Promo Codes</h3>
+                    <a href="{{ route('platform.promos.index') }}" class="btn btn-sm btn-outline-secondary">Kelola</a>
+                </div>
+                <div class="card-body p-0">
+                    @if(!$promoReady)
+                        <div class="p-3 text-muted small">Table promo platform belum tersedia.</div>
+                    @elseif($promoCodes->isEmpty())
+                        <div class="p-3 text-muted small">Belum ada promo code platform.</div>
+                    @else
+                        <div class="table-responsive">
+                            <table class="table table-vcenter">
+                                <thead>
+                                    <tr>
+                                        <th>Kode</th>
+                                        <th>Diskon</th>
+                                        <th>Pemakaian</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($promoCodes as $promo)
+                                        <tr>
+                                            <td>
+                                                <div class="fw-semibold">{{ $promo->code }}</div>
+                                                <div class="text-muted small">{{ $promo->label }}</div>
+                                            </td>
+                                            <td>{{ $promo->discount_percent }}%</td>
+                                            <td class="text-muted small">{{ number_format((int) $promo->used_count) }} / {{ $promo->max_uses ? number_format((int) $promo->max_uses) : '∞' }}</td>
+                                            <td>
+                                                @if($promo->is_active)
+                                                    <span class="badge bg-green-lt text-green">Aktif</span>
+                                                @else
+                                                    <span class="badge bg-secondary-lt text-secondary">Nonaktif</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- ── BARIS 5: Konfigurasi Platform (AI Credit Pricing) ── --}}
+    <div class="row g-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">
+                        <i class="ti ti-settings me-1 text-muted"></i>Konfigurasi Platform — AI Credit Pricing
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-lg-4">
+                            <div class="text-secondary text-uppercase small fw-bold mb-1">Harga Dasar</div>
+                            <div class="fs-3 fw-bold">{{ $money->format($aiPricing['price_per_credit'], $aiPricing['currency']) }} / AI Credit</div>
+                            <div class="text-muted small mt-1">1 AI Credit = {{ number_format($aiPricing['unit_tokens']) }} tokens internal.</div>
+                            <div class="mt-3">
+                                <div class="text-secondary text-uppercase small fw-bold mb-2">Pack Launch</div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    @foreach($aiPricing['packs'] as $pack)
+                                        <span class="badge bg-azure-lt text-azure">
+                                            {{ number_format($pack['credits']) }} credits · {{ $money->format($pack['price'], $aiPricing['currency']) }}
+                                        </span>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-8">
+                            @if(!($aiPricing['ready'] ?? false))
+                                <div class="alert alert-warning mb-3">
+                                    <i class="ti ti-alert-triangle me-2"></i>Table AI credit pricing settings belum tersedia. Jalankan migration terlebih dahulu.
+                                </div>
+                            @endif
+                            <form method="POST" action="{{ route('platform.ai-credit-pricing.update') }}">
+                                @csrf
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label" for="currency">Currency</label>
+                                        <input type="text" id="currency" class="form-control bg-body-secondary" name="currency" value="{{ $aiPricing['currency'] }}" readonly>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label" for="unit_tokens">Tokens per Credit</label>
+                                        <input type="number" id="unit_tokens" class="form-control" name="unit_tokens" min="1" step="1" value="{{ $aiPricing['unit_tokens'] }}" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label" for="price_per_credit">Harga per Credit</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">Rp</span>
+                                            <input type="number" id="price_per_credit" class="form-control" name="price_per_credit" min="1" step="1" value="{{ $aiPricing['price_per_credit'] }}" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label" for="pack_options">Pack Options</label>
+                                        <input type="text" id="pack_options" class="form-control" name="pack_options" value="{{ implode(',', $aiPricing['pack_options']) }}" placeholder="500,1000" required>
+                                        <div class="form-hint">Pisahkan dengan koma. Harga pack dihitung otomatis dari harga per credit.</div>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <button type="submit" class="btn btn-primary" @disabled(!($aiPricing['ready'] ?? false))>
+                                        <i class="ti ti-device-floppy me-1"></i>Simpan Pricing AI
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 @endsection
+

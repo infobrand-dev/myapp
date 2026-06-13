@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('content')
 <form method="POST" action="{{ $template->exists ? route('email-marketing.templates.update', $template) : route('email-marketing.templates.store') }}">
@@ -165,3 +165,4 @@
     })();
 </script>
 @endpush
+

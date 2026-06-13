@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('content')
 @php
@@ -388,3 +388,4 @@
     @endif
 </script>
 @endpush
+

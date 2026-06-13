@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.tenant')
 
 @section('title', 'Affiliate Marketplace')
 
@@ -57,3 +57,4 @@
         @endforelse
     </div>
 @endsection
+

@@ -104,7 +104,7 @@ class TenantStorageTopologyResolver
         if (is_string($profileCode) && trim($profileCode) !== '') {
             return StorageProfile::query()
                 ->where('code', trim($profileCode))
-                ->where('is_active', true)
+                ->active()
                 ->first();
         }
 
@@ -124,7 +124,7 @@ class TenantStorageTopologyResolver
     {
         return StorageProfile::query()
             ->where('visibility_scope', $visibility)
-            ->where('is_active', true)
+            ->active()
             ->get()
             ->filter(fn (StorageProfile $profile) => $profile->supportsPurpose($purpose))
             ->values();

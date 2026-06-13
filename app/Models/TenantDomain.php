@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Schema;
 
 class TenantDomain extends Model
 {
@@ -62,10 +63,20 @@ class TenantDomain extends Model
     {
         static::saving(function (self $domain): void {
             $hostname = $domain->normalizedHostname();
-            $domain->hostname = $hostname;
+
+            if (self::hasColumn('hostname')) {
+                $domain->hostname = $hostname;
+            }
+
             $domain->domain = $hostname;
-            $domain->hostname_type = $domain->hostname_type ?: $domain->inferHostnameType();
-            $domain->provider = $domain->provider ?: self::PROVIDER_CLOUDFLARE_SAAS;
+
+            if (self::hasColumn('hostname_type')) {
+                $domain->hostname_type = $domain->hostname_type ?: $domain->inferHostnameType();
+            }
+
+            if (self::hasColumn('provider')) {
+                $domain->provider = $domain->provider ?: self::PROVIDER_CLOUDFLARE_SAAS;
+            }
         });
     }
 
@@ -76,6 +87,10 @@ class TenantDomain extends Model
 
     public function scopeCanonical(Builder $query): Builder
     {
+        if (!self::hasColumn('is_canonical')) {
+            return $query->where('is_primary', true);
+        }
+
         return $query->where('is_canonical', true);
     }
 
@@ -84,8 +99,14 @@ class TenantDomain extends Model
         $normalized = strtolower(trim($hostname));
 
         return $query->where(function (Builder $builder) use ($normalized): void {
-            $builder->where('hostname', $normalized)
-                ->orWhere('domain', $normalized);
+            if (self::hasColumn('hostname')) {
+                $builder->where('hostname', $normalized)
+                    ->orWhere('domain', $normalized);
+
+                return;
+            }
+
+            $builder->where('domain', $normalized);
         });
     }
 
@@ -122,5 +143,14 @@ class TenantDomain extends Model
             'last_error_message' => mb_substr($message, 0, 4000),
             'last_synced_at' => now(),
         ])->save();
+    }
+
+    private static function hasColumn(string $column): bool
+    {
+        try {
+            return Schema::connection((new static())->getConnectionName())->hasColumn((new static())->getTable(), $column);
+        } catch (\Throwable) {
+            return false;
+        }
     }
 }

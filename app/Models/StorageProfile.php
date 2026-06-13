@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Support\BooleanQuery;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -50,6 +52,20 @@ class StorageProfile extends Model
     public function storedFiles(): HasMany
     {
         return $this->hasMany(StoredFile::class);
+    }
+
+    public function scopeActive(Builder $query): Builder
+    {
+        BooleanQuery::apply($query, 'is_active', true);
+
+        return $query;
+    }
+
+    public function scopeDefault(Builder $query): Builder
+    {
+        BooleanQuery::apply($query, 'is_default', true);
+
+        return $query;
     }
 
     public function supportsPurpose(?string $purpose): bool

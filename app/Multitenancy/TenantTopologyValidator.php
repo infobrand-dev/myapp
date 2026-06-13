@@ -109,8 +109,8 @@ class TenantTopologyValidator
 
         $publicBucket = StorageBucket::query()->where('key', 'public-default')->where('status', 'active')->first();
         $privateBucket = StorageBucket::query()->where('key', 'private-default')->where('status', 'active')->first();
-        $publicProfile = StorageProfile::query()->where('visibility_scope', 'public')->where('is_active', true)->where('is_default', true)->first();
-        $privateProfile = StorageProfile::query()->where('visibility_scope', 'private')->where('is_active', true)->where('is_default', true)->first();
+        $publicProfile = StorageProfile::query()->where('visibility_scope', 'public')->active()->default()->first();
+        $privateProfile = StorageProfile::query()->where('visibility_scope', 'private')->active()->default()->first();
 
         if (!$publicBucket) {
             $issues[] = 'missing active public-default storage bucket';

@@ -58,7 +58,7 @@ class StorageRoutingService
         return StorageProfile::ordered(
             StorageProfile::query()
                 ->where('visibility_scope', $visibility)
-                ->where('is_active', true)
+                ->active()
                 ->orderBy('priority')
                 ->orderByDesc('is_default')
                 ->orderBy('id')

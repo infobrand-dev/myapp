@@ -14,6 +14,9 @@
         || (auth()->user()?->can('modules.activate') ?? false)
         || (auth()->user()?->can('modules.install') ?? false)
         || (auth()->user()?->can('modules.deactivate') ?? false);
+    $canBulkInstall = (auth()->user()?->can('modules.install') ?? false);
+    $canBulkActivate = (auth()->user()?->can('modules.activate') ?? false);
+    $canBulkDeactivate = (auth()->user()?->can('modules.deactivate') ?? false);
 @endphp
 
 <div class="page-header">
@@ -123,11 +126,43 @@
             <h3 class="card-title mb-0">Module Registry</h3>
             <div class="text-muted small mt-1">Aktivasi mengikuti deklarasi dependency pada `module.json` dan provider module aktif akan diregister otomatis.</div>
         </div>
+        @if($canManageModules)
+            <form method="POST" action="{{ route('modules.bulk') }}" id="modules-bulk-form" class="d-flex flex-wrap align-items-center justify-content-end gap-2">
+                @csrf
+                <select name="action" class="form-select form-select-sm" style="min-width: 14rem;">
+                    <option value="">Bulk action</option>
+                    @if($canBulkInstall)
+                        <option value="install">Install selected</option>
+                    @endif
+                    @if($canBulkActivate)
+                        <option value="activate">Install + activate selected</option>
+                        <option value="db-update">Run DB update selected</option>
+                    @endif
+                    @if($canBulkDeactivate)
+                        <option value="deactivate">Deactivate selected</option>
+                    @endif
+                </select>
+                <button type="submit"
+                    class="btn btn-sm btn-primary"
+                    data-confirm="Jalankan bulk action untuk module terpilih? Install/activate akan otomatis menyertakan dependency yang dibutuhkan."
+                    data-loading="Processing...">
+                    Run Bulk Action
+                </button>
+                <div class="w-100 text-muted small text-end">
+                    Install/activate otomatis mengikutkan dependency. Deactivate hanya aman bila dependent ikut dipilih.
+                </div>
+            </form>
+        @endif
     </div>
     <div class="table-responsive">
         <table class="table table-vcenter card-table">
             <thead>
                 <tr>
+                    <th class="w-1">
+                        @if($canManageModules)
+                            <input type="checkbox" class="form-check-input" id="modules-select-all" aria-label="Select all modules">
+                        @endif
+                    </th>
                     <th style="min-width: 21rem;">Module</th>
                     <th>Category</th>
                     <th>Version</th>
@@ -154,6 +189,18 @@
                                 : ['label' => 'Up to Date', 'class' => 'success']));
                     @endphp
                     <tr>
+                        <td>
+                            @if($canManageModules)
+                                <input
+                                    type="checkbox"
+                                    class="form-check-input module-bulk-checkbox"
+                                    name="slugs[]"
+                                    value="{{ $module['slug'] }}"
+                                    form="modules-bulk-form"
+                                    aria-label="Select module {{ $module['name'] }}"
+                                >
+                            @endif
+                        </td>
                         <td>
                             <div class="d-flex align-items-start gap-3">
                                 <div class="mt-1">
@@ -291,7 +338,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="text-center text-muted py-5">
+                        <td colspan="8" class="text-center text-muted py-5">
                             Tidak ada module yang cocok dengan filter saat ini.
                         </td>
                     </tr>
@@ -304,6 +351,26 @@
 
 @push('scripts')
 <script>
+    const selectAllCheckbox = document.getElementById('modules-select-all');
+    const bulkCheckboxes = Array.from(document.querySelectorAll('.module-bulk-checkbox'));
+
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function () {
+            bulkCheckboxes.forEach((checkbox) => {
+                checkbox.checked = selectAllCheckbox.checked;
+            });
+        });
+    }
+
+    bulkCheckboxes.forEach((checkbox) => {
+        checkbox.addEventListener('change', function () {
+            if (!selectAllCheckbox) return;
+            const checkedCount = bulkCheckboxes.filter((item) => item.checked).length;
+            selectAllCheckbox.checked = checkedCount === bulkCheckboxes.length;
+            selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < bulkCheckboxes.length;
+        });
+    });
+
     // Setelah confirm modal OK, disable button dan tampilkan loading text
     document.addEventListener('click', function (e) {
         const btn = e.target.closest('[data-loading]');

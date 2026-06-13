@@ -167,4 +167,5 @@ Route::middleware(['auth', '2fa', 'platform.admin', \App\Http\Middleware\Resolve
     Route::post('/modules/{slug}/db-update', [ModuleController::class, 'runDbUpdate'])->middleware('permission:modules.activate')->name('modules.db-update');
     Route::post('/modules/{slug}/migrations/{migration}', [ModuleController::class, 'runSingleMigration'])->middleware('permission:modules.activate')->name('modules.migrations.run');
     Route::post('/modules/{slug}/deactivate', [ModuleController::class, 'deactivate'])->middleware('permission:modules.deactivate')->name('modules.deactivate');
+    Route::post('/modules/bulk', [ModuleController::class, 'bulk'])->middleware('permission:modules.view')->name('modules.bulk');
 });

@@ -6,6 +6,7 @@ use App\Support\ModuleManager;
 use App\Support\ModuleFilesystemAudit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\View\View;
 use Throwable;
 
@@ -134,5 +135,62 @@ class ModuleController extends Controller
         } catch (Throwable $e) {
             return back()->with('status', "Gagal menjalankan migration '{$migration}' untuk module '{$slug}': " . $e->getMessage());
         }
+    }
+
+    public function bulk(Request $request, ModuleManager $modules): RedirectResponse
+    {
+        $data = $request->validate([
+            'action' => ['required', 'string', 'in:install,activate,deactivate,db-update'],
+            'slugs' => ['required', 'array', 'min:1'],
+            'slugs.*' => ['string'],
+        ]);
+
+        if (!$this->canRunBulkAction($request, $data['action'])) {
+            abort(403);
+        }
+
+        try {
+            $result = $modules->runBulkAction($data['action'], Arr::wrap($data['slugs']), $request->user()?->id);
+
+            return back()->with('status', $this->bulkStatusMessage($result));
+        } catch (Throwable $e) {
+            return back()->with('status', 'Gagal bulk action module: ' . $e->getMessage());
+        }
+    }
+
+    private function canRunBulkAction(Request $request, string $action): bool
+    {
+        return match ($action) {
+            'install' => (bool) $request->user()?->can('modules.install'),
+            'activate', 'db-update' => (bool) $request->user()?->can('modules.activate'),
+            'deactivate' => (bool) $request->user()?->can('modules.deactivate'),
+            default => false,
+        };
+    }
+
+    /**
+     * @param  array{requested: array<int, string>, expanded: array<int, string>, executed: array<int, string>, action: string}  $result
+     */
+    private function bulkStatusMessage(array $result): string
+    {
+        $labels = [
+            'install' => 'install',
+            'activate' => 'aktivasi',
+            'deactivate' => 'nonaktif',
+            'db-update' => 'DB update',
+        ];
+
+        $executed = count($result['executed']);
+        $requested = implode(', ', $result['requested']);
+        $autoIncluded = array_values(array_diff($result['expanded'], $result['requested']));
+        $autoLabel = $autoIncluded !== []
+            ? ' Dependency otomatis ikut: ' . implode(', ', $autoIncluded) . '.'
+            : '';
+
+        if ($executed === 0) {
+            return "Bulk {$labels[$result['action']]} selesai. Tidak ada perubahan untuk pilihan: {$requested}.{$autoLabel}";
+        }
+
+        return "Bulk {$labels[$result['action']]} berhasil untuk {$executed} module: " . implode(', ', $result['executed']) . ".{$autoLabel}";
     }
 }

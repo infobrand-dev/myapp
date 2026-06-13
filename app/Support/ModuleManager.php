@@ -210,6 +210,30 @@ class ModuleManager
         $this->forgetRuntimeCaches();
     }
 
+    /**
+     * @param  array<int, string>  $slugs
+     * @return array{requested: array<int, string>, expanded: array<int, string>, executed: array<int, string>, action: string}
+     */
+    public function runBulkAction(string $action, array $slugs, ?int $ranBy = null): array
+    {
+        $requested = array_values(array_unique(array_filter(array_map(
+            fn (mixed $slug): string => trim((string) $slug),
+            $slugs
+        ))));
+
+        if ($requested === []) {
+            throw new RuntimeException('Pilih minimal satu module terlebih dahulu.');
+        }
+
+        return match ($action) {
+            'install' => $this->bulkInstall($requested),
+            'activate' => $this->bulkActivate($requested),
+            'deactivate' => $this->bulkDeactivate($requested),
+            'db-update' => $this->bulkRunPendingDbUpdate($requested, $ranBy),
+            default => throw new RuntimeException("Bulk action '{$action}' tidak dikenali."),
+        };
+    }
+
     public function runPendingDbUpdate(string $slug, ?int $ranBy = null): int
     {
         $this->forgetRuntimeCaches();
@@ -608,5 +632,238 @@ class ModuleManager
         $category = trim(strtolower($category));
 
         return $category !== '' ? $category : 'uncategorized';
+    }
+
+    /**
+     * @param  array<int, string>  $requested
+     * @return array{requested: array<int, string>, expanded: array<int, string>, executed: array<int, string>, action: string}
+     */
+    private function bulkInstall(array $requested): array
+    {
+        $expanded = $this->expandWithDependencies($requested);
+        $ordered = $this->topologicalOrder($expanded);
+        $executed = [];
+
+        foreach ($ordered as $slug) {
+            if (($this->all()[$slug]['installed'] ?? false) === true) {
+                continue;
+            }
+
+            $this->install($slug);
+            $executed[] = $slug;
+        }
+
+        return [
+            'action' => 'install',
+            'requested' => $requested,
+            'expanded' => $expanded,
+            'executed' => $executed,
+        ];
+    }
+
+    /**
+     * @param  array<int, string>  $requested
+     * @return array{requested: array<int, string>, expanded: array<int, string>, executed: array<int, string>, action: string}
+     */
+    private function bulkActivate(array $requested): array
+    {
+        $expanded = $this->expandWithDependencies($requested);
+        $ordered = $this->topologicalOrder($expanded);
+        $executed = [];
+
+        foreach ($ordered as $slug) {
+            $state = $this->all()[$slug] ?? null;
+            if (!$state) {
+                throw new RuntimeException("Module '{$slug}' tidak ditemukan.");
+            }
+
+            if (!$state['installed']) {
+                $this->install($slug);
+            }
+
+            if (($this->all()[$slug]['active'] ?? false) === true) {
+                continue;
+            }
+
+            $this->activate($slug);
+            $executed[] = $slug;
+        }
+
+        return [
+            'action' => 'activate',
+            'requested' => $requested,
+            'expanded' => $expanded,
+            'executed' => $executed,
+        ];
+    }
+
+    /**
+     * @param  array<int, string>  $requested
+     * @return array{requested: array<int, string>, expanded: array<int, string>, executed: array<int, string>, action: string}
+     */
+    private function bulkDeactivate(array $requested): array
+    {
+        $this->assertNoExternalActiveDependents($requested);
+
+        $ordered = array_reverse($this->topologicalOrder($requested));
+        $executed = [];
+
+        foreach ($ordered as $slug) {
+            if (($this->all()[$slug]['active'] ?? false) !== true) {
+                continue;
+            }
+
+            $this->deactivate($slug);
+            $executed[] = $slug;
+        }
+
+        return [
+            'action' => 'deactivate',
+            'requested' => $requested,
+            'expanded' => $requested,
+            'executed' => $executed,
+        ];
+    }
+
+    /**
+     * @param  array<int, string>  $requested
+     * @return array{requested: array<int, string>, expanded: array<int, string>, executed: array<int, string>, action: string}
+     */
+    private function bulkRunPendingDbUpdate(array $requested, ?int $ranBy): array
+    {
+        $expanded = $this->expandWithDependencies($requested);
+        $ordered = $this->topologicalOrder($expanded);
+        $executed = [];
+
+        foreach ($ordered as $slug) {
+            $state = $this->all()[$slug] ?? null;
+            if (!$state || !$state['installed'] || !$state['has_pending_db_update']) {
+                continue;
+            }
+
+            $this->runPendingDbUpdate($slug, $ranBy);
+            $executed[] = $slug;
+        }
+
+        return [
+            'action' => 'db-update',
+            'requested' => $requested,
+            'expanded' => $expanded,
+            'executed' => $executed,
+        ];
+    }
+
+    /**
+     * @param  array<int, string>  $requested
+     * @return array<int, string>
+     */
+    private function expandWithDependencies(array $requested): array
+    {
+        $all = $this->all();
+        $resolved = [];
+        $stack = $requested;
+
+        while ($stack !== []) {
+            $slug = array_pop($stack);
+            if ($slug === null || isset($resolved[$slug])) {
+                continue;
+            }
+
+            if (!isset($all[$slug])) {
+                throw new RuntimeException("Module '{$slug}' tidak ditemukan.");
+            }
+
+            $resolved[$slug] = true;
+
+            foreach ($all[$slug]['requires'] as $requiredSlug) {
+                if (!isset($resolved[$requiredSlug])) {
+                    $stack[] = $requiredSlug;
+                }
+            }
+        }
+
+        return array_keys($resolved);
+    }
+
+    /**
+     * @param  array<int, string>  $slugs
+     * @return array<int, string>
+     */
+    private function topologicalOrder(array $slugs): array
+    {
+        $all = $this->all();
+        $selected = array_fill_keys($slugs, true);
+        $ordered = [];
+        $visiting = [];
+        $visited = [];
+
+        $visit = function (string $slug) use (&$visit, &$ordered, &$visiting, &$visited, $all, $selected): void {
+            if (isset($visited[$slug])) {
+                return;
+            }
+
+            if (isset($visiting[$slug])) {
+                throw new RuntimeException("Circular dependency terdeteksi pada module '{$slug}'.");
+            }
+
+            if (!isset($all[$slug])) {
+                throw new RuntimeException("Module '{$slug}' tidak ditemukan.");
+            }
+
+            $visiting[$slug] = true;
+
+            foreach ($all[$slug]['requires'] as $requiredSlug) {
+                if (isset($selected[$requiredSlug])) {
+                    $visit($requiredSlug);
+                }
+            }
+
+            unset($visiting[$slug]);
+            $visited[$slug] = true;
+            $ordered[] = $slug;
+        };
+
+        foreach (array_keys($selected) as $slug) {
+            $visit($slug);
+        }
+
+        return $ordered;
+    }
+
+    /**
+     * @param  array<int, string>  $selectedSlugs
+     */
+    private function assertNoExternalActiveDependents(array $selectedSlugs): void
+    {
+        $all = $this->all();
+        $selected = array_fill_keys($selectedSlugs, true);
+        $blockedBy = [];
+
+        foreach ($selectedSlugs as $slug) {
+            if (!isset($all[$slug])) {
+                throw new RuntimeException("Module '{$slug}' tidak ditemukan.");
+            }
+
+            foreach ($all as $module) {
+                if (
+                    $module['active']
+                    && in_array($slug, $module['requires'], true)
+                    && !isset($selected[$module['slug']])
+                ) {
+                    $blockedBy[$slug][] = $module['slug'];
+                }
+            }
+        }
+
+        if ($blockedBy === []) {
+            return;
+        }
+
+        $messages = collect($blockedBy)
+            ->map(fn (array $dependents, string $slug) => $slug . ' dipakai oleh ' . implode(', ', $dependents))
+            ->values()
+            ->implode('; ');
+
+        throw new RuntimeException('Bulk deactivate diblokir: ' . $messages . '. Pilih module dependent-nya juga atau nonaktifkan satu per satu.');
     }
 }

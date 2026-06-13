@@ -127,9 +127,9 @@
             <div class="text-muted small mt-1">Aktivasi mengikuti deklarasi dependency pada `module.json` dan provider module aktif akan diregister otomatis.</div>
         </div>
         @if($canManageModules)
-            <form method="POST" action="{{ route('modules.bulk') }}" id="modules-bulk-form" class="d-flex flex-wrap align-items-center justify-content-end gap-2">
+            <form id="modules-bulk-form" class="d-flex flex-wrap align-items-center justify-content-end gap-2">
                 @csrf
-                <select name="action" class="form-select form-select-sm" style="min-width: 14rem;">
+                <select name="action" id="modules-bulk-action" class="form-select form-select-sm" style="min-width: 14rem;">
                     <option value="">Bulk action</option>
                     @if($canBulkInstall)
                         <option value="install">Install selected</option>
@@ -142,9 +142,9 @@
                         <option value="deactivate">Deactivate selected</option>
                     @endif
                 </select>
-                <button type="submit"
+                <button type="button"
+                    id="modules-bulk-run"
                     class="btn btn-sm btn-primary"
-                    data-confirm="Jalankan bulk action untuk module terpilih? Install/activate akan otomatis menyertakan dependency yang dibutuhkan."
                     data-loading="Processing...">
                     Run Bulk Action
                 </button>
@@ -154,6 +154,42 @@
             </form>
         @endif
     </div>
+    @if($canManageModules)
+        <div class="card-body border-bottom" id="modules-bulk-panel" hidden>
+            <div class="row g-3 align-items-start">
+                <div class="col-lg-4">
+                    <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                        <div class="text-secondary text-uppercase small fw-bold">Bulk Progress</div>
+                        <div class="fs-3 fw-bold mt-2" id="modules-bulk-progress-text">0 / 0</div>
+                        <div class="progress progress-sm mt-2">
+                            <div id="modules-bulk-progress-bar" class="progress-bar progress-bar-striped" style="width: 0%"></div>
+                        </div>
+                        <div class="small text-muted mt-2" id="modules-bulk-summary">Belum ada proses berjalan.</div>
+                        <div class="d-flex gap-2 mt-3">
+                            <button type="button" class="btn btn-sm btn-outline-danger" id="modules-bulk-stop" hidden>Stop After Current</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="modules-bulk-refresh" hidden>Refresh Page</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="border rounded-3 p-3 h-100">
+                        <div class="text-secondary text-uppercase small fw-bold">Current Item</div>
+                        <div class="fw-semibold mt-2" id="modules-bulk-current">Menunggu mulai.</div>
+                        <div class="small text-muted mt-2" id="modules-bulk-current-detail">Pilih action dan module, lalu jalankan bulk action.</div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="border rounded-3 p-3 h-100">
+                        <div class="text-secondary text-uppercase small fw-bold">Queue</div>
+                        <div class="small text-muted mt-2" id="modules-bulk-queue-summary">Belum ada antrean.</div>
+                        <div class="mt-2" style="max-height: 14rem; overflow: auto;">
+                            <ul class="list-group list-group-flush" id="modules-bulk-queue"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
     <div class="table-responsive">
         <table class="table table-vcenter card-table">
             <thead>
@@ -188,7 +224,7 @@
                                 ? ['label' => 'Pending DB Update', 'class' => 'orange']
                                 : ['label' => 'Up to Date', 'class' => 'success']));
                     @endphp
-                    <tr>
+                    <tr data-module-row data-module-slug="{{ $module['slug'] }}">
                         <td>
                             @if($canManageModules)
                                 <input
@@ -222,11 +258,17 @@
                             <span class="fw-semibold">{{ $module['version'] ?: '-' }}</span>
                         </td>
                         <td>
-                            <span class="badge bg-{{ $statusLabel['class'] }}-lt text-{{ $statusLabel['class'] }}">{{ $statusLabel['label'] }}</span>
+                            <span
+                                class="badge bg-{{ $statusLabel['class'] }}-lt text-{{ $statusLabel['class'] }}"
+                                data-module-status
+                            >{{ $statusLabel['label'] }}</span>
                         </td>
                         <td>
                             <div class="d-flex flex-column gap-1">
-                                <span class="badge bg-{{ $dbStatus['class'] }}-lt text-{{ $dbStatus['class'] }}">{{ $dbStatus['label'] }}</span>
+                                <span
+                                    class="badge bg-{{ $dbStatus['class'] }}-lt text-{{ $dbStatus['class'] }}"
+                                    data-module-db-status
+                                >{{ $dbStatus['label'] }}</span>
                                 @if($module['has_filesystem_issues'])
                                     <div class="text-danger small">
                                         {{ implode('; ', $module['filesystem_issues']) }}
@@ -353,6 +395,431 @@
 <script>
     const selectAllCheckbox = document.getElementById('modules-select-all');
     const bulkCheckboxes = Array.from(document.querySelectorAll('.module-bulk-checkbox'));
+    const bulkActionSelect = document.getElementById('modules-bulk-action');
+    const bulkRunButton = document.getElementById('modules-bulk-run');
+    const bulkPanel = document.getElementById('modules-bulk-panel');
+    const bulkStopButton = document.getElementById('modules-bulk-stop');
+    const bulkRefreshButton = document.getElementById('modules-bulk-refresh');
+    const bulkQueueList = document.getElementById('modules-bulk-queue');
+    const bulkQueueSummary = document.getElementById('modules-bulk-queue-summary');
+    const bulkProgressText = document.getElementById('modules-bulk-progress-text');
+    const bulkProgressBar = document.getElementById('modules-bulk-progress-bar');
+    const bulkSummary = document.getElementById('modules-bulk-summary');
+    const bulkCurrent = document.getElementById('modules-bulk-current');
+    const bulkCurrentDetail = document.getElementById('modules-bulk-current-detail');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const moduleRegistry = @json($moduleRegistry);
+    const moduleState = Object.fromEntries(moduleRegistry.map((module) => [module.slug, { ...module }]));
+    const moduleRows = Object.fromEntries(Array.from(document.querySelectorAll('[data-module-row]')).map((row) => [row.dataset.moduleSlug, row]));
+    const actionLabels = {
+        install: 'Install',
+        activate: 'Activate',
+        deactivate: 'Deactivate',
+        'db-update': 'DB Update',
+    };
+    const actionRoutes = {
+        install: @json(route('modules.install', ['slug' => '__SLUG__'])),
+        activate: @json(route('modules.activate', ['slug' => '__SLUG__'])),
+        deactivate: @json(route('modules.deactivate', ['slug' => '__SLUG__'])),
+        'db-update': @json(route('modules.db-update', ['slug' => '__SLUG__'])),
+    };
+
+    let shouldStopBulk = false;
+    let bulkRunning = false;
+
+    function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (char) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;',
+        }[char]));
+    }
+
+    function updateSelectAllState() {
+        if (!selectAllCheckbox) return;
+        const checkedCount = bulkCheckboxes.filter((item) => item.checked).length;
+        selectAllCheckbox.checked = checkedCount > 0 && checkedCount === bulkCheckboxes.length;
+        selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < bulkCheckboxes.length;
+    }
+
+    function selectedSlugs() {
+        return bulkCheckboxes.filter((checkbox) => checkbox.checked).map((checkbox) => checkbox.value);
+    }
+
+    function getModule(slug) {
+        const module = moduleState[slug];
+        if (!module) {
+            throw new Error(`Module '${slug}' tidak ditemukan.`);
+        }
+
+        return module;
+    }
+
+    function expandWithDependencies(slugs) {
+        const resolved = new Set();
+        const stack = [...slugs];
+
+        while (stack.length > 0) {
+            const slug = stack.pop();
+            if (!slug || resolved.has(slug)) {
+                continue;
+            }
+
+            const module = getModule(slug);
+            resolved.add(slug);
+
+            (module.requires || []).forEach((requiredSlug) => {
+                if (!resolved.has(requiredSlug)) {
+                    stack.push(requiredSlug);
+                }
+            });
+        }
+
+        return Array.from(resolved);
+    }
+
+    function topologicalOrder(slugs) {
+        const selected = new Set(slugs);
+        const visited = new Set();
+        const visiting = new Set();
+        const ordered = [];
+
+        const visit = (slug) => {
+            if (visited.has(slug)) {
+                return;
+            }
+
+            if (visiting.has(slug)) {
+                throw new Error(`Circular dependency terdeteksi pada module '${slug}'.`);
+            }
+
+            const module = getModule(slug);
+            visiting.add(slug);
+
+            (module.requires || []).forEach((requiredSlug) => {
+                if (selected.has(requiredSlug)) {
+                    visit(requiredSlug);
+                }
+            });
+
+            visiting.delete(slug);
+            visited.add(slug);
+            ordered.push(slug);
+        };
+
+        slugs.forEach((slug) => visit(slug));
+
+        return ordered;
+    }
+
+    function assertNoExternalActiveDependents(slugs) {
+        const selected = new Set(slugs);
+        const blocked = [];
+
+        slugs.forEach((slug) => {
+            const dependents = Object.values(moduleState)
+                .filter((module) => module.active && (module.requires || []).includes(slug) && !selected.has(module.slug))
+                .map((module) => module.slug);
+
+            if (dependents.length > 0) {
+                blocked.push(`${slug} dipakai oleh ${dependents.join(', ')}`);
+            }
+        });
+
+        if (blocked.length > 0) {
+            throw new Error(`Bulk deactivate diblokir: ${blocked.join('; ')}. Pilih module dependent-nya juga atau nonaktifkan satu per satu.`);
+        }
+    }
+
+    function createQueue(action, slugs) {
+        if (slugs.length < 1) {
+            throw new Error('Pilih minimal satu module terlebih dahulu.');
+        }
+
+        if (!actionLabels[action]) {
+            throw new Error('Pilih bulk action terlebih dahulu.');
+        }
+
+        if (action === 'deactivate') {
+            assertNoExternalActiveDependents(slugs);
+
+            return topologicalOrder(slugs)
+                .reverse()
+                .filter((slug) => getModule(slug).active)
+                .map((slug) => ({ slug, action: 'deactivate' }));
+        }
+
+        const expanded = expandWithDependencies(slugs);
+        const ordered = topologicalOrder(expanded);
+        const queue = [];
+
+        ordered.forEach((slug) => {
+            const module = getModule(slug);
+
+            if (action === 'install') {
+                if (!module.installed) {
+                    queue.push({ slug, action: 'install' });
+                }
+                return;
+            }
+
+            if (action === 'activate') {
+                if (!module.installed) {
+                    queue.push({ slug, action: 'install' });
+                }
+                if (!module.active) {
+                    queue.push({ slug, action: 'activate' });
+                }
+                return;
+            }
+
+            if (action === 'db-update' && module.installed && module.has_pending_db_update) {
+                queue.push({ slug, action: 'db-update' });
+            }
+        });
+
+        return queue;
+    }
+
+    function renderQueue(queue, completed = 0, failedIndex = -1) {
+        if (!bulkPanel || !bulkQueueList || !bulkQueueSummary || !bulkProgressText || !bulkProgressBar) {
+            return;
+        }
+
+        bulkPanel.hidden = false;
+        const total = queue.length;
+        const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+        bulkProgressText.textContent = `${completed} / ${total}`;
+        bulkProgressBar.style.width = `${percent}%`;
+        bulkProgressBar.classList.toggle('progress-bar-striped', bulkRunning);
+        bulkProgressBar.classList.toggle('progress-bar-animated', bulkRunning);
+
+        const waitingCount = Math.max(total - completed - (failedIndex >= 0 ? 1 : 0), 0);
+        bulkQueueSummary.textContent = total < 1
+            ? 'Tidak ada item yang perlu diproses.'
+            : `${total} step, ${completed} selesai, ${waitingCount} menunggu${failedIndex >= 0 ? ', 1 gagal' : ''}.`;
+
+        bulkQueueList.innerHTML = queue.map((item, index) => {
+            const state = index < completed
+                ? 'success'
+                : (index === failedIndex ? 'danger' : (bulkRunning && index === completed ? 'warning' : 'secondary'));
+            const stateLabel = index < completed
+                ? 'Done'
+                : (index === failedIndex ? 'Failed' : (bulkRunning && index === completed ? 'Running' : 'Queued'));
+
+            return `
+                <li class="list-group-item px-0 d-flex align-items-center justify-content-between gap-2">
+                    <div class="min-w-0">
+                        <div class="fw-semibold">${escapeHtml(actionLabels[item.action])} <span class="text-muted">/</span> ${escapeHtml(item.slug)}</div>
+                        ${item.requested ? `<div class="small text-muted">${escapeHtml(item.requested)}</div>` : ''}
+                    </div>
+                    <span class="badge bg-${state}-lt text-${state}">${stateLabel}</span>
+                </li>
+            `;
+        }).join('');
+    }
+
+    function updateModuleRow(slug) {
+        const row = moduleRows[slug];
+        const module = moduleState[slug];
+        if (!row || !module) {
+            return;
+        }
+
+        const statusEl = row.querySelector('[data-module-status]');
+        const dbStatusEl = row.querySelector('[data-module-db-status]');
+
+        if (statusEl) {
+            if (!module.installed) {
+                statusEl.className = 'badge bg-secondary-lt text-secondary';
+                statusEl.textContent = 'Not Installed';
+            } else if (module.active) {
+                statusEl.className = 'badge bg-success-lt text-success';
+                statusEl.textContent = 'Active';
+            } else {
+                statusEl.className = 'badge bg-warning-lt text-warning';
+                statusEl.textContent = 'Installed';
+            }
+        }
+
+        if (dbStatusEl) {
+            if (!module.installed) {
+                dbStatusEl.className = 'badge bg-secondary-lt text-secondary';
+                dbStatusEl.textContent = '-';
+            } else if (module.has_filesystem_issues) {
+                dbStatusEl.className = 'badge bg-red-lt text-red';
+                dbStatusEl.textContent = 'Filesystem Issue';
+            } else if (module.has_pending_db_update) {
+                dbStatusEl.className = 'badge bg-orange-lt text-orange';
+                dbStatusEl.textContent = 'Pending DB Update';
+            } else {
+                dbStatusEl.className = 'badge bg-success-lt text-success';
+                dbStatusEl.textContent = 'Up to Date';
+            }
+        }
+    }
+
+    function applyStepResult(step) {
+        const module = getModule(step.slug);
+
+        if (step.action === 'install') {
+            module.installed = true;
+        }
+
+        if (step.action === 'activate') {
+            module.installed = true;
+            module.active = true;
+        }
+
+        if (step.action === 'deactivate') {
+            module.active = false;
+        }
+
+        if (step.action === 'db-update') {
+            module.has_pending_db_update = false;
+            module.last_db_update_status = 'success';
+        }
+
+        updateModuleRow(step.slug);
+    }
+
+    async function executeStep(step) {
+        const response = await fetch(actionRoutes[step.action].replace('__SLUG__', encodeURIComponent(step.slug)), {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({}),
+        });
+
+        let payload = null;
+        try {
+            payload = await response.json();
+        } catch (_) {
+            payload = null;
+        }
+
+        if (!response.ok || !payload?.ok) {
+            throw new Error(payload?.message || `Request ${step.action} untuk module '${step.slug}' gagal.`);
+        }
+
+        return payload;
+    }
+
+    async function runBulkQueue() {
+        if (!bulkActionSelect || !bulkRunButton || bulkRunning) {
+            return;
+        }
+
+        const action = bulkActionSelect.value;
+        const slugs = selectedSlugs();
+
+        let queue = [];
+
+        try {
+            queue = createQueue(action, slugs);
+        } catch (error) {
+            window.alert(error.message);
+            return;
+        }
+
+        if (queue.length < 1) {
+            bulkPanel.hidden = false;
+            bulkRunning = false;
+            renderQueue([]);
+            bulkSummary.textContent = 'Tidak ada step yang perlu dijalankan untuk pilihan saat ini.';
+            bulkCurrent.textContent = 'Tidak ada proses.';
+            bulkCurrentDetail.textContent = 'Semua module sudah pada state yang diminta.';
+            bulkRefreshButton.hidden = false;
+            return;
+        }
+
+        if (!window.confirm(`Jalankan ${queue.length} step untuk bulk ${actionLabels[action]}? Proses akan dieksekusi satu per satu.`)) {
+            return;
+        }
+
+        shouldStopBulk = false;
+        bulkRunning = true;
+        bulkStopButton.disabled = false;
+        bulkRunButton.disabled = true;
+        bulkActionSelect.disabled = true;
+        bulkCheckboxes.forEach((checkbox) => {
+            checkbox.disabled = true;
+        });
+        if (selectAllCheckbox) {
+            selectAllCheckbox.disabled = true;
+        }
+
+        bulkStopButton.hidden = false;
+        bulkRefreshButton.hidden = true;
+        bulkSummary.textContent = `Menyiapkan ${queue.length} step.`;
+        bulkCurrent.textContent = 'Mulai eksekusi...';
+        bulkCurrentDetail.textContent = 'Dependency diurutkan otomatis sebelum request dijalankan.';
+        renderQueue(queue, 0, -1);
+
+        let completed = 0;
+        let failedIndex = -1;
+
+        for (let index = 0; index < queue.length; index += 1) {
+            if (shouldStopBulk) {
+                bulkSummary.textContent = `Dihentikan setelah ${completed} step selesai.`;
+                break;
+            }
+
+            const step = queue[index];
+            bulkCurrent.textContent = `${actionLabels[step.action]} / ${step.slug}`;
+            bulkCurrentDetail.textContent = `Step ${index + 1} dari ${queue.length} sedang diproses.`;
+            renderQueue(queue, completed, -1);
+
+            try {
+                const payload = await executeStep(step);
+                applyStepResult(step);
+                completed += 1;
+                bulkSummary.textContent = payload.message || `${actionLabels[step.action]} ${step.slug} selesai.`;
+                renderQueue(queue, completed, -1);
+            } catch (error) {
+                failedIndex = index;
+                bulkSummary.textContent = error.message;
+                bulkCurrent.textContent = `${actionLabels[step.action]} / ${step.slug}`;
+                bulkCurrentDetail.textContent = 'Proses dihentikan karena ada step yang gagal.';
+                renderQueue(queue, completed, failedIndex);
+                break;
+            }
+        }
+
+        bulkRunning = false;
+        bulkRunButton.disabled = false;
+        bulkActionSelect.disabled = false;
+        bulkCheckboxes.forEach((checkbox) => {
+            checkbox.disabled = false;
+        });
+        if (selectAllCheckbox) {
+            selectAllCheckbox.disabled = false;
+        }
+
+        bulkStopButton.hidden = true;
+        bulkStopButton.disabled = false;
+        bulkRefreshButton.hidden = false;
+        bulkProgressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+
+        if (failedIndex < 0 && !shouldStopBulk) {
+            bulkCurrent.textContent = 'Selesai';
+            bulkCurrentDetail.textContent = `${completed} step berhasil dijalankan. Refresh page untuk sinkronkan statistik dan tombol aksi.`;
+            renderQueue(queue, completed, -1);
+        } else if (shouldStopBulk && failedIndex < 0) {
+            bulkCurrent.textContent = 'Dihentikan';
+            bulkCurrentDetail.textContent = 'Tidak ada step baru yang dijalankan setelah item terakhir selesai.';
+            renderQueue(queue, completed, -1);
+        }
+
+        updateSelectAllState();
+    }
 
     if (selectAllCheckbox) {
         selectAllCheckbox.addEventListener('change', function () {
@@ -363,19 +830,24 @@
     }
 
     bulkCheckboxes.forEach((checkbox) => {
-        checkbox.addEventListener('change', function () {
-            if (!selectAllCheckbox) return;
-            const checkedCount = bulkCheckboxes.filter((item) => item.checked).length;
-            selectAllCheckbox.checked = checkedCount === bulkCheckboxes.length;
-            selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < bulkCheckboxes.length;
-        });
+        checkbox.addEventListener('change', updateSelectAllState);
     });
 
-    // Setelah confirm modal OK, disable button dan tampilkan loading text
+    bulkRunButton?.addEventListener('click', runBulkQueue);
+
+    bulkStopButton?.addEventListener('click', function () {
+        shouldStopBulk = true;
+        bulkStopButton.disabled = true;
+        bulkSummary.textContent = 'Stop diminta. Queue akan berhenti setelah step yang sedang berjalan selesai.';
+    });
+
+    bulkRefreshButton?.addEventListener('click', function () {
+        window.location.reload();
+    });
+
     document.addEventListener('click', function (e) {
         const btn = e.target.closest('[data-loading]');
         if (!btn || !btn.closest('.module-action-form')) return;
-        // Tunggu confirm selesai lalu set loading state
         const originalConfirm = btn.getAttribute('data-confirm');
         if (!originalConfirm) return;
         const observer = new MutationObserver(() => {

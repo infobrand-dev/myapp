@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Support\ModuleManager;
 use App\Support\ModuleFilesystemAudit;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -77,42 +78,46 @@ class ModuleController extends Controller
 
         return view('modules.index', [
             'modules' => $filteredModules,
+            'moduleRegistry' => array_values($allModules),
             'categories' => $categories,
             'filters' => $filters,
         ]);
     }
 
-    public function install(string $slug, ModuleManager $modules): RedirectResponse
+    public function install(Request $request, string $slug, ModuleManager $modules): RedirectResponse|JsonResponse
     {
         try {
             $modules->install($slug);
-            return back()->with('status', "Module '{$slug}' berhasil di-install.");
+
+            return $this->moduleActionSuccessResponse($request, $slug, "Module '{$slug}' berhasil di-install.");
         } catch (Throwable $e) {
-            return back()->with('status', "Gagal install module '{$slug}': " . $e->getMessage());
+            return $this->moduleActionErrorResponse($request, $slug, "Gagal install module '{$slug}': " . $e->getMessage());
         }
     }
 
-    public function activate(string $slug, ModuleManager $modules): RedirectResponse
+    public function activate(Request $request, string $slug, ModuleManager $modules): RedirectResponse|JsonResponse
     {
         try {
             $modules->activate($slug);
-            return back()->with('status', "Module '{$slug}' berhasil diaktifkan.");
+
+            return $this->moduleActionSuccessResponse($request, $slug, "Module '{$slug}' berhasil diaktifkan.");
         } catch (Throwable $e) {
-            return back()->with('status', "Gagal aktivasi module '{$slug}': " . $e->getMessage());
+            return $this->moduleActionErrorResponse($request, $slug, "Gagal aktivasi module '{$slug}': " . $e->getMessage());
         }
     }
 
-    public function deactivate(string $slug, ModuleManager $modules): RedirectResponse
+    public function deactivate(Request $request, string $slug, ModuleManager $modules): RedirectResponse|JsonResponse
     {
         try {
             $modules->deactivate($slug);
-            return back()->with('status', "Module '{$slug}' berhasil dinonaktifkan.");
+
+            return $this->moduleActionSuccessResponse($request, $slug, "Module '{$slug}' berhasil dinonaktifkan.");
         } catch (Throwable $e) {
-            return back()->with('status', "Gagal nonaktifkan module '{$slug}': " . $e->getMessage());
+            return $this->moduleActionErrorResponse($request, $slug, "Gagal nonaktifkan module '{$slug}': " . $e->getMessage());
         }
     }
 
-    public function runDbUpdate(string $slug, Request $request, ModuleManager $modules): RedirectResponse
+    public function runDbUpdate(string $slug, Request $request, ModuleManager $modules): RedirectResponse|JsonResponse
     {
         try {
             $count = $modules->runPendingDbUpdate($slug, $request->user()?->id);
@@ -120,20 +125,30 @@ class ModuleController extends Controller
                 ? "DB update module '{$slug}' berhasil. {$count} migration dijalankan."
                 : "Module '{$slug}' tidak memiliki pending DB update.";
 
-            return back()->with('status', $message);
+            return $this->moduleActionSuccessResponse($request, $slug, $message, ['count' => $count]);
         } catch (Throwable $e) {
-            return back()->with('status', "Gagal DB update module '{$slug}': " . $e->getMessage());
+            return $this->moduleActionErrorResponse($request, $slug, "Gagal DB update module '{$slug}': " . $e->getMessage());
         }
     }
 
-    public function runSingleMigration(string $slug, string $migration, Request $request, ModuleManager $modules): RedirectResponse
+    public function runSingleMigration(string $slug, string $migration, Request $request, ModuleManager $modules): RedirectResponse|JsonResponse
     {
         try {
             $modules->runSingleMigration($slug, $migration, $request->user()?->id);
 
-            return back()->with('status', "Migration '{$migration}' untuk module '{$slug}' berhasil dijalankan.");
+            return $this->moduleActionSuccessResponse(
+                $request,
+                $slug,
+                "Migration '{$migration}' untuk module '{$slug}' berhasil dijalankan.",
+                ['migration' => $migration]
+            );
         } catch (Throwable $e) {
-            return back()->with('status', "Gagal menjalankan migration '{$migration}' untuk module '{$slug}': " . $e->getMessage());
+            return $this->moduleActionErrorResponse(
+                $request,
+                $slug,
+                "Gagal menjalankan migration '{$migration}' untuk module '{$slug}': " . $e->getMessage(),
+                ['migration' => $migration]
+            );
         }
     }
 
@@ -192,5 +207,37 @@ class ModuleController extends Controller
         }
 
         return "Bulk {$labels[$result['action']]} berhasil untuk {$executed} module: " . implode(', ', $result['executed']) . ".{$autoLabel}";
+    }
+
+    /**
+     * @param  array<string, mixed>  $extra
+     */
+    private function moduleActionSuccessResponse(Request $request, string $slug, string $message, array $extra = []): RedirectResponse|JsonResponse
+    {
+        if ($request->expectsJson()) {
+            return response()->json(array_merge([
+                'ok' => true,
+                'slug' => $slug,
+                'message' => $message,
+            ], $extra));
+        }
+
+        return back()->with('status', $message);
+    }
+
+    /**
+     * @param  array<string, mixed>  $extra
+     */
+    private function moduleActionErrorResponse(Request $request, string $slug, string $message, array $extra = []): RedirectResponse|JsonResponse
+    {
+        if ($request->expectsJson()) {
+            return response()->json(array_merge([
+                'ok' => false,
+                'slug' => $slug,
+                'message' => $message,
+            ], $extra), 422);
+        }
+
+        return back()->with('status', $message);
     }
 }
